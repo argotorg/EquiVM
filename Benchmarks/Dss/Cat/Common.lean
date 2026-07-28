@@ -34,23 +34,23 @@ The EVMLean static-storage/code projections exposed through `Reasoning.ExternalC
 translate that account-address relation to the Uniswap code-size word helper used by the solc reach
 rules. -/
 
-/-- `uniswapExtCodeSizeWord` reads only an account's `.code` (as `ofNat · .code.size`), so it is a
+/-- `extCodeSizeWord` reads only an account's `.code` (as `ofNat · .code.size`), so it is a
     function of `(σ.findD a default).code` — the projection `accountCodeStateEq` preserves. -/
-theorem uniswapExtCodeSizeWord_eq_ofNat_findD (σ : AccountMap) (target : UInt256) :
-    Reasoning.Theory.uniswapExtCodeSizeWord σ target
+theorem extCodeSizeWord_eq_ofNat_findD (σ : AccountMap) (target : UInt256) :
+    Reasoning.Theory.extCodeSizeWord σ target
       = UInt256.ofNat (σ.findD (AccountAddress.ofUInt256 target) default).code.size := by
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord
+  unfold Reasoning.Theory.extCodeSizeWord
   cases h : σ.find? (AccountAddress.ofUInt256 target) with
   | none => simp [Batteries.RBMap.findD, h, Option.option]; rfl
   | some acc => simp [Batteries.RBMap.findD, h, Option.option]
 
-/-- Code preservation transfers to `uniswapExtCodeSizeWord`: static calls leave every account's
+/-- Code preservation transfers to `extCodeSizeWord`: static calls leave every account's
     `EXTCODESIZE` word unchanged. -/
-theorem uniswapExtCodeSizeWord_eq_of_accountCodeStateEq {σ σ' : AccountMap} (target : UInt256)
+theorem extCodeSizeWord_eq_of_accountCodeStateEq {σ σ' : AccountMap} (target : UInt256)
     (h : accountCodeStateEq σ σ') :
-    Reasoning.Theory.uniswapExtCodeSizeWord σ' target
-      = Reasoning.Theory.uniswapExtCodeSizeWord σ target := by
-  rw [uniswapExtCodeSizeWord_eq_ofNat_findD, uniswapExtCodeSizeWord_eq_ofNat_findD,
+    Reasoning.Theory.extCodeSizeWord σ' target
+      = Reasoning.Theory.extCodeSizeWord σ target := by
+  rw [extCodeSizeWord_eq_ofNat_findD, extCodeSizeWord_eq_ofNat_findD,
     (h (AccountAddress.ofUInt256 target)).symm]
 
 /-! ## Selector helpers -/
@@ -674,7 +674,7 @@ theorem catX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
     |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 theorem catX_short {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -697,7 +697,7 @@ theorem catX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h256 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h256 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 /-! ## Dispatch-failure (`dispatchMsg = none`) and non-payable body facts -/
@@ -784,7 +784,7 @@ theorem catJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt25
   have h256 := h.push2 catDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h256 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h256 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem catLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -800,7 +800,7 @@ theorem catLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     |>.selectorArmNotTakenAuto (catLowLowArmsWellFormed 2 (by omega)) (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (catLowLowArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h256 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h256 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem catLowHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}

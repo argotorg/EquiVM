@@ -227,7 +227,7 @@ theorem tlcUpdateDelayX_ok {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
   have h2167 := evm_run h with [
     jumpdest,
     raw caller (by native_decide) (by evm_ov),
-    raw uniswapAddress (by native_decide) (by evm_ov),
+    raw address (by native_decide) (by evm_ov),
     dup2, eq, push2 ⟨2166⟩,
     jumpiT (by rw [hself, uInt256_eq_self]; decide) (by jump_dest),
     jumpdest, push1 ⟨2⟩ ]
@@ -276,7 +276,7 @@ theorem tlcUpdateDelayRevCaller {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
   have h2165pre := evm_run h with [
     jumpdest,
     raw caller (by native_decide) (by evm_ov),
-    raw uniswapAddress (by native_decide) (by evm_ov),
+    raw address (by native_decide) (by evm_ov),
     dup2, eq, push2 ⟨2166⟩,
     jumpiNT (by exact heq0),
     push1 ⟨64⟩,

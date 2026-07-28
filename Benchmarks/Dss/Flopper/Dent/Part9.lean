@@ -685,7 +685,7 @@ theorem flopperDentBodyCoreMoveSuccessTicZero
       UInt256.ofNat I.source.val ≠
         flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ_evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩)
     (hticMove :
       flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I = ⟨0⟩)
@@ -719,13 +719,13 @@ theorem flopperDentBodyCoreMoveSuccessTicZero
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   by_cases hashNoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ'
+      Reasoning.Theory.extCodeSizeWord σ'
         (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I) = ⟨0⟩
   · exact flopperDentBodyCoreAshNoCodeMoveCallerNeTicZero hcode hwv hlive hguy hticOk
       hendGt hbid hlotLt hbegFit hlotOneFit hsuff hcaller hcodeSize hticMove hashNoCode
       rd2545 hmem hread64 hcall hdispatch hdecode hAccounts
   · have hashCodeSize :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ'
+        Reasoning.Theory.extCodeSizeWord σ'
           (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I) ≠ ⟨0⟩ :=
       hashNoCode
     obtain ⟨memAshSelector, cAAsh, σAsh, zAsh, outAsh, AinAsh, AAsh, k2690, C2690,
@@ -783,7 +783,7 @@ theorem flopperDentBodyCoreMoveSuccessTicZero
       · have hmemAsh128 := hmemAsh128Of houtAsh32
         have hreadAsh128 := hreadAsh128Of houtAsh32
         by_cases hkissNoCode :
-            Reasoning.Theory.uniswapExtCodeSizeWord σAsh
+            Reasoning.Theory.extCodeSizeWord σAsh
               (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σAsh I) =
                 ⟨0⟩
         · exact flopperDentBodyCoreKissNoCodeMoveCallerNeTicZero hcode hwv hlive hguy
@@ -792,7 +792,7 @@ theorem flopperDentBodyCoreMoveSuccessTicZero
             houtAshSize hmemAsh64 hreadAsh64 hmemAsh128 hreadAsh128 hdispatch hdecode
             hAccounts
         · have hkissCodeSize :
-              Reasoning.Theory.uniswapExtCodeSizeWord σAsh
+              Reasoning.Theory.extCodeSizeWord σAsh
                 (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σAsh I) ≠
                   ⟨0⟩ := hkissNoCode
           obtain ⟨_, _, rd2731⟩ :=

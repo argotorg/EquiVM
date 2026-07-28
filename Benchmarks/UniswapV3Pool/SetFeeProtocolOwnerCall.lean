@@ -721,7 +721,7 @@ theorem uniswapV3PoolSetFeeProtocolOwnerExtcodesizeMissingReverts {v : PoolImmut
         ⟨128⟩ :: ⟨32⟩ :: ⟨132⟩ :: ⟨2376452955⟩ :: setFeeProtocolFactoryWord v :: R)
       setFeeProtocolOwnerCallMem (UInt256.ofNat 5) rdata (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (setFeeProtocolFactoryWord v) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (setFeeProtocolFactoryWord v) = ⟨0⟩)
     (hov : R.length + 11 ≤ 1024) :
     RDrev code g s0 := by
   have hd8373 : decode code ⟨8373⟩ = some (.EXTCODESIZE, .none) := by
@@ -778,7 +778,7 @@ theorem uniswapV3PoolSetFeeProtocolOwnerExtcodesizeMissingReverts {v : PoolImmut
       (uniswapV3PoolSetFeeProtocolOwnerCallPatchDisjointAfterFactory (n := 1)
         (by native_decide) (by native_decide))
       (by native_decide) (by native_decide) (by native_decide)
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨8373⟩) (okPc := ⟨8385⟩) h
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨8373⟩) (okPc := ⟨8385⟩) h
     hcodeSize hd8373 (by simpa using hd8374) (by simpa using hd8375)
     (by simpa using hd8376) (by simpa using hd8377) (by simpa using hd8380)
     (by simpa using hd8381) (by simpa using hd8383) (by simpa using hd8384)
@@ -795,7 +795,7 @@ theorem uniswapV3PoolSetFeeProtocolOwnerStaticcallMade {v : PoolImmutables}
         ⟨128⟩ :: ⟨32⟩ :: ⟨132⟩ :: ⟨2376452955⟩ :: setFeeProtocolFactoryWord v :: R)
       setFeeProtocolOwnerCallMem (UInt256.ofNat 5) rdata (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (setFeeProtocolFactoryWord v) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (setFeeProtocolFactoryWord v) ≠ ⟨0⟩)
     (hdepth : ee.depth.val < 1024)
     (hov : R.length + 11 ≤ 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
@@ -875,14 +875,14 @@ theorem uniswapV3PoolSetFeeProtocolOwnerStaticcallMade {v : PoolImmutables}
         (by native_decide) (by native_decide))
       (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨gasWord, kGas, CGas, rd8388⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨8373⟩) (okPc := ⟨8385⟩) h hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨8373⟩) (okPc := ⟨8385⟩) h hcodeSize
       hd8373 (by simpa using hd8374) (by simpa using hd8375) (by simpa using hd8376)
       (by simpa using hd8377) (by simpa using hd8380)
       (uniswapV3PoolJumpDestPatched8385 hpatch) (by simpa using hd8385)
       (by simpa using hd8386) (by simpa using hd8387)
       (by simp only [List.length_cons]; omega)
   obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd8389, hoSize⟩ :=
-    RD.uniswapStaticcall rd8388 (by simpa using hd8388) hdepth
+    RD.solcStaticcall rd8388 (by simpa using hd8388) hdepth
       (by simp only [List.length_cons]; omega)
   exact ⟨cA', σ', z, o, A_in, callGas, k', C',
     hΘ,
@@ -904,7 +904,7 @@ theorem uniswapV3PoolSetFeeProtocolOwnerTypedStaticcallMade {v : PoolImmutables}
         ⟨128⟩ :: ⟨32⟩ :: ⟨132⟩ :: ⟨2376452955⟩ :: setFeeProtocolFactoryWord v :: R)
       setFeeProtocolOwnerCallMem (UInt256.ofNat 5) rdata (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (setFeeProtocolFactoryWord v) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (setFeeProtocolFactoryWord v) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 11 ≤ 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
@@ -1051,7 +1051,7 @@ theorem uniswapV3PoolSetFeeProtocolOwnerStaticcallStatusGuard {v : PoolImmutable
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩ := by
       rw [hz]
       decide
-    exact RD.uniswapCallSuccessGuardOk (pc := ⟨8389⟩) (okPc := ⟨8405⟩) h hstatus
+    exact RD.solcCallSuccessGuardOk (pc := ⟨8389⟩) (okPc := ⟨8405⟩) h hstatus
       hd8389 (by simpa using hd8390) (by simpa using hd8391) (by simpa using hd8392)
       (by simpa using hd8395) (uniswapV3PoolJumpDestPatched8405 hpatch)
       (by simpa using hd8405) (by simpa using hd8406)
@@ -1060,7 +1060,7 @@ theorem uniswapV3PoolSetFeeProtocolOwnerStaticcallStatusGuard {v : PoolImmutable
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       rw [hz]
       rfl
-    refine RD.uniswapCallSuccessGuardMissing (pc := ⟨8389⟩) (okPc := ⟨8405⟩) h hstatus
+    refine RD.solcCallSuccessGuardMissing (pc := ⟨8389⟩) (okPc := ⟨8405⟩) h hstatus
       hd8389 (by simpa using hd8390) (by simpa using hd8391) (by simpa using hd8392)
       (by simpa using hd8395) (by simpa using hd8396) (by simpa using hd8397)
       (by simpa using hd8399) (by simpa using hd8400) (by simpa using hd8401)
@@ -1600,7 +1600,7 @@ theorem uniswapV3PoolSetFeeProtocolOwnerCallerGuardReverts {v : PoolImmutables}
     raw push2 ⟨8449⟩ hd8441 (by evm_ov)]
   rw [hmask, heq] at rd8444
   have rd8445 := rd8444.jumpiNT hd8444 (by decide) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd8445 hd8445
+  exact RD.solcPush1Dup1Revert0 rd8445 hd8445
     (by simpa [show (⟨8445⟩ : UInt256) + UInt256.ofNat 2 = ⟨8447⟩ by native_decide]
       using hd8447)
     (by simpa [
@@ -1619,7 +1619,7 @@ theorem uniswapV3PoolSetFeeProtocolOwnerStaticcallDepthLimitReverts {v : PoolImm
         ⟨128⟩ :: ⟨32⟩ :: ⟨132⟩ :: ⟨2376452955⟩ :: setFeeProtocolFactoryWord v :: R)
       setFeeProtocolOwnerCallMem (UInt256.ofNat 5) rdata (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (setFeeProtocolFactoryWord v) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (setFeeProtocolFactoryWord v) ≠ ⟨0⟩)
     (hdepth : ee.depth = 1024)
     (hov : R.length + 11 ≤ 1024) :
     RDrev code g s0 := by
@@ -1684,14 +1684,14 @@ theorem uniswapV3PoolSetFeeProtocolOwnerStaticcallDepthLimitReverts {v : PoolImm
         (by native_decide) (by native_decide))
       (by native_decide) (by native_decide) (by native_decide)
   obtain ⟨_, _, _, rd8388⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨8373⟩) (okPc := ⟨8385⟩) h hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨8373⟩) (okPc := ⟨8385⟩) h hcodeSize
       hd8373 (by simpa using hd8374) (by simpa using hd8375) (by simpa using hd8376)
       (by simpa using hd8377) (by simpa using hd8380)
       (uniswapV3PoolJumpDestPatched8385 hpatch) (by simpa using hd8385)
       (by simpa using hd8386) (by simpa using hd8387)
       (by simp only [List.length_cons]; omega)
   obtain ⟨kDepth, CDepth, rd8389⟩ :=
-    RD.uniswapStaticcallDepthLimit rd8388 (by simpa using hd8388) hdepth
+    RD.solcStaticcallDepthLimit rd8388 (by simpa using hd8388) hdepth
       (by simp only [List.length_cons]; omega)
   have rd8389' : RD code ee g s0 ⟨8389⟩
       ((if false then (⟨1⟩ : UInt256) else ⟨0⟩) :: ⟨132⟩ :: ⟨2376452955⟩ ::

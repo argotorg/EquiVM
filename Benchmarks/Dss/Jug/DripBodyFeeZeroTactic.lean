@@ -27,7 +27,7 @@ by_cases hprevMaxNot :
     rw [← hrhoWord]
     exact hle
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
           (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
     dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCode
   have hvatCodeSolm :
@@ -188,7 +188,7 @@ by_cases hprevMaxNot :
     by_contra hbad
     exact hprevMaxNot hbad
   by_cases hfoldNoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ'
+      Reasoning.Theory.extCodeSizeWord σ'
         (dripVatTargetWord σ' I) = ⟨0⟩
   · let locals := dripLocals I
     let evmE :=
@@ -205,7 +205,7 @@ by_cases hprevMaxNot :
       rw [← hrhoWord]
       exact hle
     have hcodeSizeSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+        Reasoning.Theory.extCodeSizeWord σ_solm
             (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
       dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCode
     have hvatCodeSolm :
@@ -304,14 +304,14 @@ by_cases hprevMaxNot :
       intro hbad
       exact hageNZ (by simpa [age, hrhoPostWord] using hbad)
     have hfoldCodeSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm
+        Reasoning.Theory.extCodeSizeWord σ'_solm
             (dripVatTargetWord σ'_solm I) = ⟨0⟩ :=
       dripVatCodeSize_zero_accountMapEquiv hAccounts' hfoldNoCode
     have hfoldNoCodeSolmRaw :
         (UInt256.ofNat
           ((σ'_solm.find? (dripVatAddress σ'_solm I)).option 0
             (fun acc => acc.code.size))).toNat = 0 :=
-      drip_uniswapExtCodeSizeWord_zero_lookup_code_zero
+      drip_extCodeSizeWord_zero_lookup_code_zero
         (σ := σ'_solm) (target := dripVatTargetWord σ'_solm I)
         (addr := dripVatAddress σ'_solm I)
         (dripVatAddress_eq_target σ'_solm I) hfoldCodeSolm
@@ -501,7 +501,7 @@ by_cases hprevMaxNot :
         rw [← hrhoWord]
         exact hle
       have hcodeSizeSolm :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+          Reasoning.Theory.extCodeSizeWord σ_solm
               (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
         dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCode
       have hvatCodeSolm :
@@ -693,7 +693,7 @@ by_cases hprevMaxNot :
         intro hbad
         exact hageNZ (by simpa [age, hrhoPostWord] using hbad)
       have hfoldCodeSolmNe :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm
+          Reasoning.Theory.extCodeSizeWord σ'_solm
               (dripVatTargetWord σ'_solm I) ≠ ⟨0⟩ :=
         dripVatCodeSize_ne_zero_accountMapEquiv hAccounts'
           hfoldNoCode
@@ -768,7 +768,7 @@ by_cases hprevMaxNot :
         rw [← hrhoWord]
         exact hle
       have hcodeSizeSolm :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+          Reasoning.Theory.extCodeSizeWord σ_solm
               (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
         dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCode
       have hvatCodeSolm :
@@ -960,7 +960,7 @@ by_cases hprevMaxNot :
         intro hbad
         exact hageNZ (by simpa [age, hrhoPostWord] using hbad)
       have hfoldCodeSolmNe :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm
+          Reasoning.Theory.extCodeSizeWord σ'_solm
               (dripVatTargetWord σ'_solm I) ≠ ⟨0⟩ :=
         dripVatCodeSize_ne_zero_accountMapEquiv hAccounts'
           hfoldNoCode

@@ -447,7 +447,7 @@ theorem flapperCageX_toMoveExtcodesizeGuard
     raw dup2 (by native_decide) (by evm_ov),
     raw mstore 6 (Benchmarks.Dss.Flopper.dentMoveSelectorMem mem0) (UInt256.ofNat 5)
       (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw uniswapAddress (by native_decide) (by evm_ov),
+    raw address (by native_decide) (by evm_ov),
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
@@ -541,7 +541,7 @@ theorem flapperCageX_toMoveExtcodesizeGuard
 
 theorem flapperCageX_moveNoCode
     {cA gh bl σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
-    (hnoCode : Reasoning.Theory.uniswapExtCodeSizeWord σ (cageVatWord σ I) = ⟨0⟩)
+    (hnoCode : Reasoning.Theory.extCodeSizeWord σ (cageVatWord σ I) = ⟨0⟩)
     (rd3207 : RD flapperBytecode I g
       (initState cA gh bl σStart σ₀ g A I) ⟨3207⟩
       [⟨0⟩, cageRadWord I, ⟨360⟩, sel]
@@ -549,7 +549,7 @@ theorem flapperCageX_moveNoCode
       (cA, σ) k C) :
     RDrev flapperBytecode g (initState cA gh bl σStart σ₀ g A I) := by
   obtain ⟨_, _, rd3277⟩ := flapperCageX_toMoveExtcodesizeGuard rd3207
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3277⟩) (okPc := ⟨3289⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3277⟩) (okPc := ⟨3289⟩)
     rd3277 hnoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -559,7 +559,7 @@ theorem flapperCageX_moveCall
     {cA gh bl σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (cageVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (cageVatWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd3207 : RD flapperBytecode I g
       (initState cA gh bl σStart σ₀ g A I) ⟨3207⟩
@@ -603,7 +603,7 @@ theorem flapperCageX_moveCall
     simpa [guy, cageSenderWord, solcSourceWord] using solcSource_ofNat I
   obtain ⟨_, _, rd3277⟩ := flapperCageX_toMoveExtcodesizeGuard rd3207
   obtain ⟨gasWord, _, _, rd3292⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3277⟩) (okPc := ⟨3289⟩) rd3277
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3277⟩) (okPc := ⟨3289⟩) rd3277
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -645,7 +645,7 @@ theorem flapperCageX_moveCall
 theorem flapperCageX_moveCallDepthLimit
     {cA gh bl σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (cageVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (cageVatWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (rd3207 : RD flapperBytecode I g
       (initState cA gh bl σStart σ₀ g A I) ⟨3207⟩
@@ -663,7 +663,7 @@ theorem flapperCageX_moveCallDepthLimit
   intro src guy rad vat
   obtain ⟨_, _, rd3277⟩ := flapperCageX_toMoveExtcodesizeGuard rd3207
   obtain ⟨gasWord, _, _, rd3292⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3277⟩) (okPc := ⟨3289⟩) rd3277
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3277⟩) (okPc := ⟨3289⟩) rd3277
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -694,7 +694,7 @@ theorem flapperCageX_moveCallFailure
       mem aw out (cA', σ') k C)
     (houtSize : out.size < UInt256.size) :
     RDrev flapperBytecode g (initState cA gh bl σStart σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨3293⟩) (okPc := ⟨3309⟩) rd3293
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨3293⟩) (okPc := ⟨3309⟩) rd3293
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -712,7 +712,7 @@ theorem flapperCageX_moveCallSuccess
     RDret flapperBytecode g (initState cA gh bl σStart σ₀ g A I)
       (cA', σ') ByteArray.empty := by
   obtain ⟨k3311, C3311, rd3311raw⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨3293⟩) (okPc := ⟨3309⟩) rd3293
+    RD.solcCallSuccessGuardOk (pc := ⟨3293⟩) (okPc := ⟨3309⟩) rd3293
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -745,12 +745,12 @@ theorem cageAddressReturnWord_accountMapEquiv {σ τ : AccountMap} {I : Executio
 theorem cageCodeSize_ne_accountMapEquiv_addressSlot {σ τ : AccountMap}
     {I : ExecutionEnv} (hAccounts : accountMapEquiv σ τ) (slot : UInt256)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flapperAddressReturnWord slot σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (flapperAddressReturnWord slot τ I) ≠ ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord slot σ I) ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (flapperAddressReturnWord slot τ I) ≠ ⟨0⟩ := by
   intro hzero
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (flapperAddressReturnWord slot σ I)
   have htarget :
       flapperAddressReturnWord slot σ I = flapperAddressReturnWord slot τ I :=
@@ -761,10 +761,10 @@ theorem cageCodeSize_ne_accountMapEquiv_addressSlot {σ τ : AccountMap}
 theorem cageCodeSize_zero_accountMapEquiv_addressSlot {σ τ : AccountMap}
     {I : ExecutionEnv} (hAccounts : accountMapEquiv σ τ) (slot : UInt256)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flapperAddressReturnWord slot σ I) = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (flapperAddressReturnWord slot τ I) = ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord slot σ I) = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (flapperAddressReturnWord slot τ I) = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (flapperAddressReturnWord slot σ I)
   have htarget :
       flapperAddressReturnWord slot σ I = flapperAddressReturnWord slot τ I :=
@@ -890,7 +890,7 @@ theorem flapperCageBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
     (hauth :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostState evm).accountMap
+      Reasoning.Theory.extCodeSizeWord (cageLivePostState evm).accountMap
         (flapperAddressReturnWord ⟨2⟩ (cageLivePostState evm).accountMap
           (cageLivePostState evm).executionEnv) = ⟨0⟩) :
     ExecTransitionBody config contract evm (cageLocals I) cageTransition.body .reverted := by
@@ -950,7 +950,7 @@ theorem flapperCageBodyReverts_moveCallFailure
     (hauth :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostState evm).accountMap
+      Reasoning.Theory.extCodeSizeWord (cageLivePostState evm).accountMap
         (flapperAddressReturnWord ⟨2⟩ (cageLivePostState evm).accountMap
           (cageLivePostState evm).executionEnv) ≠ ⟨0⟩)
     (hcall :
@@ -1020,7 +1020,7 @@ theorem flapperCageBodyReturns_moveCallSuccess
     (hauth :
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (relyAuthStorageSlot I) = ⟨1⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostState evm).accountMap
+      Reasoning.Theory.extCodeSizeWord (cageLivePostState evm).accountMap
         (flapperAddressReturnWord ⟨2⟩ (cageLivePostState evm).accountMap
           (cageLivePostState evm).executionEnv) ≠ ⟨0⟩)
     (hcall :
@@ -1129,7 +1129,7 @@ theorem flapperCageBodyCoreMoveNoCode
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ_evm I = ⟨1⟩)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostAccountMap I σ_evm)
+      Reasoning.Theory.extCodeSizeWord (cageLivePostAccountMap I σ_evm)
         (cageVatWord (cageLivePostAccountMap I σ_evm) I) = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
     (hdecode :
@@ -1150,12 +1150,12 @@ theorem flapperCageBodyCoreMoveNoCode
       accountMapEquiv (cageLivePostAccountMap I σ_evm) (cageLivePostAccountMap I σ_solm) :=
     accountMapEquiv_sstoreAccountMap I.codeOwner ⟨7⟩ ⟨0⟩ hAccounts
   have hnoCodeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostAccountMap I σ_solm)
+      Reasoning.Theory.extCodeSizeWord (cageLivePostAccountMap I σ_solm)
         (flapperAddressReturnWord ⟨2⟩ (cageLivePostAccountMap I σ_solm) I) = ⟨0⟩ := by
     simpa [cageVatWord] using
       cageCodeSize_zero_accountMapEquiv_addressSlot hAccountsLive ⟨2⟩ hnoCode
   have hnoCodePost :
-      Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostState evmSolm).accountMap
+      Reasoning.Theory.extCodeSizeWord (cageLivePostState evmSolm).accountMap
         (flapperAddressReturnWord ⟨2⟩ (cageLivePostState evmSolm).accountMap
           (cageLivePostState evmSolm).executionEnv) = ⟨0⟩ := by
     simpa [evmSolm, cageLivePostState, cageLivePostAccountMap, initState,
@@ -1188,7 +1188,7 @@ theorem flapperCageBodyCoreMoveCallDepthLimit
     (hsz36 : 36 ≤ I.calldata.size)
     (hauth : relyAuthWord σ_evm I = ⟨1⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostAccountMap I σ_evm)
+      Reasoning.Theory.extCodeSizeWord (cageLivePostAccountMap I σ_evm)
         (cageVatWord (cageLivePostAccountMap I σ_evm) I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hdispatch : dispatchMsg contract I.calldata = some cageTransition)
@@ -1252,11 +1252,11 @@ theorem flapperCageBodyCoreMoveCallDepthLimit
       accountMapEquiv (cageLivePostAccountMap I σ_evm) (cageLivePostAccountMap I σ_solm) :=
     accountMapEquiv_sstoreAccountMap I.codeOwner ⟨7⟩ ⟨0⟩ hAccounts
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmLiveSolm.accountMap
+      Reasoning.Theory.extCodeSizeWord evmLiveSolm.accountMap
         (flapperAddressReturnWord ⟨2⟩ evmLiveSolm.accountMap evmLiveSolm.executionEnv) ≠
           ⟨0⟩ := by
     have hcodeSizeSolmMap :
-        Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostAccountMap I σ_solm)
+        Reasoning.Theory.extCodeSizeWord (cageLivePostAccountMap I σ_solm)
           (flapperAddressReturnWord ⟨2⟩ (cageLivePostAccountMap I σ_solm) I) ≠ ⟨0⟩ := by
       simpa [cageVatWord] using
         cageCodeSize_ne_accountMapEquiv_addressSlot hAccountsLive ⟨2⟩ hcodeSize
@@ -1293,7 +1293,7 @@ theorem flapperCageBodyCoreMoveCallFailure
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ_evm I = ⟨1⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostAccountMap I σ_evm)
+      Reasoning.Theory.extCodeSizeWord (cageLivePostAccountMap I σ_evm)
         (cageVatWord (cageLivePostAccountMap I σ_evm) I) ≠ ⟨0⟩)
     (rd3293 : RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3293⟩
@@ -1373,11 +1373,11 @@ theorem flapperCageBodyCoreMoveCallFailure
     rw [← hword]
     exact hauth
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmLiveSolm.accountMap
+      Reasoning.Theory.extCodeSizeWord evmLiveSolm.accountMap
         (flapperAddressReturnWord ⟨2⟩ evmLiveSolm.accountMap evmLiveSolm.executionEnv) ≠
           ⟨0⟩ := by
     have hcodeSizeSolmMap :
-        Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostAccountMap I σ_solm)
+        Reasoning.Theory.extCodeSizeWord (cageLivePostAccountMap I σ_solm)
           (flapperAddressReturnWord ⟨2⟩ (cageLivePostAccountMap I σ_solm) I) ≠ ⟨0⟩ := by
       simpa [cageVatWord] using
         cageCodeSize_ne_accountMapEquiv_addressSlot hAccountsLiveMap ⟨2⟩ hcodeSize
@@ -1405,7 +1405,7 @@ theorem flapperCageBodyCoreMoveCallSuccess
     (hperm : I.perm = true) (hwv : I.weiValue = ⟨0⟩)
     (hauth : relyAuthWord σ_evm I = ⟨1⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostAccountMap I σ_evm)
+      Reasoning.Theory.extCodeSizeWord (cageLivePostAccountMap I σ_evm)
         (cageVatWord (cageLivePostAccountMap I σ_evm) I) ≠ ⟨0⟩)
     (rd3293 : RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3293⟩
@@ -1484,11 +1484,11 @@ theorem flapperCageBodyCoreMoveCallSuccess
     rw [← hword]
     exact hauth
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmLiveSolm.accountMap
+      Reasoning.Theory.extCodeSizeWord evmLiveSolm.accountMap
         (flapperAddressReturnWord ⟨2⟩ evmLiveSolm.accountMap evmLiveSolm.executionEnv) ≠
           ⟨0⟩ := by
     have hcodeSizeSolmMap :
-        Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostAccountMap I σ_solm)
+        Reasoning.Theory.extCodeSizeWord (cageLivePostAccountMap I σ_solm)
           (flapperAddressReturnWord ⟨2⟩ (cageLivePostAccountMap I σ_solm) I) ≠ ⟨0⟩ := by
       simpa [cageVatWord] using
         cageCodeSize_ne_accountMapEquiv_addressSlot hAccountsLiveMap ⟨2⟩ hcodeSize
@@ -1549,12 +1549,12 @@ theorem flapperCageBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   · have hdecode := flapperDecode_cage_ok (I := I) hsz36
     by_cases hauth : relyAuthWord σ_evm I = ⟨1⟩
     · by_cases hnoCode :
-          Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostAccountMap I σ_evm)
+          Reasoning.Theory.extCodeSizeWord (cageLivePostAccountMap I σ_evm)
             (cageVatWord (cageLivePostAccountMap I σ_evm) I) = ⟨0⟩
       · exact flapperCageBodyCoreMoveNoCode hcode hsize hperm hwv hsz36 hauth
           hnoCode hdispatch hdecode hreach hAccounts
       · have hcodeSize :
-            Reasoning.Theory.uniswapExtCodeSizeWord (cageLivePostAccountMap I σ_evm)
+            Reasoning.Theory.extCodeSizeWord (cageLivePostAccountMap I σ_evm)
               (cageVatWord (cageLivePostAccountMap I σ_evm) I) ≠ ⟨0⟩ := hnoCode
         by_cases hdepthEq : I.depth = 1024
         · exact flapperCageBodyCoreMoveCallDepthLimit hcode hsize hperm hwv hsz36

@@ -6431,34 +6431,34 @@ theorem barkVat_eq_vatKey (v : DogImmutables) :
 theorem barkVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {v : DogImmutables}
     (hAccounts : accountMapEquiv σ τ)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (barkVatWord v) = ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (barkVatWord v) = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts (barkVatWord v)
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts (barkVatWord v)
   rw [← hsame]
   exact hzero
 
 theorem barkVatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {v : DogImmutables}
     (hAccounts : accountMapEquiv σ τ)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (barkVatWord v) ≠ ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (barkVatWord v) ≠ ⟨0⟩ := by
   intro hzero
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts (barkVatWord v)
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts (barkVatWord v)
   rw [hsame]
   exact hzero
 
 theorem barkVatCode_zero_of_codeSize_zero {v : DogImmutables}
     {cA gh bl σ σ₀ A I} {g : UInt256}
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩) :
     (UInt256.ofNat
       (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   rw [barkVat_eq_vatKey v]
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
   cases hacc : σ.find? (AccountAddress.ofUInt256 (barkVatWord v)) with
   | none =>
       simpa [initState, State.lookupAccount, hacc, Option.option] using
@@ -6470,12 +6470,12 @@ theorem barkVatCode_zero_of_codeSize_zero {v : DogImmutables}
 theorem barkVatCode_pos_of_codeSize_ne {v : DogImmutables}
     {cA gh bl σ σ₀ A I} {g : UInt256}
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (AccountAddress.ofNat v.vat.toNat)).option 0 (fun acc => acc.code.size))).toNat := by
   rw [barkVat_eq_vatKey v]
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hne
+  unfold Reasoning.Theory.extCodeSizeWord at hne
   cases hacc : σ.find? (AccountAddress.ofUInt256 (barkVatWord v)) with
   | none =>
       exfalso
@@ -6496,12 +6496,12 @@ theorem barkVatCode_pos_of_codeSize_ne {v : DogImmutables}
 
 theorem barkVatCode_zero_of_state_codeSize_zero {v : DogImmutables} {evm : EVM.State}
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (barkVatWord v) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (barkVatWord v) = ⟨0⟩) :
     (UInt256.ofNat
       ((evm.lookupAccount (AccountAddress.ofNat v.vat.toNat)).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
   rw [barkVat_eq_vatKey v]
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
   cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 (barkVatWord v)) with
   | none =>
       simpa [State.lookupAccount, hacc, Option.option] using
@@ -6512,12 +6512,12 @@ theorem barkVatCode_zero_of_state_codeSize_zero {v : DogImmutables} {evm : EVM.S
 
 theorem barkVatCode_pos_of_state_codeSize_ne {v : DogImmutables} {evm : EVM.State}
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (barkVatWord v) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (barkVatWord v) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((evm.lookupAccount (AccountAddress.ofNat v.vat.toNat)).option 0
         (fun acc => acc.code.size))).toNat := by
   rw [barkVat_eq_vatKey v]
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hne
+  unfold Reasoning.Theory.extCodeSizeWord at hne
   cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 (barkVatWord v)) with
   | none =>
       exfalso
@@ -6538,12 +6538,12 @@ theorem barkVatCode_pos_of_state_codeSize_ne {v : DogImmutables} {evm : EVM.Stat
 
 theorem dogCode_zero_of_state_codeSize_zero {evm : EVM.State} {targetWord : UInt256}
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap targetWord = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap targetWord = ⟨0⟩) :
     (UInt256.ofNat
       ((evm.lookupAccount (AccountAddress.ofNat targetWord.toNat)).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
   rw [← accountAddress_ofUInt256_eq_ofNat_toNat targetWord]
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
   cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 targetWord) with
   | none =>
       simpa [State.lookupAccount, hacc, Option.option] using
@@ -6554,12 +6554,12 @@ theorem dogCode_zero_of_state_codeSize_zero {evm : EVM.State} {targetWord : UInt
 
 theorem dogCode_pos_of_state_codeSize_ne {evm : EVM.State} {targetWord : UInt256}
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap targetWord ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap targetWord ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((evm.lookupAccount (AccountAddress.ofNat targetWord.toNat)).option 0
         (fun acc => acc.code.size))).toNat := by
   rw [← accountAddress_ofUInt256_eq_ofNat_toNat targetWord]
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hne
+  unfold Reasoning.Theory.extCodeSizeWord at hne
   cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 targetWord) with
   | none =>
       exfalso
@@ -6581,22 +6581,22 @@ theorem dogCode_pos_of_state_codeSize_ne {evm : EVM.State} {targetWord : UInt256
 theorem dogCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {targetWord : UInt256}
     (hAccounts : accountMapEquiv σ τ)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ targetWord = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ targetWord = ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ targetWord = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ targetWord = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts targetWord
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts targetWord
   rw [← hsame]
   exact hzero
 
 theorem dogCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {targetWord : UInt256}
     (hAccounts : accountMapEquiv σ τ)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ targetWord ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ targetWord ≠ ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ targetWord ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ targetWord ≠ ⟨0⟩ := by
   intro hzero
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts targetWord
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts targetWord
   rw [hsame]
   exact hzero
 
@@ -13755,7 +13755,7 @@ theorem RD.dogCheckedMulOverflowReverts {v : DogImmutables} {code : ByteArray}
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
       native_decide)
     heqCond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
       native_decide)
@@ -13872,7 +13872,7 @@ theorem RD.dogCheckedAddOverflowReverts {v : DogImmutables} {code : ByteArray}
       native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by simp only [List.length_cons]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rd4637
+  exact RD.solcPush1Dup1Revert0 rd4637
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
       native_decide)
@@ -14585,14 +14585,14 @@ theorem RD.dogBarkVatUrnsNoCodeRevert {v : DogImmutables} {code : ByteArray}
       mem (UInt256.ofNat 3) rdata (cA, σ) k C)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩)
     (hov : R.length + 24 ≤ 1024) :
     RDrev code g s0 := by
   obtain ⟨_, _, rd2941⟩ :=
     RD.dogBarkVatUrnsToCallMload hpatch h hmem hread64 (by omega)
   obtain ⟨_, _, rd2992⟩ :=
     RD.dogBarkVatUrnsToExtcodesize hpatch rd2941 hmem hread64 hov
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2992⟩) (okPc := ⟨3004⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2992⟩) (okPc := ⟨3004⟩)
     rd2992 hcodeSize
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -14634,7 +14634,7 @@ theorem RD.dogBarkVatUrnsToStaticcall {v : DogImmutables} {code : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
     (hov : R.length + 24 ≤ 1024) :
     ∃ gasWord k' C', RD code I g s0 ⟨3007⟩
       (gasWord :: barkVatWord v :: ⟨128⟩ :: ⟨68⟩ :: ⟨128⟩ :: ⟨64⟩ ::
@@ -14646,7 +14646,7 @@ theorem RD.dogBarkVatUrnsToStaticcall {v : DogImmutables} {code : ByteArray}
   obtain ⟨_, _, rd2992⟩ :=
     RD.dogBarkVatUrnsToExtcodesize hpatch rd2941 hmem hread64 hov
   obtain ⟨gasWord, k', C', rd3007⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2992⟩) (okPc := ⟨3004⟩)
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2992⟩) (okPc := ⟨3004⟩)
       rd2992 hcodeSize
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -14690,7 +14690,7 @@ theorem RD.dogBarkVatUrnsPostStaticcall {v : DogImmutables} {code : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 24 ≤ 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
@@ -14711,7 +14711,7 @@ theorem RD.dogBarkVatUrnsPostStaticcall {v : DogImmutables} {code : ByteArray}
   obtain ⟨_, _, _, rd3007⟩ :=
     RD.dogBarkVatUrnsToStaticcall hpatch h hmem hread64 hcodeSize hov
   obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘpack, rd3008raw, hosz⟩ :=
-    RD.uniswapStaticcall rd3007
+    RD.solcStaticcall rd3007
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
         native_decide)
@@ -14777,7 +14777,7 @@ theorem RD.dogBarkVatUrnsCallFailure {v : DogImmutables} {code : ByteArray}
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
     RDrev code g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨3008⟩) (okPc := ⟨3024⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨3008⟩) (okPc := ⟨3024⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -14828,7 +14828,7 @@ theorem RD.dogBarkVatUrnsCallSuccessToDecode {v : DogImmutables} {code : ByteArr
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨3026⟩ (d0 :: d1 :: d2 :: R)
       mem aw rdata acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨3008⟩) (okPc := ⟨3024⟩) rd
+  exact RD.solcCallSuccessGuardOk (pc := ⟨3008⟩) (okPc := ⟨3024⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -14938,7 +14938,7 @@ theorem RD.dogBarkVatUrnsReturnDecodeShortReverts {v : DogImmutables} {code : By
       native_decide)
     hcond
     (by simp only [List.length_cons]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
       native_decide)
@@ -16124,7 +16124,7 @@ theorem RD.dogBarkVatIlksToStaticcall {v : DogImmutables} {code : ByteArray}
       (barkIlksMem σ I mem out) (UInt256.ofNat 12) rdata (cA, σ) k C)
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
     (hov : R.length + 40 ≤ 1024) :
     ∃ gasWord k' C', RD code I g s0 ⟨3244⟩
       (gasWord :: barkVatWord v :: ⟨384⟩ :: ⟨36⟩ :: ⟨384⟩ :: ⟨160⟩ ::
@@ -16136,7 +16136,7 @@ theorem RD.dogBarkVatIlksToStaticcall {v : DogImmutables} {code : ByteArray}
   obtain ⟨_, _, rd3229⟩ :=
     RD.dogBarkVatIlksToExtcodesize hpatch rd hmem hlong hout (by omega)
   obtain ⟨gasWord, k', C', rd3244⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3229⟩) (okPc := ⟨3241⟩)
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3229⟩) (okPc := ⟨3241⟩)
       rd3229 hcodeSize
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -16182,7 +16182,7 @@ theorem RD.dogBarkVatIlksPostStaticcall {v : DogImmutables} {code : ByteArray}
     (hsz100 : 100 ≤ I.calldata.size)
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
     (hevmEnv : evm.executionEnv = I)
     (hevmCreated : evm.createdAccounts = cA)
     (hevmMap : evm.accountMap = σ)
@@ -16210,7 +16210,7 @@ theorem RD.dogBarkVatIlksPostStaticcall {v : DogImmutables} {code : ByteArray}
   obtain ⟨_, _, _, rd3244⟩ :=
     RD.dogBarkVatIlksToStaticcall hpatch rd hmem hlong hout hcodeSize hov
   obtain ⟨cA', σ', z, outIlks, A_in, callGas, k', C', hΘpack, rd3245raw, hosz⟩ :=
-    RD.uniswapStaticcall rd3244
+    RD.solcStaticcall rd3244
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
         native_decide)
@@ -16276,12 +16276,12 @@ theorem RD.dogBarkVatIlksNoCodeRevert {v : DogImmutables} {code : ByteArray}
         barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
       (barkIlksMem σ I mem out) (UInt256.ofNat 12) rdata (cA, σ) k C)
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩)
     (hov : R.length + 40 ≤ 1024) :
     RDrev code g s0 := by
   obtain ⟨_, _, rd3229⟩ :=
     RD.dogBarkVatIlksToExtcodesize hpatch rd hmem hlong hout (by omega)
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3229⟩) (okPc := ⟨3241⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3229⟩) (okPc := ⟨3241⟩)
     rd3229 hcodeSize
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -16321,7 +16321,7 @@ theorem RD.dogBarkVatIlksCallFailure {v : DogImmutables} {code : ByteArray}
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
     RDrev code g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨3245⟩) (okPc := ⟨3261⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨3245⟩) (okPc := ⟨3261⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -16377,7 +16377,7 @@ theorem RD.dogBarkVatIlksCallSuccessToDecode {v : DogImmutables} {code : ByteArr
       (d0 :: d1 :: d2 :: d3 :: d4 :: d5 :: d6 :: d7 :: d8 :: d9 ::
         d10 :: d11 :: d12 :: d13 :: ret :: sel :: R)
       mem aw out acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨3245⟩) (okPc := ⟨3261⟩) rd
+  exact RD.solcCallSuccessGuardOk (pc := ⟨3245⟩) (okPc := ⟨3261⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -16492,7 +16492,7 @@ theorem RD.dogBarkVatIlksReturnDecodeShortReverts {v : DogImmutables} {code : By
       native_decide)
     hcond
     (by simp only [List.length_cons]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
       native_decide)
@@ -20679,10 +20679,10 @@ theorem RD.dogBarkVatGrabNoCodeRevert {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4023 : RD code I g s0 ⟨4023⟩ (barkVatWord v :: barkVatWord v :: R)
       mem (UInt256.ofNat 19) rdata (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) = ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     RDrev code g s0 := by
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨4023⟩) (okPc := ⟨4035⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨4023⟩) (okPc := ⟨4035⟩)
     rd4023 hcodeSize
     (by
       rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -20730,12 +20730,12 @@ theorem RD.dogBarkVatGrabToCall {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4023 : RD code I g s0 ⟨4023⟩ (barkVatWord v :: barkVatWord v :: R)
       mem (UInt256.ofNat 19) rdata (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     ∃ gasWord k' C', RD code I g s0 ⟨4038⟩ (gasWord :: barkVatWord v :: R)
       mem (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
   obtain ⟨gasWord, k', C', rd4038⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4023⟩) (okPc := ⟨4035⟩)
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4023⟩) (okPc := ⟨4035⟩)
       rd4023 hcodeSize
       (by
         rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -20786,7 +20786,7 @@ theorem RD.dogBarkVatGrabCallFailure {v : DogImmutables} {code : ByteArray}
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
     RDrev code g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨4039⟩) (okPc := ⟨4055⟩) rd4039
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨4039⟩) (okPc := ⟨4055⟩) rd4039
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by
       rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -20846,7 +20846,7 @@ theorem RD.dogBarkVatGrabCallSuccess {v : DogImmutables} {code : ByteArray}
     (rd4039 : RD code I g s0 ⟨4039⟩ (⟨1⟩ :: R) mem aw rdata acc k C)
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨4057⟩ R mem aw rdata acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨4039⟩) (okPc := ⟨4055⟩) rd4039
+  exact RD.solcCallSuccessGuardOk (pc := ⟨4039⟩) (okPc := ⟨4055⟩) rd4039
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by
       rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -20899,7 +20899,7 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
         (fromByteArrayBigEndian (mem.readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
         barkIlksClipWord σMem I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
     (hevmEnv : evm.executionEnv = I)
     (hevmCreated : evm.createdAccounts = cA)
     (hevmMap : evm.accountMap = σ)
@@ -21544,10 +21544,10 @@ theorem RD.dogBarkFessNoCodeRevert {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4139 : RD code I g s0 ⟨4139⟩ (barkVowWord σ I :: barkVowWord σ I :: R)
       mem (UInt256.ofNat 19) rdata (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVowWord σ I) = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVowWord σ I) = ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     RDrev code g s0 := by
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨4139⟩) (okPc := ⟨4151⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨4139⟩) (okPc := ⟨4151⟩)
     rd4139 hcodeSize
     (by
       rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -21595,12 +21595,12 @@ theorem RD.dogBarkFessToCall {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code)
     (rd4139 : RD code I g s0 ⟨4139⟩ (barkVowWord σ I :: barkVowWord σ I :: R)
       mem (UInt256.ofNat 19) rdata (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVowWord σ I) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVowWord σ I) ≠ ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     ∃ gasWord k' C', RD code I g s0 ⟨4154⟩ (gasWord :: barkVowWord σ I :: R)
       mem (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
   obtain ⟨gasWord, k', C', rd4154⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4139⟩) (okPc := ⟨4151⟩)
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4139⟩) (okPc := ⟨4151⟩)
       rd4139 hcodeSize
       (by
         rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -21651,7 +21651,7 @@ theorem RD.dogBarkFessCallFailure {v : DogImmutables} {code : ByteArray}
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
     RDrev code g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨4155⟩) (okPc := ⟨4171⟩) rd4155
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨4155⟩) (okPc := ⟨4171⟩) rd4155
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by
       rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -21714,7 +21714,7 @@ theorem RD.dogBarkFessCallSuccess {v : DogImmutables} {code : ByteArray}
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨4176⟩ R mem aw rdata acc k' C' := by
   obtain ⟨k4173, C4173, rd4173⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨4155⟩) (okPc := ⟨4171⟩) rd4155
+    RD.solcCallSuccessGuardOk (pc := ⟨4155⟩) (okPc := ⟨4171⟩) rd4155
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by
         rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -21779,7 +21779,7 @@ theorem RD.dogBarkFessPostCall {v : DogImmutables} {code : ByteArray}
       mem (UInt256.ofNat 19) rdata (cA, σ) k C)
     (hmem : mem.size = 580)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨384⟩)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVowWord σ I) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (barkVowWord σ I) ≠ ⟨0⟩)
     (hevmEnv : evm.executionEnv = I)
     (hevmCreated : evm.createdAccounts = cA)
     (hevmMap : evm.accountMap = σ)
@@ -23225,10 +23225,10 @@ theorem RD.dogBarkKickNoCodeRevert {v : DogImmutables} {code : ByteArray}
       (barkIlksClipWord σMem I :: barkIlksClipWord σMem I :: R)
       mem (UInt256.ofNat 19) rdata (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkIlksClipWord σMem I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (barkIlksClipWord σMem I) = ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     RDrev code g s0 := by
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨4370⟩) (okPc := ⟨4382⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨4370⟩) (okPc := ⟨4382⟩)
     rd4370 hcodeSize
     (by
       rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -23278,13 +23278,13 @@ theorem RD.dogBarkKickToCall {v : DogImmutables} {code : ByteArray}
       (barkIlksClipWord σMem I :: barkIlksClipWord σMem I :: R)
       mem (UInt256.ofNat 19) rdata (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkIlksClipWord σMem I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (barkIlksClipWord σMem I) ≠ ⟨0⟩)
     (hov : R.length + 4 ≤ 1024) :
     ∃ gasWord k' C', RD code I g s0 ⟨4385⟩
       (gasWord :: barkIlksClipWord σMem I :: R)
       mem (UInt256.ofNat 19) rdata (cA, σ) k' C' := by
   obtain ⟨gasWord, k', C', rd4385⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4370⟩) (okPc := ⟨4382⟩)
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4370⟩) (okPc := ⟨4382⟩)
       rd4370 hcodeSize
       (by
         rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -23345,7 +23345,7 @@ theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
         (fromByteArrayBigEndian (mem.readWithPadding (⟨256⟩ : UInt256).toNat 32))) =
         barkIlksClipWord σMem I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkIlksClipWord σMem I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (barkIlksClipWord σMem I) ≠ ⟨0⟩)
     (hevmEnv : evm.executionEnv = I)
     (hevmCreated : evm.createdAccounts = cA)
     (hevmMap : evm.accountMap = σ)
@@ -23451,7 +23451,7 @@ theorem RD.dogBarkKickCallFailure {v : DogImmutables} {code : ByteArray}
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
     RDrev code g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨4386⟩) (okPc := ⟨4402⟩) rd4386
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨4386⟩) (okPc := ⟨4402⟩) rd4386
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by
       rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -23514,7 +23514,7 @@ theorem RD.dogBarkKickCallSuccessToDecode {v : DogImmutables} {code : ByteArray}
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD code I g s0 ⟨4404⟩ (d0 :: d1 :: d2 :: R)
       mem aw rdata acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨4386⟩) (okPc := ⟨4402⟩) rd4386
+  exact RD.solcCallSuccessGuardOk (pc := ⟨4386⟩) (okPc := ⟨4402⟩) rd4386
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by
       rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
@@ -23644,7 +23644,7 @@ theorem RD.dogBarkKickReturnDecodeShortReverts {v : DogImmutables} {code : ByteA
       native_decide)
     hcond
     (by simp only [List.length_cons]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by
       rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
         (by native_decide) (by native_decide)]
@@ -24682,14 +24682,14 @@ theorem RD.dogBarkVatUrnsStaticcallDepthLimitRevert {v : DogImmutables} {code : 
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (barkVatWord v) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hov : R.length + 24 ≤ 1024) :
     RDrev code g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, _, rd3007⟩ :=
     RD.dogBarkVatUrnsToStaticcall hpatch h hmem hread64 hcodeSize hov
   obtain ⟨_, _, rd3008raw⟩ :=
-    RD.uniswapStaticcallDepthLimit rd3007
+    RD.solcStaticcallDepthLimit rd3007
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
         native_decide)
@@ -24925,13 +24925,13 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
       obtain ⟨_, _, h2885⟩ := RD.dogBarkLiveOk hpatch hbodyReach hliveSolc
         (by simp only [List.length_cons, List.length_nil]; omega)
       by_cases hvatCodeSize :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (barkVatWord v) = ⟨0⟩
+          Reasoning.Theory.extCodeSizeWord σ_evm (barkVatWord v) = ⟨0⟩
       · have hrev := RD.dogBarkVatUrnsNoCodeRevert
           (v := v) (code := code) (ret := ⟨448⟩) (sel := solcSelectorWord I) (R := [])
           hpatch h2885 solcFreePtrMem_size solcFreePtrMem_read64 hvatCodeSize
           (by simp)
         have hvatCodeSizeSolm :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (barkVatWord v) = ⟨0⟩ :=
+            Reasoning.Theory.extCodeSizeWord σ_solm (barkVatWord v) = ⟨0⟩ :=
           barkVatCodeSize_zero_accountMapEquiv hAccounts hvatCodeSize
         have hvatNoCode :
             (UInt256.ofNat
@@ -24950,10 +24950,10 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
               hwv hliveSolm hvatNoCode)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hvatCodeSizeNe :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (barkVatWord v) ≠ ⟨0⟩ :=
+            Reasoning.Theory.extCodeSizeWord σ_evm (barkVatWord v) ≠ ⟨0⟩ :=
           hvatCodeSize
         have hvatCodeSizeSolmNe :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (barkVatWord v) ≠ ⟨0⟩ :=
+            Reasoning.Theory.extCodeSizeWord σ_solm (barkVatWord v) ≠ ⟨0⟩ :=
           barkVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeSizeNe
         have hvatCode :
             0 < (UInt256.ofNat
@@ -25026,16 +25026,16 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
               have hStateCall : EVMStateEquiv evmPostEvm evmPostSolm := by
                 simpa [evmPostEvm, evmPostSolm] using hStateCallRaw
               by_cases hvatIlksCodeSize :
-                  Reasoning.Theory.uniswapExtCodeSizeWord σ' (barkVatWord v) = ⟨0⟩
+                  Reasoning.Theory.extCodeSizeWord σ' (barkVatWord v) = ⟨0⟩
               · have hrev := RD.dogBarkVatIlksNoCodeRevert hpatch rd3139
                   solcFreePtrMem_size hretLong hosz hvatIlksCodeSize
                   (by simp only [List.length_cons, List.length_nil]; omega)
                 have hvatIlksCodeSizeEvm :
-                    Reasoning.Theory.uniswapExtCodeSizeWord evmPostEvm.accountMap
+                    Reasoning.Theory.extCodeSizeWord evmPostEvm.accountMap
                       (barkVatWord v) = ⟨0⟩ := by
                   simpa [evmPostEvm] using hvatIlksCodeSize
                 have hvatIlksCodeSizeSolm :
-                    Reasoning.Theory.uniswapExtCodeSizeWord evmPostSolm.accountMap
+                    Reasoning.Theory.extCodeSizeWord evmPostSolm.accountMap
                       (barkVatWord v) = ⟨0⟩ :=
                   barkVatCodeSize_zero_accountMapEquiv hStateCall.accountMap
                     hvatIlksCodeSizeEvm
@@ -25105,11 +25105,11 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                   have hrev := RD.dogBarkVatIlksCallFailure hpatch rd3245 hoszIlks
                     (by simp only [List.length_cons, List.length_nil]; omega)
                   have hvatIlksCodeSizeEvmNe :
-                      Reasoning.Theory.uniswapExtCodeSizeWord evmPostEvm.accountMap
+                      Reasoning.Theory.extCodeSizeWord evmPostEvm.accountMap
                         (barkVatWord v) ≠ ⟨0⟩ := by
                     simpa [evmPostEvm] using hvatIlksCodeSize
                   have hvatIlksCodeSizeSolmNe :
-                      Reasoning.Theory.uniswapExtCodeSizeWord evmPostSolm.accountMap
+                      Reasoning.Theory.extCodeSizeWord evmPostSolm.accountMap
                         (barkVatWord v) ≠ ⟨0⟩ :=
                     barkVatCodeSize_ne_accountMapEquiv hStateCall.accountMap
                       hvatIlksCodeSizeEvmNe
@@ -25137,11 +25137,11 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                     RD.dogBarkVatIlksCallSuccessToDecode hpatch rd3245
                       (by simp only [List.length_cons, List.length_nil]; omega)
                   have hvatIlksCodeSizeEvmNe :
-                      Reasoning.Theory.uniswapExtCodeSizeWord evmPostEvm.accountMap
+                      Reasoning.Theory.extCodeSizeWord evmPostEvm.accountMap
                         (barkVatWord v) ≠ ⟨0⟩ := by
                     simpa [evmPostEvm] using hvatIlksCodeSize
                   have hvatIlksCodeSizeSolmNe :
-                      Reasoning.Theory.uniswapExtCodeSizeWord evmPostSolm.accountMap
+                      Reasoning.Theory.extCodeSizeWord evmPostSolm.accountMap
                         (barkVatWord v) ≠ ⟨0⟩ :=
                     barkVatCodeSize_ne_accountMapEquiv hStateCall.accountMap
                       hvatIlksCodeSizeEvmNe
@@ -26164,7 +26164,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                   (σ := σ') (I := I) solcFreePtrMem_size
                                                   hretLong hosz hretIlksLong hoszIlks
                                             by_cases hvatGrabCodeZero :
-                                                Reasoning.Theory.uniswapExtCodeSizeWord σ''
+                                                Reasoning.Theory.extCodeSizeWord σ''
                                                   (barkVatWord v) = ⟨0⟩
                                             · obtain ⟨_, _, rd4023⟩ :=
                                                 RD.dogBarkVatGrabExtcodesizeGuard
@@ -26176,7 +26176,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                   (by simpa [mem0] using hpostMemRead64)
                                                   hmload256Grab rd3885 (by simp)
                                               have hvatGrabZeroSolm :
-                                                  Reasoning.Theory.uniswapExtCodeSizeWord
+                                                  Reasoning.Theory.extCodeSizeWord
                                                     evmIlksPostSolm.accountMap
                                                     (barkVatWord v) = ⟨0⟩ :=
                                                 barkVatCodeSize_zero_accountMapEquiv
@@ -26329,7 +26329,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                 simpa [evmGrabSolm, hvowWordIlks] using
                                                   hcallGrabSolmRaw
                                               have hvatGrabNonzeroSolm :
-                                                  Reasoning.Theory.uniswapExtCodeSizeWord
+                                                  Reasoning.Theory.extCodeSizeWord
                                                     evmIlksPostSolm.accountMap
                                                     (barkVatWord v) ≠ ⟨0⟩ :=
                                                 barkVatCodeSize_ne_accountMapEquiv
@@ -26550,7 +26550,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                     "id" ++
                                                   [ .return [.var "id"] ]
                                                 by_cases hvowCodeZero :
-                                                    Reasoning.Theory.uniswapExtCodeSizeWord
+                                                    Reasoning.Theory.extCodeSizeWord
                                                       σGrab (barkVowWord σGrab I) = ⟨0⟩
                                                 · obtain ⟨_, _, rd4139⟩ :=
                                                     RD.dogBarkFessExtcodesizeGuard
@@ -26562,7 +26562,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                       hpatch hmemGrabSize hmemGrabRead64
                                                       rd4071 (by simp)
                                                   have hvowCodeZeroSolm :
-                                                      Reasoning.Theory.uniswapExtCodeSizeWord
+                                                      Reasoning.Theory.extCodeSizeWord
                                                         evmGrabSolm.accountMap
                                                         (barkVowWord evmGrabSolm.accountMap
                                                           evmGrabSolm.executionEnv) = ⟨0⟩ := by
@@ -26706,7 +26706,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                     simpa [evmFessEvm, evmFessSolm] using
                                                       hAccountsFessRaw
                                                   have hvowCodeNonzeroSolm :
-                                                      Reasoning.Theory.uniswapExtCodeSizeWord
+                                                      Reasoning.Theory.extCodeSizeWord
                                                         evmGrabSolm.accountMap
                                                         (barkVowWord
                                                           evmGrabSolm.accountMap
@@ -27732,7 +27732,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                             rw [hmilkClipIlkDirtNew]
                                                             rfl
                                                           by_cases hclipCodeZero :
-                                                              Reasoning.Theory.uniswapExtCodeSizeWord
+                                                              Reasoning.Theory.extCodeSizeWord
                                                                 σIlkDirt
                                                                 (barkIlksClipWord σ' I) = ⟨0⟩
                                                           · obtain ⟨_, _, rd4370⟩ :=
@@ -27749,7 +27749,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                 hmload256KickPre rd4267
                                                                 (by simp)
                                                             have hclipZeroSolm :
-                                                                Reasoning.Theory.uniswapExtCodeSizeWord
+                                                                Reasoning.Theory.extCodeSizeWord
                                                                   evmIlkDirtSolm.accountMap
                                                                   (barkIlksClipWord σ' I) = ⟨0⟩ :=
                                                               dogCodeSize_zero_accountMapEquiv
@@ -27814,7 +27814,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                             exact hrev.reEquivExecutionRevert
                                                               hcode hdispatch hdecode htailBody
                                                           · have hclipNonzeroSolm :
-                                                                Reasoning.Theory.uniswapExtCodeSizeWord
+                                                                Reasoning.Theory.extCodeSizeWord
                                                                   evmIlkDirtSolm.accountMap
                                                                   (barkIlksClipWord σ' I) ≠ ⟨0⟩ :=
                                                               dogCodeSize_ne_accountMapEquiv

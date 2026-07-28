@@ -87,7 +87,7 @@ theorem flopperDentX_moveSuccessTicZeroToAshExtcodesizeGuard
       (lt_of_lt_of_le (by decide : 64 < 160) hmemAshSelector160)
       (by decide) hread64AshSelector
   obtain ⟨_, _, rd2563⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨2545⟩) (okPc := ⟨2561⟩) rd2545
+    RD.solcCallSuccessGuardOk (pc := ⟨2545⟩) (okPc := ⟨2561⟩) rd2545
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -329,7 +329,7 @@ theorem flopperDentX_moveSuccessTicZeroAshNoCode
     (hticZero :
       flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I = ⟨0⟩)
     (hashNoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ'
+      Reasoning.Theory.extCodeSizeWord σ'
         (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I) = ⟨0⟩)
     (rd2545 : RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2545⟩
       (⟨1⟩ :: dentMoveEndPtr :: dentMoveSelectorWord ::
@@ -340,7 +340,7 @@ theorem flopperDentX_moveSuccessTicZeroAshNoCode
   obtain ⟨_, _, _, rd2674, _hashCalldata, _hmem128, _hread64⟩ :=
     flopperDentX_moveSuccessTicZeroToAshExtcodesizeGuard
       (g := g) hmem hread64 hticZero rd2545
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2674⟩) (okPc := ⟨2686⟩) rd2674
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2674⟩) (okPc := ⟨2686⟩) rd2674
     hashNoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -356,7 +356,7 @@ theorem flopperDentX_ashCallFailure
       mem aw out (cA', σ') k C)
     (houtSize : out.size < UInt256.size) :
     RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2690⟩) (okPc := ⟨2706⟩) rd2690
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2690⟩) (okPc := ⟨2706⟩) rd2690
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -373,7 +373,7 @@ theorem flopperDentX_moveSuccessTicZeroAshCall
     (hticZero :
       flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I = ⟨0⟩)
     (hashCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ'
+      Reasoning.Theory.extCodeSizeWord σ'
         (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd2545 : RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2545⟩
@@ -422,7 +422,7 @@ theorem flopperDentX_moveSuccessTicZeroAshCall
     flopperDentX_moveSuccessTicZeroToAshExtcodesizeGuard
       (g := g) hmem hread64 hticZero rd2545
   obtain ⟨gasWord, _, _, rd2689⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2674⟩) (okPc := ⟨2686⟩) rd2674
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2674⟩) (okPc := ⟨2686⟩) rd2674
       hashCodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -520,7 +520,7 @@ theorem flopperDentX_ashCallSuccessDecodeShort
       mem (UInt256.ofNat 8) out acc k C) :
     RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd2708⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨2690⟩) (okPc := ⟨2706⟩) rd2690
+    RD.solcCallSuccessGuardOk (pc := ⟨2690⟩) (okPc := ⟨2706⟩) rd2690
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -559,7 +559,7 @@ theorem flopperDentX_ashCallSuccessDecodeOk
         ⟨334⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out acc k' C' := by
   obtain ⟨_, _, rd2708⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨2690⟩) (okPc := ⟨2706⟩) rd2690
+    RD.solcCallSuccessGuardOk (pc := ⟨2690⟩) (okPc := ⟨2706⟩) rd2690
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -871,7 +871,7 @@ theorem flopperDentX_kissNoCode
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel target : UInt256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     {mem out : ByteArray} {k C : ℕ}
-    (hnoCode : Reasoning.Theory.uniswapExtCodeSizeWord acc.2 target = ⟨0⟩)
+    (hnoCode : Reasoning.Theory.extCodeSizeWord acc.2 target = ⟨0⟩)
     (rd2817 : RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2817⟩
       (target :: target :: ⟨0⟩ :: dentKissOutPtr :: dentKissInSize :: dentKissOutPtr ::
         dentKissOutSize :: dentKissEndPtr :: dentKissSelectorWord :: target ::
@@ -879,7 +879,7 @@ theorem flopperDentX_kissNoCode
         sel :: [])
       mem (UInt256.ofNat 8) out acc k C) :
     RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2817⟩) (okPc := ⟨2829⟩) rd2817
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2817⟩) (okPc := ⟨2829⟩) rd2817
     hnoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -891,7 +891,7 @@ theorem flopperDentX_kissCall
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     {mem outAsh : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord acc.2 target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord acc.2 target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hencode :
       config.externalABI.encode? "kiss"
@@ -921,7 +921,7 @@ theorem flopperDentX_kissCall
           outKiss) true ∧
       outKiss.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd2832⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2817⟩) (okPc := ⟨2829⟩) rd2817
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2817⟩) (okPc := ⟨2829⟩) rd2817
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -979,7 +979,7 @@ theorem flopperDentX_kissCallFailure
       mem aw outKiss acc k C)
     (houtSize : outKiss.size < UInt256.size) :
     RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2833⟩) (okPc := ⟨2849⟩) rd2833
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2833⟩) (okPc := ⟨2849⟩) rd2833
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1122,7 +1122,7 @@ theorem flopperDentX_kissCallSuccessToTail
         memGuy (UInt256.ofNat 8) outKiss
         (cAKiss, dentRuntimeAfterGuyMap I.codeOwner σKiss I) k' C' := by
   obtain ⟨_, _, rd2851⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨2833⟩) (okPc := ⟨2849⟩) rd2833
+    RD.solcCallSuccessGuardOk (pc := ⟨2833⟩) (okPc := ⟨2849⟩) rd2833
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -1290,7 +1290,7 @@ theorem flopperDentX_addOverflowFromCheckedAdd
     rw [hltTrue]
     native_decide
   have rd4763 := rd4759.jumpiNT (by native_decide) hcond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd4763
+  exact RD.solcPush1Dup1Revert0 rd4763
     (by native_decide) (by native_decide) (by native_decide)
     (by simp)
 
@@ -1675,7 +1675,7 @@ theorem flopperDentX_addOverflowFromCheckedAddAw8
     rw [hltTrue]
     native_decide
   have rd4763 := rd4759.jumpiNT (by native_decide) hcond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd4763
+  exact RD.solcPush1Dup1Revert0 rd4763
     (by native_decide) (by native_decide) (by native_decide)
     (by simp)
 

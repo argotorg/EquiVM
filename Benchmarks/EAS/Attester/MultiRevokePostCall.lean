@@ -215,14 +215,14 @@ theorem attesterX_multiRevokeEncoderReturnToExtcodesize
         raw dup8 (by attester_decode_at v, ⟨785⟩, 0x87, .DUP8) (by evm_ov),
         raw dup1 (by attester_decode_at v, ⟨786⟩, 0x80, .DUP1) (by evm_ov)]⟩
 
-private theorem attesterMultiRevoke_uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+private theorem attesterMultiRevoke_extCodeSizeWord_ne_zero_lookup_code_pos
     {σ : AccountMap} {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩) :
+    (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hne
+  unfold Reasoning.Theory.extCodeSizeWord at hne
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
@@ -241,14 +241,14 @@ private theorem attesterMultiRevoke_uniswapExtCodeSizeWord_ne_zero_lookup_code_p
             · simp [UInt256.toNat, hword] at hzeroNat
       simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
 
-private theorem attesterMultiRevoke_uniswapExtCodeSizeWord_zero_lookup_code_zero
+private theorem attesterMultiRevoke_extCodeSizeWord_zero_lookup_code_zero
     {σ : AccountMap} {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩) :
+    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
@@ -285,14 +285,14 @@ theorem attesterMultiRevokeCodeSize_ne_accountMapEquiv (v : AttesterImmutables)
     {σ τ : AccountMap}
     (hAccounts : accountMapEquiv σ τ)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (attesterMultiRevokeTargetWord v) ≠
+      Reasoning.Theory.extCodeSizeWord σ (attesterMultiRevokeTargetWord v) ≠
         ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (attesterMultiRevokeTargetWord v) ≠
+    Reasoning.Theory.extCodeSizeWord τ (attesterMultiRevokeTargetWord v) ≠
       ⟨0⟩ := by
   intro hzero
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (attesterMultiRevokeTargetWord v)
   rw [hsame]
   exact hzero
@@ -301,12 +301,12 @@ theorem attesterMultiRevokeCodeSize_zero_accountMapEquiv (v : AttesterImmutables
     {σ τ : AccountMap}
     (hAccounts : accountMapEquiv σ τ)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (attesterMultiRevokeTargetWord v) =
+      Reasoning.Theory.extCodeSizeWord σ (attesterMultiRevokeTargetWord v) =
         ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (attesterMultiRevokeTargetWord v) =
+    Reasoning.Theory.extCodeSizeWord τ (attesterMultiRevokeTargetWord v) =
       ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (attesterMultiRevokeTargetWord v)
   rw [← hsame]
   exact hzero
@@ -315,13 +315,13 @@ theorem attesterMultiRevokeEasCode_pos_of_codeSize_ne
     {cA gh bl σ σ₀ A I} {g : Sat256}
     (v : AttesterImmutables)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (attesterMultiRevokeTargetWord v) ≠
+      Reasoning.Theory.extCodeSizeWord σ (attesterMultiRevokeTargetWord v) ≠
         ⟨0⟩) :
     0 < (UInt256.ofNat
       (((initState cA gh bl σ σ₀ g A I).lookupAccount (EVM.address v.eas)).option 0
         (fun acc => acc.code.size))).toNat := by
   simpa [initState, State.lookupAccount] using
-    attesterMultiRevoke_uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+    attesterMultiRevoke_extCodeSizeWord_ne_zero_lookup_code_pos
       (σ := σ) (target := attesterMultiRevokeTargetWord v) (addr := EVM.address v.eas)
       (attesterMultiRevokeTarget_eq v) hne
 
@@ -329,13 +329,13 @@ theorem attesterMultiRevokeEasCode_zero_of_codeSize_zero
     {cA gh bl σ σ₀ A I} {g : Sat256}
     (v : AttesterImmutables)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (attesterMultiRevokeTargetWord v) =
+      Reasoning.Theory.extCodeSizeWord σ (attesterMultiRevokeTargetWord v) =
         ⟨0⟩) :
     (UInt256.ofNat
       (((initState cA gh bl σ σ₀ g A I).lookupAccount (EVM.address v.eas)).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
-    attesterMultiRevoke_uniswapExtCodeSizeWord_zero_lookup_code_zero
+    attesterMultiRevoke_extCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := attesterMultiRevokeTargetWord v) (addr := EVM.address v.eas)
       (attesterMultiRevokeTarget_eq v) hzero
 
@@ -347,7 +347,7 @@ theorem attesterX_multiRevokeCallAtExtcodesize {cA gh bl σ σ₀ A I} {g : Sat2
       (⟨787⟩ : UInt256)
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: outSize :: rest)
       mem aw ByteArray.empty (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (htgt : EVM.address v.eas = AccountAddress.ofUInt256 target)
     (hcd : (config v).externalABI.encode? "multiRevoke" args =
       some (mem.readWithPadding inOff.toNat inSize.toNat))
@@ -367,7 +367,7 @@ theorem attesterX_multiRevokeCallAtExtcodesize {cA gh bl σ σ₀ A I} {g : Sat2
                 accountMap := σ', substate := A', createdAccounts := cA' }, o) true
     ∧ o.size < UInt256.size := by
   obtain ⟨_, _, _, rd801⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨787⟩) (okPc := ⟨798⟩)
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨787⟩) (okPc := ⟨798⟩)
       rd hcodeSize
       (by attester_decode_at v, ⟨787⟩, 0x3b, .EXTCODESIZE)
       (by attester_decode_at v, ⟨788⟩, 0x15, .ISZERO)
@@ -401,15 +401,15 @@ theorem attesterX_multiRevokeNoCodeAtExtcodesize {cA gh bl σ σ₀ A I} {g : Sa
       (⟨787⟩ : UInt256)
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: outSize :: rest)
       mem aw ByteArray.empty (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : rest.length + 9 ≤ 1024) :
     RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
-  obtain ⟨k788, C788, rd788raw⟩ := RD.uniswapExtcodesize rd
+  obtain ⟨k788, C788, rd788raw⟩ := RD.extcodesize rd
     (by attester_decode_at v, ⟨787⟩, 0x3b, .EXTCODESIZE)
     (by simp only [List.length_cons]; omega)
   have rd788 : RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I)
       (⟨788⟩ : UInt256)
-      (Reasoning.Theory.uniswapExtCodeSizeWord σ target :: target :: ⟨0⟩ ::
+      (Reasoning.Theory.extCodeSizeWord σ target :: target :: ⟨0⟩ ::
         inOff :: inSize :: outOff :: outSize :: rest)
       mem aw ByteArray.empty (cA, σ) k788 C788 := by
     simpa using rd788raw
@@ -495,12 +495,12 @@ theorem attesterX_multiRevokeCallDepthLimitAtExtcodesize
       (⟨787⟩ : UInt256)
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: outSize :: rest)
       mem aw ByteArray.empty (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hov : rest.length + 9 ≤ 1024) :
     RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, _, rd801⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨787⟩) (okPc := ⟨798⟩)
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨787⟩) (okPc := ⟨798⟩)
       rd hcodeSize
       (by attester_decode_at v, ⟨787⟩, 0x3b, .EXTCODESIZE)
       (by attester_decode_at v, ⟨788⟩, 0x15, .ISZERO)
@@ -539,7 +539,7 @@ theorem attesterX_multiRevokeSuccessStop {cA gh bl σ σ₀ A I} {g : Sat256}
       mem aw o acc k C) :
     RDret (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) acc ByteArray.empty := by
   obtain ⟨_, _, rd818⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨802⟩) (okPc := ⟨816⟩) rd
+    RD.solcCallSuccessGuardOk (pc := ⟨802⟩) (okPc := ⟨816⟩) rd
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by attester_decode_at v, ⟨802⟩, 0x15, .ISZERO)
       (by attester_decode_at v, ⟨803⟩, 0x80, .DUP1)

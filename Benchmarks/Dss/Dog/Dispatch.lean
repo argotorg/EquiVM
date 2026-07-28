@@ -746,7 +746,7 @@ theorem dogX_callvalue_ne {v : DogImmutables} {code : ByteArray}
         rw [dogDecodePatchedEqTemplate1405 (pc := ⟨11⟩) hpatch (by native_decide)]
         native_decide)
       (isZero_eq_zero_of_ne hwv) (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h12
+  exact RD.solcPush1Dup1Revert0 h12
     (by
       change decode code (⟨12⟩ : UInt256) = some (.Push .PUSH1, some (⟨0⟩, 1))
       rw [dogDecodePatchedEqTemplate1405 (pc := ⟨12⟩) hpatch (by native_decide)]
@@ -833,7 +833,7 @@ theorem dogX_short {v : DogImmutables} {code : ByteArray}
         rw [dogDecodePatchedEqTemplate1405 (pc := ⟨267⟩) hpatch (by native_decide)]
         native_decide)
       (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h267
+  exact RD.solcPush1Dup1Revert0 h267
     (by
       change decode code (⟨268⟩ : UInt256) = some (.Push .PUSH1, some (⟨0⟩, 1))
       rw [dogDecodePatchedEqTemplate1405 (pc := ⟨268⟩) hpatch (by native_decide)]
@@ -1064,7 +1064,7 @@ theorem dogJumpToDispatchRevert {v : DogImmutables} {code : ByteArray}
         rw [dogDecodePatchedEqTemplate1405 (pc := ⟨267⟩) hpatch (by native_decide)]
         native_decide)
       (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h267
+  exact RD.solcPush1Dup1Revert0 h267
     (by
       change decode code (⟨268⟩ : UInt256) = some (.Push .PUSH1, some (⟨0⟩, 1))
       rw [dogDecodePatchedEqTemplate1405 (pc := ⟨268⟩) hpatch (by native_decide)]
@@ -1090,7 +1090,7 @@ theorem dogDispatchRevertAt {v : DogImmutables} {code : ByteArray}
       rw [dogDecodePatchedEqTemplate1405 (pc := ⟨267⟩) hpatch (by native_decide)]
       native_decide)
     (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h268
+  exact RD.solcPush1Dup1Revert0 h268
     (by
       change decode code (⟨268⟩ : UInt256) = some (.Push .PUSH1, some (⟨0⟩, 1))
       rw [dogDecodePatchedEqTemplate1405 (pc := ⟨268⟩) hpatch (by native_decide)]

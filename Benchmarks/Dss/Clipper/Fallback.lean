@@ -95,7 +95,7 @@ theorem clipperFallbackRevertAt {code : ByteArray} {ee : ExecutionEnv} {g : Sat2
         change decode code (⟨463⟩ : UInt256) = some (.JUMPDEST, .none)
         clipper_decode)
     (by omega)
-  exact RD.uniswapPush1Dup1Revert0 h464
+  exact RD.solcPush1Dup1Revert0 h464
     (by
         change decode code ((⟨463⟩ : UInt256) + ⟨1⟩) =
           some (.Push .PUSH1, some (⟨0⟩, 1))
@@ -165,7 +165,7 @@ theorem clipperX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperI
           native_decide)
       (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h12
+  exact RD.solcPush1Dup1Revert0 h12
     (by
         change decode code (⟨12⟩ : UInt256) =
           some (.Push .PUSH1, some (⟨0⟩, 1))
@@ -262,7 +262,7 @@ theorem clipperX_short {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperImmutabl
         rw [clipperDecodeBeforeFirstPatch v hpatch (⟨463⟩ : UInt256) (by native_decide)]
         native_decide)
     (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h464
+  exact RD.solcPush1Dup1Revert0 h464
     (by
         rw [show ((⟨463⟩ : UInt256) + ⟨1⟩) = (⟨464⟩ : UInt256) from by native_decide]
         change decode code (⟨464⟩ : UInt256) =

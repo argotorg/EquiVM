@@ -14,11 +14,11 @@ set_option maxRecDepth 2000000
 private theorem ctorExtCodeSize_ne_zero_lookup_code_pos {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩) :
+    (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hne
+  unfold Reasoning.Theory.extCodeSizeWord at hne
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
@@ -40,11 +40,11 @@ private theorem ctorExtCodeSize_ne_zero_lookup_code_pos {σ : AccountMap} {targe
 private theorem ctorExtCodeSize_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩) :
+    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
@@ -257,12 +257,12 @@ theorem gemJoinConstructorCorrect :
     have htargetAddr : gem = AccountAddress.ofUInt256 gemTarget := by
       simpa [gemTarget, gemStored, gemJoinCtorGemTargetOfStored] using
         (gemJoinCtorGemTargetAddress_eq σIlk I gem).symm
-    by_cases hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σGem gemTarget = ⟨0⟩
+    by_cases hcodeSize : Reasoning.Theory.extCodeSizeWord σGem gemTarget = ⟨0⟩
     · have hrev := gemJoinCtorDecimalsNoCodeReverts vat ilk gem gemTarget hcodeSize rd184
       rcases hrev.xiResult hcodeCtor with hOOG | ⟨g', out, hRev⟩
       · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-      · have hcodeSizeSolm : uniswapExtCodeSizeWord evm5s.accountMap gemTarget = ⟨0⟩ := by
-          have hEq := uniswapExtCodeSizeWord_accountMapEquiv hAccounts5 gemTarget
+      · have hcodeSizeSolm : extCodeSizeWord evm5s.accountMap gemTarget = ⟨0⟩ := by
+          have hEq := extCodeSizeWord_accountMapEquiv hAccounts5 gemTarget
           exact hEq ▸ hcodeSize
         have hgemNoCode :
             (UInt256.ofNat ((evm5s.lookupAccount gem).option 0 (fun acc => acc.code.size))).toNat =
@@ -280,9 +280,9 @@ theorem gemJoinConstructorCorrect :
                 evm2s, evm3s, evm4s, evm5s] using hgemNoCode))
           ?_
         exact ctorResultEquiv.revert rfl rfl
-    · have hcodeSizeSolmNe : uniswapExtCodeSizeWord evm5s.accountMap gemTarget ≠ ⟨0⟩ := by
+    · have hcodeSizeSolmNe : extCodeSizeWord evm5s.accountMap gemTarget ≠ ⟨0⟩ := by
         intro hzero
-        have hEq := uniswapExtCodeSizeWord_accountMapEquiv hAccounts5 gemTarget
+        have hEq := extCodeSizeWord_accountMapEquiv hAccounts5 gemTarget
         exact hcodeSize (hEq.trans hzero)
       have hgemCode :
           0 < (UInt256.ofNat ((evm5s.lookupAccount gem).option 0

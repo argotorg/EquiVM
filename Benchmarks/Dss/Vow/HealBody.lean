@@ -32,11 +32,11 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   by_cases hcodeSizeDai :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) = ⟨0⟩
+      Reasoning.Theory.extCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) = ⟨0⟩
   · exact vowHealDaiNoCodeBodyCore hcode hwv hsz36 hsize hdispatch hdecode hreach
       hAccounts hcodeSizeDai
   have hcodeSizeDaiNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) ≠ ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) ≠ ⟨0⟩ :=
     hcodeSizeDai
   have hVatOrig : vowSlotWord ⟨1⟩ σ_evm I = vowSlotWord ⟨1⟩ σ_solm I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨1⟩ ⟨0⟩
@@ -46,11 +46,11 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     apply Fin.ext
     simp [kissVatAddress, vowAddressReturnWord, hVatOrig]
   have hcodeSizeSolmNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (kissDaiTargetWord σ_solm I) ≠ ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ_solm (kissDaiTargetWord σ_solm I) ≠ ⟨0⟩ := by
     intro hzero
     apply hcodeSizeDaiNE
     have hsame :=
-      Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
         (kissDaiTargetWord σ_evm I)
     rw [hsame, hTargetOrig]
     exact hzero
@@ -59,7 +59,7 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat := by
     simpa [initState, State.lookupAccount] using
-      uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := σ_solm) (target := kissDaiTargetWord σ_solm I)
         (addr := kissVatAddress σ_solm I)
         (kissVatAddress_eq_daiTarget_account σ_solm I) hcodeSizeSolmNE
@@ -200,15 +200,15 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             kissDaiTargetWord evmDaiSolm.accountMap I = kissDaiTargetWord σ_solm I := by
           simp [kissDaiTargetWord, hVatDaiSolmOrig]
         by_cases hcodeSizeSin :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_dai (kissDaiTargetWord σ_dai I) = ⟨0⟩
+            Reasoning.Theory.extCodeSizeWord σ_dai (kissDaiTargetWord σ_dai I) = ⟨0⟩
         · have hcodeSizeSinSolm :
-              Reasoning.Theory.uniswapExtCodeSizeWord evmDaiSolm.accountMap
+              Reasoning.Theory.extCodeSizeWord evmDaiSolm.accountMap
                 (kissDaiTargetWord evmDaiSolm.accountMap I) = ⟨0⟩ := by
             have hsame :=
-              Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccountsDai
+              Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccountsDai
                 (kissDaiTargetWord σ_dai I)
             have hzeroAtEvmTarget :
-                Reasoning.Theory.uniswapExtCodeSizeWord evmDaiSolm.accountMap
+                Reasoning.Theory.extCodeSizeWord evmDaiSolm.accountMap
                   (kissDaiTargetWord σ_dai I) = ⟨0⟩ := by
               rw [← hsame]
               exact hcodeSizeSin
@@ -223,7 +223,7 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 ((evmDaiSolm.lookupAccount (kissVatAddress σ_solm I)).option 0
                   (fun acc => acc.code.size))).toNat = 0 := by
             simpa [evmDaiSolm, State.lookupAccount] using
-              uniswapExtCodeSizeWord_zero_lookup_code_zero
+              extCodeSizeWord_zero_lookup_code_zero
                 (σ := evmDaiSolm.accountMap)
                 (target := kissDaiTargetWord evmDaiSolm.accountMap I)
                 (addr := kissVatAddress σ_solm I) haddrSin hcodeSizeSinSolm
@@ -232,18 +232,18 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             hcode hwv hdispatch hdecode rd4838 hmemDai hread64Dai hcodeSizeSin
             hvatCodeSolm hcallDaiSolm hdecDai hvatDaiEnough hvatLoadDai hvatNoCodeSin
         have hcodeSizeSinNE :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_dai (kissDaiTargetWord σ_dai I) ≠ ⟨0⟩ :=
+            Reasoning.Theory.extCodeSizeWord σ_dai (kissDaiTargetWord σ_dai I) ≠ ⟨0⟩ :=
           hcodeSizeSin
         have hcodeSizeSinSolmNE :
-            Reasoning.Theory.uniswapExtCodeSizeWord evmDaiSolm.accountMap
+            Reasoning.Theory.extCodeSizeWord evmDaiSolm.accountMap
               (kissDaiTargetWord evmDaiSolm.accountMap I) ≠ ⟨0⟩ := by
           intro hzero
           apply hcodeSizeSinNE
           have hsame :=
-            Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccountsDai
+            Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccountsDai
               (kissDaiTargetWord σ_dai I)
           have hzeroAtEvmTarget :
-              Reasoning.Theory.uniswapExtCodeSizeWord evmDaiSolm.accountMap
+              Reasoning.Theory.extCodeSizeWord evmDaiSolm.accountMap
                 (kissDaiTargetWord σ_dai I) = ⟨0⟩ := by
             simpa [hTargetDaiEq] using hzero
           rw [hsame]
@@ -258,7 +258,7 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               ((evmDaiSolm.lookupAccount (kissVatAddress σ_solm I)).option 0
                 (fun acc => acc.code.size))).toNat := by
           simpa [evmDaiSolm, State.lookupAccount] using
-            uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+            extCodeSizeWord_ne_zero_lookup_code_pos
               (σ := evmDaiSolm.accountMap)
               (target := kissDaiTargetWord evmDaiSolm.accountMap I)
               (addr := kissVatAddress σ_solm I) haddrSin hcodeSizeSinSolmNE
@@ -482,16 +482,16 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             apply Fin.ext
             simp [kissVatAddress, vowAddressReturnWord, hSlotSinOrig]
           by_cases hcodeSizeHeal :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_sin
+              Reasoning.Theory.extCodeSizeWord σ_sin
                 (kissDaiTargetWord σ_sin I) = ⟨0⟩
           · have hcodeSizeHealSolm :
-                Reasoning.Theory.uniswapExtCodeSizeWord evmSinSolm.accountMap
+                Reasoning.Theory.extCodeSizeWord evmSinSolm.accountMap
                   (kissDaiTargetWord evmSinSolm.accountMap I) = ⟨0⟩ := by
               have hsame :=
-                Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccountsSin
+                Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccountsSin
                   (kissDaiTargetWord σ_sin I)
               have hzeroAtEvmTarget :
-                  Reasoning.Theory.uniswapExtCodeSizeWord evmSinSolm.accountMap
+                  Reasoning.Theory.extCodeSizeWord evmSinSolm.accountMap
                     (kissDaiTargetWord σ_sin I) = ⟨0⟩ := by
                 rw [← hsame]
                 exact hcodeSizeHeal
@@ -506,7 +506,7 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   ((evmSinSolm.lookupAccount (kissVatAddress σ_solm I)).option 0
                     (fun acc => acc.code.size))).toNat = 0 := by
               simpa [evmSinSolm, State.lookupAccount] using
-                uniswapExtCodeSizeWord_zero_lookup_code_zero
+                extCodeSizeWord_zero_lookup_code_zero
                   (σ := evmSinSolm.accountMap)
                   (target := kissDaiTargetWord evmSinSolm.accountMap I)
                   (addr := kissVatAddress σ_solm I) haddrHeal hcodeSizeHealSolm
@@ -517,19 +517,19 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               hvatCodeSinSolm hcallSinTrue hdecSin hSinLoad hfree hfreeOk hAshLoad
               hdebt hdebtOk hdebtEnough hvatLoadSin hvatNoCodeHeal
           have hcodeSizeHealNE :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_sin
+              Reasoning.Theory.extCodeSizeWord σ_sin
                 (kissDaiTargetWord σ_sin I) ≠ ⟨0⟩ :=
             hcodeSizeHeal
           have hcodeSizeHealSolmNE :
-              Reasoning.Theory.uniswapExtCodeSizeWord evmSinSolm.accountMap
+              Reasoning.Theory.extCodeSizeWord evmSinSolm.accountMap
                 (kissDaiTargetWord evmSinSolm.accountMap I) ≠ ⟨0⟩ := by
             intro hzero
             apply hcodeSizeHealNE
             have hsame :=
-              Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccountsSin
+              Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccountsSin
                 (kissDaiTargetWord σ_sin I)
             have hzeroAtEvmTarget :
-                Reasoning.Theory.uniswapExtCodeSizeWord evmSinSolm.accountMap
+                Reasoning.Theory.extCodeSizeWord evmSinSolm.accountMap
                   (kissDaiTargetWord σ_sin I) = ⟨0⟩ := by
               simpa [hTargetSinEq] using hzero
             rw [hsame]
@@ -544,7 +544,7 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 ((evmSinSolm.lookupAccount (kissVatAddress σ_solm I)).option 0
                   (fun acc => acc.code.size))).toNat := by
             simpa [evmSinSolm, State.lookupAccount] using
-              uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+              extCodeSizeWord_ne_zero_lookup_code_pos
                 (σ := evmSinSolm.accountMap)
                 (target := kissDaiTargetWord evmSinSolm.accountMap I)
                 (addr := kissVatAddress σ_solm I) haddrHeal hcodeSizeHealSolmNE

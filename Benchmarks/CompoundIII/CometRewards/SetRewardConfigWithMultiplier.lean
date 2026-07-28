@@ -5670,7 +5670,7 @@ theorem cometRewardsSetRewardConfigWithMultiplierX_call_baseAccrualScale_made
       decode cometRewardsBytecode (⟨241⟩ : UInt256) = some (.STATICCALL, .none) := by
     native_decide
   obtain ⟨cA', σ'_evm, z, out, A_in, callGas, k', C', hΘ, rd242, _houtSize⟩ :=
-    RD.uniswapStaticcall (t := setRewardConfigBasePostCallTail I) rd241Call hdecCall
+    RD.solcStaticcall (t := setRewardConfigBasePostCallTail I) rd241Call hdecCall
       hdepth (by simp [setRewardConfigBasePostCallTail])
   obtain ⟨g'', A'_evm, hΘeq⟩ := hΘ
   have houtSmall : out.size < 2 ^ 138 := by
@@ -6433,7 +6433,7 @@ theorem cometRewardsSetRewardConfigWithMultiplierX_call_decimals_made
       decode cometRewardsBytecode (⟨279⟩ : UInt256) = some (.STATICCALL, .none) := by
     native_decide
   obtain ⟨cA'', σ''_evm, z, out, A_in, callGas, k', C', hΘ, rd280, _houtSize⟩ :=
-    RD.uniswapStaticcall (t := setRewardConfigDecimalsPostCallTail baseWord I)
+    RD.solcStaticcall (t := setRewardConfigDecimalsPostCallTail baseWord I)
       rd279Call hdecCall hdepth (by simp [setRewardConfigDecimalsPostCallTail])
   obtain ⟨g'', A''_evm, hΘeq⟩ := hΘ
   let evmEBase : EVM.State :=
@@ -8567,7 +8567,7 @@ theorem cometRewardsSetRewardConfigWithMultiplierX_baseAccrualScale_callDepthLim
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).executionEnv.depth = 1024 := by
     simpa [initState] using hdepth
   obtain ⟨k', C', rdPost₀⟩ :=
-    RD.uniswapStaticcallDepthLimit (t := setRewardConfigBasePostCallTail I)
+    RD.solcStaticcallDepthLimit (t := setRewardConfigBasePostCallTail I)
       rd241Call hdecCall hdepthInit (by simp [setRewardConfigBasePostCallTail])
   have rdPost :
       RD cometRewardsBytecode I (Sat256.ofUInt256 g)

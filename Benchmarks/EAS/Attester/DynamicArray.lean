@@ -313,7 +313,7 @@ theorem attesterDecodeCalldata_twoDynamicArrays_none_firstLengthHuge {cd : ByteA
     · rw [if_neg hargsHuge]
       have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) (by omega : 36 ≤ cd.size)
       have hreadLen := readNat_drop4_dynamic_eq_calldataWord
-        (cd := cd) hoffMax hlenWord
+        (cd := cd) hlenWord
       simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
         abiTupleHeadSize?, bind, Option.bind, solcMaxLen, hreadOff, hoffMax, hreadLen,
         hlenHuge]
@@ -350,7 +350,7 @@ theorem attesterDecodeCalldata_twoDynamicArrays_none_firstBytes32PayloadShort {c
       rw [if_neg (by simp [solcTotalSizeDynamicGuard])]
       have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) (by omega : 36 ≤ cd.size)
       have hreadLen := readNat_drop4_dynamic_eq_calldataWord
-        (cd := cd) hoffMax hlenWord
+        (cd := cd) hlenWord
       have hstaticNone :
           decodeABIArrayStaticElems? bytes32
             (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat 32
@@ -655,7 +655,7 @@ theorem attesterDecodeCalldata_twoDynamicArrays_none_secondOffsetHuge {cd : Byte
       rw [if_neg (by simp [solcTotalSizeDynamicGuard])]
       have hread0 := readNat_drop4_zero_eq_calldataWord (cd := cd) (by omega : 36 ≤ cd.size)
       have hreadLen0 := readNat_drop4_dynamic_eq_calldataWord
-        (cd := cd) hoff0Max hlenWord
+        (cd := cd) hlenWord
       have hread1 := readNat_drop4_32_eq_calldataWord (cd := cd) hsz68
       have hstaticSize : staticABIEncodedSize? bytes32 = some 32 := by
         native_decide
@@ -716,7 +716,7 @@ theorem attesterDecodeCalldata_twoDynamicArrays_none_secondLengthShort {cd : Byt
       rw [if_neg (by simp [solcTotalSizeDynamicGuard])]
       have hread0 := readNat_drop4_zero_eq_calldataWord (cd := cd) (by omega : 36 ≤ cd.size)
       have hreadLen0 := readNat_drop4_dynamic_eq_calldataWord
-        (cd := cd) hoff0Max hlen0Word
+        (cd := cd) hlen0Word
       have hread1 := readNat_drop4_32_eq_calldataWord (cd := cd) hsz68
       have hreadLen1 :
           readNat? (cd.toList.drop 4) (calldataWord cd 36).toNat = none :=
@@ -783,7 +783,7 @@ theorem attesterDecodeCalldata_twoDynamicArrays_none_secondLengthHuge {cd : Byte
       rw [if_neg (by simp [solcTotalSizeDynamicGuard])]
       have hread0 := readNat_drop4_zero_eq_calldataWord (cd := cd) (by omega : 36 ≤ cd.size)
       have hreadLen0 := readNat_drop4_dynamic_eq_calldataWord
-        (cd := cd) hoff0Max hlen0Word
+        (cd := cd) hlen0Word
       have hread1 := readNat_drop4_32_eq_calldataWord (cd := cd) hsz68
       have hreadLen1 := readNat_drop4_at_eq_calldataWord
         (cd := cd) (off := (calldataWord cd 36).toNat) hlen1Word
@@ -853,7 +853,7 @@ theorem attesterDecodeCalldata_twoDynamicArrays_none_secondPayloadShort {cd : By
       rw [if_neg (by simp [solcTotalSizeDynamicGuard])]
       have hread0 := readNat_drop4_zero_eq_calldataWord (cd := cd) (by omega : 36 ≤ cd.size)
       have hreadLen0 := readNat_drop4_dynamic_eq_calldataWord
-        (cd := cd) hoff0Max hlen0Word
+        (cd := cd) hlen0Word
       have hread1 := readNat_drop4_32_eq_calldataWord (cd := cd) hsz68
       have hreadLen1 := readNat_drop4_at_eq_calldataWord
         (cd := cd) (off := (calldataWord cd 36).toNat) hlen1Word

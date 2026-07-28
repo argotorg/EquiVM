@@ -2,106 +2,183 @@ import Benchmarks.Dss.Dai.Spec
 import Solm.Notation
 
 /-!
-# MakerDAO DSS Dai spec through the Solm notation frontend
+# Dai spec in the Solidity-faithful Solm frontend
 
-This file exposes a notation-side presentation for the parts of the Dai scaffold covered by the
-current Solm frontend, and checks by `rfl` that it is definitionally equal to the AST spec in
-`Benchmarks/Dss/Dai/Spec.lean`.
+The whole Dai benchmark spec, written with `solidity%` and proven definitionally equal to the
+AST spec in `Benchmarks/Dss/Dai/Spec.lean`.
+
+Notes:
+* The strict-`&&` allowance guards are the spec's short-circuit ternaries, written as `c ? a : false`.
+* `abi.encodePacked` operands carry their ABI types as `T(e)` annotations; inner casts nest, e.g.
+  `uint256(uint256(holder))` is the pair `(uint256, .cast holder uint256St)`.
+* `permit`'s ecrecover precompile call targets `address(1)` (a cast), which the surface low-level
+  call cannot express, so that one statement is spliced; its `ecrecoverSuccess`/`ecrecoverData`
+  binders are then referenced via `${…}`.  The EIP-191 `"\x19\x01"` prefix and `PERMIT_TYPEHASH`
+  literal reuse the spec's `eip191Prefix`/`permitTypehashExpr` defs.
+* Transition order matches `contract.transitions` (selector order).
 -/
 
 open Solm Solm.Notation
 
 namespace Benchmarks.Dss.Dai.Syntax
 
-def storageDeclsSyntax : List StorageDecl :=
-  sState% {
-    (address => uint256)              wards
-    uint256                           totalSupply
-    (address => uint256)              balanceOf
-    (address => (address => uint256)) allowance
-    (address => uint256)              nonces
-  } ++
-  [ { name := "DOMAIN_SEPARATOR", ty := bytes32St } ]
+def contractSyntax : ContractDecl := solidity% contract Dai {
+  mapping(address => uint256) wards;
+  uint256 totalSupply;
+  mapping(address => uint256) balanceOf;
+  mapping(address => mapping(address => uint256)) allowance;
+  mapping(address => uint256) nonces;
+  bytes32 DOMAIN_SEPARATOR;
 
-def relyTransitionSyntax : TransitionDecl :=
-  { name := "rely"
-    params := [{ name := "guy", ty := addr }]
-    returnType := []
-    body := sBlock% {
-      require msg.value == 0
-      require @wards[msg.sender] == 1
-      @wards[guy] := 1
-    } }
-
-def approveTransitionSyntax : TransitionDecl :=
-  solm_transition approve (usr : address) (wad : uint256) -> bool {
-    require msg.value == 0
-    @allowance[msg.sender][usr] := wad
-    return true
+  constructor(uint256 chainId_) {
+    wards[msg.sender] = 1;
+    DOMAIN_SEPARATOR = keccak256(abi.encodePacked(
+      bytes32(keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)")),
+      bytes32(keccak256("Dai Stablecoin")),
+      bytes32(keccak256("1")),
+      uint256(chainId_),
+      uint256(uint256(this))));
   }
 
-def transferTransitionSyntax : TransitionDecl :=
-  { name := "transfer"
-    params := [{ name := "dst", ty := addr }, { name := "wad", ty := uint256 }]
-    returnType := [boolTy]
-    body :=
-      sBlock% {
-        require msg.value == 0
-      } ++
-      [ .internalCall "transferFrom" [sender, .var "dst", .var "wad"] "_ok" ] ++
-      sBlock% {
-        return _ok
-      } }
+  function allowance(address arg0, address arg1) external returns (uint256) {
+    return allowance[arg0][arg1];
+  }
 
-def transitionsSyntax : List TransitionDecl :=
-  [ allowanceTransition,
-    approveTransitionSyntax,
-    balanceOfTransition,
-    burnTransition,
-    decimalsTransition,
-    denyTransition,
-    domainSeparatorTransition,
-    mintTransition,
-    moveTransition,
-    nameTransition,
-    noncesTransition,
-    permitTransition,
-    permitTypehashTransition,
-    pullTransition,
-    pushTransition,
-    relyTransitionSyntax,
-    symbolTransition,
-    totalSupplyTransition,
-    transferTransitionSyntax,
-    transferFromTransition,
-    versionTransition,
-    wardsTransition ]
+  function approve(address usr, uint256 wad) external returns (bool) {
+    allowance[msg.sender][usr] = wad;
+    return true;
+  }
 
-def contractSyntax : ContractDecl :=
-  { name := "Dai"
-    storage := storageDeclsSyntax
-    ctor := constructorDecl
-    functions := []
-    transitions := transitionsSyntax }
+  function balanceOf(address arg0) external returns (uint256) {
+    return balanceOf[arg0];
+  }
 
-theorem storageDeclsSyntax_eq : storageDeclsSyntax = Benchmarks.Dss.Dai.storageDecls := by
-  rfl
+  function burn(address usr, uint256 wad) external {
+    require(balanceOf[usr] >= wad);
+    if (usr != msg.sender ? allowance[usr][msg.sender] != type(uint256).max : false) {
+      require(allowance[usr][msg.sender] >= wad);
+      require(((allowance[usr][msg.sender] - wad) as uint256) <= allowance[usr][msg.sender]);
+      allowance[usr][msg.sender] = (allowance[usr][msg.sender] - wad) as uint256;
+    }
+    require(balanceOf[usr] >= wad);
+    require(((balanceOf[usr] - wad) as uint256) <= balanceOf[usr]);
+    balanceOf[usr] = (balanceOf[usr] - wad) as uint256;
+    require(((totalSupply - wad) as uint256) <= totalSupply);
+    totalSupply = (totalSupply - wad) as uint256;
+  }
 
-theorem relyTransitionSyntax_eq : relyTransitionSyntax = Benchmarks.Dss.Dai.relyTransition := by
-  rfl
+  function decimals() external returns (uint8) {
+    return 18;
+  }
 
-theorem approveTransitionSyntax_eq :
-    approveTransitionSyntax = Benchmarks.Dss.Dai.approveTransition := by
-  rfl
+  function deny(address guy) external {
+    require(wards[msg.sender] == 1);
+    wards[guy] = 0;
+  }
 
-theorem transferTransitionSyntax_eq :
-    transferTransitionSyntax = Benchmarks.Dss.Dai.transferTransition := by
-  rfl
+  function DOMAIN_SEPARATOR() external returns (bytes32) {
+    return DOMAIN_SEPARATOR;
+  }
 
-theorem transitionsSyntax_eq : transitionsSyntax = Benchmarks.Dss.Dai.transitions := by
-  rfl
+  function mint(address usr, uint256 wad) external {
+    require(wards[msg.sender] == 1);
+    require(((balanceOf[usr] + wad) as uint256) >= balanceOf[usr]);
+    balanceOf[usr] = (balanceOf[usr] + wad) as uint256;
+    require(((totalSupply + wad) as uint256) >= totalSupply);
+    totalSupply = (totalSupply + wad) as uint256;
+  }
 
-theorem contractSyntax_eq : contractSyntax = Benchmarks.Dss.Dai.contract := by
-  rfl
+  function move(address src, address dst, uint256 wad) external {
+    var _ok = transferFrom(src, dst, wad);
+  }
+
+  function name() external returns (string) {
+    return "Dai Stablecoin";
+  }
+
+  function nonces(address arg0) external returns (uint256) {
+    return nonces[arg0];
+  }
+
+  function permit(address holder, address spender, uint256 nonce, uint256 expiry,
+      bool allowed, uint8 v, bytes32 r, bytes32 s) external {
+    bytes32 digest = keccak256(abi.encodePacked(
+      bytes(${eip191Prefix}),
+      bytes32(DOMAIN_SEPARATOR),
+      bytes32(keccak256(abi.encodePacked(
+        bytes32(${permitTypehashExpr}),
+        uint256(uint256(holder)),
+        uint256(uint256(spender)),
+        uint256(nonce),
+        uint256(expiry),
+        uint256(allowed ? 1 : 0))))));
+    require(holder != address(0));
+    ${[Stmt.lowLevelCall ecrecoverPrecompile (.intLit 0) ecrecoverCalldataExpr
+        "ecrecoverSuccess" "ecrecoverData" false]}
+    require(${Expr.var "ecrecoverSuccess"});
+    address recovered = abi.decode(${Expr.var "ecrecoverData"}, (address));
+    require(holder == recovered);
+    require(expiry == 0 || block.timestamp <= expiry);
+    require(nonce == nonces[holder]);
+    nonces[holder] = nonces[holder] + 1;
+    uint256 wad = allowed ? type(uint256).max : 0;
+    allowance[holder][spender] = wad;
+  }
+
+  function PERMIT_TYPEHASH() external returns (bytes32) {
+    return ${permitTypehashExpr};
+  }
+
+  function pull(address usr, uint256 wad) external {
+    var _ok = transferFrom(usr, msg.sender, wad);
+  }
+
+  function push(address usr, uint256 wad) external {
+    var _ok = transferFrom(msg.sender, usr, wad);
+  }
+
+  function rely(address guy) external {
+    require(wards[msg.sender] == 1);
+    wards[guy] = 1;
+  }
+
+  function symbol() external returns (string) {
+    return "DAI";
+  }
+
+  function totalSupply() external returns (uint256) {
+    return totalSupply;
+  }
+
+  function transfer(address dst, uint256 wad) external returns (bool) {
+    var _ok = transferFrom(msg.sender, dst, wad);
+    return _ok;
+  }
+
+  function transferFrom(address src, address dst, uint256 wad) external returns (bool) {
+    require(balanceOf[src] >= wad);
+    if (src != msg.sender ? allowance[src][msg.sender] != type(uint256).max : false) {
+      require(allowance[src][msg.sender] >= wad);
+      require(((allowance[src][msg.sender] - wad) as uint256) <= allowance[src][msg.sender]);
+      allowance[src][msg.sender] = (allowance[src][msg.sender] - wad) as uint256;
+    }
+    require(balanceOf[src] >= wad);
+    require(((balanceOf[src] - wad) as uint256) <= balanceOf[src]);
+    balanceOf[src] = (balanceOf[src] - wad) as uint256;
+    require(((balanceOf[dst] + wad) as uint256) >= balanceOf[dst]);
+    balanceOf[dst] = (balanceOf[dst] + wad) as uint256;
+    return true;
+  }
+
+  function version() external returns (string) {
+    return "1";
+  }
+
+  function wards(address arg0) external returns (uint256) {
+    return wards[arg0];
+  }
+}
+
+theorem contractSyntax_eq : contractSyntax = Benchmarks.Dss.Dai.contract := by rfl
 
 end Benchmarks.Dss.Dai.Syntax

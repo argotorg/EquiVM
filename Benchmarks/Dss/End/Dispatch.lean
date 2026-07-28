@@ -1297,7 +1297,7 @@ theorem endJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt25
   have h496 := h.push2 endDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h496 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h496 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem endGroup65NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -1443,7 +1443,7 @@ theorem endGroup452NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
     |>.selectorArmNotTakenAuto (endGroup452ArmsWellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h496 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h496 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem endBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
@@ -1465,7 +1465,7 @@ theorem endX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
     |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 theorem endX_short {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1488,7 +1488,7 @@ theorem endX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h496 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h496 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}

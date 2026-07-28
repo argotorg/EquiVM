@@ -64,7 +64,7 @@ theorem RD.vowFlapToSin1ExtcodesizeGuard
     dup2,
     raw mstore 0 (healSinSelectorMem mem) (UInt256.ofNat 6) (by native_decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
-    uniswapAddress,
+    address,
     push1 ⟨4⟩,
     dup3,
     add,
@@ -120,11 +120,11 @@ theorem RD.vowFlapSin1NoCode
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1261⟩ := RD.vowFlapToSin1ExtcodesizeGuard rd hmem hread64
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1261⟩) (okPc := ⟨1273⟩) rd1261
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1261⟩) (okPc := ⟨1273⟩) rd1261
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -140,7 +140,7 @@ theorem RD.vowFlapToSin1Staticcall
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1276⟩
       (gasWord :: kissDaiTargetWord acc.2 I :: healSinOutPtr :: healSinInSize ::
@@ -149,7 +149,7 @@ theorem RD.vowFlapToSin1Staticcall
       (healSinCalldataMem I mem) (UInt256.ofNat 6) o acc k' C' := by
   obtain ⟨_, _, rd1261⟩ := RD.vowFlapToSin1ExtcodesizeGuard rd hmem hread64
   obtain ⟨gasWord, k1276, C1276, rd1276⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1261⟩) (okPc := ⟨1273⟩) rd1261
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1261⟩) (okPc := ⟨1273⟩) rd1261
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -166,7 +166,7 @@ theorem RD.vowFlapSin1PostCall
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
       (out : ByteArray) (A' : Substate) (k' C' : ℕ),
@@ -187,7 +187,7 @@ theorem RD.vowFlapSin1PostCall
   obtain ⟨gasWord, _, _, rd1276⟩ :=
     RD.vowFlapToSin1Staticcall rd hmem hread64 hcodeSize
   obtain ⟨cA', σ', z, out, A_in, callGas, k1277, C1277, hΘpack, rd1277raw, houtsz⟩ :=
-    RD.uniswapStaticcall rd1276 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcall rd1276 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, out, A', k1277, C1277, ?_, ?_, houtsz⟩
   · have haw :
@@ -229,7 +229,7 @@ theorem RD.vowFlapSin1CallFailure
     (hov : rest.length + 5 ≤ 1024) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1277⟩) (okPc := ⟨1293⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1277⟩) (okPc := ⟨1293⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -247,7 +247,7 @@ theorem RD.vowFlapSin1CallSuccessToDecode
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨1277⟩) (okPc := ⟨1293⟩) rd
+  exact RD.solcCallSuccessGuardOk (pc := ⟨1277⟩) (okPc := ⟨1293⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)

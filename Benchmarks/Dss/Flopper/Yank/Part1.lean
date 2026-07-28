@@ -819,11 +819,11 @@ theorem evalExpr_yank_extCodeGuard_false {evm : EVM.State} {locals : Store}
 theorem flopperExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap}
     {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩) :
+    (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hne
+  unfold Reasoning.Theory.extCodeSizeWord at hne
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
@@ -845,11 +845,11 @@ theorem flopperExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap}
 theorem flopperExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap}
     {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩) :
+    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
@@ -898,7 +898,7 @@ theorem flopperYankBodyReverts_suckNoCode (evm : EVM.State) (I : ExecutionEnv)
     (hguy : flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
         evm.executionEnv ≠ ⟨0⟩)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (flopperAddressReturnWord ⟨2⟩ evm.accountMap evm.executionEnv) = ⟨0⟩) :
     ExecTransitionBody config contract evm (yankLocals I) yankTransition.body .reverted := by
   have hvat := evalExpr_yank_vat_storage evm I
@@ -938,7 +938,7 @@ theorem flopperYankBodyReverts_suckCallFailure
     (hguy : flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
         evm.executionEnv ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (flopperAddressReturnWord ⟨2⟩ evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
@@ -1007,7 +1007,7 @@ theorem flopperYankBodyReturns_suckCallSuccess
     (hguy : flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
         evm.executionEnv ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (flopperAddressReturnWord ⟨2⟩ evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
@@ -1710,14 +1710,14 @@ theorem flopperYankX_toSuckExtcodesizeGuard
 theorem flopperYankX_suckNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) = ⟨0⟩)
     (rd1050 : RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1050⟩
       [yankIdWord I, ⟨334⟩, sel]
       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd1148⟩ := flopperYankX_toSuckExtcodesizeGuard rd1050
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1148⟩) (okPc := ⟨1160⟩) rd1148
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1148⟩) (okPc := ⟨1160⟩) rd1148
     hnoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)

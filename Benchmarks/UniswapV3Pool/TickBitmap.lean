@@ -112,7 +112,7 @@ private theorem nat_lor_high_mask_15 (n : Nat) (hn : n < 2 ^ 256) :
   rw [Nat.testBit_or, Nat.testBit_or]
   rw [show (2 ^ (256 - 15) - 1) * 2 ^ 15 =
       (2 ^ (256 - 15) - 1) <<< 15 by rw [Nat.shiftLeft_eq]]
-  rw [nat_testBit_shiftLeft]
+  rw [testBit_shiftLeft]
   by_cases hi15 : i < 15
   · rw [if_pos hi15]
     conv_rhs => rw [Nat.testBit_mod_two_pow]

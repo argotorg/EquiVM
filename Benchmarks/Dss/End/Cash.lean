@@ -1205,7 +1205,7 @@ theorem endCashX_rmulStackReady {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     raw swap1 (by native_decide) (by evm_ov),
     raw dup5 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  have rd9745 := RD.uniswapAddress rd9744 (by native_decide) (by evm_ov)
+  have rd9745 := RD.address rd9744 (by native_decide) (by evm_ov)
   have rd9754 := evm_run rd9745 with [
     raw swap1 (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
@@ -1322,7 +1322,7 @@ theorem endCashX_mulHelperOverflow {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (UInt256.div (x * y) y) x = ⟨0⟩ :=
     u256_eq_of_ne hdivNe
   have rdFallthrough := rd10201.jumpiNT (by native_decide) heqCond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 
@@ -1624,10 +1624,10 @@ theorem endCashX_fluxNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel amt : UInt
         endCashIlkWord I, endCashReturnPc, sel]
       (endCashFixHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) = ⟨0⟩) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd9839⟩ := endCashX_fluxExtcodesizeGuard h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨9839⟩) (okPc := ⟨9851⟩) rd9839
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨9839⟩) (okPc := ⟨9851⟩) rd9839
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1641,7 +1641,7 @@ theorem endCashX_fluxCallReady {cA gh bl σ σ₀ A I} {g : Sat256} {sel amt : U
         endCashIlkWord I, endCashReturnPc, sel]
       (endCashFixHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨9854⟩
       (gasWord :: endCashVatWord σ I :: ⟨0⟩ :: endCashFluxOutPtr ::
         endCashFluxInSize :: endCashFluxOutPtr :: endCashFluxOutSize ::
@@ -1651,7 +1651,7 @@ theorem endCashX_fluxCallReady {cA gh bl σ σ₀ A I} {g : Sat256} {sel amt : U
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨_, _, rd9839⟩ := endCashX_fluxExtcodesizeGuard h
   obtain ⟨gasWord, k', C', rd9854⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨9839⟩) (okPc := ⟨9851⟩) rd9839
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨9839⟩) (okPc := ⟨9851⟩) rd9839
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1742,7 +1742,7 @@ theorem endCashX_fluxCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨9855⟩) (okPc := ⟨9871⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨9855⟩) (okPc := ⟨9871⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1762,7 +1762,7 @@ theorem endCashX_fluxCallSucceeded {cA gh bl σ σ₀ A I} {g sel : UInt256}
       (endCashFluxEndPtr :: endCashFluxSelectorWord :: endCashVatWord σ I ::
         endCashWadWord I :: endCashIlkWord I :: endCashReturnPc :: sel :: [])
       mem (UInt256.ofNat 9) rdata acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨9855⟩) (okPc := ⟨9871⟩) h
+  exact RD.solcCallSuccessGuardOk (pc := ⟨9855⟩) (okPc := ⟨9871⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -1898,7 +1898,7 @@ theorem endCashX_outAddOverflow {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256
   have rd10104pre := evm_run rd10100 with [raw push2 ⟨10108⟩ (by native_decide) (by evm_ov)]
   have rd10104 := rd10104pre.jumpiNT (by native_decide) (by decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rd10104 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rd10104 (by native_decide) (by native_decide)
     (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -2564,10 +2564,10 @@ theorem endCashVatWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
 theorem endCashVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (endCashVatWord τ I) = ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (endCashVatWord τ I) = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (endCashVatWord σ I)
   have htarget : endCashVatWord σ I = endCashVatWord τ I :=
     endCashVatWord_accountMapEquiv hAccounts
@@ -2577,12 +2577,12 @@ theorem endCashVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : Execut
 theorem endCashVatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (endCashVatWord τ I) ≠ ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (endCashVatWord τ I) ≠ ⟨0⟩ := by
   intro hzero
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (endCashVatWord σ I)
   have htarget : endCashVatWord σ I = endCashVatWord τ I :=
     endCashVatWord_accountMapEquiv hAccounts
@@ -2596,7 +2596,7 @@ theorem endCashVatAddr_eq_ofUInt256 (σ : AccountMap) (I : ExecutionEnv) :
 
 theorem endCashVatCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) = ⟨0⟩) :
     (UInt256.ofNat (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
       (endCashVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
@@ -2606,7 +2606,7 @@ theorem endCashVatCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt25
 
 theorem endCashVatCode_pos_of_codeSize_ne {cA gh bl σ σ₀ A I} {g : UInt256}
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
       (endCashVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
   simpa [initState, State.lookupAccount] using
@@ -2771,7 +2771,7 @@ theorem endCashBodyReverts_fluxNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (hfix : endCashFixWord σ I ≠ ⟨0⟩)
     (hfit : (endCashWadWord I).toNat * (endCashFixWord σ I).toNat < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) = ⟨0⟩) :
     let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endCashStore I) cashTransition.body .reverted := by
   intro evm0
@@ -2858,7 +2858,7 @@ theorem endCashBodyReverts_fluxCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
     (hfix : endCashFixWord σ I ≠ ⟨0⟩)
     (hfit : (endCashWadWord I).toNat * (endCashFixWord σ I).toNat < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endCashVatAddr σ I)) "flux" 0
@@ -3402,7 +3402,7 @@ theorem endCashPrefixFluxSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
     (hfix : endCashFixWord σ I ≠ ⟨0⟩)
     (hfit : (endCashWadWord I).toNat * (endCashFixWord σ I).toNat < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endCashVatAddr σ I)) "flux" 0
@@ -3527,7 +3527,7 @@ theorem endCashBodyReverts_outAddOverflow {cA gh bl σ σ₀ A I} {g : UInt256}
     (hfix : endCashFixWord σ I ≠ ⟨0⟩)
     (hfit : (endCashWadWord I).toNat * (endCashFixWord σ I).toNat < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endCashVatAddr σ I)) "flux" 0
@@ -3576,7 +3576,7 @@ theorem endCashBodyReverts_outExceedsBag {cA gh bl σ σ₀ A I} {g : UInt256}
     (hfix : endCashFixWord σ I ≠ ⟨0⟩)
     (hfit : (endCashWadWord I).toNat * (endCashFixWord σ I).toNat < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endCashVatAddr σ I)) "flux" 0
@@ -3630,7 +3630,7 @@ theorem endCashBodyReturns {cA gh bl σ σ₀ A I} {g : UInt256}
     (hfix : endCashFixWord σ I ≠ ⟨0⟩)
     (hfit : (endCashWadWord I).toNat * (endCashFixWord σ I).toNat < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endCashVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endCashVatAddr σ I)) "flux" 0
@@ -3782,10 +3782,10 @@ theorem endCashBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         obtain ⟨_, _, hafterRmul⟩ :=
           endCashX_rmulReturns (g := Sat256.ofUInt256 g) hfit hfix hrmulEntry
         by_cases hvatCode :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (endCashVatWord σ_evm I) =
+            Reasoning.Theory.extCodeSizeWord σ_evm (endCashVatWord σ_evm I) =
               ⟨0⟩
         · have hvatCodeSolm :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+              Reasoning.Theory.extCodeSizeWord σ_solm
                 (endCashVatWord σ_solm I) = ⟨0⟩ :=
             endCashVatCodeSize_zero_accountMapEquiv hAccounts hvatCode
           have hbody :
@@ -3799,10 +3799,10 @@ theorem endCashBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           exact (endCashX_fluxNoCode (g := Sat256.ofUInt256 g) hafterRmul hvatCode)
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
         · have hvatCodeNE :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+              Reasoning.Theory.extCodeSizeWord σ_evm
                 (endCashVatWord σ_evm I) ≠ ⟨0⟩ := hvatCode
           have hvatCodeSolmNE :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+              Reasoning.Theory.extCodeSizeWord σ_solm
                 (endCashVatWord σ_solm I) ≠ ⟨0⟩ :=
             endCashVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeNE
           obtain ⟨gasWord, _, _, hcallReady⟩ :=

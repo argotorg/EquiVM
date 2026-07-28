@@ -47,7 +47,7 @@ business leaves, `catBiteSuccessBranch`) is green. -/
 to the Solm-side `vat` account having empty code (the `hvatCode0 = 0` shape the source reverts want). -/
 theorem catBiteVatCodeZero_of_uniswap {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hvatCode : Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩) :
+    (hvatCode : Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩) :
     (UInt256.ofNat
       (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (biteVatAddr (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).option 0
@@ -55,13 +55,13 @@ theorem catBiteVatCodeZero_of_uniswap {cA gh bl σ_evm σ_solm σ₀ A I} {g : U
   have htgt : catBiteVatTargetWord σ_evm I = catBiteVatTargetWord σ_solm I := by
     simp only [catBiteVatTargetWord, catAddressReturnWord, catSlotWord, solcSlotWord]
     rw [accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨3⟩ ⟨0⟩]
-  have hSolm : Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (catBiteVatTargetWord σ_solm I) = ⟨0⟩ := by
-    rw [← htgt, ← uniswapExtCodeSizeWord_accountMapEquiv hAccounts]; exact hvatCode
+  have hSolm : Reasoning.Theory.extCodeSizeWord σ_solm (catBiteVatTargetWord σ_solm I) = ⟨0⟩ := by
+    rw [← htgt, ← extCodeSizeWord_accountMapEquiv hAccounts]; exact hvatCode
   have haddr : biteVatAddr (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
       = AccountAddress.ofUInt256 (catBiteVatTargetWord σ_solm I) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
     simp only [biteVatAddr, initState, catBiteVatTargetWord, catAddressReturnWord, catSlotWord]
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hSolm
+  unfold Reasoning.Theory.extCodeSizeWord at hSolm
   rw [haddr]
   simp only [initState, State.lookupAccount]
   cases hacc : σ_solm.find? (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_solm I)) with
@@ -73,7 +73,7 @@ theorem catBiteVatCodeZero_of_uniswap {cA gh bl σ_evm σ_solm σ₀ A I} {g : U
 `0 < hvatCode0` shape the ilks fail / decode / success bodies want). -/
 theorem catBiteVatCodePos_of_uniswap {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hvatCode : Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) ≠ ⟨0⟩) :
+    (hvatCode : Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (biteVatAddr (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I))).option 0
@@ -81,13 +81,13 @@ theorem catBiteVatCodePos_of_uniswap {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
   have htgt : catBiteVatTargetWord σ_evm I = catBiteVatTargetWord σ_solm I := by
     simp only [catBiteVatTargetWord, catAddressReturnWord, catSlotWord, solcSlotWord]
     rw [accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨3⟩ ⟨0⟩]
-  have hSolm : Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (catBiteVatTargetWord σ_solm I) ≠ ⟨0⟩ := by
-    rw [← htgt, ← uniswapExtCodeSizeWord_accountMapEquiv hAccounts]; exact hvatCode
+  have hSolm : Reasoning.Theory.extCodeSizeWord σ_solm (catBiteVatTargetWord σ_solm I) ≠ ⟨0⟩ := by
+    rw [← htgt, ← extCodeSizeWord_accountMapEquiv hAccounts]; exact hvatCode
   have haddr : biteVatAddr (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
       = AccountAddress.ofUInt256 (catBiteVatTargetWord σ_solm I) := by
     rw [accountAddress_ofUInt256_eq_ofNat_toNat]
     simp only [biteVatAddr, initState, catBiteVatTargetWord, catAddressReturnWord, catSlotWord]
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hSolm
+  unfold Reasoning.Theory.extCodeSizeWord at hSolm
   rw [haddr]
   simp only [initState, State.lookupAccount]
   cases hacc : σ_solm.find? (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_solm I)) with
@@ -110,7 +110,7 @@ theorem catBiteBodyIlksNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hvatCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   obtain ⟨k, C, rd1163⟩ := catReachBiteRoutine (g := Sat256.ofUInt256 g)
     hcode hwv hsz68 hsize hsel
@@ -149,7 +149,7 @@ theorem catBiteBodyIlksFailCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
       decodeCalldataWithMode config.abiDecodeMode (biteTransition.params.map Param.name)
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hvatCode : Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) ≠ ⟨0⟩)
+    (hvatCode : Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hIlksFailCall : typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
       (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
       (false, evmIlk, oi) false)
@@ -195,7 +195,7 @@ theorem catBiteReachGrabAw {cA gh bl σ σ₀ A I} {g : UInt256}
     (hpsz : p.toNat + 256 < UInt256.size)
     (hthisCanon : (UInt256.ofNat I.codeOwner.val).toNat < EVM.addressModulus)
     (hdink : dink.toNat ≤ 2 ^ 255) (hdart : dart.toNat ≤ 2 ^ 255)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'
       (UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
@@ -237,7 +237,7 @@ theorem catBiteReachGrabAw {cA gh bl σ σ₀ A I} {g : UInt256}
   have hencode := catBiteGrabEncode_eq p (biteIlkWord I) urn (UInt256.ofNat I.codeOwner.val)
     (solcSlotWord σ' I ⟨4⟩) dink dart hp96 hpmem (by omega) hthisCanon hdink hdart
   obtain ⟨gasWord, _, _, rd2192⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177 hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177 hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp)
@@ -297,7 +297,7 @@ theorem catBiteReachFessAw {cA gh bl σ σ₀ A I} {g : UInt256}
     (hp96 : 96 ≤ p2.toNat) (hpmem : p2.toNat ≤ mem.size)
     (hawcov : p2.toNat ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
     (hpsz : p2.toNat + 96 < UInt256.size)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'
       (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
@@ -332,7 +332,7 @@ theorem catBiteReachFessAw {cA gh bl σ σ₀ A I} {g : UInt256}
   obtain ⟨_, _, rd2284⟩ := catBiteTraceFessBuildAw rd2242 hFree64 hp96 hpmem hawcov hawsz hpsz (by simp)
   have hencode := catBiteFessEncode_eq p2 dartRate hpmem (by omega)
   obtain ⟨gasWord, _, _, rd2299⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd2284 hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd2284 hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp)

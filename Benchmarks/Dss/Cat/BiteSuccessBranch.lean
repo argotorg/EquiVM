@@ -24,7 +24,7 @@ arithmetic bounds, the storage reads) from the σ_evm states to the `accountMapE
 coupled σ_solm states, then invoking `catBiteSuccessLeaf`.  That transfer is the single remaining
 step (the one remaining gap below): every needed coupling accessor is green
 (`EVMStateEquiv.{accountMap,executionEnv,createdAccounts,storageLoad_codeOwner}`,
-`accountMapEquiv_storage_findD`, `uniswapExtCodeSizeWord_accountMapEquiv`,
+`accountMapEquiv_storage_findD`, `extCodeSizeWord_accountMapEquiv`,
 `typedCallViaEVM_static_storage_findD_of_accountMapEquiv`), and the values coincide because the
 mapped calls return the identical `out`/`z`, so the decode lemmas give equal `iRate`/`ink`/… on both
 sides.

@@ -11,7 +11,6 @@ import Reasoning.Memory
 import Reasoning.Reach
 import Reasoning.Refinement
 import Reasoning.Solc
-import Reasoning.SolcDecode
 import Reasoning.SolmBody
 import Reasoning.Stepping
 import Reasoning.Storage

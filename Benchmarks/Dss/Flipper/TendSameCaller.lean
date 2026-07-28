@@ -78,9 +78,9 @@ theorem flipperTendBodyFrom3486SameCaller
     dsimp [memPay]
     exact twoWordHashMem_read64 (tendId I) ⟨1⟩ hmemSize hmemRead64
   by_cases hpayZero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (flipperVatTargetWord σ_evm I) = ⟨0⟩
+      Reasoning.Theory.extCodeSizeWord σ_evm (flipperVatTargetWord σ_evm I) = ⟨0⟩
   · have hpayZeroSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+        Reasoning.Theory.extCodeSizeWord σ_solm
             (flipperVatTargetWord σ_solm I) = ⟨0⟩ :=
       flipperVatCodeSize_zero_accountMapEquiv hAccounts hpayZero
     have hvatNoCode :=
@@ -98,7 +98,7 @@ theorem flipperTendBodyFrom3486SameCaller
     exact (flipperTendX_payNoCode hmemPaySize hmemPayRead64 hpayZero rd3686)
       |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hpayNeSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+        Reasoning.Theory.extCodeSizeWord σ_solm
             (flipperVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
       flipperVatCodeSize_ne_zero_accountMapEquiv hAccounts hpayZero
     have hvatCodeSolm :=

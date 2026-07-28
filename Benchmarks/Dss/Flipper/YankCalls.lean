@@ -569,7 +569,7 @@ theorem yankLocalsAfterCalls_get_bids (I : ExecutionEnv) :
 theorem flipperYankX_toVatCall {cA σmem σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨1365⟩
       (selector :: target :: yankId I :: ret :: sel :: [])
       (yankCatCallMem σmem I) (UInt256.ofNat 6) out (cA, σ) k C) :
@@ -580,7 +580,7 @@ theorem flipperYankX_toVatCall {cA σmem σ I} {g : Sat256} {s0 : State}
       (yankVatFluxCallMem σmem σ I) (UInt256.ofNat 9) out (cA, σ) k' C' := by
   obtain ⟨_, _, rd1466⟩ := flipperYankX_toVatExtcodesizeGuard h
   obtain ⟨gasWord, k1481, C1481, rd1481⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1466⟩) (okPc := ⟨1478⟩) rd1466
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1466⟩) (okPc := ⟨1478⟩) rd1466
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -592,7 +592,7 @@ theorem flipperYankX_vatPostCall
     {cA : Batteries.RBSet AccountAddress compare} {σmem σ : AccountMap} {Acur : Substate}
     {k C : ℕ} {out0 : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
@@ -1267,7 +1267,7 @@ theorem flipperYankX_vatCallFailure {I} {g : Sat256} {s0 : State}
       mem aw out acc k C)
     (houtsz : out.size < UInt256.size) :
     RDrev flipperBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1482⟩) (okPc := ⟨1498⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1482⟩) (okPc := ⟨1498⟩) h
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1283,7 +1283,7 @@ theorem flipperYankX_vatCallSuccessToMoveStart {I} {g : Sat256} {s0 : State}
     ∃ k' C', RD flipperBytecode I g s0 ⟨1501⟩
       (selector :: target :: id :: ret :: sel :: []) mem aw out acc k' C' := by
   obtain ⟨k1500, C1500, rd1500⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨1482⟩) (okPc := ⟨1498⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨1482⟩) (okPc := ⟨1498⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -1473,13 +1473,13 @@ theorem flipperYankX_toMoveExtcodesizeGuard {cA σmem σflux σ I} {g : Sat256}
 theorem flipperYankX_moveNoCode {cA σmem σflux σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨1501⟩
       (selector :: target :: yankId I :: ret :: sel :: [])
       (yankVatFluxCallMem σmem σflux I) (UInt256.ofNat 9) out (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd1599⟩ := flipperYankX_toMoveExtcodesizeGuard h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1599⟩) (okPc := ⟨1611⟩) rd1599
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1599⟩) (okPc := ⟨1611⟩) rd1599
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1488,7 +1488,7 @@ theorem flipperYankX_moveNoCode {cA σmem σflux σ I} {g : Sat256} {s0 : State}
 theorem flipperYankX_toMoveCall {cA σmem σflux σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨1501⟩
       (selector :: target :: yankId I :: ret :: sel :: [])
       (yankVatFluxCallMem σmem σflux I) (UInt256.ofNat 9) out (cA, σ) k C) :
@@ -1499,7 +1499,7 @@ theorem flipperYankX_toMoveCall {cA σmem σflux σ I} {g : Sat256} {s0 : State}
       (yankVatMoveCallMem σmem σflux σ I) (UInt256.ofNat 9) out (cA, σ) k' C' := by
   obtain ⟨_, _, rd1599⟩ := flipperYankX_toMoveExtcodesizeGuard h
   obtain ⟨gasWord, k1614, C1614, rd1614⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1599⟩) (okPc := ⟨1611⟩) rd1599
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1599⟩) (okPc := ⟨1611⟩) rd1599
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1512,7 +1512,7 @@ theorem flipperYankX_movePostCall
     {σmem σflux σ : AccountMap} {Acur : Substate}
     {k C : ℕ} {out0 : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
@@ -1586,7 +1586,7 @@ theorem flipperYankX_moveCallFailure {I} {g : Sat256} {s0 : State}
       mem aw out acc k C)
     (houtsz : out.size < UInt256.size) :
     RDrev flipperBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1615⟩) (okPc := ⟨1631⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1615⟩) (okPc := ⟨1631⟩) h
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1602,7 +1602,7 @@ theorem flipperYankX_moveCallSuccessToDeleteStart {I} {g : Sat256} {s0 : State}
     ∃ k' C', RD flipperBytecode I g s0 ⟨1635⟩
       (target :: id :: ret :: sel :: []) mem aw out acc k' C' := by
   obtain ⟨_, _, rd1633⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨1615⟩) (okPc := ⟨1631⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨1615⟩) (okPc := ⟨1631⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)

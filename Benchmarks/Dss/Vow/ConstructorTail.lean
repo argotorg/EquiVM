@@ -41,7 +41,7 @@ theorem vowCtorHopeCallFailure
     (hov : rest.length + 5 ≤ 1024) :
     RDrev (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) g
       (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨217⟩) (okPc := ⟨233⟩) rd217
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨217⟩) (okPc := ⟨233⟩) rd217
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode)
     (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode)
@@ -67,7 +67,7 @@ theorem vowCtorHopeCallSuccessToReturnStart
         [] mem aw out
         (createdAccounts', sstoreAccountMap I.codeOwner σFinal ⟨12⟩ ⟨1⟩) k' C' := by
   obtain ⟨_, _, rd235⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨217⟩) (okPc := ⟨233⟩) rd217
+    RD.solcCallSuccessGuardOk (pc := ⟨217⟩) (okPc := ⟨233⟩) rd217
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode) (by ctor_tail_decode)
       (by ctor_tail_decode) (by ctor_tail_jump_dest) (by ctor_tail_decode) (by ctor_tail_decode)
@@ -264,11 +264,11 @@ private theorem storageStore_genesisBlockHeader_tail (evm : EVM.State)
 private theorem ctorExtCodeSize_ne_zero_lookup_code_pos {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩) :
+    (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hne
+  unfold Reasoning.Theory.extCodeSizeWord at hne
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
@@ -290,11 +290,11 @@ private theorem ctorExtCodeSize_ne_zero_lookup_code_pos {σ : AccountMap} {targe
 private theorem ctorExtCodeSize_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩) :
+    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
@@ -534,14 +534,14 @@ theorem vowConstructorCorrect :
           (genesisBlockHeader := genesisBlockHeader) (blocks := blocks) (σ_evm := σ_evm)
           (σ_solm := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           vat flapper flopper hAccounts
-    by_cases hcodeSize : uniswapExtCodeSizeWord σFlopper targetWord = ⟨0⟩
+    by_cases hcodeSize : extCodeSizeWord σFlopper targetWord = ⟨0⟩
     · have hrev := vowCtorHopeNoCode vat flapper flopper vatStored
         (by simpa [σFlopper, targetWord] using rd201)
         (by simpa [targetWord] using hcodeSize)
       rcases hrev.xiResult hcodeTail with hOOG | ⟨g', out, hRev⟩
       · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
-      · have hcodeSizeSolm : uniswapExtCodeSizeWord evm4s.accountMap targetWord = ⟨0⟩ := by
-          have hEq := uniswapExtCodeSizeWord_accountMapEquiv hAccounts4 targetWord
+      · have hcodeSizeSolm : extCodeSizeWord evm4s.accountMap targetWord = ⟨0⟩ := by
+          have hEq := extCodeSizeWord_accountMapEquiv hAccounts4 targetWord
           exact hEq ▸ hcodeSize
         have haddr : vat = AccountAddress.ofUInt256 targetWord := by
           rw [htargetWord, accountAddress_of_word_val_tail]
@@ -558,9 +558,9 @@ theorem vowConstructorCorrect :
             vat flapper flopper hwv (by simpa [evm0s, evm1s, evm2s, evm3s, evm4s] using hvatNoCode))
           ?_
         exact ctorResultEquiv.revert rfl rfl
-    · have hcodeSizeSolmNe : uniswapExtCodeSizeWord evm4s.accountMap targetWord ≠ ⟨0⟩ := by
+    · have hcodeSizeSolmNe : extCodeSizeWord evm4s.accountMap targetWord ≠ ⟨0⟩ := by
         intro hzero
-        have hEq := uniswapExtCodeSizeWord_accountMapEquiv hAccounts4 targetWord
+        have hEq := extCodeSizeWord_accountMapEquiv hAccounts4 targetWord
         exact hcodeSize (hEq.trans hzero)
       have haddr : vat = AccountAddress.ofUInt256 targetWord := by
         rw [htargetWord, accountAddress_of_word_val_tail]

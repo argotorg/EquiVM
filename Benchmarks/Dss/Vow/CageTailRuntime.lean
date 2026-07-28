@@ -800,7 +800,7 @@ theorem vowCageSecondDaiNoCodeBodyCore
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
         ⟨0⟩)
     (hov : R.length + 16 ≤ 1024)
     (hvatCode :
@@ -1059,7 +1059,7 @@ theorem vowCageVatSinNoCodeBodyCore
     (ho32 : 32 ≤ outDai2.size)
     (hosz : outDai2.size < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
         ⟨0⟩)
     (hov : R.length + 18 ≤ 1024)
     (hvatCode :

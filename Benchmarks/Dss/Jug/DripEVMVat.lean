@@ -131,11 +131,11 @@ theorem RD.jugDripVatIlksNoCode
       [⟨0⟩, fileDutyIlkWord I, ⟨357⟩, sel]
       (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (dripVatTargetWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) = ⟨0⟩) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1384⟩ := RD.jugDripToVatIlksExtcodesizeGuard rd1323
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1384⟩) (okPc := ⟨1396⟩) rd1384
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1384⟩) (okPc := ⟨1396⟩) rd1384
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -148,7 +148,7 @@ theorem RD.jugDripVatIlksCallReady
       [⟨0⟩, fileDutyIlkWord I, ⟨357⟩, sel]
       (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD jugBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1399⟩
       (gasWord :: dripVatTargetWord σ I :: ⟨0⟩ :: dripVatIlksOutPtr ::
@@ -159,7 +159,7 @@ theorem RD.jugDripVatIlksCallReady
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨_, _, rd1384⟩ := RD.jugDripToVatIlksExtcodesizeGuard rd1323
   obtain ⟨gasWord, k', C', rd1399⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1384⟩) (okPc := ⟨1396⟩) rd1384
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1384⟩) (okPc := ⟨1396⟩) rd1384
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -251,7 +251,7 @@ theorem RD.jugDripVatIlksCallFailed
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1400⟩) (okPc := ⟨1416⟩) rd1400
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1400⟩) (okPc := ⟨1416⟩) rd1400
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -271,7 +271,7 @@ theorem RD.jugDripVatIlksCallSucceeded
       (dripVatIlksEndPtr :: dripVatIlksSelectorWord :: dripVatTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) rdata acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨1400⟩) (okPc := ⟨1416⟩) rd1400
+  exact RD.solcCallSuccessGuardOk (pc := ⟨1400⟩) (okPc := ⟨1416⟩) rd1400
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -325,7 +325,7 @@ theorem RD.jugDripVatIlksReturnDecodeShortReverts
     decide
   have rdFallthrough := RD.jumpiNT rdPushOk (by native_decide) hcond
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -528,7 +528,7 @@ theorem RD.jugDripAddOverflowReverts
   have rdFallthrough := rdPushOk.jumpiNT (by native_decide)
     (by rw [hlt]; decide)
     (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 

@@ -730,10 +730,10 @@ theorem endThawVatWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
 
 theorem endThawVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawVatWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (endThawVatWord τ I) = ⟨0⟩ := by
+    (hzero : Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (endThawVatWord τ I) = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (endThawVatWord σ I)
   have htarget : endThawVatWord σ I = endThawVatWord τ I :=
     endThawVatWord_accountMapEquiv hAccounts
@@ -742,12 +742,12 @@ theorem endThawVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : Execut
 
 theorem endThawVatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (endThawVatWord τ I) ≠ ⟨0⟩ := by
+    (hne : Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (endThawVatWord τ I) ≠ ⟨0⟩ := by
   intro hbad
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (endThawVatWord σ I)
   have htarget : endThawVatWord σ I = endThawVatWord τ I :=
     endThawVatWord_accountMapEquiv hAccounts
@@ -760,7 +760,7 @@ theorem endThawVatAddr_eq_ofUInt256 (σ : AccountMap) (I : ExecutionEnv) :
     (accountAddress_ofUInt256_eq_ofNat_toNat (endThawVatWord σ I)).symm
 
 theorem endThawVatCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawVatWord σ I) = ⟨0⟩) :
+    (hzero : Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) = ⟨0⟩) :
     (UInt256.ofNat
       (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endThawVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
@@ -770,7 +770,7 @@ theorem endThawVatCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt25
       (endThawVatAddr_eq_ofUInt256 σ I) hzero
 
 theorem endThawVatCode_pos_of_codeSize_ne {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩) :
+    (hne : Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endThawVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
@@ -787,10 +787,10 @@ theorem endThawCureWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
 
 theorem endThawCureCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawCureWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (endThawCureWord τ I) = ⟨0⟩ := by
+    (hzero : Reasoning.Theory.extCodeSizeWord σ (endThawCureWord σ I) = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (endThawCureWord τ I) = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (endThawCureWord σ I)
   have htarget : endThawCureWord σ I = endThawCureWord τ I :=
     endThawCureWord_accountMapEquiv hAccounts
@@ -799,12 +799,12 @@ theorem endThawCureCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : Execu
 
 theorem endThawCureCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawCureWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (endThawCureWord τ I) ≠ ⟨0⟩ := by
+    (hne : Reasoning.Theory.extCodeSizeWord σ (endThawCureWord σ I) ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (endThawCureWord τ I) ≠ ⟨0⟩ := by
   intro hbad
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (endThawCureWord σ I)
   have htarget : endThawCureWord σ I = endThawCureWord τ I :=
     endThawCureWord_accountMapEquiv hAccounts
@@ -1149,7 +1149,7 @@ theorem endThawX_daiCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endThawBodyPc
       [endThawReturnPc, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ) k C) :
@@ -1162,7 +1162,7 @@ theorem endThawX_daiCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨_, _, rd4737⟩ := endThawX_daiExtcodesizeGuard hlive hdebt h
   obtain ⟨gasWord, k', C', rd4752⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4737⟩) (okPc := ⟨4749⟩) rd4737
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4737⟩) (okPc := ⟨4749⟩) rd4737
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1199,7 +1199,7 @@ theorem endThawX_daiPostStaticcall {cA gh bl σ σ₀ A I} {g : UInt256}
           (endThawDaiPostCallMem σ I out) (UInt256.ofNat 6) out (cA', σ') k' C'
       ∧ out.size < UInt256.size := by
   obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd4753raw, hout⟩ :=
-    RD.uniswapStaticcall h (by native_decide) hdepth
+    RD.solcStaticcall h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
@@ -1230,7 +1230,7 @@ theorem endThawX_daiStaticcallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
       (endThawDaiCalldataMem σ I solcFreePtrMem) (UInt256.ofNat 6)
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨k', C', rd4753raw⟩ :=
-    RD.uniswapStaticcallDepthLimit h (by native_decide) hdepth
+    RD.solcStaticcallDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endThawDaiOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -1255,7 +1255,7 @@ theorem endThawX_daiCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256}
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨4753⟩) (okPc := ⟨4769⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨4753⟩) (okPc := ⟨4769⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1275,7 +1275,7 @@ theorem endThawX_daiCallSucceeded {cA gh bl σ σ₀ A I} {g sel : UInt256}
       (endThawDaiEndPtr :: endThawDaiSelectorWord :: endThawVatWord σ I ::
         endThawReturnPc :: sel :: [])
       mem (UInt256.ofNat 6) rdata acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨4753⟩) (okPc := ⟨4769⟩) h
+  exact RD.solcCallSuccessGuardOk (pc := ⟨4753⟩) (okPc := ⟨4769⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -1353,7 +1353,7 @@ theorem endThawX_daiReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I} {g : Sat25
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
   have rdFall := rdShort.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFall
+  exact RD.solcPush1Dup1Revert0 rdFall
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -1451,7 +1451,7 @@ theorem endThawX_deadlineAddOverflow {cA cA' gh bl σ σ' σ₀ A I}
   have rd10104pre := evm_run rd10100 with [raw push2 ⟨10108⟩ (by native_decide) (by evm_ov)]
   have rd10104 := rd10104pre.jumpiNT (by native_decide) (by decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rd10104 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rd10104 (by native_decide) (by native_decide)
     (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -1668,7 +1668,7 @@ theorem endThawX_debtCallReady {cA cA' gh bl σ σ' σ₀ A I}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (endThawVatWord σ' I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ' (endThawVatWord σ' I) ≠ ⟨0⟩)
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4956⟩
       [endThawReturnPc, sel] mem (UInt256.ofNat 6) out (cA', σ') k C) :
     ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5031⟩
@@ -1777,7 +1777,7 @@ theorem endThawX_debtCallReady {cA cA' gh bl σ σ' σ₀ A I}
       convert rd5016norm using 1⟩
   rcases rd5016 with ⟨_, _, rd5016ok⟩
   obtain ⟨gasWord, k', C', rd5031⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨5016⟩) (okPc := ⟨5028⟩) rd5016ok
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨5016⟩) (okPc := ⟨5028⟩) rd5016ok
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1790,7 +1790,7 @@ theorem endThawX_debtNoCode {cA cA' gh bl σ σ' σ₀ A I}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (endThawVatWord σ' I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ' (endThawVatWord σ' I) = ⟨0⟩)
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4956⟩
       [endThawReturnPc, sel] mem (UInt256.ofNat 6) out (cA', σ') k C) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
@@ -1886,7 +1886,7 @@ theorem endThawX_debtNoCode {cA cA' gh bl σ σ' σ₀ A I}
       rw [hvatMask] at rd5016norm
       convert rd5016norm using 1⟩
   rcases rd5016 with ⟨_, _, rd5016zero⟩
-  exact RD.uniswapExtcodesizeGuardMissing (okPc := ⟨5028⟩) rd5016zero
+  exact RD.solcExtcodesizeGuardMissing (okPc := ⟨5028⟩) rd5016zero
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1943,7 +1943,7 @@ theorem endThawX_debtCallFailed {cA cA' gh bl σ σTarget σ' σ₀ A I} {g : Sa
       mem (UInt256.ofNat 6) rdata (cA', σ') k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨5032⟩) (okPc := ⟨5048⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨5032⟩) (okPc := ⟨5048⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1960,7 +1960,7 @@ theorem endThawX_debtCallSucceeded {cA cA' gh bl σ σTarget σ' σ₀ A I} {g :
       (endThawNoArgEndPtr :: endThawDebtSelectorWord :: endThawVatWord σTarget I ::
         ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       mem (UInt256.ofNat 6) rdata (cA', σ') k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨5032⟩) (okPc := ⟨5048⟩) h
+  exact RD.solcCallSuccessGuardOk (pc := ⟨5032⟩) (okPc := ⟨5048⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -2023,7 +2023,7 @@ theorem endThawX_tellCallReady {cA cA' gh bl σ σ' σ₀ A I}
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hdebtOut : debtOut.size < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (endThawCureWord σ' I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ' (endThawCureWord σ' I) ≠ ⟨0⟩)
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5073⟩
       (endThawReturnWord debtOut :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut) (UInt256.ofNat 6)
@@ -2151,7 +2151,7 @@ theorem endThawX_tellCallReady {cA cA' gh bl σ σ' σ₀ A I}
       convert rd5129norm using 1⟩
   rcases rd5129 with ⟨_, _, rd5129ok⟩
   obtain ⟨gasWord, k', C', rd5144⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨5129⟩) (okPc := ⟨5141⟩) rd5129ok
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨5129⟩) (okPc := ⟨5141⟩) rd5129ok
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -2165,7 +2165,7 @@ theorem endThawX_tellNoCode {cA cA' gh bl σ σ' σ₀ A I}
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hdebtOut : debtOut.size < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (endThawCureWord σ' I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ' (endThawCureWord σ' I) = ⟨0⟩)
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5073⟩
       (endThawReturnWord debtOut :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       (endThawNoArgPostCallMem endThawDebtSelectorWord mem debtOut) (UInt256.ofNat 6)
@@ -2279,7 +2279,7 @@ theorem endThawX_tellNoCode {cA cA' gh bl σ σ' σ₀ A I}
       rw [hcureMask] at rd5129norm
       convert rd5129norm using 1⟩
   rcases rd5129 with ⟨_, _, rd5129zero⟩
-  exact RD.uniswapExtcodesizeGuardMissing (okPc := ⟨5141⟩) rd5129zero
+  exact RD.solcExtcodesizeGuardMissing (okPc := ⟨5141⟩) rd5129zero
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2315,7 +2315,7 @@ theorem endThawX_tellPostStaticcall {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
           (UInt256.ofNat 6) tellOut (cA'', σ'') k' C'
       ∧ tellOut.size < UInt256.size := by
   obtain ⟨cA'', σ'', z, tellOut, Ain, callGas, k', C', hΘ, rd5145raw, hout⟩ :=
-    RD.uniswapStaticcall h (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcall h (by native_decide) hdepth (by evm_ov)
   refine ⟨cA'', σ'', z, tellOut, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endThawNoArgWriteLen_eq (out := tellOut) hout
@@ -2337,7 +2337,7 @@ theorem endThawX_tellCallFailed {cA cA' gh bl σ σTarget σ' σ₀ A I} {g : Sa
       mem (UInt256.ofNat 6) rdata (cA', σ') k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨5145⟩) (okPc := ⟨5161⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨5145⟩) (okPc := ⟨5161⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2354,7 +2354,7 @@ theorem endThawX_tellCallSucceeded {cA cA' gh bl σ σTarget σ' σ₀ A I} {g :
       (endThawNoArgEndPtr :: endThawTellSelectorWord :: endThawCureWord σTarget I ::
         debtWord :: ⟨5190⟩ :: endThawReturnPc :: sel :: [])
       mem (UInt256.ofNat 6) rdata (cA', σ') k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨5145⟩) (okPc := ⟨5161⟩) h
+  exact RD.solcCallSuccessGuardOk (pc := ⟨5145⟩) (okPc := ⟨5161⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -2526,7 +2526,7 @@ theorem endThawX_daiNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawVatWord σ I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) = ⟨0⟩)
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endThawBodyPc
       [endThawReturnPc, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ) k C) :
@@ -2688,7 +2688,7 @@ theorem endThawX_daiNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         hvatMask, hvowMask, u256_land_comm] using rd4737pre)
   have hcodeSizeGuard := hcodeSize
   rw [← hvatMask] at hcodeSizeGuard
-  exact RD.uniswapExtcodesizeGuardMissing (okPc := ⟨4749⟩) rd4737
+  exact RD.solcExtcodesizeGuardMissing (okPc := ⟨4749⟩) rd4737
     hcodeSizeGuard
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3002,7 +3002,7 @@ theorem endThawBodyReverts_daiNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawVatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) = ⟨0⟩) :
     let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (∅ : Store) thawTransition.body .reverted := by
   intro evm0
@@ -3131,7 +3131,7 @@ theorem endThawBodyReverts_daiCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endThawVatAddr σ I)) "dai" 0
@@ -3378,7 +3378,7 @@ theorem endThawBodyReverts_daiDecodeShort {cA gh bl σ σ₀ A I} {g : UInt256}
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endThawVatAddr σ I)) "dai" 0
@@ -3553,7 +3553,7 @@ theorem endThawBodyReverts_daiNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endThawVatAddr σ I)) "dai" 0
@@ -3659,7 +3659,7 @@ theorem endThawBodyReverts_deadlineAddOverflow {cA gh bl σ σ₀ A I} {g : UInt
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endThawVatAddr σ I)) "dai" 0
@@ -3810,7 +3810,7 @@ theorem endThawBodyReverts_waitNotFinished {cA gh bl σ σ₀ A I} {g : UInt256}
     (hlive : endThawLiveWord σ I = ⟨0⟩)
     (hdebt : endThawDebtWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endThawVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endThawVatAddr σ I)) "dai" 0
@@ -4083,7 +4083,7 @@ theorem endThawTailReadyPrefix (evmDai : EVM.State) (out : ByteArray)
 
 theorem endThawVatCode_zero_of_state {evm : EVM.State}
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
           (endThawVatWord evm.accountMap evm.executionEnv) = ⟨0⟩) :
     (UInt256.ofNat
       ((evm.lookupAccount (endThawVatAddr evm.accountMap evm.executionEnv)).option 0
@@ -4096,7 +4096,7 @@ theorem endThawVatCode_zero_of_state {evm : EVM.State}
 
 theorem endThawVatCode_pos_of_state {evm : EVM.State}
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
           (endThawVatWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((evm.lookupAccount (endThawVatAddr evm.accountMap evm.executionEnv)).option 0
@@ -4109,7 +4109,7 @@ theorem endThawVatCode_pos_of_state {evm : EVM.State}
 
 theorem endThawCureCode_zero_of_state {evm : EVM.State}
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
           (endThawCureWord evm.accountMap evm.executionEnv) = ⟨0⟩) :
     (UInt256.ofNat
       ((evm.lookupAccount (endThawCureAddr evm.accountMap evm.executionEnv)).option 0
@@ -4122,7 +4122,7 @@ theorem endThawCureCode_zero_of_state {evm : EVM.State}
 
 theorem endThawCureCode_pos_of_state {evm : EVM.State}
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
           (endThawCureWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((evm.lookupAccount (endThawCureAddr evm.accountMap evm.executionEnv)).option 0
@@ -4161,7 +4161,7 @@ theorem endThawAssignDebt {locals : Store} (evm : EVM.State) (debtNew : UInt256)
 theorem endThawCheckedDebtNoCode (evm : EVM.State) (out : ByteArray)
     (deadline : UInt256)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endThawVatWord evm.accountMap evm.executionEnv) = ⟨0⟩) :
     ExecBlock config { contract := contract, locals := endThawStoreDeadlineWord out deadline }
       evm (checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt")
@@ -4189,7 +4189,7 @@ theorem endThawCheckedDebtNoCode (evm : EVM.State) (out : ByteArray)
 theorem endThawCheckedDebtFailure {evm evm' : EVM.State} {out debtOut : ByteArray}
     {deadline : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endThawVatWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
@@ -4227,7 +4227,7 @@ theorem endThawCheckedDebtFailure {evm evm' : EVM.State} {out debtOut : ByteArra
 theorem endThawCheckedDebtDecodeRevert {evm evm' : EVM.State} {out debtOut : ByteArray}
     {deadline : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endThawVatWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
@@ -4266,7 +4266,7 @@ theorem endThawCheckedDebtDecodeRevert {evm evm' : EVM.State} {out debtOut : Byt
 theorem endThawCheckedDebtSuccess {evm evm' : EVM.State} {out debtOut : ByteArray}
     {deadline : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endThawVatWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
@@ -4308,7 +4308,7 @@ theorem endThawCheckedDebtSuccess {evm evm' : EVM.State} {out debtOut : ByteArra
 theorem endThawCheckedTellNoCode (evm : EVM.State) (out debtOut : ByteArray)
     (deadline : UInt256)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endThawCureWord evm.accountMap evm.executionEnv) = ⟨0⟩) :
     ExecBlock config { contract := contract, locals := endThawStoreVatDebt out debtOut deadline }
       evm (checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
@@ -4336,7 +4336,7 @@ theorem endThawCheckedTellNoCode (evm : EVM.State) (out debtOut : ByteArray)
 theorem endThawCheckedTellFailure {evm evm' : EVM.State}
     {out debtOut tellOut : ByteArray} {deadline : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endThawCureWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
@@ -4374,7 +4374,7 @@ theorem endThawCheckedTellFailure {evm evm' : EVM.State}
 theorem endThawCheckedTellDecodeRevert {evm evm' : EVM.State}
     {out debtOut tellOut : ByteArray} {deadline : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endThawCureWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
@@ -4413,7 +4413,7 @@ theorem endThawCheckedTellDecodeRevert {evm evm' : EVM.State}
 theorem endThawCheckedTellSuccess {evm evm' : EVM.State}
     {out debtOut tellOut : ByteArray} {deadline : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (endThawCureWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
@@ -5098,10 +5098,10 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         rw [← hdebtCouple]
         exact hdebt
       by_cases hvatCode :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (endThawVatWord σ_evm I) =
+          Reasoning.Theory.extCodeSizeWord σ_evm (endThawVatWord σ_evm I) =
             ⟨0⟩
       · have hvatCodeSolm :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+            Reasoning.Theory.extCodeSizeWord σ_solm
               (endThawVatWord σ_solm I) = ⟨0⟩ :=
           endThawVatCodeSize_zero_accountMapEquiv hAccounts hvatCode
         have hbody :
@@ -5114,10 +5114,10 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         exact (endThawX_daiNoCode (g := Sat256.ofUInt256 g) hlive hdebt hvatCode hbodyReach)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hvatCodeNE :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+            Reasoning.Theory.extCodeSizeWord σ_evm
               (endThawVatWord σ_evm I) ≠ ⟨0⟩ := hvatCode
         have hvatCodeSolmNE :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+            Reasoning.Theory.extCodeSizeWord σ_solm
               (endThawVatWord σ_solm I) ≠ ⟨0⟩ :=
           endThawVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeNE
         obtain ⟨gasWord, _, _, hdaiReady⟩ :=
@@ -5373,12 +5373,12 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         simpa [checkedExternalCallStmts, endThawStoreVatDai,
                           collapseReturns] using hblock
                     by_cases hvatCodeDebt :
-                        Reasoning.Theory.uniswapExtCodeSizeWord σ'
+                        Reasoning.Theory.extCodeSizeWord σ'
                           (endThawVatWord σ' I) = ⟨0⟩
                     · have hrev :=
                         endThawX_debtNoCode hmemDai hreadDai hvatCodeDebt rd4956
                       have hvatCodeDebtSolm :
-                          Reasoning.Theory.uniswapExtCodeSizeWord evmDaiSolm.accountMap
+                          Reasoning.Theory.extCodeSizeWord evmDaiSolm.accountMap
                             (endThawVatWord evmDaiSolm.accountMap
                               evmDaiSolm.executionEnv) = ⟨0⟩ := by
                           have htmp :=
@@ -5428,10 +5428,10 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             (by simpa [evmSolm, evmDaiSolm] using hdaiBlock) htail
                       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
                     · have hvatCodeDebtNE :
-                        Reasoning.Theory.uniswapExtCodeSizeWord σ'
+                        Reasoning.Theory.extCodeSizeWord σ'
                           (endThawVatWord σ' I) ≠ ⟨0⟩ := hvatCodeDebt
                       have hvatCodeDebtSolmNE :
-                          Reasoning.Theory.uniswapExtCodeSizeWord evmDaiSolm.accountMap
+                          Reasoning.Theory.extCodeSizeWord evmDaiSolm.accountMap
                             (endThawVatWord evmDaiSolm.accountMap
                               evmDaiSolm.executionEnv) ≠ ⟨0⟩ := by
                           have htmp :=
@@ -5603,13 +5603,13 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 hvatCodeDebtSolmNE
                                 (by simpa using hcallDebtSolm) hloDebt
                           by_cases hcureCode :
-                              Reasoning.Theory.uniswapExtCodeSizeWord σDebt
+                              Reasoning.Theory.extCodeSizeWord σDebt
                                 (endThawCureWord σDebt I) = ⟨0⟩
                           · have hrev :=
                               endThawX_tellNoCode hmemDai hreadDai hdebtOutSize
                                 hcureCode rd5073
                             have hcureCodeSolm :
-                                Reasoning.Theory.uniswapExtCodeSizeWord
+                                Reasoning.Theory.extCodeSizeWord
                                   evmDebtSolm.accountMap
                                   (endThawCureWord evmDebtSolm.accountMap
                                     evmDebtSolm.executionEnv) = ⟨0⟩ := by
@@ -5684,10 +5684,10 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   (by simpa [evmSolm, evmDaiSolm] using hdaiBlock) htail
                             exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
                           · have hcureCodeNE :
-                              Reasoning.Theory.uniswapExtCodeSizeWord σDebt
+                              Reasoning.Theory.extCodeSizeWord σDebt
                                 (endThawCureWord σDebt I) ≠ ⟨0⟩ := hcureCode
                             have hcureCodeSolmNE :
-                                Reasoning.Theory.uniswapExtCodeSizeWord
+                                Reasoning.Theory.extCodeSizeWord
                                   evmDebtSolm.accountMap
                                   (endThawCureWord evmDebtSolm.accountMap
                                     evmDebtSolm.executionEnv) ≠ ⟨0⟩ := by

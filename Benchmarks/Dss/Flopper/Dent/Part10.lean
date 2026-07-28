@@ -101,7 +101,7 @@ theorem flopperDentBody
                                 (auctionPackedSlot (dentIdWord I)) σ_evm I := by
                           simpa [packedSlot, id] using hcallerEq
                         by_cases hnoCode :
-                            Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+                            Reasoning.Theory.extCodeSizeWord σ_evm
                               (flopperAddressReturnWord ⟨2⟩ σ_evm I) = ⟨0⟩
                         · exact flopperDentBodyCoreMoveNoCode hcode hperm hwv
                             hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
@@ -110,7 +110,7 @@ theorem flopperDentBody
                             hcallerNe hnoCode hdispatch hdecode rd2405 hmemLotOne
                             hreadLotOne hAccounts
                         · have hcodeSize :
-                              Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+                              Reasoning.Theory.extCodeSizeWord σ_evm
                                 (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩ := hnoCode
                           by_cases hdepthEq : I.depth = 1024
                           · exact flopperDentBodyCoreMoveCallDepthLimit hcode hwv
@@ -202,7 +202,7 @@ theorem flopperDentBody
                               by_cases hticMoveZero :
                                   flopperUint48Offset20Word packedSlot σ' I = ⟨0⟩
                               · by_cases hashNoCode :
-                                    Reasoning.Theory.uniswapExtCodeSizeWord σ'
+                                    Reasoning.Theory.extCodeSizeWord σ'
                                       (flopperAddressReturnWord packedSlot σ' I) = ⟨0⟩
                                 · exact flopperDentBodyCoreAshNoCodeMoveCallerNeTicZero
                                     hcode hwv hlive hguy hticOk
@@ -216,7 +216,7 @@ theorem flopperDentBody
                                     rd2545True hmoveMem96 hmoveRead64 hcallMoveTrue
                                     hdispatch hdecode hAccounts
                                 · have hashCodeSize :
-                                      Reasoning.Theory.uniswapExtCodeSizeWord σ'
+                                      Reasoning.Theory.extCodeSizeWord σ'
                                         (flopperAddressReturnWord
                                           (auctionPackedSlot (dentIdWord I)) σ' I) ≠
                                           ⟨0⟩ := by
@@ -299,7 +299,7 @@ theorem flopperDentBody
                                     · have hmemAsh128 := hmemAsh128Of houtAsh32
                                       have hreadAsh128 := hreadAsh128Of houtAsh32
                                       by_cases hkissNoCode :
-                                          Reasoning.Theory.uniswapExtCodeSizeWord σAsh
+                                          Reasoning.Theory.extCodeSizeWord σAsh
                                             (flopperAddressReturnWord packedSlot σAsh I) =
                                               ⟨0⟩
                                       · exact
@@ -318,7 +318,7 @@ theorem flopperDentBody
                                             hmemAsh128 hreadAsh128 hdispatch hdecode
                                             hAccounts
                                       · have hkissCodeSize :
-                                            Reasoning.Theory.uniswapExtCodeSizeWord σAsh
+                                            Reasoning.Theory.extCodeSizeWord σAsh
                                               (flopperAddressReturnWord
                                                 (auctionPackedSlot (dentIdWord I))
                                                 σAsh I) ≠ ⟨0⟩ := by
@@ -725,7 +725,7 @@ theorem flopperDentBody
                                   (auctionPackedSlot (dentIdWord I)) σ_evm I := by
                             simpa [packedSlot, id] using hcallerEq
                           by_cases hnoCode :
-                              Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+                              Reasoning.Theory.extCodeSizeWord σ_evm
                                 (flopperAddressReturnWord ⟨2⟩ σ_evm I) = ⟨0⟩
                           · exact flopperDentBodyCoreMoveNoCode hcode hperm hwv
                               hlive hguy hticOk (by simpa [packedSlot, id] using hendGt)
@@ -734,7 +734,7 @@ theorem flopperDentBody
                               hcallerNe hnoCode hdispatch hdecode rd2405 hmemLotOne
                               hreadLotOne hAccounts
                           · have hcodeSize :
-                                Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+                                Reasoning.Theory.extCodeSizeWord σ_evm
                                   (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩ :=
                               hnoCode
                             by_cases hdepthEq : I.depth = 1024

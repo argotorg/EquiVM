@@ -225,7 +225,7 @@ theorem vowFlapKickNoCodeBodyCore
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hflapperNoCodeEvm :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2
+      Reasoning.Theory.extCodeSizeWord acc.2
         (vowAddressReturnWord ⟨2⟩ acc.2 I) = ⟨0⟩)
     (hvatCode0 :
       0 < (UInt256.ofNat

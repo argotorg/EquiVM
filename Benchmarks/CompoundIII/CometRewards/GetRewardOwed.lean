@@ -4246,7 +4246,7 @@ theorem evalExpr_getRewardOwed_extCodeSizeGuard_false
     (evm : EVM.State) (I : ExecutionEnv)
     (hcanonComet : (getRewardOwedCometWord I).toNat < EVM.addressModulus)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (UInt256.land (getRewardOwedCometWord I) solcAddrMask) = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := getRewardOwedConfigLocals evm I } evm
       (.binary .gt (.extCodeSize (.var "comet")) (.intLit 0)) = .ok (.bool false) := by
@@ -4270,7 +4270,7 @@ theorem evalExpr_getRewardOwed_extCodeSizeGuard_false
     cases hacc : evm.accountMap.find?
         (AccountAddress.ofUInt256 (UInt256.land (getRewardOwedCometWord I) solcAddrMask))
     · decide
-    · simpa [Reasoning.Theory.uniswapExtCodeSizeWord, Function.comp, Option.option,
+    · simpa [Reasoning.Theory.extCodeSizeWord, Function.comp, Option.option,
         EVM.Word.ofNat, hacc] using hzero
   rw [hword]
   decide
@@ -4280,7 +4280,7 @@ theorem evalExpr_getRewardOwed_extCodeSizeGuard_true
     (evm : EVM.State) (I : ExecutionEnv)
     (hcanonComet : (getRewardOwedCometWord I).toNat < EVM.addressModulus)
     (hnz :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (UInt256.land (getRewardOwedCometWord I) solcAddrMask) ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := getRewardOwedConfigLocals evm I } evm
       (.binary .gt (.extCodeSize (.var "comet")) (.intLit 0)) = .ok (.bool true) := by
@@ -4303,9 +4303,9 @@ theorem evalExpr_getRewardOwed_extCodeSizeGuard_true
   have hwordNZ : codeWord ≠ ⟨0⟩ := by
     cases hacc : evm.accountMap.find?
         (AccountAddress.ofUInt256 (UInt256.land (getRewardOwedCometWord I) solcAddrMask))
-    · simpa [codeWord, Reasoning.Theory.uniswapExtCodeSizeWord, Function.comp,
+    · simpa [codeWord, Reasoning.Theory.extCodeSizeWord, Function.comp,
         Option.option, EVM.Word.ofNat, hacc] using hnz
-    · simpa [codeWord, Reasoning.Theory.uniswapExtCodeSizeWord, Function.comp,
+    · simpa [codeWord, Reasoning.Theory.extCodeSizeWord, Function.comp,
         Option.option, EVM.Word.ofNat, hacc] using hnz
   have hpos : 0 < codeWord.toNat := by
     by_contra hnot
@@ -4867,7 +4867,7 @@ theorem cometRewardsGetRewardOwedX_accrueNoCode {cA gh bl σ σ₀ A I} {g : Sat
     (hcanonAccount : (getRewardOwedAccountWord I).toNat < EVM.addressModulus)
     (hnz : rewardConfigTokenFromSlot0 (getRewardOwedRewardConfigSlot0Word σ I) ≠ ⟨0⟩)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ
+      Reasoning.Theory.extCodeSizeWord σ
         (UInt256.land (getRewardOwedCometWord I) solcAddrMask) = ⟨0⟩)
     (hreach : ∃ k C, RD cometRewardsBytecode I g
       (initState cA gh bl σ σ₀ g A I) getRewardOwedPc
@@ -4887,7 +4887,7 @@ theorem cometRewardsGetRewardOwedX_accrueNoCode {cA gh bl σ σ₀ A I} {g : Sat
     push2 ⟨2592⟩, jumpiNT (by decide)]
   have rd2415 := evm_run rd2414 with [dup5]
   obtain ⟨_, _, rd2416⟩ :=
-    Reasoning.Reach.RD.uniswapExtcodesize rd2415 (by native_decide)
+    Reasoning.Reach.RD.extcodesize rd2415 (by native_decide)
       (by simp only [List.length_cons, List.length_nil]; omega)
   rw [hnoCode] at rd2416
   have rd2420 := evm_run rd2416 with [iszero, push2 ⟨797⟩]
@@ -4903,7 +4903,7 @@ theorem cometRewardsGetRewardOwedX_call_accrueAccount {cA gh bl σ σ₀ A I} {g
     (hcanonAccount : (getRewardOwedAccountWord I).toNat < EVM.addressModulus)
     (hnz : rewardConfigTokenFromSlot0 (getRewardOwedRewardConfigSlot0Word σ I) ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ
+      Reasoning.Theory.extCodeSizeWord σ
         (UInt256.land (getRewardOwedCometWord I) solcAddrMask) ≠ ⟨0⟩)
     (hreach : ∃ k C, RD cometRewardsBytecode I g
       (initState cA gh bl σ σ₀ g A I) getRewardOwedPc
@@ -4946,7 +4946,7 @@ theorem cometRewardsGetRewardOwedX_call_accrueAccount {cA gh bl σ σ₀ A I} {g
     push2 ⟨2592⟩, jumpiNT (by decide)]
   have rd2415 := evm_run rd2414 with [dup5]
   obtain ⟨_, _, rd2416⟩ :=
-    Reasoning.Reach.RD.uniswapExtcodesize rd2415 (by native_decide)
+    Reasoning.Reach.RD.extcodesize rd2415 (by native_decide)
       (by simp only [List.length_cons, List.length_nil]; omega)
   have rd2417 := evm_run rd2416 with [iszero]
   rw [isZero_eq_zero_of_ne hcodeSize] at rd2417
@@ -5010,7 +5010,7 @@ theorem cometRewardsGetRewardOwedX_call_accrueAccount_made
     (hcanonAccount : (getRewardOwedAccountWord I).toNat < EVM.addressModulus)
     (hnz : rewardConfigTokenFromSlot0 (getRewardOwedRewardConfigSlot0Word σ_evm I) ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (UInt256.land (getRewardOwedCometWord I) solcAddrMask) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hreach : ∃ k C, RD cometRewardsBytecode I (Sat256.ofUInt256 g)
@@ -5402,7 +5402,7 @@ theorem cometRewardsGetRewardOwedX_call_baseTrackingAccrued_made
     native_decide
   obtain ⟨cA'', σ''_evm, z, baseOut, A_in, callGas, k', C', hΘ, rd3724,
       _houtSize⟩ :=
-    RD.uniswapStaticcall (t :=
+    RD.solcStaticcall (t :=
         getRewardOwedBaseTrackingPostCallTail (getRewardOwedClaimedWord σ'_evm I))
       rd3723Call hdecCall hdepth
       (by simp [getRewardOwedBaseTrackingPostCallTail])
@@ -6568,7 +6568,7 @@ theorem cometRewardsGetRewardOwedX_callDepthLimit {cA gh bl σ σ₀ A I} {g : U
     (hcanonAccount : (getRewardOwedAccountWord I).toNat < EVM.addressModulus)
     (hnz : rewardConfigTokenFromSlot0 (getRewardOwedRewardConfigSlot0Word σ I) ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ
+      Reasoning.Theory.extCodeSizeWord σ
         (UInt256.land (getRewardOwedCometWord I) solcAddrMask) ≠ ⟨0⟩)
     (hreach : ∃ k C, RD cometRewardsBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) getRewardOwedPc
@@ -7200,7 +7200,7 @@ theorem cometRewardsGetRewardOwedBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g
           · let evmSolm : EVM.State :=
               initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
             by_cases hnoCode :
-                Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+                Reasoning.Theory.extCodeSizeWord σ_evm
                   (UInt256.land (getRewardOwedCometWord I) solcAddrMask) = ⟨0⟩
             · have htokenNZSolm :
                   rewardConfigTokenFromSlot0 (getRewardOwedSlot0Load evmSolm I) ≠ ⟨0⟩ := by
@@ -7212,9 +7212,9 @@ theorem cometRewardsGetRewardOwedBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g
                 rw [hload, ← hslotWord]
                 exact htokenZero
               have hnoCodeSolm :
-                  Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+                  Reasoning.Theory.extCodeSizeWord σ_solm
                     (UInt256.land (getRewardOwedCometWord I) solcAddrMask) = ⟨0⟩ := by
-                rw [← uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+                rw [← extCodeSizeWord_accountMapEquiv hAccounts
                   (UInt256.land (getRewardOwedCometWord I) solcAddrMask)]
                 exact hnoCode
               have hguard :
@@ -7244,10 +7244,10 @@ theorem cometRewardsGetRewardOwedBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g
                 rw [hload, ← hslotWord]
                 exact htokenZero
               have hcodeSizeSolm :
-                  Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+                  Reasoning.Theory.extCodeSizeWord σ_solm
                     (UInt256.land (getRewardOwedCometWord I) solcAddrMask) ≠ ⟨0⟩ := by
                 intro hz
-                exact hnoCode ((uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+                exact hnoCode ((extCodeSizeWord_accountMapEquiv hAccounts
                   (UInt256.land (getRewardOwedCometWord I) solcAddrMask)).trans hz)
               have hguard :
                   evalExpr? config

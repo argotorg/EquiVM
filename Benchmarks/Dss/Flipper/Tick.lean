@@ -1101,7 +1101,7 @@ theorem flipperTickX_add48Overflow {cA σ I} {g : Sat256} {s0 : State}
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd6290
   have rd6295 := rd6290.push2 ⟨6299⟩ (by native_decide) (by evm_ov)
     |>.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd6295 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rd6295 (by native_decide) (by native_decide)
     (by native_decide) (by evm_ov)
 
 theorem flipperTickX_storeEnd {cA σ I} {g : Sat256} {s0 : State}

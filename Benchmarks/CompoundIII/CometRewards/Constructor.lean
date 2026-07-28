@@ -417,7 +417,7 @@ theorem cometRewardsInitcodeNonpayableRevert
     push1 ⟨128⟩, callvalue, push2 ⟨116⟩,
     jumpiT hwv (by comet_rewards_ctor_jd),
     jumpdest]
-  exact rd116.uniswapPush1Dup1Revert0
+  exact rd116.solcPush1Dup1Revert0
     (by comet_rewards_ctor_decode) (by comet_rewards_ctor_decode)
     (by comet_rewards_ctor_decode) (by simp)
 

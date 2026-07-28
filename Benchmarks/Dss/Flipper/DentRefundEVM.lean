@@ -274,13 +274,13 @@ theorem flipperDentX_refundNoCode {cA σ I} {g : Sat256} {s0 : State}
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcaller : solcSourceWord I ≠ bidGuyWord (dentId I) σ I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨4733⟩ [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd4857⟩ :=
     flipperDentX_toRefundExtcodesizeGuard hmemSize hmemRead64 hcaller h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨4857⟩) (okPc := ⟨4869⟩) rd4857
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨4857⟩) (okPc := ⟨4869⟩) rd4857
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -292,7 +292,7 @@ theorem flipperDentX_toRefundCall {cA σ I} {g : Sat256} {s0 : State}
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcaller : solcSourceWord I ≠ bidGuyWord (dentId I) σ I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨4733⟩ [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨4872⟩
@@ -304,7 +304,7 @@ theorem flipperDentX_toRefundCall {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd4857⟩ :=
     flipperDentX_toRefundExtcodesizeGuard hmemSize hmemRead64 hcaller h
   obtain ⟨gasWord, k4872, C4872, rd4872⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4857⟩) (okPc := ⟨4869⟩) rd4857
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4857⟩) (okPc := ⟨4869⟩) rd4857
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -317,7 +317,7 @@ theorem flipperDentX_refundDepthLimit {cA σ I} {g : Sat256} {s0 : State}
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcaller : solcSourceWord I ≠ bidGuyWord (dentId I) σ I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = (1024 : Fin 1025))
     (h : RD flipperBytecode I g s0 ⟨4733⟩ [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
@@ -357,7 +357,7 @@ theorem flipperDentX_refundPostCall
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcaller : solcSourceWord I ≠ bidGuyWord (dentId I) σ I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
@@ -438,7 +438,7 @@ theorem flipperDentX_refundCallFailure {I} {g : Sat256} {s0 : State}
       mem aw out acc k C)
     (houtsz : out.size < UInt256.size) :
     RDrev flipperBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨4873⟩) (okPc := ⟨4889⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨4873⟩) (okPc := ⟨4889⟩) h
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -454,7 +454,7 @@ theorem flipperDentX_refundCallSuccessToStoreStart {I} {g : Sat256} {s0 : State}
     ∃ k' C', RD flipperBytecode I g s0 ⟨4893⟩
       (target :: bid :: lot :: id :: ret :: sel :: []) mem aw out acc k' C' := by
   obtain ⟨_, _, rd4889⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨4873⟩) (okPc := ⟨4889⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨4873⟩) (okPc := ⟨4889⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -937,7 +937,7 @@ theorem flipperDentX_toFluxExtcodesizeGuardAw8 {cA σ I} {g : Sat256} {s0 : Stat
     raw swap5 (by native_decide) (by evm_ov),
     raw mstore 0 memIlk (UInt256.ofNat 8)
       (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
-  have rd4981 := RD.uniswapAddress rd4980 (by native_decide) (by evm_ov)
+  have rd4981 := RD.address rd4980 (by native_decide) (by evm_ov)
   have rd4986 := evm_run rd4981 with [
     raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
     raw dup6 (by native_decide) (by evm_ov),
@@ -1006,14 +1006,14 @@ theorem flipperDentX_fluxNoCodeAw8 {cA σ I} {g : Sat256} {s0 : State}
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨4927⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 8) out (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd5037⟩ := flipperDentX_toFluxExtcodesizeGuardAw8
     hmemSize hmemRead64 h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨5037⟩) (okPc := ⟨5049⟩) rd5037
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨5037⟩) (okPc := ⟨5049⟩) rd5037
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1024,7 +1024,7 @@ theorem flipperDentX_toFluxCallAw8 {cA σ I} {g : Sat256} {s0 : State}
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨4927⟩
       [dentBid I, dentLot I, dentId I, ret, sel]
       mem (UInt256.ofNat 8) out (cA, σ) k C) :
@@ -1037,7 +1037,7 @@ theorem flipperDentX_toFluxCallAw8 {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd5037⟩ := flipperDentX_toFluxExtcodesizeGuardAw8
     hmemSize hmemRead64 h
   obtain ⟨gasWord, k5052, C5052, rd5052⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨5037⟩) (okPc := ⟨5049⟩) rd5037
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨5037⟩) (okPc := ⟨5049⟩) rd5037
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1051,7 +1051,7 @@ theorem flipperDentX_fluxPostCallAw8
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)

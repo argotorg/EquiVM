@@ -838,7 +838,7 @@ theorem RD.potDripRpowLoopRevertXX
   have heqCond : UInt256.eq (UInt256.div (x * x) x) x = ⟨0⟩ :=
     u256_eq_of_ne hdivNe
   have rdFallthrough := rd2413.jumpiNT (by native_decide) heqCond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -899,7 +899,7 @@ theorem RD.potDripRpowLoopRevertXXRound
     rw [hlt]
     native_decide
   have rdFallthrough := rd2429.jumpiNT (by native_decide) hcond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -1065,7 +1065,7 @@ theorem RD.potDripRpowLoopRevertZX
     raw iszero (by native_decide) (by evm_ov),
     raw push2 ⟨2472⟩ (by native_decide) (by evm_ov)]
   have rdFallthrough := rd2467.jumpiNT (by native_decide) hmulGuardFail (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 
@@ -1157,7 +1157,7 @@ theorem RD.potDripRpowLoopRevertZXRound
     rw [hlt]
     native_decide
   have rdFallthrough := rd2483.jumpiNT (by native_decide) hcond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 

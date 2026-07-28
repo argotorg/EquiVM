@@ -551,7 +551,7 @@ theorem weth9TransferDecodeFailRev {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.iszero (by native_decide) (by simp)
     |>.push2 ⟨679⟩ (by native_decide) (by simp)
     |>.jumpiNT (by native_decide) (by rw [hltShort]; decide) (by simp)
-    |>.uniswapPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+    |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 /-- `transfer(address,uint256)` body refines its Solm transition. -/
 theorem weth9TransferBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}

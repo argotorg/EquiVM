@@ -885,7 +885,7 @@ theorem uniswapV3PoolObservationsRoutineOob {v : PoolImmutables} {code : ByteArr
   have rd5347 := rd5346.jumpiNT hd5346
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd5347 hd5347 hd5349 hd5350 (by evm_ov)
+  exact RD.solcPush1Dup1Revert0 rd5347 hd5347 hd5349 hd5350 (by evm_ov)
 
 theorem uniswapV3PoolObservationsEvmOob {v : PoolImmutables} {code : ByteArray}
     {cA gh bl σ σ₀ A I} {g : Sat256}

@@ -2,175 +2,98 @@ import Benchmarks.WETH9.Spec
 import Solm.Notation
 
 /-!
-# WETH9 spec through the Solm notation frontend
+# WETH9 spec in the Solidity-faithful Solm frontend
 
-This file presents the same WETH9 benchmark spec using `Solm.Notation` where the current frontend
-covers the construct.  The few constructs outside the frontend today (`lowLevelCall`, `internalCall`,
-`if`, `selfbalance`, and byte-string literals) are written as AST nodes locally.
+The whole WETH9 benchmark spec, written with `solidity%` and proven definitionally equal to the
+AST spec in `Benchmarks/WETH9/Spec.lean`.
 
-The final `by rfl` theorem checks that this surface presentation desugars to exactly the AST spec in
-`Benchmarks/WETH9/Spec.lean`.
+Notes mirroring the AST spec:
+* WETH9.sol has no explicit constructor; solc emits a non-payable implicit one that only runs the
+  field initializers — written here as a non-payable `constructor()` with the assignments.
+* The payable Solidity fallback is the deposit body.
+* `transfer` forwards through the public `transferFrom` (an internal dispatch, hence the
+  explicitly bound `var _ok = transferFrom(…)`).
+* Transition order matches `contract.transitions` exactly.
 -/
 
 open Solm Solm.Notation
 
 namespace Benchmarks.WETH9.Syntax
 
-def storageDeclsSyntax : List StorageDecl :=
-  [ { name := "name", ty := .string },
-    { name := "symbol", ty := .string } ] ++
-  sState% {
-    uint8                              decimals
-    (address => uint256)              balanceOf
-    (address => (address => uint256)) allowance
+def contractSyntax : ContractDecl := solidity% contract WETH9 {
+  string name;
+  string symbol;
+  uint8 decimals;
+  mapping(address => uint256) balanceOf;
+  mapping(address => mapping(address => uint256)) allowance;
+
+  constructor() {
+    name = "Wrapped Ether";
+    symbol = "WETH";
+    decimals = 18;
   }
 
-def constructorDeclSyntax : ConstructorDecl :=
-  { params := []
-    body :=
-      sBlock% {
-        require msg.value == 0
-      } ++
-      [ .assign .storage nameRef (.bytesLit (String.toByteArray "Wrapped Ether")),
-        .assign .storage symbolRef (.bytesLit (String.toByteArray "WETH")),
-        .assign .storage decimalsRef (.intLit 18) ] }
-
-def nameTransitionSyntax : TransitionDecl :=
-  { name := "name"
-    params := []
-    returnType := [stringTy]
-    body := sBlock% {
-      require msg.value == 0
-    } ++ [ .return [.storage nameRef] ] }
-
-def symbolTransitionSyntax : TransitionDecl :=
-  { name := "symbol"
-    params := []
-    returnType := [stringTy]
-    body := sBlock% {
-      require msg.value == 0
-    } ++ [ .return [.storage symbolRef] ] }
-
-def decimalsTransitionSyntax : TransitionDecl :=
-  solm_transition decimals -> uint8 {
-    require msg.value == 0
-    return @decimals
+  function name() external returns (string) {
+    return name;
   }
 
-def balanceOfTransitionSyntax : TransitionDecl :=
-  solm_transition balanceOf (owner : address) -> uint256 {
-    require msg.value == 0
-    return @balanceOf[owner]
+  function approve(address guy, uint256 wad) external returns (bool) {
+    allowance[msg.sender][guy] = wad;
+    return true;
   }
 
-def allowanceTransitionSyntax : TransitionDecl :=
-  solm_transition allowance (owner : address) (guy : address) -> uint256 {
-    require msg.value == 0
-    return @allowance[owner][guy]
+  function totalSupply() external returns (uint256) {
+    return address(this).balance;
   }
 
-def depositTransitionSyntax : TransitionDecl :=
-  solm_transition deposit {
-    @balanceOf[msg.sender] := @balanceOf[msg.sender] + msg.value
+  function transferFrom(address src, address dst, uint256 wad) external returns (bool) {
+    require(balanceOf[src] >= wad);
+    if (src != msg.sender && allowance[src][msg.sender] != type(uint256).max) {
+      require(allowance[src][msg.sender] >= wad);
+      allowance[src][msg.sender] = allowance[src][msg.sender] - wad;
+    }
+    balanceOf[src] = balanceOf[src] - wad;
+    balanceOf[dst] = balanceOf[dst] + wad;
+    return true;
   }
 
-def fallbackTransitionSyntax : TransitionDecl :=
-  { name := "fallback"
-    params := []
-    returnType := []
-    body := depositTransitionSyntax.body }
-
-def withdrawTransitionSyntax : TransitionDecl :=
-  { name := "withdraw"
-    params := [{ name := "wad", ty := uint256 }]
-    returnType := []
-    body :=
-      sBlock% {
-        require msg.value == 0
-        require @balanceOf[msg.sender] >= wad
-        @balanceOf[msg.sender] := @balanceOf[msg.sender] - wad
-      } ++
-      [ .lowLevelCall sender (.var "wad") emptyBytes "success" "_data" ] ++
-      sBlock% {
-        require success
-      } }
-
-def totalSupplyTransitionSyntax : TransitionDecl :=
-  { name := "totalSupply"
-    params := []
-    returnType := [uint256]
-    body := sBlock% {
-      require msg.value == 0
-    } ++ [ .return [.env .selfbalance] ] }
-
-def approveTransitionSyntax : TransitionDecl :=
-  solm_transition approve (guy : address) (wad : uint256) -> bool {
-    require msg.value == 0
-    @allowance[msg.sender][guy] := wad
-    return true
+  function withdraw(uint256 wad) external {
+    require(balanceOf[msg.sender] >= wad);
+    balanceOf[msg.sender] = balanceOf[msg.sender] - wad;
+    (bool success, bytes memory _data) = msg.sender.call{value: wad}(new bytes(0));
+    require(success);
   }
 
-def transferTransitionSyntax : TransitionDecl :=
-  { name := "transfer"
-    params := [{ name := "dst", ty := addr }, { name := "wad", ty := uint256 }]
-    returnType := [boolTy]
-    body := sBlock% {
-      require msg.value == 0
-    } ++
-    [ .internalCall "transferFrom" [sender, .var "dst", .var "wad"] "_ok" ] ++
-    sBlock% {
-      return _ok
-    } }
+  function decimals() external returns (uint8) {
+    return decimals;
+  }
 
-def transferFromTransitionSyntax : TransitionDecl :=
-  { name := "transferFrom"
-    params :=
-      [ { name := "src", ty := addr }, { name := "dst", ty := addr },
-        { name := "wad", ty := uint256 } ]
-    returnType := [boolTy]
-    body :=
-      sBlock% {
-        require msg.value == 0
-        require @balanceOf[src] >= wad
-      } ++
-      [ .ite
-          (.binary .and
-            (.binary .ne (.var "src") sender)
-            (.binary .ne (.storage (allowanceRef (.var "src") sender)) (.intLit maxUint256)))
-          (sBlock% {
-            require @allowance[src][msg.sender] >= wad
-            @allowance[src][msg.sender] := @allowance[src][msg.sender] - wad
-          })
-          [] ] ++
-      sBlock% {
-        @balanceOf[src] := @balanceOf[src] - wad
-        @balanceOf[dst] := @balanceOf[dst] + wad
-        return true
-      } }
+  function balanceOf(address owner) external returns (uint256) {
+    return balanceOf[owner];
+  }
 
-def contractSyntax : ContractDecl :=
-  { name := "WETH9"
-    storage := storageDeclsSyntax
-    ctor := constructorDeclSyntax
-    functions := []
-    transitions :=
-      [ nameTransitionSyntax,
-        approveTransitionSyntax,
-        totalSupplyTransitionSyntax,
-        transferFromTransitionSyntax,
-        withdrawTransitionSyntax,
-        decimalsTransitionSyntax,
-        balanceOfTransitionSyntax,
-        symbolTransitionSyntax,
-        transferTransitionSyntax,
-        depositTransitionSyntax,
-        allowanceTransitionSyntax ]
-    fallback := some fallbackTransitionSyntax }
+  function symbol() external returns (string) {
+    return symbol;
+  }
 
-theorem storageDeclsSyntax_eq : storageDeclsSyntax = Benchmarks.WETH9.storageDecls := by
-  rfl
+  function transfer(address dst, uint256 wad) external returns (bool) {
+    var _ok = transferFrom(msg.sender, dst, wad);
+    return _ok;
+  }
 
-theorem contractSyntax_eq : contractSyntax = Benchmarks.WETH9.contract := by
-  rfl
+  function deposit() external payable {
+    balanceOf[msg.sender] = balanceOf[msg.sender] + msg.value;
+  }
+
+  function allowance(address owner, address guy) external returns (uint256) {
+    return allowance[owner][guy];
+  }
+
+  fallback() external payable {
+    balanceOf[msg.sender] = balanceOf[msg.sender] + msg.value;
+  }
+}
+
+theorem contractSyntax_eq : contractSyntax = Benchmarks.WETH9.contract := by rfl
 
 end Benchmarks.WETH9.Syntax

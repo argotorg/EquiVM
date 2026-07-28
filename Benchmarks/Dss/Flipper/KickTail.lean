@@ -471,7 +471,7 @@ theorem test_flipperKickX_toVatCallMem {cA σ I} {g : Sat256} {s0 : State}
         unfold kickVatFluxSenderMem
         rfl)
       (by decide) (by evm_ov)]
-  have rd2381 := RD.uniswapAddress rd2380 (by native_decide) (by evm_ov)
+  have rd2381 := RD.address rd2380 (by native_decide) (by evm_ov)
   have rd2386 := evm_run rd2381 with [
     raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
     raw dup4 (by native_decide) (by evm_ov),
@@ -658,7 +658,7 @@ theorem test_flipperKickX_toVatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : Sta
 theorem test_flipperKickX_vatNoCode {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (kickAfterTabMap σ I)
+      Reasoning.Theory.extCodeSizeWord (kickAfterTabMap σ I)
         (flipperVatTargetWord (kickAfterTabMap σ I) I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨2354⟩
       [solcAddrMask, ⟨3⟩, ⟨4⟩, ⟨64⟩, ⟨0⟩, ⟨2⟩, kickIdWord σ I, kickBid I,
@@ -666,7 +666,7 @@ theorem test_flipperKickX_vatNoCode {cA σ I} {g : Sat256} {s0 : State}
       (kickFieldHashMem σ I) (UInt256.ofNat 3) out (cA, kickAfterTabMap σ I) k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd2422⟩ := test_flipperKickX_toVatExtcodesizeGuard h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2422⟩) (okPc := ⟨2434⟩) rd2422
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2422⟩) (okPc := ⟨2434⟩) rd2422
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -675,7 +675,7 @@ theorem test_flipperKickX_vatNoCode {cA σ I} {g : Sat256} {s0 : State}
 theorem test_flipperKickX_toVatCall {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (kickAfterTabMap σ I)
+      Reasoning.Theory.extCodeSizeWord (kickAfterTabMap σ I)
         (flipperVatTargetWord (kickAfterTabMap σ I) I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨2354⟩
       [solcAddrMask, ⟨3⟩, ⟨4⟩, ⟨64⟩, ⟨0⟩, ⟨2⟩, kickIdWord σ I, kickBid I,
@@ -690,7 +690,7 @@ theorem test_flipperKickX_toVatCall {cA σ I} {g : Sat256} {s0 : State}
       (cA, kickAfterTabMap σ I) k' C' := by
   obtain ⟨_, _, rd2422⟩ := test_flipperKickX_toVatExtcodesizeGuard h
   obtain ⟨gasWord, k2437, C2437, rd2437⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2422⟩) (okPc := ⟨2434⟩) rd2422
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2422⟩) (okPc := ⟨2434⟩) rd2422
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -702,7 +702,7 @@ theorem test_flipperKickX_vatPostCall
     {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap} {Acur : Substate}
     {k C : ℕ} {out0 : ByteArray} {sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (kickAfterTabMap σ I)
+      Reasoning.Theory.extCodeSizeWord (kickAfterTabMap σ I)
         (flipperVatTargetWord (kickAfterTabMap σ I) I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
@@ -782,7 +782,7 @@ theorem test_flipperKickX_vatCallFailure {I} {g : Sat256} {s0 : State}
       mem aw out acc k C)
     (houtsz : out.size < UInt256.size) :
     RDrev flipperBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2438⟩) (okPc := ⟨2454⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2438⟩) (okPc := ⟨2454⟩) h
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -792,7 +792,7 @@ theorem test_flipperKickX_vatCallFailure {I} {g : Sat256} {s0 : State}
 theorem test_flipperKickX_vatCallDepthLimit {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (kickAfterTabMap σ I)
+      Reasoning.Theory.extCodeSizeWord (kickAfterTabMap σ I)
         (flipperVatTargetWord (kickAfterTabMap σ I) I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (h : RD flipperBytecode I g s0 ⟨2354⟩
@@ -841,7 +841,7 @@ theorem test_flipperKickX_vatCallSuccessToLogStart {I} {g : Sat256} {s0 : State}
       (selector :: target :: id :: bid :: lot :: tab :: gal :: usr :: ret :: sel :: [])
       mem aw out acc k' C' := by
   obtain ⟨k2456, C2456, rd2456⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨2438⟩) (okPc := ⟨2454⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨2438⟩) (okPc := ⟨2454⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)

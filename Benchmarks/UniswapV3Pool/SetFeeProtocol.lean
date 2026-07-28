@@ -1414,16 +1414,16 @@ theorem uniswapV3PoolSetFeeProtocolBodyCore {v : PoolImmutables}
           hpatch hrdOwnerSetup
           (by simp only [List.length_cons, List.length_nil]; omega)
       by_cases hfactoryCode :
-          Reasoning.Theory.uniswapExtCodeSizeWord
+          Reasoning.Theory.extCodeSizeWord
               (sstoreAccountMap I.codeOwner σ_evm ⟨0⟩
                 (setFeeProtocolLockedSlotWord σ_evm I))
               (setFeeProtocolFactoryWord v) ≠ ⟨0⟩
       · have hfactoryCodeSolm :
-            Reasoning.Theory.uniswapExtCodeSizeWord
+            Reasoning.Theory.extCodeSizeWord
                 (sstoreAccountMap I.codeOwner σ_solm ⟨0⟩
                   (setFeeProtocolLockedSlotWord σ_solm I))
                 (setFeeProtocolFactoryWord v) ≠ ⟨0⟩ := by
-          rw [← uniswapExtCodeSizeWord_accountMapEquiv hAccountsAfterLock
+          rw [← extCodeSizeWord_accountMapEquiv hAccountsAfterLock
             (setFeeProtocolFactoryWord v)]
           exact hfactoryCode
         let evmLockSolm :=
@@ -1797,7 +1797,7 @@ theorem uniswapV3PoolSetFeeProtocolBodyCore {v : PoolImmutables}
               hownerRevert
           exact hrdOwnerDepth.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hfactoryNoCodeEvm :
-            Reasoning.Theory.uniswapExtCodeSizeWord
+            Reasoning.Theory.extCodeSizeWord
                 (sstoreAccountMap I.codeOwner σ_evm ⟨0⟩
                   (setFeeProtocolLockedSlotWord σ_evm I))
                 (setFeeProtocolFactoryWord v) = ⟨0⟩ := by
@@ -1815,11 +1815,11 @@ theorem uniswapV3PoolSetFeeProtocolBodyCore {v : PoolImmutables}
             hpatch hrdOwnerGuard hfactoryNoCodeEvm
             (by simp only [List.length_cons, List.length_nil]; omega)
         have hfactoryNoCodeSolm :
-            Reasoning.Theory.uniswapExtCodeSizeWord
+            Reasoning.Theory.extCodeSizeWord
                 (sstoreAccountMap I.codeOwner σ_solm ⟨0⟩
                   (setFeeProtocolLockedSlotWord σ_solm I))
                 (setFeeProtocolFactoryWord v) = ⟨0⟩ := by
-          rw [← uniswapExtCodeSizeWord_accountMapEquiv hAccountsAfterLock
+          rw [← extCodeSizeWord_accountMapEquiv hAccountsAfterLock
             (setFeeProtocolFactoryWord v)]
           exact hfactoryNoCodeEvm
         let evmLockSolm :=

@@ -79,7 +79,7 @@ theorem daiX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
         (by native_decide) (by simp only [List.length]; omega)
     |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
         (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 theorem daiX_short {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -102,7 +102,7 @@ theorem daiX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
         (by simp only [List.length]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h322 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h322 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 theorem daiDispatch_none_short {cd : ByteArray} (hshort : cd.size < 4) :
@@ -180,7 +180,7 @@ theorem daiJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
   have h322 := h.push2 ⟨322⟩ hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by evm_ov)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h322 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h322 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -313,7 +313,7 @@ theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         |>.selectorArmNotTakenAuto (daiVeryLowArmsWellFormed 4 (by omega))
             (heqVeryLow 4 (by omega)) (by simp)
       have h323 := h322.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-      exact RD.uniswapPush1Dup1Revert0 h323 (by native_decide) (by native_decide)
+      exact RD.solcPush1Dup1Revert0 h323 (by native_decide) (by native_decide)
         (by native_decide) (by simp only [List.length_singleton]; omega)
 
 /-- `callvalue != 0` reverts on both sides for every Dai transition. -/

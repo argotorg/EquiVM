@@ -231,11 +231,11 @@ theorem RD.catBiteUrnsNoCode
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1383⟩
       (target :: target :: outPtr :: ⟨68⟩ :: outPtr :: ⟨64⟩ :: R)
       mem aw o (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 8 ≤ 1024) :
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) :=
-  RD.uniswapExtcodesizeGuardMissing (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd hcodeSize
+  RD.solcExtcodesizeGuardMissing (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons]; omega)
@@ -251,7 +251,7 @@ theorem RD.catBiteUrnsStaticcall
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1383⟩
       (target :: target :: outPtr :: ⟨68⟩ :: outPtr :: ⟨64⟩ :: R)
       mem aw o (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hencode : config.externalABI.encode? "urns" args =
         some (mem.readWithPadding outPtr.toNat 68))
@@ -269,12 +269,12 @@ theorem RD.catBiteUrnsStaticcall
               accountMap := σ', substate := A', createdAccounts := cA' }, o') false
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd1398⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
   obtain ⟨cA', σ', z, o', A_in, callGas, k', C', hΘpack, rd1399, hosz⟩ :=
-    RD.uniswapStaticcall rd1398 (by native_decide) hdepth (by omega)
+    RD.solcStaticcall rd1398 (by native_decide) hdepth (by omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, o', A', _, k', C', rd1399, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
@@ -292,7 +292,7 @@ theorem RD.catBiteUrnsDepthLimit
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1383⟩
       (target :: target :: outPtr :: ⟨68⟩ :: outPtr :: ⟨64⟩ :: R)
       mem aw o (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hov : R.length + 8 ≤ 1024) :
     ∃ (awout : UInt256) (k' C' : ℕ), RD catBytecode I (Sat256.ofUInt256 g)
@@ -302,12 +302,12 @@ theorem RD.catBiteUrnsDepthLimit
         (min (⟨64⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat)
       awout ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨gasWord, _, _, rd1398⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
   obtain ⟨k', C', rd1399⟩ :=
-    RD.uniswapStaticcallDepthLimit rd1398 (by native_decide) hdepth (by omega)
+    RD.solcStaticcallDepthLimit rd1398 (by native_decide) hdepth (by omega)
   exact ⟨_, k', C', rd1399⟩
 
 /-- **call failed** (`status = 0`) — the success guard bubbles the revert. -/
@@ -322,7 +322,7 @@ theorem RD.catBiteUrnsCallFailed
     (hov : R.length + 5 ≤ 1024) :
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) :=
-  RD.uniswapCallSuccessGuardMissing (pc := ⟨1399⟩) (okPc := ⟨1415⟩) rd rfl
+  RD.solcCallSuccessGuardMissing (pc := ⟨1399⟩) (okPc := ⟨1415⟩) rd rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
@@ -342,7 +342,7 @@ theorem RD.catBiteUrnsCallSucceeded
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1420⟩
       R mem aw o acc k' C' := by
   obtain ⟨_, _, rd1417⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨1399⟩) (okPc := ⟨1415⟩) rd hstatus
+    RD.solcCallSuccessGuardOk (pc := ⟨1399⟩) (okPc := ⟨1415⟩) rd hstatus
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
@@ -390,7 +390,7 @@ theorem RD.catBiteUrnsReturnDecodeShortReverts
     rw [hlt]; decide
   have rdFallthrough := RD.jumpiNT rdPushOk (by native_decide) hcond
     (by simp only [List.length_cons]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 

@@ -898,7 +898,7 @@ theorem vowCageMinHealLeftNoCodeBodyCore
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
         ⟨0⟩)
     (hov : R.length + 15 ≤ 1024)
     (hvatCode :
@@ -999,7 +999,7 @@ theorem vowCageMinHealRightNoCodeBodyCore
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
         ⟨0⟩)
     (hov : R.length + 15 ≤ 1024)
     (hvatCode :

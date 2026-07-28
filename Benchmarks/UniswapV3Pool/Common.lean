@@ -1240,7 +1240,7 @@ theorem uniswapV3PoolFallbackRevertFrom {code : ByteArray} {ee : ExecutionEnv}
     (hr2 : decode code ⟨434⟩ = some (.REVERT, .none))
     (hovPush : stk.length + 1 ≤ 1024) (hovRev : stk.length + 2 ≤ 1024) :
     RDrev code g s0 := by
-  exact RD.uniswapPush1Dup1Revert0
+  exact RD.solcPush1Dup1Revert0
     (h.pushConst ⟨430⟩ (width := 2) (op := .PUSH2) (by native_decide) hpush hovPush
       |>.jump hjump hjd (by omega)
       |>.jumpdest hjdDecode (by omega))
@@ -1457,7 +1457,7 @@ theorem uniswapV3PoolFallbackJumpdestFrom {v : PoolImmutables} {code : ByteArray
     (hpatch : patchRuntime uniswapV3PoolBytecode (patches v) = some code)
     (h : RD code I g s0 ⟨430⟩ [solcSelectorWord I] mem aw rdata acc k C) :
     RDrev code g s0 := by
-  exact RD.uniswapPush1Dup1Revert0
+  exact RD.solcPush1Dup1Revert0
     (h.jumpdest
       (by rw [uniswapV3PoolDecodePatchedEqTemplate2258 hpatch (by native_decide)]; native_decide)
       (by simp))
@@ -1891,7 +1891,7 @@ theorem uniswapV3PoolX_callvalue_ne {v : PoolImmutables} {code : ByteArray}
     (by rw [uniswapV3PoolDecodePatchedEqTemplate2258 hpatch (by native_decide)]; native_decide)
     (by rw [uniswapV3PoolDecodePatchedEqTemplate2258 hpatch (by native_decide)]; native_decide)
     (by rw [uniswapV3PoolDecodePatchedEqTemplate2258 hpatch (by native_decide)]; native_decide)
-  exact RD.uniswapPush1Dup1Revert0
+  exact RD.solcPush1Dup1Revert0
     (h0.pushConst (solcGuardTgt uniswapV3PoolBytecode)
       (width := solcGuardTgtWidth uniswapV3PoolBytecode)
       (op := solcGuardTgtOp uniswapV3PoolBytecode)
@@ -1931,7 +1931,7 @@ theorem uniswapV3PoolX_short {v : PoolImmutables} {code : ByteArray}
     (by rw [uniswapV3PoolDecodePatchedEqTemplate2258 hpatch (by native_decide)]; native_decide)
     (by rw [uniswapV3PoolDecodePatchedEqTemplate2258 hpatch (by native_decide)]; native_decide)
     (uniswapV3PoolJumpDestPatched2258 hpatch (by native_decide))
-  exact RD.uniswapPush1Dup1Revert0
+  exact RD.solcPush1Dup1Revert0
     (h1.push1 ⟨4⟩
       (by rw [uniswapV3PoolDecodePatchedEqTemplate2258 hpatch (by native_decide)]; native_decide)
       (by simp only [List.length]; omega)

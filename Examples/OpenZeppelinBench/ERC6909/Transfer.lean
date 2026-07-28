@@ -3,7 +3,6 @@ import Examples.OpenZeppelinBench.ERC6909.Approve
 import Examples.OpenZeppelinBench.ERC6909.Storage
 import Reasoning.Refinement
 import Reasoning.SolmBody
-import Reasoning.SolcDecode
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 

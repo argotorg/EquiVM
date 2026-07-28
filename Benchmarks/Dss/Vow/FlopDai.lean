@@ -823,7 +823,7 @@ theorem RD.vowFlopDai1PostCall
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
       (outDai : ByteArray) (A' : Substate) (k' C' : ℕ),
@@ -849,7 +849,7 @@ theorem RD.vowFlopDai1PostCall
   obtain ⟨gasWord, _, _, rd3831⟩ :=
     RD.vowFlopToDai1Staticcall rd henough hmem hread64 hcodeSize
   obtain ⟨cA', σ', z, outDai, A_in, callGas, k3832, C3832, hΘpack, rd3832raw, hosz⟩ :=
-    RD.uniswapStaticcall rd3831 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcall rd3831 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   let evmDaiIn := { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := acc.2
@@ -882,7 +882,7 @@ theorem RD.vowFlopDai1CallFailure
     (hov : rest.length + 5 ≤ 1024) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨3832⟩) (okPc := ⟨3848⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨3832⟩) (okPc := ⟨3848⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -900,7 +900,7 @@ theorem RD.vowFlopDai1CallSuccessToDecode
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3850⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨3832⟩) (okPc := ⟨3848⟩) rd
+  exact RD.solcCallSuccessGuardOk (pc := ⟨3832⟩) (okPc := ⟨3848⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -1175,7 +1175,7 @@ theorem vowFlopDai1NoCodeBodyCore
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩)
     (hvatCode :
       0 < (UInt256.ofNat
         (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount

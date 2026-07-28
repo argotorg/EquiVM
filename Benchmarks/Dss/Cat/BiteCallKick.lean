@@ -327,11 +327,11 @@ theorem RD.catBiteKickGuardMissing {cA gh bl σ σ₀ A I} {g target : UInt256} 
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
       mem aw rdata (cAx, σx) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σx target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σx target = ⟨0⟩)
     (hov : R.length + 9 ≤ 1024) :
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons]; omega)
@@ -344,14 +344,14 @@ theorem RD.catBiteKickGuardOk {cA gh bl σ σ₀ A I} {g target : UInt256} {mem 
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
       mem aw rdata (cAx, σx) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σx target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σx target ≠ ⟨0⟩)
     (hov : R.length + 9 ≤ 1024) :
     ∃ gasWord k' C', RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2531⟩
       (gasWord :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R)
       mem aw rdata (cAx, σx) k' C' := by
   obtain ⟨gasWord, k', C', rd'⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
@@ -416,7 +416,7 @@ theorem RD.catBiteKickCallFailed {cA gh bl σ σ₀ A I} {g : UInt256} {mem : By
     (hov : R.length + 5 ≤ 1024) :
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2532⟩) (okPc := ⟨2548⟩) rd rfl
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2532⟩) (okPc := ⟨2548⟩) rd rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -435,7 +435,7 @@ theorem RD.catBiteKickCallSucceeded {cA gh bl σ σ₀ A I} {g status : UInt256}
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2550⟩ R
       mem aw rdata acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨2532⟩) (okPc := ⟨2548⟩) rd hstatus
+  exact RD.solcCallSuccessGuardOk (pc := ⟨2532⟩) (okPc := ⟨2548⟩) rd hstatus
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide) hov
 

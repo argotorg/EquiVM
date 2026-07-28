@@ -81,7 +81,7 @@ theorem uniswapMintRuntimeFirstBalanceOfExtcodesize
   have rd3395 := rd3394.mstore 6 balanceOfThisSelectorMem (UInt256.ofNat 5)
     (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)
   have rd3400 := evm_run rd3395 with [
-    uniswapAddress, push1 ⟨4⟩, dup3, add]
+    address, push1 ⟨4⟩, dup3, add]
   have rd3401 := rd3400.mstore 3
     (balanceOfThisCalldataMem (UInt256.ofNat I.codeOwner.val)) (UInt256.ofNat 6)
     (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)
@@ -117,7 +117,7 @@ theorem uniswapMintRuntimeFirstBalanceOfStaticcallReady
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C)
     (htoken0Code :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
@@ -140,7 +140,7 @@ theorem uniswapMintRuntimeFirstBalanceOfStaticcallReady
   obtain ⟨_, _, rd3448⟩ :=
     uniswapMintRuntimeFirstBalanceOfExtcodesize (g := g) hlockEntered
   obtain ⟨_, _, rd3462⟩ :=
-    RD.uniswapExtcodesizeGuardOk (okPc := ⟨3460⟩) rd3448
+    RD.solcExtcodesizeGuardOk (okPc := ⟨3460⟩) rd3448
       (by simpa [σLock, token0Word, token0Clean] using htoken0Code)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest)
@@ -159,7 +159,7 @@ theorem uniswapMintRuntimeFirstBalanceOfStaticcallEntry
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C)
     (htoken0Code :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
@@ -183,7 +183,7 @@ theorem uniswapMintRuntimeFirstBalanceOfStaticcallEntry
   obtain ⟨_, _, rd3448⟩ :=
     uniswapMintRuntimeFirstBalanceOfExtcodesize (g := g) hlockEntered
   obtain ⟨gasWord, _, _, rd3463⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (okPc := ⟨3460⟩) rd3448
+    RD.solcExtcodesizeGuardOkGas (okPc := ⟨3460⟩) rd3448
       (by simpa [σLock, token0Word, token0Clean] using htoken0Code)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest)
@@ -203,7 +203,7 @@ theorem uniswapMintRuntimeFirstBalanceOfStaticcallMade
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C)
     (htoken0Code :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
@@ -242,7 +242,7 @@ theorem uniswapMintRuntimeFirstBalanceOfStaticcallMade
     uniswapMintRuntimeFirstBalanceOfStaticcallEntry
       (g := g) hlockEntered htoken0Code
   obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd3464, hoSize⟩ :=
-    RD.uniswapStaticcall rd3463 (by native_decide) hdepth
+    RD.solcStaticcall rd3463 (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨cA', σ', z, o, A_in, callGas, k', C',
     by simpa [σLock, token0Word, token0Clean, initState] using hΘ,
@@ -262,7 +262,7 @@ theorem uniswapMintRuntimeFirstBalanceOfResultBranches
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C)
     (htoken0Code :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
@@ -309,7 +309,7 @@ theorem uniswapMintRuntimeFirstBalanceOfResultBranches
   · intro hz
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       simp [hz]
-    exact RD.uniswapCallSuccessGuardMissing (okPc := ⟨3480⟩) rd3464 hstatus
+    exact RD.solcCallSuccessGuardMissing (okPc := ⟨3480⟩) rd3464 hstatus
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -320,7 +320,7 @@ theorem uniswapMintRuntimeFirstBalanceOfResultBranches
       rw [hz]
       decide
     obtain ⟨_, _, rd3482⟩ :=
-      RD.uniswapCallSuccessGuardOk (okPc := ⟨3480⟩) rd3464 hstatus
+      RD.solcCallSuccessGuardOk (okPc := ⟨3480⟩) rd3464 hstatus
         (by native_decide) (by native_decide) (by native_decide) (by native_decide)
         (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
         (by simp only [List.length_cons, List.length_nil]; omega)
@@ -337,7 +337,7 @@ theorem uniswapMintRuntimeFirstBalanceOfResultBranches
       rw [hz]
       decide
     obtain ⟨_, _, rd3482⟩ :=
-      RD.uniswapCallSuccessGuardOk (okPc := ⟨3480⟩) rd3464 hstatus
+      RD.solcCallSuccessGuardOk (okPc := ⟨3480⟩) rd3464 hstatus
         (by native_decide) (by native_decide) (by native_decide) (by native_decide)
         (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
         (by simp only [List.length_cons, List.length_nil]; omega)
@@ -363,7 +363,7 @@ theorem uniswapMintRuntimeFirstBalanceOfMissingCodeReverts
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) k C)
     (htoken0NoCode :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩) :
@@ -374,7 +374,7 @@ theorem uniswapMintRuntimeFirstBalanceOfMissingCodeReverts
   let token0Clean := UInt256.land solcAddrMask token0Word
   obtain ⟨_, _, rd3448⟩ :=
     uniswapMintRuntimeFirstBalanceOfExtcodesize (g := g) hlockEntered
-  exact RD.uniswapExtcodesizeGuardMissing (okPc := ⟨3460⟩) rd3448
+  exact RD.solcExtcodesizeGuardMissing (okPc := ⟨3460⟩) rd3448
     (by simpa [σLock, token0Word, token0Clean] using htoken0NoCode)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -400,9 +400,9 @@ theorem uniswapMintRuntimeFirstBalanceOfStaticcallDepthReverts
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd3464⟩ :=
-    RD.uniswapStaticcallDepthLimit rd3463 (by native_decide) hdepth hovStatic
+    RD.solcStaticcallDepthLimit rd3463 (by native_decide) hdepth hovStatic
   have rdRev :=
-    RD.uniswapCallSuccessGuardMissing (okPc := ⟨3480⟩) rd3464 rfl
+    RD.solcCallSuccessGuardMissing (okPc := ⟨3480⟩) rd3464 rfl
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -464,7 +464,7 @@ theorem uniswapMintRuntimeSecondBalanceOfExtcodesizeFromFirst
     balanceOfThisStaticcallActiveWords
     (by native_decide) mem_cost (by rfl) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd3527 := evm_run rd3522 with [uniswapAddress, push1 ⟨4⟩, dup3, add]
+  have rd3527 := evm_run rd3522 with [address, push1 ⟨4⟩, dup3, add]
   have rd3528 := rd3527.mstore 0
     (balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o)
     balanceOfThisStaticcallActiveWords
@@ -514,7 +514,7 @@ theorem uniswapMintRuntimeSecondBalanceOfResultBranchesFromExtcodesize
     (hdepth : I.depth.val < 1024)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (htoken1Code :
-      uniswapExtCodeSizeWord σ'
+      extCodeSizeWord σ'
         (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) ≠ ⟨0⟩) :
     ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap)
       (z1 : Bool) (o1 : ByteArray) (A_in1 : Substate) (callGas1 : UInt256),
@@ -549,20 +549,20 @@ theorem uniswapMintRuntimeSecondBalanceOfResultBranchesFromExtcodesize
           balanceOfThisStaticcallActiveWords o1 (cA'', σ'') k' C')
       ∧ o1.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd3588⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (okPc := ⟨3585⟩) rd3573 htoken1Code
+    RD.solcExtcodesizeGuardOkGas (okPc := ⟨3585⟩) rd3573 htoken1Code
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest)
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨cA'', σ'', z1, o1, A_in1, callGas1, k', C', hΘ1, rd3589, ho1Size⟩ :=
-    RD.uniswapStaticcall rd3588 (by native_decide) hdepth
+    RD.solcStaticcall rd3588 (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨cA'', σ'', z1, o1, A_in1, callGas1, ?_, ?_, ?_, ?_, ho1Size⟩
   · simpa [balanceOfThisRebuiltStaticcallMem, initState] using hΘ1
   · intro hz1
     have hstatus : (if z1 then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       simp [hz1]
-    exact RD.uniswapCallSuccessGuardMissing (okPc := ⟨3605⟩) rd3589 hstatus
+    exact RD.solcCallSuccessGuardMissing (okPc := ⟨3605⟩) rd3589 hstatus
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -573,7 +573,7 @@ theorem uniswapMintRuntimeSecondBalanceOfResultBranchesFromExtcodesize
       rw [hz1]
       decide
     obtain ⟨_, _, rd3607⟩ :=
-      RD.uniswapCallSuccessGuardOk (okPc := ⟨3605⟩) rd3589 hstatus
+      RD.solcCallSuccessGuardOk (okPc := ⟨3605⟩) rd3589 hstatus
         (by native_decide) (by native_decide) (by native_decide) (by native_decide)
         (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
         (by simp only [List.length_cons, List.length_nil]; omega)
@@ -590,7 +590,7 @@ theorem uniswapMintRuntimeSecondBalanceOfResultBranchesFromExtcodesize
       rw [hz1]
       decide
     obtain ⟨_, _, rd3607⟩ :=
-      RD.uniswapCallSuccessGuardOk (okPc := ⟨3605⟩) rd3589 hstatus
+      RD.solcCallSuccessGuardOk (okPc := ⟨3605⟩) rd3589 hstatus
         (by native_decide) (by native_decide) (by native_decide) (by native_decide)
         (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
         (by simp only [List.length_cons, List.length_nil]; omega)
@@ -625,11 +625,11 @@ theorem uniswapMintRuntimeSecondBalanceOfMissingCodeFromExtcodesize
       (balanceOfThisRebuiltCalldataMem (UInt256.ofNat I.codeOwner.val) o)
       balanceOfThisStaticcallActiveWords o (cA', σ') k C)
     (htoken1NoCode :
-      uniswapExtCodeSizeWord σ'
+      extCodeSizeWord σ'
         (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) = ⟨0⟩) :
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapExtcodesizeGuardMissing (okPc := ⟨3585⟩) rd3573 htoken1NoCode
+  exact RD.solcExtcodesizeGuardMissing (okPc := ⟨3585⟩) rd3573 htoken1NoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide)

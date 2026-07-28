@@ -1549,10 +1549,10 @@ theorem flipperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               accountMapEquiv_sstoreAccountMap I.codeOwner
                 (bidSlotOfWord (kickIdWord σ_evm I) ⟨5⟩) (kickTab I) hAccountsGal
           by_cases hvatZero :
-              Reasoning.Theory.uniswapExtCodeSizeWord (kickAfterTabMap σ_evm I)
+              Reasoning.Theory.extCodeSizeWord (kickAfterTabMap σ_evm I)
                 (flipperVatTargetWord (kickAfterTabMap σ_evm I) I) = ⟨0⟩
           · have hvatZeroSolm :
-                Reasoning.Theory.uniswapExtCodeSizeWord (kickAfterTabMap σ_solm I)
+                Reasoning.Theory.extCodeSizeWord (kickAfterTabMap σ_solm I)
                     (flipperVatTargetWord (kickAfterTabMap σ_solm I) I) = ⟨0⟩ :=
               flipperVatCodeSize_zero_accountMapEquiv hAccountsTab hvatZero
             have hvatNoCode :
@@ -1574,7 +1574,7 @@ theorem flipperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             exact (test_flipperKickX_vatNoCode hvatZero rd2354)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
           · have hvatNeSolm :
-                Reasoning.Theory.uniswapExtCodeSizeWord (kickAfterTabMap σ_solm I)
+                Reasoning.Theory.extCodeSizeWord (kickAfterTabMap σ_solm I)
                     (flipperVatTargetWord (kickAfterTabMap σ_solm I) I) ≠ ⟨0⟩ :=
               flipperVatCodeSize_ne_zero_accountMapEquiv hAccountsTab hvatZero
             have hvatCodeSolm :

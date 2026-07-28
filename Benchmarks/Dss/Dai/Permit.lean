@@ -4653,7 +4653,7 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {cA gh bl σ σ₀ A I} {g : 
     raw dup6 (by native_decide) (by evm_ov)]
   obtain ⟨_gasArg, rd2757⟩ := RD.gas rd2756 (by native_decide) (by evm_ov)
   obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd2758, hoSize⟩ :=
-    RD.uniswapStaticcall rd2757 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcall rd2757 (by native_decide) hdepth (by evm_ov)
   refine ⟨cA', σ', z, o, A_in, callGas, k', C', ?_, ?_, hoSize⟩
   · rcases hΘ with ⟨g'', A', hΘ⟩
     refine ⟨g'', A', ?_⟩
@@ -4750,7 +4750,7 @@ theorem daiPermitX_nonzeroHolderEcrecoverFailureAfter2758
       mem aw o (cA', σ') k C)
     (hoSize : o.size < UInt256.size) :
     RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (okPc := ⟨2774⟩) rd2758 rfl
+  exact RD.solcCallSuccessGuardMissing (okPc := ⟨2774⟩) rd2758 rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5080,7 +5080,7 @@ theorem daiPermitX_nonzeroHolderEcrecoverSuccessToRecoveredBranchAfter2758
           simpa [baseMem] using permitEcrecoverMem5_read64 I domainWord digestWord)
         (hoSize := hoSize)
   obtain ⟨_, _, rd2776⟩ :=
-    RD.uniswapCallSuccessGuardOk (okPc := ⟨2774⟩) rd2758
+    RD.solcCallSuccessGuardOk (okPc := ⟨2774⟩) rd2758
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -6657,7 +6657,7 @@ theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           omega
         have hdepthEq : I.depth = (1024 : Fin 1025) := Fin.ext hdepthEqVal
         obtain ⟨_kStatic, _CStatic, rd2758⟩ :=
-          RD.uniswapStaticcallDepthLimit rd2757 (by native_decide) hdepthEq (by simp)
+          RD.solcStaticcallDepthLimit rd2757 (by native_decide) hdepthEq (by simp)
         let evmPostSolm :=
           { evmSolm with
             substate := (evmSolm.addAccessedAccount

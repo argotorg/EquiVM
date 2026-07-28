@@ -1264,10 +1264,10 @@ theorem endFlowX_vatIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
       [endFlowIlkWord I, endFlowReturnPc, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd2948⟩ := endFlowX_vatIlksExtcodesizeGuard hsz36 hdebt hfix h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2948⟩) (okPc := ⟨2960⟩) rd2948
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2948⟩) (okPc := ⟨2960⟩) rd2948
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1282,7 +1282,7 @@ theorem endFlowX_vatIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
       [endFlowIlkWord I, endFlowReturnPc, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2963⟩
       (gasWord :: endPackVatWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
@@ -1292,7 +1292,7 @@ theorem endFlowX_vatIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨_, _, rd2948⟩ := endFlowX_vatIlksExtcodesizeGuard hsz36 hdebt hfix h
   obtain ⟨gasWord, k', C', rd2963⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2948⟩) (okPc := ⟨2960⟩) rd2948
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2948⟩) (okPc := ⟨2960⟩) rd2948
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1378,7 +1378,7 @@ theorem endFlowX_vatIlksCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       mem (UInt256.ofNat 9) rdata (cA', σ') k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2964⟩) (okPc := ⟨2980⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2964⟩) (okPc := ⟨2980⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1395,7 +1395,7 @@ theorem endFlowX_vatIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat25
       (endFlowVatIlksEndPtr :: endFlowVatIlksSelectorWord :: endPackVatWord σ I ::
         ⟨0⟩ :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
       mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨2964⟩) (okPc := ⟨2980⟩) h
+  exact RD.solcCallSuccessGuardOk (pc := ⟨2964⟩) (okPc := ⟨2980⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -1489,7 +1489,7 @@ theorem endFlowX_vatIlksReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I} {g : S
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
   have rdFall := rdShort.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFall
+  exact RD.solcPush1Dup1Revert0 rdFall
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -1698,7 +1698,7 @@ theorem endFlowX_mulHelperOverflow {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (UInt256.div (x * y) y) x = ⟨0⟩ :=
     u256_eq_of_ne hdivNe
   have rdFallthrough := rd10201.jumpiNT (by native_decide) heqCond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 
@@ -2556,7 +2556,7 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
 
 theorem endFlowCheckedVatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
     let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endFlowStore I } evm0
       (checkedExternalCallStmts (.storage vatRef) "vatIlks" (.intLit 0) [.var "ilk"]
@@ -2592,7 +2592,7 @@ theorem endFlowCheckedVatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
 theorem endFlowCheckedVatIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
@@ -2646,7 +2646,7 @@ theorem endFlowCheckedVatIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
 theorem endFlowCheckedVatIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
@@ -2702,7 +2702,7 @@ theorem endFlowCheckedVatIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
 theorem endFlowCheckedVatIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
     {evmVat : EVM.State} {out : ByteArray}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
@@ -4042,7 +4042,7 @@ theorem endFlowBodyReverts_vatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
     let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endFlowStore I) flowTransition.body .reverted := by
   intro evm0
@@ -4061,7 +4061,7 @@ theorem endFlowBodyReverts_vatIlksCallFailed {cA gh bl σ σ₀ A I} {g : UInt25
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
@@ -4086,7 +4086,7 @@ theorem endFlowBodyReverts_vatIlksDecodeShort {cA gh bl σ σ₀ A I} {g : UInt2
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
@@ -4112,7 +4112,7 @@ theorem endFlowPrefixVatIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
@@ -4169,7 +4169,7 @@ theorem endFlowBodyReverts_vatIlksOkTailReverted {cA gh bl σ σ₀ A I} {g : UI
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
@@ -4226,7 +4226,7 @@ theorem endFlowBodyReturns_vatIlksOkTail {cA gh bl σ σ₀ A I} {g : UInt256}
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
@@ -4284,7 +4284,7 @@ theorem endFlowBodyReturns {cA gh bl σ σ₀ A I} {g : UInt256}
     (hdebt : endFlowDebtWord σ I ≠ ⟨0⟩)
     (hfix : endFlowFixWord σ I = ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
@@ -4430,10 +4430,10 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           rw [← hfixCouple]
           exact hfix
         by_cases hvatCode :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (endPackVatWord σ_evm I) =
+            Reasoning.Theory.extCodeSizeWord σ_evm (endPackVatWord σ_evm I) =
               ⟨0⟩
         · have hvatCodeSolm :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+              Reasoning.Theory.extCodeSizeWord σ_solm
                 (endPackVatWord σ_solm I) = ⟨0⟩ :=
             endPackVatCodeSize_zero_accountMapEquiv hAccounts hvatCode
           have hbody :
@@ -4448,10 +4448,10 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (g := Sat256.ofUInt256 g) hsz36 hdebt hfix hbodyReach hvatCode)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
         · have hvatCodeNE :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+              Reasoning.Theory.extCodeSizeWord σ_evm
                 (endPackVatWord σ_evm I) ≠ ⟨0⟩ := hvatCode
           have hvatCodeSolmNE :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+              Reasoning.Theory.extCodeSizeWord σ_solm
                 (endPackVatWord σ_solm I) ≠ ⟨0⟩ :=
             endPackVatCodeSize_ne_accountMapEquiv hAccounts hvatCodeNE
           obtain ⟨gasWord, _, _, hcallReady⟩ :=

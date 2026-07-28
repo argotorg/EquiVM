@@ -73,7 +73,7 @@ theorem flopperDentBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
     (hsuff : (dentBegLotWord evm I).toNat ≤ (dentLotOneWord evm I).toNat)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (dentVatWord evm) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) = ⟨0⟩) :
     ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted := by
   have hticGuard :
       evalExpr? config { contract := contract, locals := dentLocals I } evm
@@ -210,7 +210,7 @@ theorem flopperDentBodyReverts_moveCallFailure
     (hsuff : (dentBegLotWord evm I).toNat ≤ (dentLotOneWord evm I).toNat)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
@@ -355,7 +355,7 @@ theorem flopperDentBodyReverts_ashNoCode_moveCallerNe_ticZero
     (hsuff : (dentBegLotWord evm I).toNat ≤ (dentLotOneWord evm I).toNat)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
@@ -365,7 +365,7 @@ theorem flopperDentBodyReverts_ashNoCode_moveCallerNe_ticZero
         (true, evmMove, out) true)
     (hticMove : dentTicWord evmMove I = ⟨0⟩)
     (hashNoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) =
+      Reasoning.Theory.extCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) =
         ⟨0⟩) :
     ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted := by
   have hticGuard :
@@ -575,7 +575,7 @@ theorem flopperDentBodyReverts_ashCallFailure_moveCallerNe_ticZero
     (hsuff : (dentBegLotWord evm I).toNat ≤ (dentLotOneWord evm I).toNat)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
@@ -585,7 +585,7 @@ theorem flopperDentBodyReverts_ashCallFailure_moveCallerNe_ticZero
         (true, evmMove, outMove) true)
     (hticMove : dentTicWord evmMove I = ⟨0⟩)
     (hashCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
+      Reasoning.Theory.extCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
         ⟨0⟩)
     (hashCall :
       typedCallViaEVM config evmMove
@@ -800,7 +800,7 @@ theorem flopperDentBodyReverts_ashDecodeShort_moveCallerNe_ticZero
     (hsuff : (dentBegLotWord evm I).toNat ≤ (dentLotOneWord evm I).toNat)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
@@ -810,7 +810,7 @@ theorem flopperDentBodyReverts_ashDecodeShort_moveCallerNe_ticZero
         (true, evmMove, outMove) true)
     (hticMove : dentTicWord evmMove I = ⟨0⟩)
     (hashCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
+      Reasoning.Theory.extCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
         ⟨0⟩)
     (hashCall :
       typedCallViaEVM config evmMove
@@ -1027,7 +1027,7 @@ theorem flopperDentBodyReverts_afterAshRevert_moveCallerNe_ticZero
     (hsuff : (dentBegLotWord evm I).toNat ≤ (dentLotOneWord evm I).toNat)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
@@ -1037,7 +1037,7 @@ theorem flopperDentBodyReverts_afterAshRevert_moveCallerNe_ticZero
         (true, evmMove, outMove) true)
     (hticMove : dentTicWord evmMove I = ⟨0⟩)
     (hashCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
+      Reasoning.Theory.extCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
         ⟨0⟩)
     (hashCall :
       typedCallViaEVM config evmMove
@@ -1253,7 +1253,7 @@ theorem flopperDentBodyReverts_kissNoCode_moveCallerNe_ticZero
     (hsuff : (dentBegLotWord evm I).toNat ≤ (dentLotOneWord evm I).toNat)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
@@ -1263,7 +1263,7 @@ theorem flopperDentBodyReverts_kissNoCode_moveCallerNe_ticZero
         (true, evmMove, outMove) true)
     (hticMove : dentTicWord evmMove I = ⟨0⟩)
     (hashCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
+      Reasoning.Theory.extCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
         ⟨0⟩)
     (hashCall :
       typedCallViaEVM config evmMove
@@ -1271,7 +1271,7 @@ theorem flopperDentBodyReverts_kissNoCode_moveCallerNe_ticZero
         (true, evmAsh, outAsh) true)
     (houtAsh32 : 32 ≤ outAsh.size)
     (hkissNoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) =
+      Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) =
         ⟨0⟩) :
     ExecTransitionBody config contract evm (dentLocals I) dentTransition.body .reverted :=
   flopperDentBodyReverts_afterAshRevert_moveCallerNe_ticZero
@@ -1297,7 +1297,7 @@ theorem flopperDentBodyReverts_kissCallFailure_moveCallerNe_ticZero
     (hsuff : (dentBegLotWord evm I).toNat ≤ (dentLotOneWord evm I).toNat)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
@@ -1307,7 +1307,7 @@ theorem flopperDentBodyReverts_kissCallFailure_moveCallerNe_ticZero
         (true, evmMove, outMove) true)
     (hticMove : dentTicWord evmMove I = ⟨0⟩)
     (hashCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
+      Reasoning.Theory.extCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
         ⟨0⟩)
     (hashCall :
       typedCallViaEVM config evmMove
@@ -1315,7 +1315,7 @@ theorem flopperDentBodyReverts_kissCallFailure_moveCallerNe_ticZero
         (true, evmAsh, outAsh) true)
     (houtAsh32 : 32 ≤ outAsh.size)
     (hkissCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
+      Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
         ⟨0⟩)
     (hkissCall :
       typedCallViaEVM config evmAsh
@@ -1335,7 +1335,7 @@ theorem flopperDentBodyMoveSuccessTicNonzeroToLot
     (evm evmMove : EVM.State) (I : ExecutionEnv) (out : ByteArray)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
@@ -1475,7 +1475,7 @@ theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
     (outMove outAsh outKiss : ByteArray)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ dentGuyWord evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (dentVatWord evm) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (dentVatWord evm).toNat)) "move" 0
@@ -1485,7 +1485,7 @@ theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
         (true, evmMove, outMove) true)
     (hticMove : dentTicWord evmMove I = ⟨0⟩)
     (hashCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
+      Reasoning.Theory.extCodeSizeWord evmMove.accountMap (dentGuyWord evmMove I) ≠
         ⟨0⟩)
     (hashCall :
       typedCallViaEVM config evmMove
@@ -1493,7 +1493,7 @@ theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
         (true, evmAsh, outAsh) true)
     (houtAsh32 : 32 ≤ outAsh.size)
     (hkissCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
+      Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
         ⟨0⟩)
     (hkissCall :
       typedCallViaEVM config evmAsh

@@ -9,7 +9,7 @@ theorem flopperYankX_suckCall
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd1050 : RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1050⟩
@@ -56,7 +56,7 @@ theorem flopperYankX_suckCall
       solcAddrMask_result_canonical (flopperSlotWord (auctionPackedSlot id) σ I)
   obtain ⟨_, _, rd1148⟩ := flopperYankX_toSuckExtcodesizeGuard rd1050
   obtain ⟨gasWord, _, _, rd1163⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1148⟩) (okPc := ⟨1160⟩) rd1148
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1148⟩) (okPc := ⟨1160⟩) rd1148
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -96,7 +96,7 @@ theorem flopperYankX_suckCall
 theorem flopperYankX_suckCallDepthLimit
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth = 1024)
     (rd1050 : RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1050⟩
@@ -118,7 +118,7 @@ theorem flopperYankX_suckCallDepthLimit
   intro id memHash memMap vat vow guy bid
   obtain ⟨_, _, rd1148⟩ := flopperYankX_toSuckExtcodesizeGuard rd1050
   obtain ⟨gasWord, _, _, rd1163⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1148⟩) (okPc := ⟨1160⟩) rd1148
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1148⟩) (okPc := ⟨1160⟩) rd1148
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -149,7 +149,7 @@ theorem flopperYankX_suckCallFailure
       mem aw out (cA', σ') k C)
     (houtSize : out.size < UInt256.size) :
     RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1164⟩) (okPc := ⟨1180⟩) rd1164
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1164⟩) (okPc := ⟨1180⟩) rd1164
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -266,7 +266,7 @@ theorem flopperYankBodyCoreSuckNoCode
     (hlive : flopperSlotWord ⟨8⟩ σ_evm I = ⟨0⟩)
     (hguy : flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I ≠ ⟨0⟩)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨2⟩ σ_evm I) = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some yankTransition)
     (hdecode :
@@ -291,7 +291,7 @@ theorem flopperYankBodyCoreSuckNoCode
           (auctionPackedSlot (yankIdWord I))
       rw [hword, hzero])
   have hnoCodeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨2⟩ σ_solm I) = ⟨0⟩ :=
     flopperCodeSize_zero_accountMapEquiv_addressSlot hAccounts ⟨2⟩ hnoCode
   have hbody :
@@ -319,7 +319,7 @@ theorem flopperYankBodyCoreSuckCallFailure
     (hlive : flopperSlotWord ⟨8⟩ σ_evm I = ⟨0⟩)
     (hguy : flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩)
     (rd1164 : RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
@@ -398,7 +398,7 @@ theorem flopperYankBodyCoreSuckCallFailure
     intro hzero
     exact hguy (by rw [hguyEq, hzero])
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨2⟩ σ_solm I) ≠ ⟨0⟩ :=
     flopperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨2⟩ hcodeSize
   have hbody :
@@ -423,7 +423,7 @@ theorem flopperYankBodyCoreSuckCallDepthLimit
     (hlive : flopperSlotWord ⟨8⟩ σ_evm I = ⟨0⟩)
     (hguy : flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hdispatch : dispatchMsg contract I.calldata = some yankTransition)
@@ -486,7 +486,7 @@ theorem flopperYankBodyCoreSuckCallDepthLimit
           (auctionPackedSlot (yankIdWord I))
       rw [hword, hzero])
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨2⟩ σ_solm I) ≠ ⟨0⟩ :=
     flopperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨2⟩ hcodeSize
   have hbody :
@@ -518,7 +518,7 @@ theorem flopperYankBodyCoreSuckCallSuccess
     (hlive : flopperSlotWord ⟨8⟩ σ_evm I = ⟨0⟩)
     (hguy : flopperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩)
     (rd1164 : RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
@@ -596,7 +596,7 @@ theorem flopperYankBodyCoreSuckCallSuccess
     intro hzero
     exact hguy (by rw [hguyEq, hzero])
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨2⟩ σ_solm I) ≠ ⟨0⟩ :=
     flopperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨2⟩ hcodeSize
   have hbody :
@@ -681,7 +681,7 @@ theorem flopperYankBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       · exact flopperYankBodyCoreGuyNotSet hcode hsize hwv hsz36 hlive hguy
           hdispatch hdecode hreach hAccounts
       · by_cases hcodeSize :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+            Reasoning.Theory.extCodeSizeWord σ_evm
               (flopperAddressReturnWord ⟨2⟩ σ_evm I) = ⟨0⟩
         · exact flopperYankBodyCoreSuckNoCode hcode hsize hwv hsz36 hlive hguy
             hcodeSize hdispatch hdecode hreach hAccounts

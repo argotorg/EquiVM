@@ -693,7 +693,7 @@ theorem daiJoinExitMulSuccess {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw and (by native_decide) (by evm_ov),
     raw push4 joinMoveSelectorPlainWord (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
-    uniswapAddress,
+    address,
     raw push2 ⟨1377⟩ (by native_decide) (by evm_ov)]
   have rd1359Norm : ∃ k C, RD daiJoinBytecode I g s0 ⟨1359⟩
       [⟨1377⟩, UInt256.ofNat I.codeOwner, solcSourceWord I, joinMoveSelectorPlainWord,
@@ -770,7 +770,7 @@ theorem daiJoinExitMulReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw and (by native_decide) (by evm_ov),
     raw push4 joinMoveSelectorPlainWord (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
-    uniswapAddress,
+    address,
     raw push2 ⟨1377⟩ (by native_decide) (by evm_ov)]
   have rd1359Norm : ∃ k C, RD daiJoinBytecode I g s0 ⟨1359⟩
       [⟨1377⟩, UInt256.ofNat I.codeOwner, solcSourceWord I, joinMoveSelectorPlainWord,
@@ -978,10 +978,10 @@ theorem daiJoinExitVatMoveNoCode
         daiJoinVatTargetWord σ I, exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (daiJoinVatTargetWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (daiJoinVatTargetWord σ I) = ⟨0⟩) :
     RDrev daiJoinBytecode g s0 := by
   obtain ⟨_, _, rd1451⟩ := daiJoinExitToVatMoveExtcodesizeGuard rd1377
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1451⟩) (okPc := ⟨1463⟩) rd1451
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1451⟩) (okPc := ⟨1463⟩) rd1451
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -994,7 +994,7 @@ theorem daiJoinExitVatMoveCallReady
         daiJoinVatTargetWord σ I, exitWadWord I, exitUsrMaskedWord I, ⟨232⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (daiJoinVatTargetWord σ I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (daiJoinVatTargetWord σ I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD daiJoinBytecode I g s0 ⟨1466⟩
       (gasWord :: daiJoinVatTargetWord σ I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ ::
         ⟨128⟩ :: ⟨0⟩ :: ⟨228⟩ :: joinMoveSelectorPlainWord ::
@@ -1004,7 +1004,7 @@ theorem daiJoinExitVatMoveCallReady
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨_, _, rd1451⟩ := daiJoinExitToVatMoveExtcodesizeGuard rd1377
   obtain ⟨gasWord, k', C', rd1466⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1451⟩) (okPc := ⟨1463⟩) rd1451
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1451⟩) (okPc := ⟨1463⟩) rd1451
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1099,7 +1099,7 @@ theorem daiJoinExitVatMoveCallFailed {cA σ σ₀ A I} {g sel : UInt256}
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev daiJoinBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1467⟩) (okPc := ⟨1483⟩) rd1467
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1467⟩) (okPc := ⟨1483⟩) rd1467
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1119,7 +1119,7 @@ theorem daiJoinExitVatMoveCallSucceeded {cA σ σ₀ A I} {g sel : UInt256}
       (⟨228⟩ :: joinMoveSelectorPlainWord :: daiJoinVatTargetWord σ I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨1467⟩) (okPc := ⟨1483⟩) rd1467
+  exact RD.solcCallSuccessGuardOk (pc := ⟨1467⟩) (okPc := ⟨1483⟩) rd1467
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -1295,11 +1295,11 @@ theorem daiJoinExitDaiMintNoCode
       (exitMoveCalldataMem I rad solcFreePtrMem) (UInt256.ofNat 8)
       rdata (cA', σ') k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) = ⟨0⟩) :
     RDrev daiJoinBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1560⟩ := daiJoinExitVatMoveToDaiMintExtcodesizeGuard rd1485
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1560⟩) (okPc := ⟨1572⟩) rd1560
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1560⟩) (okPc := ⟨1572⟩) rd1560
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1316,7 +1316,7 @@ theorem daiJoinExitDaiMintCallReady
       (exitMoveCalldataMem I rad solcFreePtrMem) (UInt256.ofNat 8)
       rdata (cA', σ') k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD daiJoinBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1575⟩
       (gasWord :: daiJoinDaiTargetWord σ' I :: ⟨0⟩ :: ⟨128⟩ :: ⟨68⟩ ::
@@ -1327,7 +1327,7 @@ theorem daiJoinExitDaiMintCallReady
       (UInt256.ofNat 8) rdata (cA', σ') k' C' := by
   obtain ⟨_, _, rd1560⟩ := daiJoinExitVatMoveToDaiMintExtcodesizeGuard rd1485
   obtain ⟨gasWord, k', C', rd1575⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1560⟩) (okPc := ⟨1572⟩) rd1560
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1560⟩) (okPc := ⟨1572⟩) rd1560
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1392,7 +1392,7 @@ theorem daiJoinExitDaiMintCallFailed
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev daiJoinBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1576⟩) (okPc := ⟨1592⟩) rd1576
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1576⟩) (okPc := ⟨1592⟩) rd1576
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1413,7 +1413,7 @@ theorem daiJoinExitDaiMintCallSucceeded
       (⟨196⟩ :: exitMintSelectorPlainWord :: daiJoinDaiTargetWord σd I ::
         exitWadWord I :: exitUsrMaskedWord I :: ⟨232⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨1576⟩) (okPc := ⟨1592⟩) rd1576
+  exact RD.solcCallSuccessGuardOk (pc := ⟨1576⟩) (okPc := ⟨1592⟩) rd1576
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)

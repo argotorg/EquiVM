@@ -3143,7 +3143,7 @@ theorem cometRewardsClaimInternalX_noAccrue_call_baseTracking_made
     native_decide
   obtain ⟨cA', σ'_evm, z, baseOut, A_in, callGas, k', C', hΘ, rd3724,
       _houtSize⟩ :=
-    RD.uniswapStaticcall (t :=
+    RD.solcStaticcall (t :=
         claimBaseTrackingPostCallTail I (getRewardOwedClaimedWord σ_evm I))
       rd3723Call hdecCall hdepth
       (by simp [claimBaseTrackingPostCallTail])
@@ -3343,7 +3343,7 @@ theorem cometRewardsClaimInternalX_noAccrue_callDepthLimit
       (initState cA gh bl σ σ₀ g A I).executionEnv.depth = 1024 := by
     simpa [initState] using hdepth
   obtain ⟨k', C', rdPost₀⟩ :=
-    RD.uniswapStaticcallDepthLimit
+    RD.solcStaticcallDepthLimit
       (t := claimBaseTrackingPostCallTail I (getRewardOwedClaimedWord σ I))
       rd3723Call hdecCall hdepthInit (by simp [claimBaseTrackingPostCallTail])
   have rdPost :

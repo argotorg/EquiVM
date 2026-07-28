@@ -1198,7 +1198,7 @@ theorem flopperDentX_moveNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (hmemCaller : memCaller.size = 96)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) =
+      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) =
         ⟨0⟩)
     (rd2439 : RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2439⟩
       [dentBidWord I, dentLotWord I, dentIdWord I, ⟨334⟩, sel]
@@ -1206,7 +1206,7 @@ theorem flopperDentX_moveNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd2529⟩ :=
     flopperDentX_toMoveExtcodesizeGuard hmemCaller hread64Caller rd2439
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2529⟩) (okPc := ⟨2541⟩) rd2529
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2529⟩) (okPc := ⟨2541⟩) rd2529
     hnoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1217,7 +1217,7 @@ theorem flopperDentX_moveCall
     {k C : ℕ}
     (hperm : I.perm = true)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hmemCaller : memCaller.size = 96)
@@ -1256,7 +1256,7 @@ theorem flopperDentX_moveCall
   obtain ⟨_, _, rd2529⟩ :=
     flopperDentX_toMoveExtcodesizeGuard hmemCaller hread64Caller rd2439
   obtain ⟨gasWord, _, _, rd2544⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2529⟩) (okPc := ⟨2541⟩) rd2529
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2529⟩) (okPc := ⟨2541⟩) rd2529
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1297,7 +1297,7 @@ theorem flopperDentX_moveCallDepthLimit
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {memCaller : ByteArray}
     {k C : ℕ}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨2⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hmemCaller : memCaller.size = 96)
@@ -1319,7 +1319,7 @@ theorem flopperDentX_moveCallDepthLimit
   obtain ⟨_, _, rd2529⟩ :=
     flopperDentX_toMoveExtcodesizeGuard hmemCaller hread64Caller rd2439
   obtain ⟨gasWord, _, _, rd2544⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2529⟩) (okPc := ⟨2541⟩) rd2529
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2529⟩) (okPc := ⟨2541⟩) rd2529
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1351,7 +1351,7 @@ theorem flopperDentX_moveCallFailure
       mem aw out (cA', σ') k C)
     (houtSize : out.size < UInt256.size) :
     RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2545⟩) (okPc := ⟨2561⟩) rd2545
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2545⟩) (okPc := ⟨2561⟩) rd2545
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1387,7 +1387,7 @@ theorem flopperDentX_moveSuccessTicNonzeroToTail
   let src := UInt256.ofNat I.source.val
   let σGuy := dentRuntimeAfterGuyMap I.codeOwner σ' I
   obtain ⟨_, _, rd2563⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨2545⟩) (okPc := ⟨2561⟩) rd2545
+    RD.solcCallSuccessGuardOk (pc := ⟨2545⟩) (okPc := ⟨2561⟩) rd2545
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)

@@ -1564,7 +1564,7 @@ theorem stairstepPriceMulRayOverflowReverts {cA σ I} {g : Sat256} {s0 : State}
     raw jumpdest (by native_decide) (by evm_ov),
     raw push2 ⟨620⟩ (by native_decide) (by evm_ov),
     raw jumpiNT (by native_decide) rfl (by evm_ov)]
-  exact RD.uniswapPush1Dup1Revert0 rd1019pre
+  exact RD.solcPush1Dup1Revert0 rd1019pre
     (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
@@ -1730,7 +1730,7 @@ theorem stairstepPriceRmulOverflowReverts {cA σ I} {g : Sat256} {s0 : State}
     raw jumpdest (by native_decide) (by evm_ov),
     raw push2 ⟨1056⟩ (by native_decide) (by evm_ov),
     raw jumpiNT (by native_decide) rfl (by evm_ov)]
-  exact RD.uniswapPush1Dup1Revert0 rd1052pre
+  exact RD.solcPush1Dup1Revert0 rd1052pre
     (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
 
 theorem stairstepPriceFinishReturn {cA σ I} {g : Sat256} {s0 : State}

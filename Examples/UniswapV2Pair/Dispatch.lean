@@ -608,7 +608,7 @@ theorem uniswapX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
     |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 theorem uniswapX_short {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -630,7 +630,7 @@ theorem uniswapX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h425 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h425 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 /-- Reach the low-half split from the root split. -/
@@ -932,7 +932,7 @@ theorem uniswapJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   have h425 := h.push2 ⟨425⟩ hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by evm_ov)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h425 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h425 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1132,7 +1132,7 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         |>.selectorArmNotTakenAuto (uniswapLowestArmsWellFormed 5 (by omega))
             (heqLowest 5 (by omega)) (by simp)
       have h426 := h425.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-      exact RD.uniswapPush1Dup1Revert0 h426 (by native_decide) (by native_decide)
+      exact RD.solcPush1Dup1Revert0 h426 (by native_decide) (by native_decide)
         (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem uniswapNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}

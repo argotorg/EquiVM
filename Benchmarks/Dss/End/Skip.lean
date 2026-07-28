@@ -3582,10 +3582,10 @@ theorem endSkipX_catIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
       [endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel]
       (endSkipCatIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd3379⟩ := endSkipX_catIlksExtcodesizeGuard h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3379⟩) (okPc := ⟨3391⟩) rd3379
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3379⟩) (okPc := ⟨3391⟩) rd3379
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3597,7 +3597,7 @@ theorem endSkipX_catIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
       [endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel]
       (endSkipCatIlksBaseMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3394⟩
       (gasWord :: endSkipCatWord σ I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endSkipCatIlksOutSize ::
@@ -3607,7 +3607,7 @@ theorem endSkipX_catIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨_, _, rd3379⟩ := endSkipX_catIlksExtcodesizeGuard h
   obtain ⟨gasWord, k', C', rd3394⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3379⟩) (okPc := ⟨3391⟩) rd3379
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3379⟩) (okPc := ⟨3391⟩) rd3379
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -3695,7 +3695,7 @@ theorem endSkipX_catIlksCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       mem (UInt256.ofNat 7) rdata (cA', σ') k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨3395⟩) (okPc := ⟨3411⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨3395⟩) (okPc := ⟨3411⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3713,7 +3713,7 @@ theorem endSkipX_catIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat25
       (⟨0⟩ :: endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       mem (UInt256.ofNat 7) rdata (cA', σ') k' C' := by
   obtain ⟨_, _, rd3413⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨3395⟩) (okPc := ⟨3411⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨3395⟩) (okPc := ⟨3411⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -3787,7 +3787,7 @@ theorem endSkipX_catIlksReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
   have rdFall := rdShort.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFall
+  exact RD.solcPush1Dup1Revert0 rdFall
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -3930,10 +3930,10 @@ theorem endSkipX_vatIlksNoCode {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       (cA', σ') k C)
     (hloCat : 96 ≤ catOut.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (endPackVatWord σ' I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) = ⟨0⟩) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd3505⟩ := endSkipX_vatIlksExtcodesizeGuard hloCat h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3505⟩) (okPc := ⟨3517⟩) rd3505
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3505⟩) (okPc := ⟨3517⟩) rd3505
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3948,7 +3948,7 @@ theorem endSkipX_vatIlksCallReady {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       (cA', σ') k C)
     (hloCat : 96 ≤ catOut.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (endPackVatWord σ' I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3520⟩
       (gasWord :: endPackVatWord σ' I :: ⟨0⟩ :: endFlowVatIlksOutPtr ::
         endFlowVatIlksInSize :: endFlowVatIlksOutPtr :: endFlowVatIlksOutSize ::
@@ -3959,7 +3959,7 @@ theorem endSkipX_vatIlksCallReady {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       catOut (cA', σ') k' C' := by
   obtain ⟨_, _, rd3505⟩ := endSkipX_vatIlksExtcodesizeGuard hloCat h
   obtain ⟨gasWord, k', C', rd3520⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3505⟩) (okPc := ⟨3517⟩) rd3505
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3505⟩) (okPc := ⟨3517⟩) rd3505
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -4054,7 +4054,7 @@ theorem endSkipX_vatIlksCallFailed {cA cA' gh bl σ σcur σ' σ₀ A I}
       mem (UInt256.ofNat 9) rdata (cA', σ') k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨3521⟩) (okPc := ⟨3537⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨3521⟩) (okPc := ⟨3537⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -4075,7 +4075,7 @@ theorem endSkipX_vatIlksCallSucceeded {cA cA' gh bl σ σcur σ' σ₀ A I}
         ⟨0⟩ :: endSkipCatIlkFlipWord catOut :: endSkipCatIlkFlipWord catOut ::
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨3521⟩) (okPc := ⟨3537⟩) h
+  exact RD.solcCallSuccessGuardOk (pc := ⟨3521⟩) (okPc := ⟨3537⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -4166,7 +4166,7 @@ theorem endSkipX_vatIlksReturnDecodeShort {cA cA' gh bl σ σcur σ' σ₀ A I}
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
   have rdFall := rdShort.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFall
+  exact RD.solcPush1Dup1Revert0 rdFall
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -4295,11 +4295,11 @@ theorem endSkipX_bidsNoCode {cA cA' gh bl σ σ' σ₀ A I}
       (cA', σ') k C)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ'
+      Reasoning.Theory.extCodeSizeWord σ'
         (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd3637⟩ := endSkipX_bidsExtcodesizeGuard hloCat hloVat h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3637⟩) (okPc := ⟨3649⟩) rd3637
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3637⟩) (okPc := ⟨3649⟩) rd3637
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -4315,7 +4315,7 @@ theorem endSkipX_bidsCallReady {cA cA' gh bl σ σ' σ₀ A I}
       (cA', σ') k C)
     (hloCat : 96 ≤ catOut.size) (hloVat : 160 ≤ vatOut.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ'
+      Reasoning.Theory.extCodeSizeWord σ'
         (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3652⟩
       (gasWord :: endSkipCatIlkFlipTargetWord catOut :: endFlowVatIlksOutPtr ::
@@ -4329,7 +4329,7 @@ theorem endSkipX_bidsCallReady {cA cA' gh bl σ σ' σ₀ A I}
       vatOut (cA', σ') k' C' := by
   obtain ⟨_, _, rd3637⟩ := endSkipX_bidsExtcodesizeGuard hloCat hloVat h
   obtain ⟨gasWord, k', C', rd3652⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3637⟩) (okPc := ⟨3649⟩) rd3637
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3637⟩) (okPc := ⟨3649⟩) rd3637
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -4373,7 +4373,7 @@ theorem endSkipX_bidsPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
           bidOut (cA', σ') k' C'
       ∧ bidOut.size < UInt256.size := by
   obtain ⟨cA', σ', z, bidOut, Ain, callGas, k', C', hΘ, rd3653raw, hout⟩ :=
-    RD.uniswapStaticcall h (by native_decide) hdepth
+    RD.solcStaticcall h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨cA', σ', z, bidOut, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
@@ -4409,7 +4409,7 @@ theorem endSkipX_bidsStaticcallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
       (endSkipBidsCalldataMem I catOut vatOut) (UInt256.ofNat 12) ByteArray.empty
       (cAcur, σcur) k' C' := by
   obtain ⟨k', C', rd3653raw⟩ :=
-    RD.uniswapStaticcallDepthLimit h (by native_decide) hdepth
+    RD.solcStaticcallDepthLimit h (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endSkipBidsOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -4435,7 +4435,7 @@ theorem endSkipX_bidsCallFailed {cA cA' gh bl σ σ' σ₀ A I}
       mem (UInt256.ofNat 12) rdata (cA', σ') k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨3653⟩) (okPc := ⟨3669⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨3653⟩) (okPc := ⟨3669⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -4458,7 +4458,7 @@ theorem endSkipX_bidsCallSucceeded {cA cA' gh bl σ σ' σ₀ A I}
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       mem (UInt256.ofNat 12) rdata (cA', σ') k' C' := by
   obtain ⟨_, _, rd3671⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨3653⟩) (okPc := ⟨3669⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨3653⟩) (okPc := ⟨3669⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -4570,7 +4570,7 @@ theorem endSkipX_bidsReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
   have rdFall := rdShort.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFall
+  exact RD.solcPush1Dup1Revert0 rdFall
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -4791,10 +4791,10 @@ theorem endSkipX_suck1NoCode {cA cA' gh bl σ σ' σ₀ A I}
       (endSkipBidsPostCallMem I catOut vatOut bidOut) (UInt256.ofNat 12)
       bidOut (cA', σ') k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (endPackVatWord σ' I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) = ⟨0⟩) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd3805⟩ := endSkipX_suck1ExtcodesizeGuard hloCat hloVat hloBid h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3805⟩) (okPc := ⟨3817⟩) rd3805
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3805⟩) (okPc := ⟨3817⟩) rd3805
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -4813,7 +4813,7 @@ theorem endSkipX_suck1CallReady {cA cA' gh bl σ σ' σ₀ A I}
       (endSkipBidsPostCallMem I catOut vatOut bidOut) (UInt256.ofNat 12)
       bidOut (cA', σ') k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (endPackVatWord σ' I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ' (endPackVatWord σ' I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3820⟩
       (gasWord :: endPackVatWord σ' I :: ⟨0⟩ ::
         endSkipSuckOutPtr :: endSkipSuckInSize :: endSkipSuckOutPtr ::
@@ -4826,7 +4826,7 @@ theorem endSkipX_suck1CallReady {cA cA' gh bl σ σ' σ₀ A I}
       bidOut (cA', σ') k' C' := by
   obtain ⟨_, _, rd3805⟩ := endSkipX_suck1ExtcodesizeGuard hloCat hloVat hloBid h
   obtain ⟨gasWord, k', C', rd3820⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3805⟩) (okPc := ⟨3817⟩) rd3805
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3805⟩) (okPc := ⟨3817⟩) rd3805
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -4933,7 +4933,7 @@ theorem endSkipX_suck1CallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
       mem (UInt256.ofNat 12) rdata (cA', σpost) k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨3821⟩) (okPc := ⟨3837⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨3821⟩) (okPc := ⟨3837⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -4957,7 +4957,7 @@ theorem endSkipX_suck1CallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       mem (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
   obtain ⟨_, _, rd3839⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨3821⟩) (okPc := ⟨3837⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨3821⟩) (okPc := ⟨3837⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -5098,7 +5098,7 @@ theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
         unfold Reasoning.Theory.writeWord
         rfl)
       (by decide) (by evm_ov)]
-  have rd3880 := RD.uniswapAddress rd3879 (by native_decide) (by evm_ov)
+  have rd3880 := RD.address rd3879 (by native_decide) (by evm_ov)
   have rd3924raw := evm_run rd3880 with [
     raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
     raw dup5 (by native_decide) (by evm_ov),
@@ -5197,10 +5197,10 @@ theorem endSkipX_suck2NoCode {cA cA' gh bl σ σmem σpost σ₀ A I}
       (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata)
       (UInt256.ofNat 12) rdata (cA', σpost) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σpost (endPackVatWord σpost I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σpost (endPackVatWord σpost I) = ⟨0⟩) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd3924⟩ := endSkipX_suck2ExtcodesizeGuard hloCat hloVat hloBid h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3924⟩) (okPc := ⟨3936⟩) rd3924
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3924⟩) (okPc := ⟨3936⟩) rd3924
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5219,7 +5219,7 @@ theorem endSkipX_suck2CallReady {cA cA' gh bl σ σmem σpost σ₀ A I}
       (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata)
       (UInt256.ofNat 12) rdata (cA', σpost) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σpost (endPackVatWord σpost I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σpost (endPackVatWord σpost I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3939⟩
       (gasWord :: endPackVatWord σpost I :: ⟨0⟩ ::
         endSkipSuckOutPtr :: endSkipSuckInSize :: endSkipSuckOutPtr ::
@@ -5232,7 +5232,7 @@ theorem endSkipX_suck2CallReady {cA cA' gh bl σ σmem σpost σ₀ A I}
       (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
   obtain ⟨_, _, rd3924⟩ := endSkipX_suck2ExtcodesizeGuard hloCat hloVat hloBid h
   obtain ⟨gasWord, k', C', rd3939⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3924⟩) (okPc := ⟨3936⟩) rd3924
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3924⟩) (okPc := ⟨3936⟩) rd3924
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -5341,7 +5341,7 @@ theorem endSkipX_suck2CallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
       mem (UInt256.ofNat 12) rdata (cA', σpost) k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨3940⟩) (okPc := ⟨3956⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨3940⟩) (okPc := ⟨3956⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5365,7 +5365,7 @@ theorem endSkipX_suck2CallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       mem (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
   obtain ⟨_, _, rd3958⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨3940⟩) (okPc := ⟨3956⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨3940⟩) (okPc := ⟨3956⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -5543,10 +5543,10 @@ theorem endSkipX_hopeNoCode {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       (endSkipSuck2PostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
       (UInt256.ofNat 12) rdata (cA', σpost) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σpost (endPackVatWord σpost I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σpost (endPackVatWord σpost I) = ⟨0⟩) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd4026⟩ := endSkipX_hopeExtcodesizeGuard hloCat hloVat hloBid h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨4026⟩) (okPc := ⟨4038⟩) rd4026
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨4026⟩) (okPc := ⟨4038⟩) rd4026
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5565,7 +5565,7 @@ theorem endSkipX_hopeCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       (endSkipSuck2PostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
       (UInt256.ofNat 12) rdata (cA', σpost) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σpost (endPackVatWord σpost I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σpost (endPackVatWord σpost I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4041⟩
       (gasWord :: endPackVatWord σpost I :: ⟨0⟩ ::
         endSkipHopeOutPtr :: endSkipHopeInSize :: endSkipHopeOutPtr ::
@@ -5578,7 +5578,7 @@ theorem endSkipX_hopeCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
   obtain ⟨_, _, rd4026⟩ := endSkipX_hopeExtcodesizeGuard hloCat hloVat hloBid h
   obtain ⟨gasWord, k', C', rd4041⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4026⟩) (okPc := ⟨4038⟩) rd4026
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4026⟩) (okPc := ⟨4038⟩) rd4026
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -5687,7 +5687,7 @@ theorem endSkipX_hopeCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
       mem (UInt256.ofNat 12) rdata (cA', σpost) k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨4042⟩) (okPc := ⟨4058⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨4042⟩) (okPc := ⟨4058⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5710,7 +5710,7 @@ theorem endSkipX_hopeCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       mem (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
   obtain ⟨_, _, rd4060⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨4042⟩) (okPc := ⟨4058⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨4042⟩) (okPc := ⟨4058⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -5854,11 +5854,11 @@ theorem endSkipX_yankNoCode {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       (endSkipHopePostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
       (UInt256.ofNat 12) rdata (cA', σpost) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σpost
+      Reasoning.Theory.extCodeSizeWord σpost
         (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd4120⟩ := endSkipX_yankExtcodesizeGuard hloCat hloVat hloBid h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨4120⟩) (okPc := ⟨4132⟩) rd4120
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨4120⟩) (okPc := ⟨4132⟩) rd4120
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5876,7 +5876,7 @@ theorem endSkipX_yankCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       (endSkipHopePostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
       (UInt256.ofNat 12) rdata (cA', σpost) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σpost
+      Reasoning.Theory.extCodeSizeWord σpost
         (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4135⟩
       (gasWord :: endSkipCatIlkFlipTargetWord catOut :: ⟨0⟩ ::
@@ -5891,7 +5891,7 @@ theorem endSkipX_yankCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
   obtain ⟨_, _, rd4120⟩ := endSkipX_yankExtcodesizeGuard hloCat hloVat hloBid h
   obtain ⟨gasWord, k', C', rd4135⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4120⟩) (okPc := ⟨4132⟩) rd4120
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4120⟩) (okPc := ⟨4132⟩) rd4120
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -6004,7 +6004,7 @@ theorem endSkipX_yankCallFailed {cA cA' gh bl σ σpost σ₀ A I}
       mem (UInt256.ofNat 12) rdata (cA', σpost) k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨4136⟩) (okPc := ⟨4152⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨4136⟩) (okPc := ⟨4152⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -6028,7 +6028,7 @@ theorem endSkipX_yankCallSucceeded {cA cA' gh bl σ σpost σ₀ A I}
         endSkipIdWord I :: endSkipIlkWord I :: endSkipReturnPc :: sel :: [])
       mem (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
   obtain ⟨_, _, rd4154⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨4136⟩) (okPc := ⟨4152⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨4136⟩) (okPc := ⟨4152⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -6271,7 +6271,7 @@ theorem endSkipX_artAddOverflow {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
   have rd10104pre := evm_run rd10100 with [raw push2 ⟨10108⟩ (by native_decide) (by evm_ov)]
   have rd10104 := rd10104pre.jumpiNT (by native_decide) (by decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rd10104 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rd10104 (by native_decide) (by native_decide)
     (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -6683,7 +6683,7 @@ theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀
         rw [haddrMask, husrMaskLeft]
         rfl)
       (by decide) (by evm_ov),
-    raw uniswapAddress (by native_decide) (by evm_ov),
+    raw address (by native_decide) (by evm_ov),
     raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
     raw dup6 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
@@ -6786,10 +6786,10 @@ theorem endSkipX_grabNoCode {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
       (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
       rdata (cA', σCall) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σCall (endPackVatWord σCall I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σCall (endPackVatWord σCall I) = ⟨0⟩) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd4397⟩ := endSkipX_grabExtcodesizeGuard hloCat hloVat hloBid h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨4397⟩) (okPc := ⟨4409⟩) rd4397
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨4397⟩) (okPc := ⟨4409⟩) rd4397
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -6808,7 +6808,7 @@ theorem endSkipX_grabCallReady {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
       (endSkipArtStoreHashMemFor σmem σcall I catOut vatOut bidOut) (UInt256.ofNat 12)
       rdata (cA', σCall) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σCall (endPackVatWord σCall I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σCall (endPackVatWord σCall I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4412⟩
       (gasWord :: endPackVatWord σCall I :: ⟨0⟩ :: endFreeGrabOutPtr ::
         endFreeGrabInSize :: endFreeGrabOutPtr :: endFreeGrabOutSize ::
@@ -6822,7 +6822,7 @@ theorem endSkipX_grabCallReady {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
       (UInt256.ofNat 12) rdata (cA', σCall) k' C' := by
   obtain ⟨_, _, rd4397⟩ := endSkipX_grabExtcodesizeGuard hloCat hloVat hloBid h
   obtain ⟨gasWord, k', C', rd4412⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4397⟩) (okPc := ⟨4409⟩) rd4397
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4397⟩) (okPc := ⟨4409⟩) rd4397
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -6937,7 +6937,7 @@ theorem endSkipX_grabCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
       mem (UInt256.ofNat 12) rdata (cA', σpost) k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨4413⟩) (okPc := ⟨4429⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨4413⟩) (okPc := ⟨4429⟩) h
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -6963,7 +6963,7 @@ theorem endSkipX_grabCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
         endSkipCatIlkFlipWord catOut :: endSkipIdWord I :: endSkipIlkWord I ::
         endSkipReturnPc :: sel :: [])
       mem (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨4413⟩) (okPc := ⟨4429⟩) h
+  exact RD.solcCallSuccessGuardOk (pc := ⟨4413⟩) (okPc := ⟨4429⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -7278,12 +7278,12 @@ theorem endSkipCatAddr_eq_ofUInt256 (σ : AccountMap) (I : ExecutionEnv) :
 
 theorem endSkipCatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (endSkipCatWord τ I) ≠ ⟨0⟩ := by
+    (hne : Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (endSkipCatWord τ I) ≠ ⟨0⟩ := by
   intro hzero
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (endSkipCatWord σ I)
   have htarget : endSkipCatWord σ I = endSkipCatWord τ I :=
     endSkipCatWord_accountMapEquiv hAccounts
@@ -7292,10 +7292,10 @@ theorem endSkipCatCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : Executio
 
 theorem endSkipCatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (endSkipCatWord τ I) = ⟨0⟩ := by
+    (hzero : Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (endSkipCatWord τ I) = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (endSkipCatWord σ I)
   have htarget : endSkipCatWord σ I = endSkipCatWord τ I :=
     endSkipCatWord_accountMapEquiv hAccounts
@@ -7303,7 +7303,7 @@ theorem endSkipCatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : Execut
   exact hzero
 
 theorem endSkipCatCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
+    (hzero : Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
     (UInt256.ofNat
       (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endSkipCatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
@@ -7313,7 +7313,7 @@ theorem endSkipCatCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt25
       (endSkipCatAddr_eq_ofUInt256 σ I) hzero
 
 theorem endSkipCatCode_pos_of_codeSize_ne {cA gh bl σ σ₀ A I} {g : UInt256}
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩) :
+    (hne : Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (endSkipCatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
@@ -7349,7 +7349,7 @@ theorem evalExpr_endSkip_cat {locals : Store} (evm : EVM.State)
 
 theorem endSkipCheckedCatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
     let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
     ExecBlock config { contract := contract, locals := endSkipStore I } evm0
       (checkedExternalCallStmts (.storage catRef) "catIlks" (.intLit 0) [.var "ilk"]
@@ -7385,7 +7385,7 @@ theorem endSkipCheckedCatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
 theorem endSkipCheckedCatIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
     {evmCat : EVM.State} {out : ByteArray}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
@@ -7432,7 +7432,7 @@ theorem endSkipCheckedCatIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
 theorem endSkipCheckedCatIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     {evmCat : EVM.State} {out : ByteArray}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
@@ -7481,7 +7481,7 @@ theorem endSkipCheckedCatIlksDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
 theorem endSkipCheckedCatIlksSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
     {evmCat : EVM.State} {out : ByteArray}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
@@ -7664,7 +7664,7 @@ theorem endSkipBodyReverts_catIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSkipTagWord σ I ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) = ⟨0⟩) :
     let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
     ExecTransitionBody config contract evm0 (endSkipStore I) skipTransition.body .reverted := by
   intro evm0
@@ -7682,7 +7682,7 @@ theorem endSkipBodyReverts_catIlksCallFailed {cA gh bl σ σ₀ A I} {g : UInt25
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSkipTagWord σ I ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
@@ -7706,7 +7706,7 @@ theorem endSkipBodyReverts_catIlksDecodeShort {cA gh bl σ σ₀ A I} {g : UInt2
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSkipTagWord σ I ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
@@ -7731,7 +7731,7 @@ theorem endSkipPrefixFlipSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
     (htag : endSkipTagWord σ I ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
         (EVM.address (endSkipCatAddr σ I)) "catIlks" 0
@@ -7797,7 +7797,7 @@ theorem endSkipVatReceiver_afterFlip {σ I catOut evm}
 
 theorem endSkipVatCode_zero_afterFlip {σ I} {catOut : ByteArray} {evm : EVM.State}
     (hmap : evm.accountMap = σ)
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
+    (hzero : Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
     (UInt256.ofNat
       ((evm.lookupAccount (endPackVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat =
         0 := by
@@ -7808,7 +7808,7 @@ theorem endSkipVatCode_zero_afterFlip {σ I} {catOut : ByteArray} {evm : EVM.Sta
 
 theorem endSkipVatCode_pos_afterFlip {σ I} {catOut : ByteArray} {evm : EVM.State}
     (hmap : evm.accountMap = σ)
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩) :
+    (hne : Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((evm.lookupAccount (endPackVatAddr σ I)).option 0 (fun acc => acc.code.size))).toNat := by
   simpa [State.lookupAccount, hmap] using
@@ -7835,7 +7835,7 @@ theorem evalExprs_endSkip_vatIlksArgs_afterFlip (evm : EVM.State)
 theorem endSkipCheckedVatIlksNoCode {σ I} {catOut : ByteArray} {evm : EVM.State}
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
     ExecBlock config { contract := contract, locals := endSkipStoreFlip I catOut } evm
       (checkedExternalCallStmts (.storage vatRef) "vatIlks" (.intLit 0) [.var "ilk"]
         "vatIlk") .reverted := by
@@ -7858,7 +7858,7 @@ theorem endSkipCheckedVatIlksFailure {σ I} {catOut vatOut : ByteArray}
     {evm evmVat : EVM.State}
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
@@ -7888,7 +7888,7 @@ theorem endSkipCheckedVatIlksDecodeRevert {σ I} {catOut vatOut : ByteArray}
     {evm evmVat : EVM.State}
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
@@ -7920,7 +7920,7 @@ theorem endSkipCheckedVatIlksSuccess {σ I} {catOut vatOut : ByteArray}
     {evm evmVat : EVM.State}
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σ I)) "vatIlks" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I)]
@@ -8114,7 +8114,7 @@ theorem endSkipBidsCode_zero_afterRate {σ : AccountMap} {catOut : ByteArray}
     {evm : EVM.State}
     (hmap : evm.accountMap = σ)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) =
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) =
         ⟨0⟩) :
     (UInt256.ofNat
       ((evm.lookupAccount (endSkipCatIlkFlipAddr catOut)).option 0
@@ -8129,7 +8129,7 @@ theorem endSkipBidsCode_pos_afterRate {σ : AccountMap} {catOut : ByteArray}
     {evm : EVM.State}
     (hmap : evm.accountMap = σ)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
         ⟨0⟩) :
     0 < (UInt256.ofNat
       ((evm.lookupAccount (endSkipCatIlkFlipAddr catOut)).option 0
@@ -8143,23 +8143,23 @@ theorem endSkipBidsCode_pos_afterRate {σ : AccountMap} {catOut : ByteArray}
 theorem endSkipBidsCodeSize_zero_accountMapEquiv {σ τ : AccountMap}
     (hAccounts : accountMapEquiv σ τ) (catOut : ByteArray)
     (hcode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) =
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) =
         ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (endSkipCatIlkFlipTargetWord catOut) =
+    Reasoning.Theory.extCodeSizeWord τ (endSkipCatIlkFlipTargetWord catOut) =
       ⟨0⟩ := by
-  rw [← Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+  rw [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
     (endSkipCatIlkFlipTargetWord catOut)]
   exact hcode
 
 theorem endSkipBidsCodeSize_ne_accountMapEquiv {σ τ : AccountMap}
     (hAccounts : accountMapEquiv σ τ) (catOut : ByteArray)
     (hcode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
         ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (endSkipCatIlkFlipTargetWord catOut) ≠
+    Reasoning.Theory.extCodeSizeWord τ (endSkipCatIlkFlipTargetWord catOut) ≠
       ⟨0⟩ := by
   intro hbad
-  rw [← Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+  rw [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
     (endSkipCatIlkFlipTargetWord catOut)] at hbad
   exact hcode hbad
 
@@ -8185,7 +8185,7 @@ theorem evalExprs_endSkip_bidsArgs_afterRate (evm : EVM.State)
 theorem endSkipCheckedBidsNoCode {σ I} {catOut vatOut : ByteArray} {evm : EVM.State}
     (hmap : evm.accountMap = σ)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) =
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) =
         ⟨0⟩) :
     ExecBlock config { contract := contract, locals := endSkipStoreRate I catOut vatOut } evm
       (checkedExternalCallStmts (.var "flip") "bids" (.intLit 0) [.var "id"]
@@ -8209,7 +8209,7 @@ theorem endSkipCheckedBidsFailure {σ I} {catOut vatOut bidOut : ByteArray}
     {evm evmBids : EVM.State}
     (hmap : evm.accountMap = σ)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
         ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endSkipCatIlkFlipAddr catOut))
@@ -8241,7 +8241,7 @@ theorem endSkipCheckedBidsDecodeRevert {σ I} {catOut vatOut bidOut : ByteArray}
     {evm evmBids : EVM.State}
     (hmap : evm.accountMap = σ)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
         ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endSkipCatIlkFlipAddr catOut))
@@ -8275,7 +8275,7 @@ theorem endSkipCheckedBidsSuccess {σ I} {catOut vatOut bidOut : ByteArray}
     {evm evmBids : EVM.State}
     (hmap : evm.accountMap = σ)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
         ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endSkipCatIlkFlipAddr catOut))
@@ -8613,7 +8613,7 @@ theorem endSkipCheckedSuck1NoCode {σ I} {catOut vatOut bidOut : ByteArray}
     {evm : EVM.State}
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
     ExecBlock config { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
       evm
       (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
@@ -8639,7 +8639,7 @@ theorem endSkipCheckedSuck1Failure {σ I} {catOut vatOut bidOut suckOut : ByteAr
     {evm evmSuck : EVM.State}
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σ I)) "suck" 0
         [.address (endPackVowAddr σ I), .address (endPackVowAddr σ I),
@@ -8676,7 +8676,7 @@ theorem endSkipCheckedSuck1Success {σ I} {catOut vatOut bidOut suckOut : ByteAr
     {evm evmSuck : EVM.State}
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σ I)) "suck" 0
         [.address (endPackVowAddr σ I), .address (endPackVowAddr σ I),
@@ -8774,7 +8774,7 @@ theorem endSkipCheckedSuck2NoCode {σ I} {catOut vatOut bidOut : ByteArray}
     {evm : EVM.State}
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
     ExecBlock config
       { contract := contract, locals := endSkipStoreSuck1 I catOut vatOut bidOut } evm
       (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
@@ -8801,7 +8801,7 @@ theorem endSkipCheckedSuck2Failure {σ I} {catOut vatOut bidOut suckOut : ByteAr
     {evm evmSuck : EVM.State}
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σ I)) "suck" 0
         [.address (endPackVowAddr σ I), .address I.codeOwner,
@@ -8839,7 +8839,7 @@ theorem endSkipCheckedSuck2Success {σ I} {catOut vatOut bidOut suckOut : ByteAr
     {evm evmSuck : EVM.State}
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σ I)) "suck" 0
         [.address (endPackVowAddr σ I), .address I.codeOwner,
@@ -8922,7 +8922,7 @@ theorem endSkipCheckedHopeNoCode {σ I} {catOut vatOut bidOut : ByteArray}
     {evm : EVM.State}
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) = ⟨0⟩) :
     ExecBlock config
       { contract := contract, locals := endSkipStoreSuck2 I catOut vatOut bidOut } evm
       (checkedExternalCallStmts (.storage vatRef) "hope" (.intLit 0)
@@ -8949,7 +8949,7 @@ theorem endSkipCheckedHopeFailure {σ I} {catOut vatOut bidOut hopeOut : ByteArr
     {evm evmHope : EVM.State}
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σ I)) "hope" 0
         [.address (endSkipCatIlkFlipAddr catOut)] (false, evmHope, hopeOut) true) :
@@ -8982,7 +8982,7 @@ theorem endSkipCheckedHopeSuccess {σ I} {catOut vatOut bidOut hopeOut : ByteArr
     {evm evmHope : EVM.State}
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σ I)) "hope" 0
         [.address (endSkipCatIlkFlipAddr catOut)] (true, evmHope, hopeOut) true) :
@@ -9070,7 +9070,7 @@ theorem endSkipCheckedYankNoCode {σ I} {catOut vatOut bidOut : ByteArray}
     {evm : EVM.State}
     (hmap : evm.accountMap = σ)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) =
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) =
         ⟨0⟩) :
     ExecBlock config
       { contract := contract, locals := endSkipStoreHope I catOut vatOut bidOut } evm
@@ -9097,7 +9097,7 @@ theorem endSkipCheckedYankFailure {σ I} {catOut vatOut bidOut yankOut : ByteArr
     {evm evmYank : EVM.State}
     (hmap : evm.accountMap = σ)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
         ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endSkipCatIlkFlipAddr catOut))
@@ -9131,7 +9131,7 @@ theorem endSkipCheckedYankSuccess {σ I} {catOut vatOut bidOut yankOut : ByteArr
     {evm evmYank : EVM.State}
     (hmap : evm.accountMap = σ)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
+      Reasoning.Theory.extCodeSizeWord σ (endSkipCatIlkFlipTargetWord catOut) ≠
         ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endSkipCatIlkFlipAddr catOut))
@@ -9666,7 +9666,7 @@ theorem endSkipGrabTailReverts_noCodeFor {σCall σLoc I}
     {catOut vatOut bidOut : ByteArray} {evm : EVM.State}
     (hmap : evm.accountMap = σCall) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σCall (endPackVatWord σCall I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σCall (endPackVatWord σCall I) = ⟨0⟩) :
     ExecBlock config
       { contract := contract, locals := endSkipStoreArtNew σLoc I catOut vatOut bidOut }
       evm
@@ -9699,7 +9699,7 @@ theorem endSkipGrabTailReverts_callFailedFor {σCall σLoc I}
     {catOut vatOut bidOut grabOut : ByteArray} {evm evmGrab : EVM.State}
     (hmap : evm.accountMap = σCall) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σCall (endPackVatWord σCall I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σCall (endPackVatWord σCall I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σCall I)) "grab" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
@@ -9761,7 +9761,7 @@ theorem endSkipGrabTailReturns_successFor {σCall σLoc I}
     {catOut vatOut bidOut grabOut : ByteArray} {evm evmGrab : EVM.State}
     (hmap : evm.accountMap = σCall) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σCall (endPackVatWord σCall I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σCall (endPackVatWord σCall I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σCall I)) "grab" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
@@ -10494,10 +10494,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         rw [Nat.mod_eq_of_lt]
         exact a.isLt
       by_cases hcatCode :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (endSkipCatWord σ_evm I) =
+          Reasoning.Theory.extCodeSizeWord σ_evm (endSkipCatWord σ_evm I) =
             ⟨0⟩
       · have hcatCodeSolm :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+            Reasoning.Theory.extCodeSizeWord σ_solm
               (endSkipCatWord σ_solm I) = ⟨0⟩ :=
           endSkipCatCodeSize_zero_accountMapEquiv hAccounts hcatCode
         have hbody :
@@ -10510,10 +10510,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         exact (endSkipX_catIlksNoCode (g := Sat256.ofUInt256 g) htagPc hcatCode)
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hcatCodeNE :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (endSkipCatWord σ_evm I) ≠
+            Reasoning.Theory.extCodeSizeWord σ_evm (endSkipCatWord σ_evm I) ≠
               ⟨0⟩ := hcatCode
         have hcatCodeSolmNE :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+            Reasoning.Theory.extCodeSizeWord σ_solm
               (endSkipCatWord σ_solm I) ≠ ⟨0⟩ :=
           endSkipCatCodeSize_ne_accountMapEquiv hAccounts hcatCodeNE
         obtain ⟨catGasWord, _, _, hcatReady⟩ :=
@@ -10650,10 +10650,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (by simpa [evmCatSolm, evmSolm] using hcallCatSolm)
                     hloCat
               by_cases hvatCode :
-                  Reasoning.Theory.uniswapExtCodeSizeWord σ_cat
+                  Reasoning.Theory.extCodeSizeWord σ_cat
                     (endPackVatWord σ_cat I) = ⟨0⟩
               · have hvatCodeSolm :
-                    Reasoning.Theory.uniswapExtCodeSizeWord σ_cat_solm
+                    Reasoning.Theory.extCodeSizeWord σ_cat_solm
                       (endPackVatWord σ_cat_solm I) = ⟨0⟩ :=
                   endPackVatCodeSize_zero_accountMapEquiv hAccountsCat hvatCode
                 have hvatBlock :
@@ -10674,10 +10674,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 exact (endSkipX_vatIlksNoCode rd3436 hloCat hvatCode)
                   |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
               · have hvatCodeNE :
-                    Reasoning.Theory.uniswapExtCodeSizeWord σ_cat
+                    Reasoning.Theory.extCodeSizeWord σ_cat
                       (endPackVatWord σ_cat I) ≠ ⟨0⟩ := hvatCode
                 have hvatCodeSolmNE :
-                    Reasoning.Theory.uniswapExtCodeSizeWord σ_cat_solm
+                    Reasoning.Theory.extCodeSizeWord σ_cat_solm
                       (endPackVatWord σ_cat_solm I) ≠ ⟨0⟩ :=
                   endPackVatCodeSize_ne_accountMapEquiv hAccountsCat hvatCodeNE
                 obtain ⟨gasWordVat, _, _, hvatReady⟩ :=
@@ -10835,10 +10835,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             evmVatSolm) := by
                       exact endSkipPrefixRateSuccess hprefix hvatBlock
                     by_cases hbidsCode :
-                        Reasoning.Theory.uniswapExtCodeSizeWord σ_vat
+                        Reasoning.Theory.extCodeSizeWord σ_vat
                           (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩
                     · have hbidsCodeSolm :
-                          Reasoning.Theory.uniswapExtCodeSizeWord σ_vat_solm
+                          Reasoning.Theory.extCodeSizeWord σ_vat_solm
                             (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩ :=
                         endSkipBidsCodeSize_zero_accountMapEquiv
                           hAccountsVat catOut hbidsCode
@@ -10863,10 +10863,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       exact (endSkipX_bidsNoCode rd3565 hloCat hloVat hbidsCode)
                         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
                     · have hbidsCodeNE :
-                          Reasoning.Theory.uniswapExtCodeSizeWord σ_vat
+                          Reasoning.Theory.extCodeSizeWord σ_vat
                             (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ := hbidsCode
                       have hbidsCodeSolmNE :
-                          Reasoning.Theory.uniswapExtCodeSizeWord σ_vat_solm
+                          Reasoning.Theory.extCodeSizeWord σ_vat_solm
                             (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ :=
                         endSkipBidsCodeSize_ne_accountMapEquiv
                           hAccountsVat catOut hbidsCodeNE
@@ -11033,10 +11033,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               evmBidsSolm.executionEnv.codeOwner = I.codeOwner := by
                             rfl
                           by_cases hsuck1Code :
-                              Reasoning.Theory.uniswapExtCodeSizeWord σ_bids
+                              Reasoning.Theory.extCodeSizeWord σ_bids
                                 (endPackVatWord σ_bids I) = ⟨0⟩
                           · have hsuck1CodeSolm :
-                                Reasoning.Theory.uniswapExtCodeSizeWord σ_bids_solm
+                                Reasoning.Theory.extCodeSizeWord σ_bids_solm
                                   (endPackVatWord σ_bids_solm I) = ⟨0⟩ :=
                               endPackVatCodeSize_zero_accountMapEquiv hAccountsBids
                                 hsuck1Code
@@ -11058,10 +11058,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 rd3712 hsuck1Code)
                                 |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
                           · have hsuck1CodeNE :
-                                Reasoning.Theory.uniswapExtCodeSizeWord σ_bids
+                                Reasoning.Theory.extCodeSizeWord σ_bids
                                   (endPackVatWord σ_bids I) ≠ ⟨0⟩ := hsuck1Code
                             have hsuck1CodeSolmNE :
-                                Reasoning.Theory.uniswapExtCodeSizeWord σ_bids_solm
+                                Reasoning.Theory.extCodeSizeWord σ_bids_solm
                                   (endPackVatWord σ_bids_solm I) ≠ ⟨0⟩ :=
                               endPackVatCodeSize_ne_accountMapEquiv hAccountsBids
                                 hsuck1CodeNE
@@ -11211,10 +11211,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               obtain ⟨_, _, rd3840⟩ :=
                                 endSkipX_suck1CallSucceeded rd3821Succ
                               by_cases hsuck2Code :
-                                  Reasoning.Theory.uniswapExtCodeSizeWord σ_suck1
+                                  Reasoning.Theory.extCodeSizeWord σ_suck1
                                     (endPackVatWord σ_suck1 I) = ⟨0⟩
                               · have hsuck2CodeSolm :
-                                    Reasoning.Theory.uniswapExtCodeSizeWord σ_suck1_solm
+                                    Reasoning.Theory.extCodeSizeWord σ_suck1_solm
                                       (endPackVatWord σ_suck1_solm I) = ⟨0⟩ :=
                                   endPackVatCodeSize_zero_accountMapEquiv hAccountsSuck1
                                     hsuck2Code
@@ -11237,10 +11237,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     hloCat hloVat hloBid rd3840 hsuck2Code)
                                     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
                               · have hsuck2CodeNE :
-                                    Reasoning.Theory.uniswapExtCodeSizeWord σ_suck1
+                                    Reasoning.Theory.extCodeSizeWord σ_suck1
                                       (endPackVatWord σ_suck1 I) ≠ ⟨0⟩ := hsuck2Code
                                 have hsuck2CodeSolmNE :
-                                    Reasoning.Theory.uniswapExtCodeSizeWord σ_suck1_solm
+                                    Reasoning.Theory.extCodeSizeWord σ_suck1_solm
                                       (endPackVatWord σ_suck1_solm I) ≠ ⟨0⟩ :=
                                   endPackVatCodeSize_ne_accountMapEquiv hAccountsSuck1
                                     hsuck2CodeNE
@@ -11407,10 +11407,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   obtain ⟨_, _, rd3959⟩ :=
                                     endSkipX_suck2CallSucceeded rd3940Succ
                                   by_cases hhopeCode :
-                                      Reasoning.Theory.uniswapExtCodeSizeWord σ_suck2
+                                      Reasoning.Theory.extCodeSizeWord σ_suck2
                                         (endPackVatWord σ_suck2 I) = ⟨0⟩
                                   · have hhopeCodeSolm :
-                                        Reasoning.Theory.uniswapExtCodeSizeWord
+                                        Reasoning.Theory.extCodeSizeWord
                                           σ_suck2_solm
                                           (endPackVatWord σ_suck2_solm I) = ⟨0⟩ :=
                                       endPackVatCodeSize_zero_accountMapEquiv
@@ -11439,10 +11439,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         |>.reEquivExecutionRevert hcode hdispatch
                                           hdecode hbody
                                   · have hhopeCodeNE :
-                                        Reasoning.Theory.uniswapExtCodeSizeWord σ_suck2
+                                        Reasoning.Theory.extCodeSizeWord σ_suck2
                                           (endPackVatWord σ_suck2 I) ≠ ⟨0⟩ := hhopeCode
                                     have hhopeCodeSolmNE :
-                                        Reasoning.Theory.uniswapExtCodeSizeWord
+                                        Reasoning.Theory.extCodeSizeWord
                                           σ_suck2_solm
                                           (endPackVatWord σ_suck2_solm I) ≠ ⟨0⟩ :=
                                       endPackVatCodeSize_ne_accountMapEquiv
@@ -11596,10 +11596,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       obtain ⟨_, _, rd4063⟩ :=
                                         endSkipX_hopeCallSucceeded rd4042Succ
                                       by_cases hyankCode :
-                                          Reasoning.Theory.uniswapExtCodeSizeWord σ_hope
+                                          Reasoning.Theory.extCodeSizeWord σ_hope
                                             (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩
                                       · have hyankCodeSolm :
-                                            Reasoning.Theory.uniswapExtCodeSizeWord
+                                            Reasoning.Theory.extCodeSizeWord
                                               σ_hope_solm
                                               (endSkipCatIlkFlipTargetWord catOut) = ⟨0⟩ :=
                                           endSkipBidsCodeSize_zero_accountMapEquiv
@@ -11628,11 +11628,11 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                             |>.reEquivExecutionRevert hcode hdispatch
                                               hdecode hbody
                                       · have hyankCodeNE :
-                                            Reasoning.Theory.uniswapExtCodeSizeWord σ_hope
+                                            Reasoning.Theory.extCodeSizeWord σ_hope
                                               (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ :=
                                           hyankCode
                                         have hyankCodeSolmNE :
-                                            Reasoning.Theory.uniswapExtCodeSizeWord
+                                            Reasoning.Theory.extCodeSizeWord
                                               σ_hope_solm
                                               (endSkipCatIlkFlipTargetWord catOut) ≠ ⟨0⟩ :=
                                           endSkipBidsCodeSize_ne_accountMapEquiv
@@ -11938,10 +11938,10 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                       evmSuck1Solm, evmBidsSolm, evmVatSolm,
                                                       evmCatSolm, evmSolm, initState]
                                                   by_cases hgrabCode :
-                                                      Reasoning.Theory.uniswapExtCodeSizeWord
+                                                      Reasoning.Theory.extCodeSizeWord
                                                         σ_post (endPackVatWord σ_post I) = ⟨0⟩
                                                   · have hgrabCodeSolm :
-                                                        Reasoning.Theory.uniswapExtCodeSizeWord
+                                                        Reasoning.Theory.extCodeSizeWord
                                                           σ_post_solm
                                                           (endPackVatWord σ_post_solm I) = ⟨0⟩ :=
                                                       endPackVatCodeSize_zero_accountMapEquiv
@@ -11971,11 +11971,11 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                         |>.reEquivExecutionRevert hcode
                                                           hdispatch hdecode hbody
                                                   · have hgrabCodeNE :
-                                                        Reasoning.Theory.uniswapExtCodeSizeWord
+                                                        Reasoning.Theory.extCodeSizeWord
                                                           σ_post (endPackVatWord σ_post I) ≠
                                                             ⟨0⟩ := hgrabCode
                                                     have hgrabCodeSolmNE :
-                                                        Reasoning.Theory.uniswapExtCodeSizeWord
+                                                        Reasoning.Theory.extCodeSizeWord
                                                           σ_post_solm
                                                           (endPackVatWord σ_post_solm I) ≠
                                                             ⟨0⟩ :=

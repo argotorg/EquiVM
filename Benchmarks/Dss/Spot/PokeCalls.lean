@@ -146,10 +146,10 @@ theorem pokePipAddress_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
 theorem pokePipCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) (hAccounts : accountMapEquiv σ τ)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (pokePipTargetWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (pokePipTargetWord τ I) = ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (pokePipTargetWord τ I) = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (pokePipTargetWord σ I)
   have htarget : pokePipTargetWord σ I = pokePipTargetWord τ I :=
     pokePipTargetWord_accountMapEquiv hsz36 hAccounts
@@ -159,8 +159,8 @@ theorem pokePipCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : Execution
 theorem pokePipCodeSize_ne_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) (hAccounts : accountMapEquiv σ τ)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (pokePipTargetWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (pokePipTargetWord τ I) ≠ ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (pokePipTargetWord τ I) ≠ ⟨0⟩ := by
   intro hzero
   exact hne (pokePipCodeSize_zero_accountMapEquiv hsz36 hAccounts.symm hzero)
 
@@ -201,10 +201,10 @@ theorem pokeVatAddress_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
 theorem pokeVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (pokeVatTargetWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (pokeVatTargetWord τ I) = ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (pokeVatTargetWord σ I) = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (pokeVatTargetWord τ I) = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (pokeVatTargetWord σ I)
   have htarget : pokeVatTargetWord σ I = pokeVatTargetWord τ I :=
     pokeVatTargetWord_accountMapEquiv hAccounts
@@ -214,8 +214,8 @@ theorem pokeVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : Execution
 theorem pokeVatCodeSize_ne_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (pokeVatTargetWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (pokeVatTargetWord τ I) ≠ ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (pokeVatTargetWord σ I) ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (pokeVatTargetWord τ I) ≠ ⟨0⟩ := by
   intro hzero
   exact hne (pokeVatCodeSize_zero_accountMapEquiv hAccounts.symm hzero)
 
@@ -232,14 +232,14 @@ theorem pokeVatEvmAddress_eq_target_of_accountMapEquiv {σ_evm σ_solm : Account
   rw [haddr, pokeVatAddress_eq_target σ_evm I]
   exact spotEvmAddress_accountAddress _
 
-theorem poke_uniswapExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
+theorem poke_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩) :
+    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
@@ -250,18 +250,18 @@ theorem poke_uniswapExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {tar
 
 theorem pokePipCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (pokePipTargetWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) = ⟨0⟩) :
     (UInt256.ofNat
       (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (pokePipAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
-    poke_uniswapExtCodeSizeWord_zero_lookup_code_zero
+    poke_extCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := pokePipTargetWord σ I) (addr := pokePipAddress σ I)
       (pokePipAddress_eq_target σ I) hzero
 
 theorem pokePipCode_pos_of_codeSize_ne_zero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (pokePipTargetWord σ I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) ≠ ⟨0⟩) :
     0 <
       (UInt256.ofNat
         (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -281,29 +281,29 @@ theorem pokePipCode_pos_of_codeSize_ne_zero {cA gh bl σ σ₀ A I} {g : UInt256
       UInt256.ofNat
         (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (pokePipAddress σ I)).option 0 (fun acc => acc.code.size)) =
-        Reasoning.Theory.uniswapExtCodeSizeWord σ (pokePipTargetWord σ I) := by
+        Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) := by
     cases hacc : σ.find? (AccountAddress.ofUInt256 (pokePipTargetWord σ I)) <;>
-      simp [initState, State.lookupAccount, Reasoning.Theory.uniswapExtCodeSizeWord,
+      simp [initState, State.lookupAccount, Reasoning.Theory.extCodeSizeWord,
         pokePipAddress_eq_target σ I, hacc, Option.option] <;>
       native_decide
   exact hne (by rw [← hword, hwordZero])
 
 theorem pokeVatCode_zero_of_codeSize_zero {evm : EVM.State}
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (pokeVatTargetWord evm.accountMap evm.executionEnv) = ⟨0⟩) :
     (UInt256.ofNat
       ((evm.lookupAccount (pokeVatAddress evm.accountMap evm.executionEnv)).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
   simpa [State.lookupAccount] using
-    poke_uniswapExtCodeSizeWord_zero_lookup_code_zero
+    poke_extCodeSizeWord_zero_lookup_code_zero
       (σ := evm.accountMap) (target := pokeVatTargetWord evm.accountMap evm.executionEnv)
       (addr := pokeVatAddress evm.accountMap evm.executionEnv)
       (pokeVatAddress_eq_target evm.accountMap evm.executionEnv) hzero
 
 theorem pokeVatCode_pos_of_codeSize_ne_zero {evm : EVM.State}
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (pokeVatTargetWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩) :
     0 <
       (UInt256.ofNat
@@ -324,13 +324,13 @@ theorem pokeVatCode_pos_of_codeSize_ne_zero {evm : EVM.State}
       UInt256.ofNat
         ((evm.lookupAccount (pokeVatAddress evm.accountMap evm.executionEnv)).option 0
           (fun acc => acc.code.size)) =
-        Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+        Reasoning.Theory.extCodeSizeWord evm.accountMap
           (pokeVatTargetWord evm.accountMap evm.executionEnv) := by
     cases hacc :
         evm.accountMap.find?
           (AccountAddress.ofUInt256
             (pokeVatTargetWord evm.accountMap evm.executionEnv)) <;>
-      simp [State.lookupAccount, Reasoning.Theory.uniswapExtCodeSizeWord,
+      simp [State.lookupAccount, Reasoning.Theory.extCodeSizeWord,
         pokeVatAddress_eq_target evm.accountMap evm.executionEnv, hacc, Option.option] <;>
       native_decide
   exact hne (by rw [← hword, hwordZero])

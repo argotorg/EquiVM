@@ -1225,14 +1225,14 @@ theorem attesterMultiRevoke_postEncoder_fromDone
       (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
       (A := A) (I := I) (g := gS) v rd775
   by_cases hcodeSizeEvm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (attesterMultiRevokeTargetWord v) = ⟨0⟩
   · have hrdrev :=
       attesterX_multiRevokeNoCodeAtExtcodesize
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
         (A := A) (I := I) (g := gS) v rd787 hcodeSizeEvm (by simp)
     have hcodeSizeSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+        Reasoning.Theory.extCodeSizeWord σ_solm
           (attesterMultiRevokeTargetWord v) = ⟨0⟩ :=
       attesterMultiRevokeCodeSize_zero_accountMapEquiv v hAccounts hcodeSizeEvm
     have hcodeSolmRaw :=
@@ -1265,7 +1265,7 @@ theorem attesterMultiRevoke_postEncoder_fromDone
         hrequestsDone hguard
     exact hrdrev.reEquivExecutionRevert hIcode hd hdec hbody
   · have hcodeSizeSolmNe :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+        Reasoning.Theory.extCodeSizeWord σ_solm
           (attesterMultiRevokeTargetWord v) ≠ ⟨0⟩ :=
       attesterMultiRevokeCodeSize_ne_accountMapEquiv v hAccounts hcodeSizeEvm
     have hcodeSolmRaw :=

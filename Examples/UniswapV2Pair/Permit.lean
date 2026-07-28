@@ -3202,7 +3202,7 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecoded
   · intro hz
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       simp [hz]
-    exact RD.uniswapCallSuccessGuardMissing (okPc := ⟨5830⟩) rd5814 hstatus
+    exact RD.solcCallSuccessGuardMissing (okPc := ⟨5830⟩) rd5814 hstatus
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3213,7 +3213,7 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecoded
       rw [hz]
       decide
     obtain ⟨_, _, rd5832⟩ :=
-      RD.uniswapCallSuccessGuardOk (okPc := ⟨5830⟩) rd5814 hstatus
+      RD.solcCallSuccessGuardOk (okPc := ⟨5830⟩) rd5814 hstatus
         (by native_decide) (by native_decide) (by native_decide) (by native_decide)
         (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
         (by simp only [List.length_cons, List.length_nil]; omega)
@@ -3314,7 +3314,7 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩ := by
       rw [hz]
       decide
-    exact RD.uniswapCallSuccessGuardOk (okPc := ⟨5830⟩) rd5814 hstatus
+    exact RD.solcCallSuccessGuardOk (okPc := ⟨5830⟩) rd5814 hstatus
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -3322,7 +3322,7 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
   · intro hz
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       simp [hz]
-    exact RD.uniswapCallSuccessGuardMissing (okPc := ⟨5830⟩) rd5814 hstatus
+    exact RD.solcCallSuccessGuardMissing (okPc := ⟨5830⟩) rd5814 hstatus
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3406,7 +3406,7 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAllAt
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩ := by
       rw [hz]
       decide
-    exact RD.uniswapCallSuccessGuardOk (okPc := ⟨5830⟩) rd5814 hstatus
+    exact RD.solcCallSuccessGuardOk (okPc := ⟨5830⟩) rd5814 hstatus
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -3414,7 +3414,7 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAllAt
   · intro hz
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       simp [hz]
-    exact RD.uniswapCallSuccessGuardMissing (okPc := ⟨5830⟩) rd5814 hstatus
+    exact RD.solcCallSuccessGuardMissing (okPc := ⟨5830⟩) rd5814 hstatus
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)

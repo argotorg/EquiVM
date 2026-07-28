@@ -600,7 +600,7 @@ theorem RD.jugDripRmulOverflowReverts
       UInt256.eq (UInt256.div (prev * pow) prev) pow = ⟨0⟩ := by
     exact u256_eq_of_ne hdivNe
   have rdFallthrough := rd2368.jumpiNT (by native_decide) heqCond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -657,7 +657,7 @@ theorem RD.jugDripRmulRayOverflowReverts
       UInt256.eq (UInt256.div (prev * jugRay) prev) jugRay = ⟨0⟩ := by
     exact u256_eq_of_ne hdivNe
   have rdFallthrough := rd2368.jumpiNT (by native_decide) heqCond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -828,7 +828,7 @@ theorem RD.jugDiffSameRevertXBound
     rw [hslt]
     decide
   have rd2423 := rd2422.jumpiNT (by native_decide) hcond2 (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd2423
+  exact RD.solcPush1Dup1Revert0 rd2423
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -875,7 +875,7 @@ theorem RD.jugDiffRevertXBound
     rw [hslt]
     decide
   have rd2423 := rd2422.jumpiNT (by native_decide) hcond2 (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd2423
+  exact RD.solcPush1Dup1Revert0 rd2423
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -935,7 +935,7 @@ theorem RD.jugDiffRevertYBound
     rw [hprevSlt]
     decide
   have rd2423 := rd2422.jumpiNT (by native_decide) hcond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd2423
+  exact RD.solcPush1Dup1Revert0 rd2423
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 

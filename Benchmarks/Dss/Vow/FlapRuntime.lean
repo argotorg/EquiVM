@@ -17,14 +17,14 @@ theorem flapFlapperTargetWord_accountMapEquiv {σ τ : AccountMap} {I : Executio
 theorem flapFlapperCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (vowAddressReturnWord ⟨2⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (vowAddressReturnWord ⟨2⟩ σ I) ≠
         ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (vowAddressReturnWord ⟨2⟩ τ I) ≠
+    Reasoning.Theory.extCodeSizeWord τ (vowAddressReturnWord ⟨2⟩ τ I) ≠
       ⟨0⟩ := by
   intro hzero
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (vowAddressReturnWord ⟨2⟩ σ I)
   have htarget : vowAddressReturnWord ⟨2⟩ σ I = vowAddressReturnWord ⟨2⟩ τ I :=
     flapFlapperTargetWord_accountMapEquiv hAccounts
@@ -34,12 +34,12 @@ theorem flapFlapperCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : Executi
 theorem flapFlapperCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (vowAddressReturnWord ⟨2⟩ σ I) =
+      Reasoning.Theory.extCodeSizeWord σ (vowAddressReturnWord ⟨2⟩ σ I) =
         ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (vowAddressReturnWord ⟨2⟩ τ I) =
+    Reasoning.Theory.extCodeSizeWord τ (vowAddressReturnWord ⟨2⟩ τ I) =
       ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (vowAddressReturnWord ⟨2⟩ σ I)
   have htarget : vowAddressReturnWord ⟨2⟩ σ I = vowAddressReturnWord ⟨2⟩ τ I :=
     flapFlapperTargetWord_accountMapEquiv hAccounts
@@ -57,7 +57,7 @@ theorem vowFlapSin0CallDepthLimitBody
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨349⟩ [vowSelWord I]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hcodeSizeSinNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) ≠
+      Reasoning.Theory.extCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) ≠
         ⟨0⟩)
     (hvatCodeSolm :
       0 < (UInt256.ofNat
@@ -354,14 +354,14 @@ theorem vowFlapBodyPrefix
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hcode hwv hsz4 hsize hsel
   by_cases hcodeSizeSin :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) = ⟨0⟩
+      Reasoning.Theory.extCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) = ⟨0⟩
   · exact vowFlapVatSin0NoCodeBodyCore hcode hwv hdispatch hdecode hreach hAccounts
       hcodeSizeSin
   have hcodeSizeSinNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) ≠ ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) ≠ ⟨0⟩ :=
     hcodeSizeSin
   have hcodeSizeSinSolmNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (kissDaiTargetWord σ_solm I) ≠
+      Reasoning.Theory.extCodeSizeWord σ_solm (kissDaiTargetWord σ_solm I) ≠
         ⟨0⟩ :=
     kissDaiCodeSize_ne_accountMapEquiv hAccounts hcodeSizeSinNE
   have hvatCodeSolm :
@@ -683,10 +683,10 @@ theorem vowFlapBodyToSin1
     apply Fin.ext
     simp [kissVatAddress, vowAddressReturnWord, hslotVatSin]
   by_cases hcodeSizeDai :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_sin (kissDaiTargetWord σ_sin I) =
+      Reasoning.Theory.extCodeSizeWord σ_sin (kissDaiTargetWord σ_sin I) =
         ⟨0⟩
   · have hcodeSizeDaiSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord evmSinSolm.accountMap
+        Reasoning.Theory.extCodeSizeWord evmSinSolm.accountMap
             (kissDaiTargetWord evmSinSolm.accountMap I) = ⟨0⟩ :=
       kissDaiCodeSize_zero_accountMapEquiv hAccountsSin hcodeSizeDai
     have hvatNoCodeDai :
@@ -694,7 +694,7 @@ theorem vowFlapBodyToSin1
           ((evmSinSolm.lookupAccount (kissVatAddress σ_solm I)).option 0
             (fun acc => acc.code.size))).toNat = 0 := by
       simpa [State.lookupAccount] using
-        uniswapExtCodeSizeWord_zero_lookup_code_zero
+        extCodeSizeWord_zero_lookup_code_zero
           (σ := evmSinSolm.accountMap)
           (target := kissDaiTargetWord evmSinSolm.accountMap I)
           (addr := kissVatAddress σ_solm I) haddrDai hcodeSizeDaiSolm
@@ -703,11 +703,11 @@ theorem vowFlapBodyToSin1
       hcodeSizeDai hvatCodeSolm hcallSinSolm hdecSin hBumpLoad hsurplus0 hfit0
       hHumpLoad hsurplusNeed hfitNeed hvatLoadSin hvatNoCodeDai
   have hcodeSizeDaiNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_sin (kissDaiTargetWord σ_sin I) ≠
+      Reasoning.Theory.extCodeSizeWord σ_sin (kissDaiTargetWord σ_sin I) ≠
         ⟨0⟩ :=
     hcodeSizeDai
   have hcodeSizeDaiSolmNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmSinSolm.accountMap
+      Reasoning.Theory.extCodeSizeWord evmSinSolm.accountMap
           (kissDaiTargetWord evmSinSolm.accountMap I) ≠ ⟨0⟩ :=
     kissDaiCodeSize_ne_accountMapEquiv hAccountsSin hcodeSizeDaiNE
   have hvatCodeDai :
@@ -715,7 +715,7 @@ theorem vowFlapBodyToSin1
         ((evmSinSolm.lookupAccount (kissVatAddress σ_solm I)).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evmSinSolm.accountMap)
         (target := kissDaiTargetWord evmSinSolm.accountMap I)
         (addr := kissVatAddress σ_solm I) haddrDai hcodeSizeDaiSolmNE
@@ -989,10 +989,10 @@ theorem vowFlapBodyToSub
       rw [hDaiAcc, hSlotDaiStatic ⟨1⟩]
     simp [kissVatAddress, vowAddressReturnWord, hslot]
   by_cases hcodeSizeSin1 :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_dai (kissDaiTargetWord σ_dai I) =
+      Reasoning.Theory.extCodeSizeWord σ_dai (kissDaiTargetWord σ_dai I) =
         ⟨0⟩
   · have hcodeSizeSin1Solm :
-        Reasoning.Theory.uniswapExtCodeSizeWord evmDaiSolm.accountMap
+        Reasoning.Theory.extCodeSizeWord evmDaiSolm.accountMap
             (kissDaiTargetWord evmDaiSolm.accountMap I) = ⟨0⟩ :=
       kissDaiCodeSize_zero_accountMapEquiv hAccountsDai hcodeSizeSin1
     have hvatNoCodeSin1 :
@@ -1000,7 +1000,7 @@ theorem vowFlapBodyToSub
           ((evmDaiSolm.lookupAccount (kissVatAddress σ_solm I)).option 0
             (fun acc => acc.code.size))).toNat = 0 := by
       simpa [State.lookupAccount] using
-        uniswapExtCodeSizeWord_zero_lookup_code_zero
+        extCodeSizeWord_zero_lookup_code_zero
           (σ := evmDaiSolm.accountMap)
           (target := kissDaiTargetWord evmDaiSolm.accountMap I)
           (addr := kissVatAddress σ_solm I) haddrSin1 hcodeSizeSin1Solm
@@ -1011,11 +1011,11 @@ theorem vowFlapBodyToSub
       hsurplusNeed hfitNeed hvatLoadSin hvatCodeDai hcallDaiSolm hdecDai
       henough hvatLoadDai hvatNoCodeSin1
   have hcodeSizeSin1NE :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_dai (kissDaiTargetWord σ_dai I) ≠
+      Reasoning.Theory.extCodeSizeWord σ_dai (kissDaiTargetWord σ_dai I) ≠
         ⟨0⟩ :=
     hcodeSizeSin1
   have hcodeSizeSin1SolmNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmDaiSolm.accountMap
+      Reasoning.Theory.extCodeSizeWord evmDaiSolm.accountMap
           (kissDaiTargetWord evmDaiSolm.accountMap I) ≠ ⟨0⟩ :=
     kissDaiCodeSize_ne_accountMapEquiv hAccountsDai hcodeSizeSin1NE
   have hvatCodeSin1 :
@@ -1023,7 +1023,7 @@ theorem vowFlapBodyToSub
         ((evmDaiSolm.lookupAccount (kissVatAddress σ_solm I)).option 0
           (fun acc => acc.code.size))).toNat := by
     simpa [State.lookupAccount] using
-      uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evmDaiSolm.accountMap)
         (target := kissDaiTargetWord evmDaiSolm.accountMap I)
         (addr := kissVatAddress σ_solm I) haddrSin1 hcodeSizeSin1SolmNE
@@ -1371,10 +1371,10 @@ theorem vowFlapBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hownerSin1 : evmSin1.executionEnv.codeOwner = I.codeOwner := by
     simp [henvSin1]
   by_cases hcodeSizeKick :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_sin1 (vowAddressReturnWord ⟨2⟩ σ_sin1 I) =
+      Reasoning.Theory.extCodeSizeWord σ_sin1 (vowAddressReturnWord ⟨2⟩ σ_sin1 I) =
         ⟨0⟩
   · have hcodeSizeKickSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord evmSin1.accountMap
+        Reasoning.Theory.extCodeSizeWord evmSin1.accountMap
             (vowAddressReturnWord ⟨2⟩ evmSin1.accountMap I) = ⟨0⟩ :=
       flapFlapperCodeSize_zero_accountMapEquiv hAccountsSin1 hcodeSizeKick
     have hflapperNoCode :
@@ -1390,11 +1390,11 @@ theorem vowFlapBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       henough hvatLoadDai hvatCodeSin1 hcallSin1 hdecSin1 hSinLoad hfree hfreeOk
       hAshLoad hdebt hdebtOk hdebtZero hflapperNoCode
   have hcodeSizeKickNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_sin1 (vowAddressReturnWord ⟨2⟩ σ_sin1 I) ≠
+      Reasoning.Theory.extCodeSizeWord σ_sin1 (vowAddressReturnWord ⟨2⟩ σ_sin1 I) ≠
         ⟨0⟩ :=
     hcodeSizeKick
   have hcodeSizeKickSolmNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmSin1.accountMap
+      Reasoning.Theory.extCodeSizeWord evmSin1.accountMap
           (vowAddressReturnWord ⟨2⟩ evmSin1.accountMap I) ≠ ⟨0⟩ :=
     flapFlapperCodeSize_ne_accountMapEquiv hAccountsSin1 hcodeSizeKickNE
   have hflapperCode :

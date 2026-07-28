@@ -98,7 +98,7 @@ theorem catBiteMapUrns {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hdepthNe : I.depth ≠ 1024)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -143,11 +143,11 @@ theorem catBiteMapUrns {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     rw [show EVM.addressModulus = AccountAddress.size from by decide]
     exact Nat.mod_eq_of_lt a.isLt
   have codePos : ∀ (e : EVM.State) (w : UInt256),
-      uniswapExtCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
+      extCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
       0 < (UInt256.ofNat ((e.lookupAccount
         (AccountAddress.ofUInt256 w)).option 0 (fun acc => acc.code.size))).toNat := by
     intro e w hw
-    unfold uniswapExtCodeSizeWord at hw
+    unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
     cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
@@ -187,7 +187,7 @@ theorem catBiteMapUrns {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     refine codePos eI (catBiteVatTargetWord σs I) ?_
     rw [heIam, show catBiteVatTargetWord σs I = (catSlotWord ⟨3⟩ σs I).land biteAddrMaskWord from by
         simp only [catBiteVatTargetWord, catAddressReturnWord, hmask],
-      ← hslot3, ← uniswapExtCodeSizeWord_accountMapEquiv hEqIlk.accountMap]
+      ← hslot3, ← extCodeSizeWord_accountMapEquiv hEqIlk.accountMap]
     exact hUrnsVatCode
   exact ⟨σs, As, σus, Aus, hIlksSolm, hUrnsSolm, hEqUrn.accountMap, hvatCodeIlk⟩
 
@@ -214,11 +214,11 @@ theorem catBiteRevertGrabFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
     (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hGrabCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -287,12 +287,12 @@ theorem catBiteRevertGrabFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     rw [show EVM.addressModulus = AccountAddress.size from by decide]
     exact Nat.mod_eq_of_lt a.isLt
   have codePos : ∀ (e : EVM.State) (w : UInt256),
-      uniswapExtCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
+      extCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
       0 < (UInt256.ofNat ((e.lookupAccount
         (AccountAddress.ofUInt256 w)).option 0
         (fun acc => acc.code.size))).toNat := by
     intro e w hw
-    unfold uniswapExtCodeSizeWord at hw
+    unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
     cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
@@ -438,9 +438,9 @@ theorem catBiteRevertGrabFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hdinkvBS : biteDinkV I eUrnS iRate art ink = dink := by
     rw [← biteDinkV_eq_of_equiv hEqU]; exact hdinkvB
   have hGrabCodeS :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σus
+      ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← uniswapExtCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
     exact hGrabCode
   -- reshape the mapped grab call to the source-revert form.
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
@@ -511,13 +511,13 @@ theorem catBiteRevertFessFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
     (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hGrabCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
     (hFessCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -590,12 +590,12 @@ theorem catBiteRevertFessFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
-      uniswapExtCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
+      extCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
       0 < (UInt256.ofNat ((e.lookupAccount
         (AccountAddress.ofUInt256 w)).option 0
         (fun acc => acc.code.size))).toNat := by
     intro e w hw
-    unfold uniswapExtCodeSizeWord at hw
+    unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
     cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
@@ -752,9 +752,9 @@ theorem catBiteRevertFessFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     rw [← biteDartRateV_eq_of_equiv hEqU]
     simp only [biteDartRateV, hdartvB]; rfl
   have hGrabCodeS :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σus
+      ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← uniswapExtCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
@@ -846,15 +846,15 @@ theorem catBiteRevertKickFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
     (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hGrabCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
     (hFessCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
     (hKickCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew)
+      ¬ Reasoning.Theory.extCodeSizeWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew)
         (biteAddrMaskWord.land flipW) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
@@ -944,12 +944,12 @@ theorem catBiteRevertKickFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
-      uniswapExtCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
+      extCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
       0 < (UInt256.ofNat ((e.lookupAccount
         (AccountAddress.ofUInt256 w)).option 0
         (fun acc => acc.code.size))).toNat := by
     intro e w hw
-    unfold uniswapExtCodeSizeWord at hw
+    unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
     cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
@@ -1120,9 +1120,9 @@ theorem catBiteRevertKickFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have htabBS : biteTabV I eUrnS iRate art = tab := by
     rw [← biteTabV_eq_of_equiv hEqU]; exact htabB
   have hGrabCodeS :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σus
+      ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← uniswapExtCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
@@ -1233,7 +1233,7 @@ theorem catBiteRevertKickFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (fun acc => acc.code.size))).toNat := by
     rw [hflipAddrS]
     refine codePos eLitS (biteAddrMaskWord.land flipW) ?_
-    rw [heLSam, ← uniswapExtCodeSizeWord_accountMapEquiv
+    rw [heLSam, ← extCodeSizeWord_accountMapEquiv
         (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ hLitVal
           hEqFess.accountMap), ← hLitValEq]
     exact hKickCode
@@ -1306,15 +1306,15 @@ theorem catBiteRevertKickDecode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
     (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hGrabCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
     (hFessCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
     (hKickCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew)
+      ¬ Reasoning.Theory.extCodeSizeWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew)
         (biteAddrMaskWord.land flipW) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
@@ -1412,12 +1412,12 @@ theorem catBiteRevertKickDecode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
-      uniswapExtCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
+      extCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
       0 < (UInt256.ofNat ((e.lookupAccount
         (AccountAddress.ofUInt256 w)).option 0
         (fun acc => acc.code.size))).toNat := by
     intro e w hw
-    unfold uniswapExtCodeSizeWord at hw
+    unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
     cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
@@ -1588,9 +1588,9 @@ theorem catBiteRevertKickDecode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
   have htabBS : biteTabV I eUrnS iRate art = tab := by
     rw [← biteTabV_eq_of_equiv hEqU]; exact htabB
   have hGrabCodeS :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σus
+      ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← uniswapExtCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
@@ -1701,7 +1701,7 @@ theorem catBiteRevertKickDecode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
         (fun acc => acc.code.size))).toNat := by
     rw [hflipAddrS]
     refine codePos eLitS (biteAddrMaskWord.land flipW) ?_
-    rw [heLSam, ← uniswapExtCodeSizeWord_accountMapEquiv
+    rw [heLSam, ← extCodeSizeWord_accountMapEquiv
         (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ hLitVal
           hEqFess.accountMap), ← hLitValEq]
     exact hKickCode
@@ -1778,15 +1778,15 @@ theorem catBiteRevertKickDecodeW {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
     (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hGrabCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
     (hFessCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
     (hKickCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew)
+      ¬ Reasoning.Theory.extCodeSizeWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew)
         (biteAddrMaskWord.land flipW) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
@@ -2101,7 +2101,7 @@ theorem catBiteReachGuardRoomSubAw {cA gh bl σ σ₀ A I} {g : UInt256}
 /-- **checked-`sub` underflow → empty `revert(0,0)`.** solc 0.6.12 compiles the DSMath `sub`
 underflow guard's false branch as `PUSH1 0; DUP1; REVERT` (empty revert), NOT an error string
 (unlike `RD.solcCheckedSubStringRevertGrown`). Same success-guard prefix; the tail fires
-`RD.uniswapPush1Dup1Revert0`. -/
+`RD.solcPush1Dup1Revert0`. -/
 theorem RD.solcCheckedSubEmptyRevert {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc : UInt256}
     {a b ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
@@ -2143,7 +2143,7 @@ theorem RD.solcCheckedSubEmptyRevert {code : ByteArray} {g : Sat256} {s0 : State
   have rdTail₀ := rdPush.jumpiNT hd11 (by decide) (by simp only [List.length_cons]; omega)
   have rdTail := by
     simpa [solcCheckedArithmeticRevertPc] using rdTail₀
-  exact RD.uniswapPush1Dup1Revert0 rdTail hd0 hd1 hd2 (by simp only [List.length_cons]; omega)
+  exact RD.solcPush1Dup1Revert0 rdTail hd0 hd1 hd2 (by simp only [List.length_cons]; omega)
 
 /-- **room-underflow (box < litter) empty-revert leaf.** `room = box - litter` underflows; the
 checked-`sub` reverts `revert(0,0)`. EVM side via `RD.solcCheckedSubEmptyRevert`, Solm side fed as
@@ -2188,9 +2188,9 @@ theorem catBiteRevertRoomSub {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -2309,9 +2309,9 @@ theorem catBiteRevertDunkRoomWad {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -2461,9 +2461,9 @@ theorem catBiteRevertMilkChopZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -2622,9 +2622,9 @@ theorem catBiteRevertInkSpot {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -2718,9 +2718,9 @@ theorem catBiteRevertLive {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -2881,9 +2881,9 @@ theorem catBiteRevertUnsafe {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -3007,9 +3007,9 @@ theorem catBiteRevertSpotZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -3132,9 +3132,9 @@ theorem catBiteRevertArtRate {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -3267,9 +3267,9 @@ theorem catBiteRevertInkDart {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -3450,13 +3450,13 @@ theorem catBiteRevertTabBase {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
     (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hGrabCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
     (hFessCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -3535,12 +3535,12 @@ theorem catBiteRevertTabBase {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
-      uniswapExtCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
+      extCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
       0 < (UInt256.ofNat ((e.lookupAccount
         (AccountAddress.ofUInt256 w)).option 0
         (fun acc => acc.code.size))).toNat := by
     intro e w hw
-    unfold uniswapExtCodeSizeWord at hw
+    unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
     cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
@@ -3697,9 +3697,9 @@ theorem catBiteRevertTabBase {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hdartrateBS : biteDartRateV I eUrnS iRate art = dartRate := by
     rw [← biteDartRateV_eq_of_equiv hEqU]; exact hdartrateBE
   have hGrabCodeS :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σus
+      ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← uniswapExtCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
@@ -3870,7 +3870,7 @@ theorem catBiteRevertIlksDecode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hvatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -4010,9 +4010,9 @@ theorem catBiteRevertDartZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -4198,9 +4198,9 @@ theorem catBiteRevertDinkZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -4395,9 +4395,9 @@ theorem catBiteRevertDartLimit {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -4594,9 +4594,9 @@ theorem catBiteRevertDinkLimit {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -4972,9 +4972,9 @@ theorem catBiteRevertLitterGeBox {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -5090,9 +5090,9 @@ theorem catBiteRevertRoomDust {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (transitionSignature biteTransition).paramTypes I.calldata = some (biteLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm) (hsz36 : 36 ≤ I.calldata.size)
     (hdepth : (I.depth : ℕ) < 1024)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -5202,7 +5202,7 @@ theorem catBiteRevertRoomDust {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
 set_option maxHeartbeats 4000000 in
 /-- **fess no-code branch (extracted).** grab succeeds; the `EXTCODESIZE(vow)` guard before the
 `vow.fess(...)` CALL is false (empty code), so the EVM reverts at pc `2284` before any call. Maps
-ilks+urns+grab to σ_solm, fires the generic `RD.uniswapExtcodesizeGuardMissing` at the abstract
+ilks+urns+grab to σ_solm, fires the generic `RD.solcExtcodesizeGuardMissing` at the abstract
 post-grab account map + `catBiteSourceFessNoCodeRevert`. Dual of `catBiteRevertFessFail`. -/
 theorem catBiteRevertFessNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     {σ' σu σg : AccountMap} {A' Au Ag : Substate}
@@ -5221,13 +5221,13 @@ theorem catBiteRevertFessNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
     (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hGrabCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
     (hFessCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -5293,12 +5293,12 @@ theorem catBiteRevertFessNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
-      uniswapExtCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
+      extCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
       0 < (UInt256.ofNat ((e.lookupAccount
         (AccountAddress.ofUInt256 w)).option 0
         (fun acc => acc.code.size))).toNat := by
     intro e w hw
-    unfold uniswapExtCodeSizeWord at hw
+    unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
     cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
@@ -5455,9 +5455,9 @@ theorem catBiteRevertFessNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     rw [← biteDartRateV_eq_of_equiv hEqU]
     simp only [biteDartRateV, hdartvB]; rfl
   have hGrabCodeS :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σus
+      ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← uniswapExtCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
@@ -5466,12 +5466,12 @@ theorem catBiteRevertFessNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
   have hlive' : catSlotWord ⟨2⟩ eUrnS.accountMap eUrnS.executionEnv = ⟨1⟩ := by
     rw [← biteSlotEqOfEquiv hEqU ⟨2⟩]; exact hlive
   have codeZero : ∀ (e : EVM.State) (w : UInt256),
-      uniswapExtCodeSizeWord e.accountMap w = ⟨0⟩ →
+      extCodeSizeWord e.accountMap w = ⟨0⟩ →
       (UInt256.ofNat ((e.lookupAccount
         (AccountAddress.ofUInt256 w)).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
     intro e w hw
-    unfold uniswapExtCodeSizeWord at hw
+    unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
     cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
     | none => native_decide
@@ -5524,7 +5524,7 @@ theorem catBiteRevertFessNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
       rw [heGEam, u256_land_comm, ← hmask]; exact hFessCode
   have hrev : RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
-    RD.uniswapExtcodesizeGuardMissing (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd2284 hFessCode
+    RD.solcExtcodesizeGuardMissing (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd2284 hFessCode
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) hov2
@@ -5536,7 +5536,7 @@ set_option maxHeartbeats 4000000 in
 /-- **kick no-code branch (extracted).** grab+fess succeed, litter is stored, but the
 `EXTCODESIZE(flip)` guard before the `flip.kick(...)` CALL is false (empty code), so the EVM reverts
 at pc `2516` before any call. Maps the 4-call chain + the litter SSTORE, fires the generic
-`RD.uniswapExtcodesizeGuardMissing` at the post-SSTORE account map + `catBiteSourceKickNoCodeRevert`.
+`RD.solcExtcodesizeGuardMissing` at the post-SSTORE account map + `catBiteSourceKickNoCodeRevert`.
 Dual of `catBiteRevertKickFail`. -/
 theorem catBiteRevertKickNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     {σ' σu σg σf : AccountMap} {A' Au Ag Af : Substate}
@@ -5556,15 +5556,15 @@ theorem catBiteRevertKickNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
     (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hGrabCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
     (hFessCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
     (hKickCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew)
+      Reasoning.Theory.extCodeSizeWord (sstoreAccountMap I.codeOwner σf ⟨6⟩ litterNew)
         (biteAddrMaskWord.land flipW) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
@@ -5646,12 +5646,12 @@ theorem catBiteRevertKickNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
-      uniswapExtCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
+      extCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
       0 < (UInt256.ofNat ((e.lookupAccount
         (AccountAddress.ofUInt256 w)).option 0
         (fun acc => acc.code.size))).toNat := by
     intro e w hw
-    unfold uniswapExtCodeSizeWord at hw
+    unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
     cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
@@ -5822,9 +5822,9 @@ theorem catBiteRevertKickNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
   have htabBS : biteTabV I eUrnS iRate art = tab := by
     rw [← biteTabV_eq_of_equiv hEqU]; exact htabB
   have hGrabCodeS :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σus
+      ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← uniswapExtCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm
@@ -5872,12 +5872,12 @@ theorem catBiteRevertKickNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
   have hLitValEq : litterNew = hLitVal :=
     hlitternewE.symm.trans (biteLitterNewV_eq_of_equiv hEqU hEqFess iRate art)
   have codeZero : ∀ (e : EVM.State) (w : UInt256),
-      uniswapExtCodeSizeWord e.accountMap w = ⟨0⟩ →
+      extCodeSizeWord e.accountMap w = ⟨0⟩ →
       (UInt256.ofNat ((e.lookupAccount
         (AccountAddress.ofUInt256 w)).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
     intro e w hw
-    unfold uniswapExtCodeSizeWord at hw
+    unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
     cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
     | none => native_decide
@@ -5904,7 +5904,7 @@ theorem catBiteRevertKickNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
         (fun acc => acc.code.size))).toNat = 0 := by
     rw [hflipAddrS]
     refine codeZero eLitS (biteAddrMaskWord.land flipW) ?_
-    rw [heLSam, ← uniswapExtCodeSizeWord_accountMapEquiv
+    rw [heLSam, ← extCodeSizeWord_accountMapEquiv
         (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ hLitVal
           hEqFess.accountMap), ← hLitValEq]
     exact hKickCode
@@ -5958,7 +5958,7 @@ theorem catBiteRevertKickNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
         hlitFB, htabB]; exact hLitFit
   have hrev : RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
-    RD.uniswapExtcodesizeGuardMissing (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd2516 hKickCode
+    RD.solcExtcodesizeGuardMissing (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd2516 hKickCode
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) hov3
@@ -5995,7 +5995,7 @@ theorem RD.catBiteCheckedAddRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd3810
   have rd3813 := rd3810.push2 ⟨3756⟩ (by native_decide) (by evm_ov)
   have rd3814 := rd3813.jumpiNT (by native_decide) rfl (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd3814
+  exact RD.solcPush1Dup1Revert0 rd3814
     (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
 
 set_option maxHeartbeats 4000000 in
@@ -6023,13 +6023,13 @@ theorem catBiteRevertLitterAdd {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hurn : biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36)) = biteUrnWord I)
     (hilkslen : 160 ≤ o'.size) (hurnslen : 64 ≤ ou.size)
     (hlive : catSlotWord ⟨2⟩ σu I = ⟨1⟩)
-    (hvatCode : ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
+    (hvatCode : ¬ Reasoning.Theory.extCodeSizeWord σ_evm (catBiteVatTargetWord σ_evm I) = ⟨0⟩)
     (hUrnsVatCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σ' ((catSlotWord ⟨3⟩ σ' I).land biteAddrMaskWord) = ⟨0⟩)
     (hGrabCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σu ((solcSlotWord σu I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩)
     (hFessCode :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
+      ¬ Reasoning.Theory.extCodeSizeWord σg (biteAddrMaskWord.land (solcSlotWord σg I ⟨4⟩)) = ⟨0⟩)
     (hIlksCall :
       typedCallViaEVM config (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_evm I)) "ilks" 0 [biteIlkVal I]
@@ -6111,12 +6111,12 @@ theorem catBiteRevertLitterAdd {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
-      uniswapExtCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
+      extCodeSizeWord e.accountMap w ≠ ⟨0⟩ →
       0 < (UInt256.ofNat ((e.lookupAccount
         (AccountAddress.ofUInt256 w)).option 0
         (fun acc => acc.code.size))).toNat := by
     intro e w hw
-    unfold uniswapExtCodeSizeWord at hw
+    unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
     cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
     | none => rw [hf] at hw; simp [Option.option] at hw
@@ -6287,9 +6287,9 @@ theorem catBiteRevertLitterAdd {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have htabBS : biteTabV I eUrnS iRate art = tab := by
     rw [← biteTabV_eq_of_equiv hEqU]; exact htabB
   have hGrabCodeS :
-      ¬ Reasoning.Theory.uniswapExtCodeSizeWord σus
+      ¬ Reasoning.Theory.extCodeSizeWord σus
         ((solcSlotWord σus I ⟨3⟩).land biteAddrMaskWord) = ⟨0⟩ := by
-    rw [slotEqUS ⟨3⟩, ← uniswapExtCodeSizeWord_accountMapEquiv hAmEq]
+    rw [slotEqUS ⟨3⟩, ← extCodeSizeWord_accountMapEquiv hAmEq]
     exact hGrabCode
   rw [hperm, ← htgtU, ← h1, ← h2, ← h3, ← h4, ← hdinkvBS, ← hdartvBS]
     at hGrabSolm

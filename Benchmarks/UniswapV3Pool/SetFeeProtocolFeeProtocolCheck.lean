@@ -388,7 +388,7 @@ theorem uniswapV3PoolSetFeeProtocolFeeProtocolFalseAt8526Reverts {v : PoolImmuta
     raw jumpdest hd8526 (by evm_ov),
     raw push2 ⟨8535⟩ hd8527 (by evm_ov)]
   have rd8531 := rd8530.jumpiNT hd8530 (by decide) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd8531 hd8531
+  exact RD.solcPush1Dup1Revert0 rd8531 hd8531
     (by simpa [show (⟨8531⟩ : UInt256) + UInt256.ofNat 2 = ⟨8533⟩ by native_decide]
       using hd8533)
     (by simpa [

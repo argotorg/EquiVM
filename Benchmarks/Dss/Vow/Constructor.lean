@@ -197,7 +197,7 @@ theorem vowCtorNonpayableRDrev
         (by simp only [List.length_cons, List.length_nil]; omega))
   simpa [code, show ((⟨8⟩ : UInt256) + UInt256.ofNat 3 + ⟨1⟩) = ⟨12⟩ from by native_decide]
     using
-      RD.uniswapPush1Dup1Revert0 (code := code) (ee := I) (g := g)
+      RD.solcPush1Dup1Revert0 (code := code) (ee := I) (g := g)
         (s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) rd12
         (by ctor_decode) (by ctor_decode) (by ctor_decode)
         (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1233,11 +1233,11 @@ theorem vowCtorHopeNoCode
           (vowCtorWardsHashMem I vat flapper flopper))
         (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σFinal (UInt256.land solcAddrMask vatStored) =
+      Reasoning.Theory.extCodeSizeWord σFinal (UInt256.land solcAddrMask vatStored) =
         ⟨0⟩) :
     RDrev (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) g
       (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨201⟩) (okPc := ⟨213⟩) rd201
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨201⟩) (okPc := ⟨213⟩) rd201
     hcodeSize
     (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode)
     (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode)
@@ -1260,7 +1260,7 @@ theorem vowCtorHopeCallReady
           (vowCtorWardsHashMem I vat flapper flopper))
         (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σFinal (UInt256.land solcAddrMask vatStored) ≠
+      Reasoning.Theory.extCodeSizeWord σFinal (UInt256.land solcAddrMask vatStored) ≠
         ⟨0⟩) :
     ∃ gasWord k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
       (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨216⟩
@@ -1273,7 +1273,7 @@ theorem vowCtorHopeCallReady
         (vowCtorWardsHashMem I vat flapper flopper))
       (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k' C' := by
   obtain ⟨gasWord, k', C', rd216⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨201⟩) (okPc := ⟨213⟩) rd201
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨201⟩) (okPc := ⟨213⟩) rd201
       hcodeSize
       (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode)
       (by ctor_decode) (by ctor_decode) (by ctor_jump_dest) (by ctor_decode)

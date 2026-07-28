@@ -1317,13 +1317,13 @@ theorem flipperTendX_payNoCode {cA σ I} {g : Sat256} {s0 : State}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd3784⟩ := flipperTendX_toPayExtcodesizeGuard
     hmemSize hmemRead64 h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3784⟩) (okPc := ⟨3796⟩) rd3784
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3784⟩) (okPc := ⟨3796⟩) rd3784
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1334,7 +1334,7 @@ theorem flipperTendX_toPayCall {cA σ I} {g : Sat256} {s0 : State}
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) rdata (cA, σ) k C) :
     ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨3799⟩
@@ -1346,7 +1346,7 @@ theorem flipperTendX_toPayCall {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd3784⟩ := flipperTendX_toPayExtcodesizeGuard
     hmemSize hmemRead64 h
   obtain ⟨gasWord, k3799, C3799, rd3799⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3784⟩) (okPc := ⟨3796⟩) rd3784
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3784⟩) (okPc := ⟨3796⟩) rd3784
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1361,7 +1361,7 @@ theorem flipperTendX_payPostCall
     (hmemSize : mem.size = 96)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
@@ -1435,7 +1435,7 @@ theorem flipperTendX_payCallFailure {I} {g : Sat256} {s0 : State}
       mem aw out acc k C)
     (houtsz : out.size < UInt256.size) :
     RDrev flipperBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨3800⟩) (okPc := ⟨3816⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨3800⟩) (okPc := ⟨3816⟩) h
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1451,7 +1451,7 @@ theorem flipperTendX_payCallSuccessToStoreStart {I} {g : Sat256} {s0 : State}
     ∃ k' C', RD flipperBytecode I g s0 ⟨3820⟩
       (target :: bid :: lot :: id :: ret :: sel :: []) mem aw out acc k' C' := by
   obtain ⟨_, _, rd3817⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨3800⟩) (okPc := ⟨3816⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨3800⟩) (okPc := ⟨3816⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -1629,7 +1629,7 @@ theorem flipperTendX_add48Overflow {cA σ I} {g : Sat256} {s0 : State}
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd6290
   have rd6295 := rd6290.push2 ⟨6299⟩ (by native_decide) (by evm_ov)
     |>.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd6295 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rd6295 (by native_decide) (by native_decide)
     (by native_decide) (by evm_ov)
 
 theorem flipperTendX_storeTicReturn {cA σ I} {g : Sat256} {s0 : State}

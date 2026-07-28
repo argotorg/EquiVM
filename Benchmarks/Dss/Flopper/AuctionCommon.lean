@@ -991,33 +991,33 @@ theorem flopperAddressOfSlot_accountMapEquiv {σ τ : AccountMap} {I : Execution
 
 theorem flopperCodeSize_ne_accountMapEquiv {σ τ : AccountMap}
     (hAccounts : accountMapEquiv σ τ) {target : UInt256}
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ target ≠ ⟨0⟩ := by
+    (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ target ≠ ⟨0⟩ := by
   intro hzero
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts target
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts target
   rw [hsame]
   exact hzero
 
 theorem flopperCodeSize_zero_accountMapEquiv {σ τ : AccountMap}
     (hAccounts : accountMapEquiv σ τ) {target : UInt256}
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ target = ⟨0⟩ := by
+    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ target = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts target
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts target
   rw [← hsame]
   exact hzero
 
 theorem flopperCodeSize_ne_accountMapEquiv_addressSlot {σ τ : AccountMap}
     {I : ExecutionEnv} (hAccounts : accountMapEquiv σ τ) (slot : UInt256)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flopperAddressReturnWord slot σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (flopperAddressReturnWord slot τ I) ≠ ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord slot σ I) ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (flopperAddressReturnWord slot τ I) ≠ ⟨0⟩ := by
   intro hzero
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (flopperAddressReturnWord slot σ I)
   have htarget :
       flopperAddressReturnWord slot σ I = flopperAddressReturnWord slot τ I :=
@@ -1028,10 +1028,10 @@ theorem flopperCodeSize_ne_accountMapEquiv_addressSlot {σ τ : AccountMap}
 theorem flopperCodeSize_zero_accountMapEquiv_addressSlot {σ τ : AccountMap}
     {I : ExecutionEnv} (hAccounts : accountMapEquiv σ τ) (slot : UInt256)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flopperAddressReturnWord slot σ I) = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (flopperAddressReturnWord slot τ I) = ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord slot σ I) = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (flopperAddressReturnWord slot τ I) = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (flopperAddressReturnWord slot σ I)
   have htarget :
       flopperAddressReturnWord slot σ I = flopperAddressReturnWord slot τ I :=
@@ -1390,7 +1390,7 @@ theorem RD.flopperCheckedMulOverflowReverts
   have heqCond : UInt256.eq (UInt256.div (x * y) y) x = ⟨0⟩ :=
     u256_eq_of_ne hdivNe
   have rd4706 := rd4705.jumpiNT (by native_decide) heqCond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd4706
+  exact RD.solcPush1Dup1Revert0 rd4706
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 

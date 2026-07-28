@@ -1121,7 +1121,7 @@ theorem RD.vowFlopToKickExtcodesizeGuard
     dup2,
     raw mstore 0 (flopKickSelectorMem mem) (UInt256.ofNat 6) (by native_decide)
       mem_cost (by rfl) (by decide) (by evm_ov),
-    uniswapAddress,
+    address,
     push1 ⟨4⟩,
     dup3,
     add,
@@ -1220,7 +1220,7 @@ theorem RD.vowFlopKickNoCode
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       let σAsh := sstoreAccountMap I.codeOwner acc.2 ⟨6⟩ AshNew
-      Reasoning.Theory.uniswapExtCodeSizeWord σAsh
+      Reasoning.Theory.extCodeSizeWord σAsh
         (vowAddressReturnWord ⟨3⟩ σAsh I) = ⟨0⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
@@ -1230,7 +1230,7 @@ theorem RD.vowFlopKickNoCode
   let sump := vowSlotWord ⟨9⟩ σAsh I
   obtain ⟨_, _, rd4048⟩ :=
     RD.vowFlopToKickExtcodesizeGuard rd hperm hmem hread64
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨4048⟩) (okPc := ⟨1494⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨4048⟩) (okPc := ⟨1494⟩)
     (by simpa [σAsh, target, dump, sump] using rd4048)
     (by simpa [σAsh, target] using hcodeSize)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1250,7 +1250,7 @@ theorem RD.vowFlopKickCall
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       let σAsh := sstoreAccountMap I.codeOwner acc.2 ⟨6⟩ AshNew
-      Reasoning.Theory.uniswapExtCodeSizeWord σAsh
+      Reasoning.Theory.extCodeSizeWord σAsh
         (vowAddressReturnWord ⟨3⟩ σAsh I) ≠ ⟨0⟩) :
     let σAsh := sstoreAccountMap I.codeOwner acc.2 ⟨6⟩ AshNew
     let target := vowAddressReturnWord ⟨3⟩ σAsh I
@@ -1267,7 +1267,7 @@ theorem RD.vowFlopKickCall
   obtain ⟨_, _, rd4048⟩ :=
     RD.vowFlopToKickExtcodesizeGuard rd hperm hmem hread64
   obtain ⟨gasWord, k', C', rd1497⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4048⟩) (okPc := ⟨1494⟩)
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4048⟩) (okPc := ⟨1494⟩)
       (by simpa [σAsh, target, dump, sump] using rd4048)
       (by simpa [σAsh, target] using hcodeSize)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1288,7 +1288,7 @@ theorem RD.vowFlopKickPostCall
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
       let σAsh := sstoreAccountMap I.codeOwner acc.2 ⟨6⟩ AshNew
-      Reasoning.Theory.uniswapExtCodeSizeWord σAsh
+      Reasoning.Theory.extCodeSizeWord σAsh
         (vowAddressReturnWord ⟨3⟩ σAsh I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     let σAsh := sstoreAccountMap I.codeOwner acc.2 ⟨6⟩ AshNew
@@ -1385,7 +1385,7 @@ theorem RD.vowFlopKickCallFailure
     (hov : rest.length + 5 ≤ 1024) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1403,7 +1403,7 @@ theorem RD.vowFlopKickCallSuccessToDecode
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1516⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
+  exact RD.solcCallSuccessGuardOk (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)

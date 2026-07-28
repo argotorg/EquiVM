@@ -1476,7 +1476,7 @@ theorem dentAshDecode_none_short {out : ByteArray} (hshort : out.size < 32) :
 theorem flopperDentBodyAfterAshSuccessKissNoCode
     (localsEvm evmAsh : EVM.State) (I : ExecutionEnv) (outAsh : ByteArray)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) =
+      Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) =
         ⟨0⟩) :
     ExecBlock config { contract := contract, locals := dentAshLocals localsEvm I outAsh } evmAsh
       ([ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ] ++
@@ -1529,7 +1529,7 @@ theorem flopperDentBodyAfterAshSuccessKissCallFailure
     (localsEvm evmAsh evmKiss : EVM.State) (I : ExecutionEnv)
     (outAsh outKiss : ByteArray)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
+      Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
         ⟨0⟩)
     (hcall :
       typedCallViaEVM config evmAsh
@@ -1588,7 +1588,7 @@ theorem flopperDentBodyAfterAshSuccessKissCallSuccess
     (localsEvm evmAsh evmKiss : EVM.State) (I : ExecutionEnv)
     (outAsh outKiss : ByteArray)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
+      Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
         ⟨0⟩)
     (hcall :
       typedCallViaEVM config evmAsh

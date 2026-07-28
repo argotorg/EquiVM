@@ -419,7 +419,7 @@ theorem decodeCalldata_string_some {cd : ByteArray} {x : Solm.Ident}
     rw [htlen] at hhuge
     omega)]
   have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
-  have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
+  have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hlenWord
   have hpayloadRead := readBytes_drop4_string_payload (cd := cd) hpayload
   have hnotHeadShort : ¬ cd.toList.length - 4 < 32 := by
     rw [htlen]

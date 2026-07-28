@@ -381,7 +381,7 @@ theorem uniswapV3PoolNoDelegateCallReturnOk
   have rd11249 := by
     simpa using h.jumpdest hd11248 (by evm_ov)
   have rd11250 := by
-    simpa using rd11249.uniswapAddress hd11249 (by simp only [List.length_cons]; omega)
+    simpa using rd11249.address hd11249 (by simp only [List.length_cons]; omega)
   have rd11252 := by
     simpa using rd11250.push1 ⟨1⟩ hd11250 (by simp only [List.length_cons]; omega)
   have rd11254 := by
@@ -488,7 +488,7 @@ theorem uniswapV3PoolNoDelegateCallOk
   have rd11249 := by
     simpa using rd11248.jumpdest hd11248 (by evm_ov)
   have rd11250 := by
-    simpa using rd11249.uniswapAddress hd11249 (by simp only [List.length_cons]; omega)
+    simpa using rd11249.address hd11249 (by simp only [List.length_cons]; omega)
   have rd11252 := by
     simpa using rd11250.push1 ⟨1⟩ hd11250 (by simp only [List.length_cons]; omega)
   have rd11254 := by
@@ -598,7 +598,7 @@ theorem uniswapV3PoolNoDelegateCallReturnRevert
   have rd11249 := by
     simpa using rd11248.jumpdest hd11248 (by evm_ov)
   have rd11250 := by
-    simpa using rd11249.uniswapAddress hd11249 (by simp only [List.length_cons]; omega)
+    simpa using rd11249.address hd11249 (by simp only [List.length_cons]; omega)
   have rd11252 := by
     simpa using rd11250.push1 ⟨1⟩ hd11250 (by simp only [List.length_cons]; omega)
   have rd11254 := by
@@ -624,7 +624,7 @@ theorem uniswapV3PoolNoDelegateCallReturnRevert
   have rd11296 := by
     simpa using rd11293.push2 ⟨11301⟩ hd11293 (by simp only [List.length_cons]; omega)
   have rd11297 := rd11296.jumpiNT hd11296 hguard (by simp only [List.length_cons]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rd11297 hd11297 hd11299 hd11300
+  exact RD.solcPush1Dup1Revert0 rd11297 hd11297 hd11299 hd11300
     (by simp only [List.length_cons]; omega)
 
 theorem uniswapV3PoolNoDelegateCallRevert

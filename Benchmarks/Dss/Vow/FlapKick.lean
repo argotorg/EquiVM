@@ -317,14 +317,14 @@ theorem RD.vowFlapKickNoCode
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2
+      Reasoning.Theory.extCodeSizeWord acc.2
         (vowAddressReturnWord ⟨2⟩ acc.2 I) = ⟨0⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let target := vowAddressReturnWord ⟨2⟩ acc.2 I
   let bump := vowSlotWord ⟨10⟩ acc.2 I
   obtain ⟨_, _, rd1482⟩ := RD.vowFlapToKickExtcodesizeGuard rd hmem hread64
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1482⟩) (okPc := ⟨1494⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1482⟩) (okPc := ⟨1494⟩)
     (by simpa [target, bump] using rd1482)
     (by simpa [target] using hcodeSize)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -342,7 +342,7 @@ theorem RD.vowFlapKickCall
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2
+      Reasoning.Theory.extCodeSizeWord acc.2
         (vowAddressReturnWord ⟨2⟩ acc.2 I) ≠ ⟨0⟩) :
     let target := vowAddressReturnWord ⟨2⟩ acc.2 I
     let bump := vowSlotWord ⟨10⟩ acc.2 I
@@ -356,7 +356,7 @@ theorem RD.vowFlapKickCall
   intro target bump
   obtain ⟨_, _, rd1482⟩ := RD.vowFlapToKickExtcodesizeGuard rd hmem hread64
   obtain ⟨gasWord, k', C', rd1497⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1482⟩) (okPc := ⟨1494⟩)
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1482⟩) (okPc := ⟨1494⟩)
       (by simpa [target, bump] using rd1482)
       (by simpa [target] using hcodeSize)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -375,7 +375,7 @@ theorem RD.vowFlapKickPostCall
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2
+      Reasoning.Theory.extCodeSizeWord acc.2
         (vowAddressReturnWord ⟨2⟩ acc.2 I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024) :
@@ -468,7 +468,7 @@ theorem RD.vowFlapKickCallFailure
     (hov : rest.length + 5 ≤ 1024) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -486,7 +486,7 @@ theorem RD.vowFlapKickCallSuccessToDecode
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1516⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
+  exact RD.solcCallSuccessGuardOk (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)

@@ -45,14 +45,14 @@ theorem catBiteAwInvGen (aw : UInt256) (off sz : Nat) (h : off + sz ≤ aw.toNat
 conclusion to the frozen `catBiteReachPostIlks` but additionally supplies `288 ≤ awout·32` — the bound
 `catBiteReachPostUrns` needs and which the abstract wrapper's existential `awout` cannot provide. The
 active words after the ilks return-copy (`outOff = 128`, `outSize = 160`) are `M (M 6 128 36) 128 160
-= 9`, so `9·32 = 288`. Derives the call at the low level (`RD.uniswapStaticcall`) to keep `aw`
+= 9`, so `9·32 = 288`. Derives the call at the low level (`RD.solcStaticcall`) to keep `aw`
 concrete instead of chaining the aw-forgetting wrapper. -/
 theorem catBiteReachPostIlksAw {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsz36 : 36 ≤ I.calldata.size)
     (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (catBiteVatTargetWord σ I) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (catBiteVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
       (o' : ByteArray) (A' : Substate) (awout : UInt256) (k' C' : ℕ),
@@ -82,12 +82,12 @@ theorem catBiteReachPostIlksAw {cA gh bl σ σ₀ A I} {g : UInt256}
         catBiteIlksOutPtr.toNat catBiteIlksInSize.toNat) := by
     simpa [biteIlkVal] using
       catBiteIlksEncode_eq (biteIlkWord I) (biteIlkBytes I) solcFreePtrMem_size hbytes
-  obtain ⟨gasWord, _, _, rd1248⟩ := RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1233⟩) (okPc := ⟨1245⟩)
+  obtain ⟨gasWord, _, _, rd1248⟩ := RD.solcExtcodesizeGuardOkGas (pc := ⟨1233⟩) (okPc := ⟨1245⟩)
     rd1233 hcodeSize (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by simp)
   obtain ⟨cA', σ', z, o', A_in, callGas, k', C', hΘpack, rd1249, hosz⟩ :=
-    RD.uniswapStaticcall rd1248 (by native_decide) hdepth (by simp)
+    RD.solcStaticcall rd1248 (by native_decide) hdepth (by simp)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, o', A', _, k', C', rd1249, ?_, hosz, by native_decide, by native_decide⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
@@ -121,7 +121,7 @@ theorem catBiteReachPostUrnsAw {cA gh bl σ σ₀ A I} {g : UInt256}
     (hSpot : mem.readWithPadding 192 32 = UInt256.toByteArray iSpot)
     (hDust : mem.readWithPadding 256 32 = UInt256.toByteArray iDust)
     (hurn : UInt256.land biteAddrMaskWord urn = biteUrnWord I)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'
       (UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
@@ -197,12 +197,12 @@ theorem catBiteReachPostUrnsAw {cA gh bl σ σ₀ A I} {g : UInt256}
     biteUrnsEncode_eq I (by omega) hsz36
   -- urns STATICCALL at the low level, exposing the concrete post-call active-words.
   obtain ⟨gasWord, _, _, rd1398⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd1383 hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd1383 hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨cA'', σ'', z, o', A_in, callGas, k', C', hΘpack, rd1399, hosz'⟩ :=
-    RD.uniswapStaticcall rd1398 (by native_decide) hdepth
+    RD.solcStaticcall rd1398 (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   have hawEq : UInt256.ofNat (MachineState.M (MachineState.M aw.toNat (⟨128⟩ : UInt256).toNat
@@ -610,7 +610,7 @@ theorem catBiteTraceGrabBuildAw {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd2115 := rd2114.add (by native_decide) (by evm_ov)
   have rd2116 := RD.mstore _ (catBiteGrabUrnMemP p ilk urn mem) (catBiteAwStepL aw (p + ⟨36⟩).toNat)
     rd2115 (by native_decide) catBiteMstoreCostML rfl hcol3 (by evm_ov)
-  have rd2117 := rd2116.uniswapAddress (by native_decide) (by evm_ov)
+  have rd2117 := rd2116.address (by native_decide) (by evm_ov)
   have rd2118 := rd2117.push1 ⟨68⟩ (by native_decide) (by evm_ov)
   have rd2120 := rd2118.dup6 (by native_decide) (by evm_ov)
   have rd2121 := rd2120.add (by native_decide) (by evm_ov)

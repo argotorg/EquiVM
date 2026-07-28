@@ -1080,7 +1080,7 @@ theorem RD.vatSignedMulRevert {g : Sat256} {s0 : State}
       rw [hcond] at rd6718pre
       simpa [prod] using rd6718pre.jumpiNT (by native_decide)
         (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    exact RD.uniswapPush1Dup1Revert0 rd6719
+    exact RD.solcPush1Dup1Revert0 rd6719
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
   · have rd6723 := by
@@ -1120,7 +1120,7 @@ theorem RD.vatSignedMulRevert {g : Sat256} {s0 : State}
       exact hmulFail (Or.inr (by simpa [prod] using heqNe))
     have rd6748 := by
       simpa [prod] using rd6747.jumpiNT (by native_decide) heq0 (by evm_ov)
-    exact RD.uniswapPush1Dup1Revert0 rd6748
+    exact RD.solcPush1Dup1Revert0 rd6748
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
 
@@ -1272,7 +1272,7 @@ theorem RD.vatSignedSubRevert {g : Sat256} {s0 : State}
     have rd6818 := rd6815.push2 ⟨6823⟩ (by native_decide) (by evm_ov)
     have rd6819 := rd6818.jumpiNT (by native_decide)
       (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    exact RD.uniswapPush1Dup1Revert0 rd6819
+    exact RD.solcPush1Dup1Revert0 rd6819
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
   · have hrd6814 :
@@ -1333,7 +1333,7 @@ theorem RD.vatSignedSubRevert {g : Sat256} {s0 : State}
     rw [hltIsZero] at rd6842
     have rd6843 := rd6842.jumpiNT (by native_decide)
       (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    exact RD.uniswapPush1Dup1Revert0 rd6843
+    exact RD.solcPush1Dup1Revert0 rd6843
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
 

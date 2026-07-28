@@ -150,7 +150,7 @@ theorem RD.vowHealSinCallSuccessToDecode
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1295⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨1277⟩) (okPc := ⟨1293⟩) rd
+  exact RD.solcCallSuccessGuardOk (pc := ⟨1277⟩) (okPc := ⟨1293⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -617,11 +617,11 @@ theorem RD.vowHealHealNoCode
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd5062⟩ := RD.vowHealToHealExtcodesizeGuard rd hmem hread64
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨5062⟩) (okPc := ⟨1915⟩) rd5062
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨5062⟩) (okPc := ⟨1915⟩) rd5062
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -637,7 +637,7 @@ theorem RD.vowHealToHealCall
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1918⟩
       (gasWord :: kissDaiTargetWord acc.2 I :: kissHealOutSize :: kissHealOutPtr ::
@@ -646,7 +646,7 @@ theorem RD.vowHealToHealCall
       (kissHealCalldataMem I mem) (UInt256.ofNat 6) o acc k' C' := by
   obtain ⟨_, _, rd5062⟩ := RD.vowHealToHealExtcodesizeGuard rd hmem hread64
   obtain ⟨gasWord, k1918, C1918, rd1918⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨5062⟩) (okPc := ⟨1915⟩) rd5062
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨5062⟩) (okPc := ⟨1915⟩) rd5062
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -663,7 +663,7 @@ theorem RD.vowHealHealPostCall
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hperm : I.perm = true) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)

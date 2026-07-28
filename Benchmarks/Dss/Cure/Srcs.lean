@@ -1,6 +1,5 @@
 import Benchmarks.Dss.Cure.Common
 import Ethereum.Theory.OpcodeLemmas
-import Reasoning.SolcDecode
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 

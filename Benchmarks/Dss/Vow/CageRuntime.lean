@@ -1083,7 +1083,7 @@ theorem vowCageFirstDaiNoCodeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : U
     (hauthEvm : vowSlotWord (vowCallerWardsSlot I) σ_evm I = ⟨1⟩)
     (hliveEvm : vowSlotWord ⟨12⟩ σ_evm I = ⟨1⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord
+      Reasoning.Theory.extCodeSizeWord
         (vowCageClearedAccountMap I.codeOwner σ_evm)
         (kissDaiTargetWord (vowCageClearedAccountMap I.codeOwner σ_evm) I) =
           ⟨0⟩) :
@@ -1113,7 +1113,7 @@ theorem vowCageFirstDaiNoCodeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : U
   obtain ⟨_, _, rdLoads⟩ := RD.vowCageFirstDaiLoadTargets
     (R := [vowSelWord I]) rdClear (by simp)
   have hcodeSizeRaw :
-      Reasoning.Theory.uniswapExtCodeSizeWord σClearedEvm
+      Reasoning.Theory.extCodeSizeWord σClearedEvm
         (UInt256.land solcAddrMask (solcSlotWord σClearedEvm I ⟨1⟩)) = ⟨0⟩ := by
     simpa [σClearedEvm, kissDaiTargetWord, vowSlotWord, solcSlotWord,
       u256_land_comm] using hcodeSize
@@ -1136,10 +1136,10 @@ theorem vowCageFirstDaiNoCodeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : U
     have hslot := accountMapEquiv_storage_findD hClearedAccounts I.codeOwner ⟨1⟩ ⟨0⟩
     simp [kissDaiTargetWord, vowSlotWord, hslot]
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σClearedSolm
+      Reasoning.Theory.extCodeSizeWord σClearedSolm
         (kissDaiTargetWord σClearedSolm I) = ⟨0⟩ := by
     have hsame :=
-      Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hClearedAccounts
+      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hClearedAccounts
         (kissDaiTargetWord σClearedEvm I)
     rw [← hTargetCleared, ← hsame]
     simpa [σClearedEvm] using hcodeSize
@@ -1168,7 +1168,7 @@ theorem vowCageFirstDaiNoCodeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : U
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
     have hzero :=
-      uniswapExtCodeSizeWord_zero_lookup_code_zero
+      extCodeSizeWord_zero_lookup_code_zero
         (σ := σClearedSolm) (target := kissDaiTargetWord σClearedSolm I)
         (addr := cageVatAddressOf evmAsh) haddr hcodeSizeSolm
     simpa [evmAsh, evmSin, evmLive, evm0, initState, State.lookupAccount,
@@ -1316,7 +1316,7 @@ theorem vowCageFlapperCageNoCodeBodyCore
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord acc.2 target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord acc.2 target = ⟨0⟩)
     (hov : R.length + 13 ≤ 1024)
     (hvatCode :
       let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
@@ -1425,7 +1425,7 @@ theorem vowCageFlopperCageNoCodeBodyCore
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2
+      Reasoning.Theory.extCodeSizeWord acc.2
         (vowAddressReturnWord ⟨3⟩ acc.2 I) = ⟨0⟩)
     (hov : R.length + 15 ≤ 1024)
     (hvatCode :

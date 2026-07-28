@@ -92,7 +92,7 @@ private theorem nat_lor_high_mask_23 (n : Nat) (hn : n < 2 ^ 256) :
   rw [Nat.testBit_or, Nat.testBit_or]
   rw [show (2 ^ (256 - 23) - 1) * 2 ^ 23 =
       (2 ^ (256 - 23) - 1) <<< 23 by rw [Nat.shiftLeft_eq]]
-  rw [nat_testBit_shiftLeft]
+  rw [testBit_shiftLeft]
   by_cases hi23 : i < 23
   · rw [if_pos hi23]
     conv_rhs => rw [Nat.testBit_mod_two_pow]

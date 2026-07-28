@@ -49,7 +49,7 @@ theorem uniswapMintBody
         have hword := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨12⟩ ⟨0⟩
         simpa [evmS, initState] using hword.symm.trans hunlocked
       by_cases htoken0NoCode :
-        uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+        extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
           (UInt256.land solcAddrMask
             (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
           ⟨0⟩
@@ -135,7 +135,7 @@ theorem uniswapMintBody
               obtain ⟨_, _, rd3573⟩ :=
                 uniswapMintRuntimeSecondBalanceOfExtcodesizeFromFirst rd3505 ho32 hoSize
               by_cases htoken1NoCode :
-                uniswapExtCodeSizeWord σ'
+                extCodeSizeWord σ'
                   (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) = ⟨0⟩
               · have hbody :
                     ExecTransitionBody config contract evmS (mintStore I) mintTransition.body
@@ -295,7 +295,7 @@ theorem uniswapMintBody
                           uniswapMintFeeRuntimeFactoryExtcodesize rd7696 ho32 hoSize ho132 ho1Size
                         have henv1I : evm1S.executionEnv = I := henv1.trans henv0I
                         by_cases hfactoryNoCode :
-                          uniswapExtCodeSizeWord σ'' (mintFeeFactoryWord σ'' I) = ⟨0⟩
+                          extCodeSizeWord σ'' (mintFeeFactoryWord σ'' I) = ⟨0⟩
                         · have hfeeGuard :
                               evalExpr? config
                                 (mintFeeCallFrame

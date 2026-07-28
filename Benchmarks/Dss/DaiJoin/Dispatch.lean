@@ -372,7 +372,7 @@ theorem daiJoinJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UI
   have h147 := h.push2 daiJoinDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h147 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h147 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem daiJoinLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -392,7 +392,7 @@ theorem daiJoinLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     |>.selectorArmNotTakenAuto (daiJoinLowArmsWellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h147 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h147 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem daiJoinHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -424,7 +424,7 @@ theorem daiJoinX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
     |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 theorem daiJoinX_short {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -447,7 +447,7 @@ theorem daiJoinX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h147 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h147 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 theorem daiJoinX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}

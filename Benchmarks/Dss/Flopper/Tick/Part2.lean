@@ -560,7 +560,7 @@ theorem flopperTickX_addOverflow
     rw [hltTrue]
     native_decide
   have rd4763 := rd4759.jumpiNT (by native_decide) hcond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd4763
+  exact RD.solcPush1Dup1Revert0 rd4763
     (by native_decide) (by native_decide) (by native_decide)
     (by simp)
 

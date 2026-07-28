@@ -640,7 +640,7 @@ theorem cometRewardsX_short {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide) (by evm_ov),
     push1 ⟨4⟩, swap2, dup3, calldatasize, lt, iszero, push2 ⟨22⟩,
     jumpiNT (isZero_eq_zero_of_ne (lt_four_ne_zero_of_lt hsz))]
-  exact (rd.uniswapPush1Dup1Revert0 (by decide) (by decide) (by decide) (by evm_ov) :
+  exact (rd.solcPush1Dup1Revert0 (by decide) (by decide) (by decide) (by evm_ov) :
     RDrev cometRewardsBytecode g s0)
 
 theorem cometRewardsX_nomatch {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -772,7 +772,7 @@ theorem cometRewardsX_nomatch {cA gh bl σ σ₀ A I} {g : Sat256}
     push4 ⟨0xcdc0ca09⟩, eq]
   rw [heq10] at rd
   have rd := evm_run rd with [push2 ⟨159⟩, jumpiNT (by decide)]
-  exact (rd.uniswapPush1Dup1Revert0 (by decide) (by decide) (by decide) (by evm_ov) :
+  exact (rd.solcPush1Dup1Revert0 (by decide) (by decide) (by decide) (by evm_ov) :
     RDrev cometRewardsBytecode g s0)
 
 theorem cometRewardsReachFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}

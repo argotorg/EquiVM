@@ -153,7 +153,7 @@ theorem RD.catBiteFessCall {cA gh bl σ σ₀ A I} {g : Sat256}
     (rd : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2284⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: outSize :: R)
       mem aw rdata (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 9 ≤ 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
@@ -173,7 +173,7 @@ theorem RD.catBiteFessCall {cA gh bl σ σ₀ A I} {g : Sat256}
           o (cA', σ') k' C'
       ∧ o.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd2299⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide)
@@ -191,10 +191,10 @@ theorem RD.catBiteFessNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
     (rd : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2284⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: outSize :: R)
       mem aw rdata (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 9 ≤ 1024) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd hcodeSize
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons]; omega)
@@ -228,7 +228,7 @@ theorem RD.catBiteFessCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2300⟩) (okPc := ⟨2316⟩) rd2300 rfl
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2300⟩) (okPc := ⟨2316⟩) rd2300 rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -244,7 +244,7 @@ theorem RD.catBiteFessCallSucceeded {cA gh bl σ σ₀ A I} {g : Sat256}
     (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2318⟩
       R mem aw rdata acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨2300⟩) (okPc := ⟨2316⟩) rd2300
+  exact RD.solcCallSuccessGuardOk (pc := ⟨2300⟩) (okPc := ⟨2316⟩) rd2300
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)

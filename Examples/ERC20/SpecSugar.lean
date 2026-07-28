@@ -2,86 +2,72 @@ import Examples.ERC20.Spec
 import Solm.Notation
 
 /-!
-# ERC20 — the same spec, written with the macro-generated Solm frontend
+# ERC20 — the same spec, written in the Solidity-faithful Solm frontend
 
 This regenerates the entire `ERC20.erc20Contract` (storage, constructor, all six transitions)
-using the surface syntax from `Solm.Notation`, then proves the result is **definitionally equal**
-to the hand-written AST in `Examples/ERC20/Spec.lean`.
+using `solidity%` from `Solm.Notation`, then proves the result is **definitionally equal** to the
+hand-written AST in `Examples/ERC20/Spec.lean`.
 
-The `by rfl` at the end is the whole point: the frontend is pure sugar, adding no semantic layer —
-every surface form desugars to exactly the constructors the spec author would otherwise type by hand.
-
-Note `«from»`: `from` is a Lean keyword, so the parameter named `from` is written with guillemet
-escaping; `«from».getId.toString = "from"`, so the generated `Expr.var "from"` matches.
+Notes:
+* The non-payable `require(msg.value == 0)` guards are implicit, as in Solidity.
+* `from`/`to` are Lean keywords, so those parameter names are guillemet-escaped («from», «to»);
+  `.getId.toString` still yields `"from"`/`"to"`, so the generated AST strings match.
+* Transition order matches `erc20Contract.transitions` exactly (needed for `rfl`).
 -/
 
 open Solm Solm.Notation
 
 namespace ERC20Sugar
 
-def erc20ContractGen : ContractDecl := {
-  name := "ERC20"
+def erc20ContractGen : ContractDecl := solidity% contract ERC20 {
+  mapping(address => uint256) balanceOf;
+  mapping(address => mapping(address => uint256)) allowance;
+  uint256 totalSupply;
 
-  storage := sState% {
-    (address => uint256)              balanceOf
-    (address => (address => uint256)) allowance
-    uint256                           totalSupply
+  constructor(uint256 initialSupply) {
+    balanceOf[msg.sender] = initialSupply;
+    totalSupply = initialSupply;
   }
 
-  ctor := solm_constructor (initialSupply : uint256) {
-    require msg.value == 0
-    @balanceOf[msg.sender] := initialSupply
-    @totalSupply := initialSupply
+  function approve(address spender, uint256 value) external returns (bool) {
+    allowance[msg.sender][spender] = value;
+    return true;
   }
 
-  -- Order matches `erc20Contract.transitions` exactly (needed for `rfl`).
-  transitions := [
-    solm_transition approve (spender : address) (value : uint256) -> bool {
-      require msg.value == 0
-      @allowance[msg.sender][spender] := value
-      return true
-    },
+  function totalSupply() external returns (uint256) {
+    return totalSupply;
+  }
 
-    solm_transition totalSupply -> uint256 {
-      require msg.value == 0
-      return @totalSupply
-    },
+  function transferFrom(address «from», address «to», uint256 value) external returns (bool) {
+    uint256 currentAllowance = allowance[«from»][msg.sender];
+    require(currentAllowance >= value);
+    uint256 fromBalance = balanceOf[«from»];
+    require(fromBalance >= value);
+    allowance[«from»][msg.sender] = currentAllowance - value;
+    balanceOf[«from»] = (balanceOf[«from»] - value) as uint256;
+    uint256 toBalance = balanceOf[«to»];
+    uint256 newToBalance = (toBalance + value) as uint256;
+    balanceOf[«to»] = newToBalance;
+    return true;
+  }
 
-    solm_transition transferFrom («from» : address) («to» : address) (value : uint256) -> bool {
-      require msg.value == 0
-      let currentAllowance : uint256 := @allowance[«from»][msg.sender]
-      require currentAllowance >= value
-      let fromBalance : uint256 := @balanceOf[«from»]
-      require fromBalance >= value
-      @allowance[«from»][msg.sender] := currentAllowance - value
-      @balanceOf[«from»] := (@balanceOf[«from»] - value) as uint256
-      let toBalance : uint256 := @balanceOf[«to»]
-      let newToBalance : uint256 := (toBalance + value) as uint256
-      @balanceOf[«to»] := newToBalance
-      return true
-    },
+  function balanceOf(address owner) external returns (uint256) {
+    return balanceOf[owner];
+  }
 
-    solm_transition balanceOf (owner : address) -> uint256 {
-      require msg.value == 0
-      return @balanceOf[owner]
-    },
+  function transfer(address «to», uint256 value) external returns (bool) {
+    uint256 fromBalance = balanceOf[msg.sender];
+    require(fromBalance >= value);
+    balanceOf[msg.sender] = fromBalance - value;
+    uint256 toBalance = balanceOf[«to»];
+    uint256 newToBalance = (toBalance + value) as uint256;
+    balanceOf[«to»] = newToBalance;
+    return true;
+  }
 
-    solm_transition transfer («to» : address) (value : uint256) -> bool {
-      require msg.value == 0
-      let fromBalance : uint256 := @balanceOf[msg.sender]
-      require fromBalance >= value
-      @balanceOf[msg.sender] := fromBalance - value
-      let toBalance : uint256 := @balanceOf[«to»]
-      let newToBalance : uint256 := (toBalance + value) as uint256
-      @balanceOf[«to»] := newToBalance
-      return true
-    },
-
-    solm_transition allowance (owner : address) (spender : address) -> uint256 {
-      require msg.value == 0
-      return @allowance[owner][spender]
-    }
-  ]
+  function allowance(address owner, address spender) external returns (uint256) {
+    return allowance[owner][spender];
+  }
 }
 
 /-- The macro-generated contract is *definitionally* the hand-written one. -/

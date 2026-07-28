@@ -100,7 +100,7 @@ theorem RD.endPackBagAddOverflow
     raw iszero (by native_decide) (by evm_ov),
     raw push2 ⟨10108⟩ (by native_decide) (by evm_ov)]
   have rd10104 := rd10103pre.jumpiNT (by native_decide) rfl (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd10104
+  exact RD.solcPush1Dup1Revert0 rd10104
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -189,7 +189,7 @@ theorem RD.endPackMovePostCall
         packMoveSelectorWord :: packVatMaskedWord σ I :: packWadWord I :: ⟨562⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (packVatMaskedWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (packVatMaskedWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (A' : Substate) (k' C' : ℕ),
@@ -233,7 +233,7 @@ theorem RD.endPackMoveDepthLimitReverts
         packMoveSelectorWord :: packVatMaskedWord σ I :: packWadWord I :: ⟨562⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (packVatMaskedWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (packVatMaskedWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
     RDrev endBytecode g s0 := by
   obtain ⟨_, _, _, rd6551⟩ := RD.endPackMoveCall rd hcodeSize
@@ -881,7 +881,7 @@ theorem endPackBodyCore : endBodyObligation 30 := by
           endPackX_mulOk (g := Sat256.ofUInt256 g) hmulOk hmulRD
         obtain ⟨kAfterMul, CAfterMul, hafterMulRD⟩ := hafterMul
         by_cases hvatNoCode :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+            Reasoning.Theory.extCodeSizeWord σ_evm
               (packVatMaskedWord σ_evm I) = ⟨0⟩
         · have hrev :=
             RD.endPackMoveNoCode (g := Sat256.ofUInt256 g) hafterMulRD hvatNoCode
@@ -896,10 +896,10 @@ theorem endPackBodyCore : endBodyObligation 30 := by
             simpa [packVatMaskedWord] using
               congrArg (fun w => UInt256.land solcAddrMask w) hword
           have hvatNoCodeSolm :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+              Reasoning.Theory.extCodeSizeWord σ_solm
                 (packVatMaskedWord σ_solm I) = ⟨0⟩ := by
             rw [← hvatWord]
-            rw [← uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+            rw [← extCodeSizeWord_accountMapEquiv hAccounts
               (packVatMaskedWord σ_evm I)]
             exact hvatNoCode
           have hbody :
@@ -927,12 +927,12 @@ theorem endPackBodyCore : endBodyObligation 30 := by
             simpa [packVowMaskedWord] using
               congrArg (fun w => UInt256.land solcAddrMask w) hword
           have hvatCodeSolm :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+              Reasoning.Theory.extCodeSizeWord σ_solm
                 (packVatMaskedWord σ_solm I) ≠ ⟨0⟩ := by
             intro hzero
             apply hvatNoCode
             rw [← hvatWord] at hzero
-            rw [← uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+            rw [← extCodeSizeWord_accountMapEquiv hAccounts
               (packVatMaskedWord σ_evm I)] at hzero
             exact hzero
           have hvatCodeNatSolm :
@@ -942,7 +942,7 @@ theorem endPackBodyCore : endBodyObligation 30 := by
                   (fun acc => acc.code.size))).toNat ≠ 0 := by
             intro hnat
             apply hvatCodeSolm
-            simp [Reasoning.Theory.uniswapExtCodeSizeWord, initState, State.lookupAccount,
+            simp [Reasoning.Theory.extCodeSizeWord, initState, State.lookupAccount,
               accountAddress_ofUInt256_eq_ofNat_toNat] at hnat ⊢
             cases hfind : σ_solm.find? (AccountAddress.ofNat (packVatMaskedWord σ_solm I).toNat)
             · native_decide

@@ -52,7 +52,7 @@ theorem potDripX_mulReady {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel
     raw swap2 (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  have rd1994 := rd1993.uniswapAddress (by native_decide) (by evm_ov)
+  have rd1994 := rd1993.address (by native_decide) (by evm_ov)
   have rd2001 := evm_run rd1994 with [
     raw swap1 (by native_decide) (by evm_ov),
     raw push2 ⟨2005⟩ (by native_decide) (by evm_ov),
@@ -177,7 +177,7 @@ theorem potDripX_callGuard {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {se
     and the post-`CALL` cursor. -/
 theorem potDripX_postCall {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ tmp : UInt256}
     (hdepth : I.depth.val < 1024)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'' (dripVatTargetWord σ'' I) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'' (dripVatTargetWord σ'' I) ≠ ⟨0⟩)
     (h : RD potBytecode I g s0 ⟨2079⟩
       (dripVatTargetWord σ'' I :: dripVatTargetWord σ'' I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ :: ⟨128⟩ ::
         ⟨0⟩ :: ⟨228⟩ :: potSuckSelectorWord :: dripVatTargetWord σ'' I :: chi_ :: tmp ::
@@ -203,7 +203,7 @@ theorem potDripX_postCall {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel
           (UInt256.ofNat 8) o (cA', σ') k' C'
       ∧ o.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd2094⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2079⟩) (okPc := ⟨2091⟩) h hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2079⟩) (okPc := ⟨2091⟩) h hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
@@ -231,7 +231,7 @@ theorem potDripX_successTail {I} {g : Sat256} {s0 : State} {k C : ℕ}
       (⟨1⟩ :: w1 :: w2 :: w3 :: chi_ :: tmp :: ⟨341⟩ :: [sel])
       mem (UInt256.ofNat 8) o acc k C) :
     RDret potBytecode g s0 acc (UInt256.toByteArray tmp) := by
-  obtain ⟨k1, C1, rd2113⟩ := RD.uniswapCallSuccessGuardOk (pc := ⟨2095⟩) (okPc := ⟨2111⟩) h
+  obtain ⟨k1, C1, rd2113⟩ := RD.solcCallSuccessGuardOk (pc := ⟨2095⟩) (okPc := ⟨2111⟩) h
     (by decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -282,7 +282,7 @@ theorem potDripX_failTail {I} {g : Sat256} {s0 : State} {k C : ℕ}
       (⟨0⟩ :: w1 :: w2 :: w3 :: chi_ :: tmp :: ⟨341⟩ :: [sel])
       mem aw o acc k C) :
     RDrev potBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2095⟩) (okPc := ⟨2111⟩) h rfl
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2095⟩) (okPc := ⟨2111⟩) h rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz
@@ -290,7 +290,7 @@ theorem potDripX_failTail {I} {g : Sat256} {s0 : State} {k C : ℕ}
 
 /-- `@2079`: `extcodesize(vat) = 0` ⇒ the checked external call reverts. -/
 theorem potDripX_ecsZero {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ tmp : UInt256}
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'' (dripVatTargetWord σ'' I) = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'' (dripVatTargetWord σ'' I) = ⟨0⟩)
     (h : RD potBytecode I g s0 ⟨2079⟩
       (dripVatTargetWord σ'' I :: dripVatTargetWord σ'' I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ :: ⟨128⟩ ::
         ⟨0⟩ :: ⟨228⟩ :: potSuckSelectorWord :: dripVatTargetWord σ'' I :: chi_ :: tmp ::
@@ -298,14 +298,14 @@ theorem potDripX_ecsZero {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel 
       (potSuckCalldataMem σ'' I (dripPieWord σ'' I * chi_) solcFreePtrMem)
       (UInt256.ofNat 8) ByteArray.empty (cA, σ'') k C) :
     RDrev potBytecode g s0 := by
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2079⟩) (okPc := ⟨2091⟩) h hcodeSize
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2079⟩) (okPc := ⟨2091⟩) h hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
 /-- `@2079`: `depth = 1024` ⇒ the CALL cannot proceed (checked external call reverts). -/
 theorem potDripX_depthLimit {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel chi_ tmp : UInt256}
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'' (dripVatTargetWord σ'' I) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'' (dripVatTargetWord σ'' I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (h : RD potBytecode I g s0 ⟨2079⟩
       (dripVatTargetWord σ'' I :: dripVatTargetWord σ'' I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ :: ⟨128⟩ ::
@@ -315,7 +315,7 @@ theorem potDripX_depthLimit {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {s
       (UInt256.ofNat 8) ByteArray.empty (cA, σ'') k C) :
     RDrev potBytecode g s0 := by
   obtain ⟨gasWord, k1, C1, rd2094⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2079⟩) (okPc := ⟨2091⟩) h hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2079⟩) (okPc := ⟨2091⟩) h hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
@@ -363,7 +363,7 @@ theorem potDripX_mulReverts {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {s
     raw swap2 (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  have rd1994 := rd1993.uniswapAddress (by native_decide) (by evm_ov)
+  have rd1994 := rd1993.address (by native_decide) (by evm_ov)
   have rd2001 := evm_run rd1994 with [
     raw swap1 (by native_decide) (by evm_ov),
     raw push2 ⟨2005⟩ (by native_decide) (by evm_ov),
@@ -879,7 +879,7 @@ theorem potDripSolm_vatLookup {cA gh bl σ σ₀ A I} {g v4 v7 : UInt256} :
 /-- Bridge the EVM `extcodesize(vat) ≠ 0` fact to Solm-side `vat` code positivity on `dripEvmRho`. -/
 theorem potDripSolm_vatCodePos {cA gh bl σ_evm σ_solm σ₀ A I} {g v4 v7 : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord
       (sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ_evm ⟨4⟩ v4) ⟨7⟩ v7)
       (dripVatTargetWord
         (sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ_evm ⟨4⟩ v4) ⟨7⟩ v7) I) ≠
@@ -899,14 +899,14 @@ theorem potDripSolm_vatCodePos {cA gh bl σ_evm σ_solm σ₀ A I} {g v4 v7 : UI
   have haccEquiv : accountMapEquiv
       (sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ_evm ⟨4⟩ v4) ⟨7⟩ v7) σ''s :=
     accountMapEquiv_sstoreAccountMap_two I.codeOwner I.codeOwner ⟨4⟩ v4 ⟨7⟩ v7 hAccounts
-  have hne : Reasoning.Theory.uniswapExtCodeSizeWord σ''s (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ := by
-    rw [← htarget, ← Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv haccEquiv]
+  have hne : Reasoning.Theory.extCodeSizeWord σ''s (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ := by
+    rw [← htarget, ← Reasoning.Theory.extCodeSizeWord_accountMapEquiv haccEquiv]
     exact hcodeSize
   rw [potDripSolm_vatLookup, ← hσs]
   have haddr : dripVatAddress σ_solm I = AccountAddress.ofUInt256 (dripVatTargetWord σ_solm I) := by
     rw [dripVatAddress]; exact (accountAddress_ofUInt256_eq_ofNat_toNat _).symm
   rw [haddr]
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hne
+  unfold Reasoning.Theory.extCodeSizeWord at hne
   cases hf : σ''s.find? (AccountAddress.ofUInt256 (dripVatTargetWord σ_solm I)) with
   | none => simp only [hf, Option.option] at hne; exact absurd rfl hne
   | some acc =>
@@ -916,7 +916,7 @@ theorem potDripSolm_vatCodePos {cA gh bl σ_evm σ_solm σ₀ A I} {g v4 v7 : UI
 /-- Bridge the EVM `extcodesize(vat) = 0` fact to Solm-side `vat` empty code on `dripEvmRho`. -/
 theorem potDripSolm_vatCodeZero {cA gh bl σ_evm σ_solm σ₀ A I} {g v4 v7 : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord
       (sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ_evm ⟨4⟩ v4) ⟨7⟩ v7)
       (dripVatTargetWord
         (sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ_evm ⟨4⟩ v4) ⟨7⟩ v7) I) =
@@ -936,14 +936,14 @@ theorem potDripSolm_vatCodeZero {cA gh bl σ_evm σ_solm σ₀ A I} {g v4 v7 : U
   have haccEquiv : accountMapEquiv
       (sstoreAccountMap I.codeOwner (sstoreAccountMap I.codeOwner σ_evm ⟨4⟩ v4) ⟨7⟩ v7) σ''s :=
     accountMapEquiv_sstoreAccountMap_two I.codeOwner I.codeOwner ⟨4⟩ v4 ⟨7⟩ v7 hAccounts
-  have hz : Reasoning.Theory.uniswapExtCodeSizeWord σ''s (dripVatTargetWord σ_solm I) = ⟨0⟩ := by
-    rw [← htarget, ← Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv haccEquiv]
+  have hz : Reasoning.Theory.extCodeSizeWord σ''s (dripVatTargetWord σ_solm I) = ⟨0⟩ := by
+    rw [← htarget, ← Reasoning.Theory.extCodeSizeWord_accountMapEquiv haccEquiv]
     exact hcodeSize
   rw [potDripSolm_vatLookup, ← hσs]
   have haddr : dripVatAddress σ_solm I = AccountAddress.ofUInt256 (dripVatTargetWord σ_solm I) := by
     rw [dripVatAddress]; exact (accountAddress_ofUInt256_eq_ofNat_toNat _).symm
   rw [haddr]
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hz
+  unfold Reasoning.Theory.extCodeSizeWord at hz
   cases hf : σ''s.find? (AccountAddress.ofUInt256 (dripVatTargetWord σ_solm I)) with
   | none => simp only [Option.option]; native_decide
   | some acc =>
@@ -1380,7 +1380,7 @@ theorem potDripBodyAfterRpow {cA gh bl σ_evm σ_solm σ₀ A I} {g pow : UInt25
           rd1960
         obtain ⟨_, _, rd2079⟩ := potDripX_callGuard rd2005
         by_cases hecs :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ2 (dripVatTargetWord σ2 I) = ⟨0⟩
+            Reasoning.Theory.extCodeSizeWord σ2 (dripVatTargetWord σ2 I) = ⟨0⟩
         · exact RDrev.reEquivExecutionRevert hcode (potDripX_ecsZero hecs rd2079) hdispatch hdecode
             (potDripSolmBody_ecsZero hwv hleSolm hrpow hfitRmul hleSub hfitMul
               (potDripSolm_vatCodeZero (v4 := dripTmpVal σ_solm I pow)

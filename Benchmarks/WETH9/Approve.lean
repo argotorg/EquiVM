@@ -502,7 +502,7 @@ theorem weth9ApproveBodyCoreDecodeFailed_short {cA gh bl σ_evm σ_solm σ₀ A 
       |>.iszero (by native_decide) (by simp)
       |>.push2 ⟨339⟩ (by native_decide) (by simp)
       |>.jumpiNT (by native_decide) (by rw [hltShort]; decide) (by simp)
-      |>.uniswapPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+      |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
   exact weth9ReEquivDecodeFailed hcode hrev (weth9SelectorDispatchApprove hsel)
     (weth9Decode_approve_none_short hsz4 hshort)
 

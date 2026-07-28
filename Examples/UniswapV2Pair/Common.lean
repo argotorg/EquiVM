@@ -419,7 +419,7 @@ theorem natLandClearMiddle112_224 (n : Nat) (hn : n < 2 ^ 256) :
     rw [Nat.shiftLeft_eq]]
   rw [show n / 2 ^ 224 * 2 ^ 224 = (n / 2 ^ 224) <<< 224 by
     rw [Nat.shiftLeft_eq]]
-  rw [nat_testBit_shiftLeft, nat_testBit_shiftLeft]
+  rw [testBit_shiftLeft, testBit_shiftLeft]
   by_cases hi112 : i < 112
   · have hi224 : i < 224 := by omega
     simp [hi112, hi224]
@@ -430,7 +430,7 @@ theorem natLandClearMiddle112_224 (n : Nat) (hn : n < 2 ^ 256) :
       by_cases hi256 : i < 256
       · have hsub32 : i - 224 < 32 := by omega
         rw [show decide (i - 224 < 32) = true by simp [hsub32]]
-        rw [nat_div_pow_testBit n 224 i h224le]
+        rw [divPow_testBit n 224 i h224le]
         simp [hi112, hi224]
       · have hsub32 : ¬ (i - 224 < 32) := by omega
         rw [show decide (i - 224 < 32) = false by simp [hsub32]]
@@ -438,7 +438,7 @@ theorem natLandClearMiddle112_224 (n : Nat) (hn : n < 2 ^ 256) :
           have hpow : n < 2 ^ i :=
             lt_of_lt_of_le hn (Nat.pow_le_pow_right (by norm_num) (by omega))
           exact Nat.testBit_lt_two_pow hpow
-        rw [nat_div_pow_testBit n 224 i h224le, hnfalse]
+        rw [divPow_testBit n 224 i h224le, hnfalse]
         simp [hi112, hi224]
 
 theorem uint112Offset14MiddleClear_toNat (old : UInt256) :

@@ -216,7 +216,7 @@ theorem weth9BalanceOfBodyCoreOk {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
         |>.iszero (by native_decide) (by simp)
         |>.push2 ⟨607⟩ (by native_decide) (by simp)
         |>.jumpiNT (by native_decide) (by rw [hltShort]; decide) (by simp)
-        |>.uniswapPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+        |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
     exact weth9ReEquivDecodeFailed hcode hrev hdisp (weth9Decode_balanceOf_none_short hsz4 hsz)
 
 /-- `balanceOf(address)` body refines its Solm transition (handling both callvalue branches). -/

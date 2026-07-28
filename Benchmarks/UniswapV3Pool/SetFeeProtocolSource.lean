@@ -74,11 +74,11 @@ theorem evalExpr_setFeeProtocol_addrLit {v : PoolImmutables} (evm : EVM.State)
 theorem evalExpr_setFeeProtocol_factoryExtCodeSizeGuard_true {v : PoolImmutables}
     (evm : EVM.State) (I : ExecutionEnv)
     (hcode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (setFeeProtocolFactoryWord v) ≠ ⟨0⟩) :
     evalExpr? (config v) { contract := contract v, locals := setFeeProtocolStore I } evm
       (.binary .gt (.extCodeSize (addrLit v.factory)) (.intLit 0)) = .ok (.bool true) := by
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hcode
+  unfold Reasoning.Theory.extCodeSizeWord at hcode
   have haddr : AccountAddress.ofUInt256 (setFeeProtocolFactoryWord v) =
       AccountAddress.ofNat ↑v.factory := by
     simpa using setFeeProtocolFactoryAddress_eq v
@@ -108,11 +108,11 @@ theorem evalExpr_setFeeProtocol_factoryExtCodeSizeGuard_true {v : PoolImmutables
 theorem evalExpr_setFeeProtocol_factoryExtCodeSizeGuard_false {v : PoolImmutables}
     (evm : EVM.State) (I : ExecutionEnv)
     (hcode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (setFeeProtocolFactoryWord v) = ⟨0⟩) :
     evalExpr? (config v) { contract := contract v, locals := setFeeProtocolStore I } evm
       (.binary .gt (.extCodeSize (addrLit v.factory)) (.intLit 0)) = .ok (.bool false) := by
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hcode
+  unfold Reasoning.Theory.extCodeSizeWord at hcode
   have haddr : AccountAddress.ofUInt256 (setFeeProtocolFactoryWord v) =
       AccountAddress.ofNat ↑v.factory := by
     simpa using setFeeProtocolFactoryAddress_eq v

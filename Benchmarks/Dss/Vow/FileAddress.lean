@@ -1130,7 +1130,7 @@ theorem RD.vowFileAddressFlapperToNopeCall
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (fileAddressVatTargetWord σ ee) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (fileAddressVatTargetWord σ ee) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD vowBytecode ee g s0 ⟨4299⟩
       (gasWord :: fileAddressVatTargetWord σ ee :: fileAddressCallOutSize ::
         fileAddressCallOutPtr :: fileAddressCallInSize :: fileAddressCallOutPtr ::
@@ -1141,7 +1141,7 @@ theorem RD.vowFileAddressFlapperToNopeCall
   obtain ⟨_, _, rd4284⟩ :=
     RD.vowFileAddressFlapperToNopeExtcodesizeGuard h hmatch hmem hread64
   obtain ⟨gasWord, k', C', rd4299⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4284⟩) (okPc := ⟨4296⟩) rd4284
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4284⟩) (okPc := ⟨4296⟩) rd4284
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1158,7 +1158,7 @@ theorem RD.vowFileAddressNopePostCall
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (fileAddressVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (fileAddressVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hperm : I.perm = true) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
@@ -1235,7 +1235,7 @@ theorem RD.vowFileAddressNopeCallFailure
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨4300⟩) (okPc := ⟨4316⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨4300⟩) (okPc := ⟨4316⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1257,7 +1257,7 @@ theorem RD.vowFileAddressNopeSuccessStoreFlapper
       mem (UInt256.ofNat 6) rdata
       (cA, sstoreAccountMap ee.codeOwner σ ⟨2⟩
         (setAddressOffset0Word (solcSlotWord σ ee ⟨2⟩) data)) k' C' := by
-  obtain ⟨k4318, C4318, rd4318⟩ := RD.uniswapCallSuccessGuardOk
+  obtain ⟨k4318, C4318, rd4318⟩ := RD.solcCallSuccessGuardOk
     (pc := ⟨4300⟩) (okPc := ⟨4316⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)

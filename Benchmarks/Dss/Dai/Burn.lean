@@ -1686,7 +1686,7 @@ theorem daiBurnX_tailUsrDebitRevertCont {cA σ I} {g : Sat256} {s0 : State}
   have rdPush := evm_run rd8 with [raw push2 ⟨1399⟩ hd8 (by evm_ov)]
   have rdTail := rdPush.jumpiNT hd11 (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdTail
+  exact RD.solcPush1Dup1Revert0 rdTail
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -1892,7 +1892,7 @@ theorem daiBurnX_tailSupplyRevertCont {cA σ I} {g : Sat256} {s0 : State}
   have rdPush := evm_run rd8 with [raw push2 ⟨1399⟩ hd8 (by evm_ov)]
   have rdTail := rdPush.jumpiNT hd11 (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdTail
+  exact RD.solcPush1Dup1Revert0 rdTail
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 

@@ -967,10 +967,10 @@ theorem dripVatAddress_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
 theorem dripVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (dripVatTargetWord σ I) = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (dripVatTargetWord τ I) = ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (dripVatTargetWord τ I) = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (dripVatTargetWord σ I)
   have htarget : dripVatTargetWord σ I = dripVatTargetWord τ I :=
     dripVatTargetWord_accountMapEquiv hAccounts
@@ -980,8 +980,8 @@ theorem dripVatCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : Execution
 theorem dripVatCodeSize_ne_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (dripVatTargetWord τ I) ≠ ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (dripVatTargetWord τ I) ≠ ⟨0⟩ := by
   intro hzero
   exact hne (dripVatCodeSize_zero_accountMapEquiv hAccounts.symm hzero)
 
@@ -1013,14 +1013,14 @@ theorem dripVatEvmAddress_eq_target_of_accountMapEquiv {σ_evm σ_solm : Account
   rw [dripVatAddress_eq_evm_target_of_accountMapEquiv hAccounts]
   exact evmAddress_accountAddress _
 
-theorem drip_uniswapExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
+theorem drip_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩) :
+    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
@@ -1031,18 +1031,18 @@ theorem drip_uniswapExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {tar
 
 theorem dripVatCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (dripVatTargetWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) = ⟨0⟩) :
     (UInt256.ofNat
       (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (dripVatAddress σ I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
-    drip_uniswapExtCodeSizeWord_zero_lookup_code_zero
+    drip_extCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := dripVatTargetWord σ I) (addr := dripVatAddress σ I)
       (dripVatAddress_eq_target σ I) hzero
 
 theorem dripVatCode_pos_of_codeSize_ne_zero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) ≠ ⟨0⟩) :
     0 <
       (UInt256.ofNat
         (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
@@ -1062,9 +1062,9 @@ theorem dripVatCode_pos_of_codeSize_ne_zero {cA gh bl σ σ₀ A I} {g : UInt256
       UInt256.ofNat
         (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (dripVatAddress σ I)).option 0 (fun acc => acc.code.size)) =
-        Reasoning.Theory.uniswapExtCodeSizeWord σ (dripVatTargetWord σ I) := by
+        Reasoning.Theory.extCodeSizeWord σ (dripVatTargetWord σ I) := by
     cases hacc : σ.find? (AccountAddress.ofUInt256 (dripVatTargetWord σ I)) <;>
-      simp [initState, State.lookupAccount, Reasoning.Theory.uniswapExtCodeSizeWord,
+      simp [initState, State.lookupAccount, Reasoning.Theory.extCodeSizeWord,
         dripVatAddress_eq_target σ I, hacc, Option.option] <;>
       native_decide
   exact hne (by rw [← hword, hwordZero])

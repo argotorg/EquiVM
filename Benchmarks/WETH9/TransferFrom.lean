@@ -242,7 +242,7 @@ theorem weth9TFDecodeFailRev {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.iszero (by native_decide) (by simp)
     |>.pushConst (⟨455⟩ : UInt256) (op := .PUSH2) (width := 2) (by decide) (by native_decide) (by simp)
     |>.jumpiNT (by native_decide) (by rw [hltShort]; decide) (by simp)
-    |>.uniswapPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+    |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 theorem weth9TransferFromBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = weth9Bytecode) (hsize : I.calldata.size < UInt256.size)

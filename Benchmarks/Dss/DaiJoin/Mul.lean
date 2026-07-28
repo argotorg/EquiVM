@@ -506,7 +506,7 @@ theorem daiJoinMulRoutine_revert {code : ByteArray} {ee : ExecutionEnv} {g : Sat
     exact u256_eq_of_ne hguard
   rw [heq0] at rd1709
   have rd1710 := rd1709.jumpiNT hd1709 rfl (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd1710 hd1710 hd1712 hd1713 (by evm_ov)
+  exact RD.solcPush1Dup1Revert0 rd1710 hd1710 hd1712 hd1713 (by evm_ov)
 
 theorem daiJoinMulRoutine_shape :
     decode daiJoinBytecode ⟨1678⟩ = some (.JUMPDEST, .none) ∧

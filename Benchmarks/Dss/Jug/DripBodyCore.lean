@@ -83,7 +83,7 @@ theorem jugDripBodyCoreVatIlksNoCode
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (dripVatTargetWord σ_evm I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ_evm (dripVatTargetWord σ_evm I) = ⟨0⟩) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   let locals := dripLocals I
   let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
@@ -96,7 +96,7 @@ theorem jugDripBodyCoreVatIlksNoCode
     rw [← hrhoWord]
     exact hle
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (dripVatTargetWord σ_solm I) = ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_solm (dripVatTargetWord σ_solm I) = ⟨0⟩ :=
     dripVatCodeSize_zero_accountMapEquiv hAccounts hcodeSize
   have hvatNoCodeSolm :
       (UInt256.ofNat
@@ -131,7 +131,7 @@ theorem jugDripBodyCoreVatIlksCallFailed
         (transitionSignature dripTransition).paramTypes I.calldata = some (dripLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (dripVatTargetWord σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ_evm (dripVatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd1400 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1400⟩
@@ -164,7 +164,7 @@ theorem jugDripBodyCoreVatIlksCallFailed
     rw [← hrhoWord]
     exact hle
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_solm (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
     dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hcodeSize
   have hvatCodeSolm :
       0 <
@@ -246,7 +246,7 @@ theorem jugDripBodyCoreVatIlksCallDepthLimit
         (transitionSignature dripTransition).paramTypes I.calldata = some (dripLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (dripVatTargetWord σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ_evm (dripVatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (rd1400 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1400⟩
@@ -267,7 +267,7 @@ theorem jugDripBodyCoreVatIlksCallDepthLimit
     rw [← hrhoWord]
     exact hle
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_solm (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
     dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hcodeSize
   have hvatCodeSolm :
       0 <
@@ -318,7 +318,7 @@ theorem jugDripBodyCoreVatIlksReturnDecodeShort
         (transitionSignature dripTransition).paramTypes I.calldata = some (dripLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (dripVatTargetWord σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ_evm (dripVatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd1400 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1400⟩
@@ -352,7 +352,7 @@ theorem jugDripBodyCoreVatIlksReturnDecodeShort
     rw [← hrhoWord]
     exact hle
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_solm (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
     dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hcodeSize
   have hvatCodeSolm :
       0 <
@@ -437,7 +437,7 @@ theorem jugDripBodyCoreVatIlksAddOverflow
         (transitionSignature dripTransition).paramTypes I.calldata = some (dripLocals I))
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (dripVatTargetWord σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ_evm (dripVatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd2131 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2131⟩
@@ -476,7 +476,7 @@ theorem jugDripBodyCoreVatIlksAddOverflow
     rw [← hrhoWord]
     exact hle
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_solm (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
     dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hcodeSize
   have hvatCodeSolm :
       0 <

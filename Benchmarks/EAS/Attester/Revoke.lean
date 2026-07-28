@@ -1138,14 +1138,14 @@ theorem attesterX_revokeToExtcodesize {cA gh bl σ σ₀ A I} {g : Sat256}
       show UInt256.sub (⟨356⟩ : UInt256) ⟨256⟩ = (⟨100⟩ : UInt256) by decide]
       using rd2001⟩
 
-private theorem attester_uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+private theorem attester_extCodeSizeWord_ne_zero_lookup_code_pos
     {σ : AccountMap} {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩) :
+    (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hne
+  unfold Reasoning.Theory.extCodeSizeWord at hne
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
@@ -1164,14 +1164,14 @@ private theorem attester_uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
             · simp [UInt256.toNat, hword] at hzeroNat
       simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
 
-private theorem attester_uniswapExtCodeSizeWord_zero_lookup_code_zero
+private theorem attester_extCodeSizeWord_zero_lookup_code_zero
     {σ : AccountMap} {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩) :
+    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
@@ -1208,12 +1208,12 @@ theorem attesterRevokeCodeSize_ne_accountMapEquiv (v : AttesterImmutables)
     {σ τ : AccountMap}
     (hAccounts : accountMapEquiv σ τ)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (attesterRevokeTargetWord v) ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (attesterRevokeTargetWord v) ≠ ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (attesterRevokeTargetWord v) ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (attesterRevokeTargetWord v) ≠ ⟨0⟩ := by
   intro hzero
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (attesterRevokeTargetWord v)
   rw [hsame]
   exact hzero
@@ -1222,10 +1222,10 @@ theorem attesterRevokeCodeSize_zero_accountMapEquiv (v : AttesterImmutables)
     {σ τ : AccountMap}
     (hAccounts : accountMapEquiv σ τ)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (attesterRevokeTargetWord v) = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (attesterRevokeTargetWord v) = ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (attesterRevokeTargetWord v) = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (attesterRevokeTargetWord v) = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (attesterRevokeTargetWord v)
   rw [← hsame]
   exact hzero
@@ -1234,12 +1234,12 @@ theorem attesterRevokeEasCode_pos_of_codeSize_ne
     {cA gh bl σ σ₀ A I} {g : Sat256}
     (v : AttesterImmutables)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (attesterRevokeTargetWord v) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (attesterRevokeTargetWord v) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       (((initState cA gh bl σ σ₀ g A I).lookupAccount (EVM.address v.eas)).option 0
         (fun acc => acc.code.size))).toNat := by
   simpa [initState, State.lookupAccount] using
-    attester_uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+    attester_extCodeSizeWord_ne_zero_lookup_code_pos
       (σ := σ) (target := attesterRevokeTargetWord v) (addr := EVM.address v.eas)
       (attesterRevokeTarget_eq v) hne
 
@@ -1247,12 +1247,12 @@ theorem attesterRevokeEasCode_zero_of_codeSize_zero
     {cA gh bl σ σ₀ A I} {g : Sat256}
     (v : AttesterImmutables)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (attesterRevokeTargetWord v) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (attesterRevokeTargetWord v) = ⟨0⟩) :
     (UInt256.ofNat
       (((initState cA gh bl σ σ₀ g A I).lookupAccount (EVM.address v.eas)).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
   simpa [initState, State.lookupAccount] using
-    attester_uniswapExtCodeSizeWord_zero_lookup_code_zero
+    attester_extCodeSizeWord_zero_lookup_code_zero
       (σ := σ) (target := attesterRevokeTargetWord v) (addr := EVM.address v.eas)
       (attesterRevokeTarget_eq v) hzero
 
@@ -1266,7 +1266,7 @@ theorem attesterX_revokeNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
     (hattest : (attesterAttestSelBytes == I.calldata.extract 0 4) = false)
     (hrevoke : (attesterRevokeSelBytes == I.calldata.extract 0 4) = true)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (attesterRevokeTargetWord v) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (attesterRevokeTargetWord v) = ⟨0⟩) :
     RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd2001⟩ :=
     attesterX_revokeToExtcodesize (cA := cA) (gh := gh) (bl := bl)
@@ -1274,11 +1274,11 @@ theorem attesterX_revokeNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
       (attesterX_revokeWrapper (cA := cA) (gh := gh) (bl := bl)
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hcode hwv hsz4
         hsize hmultiRevoke hmultiAttest hattest hrevoke)
-  obtain ⟨k2002, C2002, rd2002raw⟩ := RD.uniswapExtcodesize rd2001
+  obtain ⟨k2002, C2002, rd2002raw⟩ := RD.extcodesize rd2001
     (by attester_decode_at v, ⟨2001⟩, 0x3b, .EXTCODESIZE) (by simp)
   have rd2002 : RD (patchedRuntime v) I g (initState cA gh bl σ σ₀ g A I)
       (⟨2002⟩ : UInt256)
-      [Reasoning.Theory.uniswapExtCodeSizeWord σ (attesterRevokeTargetWord v),
+      [Reasoning.Theory.extCodeSizeWord σ (attesterRevokeTargetWord v),
         attesterRevokeTargetWord v, ⟨0⟩, ⟨256⟩, ⟨100⟩, ⟨256⟩, ⟨0⟩,
         ⟨356⟩, ⟨0x46926267⟩, attesterRevokeTargetWord v,
         attesterRevokeUidWord I, attesterRevokeSchemaWord I, ⟨97⟩, solcSelectorWord I]
@@ -1307,7 +1307,7 @@ theorem attesterX_revokePostCall {cA gh bl σ σ₀ A I} {g : Sat256}
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (attesterRevokeTargetWord v) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (attesterRevokeTargetWord v) ≠ ⟨0⟩)
     (hperm : I.perm = true) (hdepth : I.depth.val < 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
       (o : ByteArray) (A' : Substate) (k' C' : ℕ),
@@ -1327,7 +1327,7 @@ theorem attesterX_revokePostCall {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd2001⟩ :=
     attesterX_revokeToExtcodesize (v := v) hsz68 hsize hsmall hreach
   obtain ⟨_, _, _, rd2015⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2001⟩) (okPc := ⟨2012⟩)
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2001⟩) (okPc := ⟨2012⟩)
       rd2001 hcodeSize
       (by attester_decode_at v, ⟨2001⟩, 0x3b, .EXTCODESIZE)
       (by attester_decode_at v, ⟨2002⟩, 0x15, .ISZERO)
@@ -1442,7 +1442,7 @@ theorem attesterX_revokeSuccessStop {cA gh bl σ σ₀ A I} {g : Sat256}
       mem ⟨12⟩ o acc k C) :
     RDret (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) acc ByteArray.empty := by
   obtain ⟨_, _, rd2032⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨2016⟩) (okPc := ⟨2030⟩) rd
+    RD.solcCallSuccessGuardOk (pc := ⟨2016⟩) (okPc := ⟨2030⟩) rd
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by attester_decode_at v, ⟨2016⟩, 0x15, .ISZERO)
       (by attester_decode_at v, ⟨2017⟩, 0x80, .DUP1)
@@ -1475,7 +1475,7 @@ theorem attesterX_revokeCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hattest : (attesterAttestSelBytes == I.calldata.extract 0 4) = false)
     (hrevoke : (attesterRevokeSelBytes == I.calldata.extract 0 4) = true)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (attesterRevokeTargetWord v) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (attesterRevokeTargetWord v) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
     RDrev (patchedRuntime v) g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd2001⟩ :=
@@ -1485,7 +1485,7 @@ theorem attesterX_revokeCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
         (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hcode hwv hsz4
         hsize hmultiRevoke hmultiAttest hattest hrevoke)
   obtain ⟨_, _, _, rd2015⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2001⟩) (okPc := ⟨2012⟩)
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2001⟩) (okPc := ⟨2012⟩)
       rd2001 hcodeSize
       (by attester_decode_at v, ⟨2001⟩, 0x3b, .EXTCODESIZE)
       (by attester_decode_at v, ⟨2002⟩, 0x15, .ISZERO)
@@ -1554,13 +1554,13 @@ theorem attesterRevokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (σ₀ := σ₀) (A := A) (I := I) (g := gS) v hIcode hwv hsz4 hsize
           hmultiRevoke hmultiAttest hattest hrevoke
       by_cases hcodeSizeEvm :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (attesterRevokeTargetWord v) = ⟨0⟩
+          Reasoning.Theory.extCodeSizeWord σ_evm (attesterRevokeTargetWord v) = ⟨0⟩
       · have hrdrev :=
           attesterX_revokeNoCode (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
             (σ₀ := σ₀) (A := A) (I := I) (g := gS) v hIcode hwv hsz4 hsize
             hsz68 hsmall hmultiRevoke hmultiAttest hattest hrevoke hcodeSizeEvm
         have hcodeSizeSolm :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (attesterRevokeTargetWord v) =
+            Reasoning.Theory.extCodeSizeWord σ_solm (attesterRevokeTargetWord v) =
               ⟨0⟩ :=
           attesterRevokeCodeSize_zero_accountMapEquiv v hAccounts hcodeSizeEvm
         have hcodeSolmRaw :=
@@ -1589,7 +1589,7 @@ theorem attesterRevokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           attesterRevokeBodyNoCode v evmSolm (attesterRevokeStore I) hwvSolm hguard
         exact hrdrev.reEquivExecutionRevert hIcode hd hdec hbody
       · have hcodeSizeSolmNe :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (attesterRevokeTargetWord v) ≠
+            Reasoning.Theory.extCodeSizeWord σ_solm (attesterRevokeTargetWord v) ≠
               ⟨0⟩ :=
           attesterRevokeCodeSize_ne_accountMapEquiv v hAccounts hcodeSizeEvm
         have hcodeSolmRaw :=

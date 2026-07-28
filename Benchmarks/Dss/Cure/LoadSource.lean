@@ -83,7 +83,7 @@ theorem cureLoadSourceBodyNoCodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hnoCode : uniswapExtCodeSizeWord σ (loadKey I) = ⟨0⟩) :
+    (hnoCode : extCodeSizeWord σ (loadKey I) = ⟨0⟩) :
     ExecTransitionBody config contract
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
       loadTransition.body .reverted := by
@@ -170,7 +170,7 @@ theorem cureLoadSourceBodyCallFailureRevert {cA gh bl σ σ₀ A I} {g : UInt256
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hcode : uniswapExtCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
+    (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -265,7 +265,7 @@ theorem cureLoadSourceBodyReturnDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt25
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hcode : uniswapExtCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
+    (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -363,7 +363,7 @@ theorem cureLoadSourceBodySubRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hcode : uniswapExtCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
+    (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -583,7 +583,7 @@ theorem cureLoadSourceBodyAddRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hcode : uniswapExtCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
+    (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -862,7 +862,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hcode : uniswapExtCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
+    (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -1194,7 +1194,7 @@ theorem cureLoadSourceBodyOkLoadedZero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hcode : uniswapExtCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
+    (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)

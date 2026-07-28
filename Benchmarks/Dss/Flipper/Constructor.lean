@@ -1040,7 +1040,7 @@ theorem flipperCtorNonpayableRDrev
   have rd73 := rd72.jumpiNT (by flipper_ctor_decode) (isZero_eq_zero_of_ne hwv)
     (by simp only [List.length_cons, List.length_nil]; omega)
   simpa [code] using
-    RD.uniswapPush1Dup1Revert0 (code := code) (ee := I) (g := g)
+    RD.solcPush1Dup1Revert0 (code := code) (ee := I) (g := g)
       (s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) rd73
       (by flipper_ctor_decode) (by flipper_ctor_decode) (by flipper_ctor_decode)
       (by simp only [List.length_cons, List.length_nil]; omega)

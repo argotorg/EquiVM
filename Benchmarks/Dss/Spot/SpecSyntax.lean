@@ -2,105 +2,136 @@ import Benchmarks.Dss.Spot.Spec
 import Solm.Notation
 
 /-!
-# MakerDAO/Sky DSS Spotter spec through the Solm notation frontend
+# Spotter spec in the Solidity-faithful Solm frontend
 
-This file exposes a notation-side presentation for representative parts of the Spotter scaffold
-covered by the current Solm frontend, and checks by `rfl` that they are definitionally equal to the
-AST spec in `Benchmarks.Dss.Spot.Spec`.
+The whole Spotter benchmark spec, written with `solidity%` and proven definitionally equal to the
+AST spec in `Benchmarks/Dss/Spot/Spec.lean`.
+
+Escapes: the `"pip"`/`"par"`/`"mat"`/`"spot"` `bytes32` parameter literals are the spec's
+`fixedBytesLit` defs; `poke`'s oracle call has an indexed-path receiver (`ilks[ilk].pip`), which
+the surface method-call syntax cannot express, so that require+call pair is spliced with the
+spec's own `checkedExternalCallStmts` (its `peekRet` binder is then referenced via `${…}`).
+Transition order matches `contract.transitions`.
 -/
 
 open Solm Solm.Notation
 
 namespace Benchmarks.Dss.Spot.Syntax
 
-def storageDeclsSyntax : List StorageDecl :=
-  sState% {
-    (address => uint256) wards
-  } ++
-  [ { name := "ilks", ty := .mapping (.bytes bytes32Width) IlkStructTy },
-    { name := "vat", ty := addrSt },
-    { name := "par", ty := uint256St },
-    { name := "live", ty := uint256St } ]
+def contractSyntax : ContractDecl := solidity% contract Spotter {
+  struct Ilk {
+    address pip;
+    uint256 mat;
+  }
 
-def relyTransitionSyntax : TransitionDecl :=
-  { name := "rely"
-    params := [{ name := "guy", ty := addr }]
-    returnType := []
-    body := sBlock% {
-      require msg.value == 0
-      require @wards[msg.sender] == 1
-      @wards[guy] := 1
-    } }
+  mapping(address => uint256) wards;
+  mapping(bytes32 => Ilk) ilks;
+  address vat;
+  uint256 par;
+  uint256 live;
 
-def denyTransitionSyntax : TransitionDecl :=
-  { name := "deny"
-    params := [{ name := "guy", ty := addr }]
-    returnType := []
-    body := sBlock% {
-      require msg.value == 0
-      require @wards[msg.sender] == 1
-      @wards[guy] := 0
-    } }
+  constructor(address vat_) {
+    wards[msg.sender] = 1;
+    vat = vat_;
+    par = #one;
+    live = 1;
+  }
 
-def parTransitionSyntax : TransitionDecl :=
-  { name := "par"
-    params := []
-    returnType := [uint256]
-    body := sBlock% {
-      require msg.value == 0
-      return @par
-    } }
+  function mul(uint256 x, uint256 y) internal returns (uint256) {
+    uint256 z = (x * y) as uint256;
+    require(y == 0 || z / y == x);
+    return z;
+  }
 
-def liveTransitionSyntax : TransitionDecl :=
-  { name := "live"
-    params := []
-    returnType := [uint256]
-    body := sBlock% {
-      require msg.value == 0
-      return @live
-    } }
+  function rdiv(uint256 x, uint256 y) internal returns (uint256) {
+    var z = mul(x, #one);
+    z = z / y;
+    return z;
+  }
 
-def transitionsSyntax : List TransitionDecl :=
-  [ cageTransition,
-    denyTransitionSyntax,
-    fileMatTransition,
-    fileParTransition,
-    filePipTransition,
-    ilksTransition,
-    liveTransitionSyntax,
-    parTransitionSyntax,
-    pokeTransition,
-    relyTransitionSyntax,
-    vatTransition,
-    wardsTransition ]
+  function cage() external {
+    require(wards[msg.sender] == 1);
+    live = 0;
+  }
 
-def contractSyntax : ContractDecl :=
-  { name := "Spotter"
-    storage := storageDeclsSyntax
-    ctor := constructorDecl
-    structs := structs
-    functions := functions
-    transitions := transitionsSyntax }
+  function deny(address guy) external {
+    require(wards[msg.sender] == 1);
+    wards[guy] = 0;
+  }
 
-theorem storageDeclsSyntax_eq : storageDeclsSyntax = Benchmarks.Dss.Spot.storageDecls := by
-  rfl
+  function file(bytes32 ilk, bytes32 what, uint256 data) external {
+    require(wards[msg.sender] == 1);
+    require(live == 1);
+    if (what == ${matParamLit}) {
+      ilks[ilk].mat = data;
+    } else {
+      require(false);
+    }
+  }
 
-theorem relyTransitionSyntax_eq : relyTransitionSyntax = Benchmarks.Dss.Spot.relyTransition := by
-  rfl
+  function file(bytes32 what, uint256 data) external {
+    require(wards[msg.sender] == 1);
+    require(live == 1);
+    if (what == ${parParamLit}) {
+      par = data;
+    } else {
+      require(false);
+    }
+  }
 
-theorem denyTransitionSyntax_eq : denyTransitionSyntax = Benchmarks.Dss.Spot.denyTransition := by
-  rfl
+  function file(bytes32 ilk, bytes32 what, address pip_) external {
+    require(wards[msg.sender] == 1);
+    require(live == 1);
+    if (what == ${pipParamLit}) {
+      ilks[ilk].pip = pip_;
+    } else {
+      require(false);
+    }
+  }
 
-theorem parTransitionSyntax_eq : parTransitionSyntax = Benchmarks.Dss.Spot.parTransition := by
-  rfl
+  function ilks(bytes32 arg0) external returns (address, uint256) {
+    return (ilks[arg0].pip, ilks[arg0].mat);
+  }
 
-theorem liveTransitionSyntax_eq : liveTransitionSyntax = Benchmarks.Dss.Spot.liveTransition := by
-  rfl
+  function live() external returns (uint256) {
+    return live;
+  }
 
-theorem transitionsSyntax_eq : transitionsSyntax = Benchmarks.Dss.Spot.transitions := by
-  rfl
+  function par() external returns (uint256) {
+    return par;
+  }
 
-theorem contractSyntax_eq : contractSyntax = Benchmarks.Dss.Spot.contract := by
-  rfl
+  function poke(bytes32 ilk) external {
+    ${checkedExternalCallStmts (.storage (ilksF (.var "ilk") "pip")) "peek" (.intLit 0) []
+      "peekRet"}
+    bytes32 val = ${Expr.tupleGet (Expr.var "peekRet") 0};
+    bool has = ${Expr.tupleGet (Expr.var "peekRet") 1};
+    uint256 spot = 0;
+    if (has) {
+      uint256 valScaled = (uint256(val) * #billion) as uint256;
+      require(#billion == 0 || valScaled / #billion == uint256(val));
+      var spot1 = rdiv(valScaled, par);
+      var spot2 = rdiv(spot1, ilks[ilk].mat);
+      spot = spot2;
+    }
+    require(${Expr.extCodeSize (Expr.storage vatRef)} > 0);
+    var _fileRet = vat.file(ilk, ${spotParamLit}, spot);
+  }
+
+  function rely(address guy) external {
+    require(wards[msg.sender] == 1);
+    wards[guy] = 1;
+  }
+
+  function vat() external returns (address) {
+    return vat;
+  }
+
+  function wards(address arg0) external returns (uint256) {
+    return wards[arg0];
+  }
+}
+
+theorem contractSyntax_eq : contractSyntax = Benchmarks.Dss.Spot.contract := by rfl
 
 end Benchmarks.Dss.Spot.Syntax

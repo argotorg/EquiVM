@@ -99,7 +99,7 @@ private theorem nat_lor_high_mask_55 (n : Nat) (hn : n < 2 ^ 256) :
   rw [Nat.testBit_or, Nat.testBit_or]
   rw [show (2 ^ (256 - 55) - 1) * 2 ^ 55 =
       (2 ^ (256 - 55) - 1) <<< 55 by rw [Nat.shiftLeft_eq]]
-  rw [nat_testBit_shiftLeft]
+  rw [testBit_shiftLeft]
   by_cases hi55 : i < 55
   · rw [if_pos hi55]
     conv_rhs => rw [Nat.testBit_mod_two_pow]
