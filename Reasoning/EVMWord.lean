@@ -8,9 +8,9 @@ import Mathlib.Data.Nat.Digits.Lemmas
 
 The EVM executes arithmetic and comparisons on 256-bit stack words, even when the Solidity source
 type is narrower.  This file collects generic `UInt256` facts used by bytecode traces: no-wrap
-`toNat` lemmas, unsigned comparisons, and signed `SLT` facts parameterized by the comparison
-literal.  Memory byte-level facts stay in `Reasoning.Memory`; solc conventions stay in
-`Reasoning.Solc`.
+`toNat` lemmas, arithmetic/bitwise normalization, unsigned comparisons, signed `SLT` facts
+parameterized by the comparison literal, `compare`-order instances, and the bitwise word-rounding
+behind solc's memory allocation.  Memory byte-level facts stay in `Reasoning.Memory`.
 -/
 
 open Ethereum Ethereum.EVM
@@ -218,9 +218,7 @@ theorem usub_uadd_lit_cancel_mod {base n : ℕ}
         haddn, ulit_toNat' base hbase, ulit_toNat' n hn]
     omega
 
-/-! ## Unsigned comparisons and small arithmetic helpers -/
-
-/-! ### Arithmetic and bitwise normalization -/
+/-! ## Arithmetic and bitwise normalization -/
 
 theorem nat_land_comm (a b : ℕ) : Nat.land a b = Nat.land b a := by
   apply Nat.eq_of_testBit_eq
@@ -494,6 +492,8 @@ theorem u256_land_high_mask_eq_self (w : UInt256) {k : Nat} (hk : k ≤ 256)
     exact h
   rw [hdiv]
   exact Nat.mod_eq_of_lt w.val.isLt
+
+/-! ## Unsigned comparisons -/
 
 /-- `LT` returns `1` when the strict order holds. -/
 theorem ult_one {a b : UInt256} (h : a.toNat < b.toNat) : UInt256.lt a b = ⟨1⟩ := by

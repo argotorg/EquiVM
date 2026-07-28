@@ -471,41 +471,57 @@ theorem solcErrorStringMem1_size {mem : ByteArray} (hmem : mem.size = 96) :
     toByteArray_size]
   omega
 
-theorem solcErrorStringMem2_size (len : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 96) :
+/-- Everything above `Mem1` only depends on `(solcErrorStringMem1 mem).size = 164`, so the
+    `Mem2`/`Mem3` facts are proved once here and instantiated by both the 96- and 164-byte base
+    cases. -/
+theorem solcErrorStringMem2_size_of_mem1 (len : UInt256) {mem : ByteArray}
+    (h1 : (solcErrorStringMem1 mem).size = 164) :
     (solcErrorStringMem2 len mem).size = 196 := by
   unfold solcErrorStringMem2
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by simp [solcErrorStringMem1_size hmem]),
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by rw [h1]),
     ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, solcErrorStringMem1_size hmem,
-    toByteArray_size]
+    ByteArray.size_extract, ByteArray.size_extract, h1, toByteArray_size]
   omega
 
-theorem solcErrorStringMem3_size (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 96) :
+theorem solcErrorStringMem3_size_of_mem1 (len word : UInt256) {mem : ByteArray}
+    (h1 : (solcErrorStringMem1 mem).size = 164) :
     (solcErrorStringMem3 len word mem).size = 228 := by
   unfold solcErrorStringMem3
   rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by simp [solcErrorStringMem2_size len hmem]),
+      (by rw [solcErrorStringMem2_size_of_mem1 len h1]),
     ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
-    ByteArray.size_extract, ByteArray.size_extract, solcErrorStringMem2_size len hmem,
+    ByteArray.size_extract, ByteArray.size_extract, solcErrorStringMem2_size_of_mem1 len h1,
     toByteArray_size]
   omega
 
-theorem solcErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 96)
-    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+theorem solcErrorStringMem3_read64_of_mem1 (len word : UInt256) {mem : ByteArray}
+    (h1 : (solcErrorStringMem1 mem).size = 164)
+    (h1read : (solcErrorStringMem1 mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold solcErrorStringMem3
   rw [toByteArray_write_read_below_of_gap word _ 196 64
-      (by rw [solcErrorStringMem2_size len hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem2_size len hmem]; exact lt_usize _ (by norm_num))]
+      (by rw [solcErrorStringMem2_size_of_mem1 len h1]; omega) (by omega)
+      (by rw [solcErrorStringMem2_size_of_mem1 len h1]; exact lt_usize _ (by norm_num))]
   unfold solcErrorStringMem2
   rw [toByteArray_write_read_below_of_gap len _ 164 64
-      (by rw [solcErrorStringMem1_size hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem1_size hmem]; exact lt_usize _ (by norm_num))]
+      (by rw [h1]; omega) (by omega)
+      (by rw [h1]; exact lt_usize _ (by norm_num))]
+  exact h1read
+
+theorem solcErrorStringMem2_size (len : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 96) :
+    (solcErrorStringMem2 len mem).size = 196 :=
+  solcErrorStringMem2_size_of_mem1 len (solcErrorStringMem1_size hmem)
+
+theorem solcErrorStringMem3_size (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 96) :
+    (solcErrorStringMem3 len word mem).size = 228 :=
+  solcErrorStringMem3_size_of_mem1 len word (solcErrorStringMem1_size hmem)
+
+theorem solcErrorStringMem1_read64 {mem : ByteArray} (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcErrorStringMem1 mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold solcErrorStringMem1
   rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
       (by rw [solcErrorStringMem0_size hmem]; omega) (by omega)
@@ -514,6 +530,14 @@ theorem solcErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
   rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
       (by omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
   exact hread64
+
+theorem solcErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 96)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ :=
+  solcErrorStringMem3_read64_of_mem1 len word (solcErrorStringMem1_size hmem)
+    (solcErrorStringMem1_read64 hmem hread64)
 
 theorem solcErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96)
@@ -544,35 +568,17 @@ theorem solcErrorStringMem1_size_of_size164 {mem : ByteArray} (hmem : mem.size =
 
 theorem solcErrorStringMem2_size_of_size164 (len : UInt256) {mem : ByteArray}
     (hmem : mem.size = 164) :
-    (solcErrorStringMem2 len mem).size = 196 := by
-  unfold solcErrorStringMem2
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem1_size_of_size164 hmem])]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem1_size_of_size164 hmem,
-    toByteArray_size]
+    (solcErrorStringMem2 len mem).size = 196 :=
+  solcErrorStringMem2_size_of_mem1 len (solcErrorStringMem1_size_of_size164 hmem)
 
 theorem solcErrorStringMem3_size_of_size164 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 164) :
-    (solcErrorStringMem3 len word mem).size = 228 := by
-  unfold solcErrorStringMem3
-  rw [write32_eq _ _ _ (by rw [toByteArray_size])
-      (by rw [solcErrorStringMem2_size_of_size164 len hmem])]
-  simp [ByteArray.size_append, ByteArray.size_extract, solcErrorStringMem2_size_of_size164 len hmem,
-    toByteArray_size]
+    (solcErrorStringMem3 len word mem).size = 228 :=
+  solcErrorStringMem3_size_of_mem1 len word (solcErrorStringMem1_size_of_size164 hmem)
 
-theorem solcErrorStringMem3_read64_of_size164 (len word : UInt256) {mem : ByteArray}
-    (hmem : mem.size = 164)
+theorem solcErrorStringMem1_read64_of_size164 {mem : ByteArray} (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
-    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
-      UInt256.toByteArray ⟨128⟩ := by
-  unfold solcErrorStringMem3
-  rw [toByteArray_write_read_below_of_gap word _ 196 64
-      (by rw [solcErrorStringMem2_size_of_size164 len hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem2_size_of_size164 len hmem]; exact lt_usize _ (by norm_num))]
-  unfold solcErrorStringMem2
-  rw [toByteArray_write_read_below_of_gap len _ 164 64
-      (by rw [solcErrorStringMem1_size_of_size164 hmem]; omega) (by omega)
-      (by rw [solcErrorStringMem1_size_of_size164 hmem]; exact lt_usize _ (by norm_num))]
+    (solcErrorStringMem1 mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold solcErrorStringMem1
   rw [toByteArray_write_read_below_of_gap (⟨32⟩ : UInt256) _ 132 64
       (by rw [solcErrorStringMem0_size_of_size164 hmem]; omega) (by omega)
@@ -581,6 +587,14 @@ theorem solcErrorStringMem3_read64_of_size164 (len word : UInt256) {mem : ByteAr
   rw [toByteArray_write_read_below_of_gap solcErrorStringSelector _ 128 64
       (by rw [hmem]; omega) (by omega) (by rw [hmem]; exact lt_usize _ (by norm_num))]
   exact hread64
+
+theorem solcErrorStringMem3_read64_of_size164 (len word : UInt256) {mem : ByteArray}
+    (hmem : mem.size = 164)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
+    (solcErrorStringMem3 len word mem).readWithPadding 64 32 =
+      UInt256.toByteArray ⟨128⟩ :=
+  solcErrorStringMem3_read64_of_mem1 len word (solcErrorStringMem1_size_of_size164 hmem)
+    (solcErrorStringMem1_read64_of_size164 hmem hread64)
 
 theorem solcErrorStringMem3_mload64_of_size164 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 164)
@@ -3041,7 +3055,7 @@ theorem RD.solcConstGetter {code : ByteArray} {g : Sat256} {s0 : State}
   have rdRet := rdDup.jump hdJump hret (by simp only [List.length_cons]; omega)
   exact ⟨_, _, rdRet⟩
 
-/-! ## Solc mapping getter routines -/
+/-! ## Solc mapping getter and store routines -/
 
 abbrev solcSlotWord (σ : AccountMap) (I : ExecutionEnv) (slot : UInt256) : UInt256 :=
   σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)
@@ -4595,7 +4609,7 @@ theorem RD.solcSingleMappingGetter {code : ByteArray} {g : Sat256} {s0 : State}
   have rd17 := rd16.dup2 hd16 (by evm_ov)
   exact ⟨_, _, rd17.jump hd17 hret (by evm_ov)⟩
 
-set_option maxHeartbeats 3000000 in
+set_option maxHeartbeats 2000000 in
 theorem RD.solcNestedMappingInnerHash {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot owner spender ret : UInt256} {R : List UInt256} {rdata : ByteArray}

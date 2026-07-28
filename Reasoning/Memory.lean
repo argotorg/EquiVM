@@ -60,8 +60,8 @@ theorem fromBytes'_append_zeros (l : List UInt8) (k : ℕ) :
   | nil => simpa using fromBytes'_replicate_zero k
   | cons b bs ih => simp only [List.cons_append, fromBytes']; rw [ih]
 
-/-- The little-endian round-trip `fromBytes' (toBytes' x) = x` (re-proved; evmlean's is
-    `private`). -/
+/-- The little-endian round-trip `fromBytes' (toBytes' x) = x` (evmlean's version is `private`,
+    so it is proved here). -/
 theorem fromBytes'_toBytes' (x : ℕ) : fromBytes' (toBytes' x) = x := by
   match x with
   | .zero => simp [toBytes', fromBytes']
@@ -282,8 +282,7 @@ theorem empty_readWithPadding_word_zero :
   rfl
 
 /-- **MSTORE write.**  Storing a 32-byte word `v` at offset `off ≥ mem.size` appends it past a
-    zero gap: `mem ++ zeroes (off - mem.size) ++ v.toByteArray`.  (Generic, contract-agnostic;
-    `off - mem.size < USize.size` rules out the address wrap.) -/
+    zero gap: `mem ++ zeroes (off - mem.size) ++ v.toByteArray`.  (Generic, contract-agnostic.) -/
 theorem toByteArray_write_eq (v : UInt256) (mem : ByteArray) (off : ℕ)
     (hoff : mem.size ≤ off) (_hb : off - mem.size < USize.size) :
     (UInt256.toByteArray v).write 0 mem off 32
@@ -409,7 +408,7 @@ theorem empty_append (A : ByteArray) : ByteArray.empty ++ A = A := by
 theorem lt_usize (n : ℕ) (h : n < 2 ^ 32) : n < USize.size := by
   rcases System.Platform.numBits_eq with he | he <;> rw [USize.size, he] <;> omega
 
-/-- The size of a small `zeroes` block (no `USize` wrap). -/
+/-- The size of a `zeroes` block. -/
 theorem zeroes_ofNat_size (n : ℕ) (_h : n < 2 ^ 32) :
     (ffi.ByteArray.zeroes n).size = n := by
   rw [ByteArray_zeroes_size]
@@ -1049,7 +1048,7 @@ theorem toByteArray_write_read_window_of_gap
     rw [show off + start - off = start by omega,
       show off + start + len - off = start + len by omega]
 
-/-! ## 4a. Two-word scratch memory for mapping-slot hashes -/
+/-! ## 4. Two-word scratch memory for mapping-slot hashes -/
 
 noncomputable def wordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 0 32
@@ -1296,7 +1295,7 @@ theorem readBytes32_len (cd : ByteArray) :
 
 /-- **EVM selector extraction.**  `(uInt256OfByteArray (readBytes cd 0 32)) >>> 224` — the EVM's
     `CALLDATALOAD; PUSH 0xe0; SHR` — equals the big-endian number of `cd`'s first four bytes
-    (for `4 ≤ cd.size`).  Fully proved; nothing opaque. -/
+    (for `4 ≤ cd.size`). -/
 theorem selector_toNat (cd : ByteArray) (h : 4 ≤ cd.size) :
     (UInt256.shiftRight (uInt256OfByteArray (ByteArray.readBytes cd 0 32)) ⟨224⟩).toNat
       = fromBytesBigEndian (cd.data.toList.take 4) := by
@@ -1321,7 +1320,7 @@ theorem selector_toNat (cd : ByteArray) (h : 4 ≤ cd.size) :
   rw [readBytes32_toList, List.take_append_of_le_length (by rw [List.length_take]; omega),
       List.take_take, show min 4 32 = 4 from rfl]
 
-/-! ## Generic `MLOAD` word-value helper -/
+/-! ## 7. Generic `MLOAD` word-value helper -/
 
 /-- Simplify the value pushed by `MLOAD` when the offset is in bounds and below the active-word
     limit, leaving the byte read uninterpreted. -/
@@ -1344,7 +1343,7 @@ theorem mloadWordValue_of_readWithPadding {mem : ByteArray} {aw off v : UInt256}
   rw [if_neg (not_or.mpr ⟨by omega, haw⟩), hread, fromByteArrayBigEndian_toByteArray,
     u256_ofNat_toNat]
 
-/-! ## ABI calldata decode coupling (shared by every contract with arguments) -/
+/-! ## 8. ABI calldata decode coupling (shared by every contract with arguments) -/
 
 /-- `uInt256OfByteArray` is the big-endian decode then `ofNat`. -/
 theorem uInt256OfByteArray_eq (arr : ByteArray) :
@@ -1542,7 +1541,7 @@ theorem decode_word_at_eq_any (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ c
   rw [byteArray_toList_eq (cd.readBytes off 32), readBytes_at_toList_any _ _ hsz]
   simp [byteArray_toList_eq]
 
-/-! ## Mapping storage-slot and load coupling
+/-! ## 9. Mapping storage-slot and load coupling
 
 Solidity stores `mapping[key]` at base slot `s` in `keccak256(key ‖ s)` (each a 32-byte big-endian
 word); the Solm layout (`Solm.SolidityLayout`) computes exactly

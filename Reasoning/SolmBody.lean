@@ -45,12 +45,15 @@ theorem bodyReverts_nonPayable {cfg : Config} {contract : ContractDecl} {evm : E
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) :: rest) .reverted :=
   ExecFuncBody.execBlockRevert (ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false h)))
 
+/-- Block-level form of the non-payable revert: the guard fails under non-zero call value. -/
 theorem blockReverts_nonPayable {cfg : Config} {solm : Frame} {evm : EVM.State}
     {rest : List Stmt} (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
     ExecBlock cfg solm evm
       (.require (.binary .eq (.env .callvalue) (.intLit 0)) :: rest) .reverted :=
   ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false h))
 
+/-- The common `require(callvalue == 0); require(guard); storage := rhs` block, all three
+    statements succeeding. -/
 theorem nonpayableRequireAssignStorageBlock {cfg : Config} {solm : Frame}
     {evm evm' : EVM.State} {guard rhs : Expr} {ref : StorageRef} {value : Value}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -66,6 +69,7 @@ theorem nonpayableRequireAssignStorageBlock {cfg : Config} {solm : Frame}
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
   exact ExecBlock.consNormal (ExecStmt.assign hrhs hassign) ExecBlock.nil
 
+/-- The non-payable guard passes but the second `require(guard)` fails: the block reverts. -/
 theorem nonpayableSecondRequireReverts {cfg : Config} {solm : Frame}
     {evm : EVM.State} {guard : Expr} {rest : List Stmt}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -76,6 +80,7 @@ theorem nonpayableSecondRequireReverts {cfg : Config} {solm : Frame}
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguard)
 
+/-- A singleton `storage := rhs` block, evaluating and assigning in one step. -/
 theorem assignStorageBlock {cfg : Config} {solm : Frame} {evm evm' : EVM.State}
     {rhs : Expr} {ref : StorageRef} {value : Value}
     (hrhs : evalExpr? cfg solm evm rhs = .ok value)

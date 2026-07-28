@@ -150,7 +150,7 @@ private theorem getSqrtRatioModXstep {s : State} {code : ByteArray}
     (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
     Xstep (D_J code 0) s
       = (if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
-         else .ok (stMul s (UInt256.mod a b) t, .none)) := by
+         else .ok (stBinop5 s (UInt256.mod a b) t, .none)) := by
   have hd : decode s.executionEnv.code s.machineState.pc = some (.MOD, .none) := by
     rw [hcode, hpc]
     exact hdec
@@ -158,7 +158,7 @@ private theorem getSqrtRatioModXstep {s : State} {code : ByteArray}
   have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
     simp only [List.length_cons]
     omega
-  simp only [if_neg hov', GasConstants.Glow, stMul]
+  simp only [if_neg hov', GasConstants.Glow, stBinop5]
 
 -- LIBRARY CANDIDATE: fills the missing generic `RD` wrapper for EVM `MOD`.
 private theorem getSqrtRatioRDMod {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
@@ -176,17 +176,17 @@ private theorem getSqrtRatioRDMod {code : ByteArray} {ee : ExecutionEnv} {g : Sa
   · have st := getSqrtRatioModXstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 5
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨stMul s (UInt256.mod a b) t,
+    · refine Or.inr ⟨stBinop5 s (UInt256.mod a b) t,
         hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
         by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [stMul]; exact hcode
-      · simp only [stMul]; rw [hpc]
+      · simp only [stBinop5]; exact hcode
+      · simp only [stBinop5]; rw [hpc]
       · rfl
-      · simp only [stMul]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [stMul]; exact hmem
-      · simp only [stMul]; exact haw
-      · simp only [stMul]; exact hrdata
-      · simp only [stMul]; exact hacc
+      · simp only [stBinop5]; rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
+      · simp only [stBinop5]; exact hmem
+      · simp only [stBinop5]; exact haw
+      · simp only [stBinop5]; exact hrdata
+      · simp only [stBinop5]; exact hacc
       · exact hee
       · exact hworld
 

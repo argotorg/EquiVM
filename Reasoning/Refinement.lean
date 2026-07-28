@@ -561,7 +561,8 @@ theorem CoupledState.refines.returnTransition {code : ByteArray} {ee : Execution
   refine CoupledState.refines.consReturn st ?_
   exact ⟨frame', evm', rv, hstmt, o, hret, hequiv⟩
 
-/-- Compatibility name for the external-transition interpretation of `equivStmts`. -/
+/-- The external-transition interpretation of `equivStmts`: run `stmts` against the
+    transition-level postcondition `transitionPost`. -/
 def equivTransitionStmts (code : ByteArray) (ee : ExecutionEnv) (g : Sat256) (s0 : State)
     (cfg : Config) (returnType : List ABIType)
     (pc : UInt256) (R : StateRel) (stmts : List Stmt) (Q : StateRel) : Prop :=

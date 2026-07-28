@@ -160,7 +160,7 @@ theorem stepContinue {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : S
     but now the next instruction's `cost` exceeds the remaining gas
     (`g.toNat < C + cost`), so the iterator returns `OutOfGass`. -/
 theorem stepOOG {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : Sat256}
-    (hgas : s.machineState.gasAvailable = g.subNat  C)
+    (hgas : s.machineState.gasAvailable = g.subNat C)
     (hstep : Xstep vj s
               = if s.machineState.gasAvailable.toNat < cost then .error .OutOfGass
                 else .ok (s', .none))
@@ -174,7 +174,7 @@ theorem stepOOG {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : Sat256
 /-- **Halt** (`RETURN`/`STOP`/`SELFDESTRUCT` ⇒ success, or `REVERT`) when the current
     instruction's gas suffices: the iterator returns the halt result directly. -/
 theorem stepHaltSuccess {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : Sat256} {o}
-    (hgas : s.machineState.gasAvailable = g.subNat  C)
+    (hgas : s.machineState.gasAvailable = g.subNat C)
     (hstep : Xstep vj s
               = if s.machineState.gasAvailable.toNat < cost then .error .OutOfGass
                 else .ok (s', .some (.success, o)))
@@ -185,8 +185,10 @@ theorem stepHaltSuccess {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g 
   have hgg : ¬ (s.machineState.gasAvailable.toNat < cost) := by rw [hgas]; simp [Sat256.subNat, Sat256.toNat] at *; omega
   exact Xstep_X_X_halt_success _ s s' vj o (by rw [hstep]; simp [hgg])
 
+/-- **Halt with revert** when the current instruction's gas suffices: the iterator returns the
+    revert result directly. -/
 theorem stepHaltRevert {vj : Array UInt256} {s s' : State} {k C cost : ℕ} {g : Sat256} {o}
-    (hgas : s.machineState.gasAvailable = g.subNat  C)
+    (hgas : s.machineState.gasAvailable = g.subNat C)
     (hstep : Xstep vj s
               = if s.machineState.gasAvailable.toNat < cost then .error .OutOfGass
                 else .ok (s', .some (.revert, o)))
