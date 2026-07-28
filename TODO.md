@@ -2,15 +2,17 @@
 
 - [X] EquiVM/EVM
 - [X] Solm
-- [ ] ABI
-- [ ] Reasoning
+- [X] ABI
+- [X] Reasoning
 - [ ] Examples
-  + [ ] Concrete syntax
+  + [X] Concrete syntax
+  + [X]Verify structure
 - [ ] Benchmarks
-  + [ ] Concrete syntax
-- [ ] Proofs
-- [ ] Misc
-  + [ ] Proof template
+  + [X] Concrete syntax
+  + [X] Verify structure
+- [X] Proofs
+- [X] Misc
+  + [X] Proof template
 - [ ] Docs
       + [ ] README
         * [ ] External call section
@@ -19,7 +21,7 @@
 - [ ] CI/CD
 
 
-
+    
 # Solm Semantics
 - [X] Constructor calls
   + currently we don't have
