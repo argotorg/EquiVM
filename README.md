@@ -94,6 +94,13 @@ selector facts, since Keccak is an opaque foreign constant; and Lean's compiled
 evaluator via `native_decide`. The proof-producing agent, tactics, and macros
 are not trusted — the kernel re-checks every proof term.
 
+## Note on AI use 
+
+The development of EquiVM is assisted by LLMs. Semantics and related definitions
+were designed and reviewed by humans. Proofs of equivalence between the Sol⁻
+specifications and the EVM bytecode, related boilerplate, and the Sol⁻
+specifications themselves were produced by LLMs.
+
 ## Paper
 
 You can find a detailed description of the theory and evaluation in the paper [*Foundational Refinement Proofs for Deployed Bytecode, at The Price of Tokens*](TODO).
