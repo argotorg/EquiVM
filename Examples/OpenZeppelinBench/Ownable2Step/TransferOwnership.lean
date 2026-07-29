@@ -441,7 +441,7 @@ theorem ownable2StepX_transferOwnership_success {cA gh bl σ σ₀ A I} {g : Sat
   have rd311₀ := evm_run rd288 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, and, push1 ⟨1⟩,
     push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, swap1, swap2, and, dup2]
-  have rd312₀ := RD.lor rd311₀ (by decide) (by evm_ov)
+  have rd312₀ := RD.or rd311₀ (by decide) (by evm_ov)
   have hset :
       UInt256.lor
           (UInt256.land (transferOwnershipNewOwnerWord I) solcAddrMask)

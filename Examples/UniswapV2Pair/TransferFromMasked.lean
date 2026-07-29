@@ -72,10 +72,10 @@ theorem uniswapTransferFromX_decoded_masked {cA gh bl σ σ₀ A I} {g : Sat256}
       [transferFromValueWord I, transferFromToMaskedWord I, transferFromFromMaskedWord I, ⟨797⟩,
         sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, rd901⟩ := RD.uniswapAddressAddressUint256ExternalLenOk
+  obtain ⟨_, _, rd901⟩ := RD.addressAddressUint256ExternalLenOk
     (entry := ⟨879⟩) (ret := ⟨797⟩) (routine := ⟨2938⟩) hreach
     uniswap_address_address_uint256_external_entry_wf (by jump_dest) hsz100 hsize
-  obtain ⟨_, _, rd2938⟩ := RD.uniswapAddressAddressUint256ExternalMaskAndJumpMasked
+  obtain ⟨_, _, rd2938⟩ := RD.addressAddressUint256ExternalMaskAndJumpMasked
     (entry := ⟨879⟩) (ret := ⟨797⟩) (routine := ⟨2938⟩) (R := [sel]) rd901
     uniswap_address_address_uint256_external_entry_wf
     (by jump_dest) (by simp only [List.length_singleton]; omega)

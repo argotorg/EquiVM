@@ -274,7 +274,7 @@ theorem RD.uniswapTwoAddressExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     hd32 hd33 hd34 hd35 hd36 hd37 hd39 hd40 hd41 hd42 hd45 hroutine hov
 
 set_option maxHeartbeats 1000000 in
-theorem RD.uniswapAddressUint256ExternalShort {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.addressUint256ExternalShort {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256}
     (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
@@ -299,7 +299,7 @@ theorem RD.uniswapAddressUint256ExternalShort {cA gh bl σ σ₀ A I} {g : Sat25
     hd11 hd12 hd13 hd14 hd17 hd18 hd20 hd21 hlt
 
 set_option maxHeartbeats 1000000 in
-theorem RD.uniswapAddressAddressUint256ExternalShort {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.addressAddressUint256ExternalShort {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel entry ret routine : UInt256}
     (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
@@ -325,7 +325,7 @@ theorem RD.uniswapAddressAddressUint256ExternalShort {cA gh bl σ σ₀ A I} {g 
     hd11 hd12 hd13 hd14 hd17 hd18 hd20 hd21 hlt
 
 set_option maxHeartbeats 1000000 in
-theorem RD.uniswapAddressAddressUint256ExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
+theorem RD.addressAddressUint256ExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0

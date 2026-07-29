@@ -1302,7 +1302,7 @@ theorem ballotConstructorPrelude {cA : Batteries.RBSet AccountAddress compare} {
       jumpdest, push0, dup1 ]).sload (by ctor_decode) (by evm_ov)
   have rd65 := ctor_run rd52 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨0xa0⟩, shl, sub, not, and, caller, swap1, dup2 ]
-  have rd66 := RD.lor rd65 (by ctor_decode) (by evm_ov)
+  have rd66 := RD.or rd65 (by ctor_decode) (by evm_ov)
   have rd67 := ctor_run rd66 with [dup3]
   have hchair :
       UInt256.lor (ballotSourceWord I)

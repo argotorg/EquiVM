@@ -158,10 +158,10 @@ theorem uniswapApproveX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2894⟩
         [approveValueWord I, approveSpenderMaskedWord I, ⟨797⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, rd775⟩ := RD.uniswapAddressUint256ExternalLenOk
+  obtain ⟨_, _, rd775⟩ := RD.addressUint256ExternalLenOk
     (entry := ⟨753⟩) (ret := ⟨797⟩) (routine := ⟨2894⟩) hreach
     uniswap_address_uint256_external_entry_wf (by jump_dest) hsz68 hsize
-  obtain ⟨_, _, rd2894⟩ := RD.uniswapAddressUint256ExternalMaskAndJumpMasked
+  obtain ⟨_, _, rd2894⟩ := RD.addressUint256ExternalMaskAndJumpMasked
     (entry := ⟨753⟩) (ret := ⟨797⟩) (routine := ⟨2894⟩) (R := [sel]) rd775
     uniswap_address_uint256_external_entry_wf
     (by jump_dest) (by simp only [List.length_singleton]; omega)
@@ -180,7 +180,7 @@ theorem uniswapApproveX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
       (initState cA gh bl σ σ₀ g A I) ⟨753⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapAddressUint256ExternalShort
+  exact RD.addressUint256ExternalShort
     (entry := ⟨753⟩) (ret := ⟨797⟩) (routine := ⟨2894⟩)
     hreach uniswap_address_uint256_external_entry_wf hsz4 hsize hshort
 

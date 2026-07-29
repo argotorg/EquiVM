@@ -20,7 +20,7 @@ theorem uniswapTransferFromX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
       (initState cA gh bl σ σ₀ g A I) ⟨879⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapAddressAddressUint256ExternalShort
+  exact RD.addressAddressUint256ExternalShort
     (entry := ⟨879⟩) (ret := ⟨797⟩) (routine := ⟨2938⟩)
     hreach uniswap_address_address_uint256_external_entry_wf hsz4 hsize hshort
 

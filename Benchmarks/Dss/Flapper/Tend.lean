@@ -2399,7 +2399,7 @@ theorem flapperTendBodyReturns_success_callerNe
               [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
         (.ok { contract := contract, locals := tendTicLocals (tendRefundRetLocals evm I) evmPay I }
           (tendPostState evmPay I)) := by
-    simpa [evmGuy] using.execBlock_append hrefundPrefix hpayTail
+    simpa [evmGuy] using execBlock_append hrefundPrefix hpayTail
   refine ExecFuncBody.execBlockOK ?_
   simpa [tendTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append,
     List.append_assoc] using

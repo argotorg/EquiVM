@@ -154,10 +154,10 @@ theorem uniswapTransferFromX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel :
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2938⟩
       [transferFromValueWord I, transferFromToWord I, transferFromFromWord I, ⟨797⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, rd901⟩ := RD.uniswapAddressAddressUint256ExternalLenOk
+  obtain ⟨_, _, rd901⟩ := RD.addressAddressUint256ExternalLenOk
     (entry := ⟨879⟩) (ret := ⟨797⟩) (routine := ⟨2938⟩) hreach
     uniswap_address_address_uint256_external_entry_wf (by jump_dest) hsz100 hsize
-  obtain ⟨_, _, rd2938⟩ := RD.uniswapAddressAddressUint256ExternalMaskAndJump
+  obtain ⟨_, _, rd2938⟩ := RD.addressAddressUint256ExternalMaskAndJump
     (entry := ⟨879⟩) (ret := ⟨797⟩) (routine := ⟨2938⟩) (R := [sel]) rd901
     uniswap_address_address_uint256_external_entry_wf
     (by simpa [transferFromFromWord] using hcanonFrom)

@@ -361,7 +361,7 @@ theorem ownable2StepX_acceptOwnership_success {cA gh bl σ σ₀ A I} {g : Sat25
   have rd478 := evm_run rd455 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup4, dup2, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, dup4, and, dup2]
-  have rd479₀ := RD.lor rd478 (by decide) (by evm_ov)
+  have rd479₀ := RD.or rd478 (by decide) (by evm_ov)
   have rd480₀ := evm_run rd479₀ with [dup5]
   have hset :
       UInt256.lor

@@ -38,7 +38,7 @@ theorem uniswapX_factory {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
       (UInt256.toByteArray (factoryReturnWord σ I)) := by
-  exact RD.uniswapAddressGetterExternal (entry := ⟨1324⟩) (routine := ⟨5443⟩)
+  exact RD.addressGetterExternal (entry := ⟨1324⟩) (routine := ⟨5443⟩)
     (slot := ⟨5⟩) hreach uniswap_address_getter_entry_wf uniswap_address_slot_getter_wf
     (by jump_dest) (by jump_dest)
 

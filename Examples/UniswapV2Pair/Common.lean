@@ -1698,7 +1698,7 @@ theorem RD.uniswapLockEnterLocked {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
     (by rfl)
     hov
 
-theorem RD.uniswapAddressSlotGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+theorem RD.addressSlotGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc slot ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc (ret :: R) mem aw rdata
@@ -1825,7 +1825,7 @@ theorem RD.uniswapReturnUint8_949 {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
     (solcReturnMem_read128 (UInt256.land val ⟨255⟩))
     hov
 
-theorem RD.uniswapAddressGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem RD.addressGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry routine slot : UInt256}
     (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
@@ -1942,7 +1942,7 @@ theorem uniswapAddressGetterBodyCore
     simpa [uniswapAddressReturnWord] using
       (returnEquiv_of_encode
         (solcAddressReturnEncoding (addrTy := addr) rfl (uniswapSlotWord slot σ_evm I)))
-  exact (RD.uniswapAddressGetterExternal (g := Sat256.ofUInt256 g)
+  exact (RD.addressGetterExternal (g := Sat256.ofUInt256 g)
       (entry := entry) (routine := routine) (slot := slot) hreach hentry hgetter hroutine
       (by jump_dest)).reEquivExecutionTransport
     hcode hdispatch hdecode hbody hval hAccounts henc

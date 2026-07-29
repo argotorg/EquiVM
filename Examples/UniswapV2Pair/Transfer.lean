@@ -414,10 +414,10 @@ theorem uniswapTransferX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     ∃ k C, RD uniswapV2PairBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨5061⟩
       [transferValueWord I, transferToMaskedWord I, ⟨797⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-  obtain ⟨_, _, rd1256⟩ := RD.uniswapAddressUint256ExternalLenOk
+  obtain ⟨_, _, rd1256⟩ := RD.addressUint256ExternalLenOk
     (entry := ⟨1234⟩) (ret := ⟨797⟩) (routine := ⟨5061⟩) hreach
     uniswap_address_uint256_external_entry_wf (by jump_dest) hsz68 hsize
-  obtain ⟨_, _, rd5061⟩ := RD.uniswapAddressUint256ExternalMaskAndJumpMasked
+  obtain ⟨_, _, rd5061⟩ := RD.addressUint256ExternalMaskAndJumpMasked
     (entry := ⟨1234⟩) (ret := ⟨797⟩) (routine := ⟨5061⟩) (R := [sel]) rd1256
     uniswap_address_uint256_external_entry_wf
     (by jump_dest) (by simp only [List.length_singleton]; omega)
@@ -435,7 +435,7 @@ theorem uniswapTransferX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
       (initState cA gh bl σ σ₀ g A I) ⟨1234⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapAddressUint256ExternalShort
+  exact RD.addressUint256ExternalShort
     (entry := ⟨1234⟩) (ret := ⟨797⟩) (routine := ⟨5061⟩)
     hreach uniswap_address_uint256_external_entry_wf hsz4 hsize hshort
 

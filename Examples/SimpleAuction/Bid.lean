@@ -834,7 +834,7 @@ theorem simpleAuctionX_bid_successNoPending {cA gh bl σ σ₀ A I} {g : Sat256}
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and, caller, swap1, dup2]
   have rd486 := rd486₀
   rw [hmask] at rd486
-  have rd487 := RD.lor rd486 (by decide) (by evm_ov)
+  have rd487 := RD.or rd486 (by decide) (by evm_ov)
   have rd489 := evm_run rd487 with [swap1, swap2]
   obtain ⟨_, _, rd490⟩ := rd489.sstore hperm (by decide) (by evm_ov)
   have rd495 := evm_run rd490 with [callvalue, push1 ⟨3⟩, dup2, swap1]
@@ -899,7 +899,7 @@ theorem simpleAuctionX_bid_successWithPending {cA gh bl σ σ₀ A I} {g : Sat25
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and, caller, swap1, dup2]
   have rd486 := rd486₀
   rw [hmask] at rd486
-  have rd487 := RD.lor rd486 (by decide) (by evm_ov)
+  have rd487 := RD.or rd486 (by decide) (by evm_ov)
   have rd489 := evm_run rd487 with [swap1, swap2]
   obtain ⟨_, _, rd490⟩ := rd489.sstore hperm (by decide) (by evm_ov)
   have rd495 := evm_run rd490 with [callvalue, push1 ⟨3⟩, dup2, swap1]

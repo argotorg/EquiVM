@@ -3214,9 +3214,9 @@ theorem ballotDelegateX_afterSenderPackedStore {cA gh bl σ σ₀ A I} {g : Sat2
   have rd1205 := evm_run rd1182 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨168⟩, shl, sub, not, and,
     push2 ⟨256⟩, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup8, and, mul ]
-  have rd1207 := RD.lor rd1205 (by decide) (by evm_ov)
+  have rd1207 := RD.or rd1205 (by decide) (by evm_ov)
   have rd1208 := evm_run rd1207 with [dup3]
-  have rd1209 := RD.lor rd1208 (by decide) (by evm_ov)
+  have rd1209 := RD.or rd1208 (by decide) (by evm_ov)
   have rd1210 := evm_run rd1209 with [swap1]
   obtain ⟨_, _, rd1211⟩ := rd1210.sstore hperm (by decide) (by evm_ov)
   exact ⟨_, _, by

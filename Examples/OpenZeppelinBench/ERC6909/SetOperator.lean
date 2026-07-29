@@ -980,7 +980,7 @@ theorem erc6909SetOperatorX_toPreStore {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [setOperatorStoredLoadedStack] using rd1082
   have rd1091 := evm_run rd1082' with [
     push1 ⟨255⟩, not, and, dup7, iszero, iszero, swap1, dup2 ]
-  have rd1092 := RD.lor rd1091 (by decide) (by simp)
+  have rd1092 := RD.or rd1091 (by decide) (by simp)
   have rd1094 := evm_run rd1092 with [swap1, swap2]
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
