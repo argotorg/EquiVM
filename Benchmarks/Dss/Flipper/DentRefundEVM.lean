@@ -539,7 +539,7 @@ theorem flipperDentX_storeRefundGuyToFluxStart {cA σ I} {g : Sat256} {s0 : Stat
     raw not (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   rw [hmask160, hstoredRaw] at rd4925
   obtain ⟨k4926, C4926, rd4926raw⟩ := rd4925.sstore hperm (by native_decide) (by evm_ov)

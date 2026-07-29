@@ -1310,7 +1310,7 @@ theorem flipperKickX_toAdd48 {cA σ I} {g : Sat256} {s0 : State}
     raw not (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   rw [hmask160, hstoredGuy] at rd2205pre
   obtain ⟨k2206, C2206, rd2206⟩ := rd2205pre.sstore hperm (by native_decide) (by evm_ov)

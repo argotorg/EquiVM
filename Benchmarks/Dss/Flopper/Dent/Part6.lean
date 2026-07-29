@@ -1075,7 +1075,7 @@ theorem flopperDentX_guyStoreTailFrom2855
     raw not (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   obtain ⟨k2889, C2889, rd2889raw⟩ := rd2887pre.sstore hperm
     (by native_decide) (by evm_ov)
@@ -1462,7 +1462,7 @@ theorem flopperDentX_successFromAddOk
     raw swap4 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap3 (by native_decide) (by evm_ov)]
   obtain ⟨k2991, C2991, rd2991raw⟩ := rd2990pre.sstore hperm

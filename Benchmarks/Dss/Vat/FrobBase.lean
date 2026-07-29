@@ -5250,7 +5250,7 @@ theorem RD.vatFrobCeilingCheckSuccess
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3422 := evm_run rd3421 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3426 := evm_run rd3422 with [
@@ -5470,7 +5470,7 @@ theorem RD.vatFrobCeilingCheckRevert
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3422 := evm_run rd3421 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3426 := evm_run rd3422 with [
@@ -5808,7 +5808,7 @@ theorem RD.vatFrobSafetyCheckSuccess
   have rd6791 := rd3540.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd3541 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3545 := evm_run rd3541 with [
@@ -5966,7 +5966,7 @@ theorem RD.vatFrobSafetyCheckRevert
   have rd6791 := rd3540.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd3541 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3545 := evm_run rd3541 with [
@@ -6372,7 +6372,7 @@ theorem RD.vatFrobUWishCheckSuccess
     raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov),
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3640 := evm_run rd3636 with [
@@ -6469,7 +6469,7 @@ theorem RD.vatFrobUWishCheckRevertFall
     raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov),
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3640 := evm_run rd3636 with [
@@ -6648,7 +6648,7 @@ theorem RD.vatFrobVWishCheckSuccess
     raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov),
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3727 := evm_run rd3723 with [
@@ -6737,7 +6737,7 @@ theorem RD.vatFrobVWishCheckRevert
     raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov),
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3727 := evm_run rd3723 with [
@@ -6889,7 +6889,7 @@ theorem RD.vatFrobWWishCheckSuccess
     raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov),
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3814 := evm_run rd3810 with [
@@ -6992,7 +6992,7 @@ theorem RD.vatFrobWWishCheckRevert
     raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov),
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3814 := evm_run rd3810 with [
@@ -7245,7 +7245,7 @@ theorem RD.vatFrobDustCheckSuccess
   have rd6791 := rd3902.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd3903 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3907 := evm_run rd3903 with [
@@ -7428,7 +7428,7 @@ theorem RD.vatFrobDustCheckRevert
   have rd6791 := rd3902.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd3903 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3907 := evm_run rd3903 with [

@@ -94,7 +94,7 @@ theorem test_flipperKickX_toEndStore {cA σ I} {g : Sat256} {s0 : State}
     raw swap6 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap6 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap5 (by native_decide) (by evm_ov)]
   have hdiv26 :
@@ -222,7 +222,7 @@ theorem test_flipperKickX_toUsrStore {cA σ I} {g : Sat256} {s0 : State}
     raw swap3 (by native_decide) (by evm_ov),
     raw dup4 (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap3 (by native_decide) (by evm_ov)]
   have hmask160 :
@@ -325,7 +325,7 @@ theorem test_flipperKickX_toGalStore {cA σ I} {g : Sat256} {s0 : State}
     raw swap3 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap3 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov)]
   have hstoredRaw :

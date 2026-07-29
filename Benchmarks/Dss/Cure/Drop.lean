@@ -487,7 +487,7 @@ theorem RD.cureDropSwapStoreMoveElemPrefix {g : Sat256} {s0 : State}
     raw swap5 (by native_decide) (by evm_ov),
     raw dup6 (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov)]
+    raw or (by native_decide) (by evm_ov)]
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide] at rdSetRaw
   rw [hstored] at rdSetRaw

@@ -249,7 +249,7 @@ theorem weth9CtorReachGuard {cA gh bl σ σ₀ A I} {g : Sat256}
   -- Segment 3a: POP; decimals RMW; reach pc 105.
   have rd91 := evm_run rd90 with [jumpdest, pop, push1 ⟨2⟩, dup1]
   obtain ⟨_, _, rd96⟩ := rd91.sload (by native_decide) (by evm_ov)
-  have rd104 := evm_run rd96 with [push1 ⟨255⟩, not, and, push1 ⟨18⟩, lor, swap1]
+  have rd104 := evm_run rd96 with [push1 ⟨255⟩, not, and, push1 ⟨18⟩, or, swap1]
   obtain ⟨_, _, rd105⟩ := rd104.sstore hperm (by native_decide) (by evm_ov)
   exact ⟨_, _, rd105⟩
 

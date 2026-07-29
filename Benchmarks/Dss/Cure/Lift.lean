@@ -640,7 +640,7 @@ theorem RD.cureLiftStoreAndLog {g : Sat256} {s0 : State}
   have rdElemStorePre := evm_run rdCleared with [
     raw swap1 (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov)]
+    raw or (by native_decide) (by evm_ov)]
   rw [hnewWord] at rdElemStorePre
   have rdElemStoreReady := evm_run rdElemStorePre with [
     raw swap1 (by native_decide) (by evm_ov),

@@ -845,7 +845,7 @@ theorem ballotDecoderAlloc {cA : Batteries.RBSet AccountAddress compare} {gh : B
   -- part 2: newFP + overflow check
   have rd2 := ctor_run rd1 with [
     dup2, add,
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨0x40⟩, shl, sub, dup2, gt, dup3, dup3, lt, lor, iszero, push2 ⟨0x14e⟩,
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨0x40⟩, shl, sub, dup2, gt, dup3, dup3, lt, or, iszero, push2 ⟨0x14e⟩,
     jumpiT (by rw [hfp]; exact ballotAllocOverflow n elemBytes argBytes hstruct helems hszH h64 hn64)
       (by ctor_jd) ]
   -- part 3: MSTORE M[0x40] := newFP  (aw stable)

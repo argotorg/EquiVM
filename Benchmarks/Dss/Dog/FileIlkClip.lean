@@ -3054,7 +3054,7 @@ theorem RD.dogFileIlkClipStoreLog {v : DogImmutables} {code : ByteArray}
     raw and
       (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
       (by evm_ov),
-    raw lor
+    raw or
       (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
       (by evm_ov),
     raw swap1

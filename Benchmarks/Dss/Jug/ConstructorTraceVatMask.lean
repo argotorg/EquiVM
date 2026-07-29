@@ -28,7 +28,7 @@ theorem jugCtorVatMaskJoinReach
       (jugCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
       (createdAccounts, σWards) k' C' := by
   have rd105 := jug_ctor_run rd100 with [
-    swap2, swap1, swap2, lor, swap1]
+    swap2, swap1, swap2, or, swap1]
   have hpc105 :
       (⟨100⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨105⟩ := by
     native_decide

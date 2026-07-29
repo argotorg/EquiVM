@@ -1498,7 +1498,7 @@ theorem flopperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State} {k C 
     raw sub (by native_decide) (by evm_ov),
     raw dup7 (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   obtain ⟨k3709, C3709, rd3709raw⟩ := rd3708pre.sstore hperm
     (by native_decide) (by evm_ov)

@@ -2390,7 +2390,7 @@ theorem erc20TransferFromX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     raw push4 transferFromSelectorWord (by vyper_erc20_transferFrom_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨100⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨100⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by rw [hwv, hsizeGuard100]; decide) (by vyper_erc20_transferFrom_decode)]
   exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) rd801 rfl (by norm_num)
@@ -2415,7 +2415,7 @@ theorem erc20TransferFromX_noncanon_from {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     raw push4 transferFromSelectorWord (by vyper_erc20_transferFrom_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨100⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨100⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiNT (by rw [hwv, hsizeGuard100]; decide),
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiT (by
@@ -2449,7 +2449,7 @@ theorem erc20TransferFromX_noncanon_to {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     raw push4 transferFromSelectorWord (by vyper_erc20_transferFrom_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨100⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨100⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiNT (by rw [hwv, hsizeGuard100]; decide),
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiNT (by simpa [transferFromFromWord, calldataWord] using hcanonFromGuard),

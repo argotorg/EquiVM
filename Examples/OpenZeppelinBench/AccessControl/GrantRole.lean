@@ -1104,7 +1104,7 @@ theorem accessControlGrantRoleX_grant_write {cA gh bl σ σ₀ A I} {g : Sat256}
     exact u256_land_comm (UInt256.lnot ⟨255⟩)
       (grantRoleTargetStorageWord σ I)
   have rd597pre := evm_run rd589 with [
-    push1 ⟨255⟩, not, and, push1 ⟨1⟩, lor, swap1]
+    push1 ⟨255⟩, not, and, push1 ⟨1⟩, or, swap1]
   have hsetWord :
       UInt256.lor ⟨1⟩
           (UInt256.land (UInt256.lnot ⟨255⟩) (grantRoleTargetStorageWord σ I)) =

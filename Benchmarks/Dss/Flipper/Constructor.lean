@@ -998,7 +998,7 @@ theorem flipperCtorNonpayableRDrev
     raw swap1 (by flipper_ctor_decode) (by evm_ov),
     raw swap2 (by flipper_ctor_decode) (by evm_ov),
     raw and (by flipper_ctor_decode) (by evm_ov),
-    raw lor (by flipper_ctor_decode) (by evm_ov)]
+    raw or (by flipper_ctor_decode) (by evm_ov)]
   have rd43 := rd36.pushConst (⟨281474976710655⟩ : UInt256)
     (width := 6) (op := .PUSH6) (by native_decide : Operation.POp.PUSH6 ≠ .PUSH0)
     (by flipper_ctor_decode) (by evm_ov)
@@ -1011,7 +1011,7 @@ theorem flipperCtorNonpayableRDrev
     (width := 9) (op := .PUSH9) (by native_decide : Operation.POp.PUSH9 ≠ .PUSH0)
     (by flipper_ctor_decode) (by evm_ov)
   have rd60 := evm_run rd58 with [
-    raw lor (by flipper_ctor_decode) (by evm_ov),
+    raw or (by flipper_ctor_decode) (by evm_ov),
     raw swap1 (by flipper_ctor_decode) (by evm_ov)]
   let slot5New :=
     UInt256.lor (⟨0x02a300000000000000⟩ : UInt256)
@@ -1203,7 +1203,7 @@ theorem flipperCtorInitReach
     raw swap1 (by flipper_ctor_decode) (by evm_ov),
     raw swap2 (by flipper_ctor_decode) (by evm_ov),
     raw and (by flipper_ctor_decode) (by evm_ov),
-    raw lor (by flipper_ctor_decode) (by evm_ov)]
+    raw or (by flipper_ctor_decode) (by evm_ov)]
   have rd43 := rd36.pushConst (⟨281474976710655⟩ : UInt256)
     (width := 6) (op := .PUSH6) (by native_decide : Operation.POp.PUSH6 ≠ .PUSH0)
     (by flipper_ctor_decode) (by evm_ov)
@@ -1216,7 +1216,7 @@ theorem flipperCtorInitReach
     (width := 9) (op := .PUSH9) (by native_decide : Operation.POp.PUSH9 ≠ .PUSH0)
     (by flipper_ctor_decode) (by evm_ov)
   have rd60 := evm_run rd58 with [
-    raw lor (by flipper_ctor_decode) (by evm_ov),
+    raw or (by flipper_ctor_decode) (by evm_ov),
     raw swap1 (by flipper_ctor_decode) (by evm_ov)]
   obtain ⟨_, _, rd61raw⟩ := rd60.sstore hperm (by flipper_ctor_decode)
     (by simp only [List.length_nil]; omega)
@@ -1503,7 +1503,7 @@ theorem flipperCtorVatStoreReach
     raw swap2 (by flipper_ctor_decode) (by evm_ov),
     raw dup3 (by flipper_ctor_decode) (by evm_ov),
     raw and (by flipper_ctor_decode) (by evm_ov),
-    raw lor (by flipper_ctor_decode) (by evm_ov),
+    raw or (by flipper_ctor_decode) (by evm_ov),
     raw swap1 (by flipper_ctor_decode) (by evm_ov),
     raw swap2 (by flipper_ctor_decode) (by evm_ov)]
   have hload :
@@ -1602,7 +1602,7 @@ theorem flipperCtorCatStoreReach
     raw swap4 (by flipper_ctor_decode) (by evm_ov),
     raw swap1 (by flipper_ctor_decode) (by evm_ov),
     raw swap4 (by flipper_ctor_decode) (by evm_ov),
-    raw lor (by flipper_ctor_decode) (by evm_ov),
+    raw or (by flipper_ctor_decode) (by evm_ov),
     raw swap1 (by flipper_ctor_decode) (by evm_ov)]
   have hload :
       (σVat.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨7⟩ ⟨0⟩)) =

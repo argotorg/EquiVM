@@ -425,7 +425,7 @@ theorem RD.cCheckedMul2 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ
     rw [Reasoning.Theory.cDiv_mul2 hmul, uInt256_eq_self]
     decide
   exact ⟨_, _, evm_run h with [
-    jumpdest, dup1, dup3, mul, dup2, iszero, dup3, dup3, div, dup5, eq, lor,
+    jumpdest, dup1, dup3, mul, dup2, iszero, dup3, dup3, div, dup5, eq, or,
     push1 ⟨121⟩, jumpiT hcond (by jump_dest),
     jumpdest, swap3, swap2, pop, pop, jump hret ]⟩
 
@@ -446,7 +446,7 @@ theorem RD.cCheckedMul2_overflow {g : Sat256} {s0 : State} {ee : ExecutionEnv} {
     rw [heq]
     decide
   have rd193₀ := evm_run h with [
-    jumpdest, dup1, dup3, mul, dup2, iszero, dup3, dup3, div, dup5, eq, lor ]
+    jumpdest, dup1, dup3, mul, dup2, iszero, dup3, dup3, div, dup5, eq, or ]
   have rd193 := rd193₀
   rw [hcond] at rd193
   have rd196 := evm_run rd193 with [ push1 ⟨121⟩, jumpiNT (by decide) ]

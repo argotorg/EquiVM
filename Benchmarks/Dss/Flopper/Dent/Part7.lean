@@ -116,7 +116,7 @@ theorem flopperDentX_successFromAddOkAw8
     raw swap4 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap3 (by native_decide) (by evm_ov)]
   obtain ⟨k2991, C2991, rd2991raw⟩ := rd2990pre.sstore hperm

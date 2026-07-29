@@ -12750,7 +12750,7 @@ theorem RD.vatForkDustChecksSuccess
   have rd6791 := rd5191pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd5192 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd5196pre := evm_run rd5192 with [
@@ -12787,7 +12787,7 @@ theorem RD.vatForkDustChecksSuccess
   have rd6791' := rd5279pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd5280 := evm_run rd6791' with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd5284pre := evm_run rd5280 with [
@@ -12847,7 +12847,7 @@ theorem RD.vatForkSrcDustCheckRevert
   have rd6791 := rd5191pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd5192 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd5196pre := evm_run rd5192 with [
@@ -12920,7 +12920,7 @@ theorem RD.vatForkDstDustCheckRevert
   have rd6791 := rd5191pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd5192 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd5196pre := evm_run rd5192 with [
@@ -12957,7 +12957,7 @@ theorem RD.vatForkDstDustCheckRevert
   have rd6791' := rd5279pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd5280 := evm_run rd6791' with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd5284pre := evm_run rd5280 with [

@@ -2633,7 +2633,7 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
     raw not (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   obtain ⟨k4290, C4290, rd4290raw⟩ := rd4288pre.sstore hperm
     (by native_decide) (by evm_ov)
@@ -2937,7 +2937,7 @@ theorem flapperKickX_toMoveSetupStart {cA σ I} {g : Sat256} {s0 : State}
     raw swap5 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap5 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov)]
   obtain ⟨k4377, C4377, rd4377raw⟩ := rd4376pre.sstore hperm

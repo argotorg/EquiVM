@@ -70,13 +70,13 @@ theorem flopperCtorDefaultsReach
   have rd36 := flopper_ctor_run rd33 with [push2 flopperCtorTtlWord]
   have rd43 := rd36.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
     (by decide) (by flopper_ctor_decode) (by evm_ov)
-  have rd48 := flopper_ctor_run rd43 with [not, swap1, swap2, and, lor]
+  have rd48 := flopper_ctor_run rd43 with [not, swap1, swap2, and, or]
   have rd55 := rd48.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
     (by decide) (by flopper_ctor_decode) (by evm_ov)
   have rd60 := flopper_ctor_run rd55 with [push1 ⟨48⟩, shl, not, and]
   have rd70 := rd60.pushConst (UInt256.shiftLeft flopperCtorTauWord ⟨48⟩)
     (width := 9) (op := .PUSH9) (by decide) (by flopper_ctor_decode) (by evm_ov)
-  have rd72 := flopper_ctor_run rd70 with [lor, swap1]
+  have rd72 := flopper_ctor_run rd70 with [or, swap1]
   obtain ⟨k73, C73, rd73raw⟩ := rd72.sstore hperm (by flopper_ctor_decode) (by evm_ov)
   have rd73 :
       RD (flopperCtorCode vat gem) I g

@@ -3968,7 +3968,7 @@ theorem stringStoreLiteX_setEmptyWriteShortZero {cA gh bl σ σ₀ A I} {g : Sat
     jump (by jump_dest),
     jumpdest, not, dup1, dup4, and, swap2, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest),
-    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, lor, swap1, pop,
+    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
@@ -4086,7 +4086,7 @@ theorem stringStoreLiteX_setEmptyWriteShortValid {cA gh bl σ σ₀ A I} {g : Sa
     jump (by jump_dest),
     jumpdest, not, dup1, dup4, and, swap2, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest),
-    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, lor, swap1, pop,
+    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
@@ -4134,7 +4134,7 @@ theorem stringStoreLiteX_setWriteShortPackedFrom1436 {cA gh bl σinit σ₀ A I}
     jump (by jump_dest),
     jumpdest, not, dup1, dup4, and, swap2, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest),
-    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, lor, swap1, pop,
+    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)

@@ -60,13 +60,13 @@ theorem flapperCtorDefaultsReach
   have rd24 := flapper_ctor_run rd21 with [push2 flapperCtorTtlWord]
   have rd31 := rd24.pushConst flapperUint48Mask (width := 6) (op := .PUSH6)
     (by decide) (by flapper_ctor_decode) (by evm_ov)
-  have rd36 := flapper_ctor_run rd31 with [not, swap1, swap2, and, lor]
+  have rd36 := flapper_ctor_run rd31 with [not, swap1, swap2, and, or]
   have rd43 := rd36.pushConst flapperUint48Mask (width := 6) (op := .PUSH6)
     (by decide) (by flapper_ctor_decode) (by evm_ov)
   have rd48 := flapper_ctor_run rd43 with [push1 ⟨48⟩, shl, not, and]
   have rd58 := rd48.pushConst (UInt256.shiftLeft flapperCtorTauWord ⟨48⟩)
     (width := 9) (op := .PUSH9) (by decide) (by flapper_ctor_decode) (by evm_ov)
-  have rd60 := flapper_ctor_run rd58 with [lor, swap1]
+  have rd60 := flapper_ctor_run rd58 with [or, swap1]
   obtain ⟨k61, C61, rd61raw⟩ := rd60.sstore hperm (by flapper_ctor_decode) (by evm_ov)
   have rd61 :
       RD (flapperCtorCode vat gem) I g

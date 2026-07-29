@@ -934,7 +934,7 @@ theorem erc20X_transferAfterBalanceGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     raw push4 transferSelectorWord (by vyper_erc20_transfer_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨68⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiNT (by rw [hsizeGuard, hwv]; decide),
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiNT (by simpa [transferToWord, calldataWord] using hcanonToGuard),
@@ -1399,7 +1399,7 @@ theorem erc20TransferX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     raw push4 transferSelectorWord (by vyper_erc20_transfer_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨68⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by rw [hsizeGuard, hwv]; decide) (by vyper_erc20_transfer_decode)]
   exact transferRevertStub (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) rd801 rfl (by norm_num)
@@ -1422,7 +1422,7 @@ theorem erc20TransferX_noncanon_to {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     raw push4 transferSelectorWord (by vyper_erc20_transfer_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨68⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiNT (by rw [hsizeGuard, hwv]; decide),
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiT (by
@@ -1464,7 +1464,7 @@ theorem erc20TransferX_insufficient {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     raw push4 transferSelectorWord (by vyper_erc20_transfer_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨68⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiNT (by rw [hsizeGuard, hwv]; decide),
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiNT (by simpa [transferToWord, calldataWord] using hcanonToGuard),

@@ -1405,7 +1405,7 @@ theorem stringStoreLiteX_setStoreHelperZero {cA gh bl σinit σ₀ A I} {g : Sat
   have rd1021 := RD.swap6 rd1019 (by native_decide) (by evm_ov)
   have rd1123 := evm_run rd1021 with [
     pop, dup1, not, dup5, and, swap4, pop, dup1, dup7,
-    and, dup5, lor, swap3, pop, pop, pop, swap4, swap3, pop, pop, pop,
+    and, dup5, or, swap3, pop, pop, pop, swap4, swap3, pop, pop, pop,
     jump (by jump_dest),
     jumpdest, dup3]
   obtain ⟨_, _, rd1126₀⟩ := rd1123.sstore hperm (by native_decide) (by evm_ov)
@@ -1549,7 +1549,7 @@ theorem stringStoreLiteX_setEmptyWriteZeroFrom1405 {cA gh bl σinit σ₀ A I}
     jump (by jump_dest),
     jumpdest, not, dup1, dup4, and, swap2, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest),
-    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, lor, swap1, pop,
+    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)

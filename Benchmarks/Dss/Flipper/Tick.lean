@@ -1176,7 +1176,7 @@ theorem flipperTickX_storeEnd {cA σ I} {g : Sat256} {s0 : State}
     raw swap2 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   have hdiv26 :
       UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨208⟩ = uint48Divisor26 := by

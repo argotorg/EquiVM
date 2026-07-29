@@ -165,7 +165,7 @@ theorem weth9StringStoreSubroutine
         exact hmemData)
     (weth9AwMemPtr_eq aw memPtr.toNat hawMem) (by evm_ov)
   -- Phase E: build the short word, SSTORE it at `slot`.
-  have hE := evm_run hMload with [push1 ⟨255⟩, not, and, dup4, dup1, add, lor, dup6]
+  have hE := evm_run hMload with [push1 ⟨255⟩, not, and, dup4, dup1, add, or, dup6]
   obtain ⟨_, _, hSstore⟩ := hE.sstore hperm (by native_decide) (by evm_ov)
   -- Phase F: return-dance setup to the clear-loop head ⟨254⟩.
   have hF := evm_run hSstore with [

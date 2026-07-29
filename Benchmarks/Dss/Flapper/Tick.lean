@@ -1468,7 +1468,7 @@ theorem flapperTickX_success
     raw swap2 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap2 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   obtain ⟨k4893, C4893, rd4893raw⟩ := rd4892pre.sstore hperm
     (by native_decide) (by evm_ov)

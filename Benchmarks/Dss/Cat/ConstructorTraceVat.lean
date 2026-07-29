@@ -118,7 +118,7 @@ theorem catCtorVatMaskJoinReach
       (catCtorWardsHashMem I vat) (UInt256.ofNat 5) ByteArray.empty
       (createdAccounts, σWards) k' C' := by
   have rd108 := cat_ctor_run rd102 with [
-    swap3, swap1, swap3, lor, swap1, swap2]
+    swap3, swap1, swap3, or, swap1, swap2]
   have hpc108 :
       (⟨102⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨108⟩ := by
     native_decide

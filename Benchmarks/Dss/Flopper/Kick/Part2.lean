@@ -274,7 +274,7 @@ theorem flopperKickX_toEventStart {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     raw swap4 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap3 (by native_decide) (by evm_ov)]
   obtain ⟨k3796, C3796, rd3796raw⟩ := rd3795pre'.sstore hperm

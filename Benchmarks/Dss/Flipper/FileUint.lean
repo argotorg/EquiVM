@@ -1012,7 +1012,7 @@ theorem flipperFileUintX_storeTtl {cA σ I} {g : Sat256} {s0 : State}
       (by evm_ov),
     raw dup4 (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd1851⟩ := rd1850.sstore hperm (by native_decide) (by evm_ov)
   have rd1988 := rd1851.push2 ⟨1988⟩ (by native_decide) (by evm_ov)

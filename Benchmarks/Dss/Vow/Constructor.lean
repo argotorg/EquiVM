@@ -811,7 +811,7 @@ theorem vowCtorVatStoreReach
     raw swap3 (by ctor_decode) (by evm_ov),
     raw dup4 (by ctor_decode) (by evm_ov),
     raw and (by ctor_decode) (by evm_ov),
-    raw lor (by ctor_decode) (by evm_ov),
+    raw or (by ctor_decode) (by evm_ov),
     raw swap3 (by ctor_decode) (by evm_ov),
     raw dup4 (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov)]
@@ -882,7 +882,7 @@ theorem vowCtorFlapperStoreReach
     raw dup5 (by ctor_decode) (by evm_ov),
     raw and (by ctor_decode) (by evm_ov),
     raw dup2 (by ctor_decode) (by evm_ov),
-    raw lor (by ctor_decode) (by evm_ov),
+    raw or (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov),
     raw swap2 (by ctor_decode) (by evm_ov)]
   have hload :
@@ -973,7 +973,7 @@ theorem vowCtorFlopperStoreReach
     raw swap4 (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov),
     raw swap4 (by ctor_decode) (by evm_ov),
-    raw lor (by ctor_decode) (by evm_ov),
+    raw or (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov),
     raw swap3 (by ctor_decode) (by evm_ov)]
   have hload :

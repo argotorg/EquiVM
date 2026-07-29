@@ -495,7 +495,7 @@ theorem simpleAuctionInitcodeOverflowRevert
     obtain ⟨kSload, CSload, rdAfterSload⟩ :=
       rdBeforeSload.sload (by simple_ctor_decode) (by evm_ov)
     have rdBeforeStore := simple_ctor_run rdAfterSload with [
-      push20 solcAddrMask, not, and, lor, swap1, pop, push0]
+      push20 solcAddrMask, not, and, or, swap1, pop, push0]
     have hpacked :
         UInt256.lor (UInt256.land (UInt256.lnot solcAddrMask) oldBeneficiarySlot)
             (UInt256.land solcAddrMask (EVM.word beneficiaryAddress)) =
@@ -582,7 +582,7 @@ theorem simpleAuctionInitcodeSuccess
   obtain ⟨kSload, CSload, rdAfterSload⟩ :=
     rdBeforeSload.sload (by simple_ctor_decode) (by evm_ov)
   have rdBeforeStore := simple_ctor_run rdAfterSload with [
-    push20 solcAddrMask, not, and, lor, swap1, pop, push0]
+    push20 solcAddrMask, not, and, or, swap1, pop, push0]
   have hpacked :
       UInt256.lor (UInt256.land (UInt256.lnot solcAddrMask) oldBeneficiarySlot)
           (UInt256.land solcAddrMask (EVM.word beneficiaryAddress)) =

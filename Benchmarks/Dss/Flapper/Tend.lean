@@ -5273,7 +5273,7 @@ theorem flapperTendX_refundCallSuccessToPayStart
     raw not (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   obtain ⟨k2597, C2597, rd2597raw⟩ := rd2596pre.sstore hperm
     (by native_decide) (by evm_ov)
@@ -5632,7 +5632,7 @@ theorem flapperTendX_successFromAddOkAw8
     raw swap4 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap3 (by native_decide) (by evm_ov)]
   obtain ⟨k2821, C2821, rd2821raw⟩ := rd2819pre.sstore hperm
