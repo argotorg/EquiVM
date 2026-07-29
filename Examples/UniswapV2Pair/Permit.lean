@@ -1,4 +1,3 @@
-import Examples.UniswapV2Pair.EcrecoverTheta
 import Examples.UniswapV2Pair.MutatorDispatch
 import Examples.UniswapV2Pair.PermitDecode
 import Examples.UniswapV2Pair.PermitRuntime
@@ -881,15 +880,15 @@ theorem uniswapEcrecoverDecode_ok {returndata : ByteArray}
       some [.address (AccountAddress.ofNat
         (fromByteArrayBigEndian (returndata.extract 0 32)))] := by
   change uniswapExternalABI.decode? "ecrecover" returndata = _
-  simp [uniswapExternalABI, permitDecodeReturnValue_legacyAddress_ok hlo]
+  simp [uniswapExternalABI, decodeEcrecoverOutput?]
+  rw [readWithPadding_eq_extract returndata 0 hlo]
 
--- Short returndata fails the legacy `address` decode.  Only `o.size = 0` is reachable here:
--- the ecrecover precompile returns 0 or 32 bytes (`staticcallTheta_ecrecover_output_size`).
-theorem uniswapEcrecoverDecode_none_short {returndata : ByteArray}
-    (hshort : returndata.size < 32) :
-    config.externalABI.decode? "ecrecover" returndata = none := by
+theorem uniswapEcrecoverDecode_padded (returndata : ByteArray) :
+    config.externalABI.decode? "ecrecover" returndata =
+      some [.address (AccountAddress.ofNat
+        (fromByteArrayBigEndian (returndata.readWithPadding 0 32)))] := by
   change uniswapExternalABI.decode? "ecrecover" returndata = _
-  simp [uniswapExternalABI, permitDecodeReturnValue_legacyAddress_none_short hshort]
+  simp [uniswapExternalABI, decodeEcrecoverOutput?]
 
 theorem permitDecodeABIValues_ok {I : ExecutionEnv} (hsz228 : 228 ≤ I.calldata.size) :
     decodeABIValues? [legacyAddr, legacyAddr, uint256, uint256, uint8, bytes32, bytes32]
