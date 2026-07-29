@@ -259,7 +259,9 @@ def permitStructHashExpr : Expr :=
 def permitDigestExpr : Expr :=
   .keccak256 (.abiEncodePacked
     [ (bytes2, .fixedBytesLit bytes2Width [0x19, 0x01]),
-      (bytes32, .storage domainSeparatorRef),
+      -- The cached pre-increment read: solc loads DOMAIN_SEPARATOR (slot 3) before the nonce
+      -- SSTORE, so the spec binds it up front rather than re-reading storage here.
+      (bytes32, .var "domainSeparator"),
       (bytes32, .var "structHash") ])
 
 /-! ## Internal functions -/
@@ -525,9 +527,11 @@ def permitTransition : TransitionDecl :=
     body :=
       nonpayable ++
         [ .require (.binary .ge (.var "deadline") now),
+          .letDecl "domainSeparator" (some bytes32) (.storage domainSeparatorRef),
           .letDecl "nonce" (some uint256) (.storage (noncesRef (.var "owner"))),
+          -- solc 0.5.16 compiles `nonces[owner]++` UNchecked: the store wraps mod 2^256.
           .assign .storage (noncesRef (.var "owner"))
-            (u256 (.binary .add (.var "nonce") (.intLit 1))),
+            (wrapU256 (.binary .add (.var "nonce") (.intLit 1))),
           .letDecl "structHash" (some bytes32) permitStructHashExpr,
           .letDecl "digest" (some bytes32) permitDigestExpr,
           .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)

@@ -363,8 +363,9 @@ def contractSyntax : ContractDecl := solidity% contract UniswapV2Pair {
 
   function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external {
     require(deadline >= block.timestamp);
+    bytes32 domainSeparator = DOMAIN_SEPARATOR;
     uint256 nonce = nonces[owner];
-    nonces[owner] = (nonce + 1) as uint256;
+    nonces[owner] = (nonce + 1) % #twoPow256;
     bytes32 structHash = keccak256(abi.encodePacked(
       bytes32(bytes32(0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9)),
       uint256(uint256(owner)),
@@ -374,7 +375,7 @@ def contractSyntax : ContractDecl := solidity% contract UniswapV2Pair {
       uint256(deadline)));
     bytes32 digest = keccak256(abi.encodePacked(
       bytes2(bytes2(0x1901)),
-      bytes32(DOMAIN_SEPARATOR),
+      bytes32(domainSeparator),
       bytes32(structHash)));
     ${[Stmt.externalCall (Expr.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
         [.var "digest", .var "v", .var "r", .var "s"] "recoveredAddress" (perm := false)]}
