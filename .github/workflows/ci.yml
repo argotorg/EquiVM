@@ -45,13 +45,9 @@ jobs:
             Examples.OpenZeppelinBench.AccessControl.Correct \
             Examples.OpenZeppelinBench.Pausable.Correct \
             Examples.OpenZeppelinBench.ERC6909.Correct \
-<<<<<<< HEAD
-            Examples.UniswapV2Pair.Correct
-=======
             Examples.UniswapV2Pair.Correct \
             Examples.Reuse.Correct \
             Examples.VyperERC20.Correct
->>>>>>> 4f907e58cf6c0a68e7dc4a4e504245671810cfaf
 
       # Mirrors the imports of Benchmarks.lean. Remove lines to prune.
       - name: Build benchmarks
