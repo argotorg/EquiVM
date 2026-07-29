@@ -2259,6 +2259,40 @@ theorem RD.selectorSplitNotTaken {code : ByteArray} {ee : ExecutionEnv} {g : Sat
    |>.pushConst tgt hop hpushT (by simp only [List.length_cons]; omega)
    |>.jumpiNT hjumpi hb (by simp only [List.length_cons]; omega)
 
+/-- Selector split **taken** with a concrete `PUSH2` target. This avoids reducing bytecode-derived
+    `armTgt`/`armTgtWidth` projections at large concrete call sites. -/
+theorem RD.selectorSplitTakenPush2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {splitPc selWord pivot tgt : UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : ℕ} {rest : List UInt256}
+    (h : RD code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
+    (hdup : decode code splitPc = some (.DUP1, .none))
+    (hpush4 : decode code (selArmPush4Pc splitPc) = some (.Push .PUSH4, some (pivot, 4)))
+    (hgt : decode code (selArmEqPc splitPc) = some (.GT, .none))
+    (hpushT : decode code (selArmPushTgtPc splitPc) = some (.Push .PUSH2, some (tgt, 2)))
+    (hjumpi : decode code (selArmJumpiPc splitPc 2) = some (.JUMPI, .none))
+    (hb : UInt256.gt pivot selWord ≠ ⟨0⟩) (hjd : (D_J code 0).contains tgt = true)
+    (hov : rest.length + 3 ≤ 1024) :
+    RD code ee g s0 tgt (selWord :: rest) mem aw rdata acc (k + 5) (C + 22) :=
+  h.selectorSplitTaken hdup hpush4 hgt (by decide) hpushT hjumpi hb hjd hov
+
+/-- Selector split **not taken** with a concrete `PUSH2` target. The explicit target width keeps
+    fall-through PCs from depending on reducible bytecode projections. -/
+theorem RD.selectorSplitNotTakenPush2 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
+    {s0 : State} {splitPc selWord pivot tgt : UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : ℕ} {rest : List UInt256}
+    (h : RD code ee g s0 splitPc (selWord :: rest) mem aw rdata acc k C)
+    (hdup : decode code splitPc = some (.DUP1, .none))
+    (hpush4 : decode code (selArmPush4Pc splitPc) = some (.Push .PUSH4, some (pivot, 4)))
+    (hgt : decode code (selArmEqPc splitPc) = some (.GT, .none))
+    (hpushT : decode code (selArmPushTgtPc splitPc) = some (.Push .PUSH2, some (tgt, 2)))
+    (hjumpi : decode code (selArmJumpiPc splitPc 2) = some (.JUMPI, .none))
+    (hb : UInt256.gt pivot selWord = ⟨0⟩) (hov : rest.length + 3 ≤ 1024) :
+    RD code ee g s0 (selArmNextPc splitPc 2) (selWord :: rest) mem aw rdata acc
+      (k + 5) (C + 22) :=
+  h.selectorSplitNotTaken hdup hpush4 hgt (by decide) hpushT hjumpi hb hov
+
 /-- Selector split **taken**, with opcode facts bundled as `selectorSplitWellFormed`. -/
 theorem RD.selectorSplitTakenAuto {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {splitPc selWord : UInt256} {mem : ByteArray} {aw : UInt256}

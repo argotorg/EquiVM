@@ -980,8 +980,11 @@ theorem endReachDebtFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h271 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endLow1JumpdestPc] using
-      RD.selectorSplitTakenAuto h32 endRootSplitWellFormed hroot (by jump_dest) (by simp)
+    simpa [endLow1JumpdestPc] using
+      RD.selectorSplitTakenPush2 (tgt := endLow1JumpdestPc) h32
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hroot
+        (by jump_dest) (by simp)
   have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
@@ -989,8 +992,11 @@ theorem endReachDebtFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h391 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow2JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
-    simpa [endLow1SplitPc, endLow2JumpdestPc] using
-      RD.selectorSplitTakenAuto h272 endLow1SplitWellFormed hlow1 (by jump_dest) (by simp)
+    simpa [endLow2JumpdestPc] using
+      RD.selectorSplitTakenPush2 (tgt := endLow2JumpdestPc) h272
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hlow1
+        (by jump_dest) (by simp)
   have h392 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
@@ -999,8 +1005,11 @@ theorem endReachDebtFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
       endVeryLowJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1 + 5)
         (C32 + 22 + 1 + 22 + 1 + 22) := by
-    simpa [endLow2SplitPc, endVeryLowJumpdestPc] using
-      RD.selectorSplitTakenAuto h392 endLow2SplitWellFormed hlow2 (by jump_dest) (by simp)
+    simpa [endVeryLowJumpdestPc] using
+      RD.selectorSplitTakenPush2 (tgt := endVeryLowJumpdestPc) h392
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hlow2
+        (by jump_dest) (by simp)
   have h452 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endDebtFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1 + 5 + 1)
@@ -1047,21 +1056,27 @@ theorem endReachGroup65FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endHighSplitPc, selArmNextPc, armTgtWidth,
+    simpa [endRootSplitPc, endHighSplitPc, selArmNextPc,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed hroot (by simp)
+      RD.selectorSplitNotTakenPush2 (tgt := endLow1JumpdestPc) h32
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hroot (by simp)
   have h54 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endHigh2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
-    simpa [endHighSplitPc, endHigh2SplitPc, selArmNextPc, armTgtWidth,
+    simpa [endHighSplitPc, endHigh2SplitPc, selArmNextPc,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h43 endHighSplitWellFormed hhigh (by simp)
+      RD.selectorSplitNotTakenPush2 (tgt := endHighJumpdestPc) h43
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hhigh (by simp)
   have h65 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endGroup65FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
-    simpa [endHigh2SplitPc, endGroup65FirstArmPc, selArmNextPc, armTgtWidth,
+    simpa [endHigh2SplitPc, endGroup65FirstArmPc, selArmNextPc,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h54 endHigh2SplitWellFormed hhigh2 (by simp)
+      RD.selectorSplitNotTakenPush2 (tgt := endGroup114JumpdestPc) h54
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hhigh2 (by simp)
   exact ⟨_, _, h65⟩
 
 theorem endReachGroup114FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1079,20 +1094,27 @@ theorem endReachGroup114FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endHighSplitPc, selArmNextPc, armTgtWidth,
+    simpa [endRootSplitPc, endHighSplitPc, selArmNextPc,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed hroot (by simp)
+      RD.selectorSplitNotTakenPush2 (tgt := endLow1JumpdestPc) h32
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hroot (by simp)
   have h54 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endHigh2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
-    simpa [endHighSplitPc, endHigh2SplitPc, selArmNextPc, armTgtWidth,
+    simpa [endHighSplitPc, endHigh2SplitPc, selArmNextPc,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h43 endHighSplitWellFormed hhigh (by simp)
+      RD.selectorSplitNotTakenPush2 (tgt := endHighJumpdestPc) h43
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hhigh (by simp)
   have h113 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endGroup114JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
-    simpa [endHigh2SplitPc, endGroup114JumpdestPc] using
-      RD.selectorSplitTakenAuto h54 endHigh2SplitWellFormed hhigh2 (by jump_dest) (by simp)
+    simpa [endGroup114JumpdestPc] using
+      RD.selectorSplitTakenPush2 (tgt := endGroup114JumpdestPc) h54
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hhigh2
+        (by jump_dest) (by simp)
   have h114 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endGroup114FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5 + 1) (C32 + 22 + 22 + 22 + 1) := by
@@ -1114,14 +1136,19 @@ theorem endReachGroup174FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endHighSplitPc, selArmNextPc, armTgtWidth,
+    simpa [endRootSplitPc, endHighSplitPc, selArmNextPc,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed hroot (by simp)
+      RD.selectorSplitNotTakenPush2 (tgt := endLow1JumpdestPc) h32
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hroot (by simp)
   have h162 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endHighJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
-    simpa [endHighSplitPc, endHighJumpdestPc] using
-      RD.selectorSplitTakenAuto h43 endHighSplitWellFormed hhigh (by jump_dest) (by simp)
+    simpa [endHighJumpdestPc] using
+      RD.selectorSplitTakenPush2 (tgt := endHighJumpdestPc) h43
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hhigh
+        (by jump_dest) (by simp)
   have h163 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endHighMidSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
@@ -1129,9 +1156,11 @@ theorem endReachGroup174FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h174 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endGroup174FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
-    simpa [endHighMidSplitPc, endGroup174FirstArmPc, selArmNextPc, armTgtWidth,
+    simpa [endHighMidSplitPc, endGroup174FirstArmPc, selArmNextPc,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h163 endHighMidSplitWellFormed hmid (by simp)
+      RD.selectorSplitNotTakenPush2 (tgt := endGroup223JumpdestPc) h163
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hmid (by simp)
   exact ⟨_, _, h174⟩
 
 theorem endReachGroup223FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1149,14 +1178,19 @@ theorem endReachGroup223FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endHighSplitPc, selArmNextPc, armTgtWidth,
+    simpa [endRootSplitPc, endHighSplitPc, selArmNextPc,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed hroot (by simp)
+      RD.selectorSplitNotTakenPush2 (tgt := endLow1JumpdestPc) h32
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hroot (by simp)
   have h162 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endHighJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
-    simpa [endHighSplitPc, endHighJumpdestPc] using
-      RD.selectorSplitTakenAuto h43 endHighSplitWellFormed hhigh (by jump_dest) (by simp)
+    simpa [endHighJumpdestPc] using
+      RD.selectorSplitTakenPush2 (tgt := endHighJumpdestPc) h43
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hhigh
+        (by jump_dest) (by simp)
   have h163 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endHighMidSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
@@ -1164,8 +1198,11 @@ theorem endReachGroup223FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h222 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endGroup223JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
-    simpa [endHighMidSplitPc, endGroup223JumpdestPc] using
-      RD.selectorSplitTakenAuto h163 endHighMidSplitWellFormed hmid (by jump_dest) (by simp)
+    simpa [endGroup223JumpdestPc] using
+      RD.selectorSplitTakenPush2 (tgt := endGroup223JumpdestPc) h163
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hmid
+        (by jump_dest) (by simp)
   have h223 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endGroup223FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5 + 1)
@@ -1188,8 +1225,11 @@ theorem endReachGroup294FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h271 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endLow1JumpdestPc] using
-      RD.selectorSplitTakenAuto h32 endRootSplitWellFormed hroot (by jump_dest) (by simp)
+    simpa [endLow1JumpdestPc] using
+      RD.selectorSplitTakenPush2 (tgt := endLow1JumpdestPc) h32
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hroot
+        (by jump_dest) (by simp)
   have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
@@ -1197,15 +1237,19 @@ theorem endReachGroup294FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h283 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLowHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
-    simpa [endLow1SplitPc, endLowHighSplitPc, selArmNextPc, armTgtWidth,
+    simpa [endLow1SplitPc, endLowHighSplitPc, selArmNextPc,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h272 endLow1SplitWellFormed hlow1 (by simp)
+      RD.selectorSplitNotTakenPush2 (tgt := endLow2JumpdestPc) h272
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hlow1 (by simp)
   have h294 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endGroup294FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) := by
-    simpa [endLowHighSplitPc, endGroup294FirstArmPc, selArmNextPc, armTgtWidth,
+    simpa [endLowHighSplitPc, endGroup294FirstArmPc, selArmNextPc,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h283 endLowHighSplitWellFormed hlowHigh (by simp)
+      RD.selectorSplitNotTakenPush2 (tgt := endGroup343JumpdestPc) h283
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hlowHigh (by simp)
   exact ⟨_, _, h294⟩
 
 theorem endReachGroup343FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1223,8 +1267,11 @@ theorem endReachGroup343FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h271 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endLow1JumpdestPc] using
-      RD.selectorSplitTakenAuto h32 endRootSplitWellFormed hroot (by jump_dest) (by simp)
+    simpa [endLow1JumpdestPc] using
+      RD.selectorSplitTakenPush2 (tgt := endLow1JumpdestPc) h32
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hroot
+        (by jump_dest) (by simp)
   have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
@@ -1232,14 +1279,18 @@ theorem endReachGroup343FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h283 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLowHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
-    simpa [endLow1SplitPc, endLowHighSplitPc, selArmNextPc, armTgtWidth,
+    simpa [endLow1SplitPc, endLowHighSplitPc, selArmNextPc,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h272 endLow1SplitWellFormed hlow1 (by simp)
+      RD.selectorSplitNotTakenPush2 (tgt := endLow2JumpdestPc) h272
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hlow1 (by simp)
   have h342 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endGroup343JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) := by
-    simpa [endLowHighSplitPc, endGroup343JumpdestPc] using
-      RD.selectorSplitTakenAuto h283 endLowHighSplitWellFormed hlowHigh
+    simpa [endGroup343JumpdestPc] using
+      RD.selectorSplitTakenPush2 (tgt := endGroup343JumpdestPc) h283
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hlowHigh
         (by jump_dest) (by simp)
   have h343 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endGroup343FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
@@ -1263,8 +1314,11 @@ theorem endReachGroup403FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h271 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endLow1JumpdestPc] using
-      RD.selectorSplitTakenAuto h32 endRootSplitWellFormed hroot (by jump_dest) (by simp)
+    simpa [endLow1JumpdestPc] using
+      RD.selectorSplitTakenPush2 (tgt := endLow1JumpdestPc) h32
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hroot
+        (by jump_dest) (by simp)
   have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
@@ -1272,8 +1326,11 @@ theorem endReachGroup403FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h391 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow2JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
-    simpa [endLow1SplitPc, endLow2JumpdestPc] using
-      RD.selectorSplitTakenAuto h272 endLow1SplitWellFormed hlow1 (by jump_dest) (by simp)
+    simpa [endLow2JumpdestPc] using
+      RD.selectorSplitTakenPush2 (tgt := endLow2JumpdestPc) h272
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hlow1
+        (by jump_dest) (by simp)
   have h392 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
@@ -1282,9 +1339,11 @@ theorem endReachGroup403FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
       endGroup403FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1 + 5)
         (C32 + 22 + 1 + 22 + 1 + 22) := by
-    simpa [endLow2SplitPc, endGroup403FirstArmPc, selArmNextPc, armTgtWidth,
+    simpa [endLow2SplitPc, endGroup403FirstArmPc, selArmNextPc,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h392 endLow2SplitWellFormed hlow2 (by simp)
+      RD.selectorSplitNotTakenPush2 (tgt := endVeryLowJumpdestPc) h392
+        (by native_decide) (by native_decide)
+        (by native_decide) (by native_decide) (by native_decide) hlow2 (by simp)
   exact ⟨_, _, h403⟩
 
 theorem endJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt256}
