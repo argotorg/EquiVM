@@ -7,7 +7,7 @@ import Reasoning.Reach
 import Reasoning.Memory
 import Reasoning.Solc
 import Reasoning.SolmBody
-import Reasoning.Theory
+import Reasoning.Dispatch
 import Reasoning.JumpDest
 
 /-!
@@ -845,7 +845,7 @@ theorem ballotDecoderAlloc {cA : Batteries.RBSet AccountAddress compare} {gh : B
   -- part 2: newFP + overflow check
   have rd2 := ctor_run rd1 with [
     dup2, add,
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨0x40⟩, shl, sub, dup2, gt, dup3, dup3, lt, lor, iszero, push2 ⟨0x14e⟩,
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨0x40⟩, shl, sub, dup2, gt, dup3, dup3, lt, or, iszero, push2 ⟨0x14e⟩,
     jumpiT (by rw [hfp]; exact ballotAllocOverflow n elemBytes argBytes hstruct helems hszH h64 hn64)
       (by ctor_jd) ]
   -- part 3: MSTORE M[0x40] := newFP  (aw stable)
@@ -1302,7 +1302,7 @@ theorem ballotConstructorPrelude {cA : Batteries.RBSet AccountAddress compare} {
       jumpdest, push0, dup1 ]).sload (by ctor_decode) (by evm_ov)
   have rd65 := ctor_run rd52 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨0xa0⟩, shl, sub, not, and, caller, swap1, dup2 ]
-  have rd66 := RD.lor rd65 (by ctor_decode) (by evm_ov)
+  have rd66 := RD.or rd65 (by ctor_decode) (by evm_ov)
   have rd67 := ctor_run rd66 with [dup3]
   have hchair :
       UInt256.lor (ballotSourceWord I)

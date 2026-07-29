@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Flapper.Kick
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -2018,7 +2018,7 @@ theorem flapperTendPaySuccessTail
     (hgem : baseLocals.get? "gem" = none)
     (httl : baseLocals.get? "ttl" = none)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
@@ -2099,7 +2099,7 @@ theorem flapperTendPaySuccessTail
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
           (tendAfterBidStore evmPay I)) :=
-    Reasoning.Refinement.execBlock_append hpayChecked hbidAssign
+   execBlock_append hpayChecked hbidAssign
   have hticExpr :
       evalExpr? config { contract := contract, locals := tendTicLocals baseLocals evmPay I }
           (tendAfterBidStore evmPay I) (.var "tic_") =
@@ -2128,7 +2128,7 @@ theorem flapperTendPaySuccessTail
               (tendTicLocals_get_id evmPay I hid)
               (tendTicLocals_get_bids evmPay I hbids) haddFit))
           ExecBlock.nil)
-  exact Reasoning.Refinement.execBlock_append hpayBidTail htick
+  exact execBlock_append hpayBidTail htick
 
 set_option maxHeartbeats 1000000 in
 theorem flapperTendBodyReturns_success_callerEq
@@ -2147,7 +2147,7 @@ theorem flapperTendBodyReturns_success_callerEq
     (hsuff : (tendBegBidWord evm I).toNat ≤ (tendBidOneWord I).toNat)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val = tendGuyWord evm I)
     (hpayCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hpayCall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
@@ -2203,7 +2203,7 @@ theorem flapperTendBodyReturns_success_callerEq
               [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
         (.ok { contract := contract, locals := tendTicLocals (tendBegBidLocals evm I) evmPay I }
           (tendPostState evmPay I)) :=
-    Reasoning.Refinement.execBlock_append hskipRefund hpayTail
+   execBlock_append hskipRefund hpayTail
   refine ExecFuncBody.execBlockOK ?_
   simpa [tendTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append,
     List.append_assoc] using
@@ -2236,7 +2236,7 @@ theorem flapperTendRefundSuccessPrefix
     (evm evmRefund : EVM.State) (I : ExecutionEnv) (outRefund : ByteArray)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ tendGuyWord evm I)
     (hrefundCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hrefundCall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
@@ -2305,7 +2305,7 @@ theorem flapperTendRefundSuccessPrefix
           [.assign .storage (bidsF (.var "id") "guy") sender])
         (.ok { contract := contract, locals := tendRefundRetLocals evm I }
           (tendAfterGuyStore evmRefund I)) :=
-    Reasoning.Refinement.execBlock_append hrefundChecked hassign
+   execBlock_append hrefundChecked hassign
   exact ExecBlock.consNormal (ExecStmt.iteTrue hcallerCond hbranch) ExecBlock.nil
 
 set_option maxHeartbeats 1000000 in
@@ -2326,7 +2326,7 @@ theorem flapperTendBodyReturns_success_callerNe
     (hsuff : (tendBegBidWord evm I).toNat ≤ (tendBidOneWord I).toNat)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ tendGuyWord evm I)
     (hrefundCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hrefundCall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
@@ -2335,7 +2335,7 @@ theorem flapperTendBodyReturns_success_callerNe
           .int (Int.ofNat (tendBidStoredWord evm I).toNat)]
         (true, evmRefund, outRefund) true)
     (hpayCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (tendAfterGuyStore evmRefund I).accountMap
+      Reasoning.Theory.extCodeSizeWord (tendAfterGuyStore evmRefund I).accountMap
         (tendGemWord (tendAfterGuyStore evmRefund I)) ≠ ⟨0⟩)
     (hpayCall :
       typedCallViaEVM config (tendAfterGuyStore evmRefund I)
@@ -2399,7 +2399,7 @@ theorem flapperTendBodyReturns_success_callerNe
               [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
         (.ok { contract := contract, locals := tendTicLocals (tendRefundRetLocals evm I) evmPay I }
           (tendPostState evmPay I)) := by
-    simpa [evmGuy] using Reasoning.Refinement.execBlock_append hrefundPrefix hpayTail
+    simpa [evmGuy] using execBlock_append hrefundPrefix hpayTail
   refine ExecFuncBody.execBlockOK ?_
   simpa [tendTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append,
     List.append_assoc] using
@@ -2431,7 +2431,7 @@ theorem flapperTendRefundNoCodeTail
     (evm : EVM.State) (I : ExecutionEnv)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ tendGuyWord evm I)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (tendGemWord evm) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) = ⟨0⟩) :
     ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
       ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
@@ -2481,7 +2481,7 @@ theorem flapperTendRefundNoCodeTail
               .storage (bidsF (.var "id") "bid")] "_refundRet" ++
           [.assign .storage (bidsF (.var "id") "guy") sender])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hrefundChecked (by intro f e h; cases h)
+   execBlock_append_term hrefundChecked (by intro f e h; cases h)
   have hite :
       ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -2492,13 +2492,13 @@ theorem flapperTendRefundNoCodeTail
           []]
         .reverted :=
     ExecBlock.consRevert (ExecStmt.iteTrue hcallerCond hthen)
-  exact Reasoning.Refinement.execBlock_append_term hite (by intro f e h; cases h)
+  exact execBlock_append_term hite (by intro f e h; cases h)
 
 theorem flapperTendRefundCallFailureTail
     (evm evmRefund : EVM.State) (I : ExecutionEnv) (outRefund : ByteArray)
     (hcaller : UInt256.ofNat evm.executionEnv.source.val ≠ tendGuyWord evm I)
     (hrefundCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hrefundCall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
@@ -2557,7 +2557,7 @@ theorem flapperTendRefundCallFailureTail
               .storage (bidsF (.var "id") "bid")] "_refundRet" ++
           [.assign .storage (bidsF (.var "id") "guy") sender])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hrefundChecked (by intro f e h; cases h)
+   execBlock_append_term hrefundChecked (by intro f e h; cases h)
   have hite :
       ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -2568,13 +2568,13 @@ theorem flapperTendRefundCallFailureTail
           []]
         .reverted :=
     ExecBlock.consRevert (ExecStmt.iteTrue hcallerCond hthen)
-  exact Reasoning.Refinement.execBlock_append_term hite (by intro f e h; cases h)
+  exact execBlock_append_term hite (by intro f e h; cases h)
 
 theorem flapperTendPayNoCodeTail
     (evm : EVM.State) (I : ExecutionEnv) (baseLocals : Store)
     (hgem : baseLocals.get? "gem" = none)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (tendGemWord evm) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) = ⟨0⟩) :
     ExecBlock config { contract := contract, locals := baseLocals } evm
       ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
@@ -2616,8 +2616,8 @@ theorem flapperTendPayNoCodeTail
           "_payRet" ++
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hchecked (by intro f e h; cases h)
-  exact Reasoning.Refinement.execBlock_append_term hpayBidTail
+   execBlock_append_term hchecked (by intro f e h; cases h)
+  exact execBlock_append_term hpayBidTail
     (by intro f e h; cases h)
 
 set_option maxHeartbeats 1000000 in
@@ -2629,7 +2629,7 @@ theorem flapperTendPayCallFailureTail
     (hbids : baseLocals.get? "bids" = none)
     (hgem : baseLocals.get? "gem" = none)
     (hpayCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hpayCall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
@@ -2679,8 +2679,8 @@ theorem flapperTendPayCallFailureTail
           "_payRet" ++
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hchecked (by intro f e h; cases h)
-  exact Reasoning.Refinement.execBlock_append_term hpayBidTail
+   execBlock_append_term hchecked (by intro f e h; cases h)
+  exact execBlock_append_term hpayBidTail
     (by intro f e h; cases h)
 
 set_option maxHeartbeats 1000000 in
@@ -2693,7 +2693,7 @@ theorem flapperTendPayAddOverflowTail
     (hgem : baseLocals.get? "gem" = none)
     (httl : baseLocals.get? "ttl" = none)
     (hpayCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord evm.accountMap (tendGemWord evm) ≠ ⟨0⟩)
     (hpayCall :
       typedCallViaEVM config evm
         (EVM.address (AccountAddress.ofNat (tendGemWord evm).toNat)) "move" 0
@@ -2774,7 +2774,7 @@ theorem flapperTendPayAddOverflowTail
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
           (tendAfterBidStore evmPay I)) :=
-    Reasoning.Refinement.execBlock_append hpayChecked hbidAssign
+   execBlock_append hpayChecked hbidAssign
   have htickChecked :
       ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
           (tendAfterBidStore evmPay I)
@@ -2794,8 +2794,8 @@ theorem flapperTendPayAddOverflowTail
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term htickChecked (by intro f e h; cases h)
-  exact Reasoning.Refinement.execBlock_append hpayBidTail htickTail
+   execBlock_append_term htickChecked (by intro f e h; cases h)
+  exact execBlock_append hpayBidTail htickTail
 
 set_option maxHeartbeats 1000000 in
 theorem flapperTendBodyReverts_afterIncrease
@@ -4370,7 +4370,7 @@ theorem RD.flapperCheckedMulOverflowReverts
   have heqCond : UInt256.eq (UInt256.div (x * y) y) x = ⟨0⟩ :=
     u256_eq_of_ne hdivNe
   have rd4926 := rd4925.jumpiNT (by native_decide) heqCond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd4926
+  exact RD.solcPush1Dup1Revert0 rd4926
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 
@@ -5008,7 +5008,7 @@ theorem flapperTendX_refundNoCode
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {memCaller : ByteArray}
     {k C : ℕ}
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) =
+      Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) =
         ⟨0⟩)
     (hmemCaller : memCaller.size = 96)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -5018,7 +5018,7 @@ theorem flapperTendX_refundNoCode
     RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd2528⟩ :=
     flapperTendX_toRefundExtcodesizeGuard hmemCaller hread64Caller rd2433
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2528⟩) (okPc := ⟨2540⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2528⟩) (okPc := ⟨2540⟩)
     rd2528 hnoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5030,7 +5030,7 @@ theorem flapperTendX_refundCall
     {k C : ℕ}
     (hperm : I.perm = true)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hmemCaller : memCaller.size = 96)
@@ -5070,7 +5070,7 @@ theorem flapperTendX_refundCall
   obtain ⟨_, _, rd2528⟩ :=
     flapperTendX_toRefundExtcodesizeGuard hmemCaller hread64Caller rd2433
   obtain ⟨gasWord, _, _, rd2543⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2528⟩) (okPc := ⟨2540⟩) rd2528
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2528⟩) (okPc := ⟨2540⟩) rd2528
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -5112,7 +5112,7 @@ theorem flapperTendX_refundCallDepthLimit
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {memCaller : ByteArray}
     {k C : ℕ}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hmemCaller : memCaller.size = 96)
@@ -5135,7 +5135,7 @@ theorem flapperTendX_refundCallDepthLimit
   obtain ⟨_, _, rd2528⟩ :=
     flapperTendX_toRefundExtcodesizeGuard hmemCaller hread64Caller rd2433
   obtain ⟨gasWord, _, _, rd2543⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2528⟩) (okPc := ⟨2540⟩) rd2528
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2528⟩) (okPc := ⟨2540⟩) rd2528
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -5165,7 +5165,7 @@ theorem flapperTendX_refundCallFailure
       mem (UInt256.ofNat 8) out (cAcur, τ) k C)
     (houtSize : out.size < UInt256.size) :
     RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2544⟩) (okPc := ⟨2560⟩) rd2544
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2544⟩) (okPc := ⟨2560⟩) rd2544
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -5194,7 +5194,7 @@ theorem flapperTendX_refundCallSuccessToPayStart
   let oldPacked := solcSlotWord τ I packedSlot
   let src := UInt256.ofNat I.source.val
   obtain ⟨k2562, C2562, rd2562raw⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨2544⟩) (okPc := ⟨2560⟩) rd2544
+    RD.solcCallSuccessGuardOk (pc := ⟨2544⟩) (okPc := ⟨2560⟩) rd2544
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -5273,7 +5273,7 @@ theorem flapperTendX_refundCallSuccessToPayStart
     raw not (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   obtain ⟨k2597, C2597, rd2597raw⟩ := rd2596pre.sstore hperm
     (by native_decide) (by evm_ov)
@@ -5460,7 +5460,7 @@ theorem flapperTendX_addOverflowFromCheckedAddAw8
     rw [hltTrue]
     native_decide
   have rd4959 := rd4958.jumpiNT (by native_decide) hcond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd4959
+  exact RD.solcPush1Dup1Revert0 rd4959
     (by native_decide) (by native_decide) (by native_decide)
     (by simp)
 
@@ -5632,7 +5632,7 @@ theorem flapperTendX_successFromAddOkAw8
     raw swap4 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap3 (by native_decide) (by evm_ov)]
   obtain ⟨k2821, C2821, rd2821raw⟩ := rd2819pre.sstore hperm
@@ -6057,7 +6057,7 @@ theorem flapperTendX_toPayExtcodesizeGuardAw8Mem228
         simp [yankMoveSrcMem, src,
           show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 from by native_decide])
       (by native_decide) (by evm_ov),
-    raw uniswapAddress (by native_decide) (by evm_ov),
+    raw address (by native_decide) (by evm_ov),
     raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
@@ -6149,7 +6149,7 @@ theorem flapperTendX_payNoCodeAw8Mem228
     {cA cAcur gh bl σ τ σ₀ A I} {g : Sat256} {sel : UInt256}
     {memCaller retData : ByteArray} {k C : ℕ}
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord τ (flapperAddressReturnWord ⟨3⟩ τ I) =
+      Reasoning.Theory.extCodeSizeWord τ (flapperAddressReturnWord ⟨3⟩ τ I) =
         ⟨0⟩)
     (hmemCaller : memCaller.size = 228)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -6159,7 +6159,7 @@ theorem flapperTendX_payNoCodeAw8Mem228
     RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd2687⟩ :=
     flapperTendX_toPayExtcodesizeGuardAw8Mem228 hmemCaller hread64Caller rd2598
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2687⟩) (okPc := ⟨2699⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2687⟩) (okPc := ⟨2699⟩)
     rd2687 hnoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -6171,7 +6171,7 @@ theorem flapperTendX_payCallAw8Mem228
     {memCaller retData : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord τ (flapperAddressReturnWord ⟨3⟩ τ I) ≠
+      Reasoning.Theory.extCodeSizeWord τ (flapperAddressReturnWord ⟨3⟩ τ I) ≠
         ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hmemCaller : memCaller.size = 228)
@@ -6224,7 +6224,7 @@ theorem flapperTendX_payCallAw8Mem228
   obtain ⟨_, _, rd2687⟩ :=
     flapperTendX_toPayExtcodesizeGuardAw8Mem228 hmemCaller hread64Caller rd2598
   obtain ⟨gasWord, _, _, rd2702⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2687⟩) (okPc := ⟨2699⟩) rd2687
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2687⟩) (okPc := ⟨2699⟩) rd2687
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -6401,7 +6401,7 @@ theorem flapperTendX_toPayExtcodesizeGuard
         simp [yankMoveSrcMem, src,
           show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 from by native_decide])
       (by native_decide) (by evm_ov),
-    raw uniswapAddress (by native_decide) (by evm_ov),
+    raw address (by native_decide) (by evm_ov),
     raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
@@ -6493,7 +6493,7 @@ theorem flapperTendX_payNoCode
     {cA cAcur gh bl σ τ σ₀ A I} {g : Sat256} {sel : UInt256}
     {memCaller retData : ByteArray} {k C : ℕ}
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord τ (flapperAddressReturnWord ⟨3⟩ τ I) =
+      Reasoning.Theory.extCodeSizeWord τ (flapperAddressReturnWord ⟨3⟩ τ I) =
         ⟨0⟩)
     (hmemCaller : memCaller.size = 96)
     (hread64Caller : memCaller.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
@@ -6503,7 +6503,7 @@ theorem flapperTendX_payNoCode
     RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd2687⟩ :=
     flapperTendX_toPayExtcodesizeGuard hmemCaller hread64Caller rd2598
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2687⟩) (okPc := ⟨2699⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2687⟩) (okPc := ⟨2699⟩)
     rd2687 hnoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -6515,7 +6515,7 @@ theorem flapperTendX_payCall
     {memCaller retData : ByteArray} {k C : ℕ}
     (hperm : I.perm = true)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord τ (flapperAddressReturnWord ⟨3⟩ τ I) ≠
+      Reasoning.Theory.extCodeSizeWord τ (flapperAddressReturnWord ⟨3⟩ τ I) ≠
         ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hmemCaller : memCaller.size = 96)
@@ -6564,7 +6564,7 @@ theorem flapperTendX_payCall
   obtain ⟨_, _, rd2687⟩ :=
     flapperTendX_toPayExtcodesizeGuard hmemCaller hread64Caller rd2598
   obtain ⟨gasWord, _, _, rd2702⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2687⟩) (okPc := ⟨2699⟩) rd2687
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2687⟩) (okPc := ⟨2699⟩) rd2687
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -6606,7 +6606,7 @@ theorem flapperTendX_payCallDepthLimit
     {cA cAcur gh bl σ τ σ₀ A I} {g : Sat256} {sel : UInt256}
     {memCaller retData : ByteArray} {k C : ℕ}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord τ (flapperAddressReturnWord ⟨3⟩ τ I) ≠
+      Reasoning.Theory.extCodeSizeWord τ (flapperAddressReturnWord ⟨3⟩ τ I) ≠
         ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hmemCaller : memCaller.size = 96)
@@ -6630,7 +6630,7 @@ theorem flapperTendX_payCallDepthLimit
   obtain ⟨_, _, rd2687⟩ :=
     flapperTendX_toPayExtcodesizeGuard hmemCaller hread64Caller rd2598
   obtain ⟨gasWord, _, _, rd2702⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2687⟩) (okPc := ⟨2699⟩) rd2687
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2687⟩) (okPc := ⟨2699⟩) rd2687
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -6660,7 +6660,7 @@ theorem flapperTendX_payCallFailure
       mem (UInt256.ofNat 8) out (cAcur, τ) k C)
     (houtSize : out.size < UInt256.size) :
     RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2703⟩) (okPc := ⟨2719⟩) rd2703
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2703⟩) (okPc := ⟨2719⟩) rd2703
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -6680,7 +6680,7 @@ theorem flapperTendX_payCallSuccessToTail
         gem :: tendBidWord I :: tendLotWord I :: tendIdWord I :: ⟨360⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out (cAcur, τ) k' C' := by
   obtain ⟨k2721, C2721, rd2721raw⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨2703⟩) (okPc := ⟨2719⟩) rd2703 hstatus
+    RD.solcCallSuccessGuardOk (pc := ⟨2703⟩) (okPc := ⟨2719⟩) rd2703 hstatus
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
       (by simp only [List.length_cons, List.length_nil]; omega)
@@ -7851,7 +7851,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
         evalExpr_tend_sender_ne_guy_false_begBidLocals evmSolm I hcallerSolm
       exact ExecBlock.consNormal (ExecStmt.iteFalse hcallerCond ExecBlock.nil) ExecBlock.nil
     by_cases hpayNoCode :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+        Reasoning.Theory.extCodeSizeWord σ_evm
           (flapperAddressReturnWord ⟨3⟩ σ_evm I) = ⟨0⟩
     · have hpayNoCodeSolm :=
         flapperCodeSize_zero_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hpayNoCode
@@ -7878,7 +7878,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                   [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
             .reverted := by
         simpa [List.append_assoc] using
-          Reasoning.Refinement.execBlock_append hskipRefund hpayTail
+         execBlock_append hskipRefund hpayTail
       have hbody :
           ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
             .reverted := by
@@ -7890,7 +7890,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
           (by simpa [evmEvm, id] using rd2598))
         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hpayCodeSize :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+          Reasoning.Theory.extCodeSizeWord σ_evm
             (flapperAddressReturnWord ⟨3⟩ σ_evm I) ≠ ⟨0⟩ := hpayNoCode
       have hpayCodeSizeSolm :=
         flapperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hpayCodeSize
@@ -7954,7 +7954,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                     [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
               .reverted := by
           simpa [List.append_assoc] using
-            Reasoning.Refinement.execBlock_append hskipRefund hpayTail
+           execBlock_append hskipRefund hpayTail
         have hbody :
             ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
               .reverted := by
@@ -8086,7 +8086,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                         [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                   .reverted := by
               simpa [List.append_assoc] using
-                Reasoning.Refinement.execBlock_append hskipRefund hpayTail
+               execBlock_append hskipRefund hpayTail
             have hbody :
                 ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
                   .reverted := by
@@ -8142,7 +8142,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                       [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                 .reverted := by
             simpa [List.append_assoc] using
-              Reasoning.Refinement.execBlock_append hskipRefund hpayTail
+             execBlock_append hskipRefund hpayTail
           have hbody :
               ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
                 .reverted := by
@@ -8167,7 +8167,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
         (σ := σ_evm) (sel := sel) (by simpa [packedSlot, id] using hcallerNe)
         (by simpa [evmEvm] using rd2429)
     by_cases hrefundNoCode :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+        Reasoning.Theory.extCodeSizeWord σ_evm
           (flapperAddressReturnWord ⟨3⟩ σ_evm I) = ⟨0⟩
     · have hrefundNoCodeSolm :=
         flapperCodeSize_zero_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hrefundNoCode
@@ -8184,7 +8184,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
           (by simpa [evmEvm, id] using rd2433))
         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hrefundCodeSize :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+          Reasoning.Theory.extCodeSizeWord σ_evm
             (flapperAddressReturnWord ⟨3⟩ σ_evm I) ≠ ⟨0⟩ := hrefundNoCode
       have hrefundCodeSizeSolm :=
         flapperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hrefundCodeSize
@@ -8345,7 +8345,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               (by simpa [evmSolm, tendGemWord, initState] using hrefundCodeSizeSolm)
               hrefundCallTrue
           by_cases hpayNoCode :
-              Reasoning.Theory.uniswapExtCodeSizeWord σGuy
+              Reasoning.Theory.extCodeSizeWord σGuy
                 (flapperAddressReturnWord ⟨3⟩ σGuy I) = ⟨0⟩
           · have hpayNoCodeSolm :=
               flapperCodeSize_zero_accountMapEquiv_addressSlot hpostGuyAccounts ⟨3⟩
@@ -8373,7 +8373,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                         [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                   .reverted := by
               simpa [evmGuySolm] using
-                Reasoning.Refinement.execBlock_append hprefix hpayTail
+               execBlock_append hprefix hpayTail
             have hbody :
                 ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
                   .reverted := by
@@ -8386,7 +8386,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                   packedSlot] using rd2598Guy))
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
           · have hpayCodeSize :
-                Reasoning.Theory.uniswapExtCodeSizeWord σGuy
+                Reasoning.Theory.extCodeSizeWord σGuy
                   (flapperAddressReturnWord ⟨3⟩ σGuy I) ≠ ⟨0⟩ := hpayNoCode
             have hpayCodeSizeSolm :=
               flapperCodeSize_ne_accountMapEquiv_addressSlot hpostGuyAccounts ⟨3⟩
@@ -8562,7 +8562,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                             [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                       .reverted := by
                   simpa [evmGuySolm] using
-                    Reasoning.Refinement.execBlock_append hprefix hpayTail
+                   execBlock_append hprefix hpayTail
                 have hbody :
                     ExecTransitionBody config contract evmSolm (tendLocals I)
                       tendTransition.body .reverted := by
@@ -8613,7 +8613,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                     .reverted := by
                 simpa [evmGuySolm] using
-                  Reasoning.Refinement.execBlock_append hprefix hpayTail
+                 execBlock_append hprefix hpayTail
               have hbody :
                   ExecTransitionBody config contract evmSolm (tendLocals I)
                     tendTransition.body .reverted := by

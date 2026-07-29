@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Vat.FrobLiveBase
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Vat
 
@@ -232,7 +232,7 @@ theorem execFrobGemDaiUpdatesOk {evm : EVM.State} {I : ExecutionEnv}
       execFrobDaiUpdateOk (evm := evmGem) (I := I) localsGem daiOld daiNew
         dtabWord dtab hwGem hdtabGem hbaseDaiGem (by simpa [evmGem] using hloadDai)
         hdtabMod hdaiNew hDaiNeg hDaiPos
-  have h := Reasoning.Refinement.execBlock_append hgemBlock hdaiBlock
+  have h := execBlock_append hgemBlock hdaiBlock
   simpa [localsGem, localsDai, evmGem, evmDai, List.append_assoc] using h
 
 set_option maxHeartbeats 0 in
@@ -964,7 +964,7 @@ theorem execFrobFinalStoreTailFromConstructedLocalsSplit {evmDebt : EVM.State}
         urnInkNew urnArtNew ilkArtNew ilkRate ilkSpot ilkLine ilkDust hsz196
         hTailBaseI hTailBaseU hTailUrns hTailIlks hTailUrnInkNew hTailUrnArtNew
         hTailIlkArtNew hTailIlkRate hTailIlkSpot hTailIlkLine hTailIlkDust
-  have h := Reasoning.Refinement.execBlock_append hgemDai hstores
+  have h := execBlock_append hgemDai hstores
   simpa [localsGem, localsDai, evmGem, evmDai, evmInk, evmArt, evmIlk, evmRate,
     evmSpot, evmLine, evmDust, List.append_assoc] using h
 -/
@@ -1303,7 +1303,7 @@ theorem vatFrobSourceBodySuccessFromDustBlock
       (frobDinkSubGuardPosCond hGemNegS)
       (signedAddGuardNegCond_of_word hdtabRange.1 hdtabRange.2 hdtabMod hDaiNegS)
       (signedAddGuardPosCond_of_word hdtabRange.1 hdtabRange.2 hdtabMod hDaiPosS)
-  have hfull := Reasoning.Refinement.execBlock_append
+  have hfull := execBlock_append
     (s2 :=
       checkedSubSignedInto "gemNew" (.storage (gemRef (.var "i") (.var "v")))
         (.var "dink") ++
@@ -2175,7 +2175,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             using hguardMax)
           (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk]
             using hguardMul)
-      have h04 := Reasoning.Refinement.execBlock_append
+      have h04 := execBlock_append
         (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk]
           using hsourceAdds)
         hdtabBlock
@@ -2449,7 +2449,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
         exact execFrobTabMulCheckedOk (evm := evm0) (locals := localsDtab)
           ilkRate urnArtNew tab hrateGet hurnArtNewGet (by rfl)
           htabFitGuard.1 htabFitGuard.2
-      have h05 := Reasoning.Refinement.execBlock_append
+      have h05 := execBlock_append
         (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
           localsDtab] using hsourceDtab)
         htabBlock
@@ -2742,7 +2742,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             hDebtNegS)
           (signedAddGuardPosCond_of_word hdtabRange.1 hdtabRange.2 hdtabMod
             hDebtPosS)
-      have h06 := Reasoning.Refinement.execBlock_append
+      have h06 := execBlock_append
         (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
           localsDtab, tab, localsTab] using hsourceTab)
         hdebtBlock
@@ -3237,7 +3237,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             (by
               rw [store_get_self])
             (frobSafetySourceCond_of_evm (I := I) hSafetyOkS))
-      have h07 := Reasoning.Refinement.execBlock_append
+      have h07 := execBlock_append
         (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
           localsDtab, tab, localsDebt, debtOld, dtabWord, debtNew, evmDebt]
           using hsourceDebt)
@@ -3818,7 +3818,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           (frobAuthVSourceCond_of_evm (I := I) hV')
           (frobAuthWSourceCond_of_evm (I := I) hW')
           (frobDustSourceCond_of_evm hDustS)
-      have h08 := Reasoning.Refinement.execBlock_append
+      have h08 := execBlock_append
         (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
           localsDtab, tab, localsDebt, debtOld, dtabWord, debtNew, evmDebt,
           ceilingDebt, inkSpot, localsSafe] using hsourceSafe)
@@ -4173,7 +4173,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             .reverted) :
         ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
-      have hblock := Reasoning.Refinement.execBlock_append_term
+      have hblock := execBlock_append_term
         (s2 :=
           checkedAddSignedInto "urnArtNew" (.var "urnArt") (.var "dart") ++
           checkedAddSignedInto "ilkArtNew" (.var "ilkArt") (.var "dart") ++
@@ -4245,7 +4245,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             .reverted) :
         ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
-      have hblock := Reasoning.Refinement.execBlock_append_term
+      have hblock := execBlock_append_term
         (s2 :=
           checkedAddSignedInto "ilkArtNew" (.var "ilkArt") (.var "dart") ++
           checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart") ++
@@ -4317,7 +4317,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             .reverted) :
         ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
-      have hblock := Reasoning.Refinement.execBlock_append_term
+      have hblock := execBlock_append_term
         (s2 :=
           checkedMulSignedInto "dtab" (.var "ilkRate") (.var "dart") ++
           checkedMulUintInto "tab" (.var "ilkRate") (.var "urnArtNew") ++
@@ -4389,7 +4389,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             .reverted) :
         ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
-      have hblock := Reasoning.Refinement.execBlock_append_term
+      have hblock := execBlock_append_term
         (s2 :=
           checkedMulUintInto "tab" (.var "ilkRate") (.var "urnArtNew") ++
           checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab") ++
@@ -4461,7 +4461,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             .reverted) :
         ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
-      have hblock := Reasoning.Refinement.execBlock_append_term
+      have hblock := execBlock_append_term
         (s2 :=
           checkedAddSignedInto "debtNew" (.storage debtRef) (.var "dtab") ++
           [ .assign .storage debtRef (.var "debtNew") ] ++
@@ -4533,7 +4533,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             .reverted) :
         ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
-      have hblock := Reasoning.Refinement.execBlock_append_term
+      have hblock := execBlock_append_term
         (s2 :=
           [ .assign .storage debtRef (.var "debtNew") ] ++
           checkedMulUintInto "ceilingDebt" (.var "ilkArtNew") (.var "ilkRate") ++
@@ -4606,7 +4606,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             .reverted) :
         ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
-      have hblock := Reasoning.Refinement.execBlock_append_term
+      have hblock := execBlock_append_term
         (s2 :=
           checkedMulUintInto "inkSpot" (.var "urnInkNew") (.var "ilkSpot") ++
           [ .require
@@ -4678,7 +4678,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             .reverted) :
         ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
-      have hblock := Reasoning.Refinement.execBlock_append_term
+      have hblock := execBlock_append_term
         (s2 :=
           [ .require
               (eitherExpr
@@ -4755,7 +4755,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             .reverted) :
         ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
-      have hblock := Reasoning.Refinement.execBlock_append_term
+      have hblock := execBlock_append_term
         (s2 :=
           [ .require
               (eitherExpr
@@ -4832,7 +4832,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             .reverted) :
         ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
-      have hblock := Reasoning.Refinement.execBlock_append_term
+      have hblock := execBlock_append_term
         (s2 :=
           [ .require
               (eitherExpr
@@ -4918,7 +4918,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             .reverted) :
         ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
           .reverted := by
-      have hblock := Reasoning.Refinement.execBlock_append_term
+      have hblock := execBlock_append_term
         (s2 :=
           checkedSubSignedInto "gemNew" (.storage (gemRef (.var "i") (.var "v")))
             (.var "dink") ++

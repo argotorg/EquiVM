@@ -14,7 +14,7 @@ the EVM and Solm sides, and the storage-word abbreviations used throughout the `
  chi=tmp ; rho=now ; rad=_mul(Pie,chi_) ; vat.suck(vow,this,rad) ; return tmp`.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

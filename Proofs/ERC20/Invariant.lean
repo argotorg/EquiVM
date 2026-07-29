@@ -420,7 +420,7 @@ theorem transfer_closesLoop (hinj : InjectiveLayout erc20Config)
     (hfit : transferNewToNat evm I < UInt256.size) (hInv : Inv evm) :
     ExecTransitionBody erc20Config erc20Contract evm (transferStore I) transferTransition.body
         (.returned { contract := erc20Contract, locals := transferStoreNewToBalance evm I }
-          (transferPostState evm I) (some (.bool true)))
+          (transferPostState evm I) (some [.bool true]))
       ∧ Inv (transferPostState evm I) :=
   ⟨erc20TransferBodyReturns evm I hwv henough hfit,
     transfer_preserves_inv evm I hinj hco hne henough hfit hInv⟩
@@ -439,7 +439,7 @@ theorem transferFrom_closesLoop (hinj : InjectiveLayout erc20Config)
     ExecTransitionBody erc20Config erc20Contract evm (transferFromStore I)
         transferFromTransition.body
         (.returned { contract := erc20Contract, locals := transferFromStoreNewToBalance evm I }
-          (transferFromPostState evm I) (some (.bool true)))
+          (transferFromPostState evm I) (some [.bool true]))
       ∧ Inv (transferFromPostState evm I) :=
   ⟨erc20TransferFromBodyReturns evm I hwv hallowance hbalance hbalanceDebit hfit,
     transferFrom_preserves_inv evm I hinj hco hft hbalance hfit hInv⟩
@@ -448,31 +448,31 @@ theorem approve_closesLoop (hinj : InjectiveLayout erc20Config)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hInv : Inv evm) :
     ExecTransitionBody erc20Config erc20Contract evm (approveStore I) approveTransition.body
         (.returned { contract := erc20Contract, locals := approveStore I }
-          (approvePostState evm I) (some (.bool true)))
+          (approvePostState evm I) (some [.bool true]))
       ∧ Inv (approvePostState evm I) :=
   ⟨erc20ApproveBodyReturns evm I hwv, approve_preserves_inv evm I hinj hInv⟩
 
 theorem totalSupply_closesLoop (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hInv : Inv evm) :
     ExecTransitionBody erc20Config erc20Contract evm (∅ : Store) totalSupplyTransition.body
         (.returned { contract := erc20Contract, locals := (∅ : Store) } evm
-          (some (.int (Int.ofNat
-            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat))))
+          (some [.int (Int.ofNat
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩).toNat)]))
       ∧ Inv evm :=
   ⟨erc20TotalSupplyBodyReturns evm (∅ : Store) hwv (by simp), hInv⟩
 
 theorem balanceOf_closesLoop (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hInv : Inv evm) :
     ExecTransitionBody erc20Config erc20Contract evm (balanceOfStore I) balanceOfTransition.body
         (.returned { contract := erc20Contract, locals := balanceOfStore I } evm
-          (some (.int (Int.ofNat
-            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (balanceOfSlot I)).toNat))))
+          (some [.int (Int.ofNat
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (balanceOfSlot I)).toNat)]))
       ∧ Inv evm :=
   ⟨erc20BalanceOfBodyReturns evm I hwv, hInv⟩
 
 theorem allowance_closesLoop (hwv : evm.executionEnv.weiValue = ⟨0⟩) (hInv : Inv evm) :
     ExecTransitionBody erc20Config erc20Contract evm (allowanceStore I) allowanceTransition.body
         (.returned { contract := erc20Contract, locals := allowanceStore I } evm
-          (some (.int (Int.ofNat
-            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (allowanceSlot I)).toNat))))
+          (some [.int (Int.ofNat
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (allowanceSlot I)).toNat)]))
       ∧ Inv evm :=
   ⟨erc20AllowanceBodyReturns evm I hwv, hInv⟩
 

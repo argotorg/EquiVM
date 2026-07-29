@@ -15,7 +15,7 @@ The optimized creation bytecode, deployed runtime bytecode, and Solm constructor
 present.  The constructor-equivalence proof is intentionally left as the benchmark target.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Dai
 
@@ -1429,7 +1429,7 @@ theorem daiCtorDomainWordsTrace
     push1 ⟨128⟩, dup2, add, swap4, swap1, swap4,
     raw mstore 3 (daiCtorDomainChainMem I chainIdWord) (UInt256.ofNat 14)
       (by dai_ctor_decode) mem_cost rfl (by decide) (by evm_ov),
-    uniswapAddress, push1 ⟨160⟩, dup1, dup6, add, swap2, swap1, swap2,
+    address, push1 ⟨160⟩, dup1, dup6, add, swap2, swap1, swap2,
     raw mstore 3 (daiCtorDomainWordsMem I chainIdWord) (UInt256.ofNat 15)
       (by dai_ctor_decode) mem_cost rfl (by decide) (by evm_ov)]
   exact ⟨_, _, rd⟩

@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Vow.Rely
 import Benchmarks.Dss.Vow.VatDaiCall
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -797,13 +797,13 @@ theorem RD.vowCageFirstDaiNoCode {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ
+      Reasoning.Theory.extCodeSizeWord σ
         (UInt256.land solcAddrMask (solcSlotWord σ ee ⟨1⟩)) = ⟨0⟩)
     (hov : R.length + 14 ≤ 1024) :
     RDrev vowBytecode g s0 := by
   obtain ⟨_, _, rd2738⟩ := RD.vowCageFirstDaiExtcodesizeGuard
     rd hmem hread64 (by omega)
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2738⟩) (okPc := ⟨2750⟩) rd2738
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2738⟩) (okPc := ⟨2750⟩) rd2738
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -818,7 +818,7 @@ theorem RD.vowCageFirstDaiStaticcallSetup {g : Sat256} {s0 : State}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ
+      Reasoning.Theory.extCodeSizeWord σ
         (UInt256.land solcAddrMask (solcSlotWord σ ee ⟨1⟩)) ≠ ⟨0⟩)
     (hov : R.length + 14 ≤ 1024) :
     ∃ gasWord k' C', RD vowBytecode ee g s0 ⟨2753⟩
@@ -831,7 +831,7 @@ theorem RD.vowCageFirstDaiStaticcallSetup {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd2738⟩ := RD.vowCageFirstDaiExtcodesizeGuard
     rd hmem hread64 (by omega)
   obtain ⟨gasWord, k2753, C2753, rd2753⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2738⟩) (okPc := ⟨2750⟩) rd2738
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2738⟩) (okPc := ⟨2750⟩) rd2738
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -848,7 +848,7 @@ theorem RD.vowCageFirstDaiStaticcall
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σCall (kissDaiTargetWord σCall I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σCall (kissDaiTargetWord σCall I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 14 ≤ 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
@@ -874,14 +874,14 @@ theorem RD.vowCageFirstDaiStaticcall
           outDai) false
     ∧ outDai.size < UInt256.size := by
   have hcodeSize' :
-      Reasoning.Theory.uniswapExtCodeSizeWord σCall
+      Reasoning.Theory.extCodeSizeWord σCall
         (UInt256.land solcAddrMask (solcSlotWord σCall I ⟨1⟩)) ≠ ⟨0⟩ := by
     simpa [kissDaiTargetWord, vowSlotWord, solcSlotWord, u256_land_comm] using hcodeSize
   obtain ⟨gasWord, _, _, rd2753⟩ := RD.vowCageFirstDaiStaticcallSetup
     rd hmem hread64 hcodeSize' hov
   obtain ⟨cA', σ', z, outDai, A_in, callGas, k2754, C2754, hΘpack, rd2754raw,
       houtsz⟩ :=
-    RD.uniswapStaticcall rd2753 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcall rd2753 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   let evmDaiIn := { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σCall }
@@ -924,7 +924,7 @@ theorem RD.vowCageFirstDaiCallFailure {g : Sat256} {s0 : State} {ee : ExecutionE
     (hosz : o.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
     RDrev vowBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2754⟩) (okPc := ⟨2770⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2754⟩) (okPc := ⟨2770⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -939,7 +939,7 @@ theorem RD.vowCageFirstDaiCallSuccessToDecode {g : Sat256} {s0 : State}
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD vowBytecode ee g s0 ⟨2772⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨2754⟩) (okPc := ⟨2770⟩) rd
+  exact RD.solcCallSuccessGuardOk (pc := ⟨2754⟩) (okPc := ⟨2770⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -1107,12 +1107,12 @@ theorem RD.vowCageFlapperCageNoCode {g : Sat256} {s0 : State}
       (rad :: flapCageSelectorWord :: target :: R) mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord acc.2 target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord acc.2 target = ⟨0⟩)
     (hov : R.length + 12 ≤ 1024) :
     RDrev vowBytecode g s0 := by
   obtain ⟨_, _, rd2844⟩ := RD.vowCageFlapperCageExtcodesizeGuard
     rd hmem hread64 hov
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2844⟩) (okPc := ⟨2856⟩) rd2844
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2844⟩) (okPc := ⟨2856⟩) rd2844
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1125,7 +1125,7 @@ theorem RD.vowCageFlapperCageCallSetup {g : Sat256} {s0 : State}
       (rad :: flapCageSelectorWord :: target :: R) mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord acc.2 target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord acc.2 target ≠ ⟨0⟩)
     (hov : R.length + 12 ≤ 1024) :
     ∃ gasWord k' C', RD vowBytecode ee g s0 ⟨2859⟩
       (gasWord :: target :: flapCageOutSize :: flapCageOutPtr :: flapCageInSize ::
@@ -1135,7 +1135,7 @@ theorem RD.vowCageFlapperCageCallSetup {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd2844⟩ := RD.vowCageFlapperCageExtcodesizeGuard
     rd hmem hread64 hov
   obtain ⟨gasWord, k', C', rd2859⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2844⟩) (okPc := ⟨2856⟩) rd2844
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2844⟩) (okPc := ⟨2856⟩) rd2844
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1152,7 +1152,7 @@ theorem RD.vowCageFlapperCageCall
       mem (UInt256.ofNat 6) rdata (cA_call, σCall) k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σCall target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σCall target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hperm : I.perm = true)
     (htgt : EVM.address (AccountAddress.ofNat target.toNat) =
@@ -1225,7 +1225,7 @@ theorem RD.vowCageFlapperCageCallFailure {g : Sat256} {s0 : State}
     (hosz : o.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
     RDrev vowBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2860⟩) (okPc := ⟨2876⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2860⟩) (okPc := ⟨2876⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1239,7 +1239,7 @@ theorem RD.vowCageFlapperCageCallSuccessCleanup {g : Sat256} {s0 : State}
       (⟨1⟩ :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD vowBytecode ee g s0 ⟨2881⟩ R mem aw o acc k' C' := by
-  obtain ⟨_, _, rd2878⟩ := RD.uniswapCallSuccessGuardOk
+  obtain ⟨_, _, rd2878⟩ := RD.solcCallSuccessGuardOk
     (pc := ⟨2860⟩) (okPc := ⟨2876⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1377,14 +1377,14 @@ theorem RD.vowCageFlopperCageNoCode {g : Sat256} {s0 : State}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2
+      Reasoning.Theory.extCodeSizeWord acc.2
         (vowAddressReturnWord ⟨3⟩ acc.2 ee) = ⟨0⟩)
     (hov : R.length + 15 ≤ 1024) :
     RDrev vowBytecode g s0 := by
   let target := vowAddressReturnWord ⟨3⟩ acc.2 ee
   obtain ⟨_, _, rd2948⟩ := RD.vowCageFlopperCageExtcodesizeGuard
     rd hmem hread64 hov
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2948⟩) (okPc := ⟨2960⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2948⟩) (okPc := ⟨2960⟩)
     (by simpa [target] using rd2948)
     (by simpa [target] using hcodeSize)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1399,7 +1399,7 @@ theorem RD.vowCageFlopperCageCallSetup {g : Sat256} {s0 : State}
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2
+      Reasoning.Theory.extCodeSizeWord acc.2
         (vowAddressReturnWord ⟨3⟩ acc.2 ee) ≠ ⟨0⟩)
     (hov : R.length + 15 ≤ 1024) :
     let target := vowAddressReturnWord ⟨3⟩ acc.2 ee
@@ -1412,7 +1412,7 @@ theorem RD.vowCageFlopperCageCallSetup {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd2948⟩ := RD.vowCageFlopperCageExtcodesizeGuard
     rd hmem hread64 hov
   obtain ⟨gasWord, k', C', rd2963⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2948⟩) (okPc := ⟨2960⟩)
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2948⟩) (okPc := ⟨2960⟩)
       (by simpa [target] using rd2948)
       (by simpa [target] using hcodeSize)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1430,7 +1430,7 @@ theorem RD.vowCageFlopperCageCall
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σCall
+      Reasoning.Theory.extCodeSizeWord σCall
         (vowAddressReturnWord ⟨3⟩ σCall I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hperm : I.perm = true)
@@ -1504,7 +1504,7 @@ theorem RD.vowCageFlopperCageCallFailure {g : Sat256} {s0 : State}
     (hosz : o.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
     RDrev vowBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2964⟩) (okPc := ⟨2980⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2964⟩) (okPc := ⟨2980⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1518,7 +1518,7 @@ theorem RD.vowCageFlopperCageCallSuccessCleanup {g : Sat256} {s0 : State}
       (⟨1⟩ :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD vowBytecode ee g s0 ⟨2983⟩ (d1 :: d2 :: R) mem aw o acc k' C' := by
-  obtain ⟨_, _, rd2982⟩ := RD.uniswapCallSuccessGuardOk
+  obtain ⟨_, _, rd2982⟩ := RD.solcCallSuccessGuardOk
     (pc := ⟨2964⟩) (okPc := ⟨2980⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)

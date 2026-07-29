@@ -1,0 +1,11 @@
+import Benchmarks.Scaffolds.Auction.Correct
+import Benchmarks.Scaffolds.Comet.Correct
+import Benchmarks.Scaffolds.CometRewards.Correct
+import Benchmarks.Scaffolds.EAS.Attester.Correct
+import Benchmarks.Scaffolds.ERC721.Correct
+import Benchmarks.Scaffolds.Klima.Correct
+import Benchmarks.Scaffolds.Safe.Correct
+import Benchmarks.Scaffolds.TimelockController.Correct
+import Benchmarks.Scaffolds.UniswapV2Router02.Correct
+import Benchmarks.Scaffolds.UniswapV3Pool.Correct
+import Benchmarks.Scaffolds.VestingWallet.Correct

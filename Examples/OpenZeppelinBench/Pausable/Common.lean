@@ -2,12 +2,11 @@ import Examples.OpenZeppelinBench.Pausable.Trusted
 import Examples.OpenZeppelinBench.Pausable.Storage
 import Reasoning.ABI
 import Reasoning.Dispatch
-import Reasoning.Refinement
 import Reasoning.Solc
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

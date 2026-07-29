@@ -4,7 +4,7 @@ import Benchmarks.Dss.Vat.FoldCommon
 
 namespace Benchmarks.Dss.Vat
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 /-! ## `grab(bytes32,address,address,address,int256,int256)` -/
 
@@ -4624,7 +4624,7 @@ theorem execGrabUrnArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
         [ .assign .storage (urnsF (.var "i") (.var "u") "art") (.var "urnArtNew") ]
         (.ok { contract := contract, locals := locals' } evm') :=
     ExecBlock.consNormal (ExecStmt.assign hnewEval hassign) ExecBlock.nil
-  exact Reasoning.Refinement.execBlock_append hchecked hassignBlock
+  exact execBlock_append hchecked hassignBlock
 
 theorem execGrabIlkArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (ilkArtOld ilkArtNew : UInt256)
@@ -4677,7 +4677,7 @@ theorem execGrabIlkArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
         [ .assign .storage (ilksF (.var "i") "Art") (.var "ilkArtNew") ]
         (.ok { contract := contract, locals := locals' } evm') :=
     ExecBlock.consNormal (ExecStmt.assign hnewEval hassign) ExecBlock.nil
-  exact Reasoning.Refinement.execBlock_append hchecked hassignBlock
+  exact execBlock_append hchecked hassignBlock
 
 theorem execGrabGemUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (gemOld gemNew : UInt256)
@@ -4735,7 +4735,7 @@ theorem execGrabGemUpdateOk {evm : EVM.State} {I : ExecutionEnv}
         [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew") ]
         (.ok { contract := contract, locals := locals' } evm') :=
     ExecBlock.consNormal (ExecStmt.assign hnewEval hassign) ExecBlock.nil
-  exact Reasoning.Refinement.execBlock_append hchecked hassignBlock
+  exact execBlock_append hchecked hassignBlock
 
 theorem execGrabSinUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (sinOld sinNew dtabWord : UInt256) (dtab : Int)
@@ -4786,7 +4786,7 @@ theorem execGrabSinUpdateOk {evm : EVM.State} {I : ExecutionEnv}
         [ .assign .storage (sinRef (.var "w")) (.var "sinNew") ]
         (.ok { contract := contract, locals := locals' } evm') :=
     ExecBlock.consNormal (ExecStmt.assign hnewEval hassign) ExecBlock.nil
-  exact Reasoning.Refinement.execBlock_append hchecked hassignBlock
+  exact execBlock_append hchecked hassignBlock
 
 theorem execGrabViceUpdateOk {evm : EVM.State}
     (locals : Store) (viceOld viceNew dtabWord : UInt256) (dtab : Int)
@@ -4829,7 +4829,7 @@ theorem execGrabViceUpdateOk {evm : EVM.State}
         [ .assign .storage viceRef (.var "viceNew") ]
         (.ok { contract := contract, locals := locals' } evm') :=
     ExecBlock.consNormal (ExecStmt.assign hnewEval hassign) ExecBlock.nil
-  exact Reasoning.Refinement.execBlock_append hchecked hassignBlock
+  exact execBlock_append hchecked hassignBlock
 
 theorem execGrabFinalAssignmentsOk {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store)
@@ -5432,13 +5432,13 @@ theorem execGrabSourceOk {cA gh bl σ σ₀ A I} {g : UInt256}
       viceOld viceNew dtabWord dtab hVice_dtab hVice_vice
       (by simpa [evm0, evm1, evm2, evm3, evm4, evm5] using hloadVice) hdtabMod hviceNew
       hviceNeg hvicePos
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hArtBlock
-  have h03 := Reasoning.Refinement.execBlock_append h02 hIlkBlock
-  have h04 := Reasoning.Refinement.execBlock_append h03 hDtabBlock
-  have h05 := Reasoning.Refinement.execBlock_append h04 hGemBlock
-  have h06 := Reasoning.Refinement.execBlock_append h05 hSinBlock
-  have hblock := Reasoning.Refinement.execBlock_append h06 hViceBlock
+  have h01 := execBlock_append hprefix hInkBlock
+  have h02 := execBlock_append h01 hArtBlock
+  have h03 := execBlock_append h02 hIlkBlock
+  have h04 := execBlock_append h03 hDtabBlock
+  have h05 := execBlock_append h04 hGemBlock
+  have h06 := execBlock_append h05 hSinBlock
+  have hblock := execBlock_append h06 hViceBlock
   simpa [ExecTransitionBody] using ExecFuncBody.execBlockOK hblock
 
 theorem vatGrabSourceBodySuccessFromFinalValues
@@ -5724,8 +5724,8 @@ theorem vatGrabSourceBodyUrnInkRevertGuardNeg
           (grabSourceLoad_urnInk (cA := cA) (gh := gh) (bl := bl)
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
       (by simp [grabUrnInkNew, vatSlotWord]) hguardNeg
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hInkRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hInkRevert
+  have hblock := execBlock_append_term
     (s2 :=
       [ .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew") ] ++
       checkedAddSignedInto "urnArtNew" (.storage (urnsF (.var "i") (.var "u") "art"))
@@ -5788,8 +5788,8 @@ theorem vatGrabSourceBodyUrnInkRevertGuardPos
           (grabSourceLoad_urnInk (cA := cA) (gh := gh) (bl := bl)
             (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hsz196))
       (by simp [grabUrnInkNew, vatSlotWord]) hguardNeg hguardPos
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hInkRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hInkRevert
+  have hblock := execBlock_append_term
     (s2 :=
       [ .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew") ] ++
       checkedAddSignedInto "urnArtNew" (.storage (urnsF (.var "i") (.var "u") "art"))
@@ -5870,14 +5870,14 @@ theorem vatGrabSourceBodyUrnArtRevertFromBlock
       (by simp [urnInkNew, grabUrnInkNew, vatSlotWord])
       (by simpa [urnInkNew, vatSlotWord] using hinkNeg)
       (by simpa [urnInkNew, vatSlotWord] using hinkPos)
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hInkBlock
+  have h01 := execBlock_append hprefix hInkBlock
   have hArt : ExecBlock config { contract := contract, locals := localsInk } evm1
       (checkedAddSignedInto "urnArtNew"
         (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))
       .reverted := by
     simpa [evm0, evm1, localsInk, urnInkNew] using hArtRevert
-  have h02 := Reasoning.Refinement.execBlock_append h01 hArt
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h02 := execBlock_append h01 hArt
+  have hblock := execBlock_append_term
     (s2 :=
       [ .assign .storage (urnsF (.var "i") (.var "u") "art") (.var "urnArtNew") ] ++
       checkedAddSignedInto "ilkArtNew" (.storage (ilksF (.var "i") "Art"))
@@ -6115,15 +6115,15 @@ theorem vatGrabSourceBodyIlkArtRevertFromBlock
       (by simp [urnArtNew, grabUrnArtNew])
       (by simpa [urnArtNew] using hartNeg)
       (by simpa [urnArtNew] using hartPos)
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hArtBlock
+  have h01 := execBlock_append hprefix hInkBlock
+  have h02 := execBlock_append h01 hArtBlock
   have hIlk : ExecBlock config { contract := contract, locals := localsArt } evm2
       (checkedAddSignedInto "ilkArtNew" (.storage (ilksF (.var "i") "Art"))
         (.var "dart"))
       .reverted := by
     simpa [evm0, evm1, evm2, localsArt, urnInkNew, urnArtNew] using hIlkRevert
-  have h03 := Reasoning.Refinement.execBlock_append h02 hIlk
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h03 := execBlock_append h02 hIlk
+  have hblock := execBlock_append_term
     (s2 :=
       [ .assign .storage (ilksF (.var "i") "Art") (.var "ilkArtNew") ] ++
       checkedMulSignedInto "dtab" (.storage (ilksF (.var "i") "rate")) (.var "dart") ++
@@ -6432,16 +6432,16 @@ theorem vatGrabSourceBodyDtabRevertFromBlock
       (by simp [ilkArtNew, grabIlkArtNew])
       (by simpa [ilkArtNew] using hilkNeg)
       (by simpa [ilkArtNew] using hilkPos)
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hArtBlock
-  have h03 := Reasoning.Refinement.execBlock_append h02 hIlkBlock
+  have h01 := execBlock_append hprefix hInkBlock
+  have h02 := execBlock_append h01 hArtBlock
+  have h03 := execBlock_append h02 hIlkBlock
   have hDtab : ExecBlock config { contract := contract, locals := localsIlk } evm3
       (checkedMulSignedInto "dtab" (.storage (ilksF (.var "i") "rate")) (.var "dart"))
       .reverted := by
     simpa [evm0, evm1, evm2, evm3, localsIlk, urnInkNew, urnArtNew, ilkArtNew]
       using hDtabRevert
-  have h04 := Reasoning.Refinement.execBlock_append h03 hDtab
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h04 := execBlock_append h03 hDtab
+  have hblock := execBlock_append_term
     (s2 :=
       checkedSubSignedInto "gemNew" (.storage (gemRef (.var "i") (.var "v")))
         (.var "dink") ++
@@ -6656,11 +6656,11 @@ theorem vatGrabSourceBodyPostDtabRevertFromBlock
         .reverted := by
     simpa [evm0, evm1, evm2, evm3, localsDtab, urnInkNew, urnArtNew, ilkArtNew]
       using hTailRevert
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hArtBlock
-  have h03 := Reasoning.Refinement.execBlock_append h02 hIlkBlock
-  have h04 := Reasoning.Refinement.execBlock_append h03 hDtab
-  have h05 := Reasoning.Refinement.execBlock_append h04 hTail
+  have h01 := execBlock_append hprefix hInkBlock
+  have h02 := execBlock_append h01 hArtBlock
+  have h03 := execBlock_append h02 hIlkBlock
+  have h04 := execBlock_append h03 hDtab
+  have h05 := execBlock_append h04 hTail
   simpa [ExecTransitionBody, grabTransition, nonpayable, auth, evm0, evm1, evm2, evm3,
     localsInk, localsArt, localsIlk, localsDtab, urnInkNew, urnArtNew, ilkArtNew,
     List.append_assoc] using ExecFuncBody.execBlockRevert h05
@@ -6681,7 +6681,7 @@ theorem execGrabTailGemRevertFromBlock {evm : EVM.State}
       checkedSubSignedInto "viceNew" (.storage viceRef) (.var "dtab") ++
       [ .assign .storage viceRef (.var "viceNew") ])
       .reverted := by
-  have h := Reasoning.Refinement.execBlock_append_term
+  have h := execBlock_append_term
     (s2 :=
       [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew") ] ++
       checkedSubSignedInto "sinNew" (.storage (sinRef (.var "w"))) (.var "dtab") ++
@@ -6712,8 +6712,8 @@ theorem execGrabTailSinRevertFromBlock {evm evm4 : EVM.State}
       checkedSubSignedInto "viceNew" (.storage viceRef) (.var "dtab") ++
       [ .assign .storage viceRef (.var "viceNew") ])
       .reverted := by
-  have h01 := Reasoning.Refinement.execBlock_append hGem hSin
-  have h := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hGem hSin
+  have h := execBlock_append_term
     (s2 :=
       [ .assign .storage (sinRef (.var "w")) (.var "sinNew") ] ++
       checkedSubSignedInto "viceNew" (.storage viceRef) (.var "dtab") ++
@@ -6747,9 +6747,9 @@ theorem execGrabTailViceRevertFromBlock {evm evm4 evm5 : EVM.State}
       checkedSubSignedInto "viceNew" (.storage viceRef) (.var "dtab") ++
       [ .assign .storage viceRef (.var "viceNew") ])
       .reverted := by
-  have h01 := Reasoning.Refinement.execBlock_append hGem hSin
-  have h02 := Reasoning.Refinement.execBlock_append h01 hVice
-  have h := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hGem hSin
+  have h02 := execBlock_append h01 hVice
+  have h := execBlock_append_term
     (s2 := [ .assign .storage viceRef (.var "viceNew") ])
     h02 (by intro f e h; cases h)
   simpa [List.append_assoc] using h

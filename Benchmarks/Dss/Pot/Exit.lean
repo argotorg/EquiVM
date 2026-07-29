@@ -2,7 +2,7 @@ import Benchmarks.Dss.Pot.Dispatch
 import Benchmarks.Dss.Pot.Join
 import Reasoning.ExternalCall
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -67,7 +67,7 @@ theorem RD.potSubReverts {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     raw iszero (by native_decide) (by evm_ov),
     raw push2 ⟨2294⟩ (by native_decide) (by evm_ov)]
   have rdRev := rdPre.jumpiNT (by native_decide) (by rw [hgt]; decide) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdRev
+  exact RD.solcPush1Dup1Revert0 rdRev
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -158,7 +158,7 @@ theorem potExitX_shortReverts {cA σ I} {g : Sat256} {s0 : State} {sel : UInt256
     raw iszero (by native_decide) (by evm_ov),
     raw push2 ⟨530⟩ (by native_decide) (by evm_ov)]
   have rdRev := rdPre.jumpiNT (by native_decide) (by rw [hlt]; decide) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdRev
+  exact RD.solcPush1Dup1Revert0 rdRev
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -282,7 +282,7 @@ theorem potExitX_mulReady {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel
     raw swap1 (by native_decide) (by evm_ov),
     raw push4 potMoveSelectorWord (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  have rd1685 := rdPre.uniswapAddress (by native_decide) (by evm_ov)
+  have rd1685 := rdPre.address (by native_decide) (by evm_ov)
   have rdPre2 := evm_run rd1685 with [
     raw swap1 (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
@@ -419,7 +419,7 @@ theorem potExitX_callGuard {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {se
 theorem potExitX_postCall {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray} (hmemSize : mem.size = 96)
     (hdepth : I.depth.val < 1024)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'' (joinVatMasked σ'' I) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'' (joinVatMasked σ'' I) ≠ ⟨0⟩)
     (h : RD potBytecode I g s0 ⟨927⟩
       (joinVatMasked σ'' I :: joinVatMasked σ'' I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ ::
         ⟨228⟩ :: potMoveSelectorWord :: joinVatMasked σ'' I :: joinWadWord I :: ⟨301⟩ :: sel :: [])
@@ -444,7 +444,7 @@ theorem potExitX_postCall {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel
           mem' aw' o (cA', σ') k' C'
       ∧ o.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd942⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨927⟩) (okPc := ⟨939⟩) h hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨927⟩) (okPc := ⟨939⟩) h hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
@@ -457,7 +457,7 @@ set_option maxHeartbeats 1000000 in
 theorem potExitX_depthLimitReverts {cA σ'' I} {g : Sat256} {s0 : State} {k C : ℕ} {sel : UInt256}
     {mem : ByteArray}
     (hdepth : I.depth = 1024)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'' (joinVatMasked σ'' I) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'' (joinVatMasked σ'' I) ≠ ⟨0⟩)
     (h : RD potBytecode I g s0 ⟨927⟩
       (joinVatMasked σ'' I :: joinVatMasked σ'' I :: ⟨0⟩ :: ⟨128⟩ :: ⟨100⟩ :: ⟨128⟩ :: ⟨0⟩ ::
         ⟨228⟩ :: potMoveSelectorWord :: joinVatMasked σ'' I :: joinWadWord I :: ⟨301⟩ :: sel :: [])
@@ -466,7 +466,7 @@ theorem potExitX_depthLimitReverts {cA σ'' I} {g : Sat256} {s0 : State} {k C : 
       (UInt256.ofNat 8) ByteArray.empty (cA, σ'') k C) :
     RDrev potBytecode g s0 := by
   obtain ⟨gasWord, k1, C1, rd942⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨927⟩) (okPc := ⟨939⟩) h hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨927⟩) (okPc := ⟨939⟩) h hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
@@ -553,7 +553,7 @@ theorem potExitX_mulOverflowReverts {cA σ'' I} {g : Sat256} {s0 : State} {k C :
     raw swap1 (by native_decide) (by evm_ov),
     raw push4 potMoveSelectorWord (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
-  have rd1685 := rdPre.uniswapAddress (by native_decide) (by evm_ov)
+  have rd1685 := rdPre.address (by native_decide) (by evm_ov)
   have rdPre2 := evm_run rd1685 with [
     raw swap1 (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
@@ -1163,7 +1163,7 @@ theorem potExitBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             twoWordHashMem_read64 (joinCallerWord I) ⟨1⟩ (joinPieHashMem_size I)
               (joinPieHashMem_read64 I)
           obtain ⟨_, _, rd927⟩ := potExitX_callGuard hmemSz hmemR64 rd853
-          by_cases hEcs : uniswapExtCodeSizeWord (exitSigma'' σ_evm I)
+          by_cases hEcs : extCodeSizeWord (exitSigma'' σ_evm I)
               (joinVatMasked (exitSigma'' σ_evm I) I) = ⟨0⟩
           · refine (potJoinX_ecsZero hEcs rd927).reEquivExecutionRevert hcode hdispatch
               (potDecode_exit_ok hsz36)

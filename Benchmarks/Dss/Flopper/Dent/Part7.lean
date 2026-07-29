@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Flopper.Dent.Part6
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option linter.unusedSimpArgs false
@@ -116,7 +116,7 @@ theorem flopperDentX_successFromAddOkAw8
     raw swap4 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap3 (by native_decide) (by evm_ov)]
   obtain ⟨k2991, C2991, rd2991raw⟩ := rd2990pre.sstore hperm
@@ -448,7 +448,7 @@ theorem flopperDentBodyCoreMoveNoCode
       UInt256.ofNat I.source.val ≠
         flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ_evm I)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨2⟩ σ_evm I) = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some dentTransition)
     (hdecode :
@@ -521,7 +521,7 @@ theorem flopperDentBodyCoreMoveNoCode
     rw [hword]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hnoCodeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨2⟩ σ_solm I) = ⟨0⟩ :=
     flopperCodeSize_zero_accountMapEquiv_addressSlot hAccounts ⟨2⟩ hnoCode
   have hbody :
@@ -575,7 +575,7 @@ theorem flopperDentBodyCoreMoveCallFailure
       UInt256.ofNat I.source.val ≠
         flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ_evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩)
     (rd2545 : RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2545⟩
@@ -687,7 +687,7 @@ theorem flopperDentBodyCoreMoveCallFailure
     rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨2⟩ σ_solm I) ≠ ⟨0⟩ :=
     flopperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨2⟩ hcodeSize
   have hbody :
@@ -731,7 +731,7 @@ theorem flopperDentBodyCoreMoveCallDepthLimit
       UInt256.ofNat I.source.val ≠
         flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ_evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hdispatch : dispatchMsg contract I.calldata = some dentTransition)
@@ -826,12 +826,12 @@ theorem flopperDentBodyCoreAshNoCodeMoveCallerNeTicZero
       UInt256.ofNat I.source.val ≠
         flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ_evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩)
     (hticMove :
       flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I = ⟨0⟩)
     (hashNoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ'
+      Reasoning.Theory.extCodeSizeWord σ'
         (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I) = ⟨0⟩)
     (rd2545 : RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2545⟩
@@ -947,7 +947,7 @@ theorem flopperDentBodyCoreAshNoCodeMoveCallerNeTicZero
     rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨2⟩ σ_solm I) ≠ ⟨0⟩ :=
     flopperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨2⟩ hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I = ⟨0⟩ := by
@@ -955,7 +955,7 @@ theorem flopperDentBodyCoreAshNoCodeMoveCallerNeTicZero
       hpostAccountsCall packedSlot
     simpa [evmCallSolm, dentTicWord, packedSlot, hcallEnv, hword] using hticMove
   have hashNoCodeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmCallSolm.accountMap
+      Reasoning.Theory.extCodeSizeWord evmCallSolm.accountMap
         (dentGuyWord evmCallSolm I) = ⟨0⟩ := by
     have hzero :=
       flopperCodeSize_zero_accountMapEquiv_addressSlot
@@ -1006,12 +1006,12 @@ theorem flopperDentBodyCoreAshCallFailureMoveCallerNeTicZero
       UInt256.ofNat I.source.val ≠
         flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ_evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩)
     (hticMove :
       flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I = ⟨0⟩)
     (hashCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ'
+      Reasoning.Theory.extCodeSizeWord σ'
         (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd2690 : RD flopperBytecode I (Sat256.ofUInt256 g)
@@ -1179,7 +1179,7 @@ theorem flopperDentBodyCoreAshCallFailureMoveCallerNeTicZero
     rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨2⟩ σ_solm I) ≠ ⟨0⟩ :=
     flopperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨2⟩ hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I = ⟨0⟩ := by
@@ -1187,7 +1187,7 @@ theorem flopperDentBodyCoreAshCallFailureMoveCallerNeTicZero
       hpostAccountsCall packedSlot
     simpa [evmCallSolm, dentTicWord, packedSlot, hcallEnv, hword] using hticMove
   have hashCodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmCallSolm.accountMap
+      Reasoning.Theory.extCodeSizeWord evmCallSolm.accountMap
         (dentGuyWord evmCallSolm I) ≠ ⟨0⟩ := by
     have hne :=
       flopperCodeSize_ne_accountMapEquiv_addressSlot
@@ -1236,12 +1236,12 @@ theorem flopperDentBodyCoreAshDecodeShortMoveCallerNeTicZero
       UInt256.ofNat I.source.val ≠
         flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ_evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩)
     (hticMove :
       flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I = ⟨0⟩)
     (hashCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ'
+      Reasoning.Theory.extCodeSizeWord σ'
         (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd2690 : RD flopperBytecode I (Sat256.ofUInt256 g)
@@ -1412,7 +1412,7 @@ theorem flopperDentBodyCoreAshDecodeShortMoveCallerNeTicZero
     rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨2⟩ σ_solm I) ≠ ⟨0⟩ :=
     flopperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨2⟩ hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I = ⟨0⟩ := by
@@ -1420,7 +1420,7 @@ theorem flopperDentBodyCoreAshDecodeShortMoveCallerNeTicZero
       hpostAccountsCall packedSlot
     simpa [evmCallSolm, dentTicWord, packedSlot, hcallEnv, hword] using hticMove
   have hashCodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmCallSolm.accountMap
+      Reasoning.Theory.extCodeSizeWord evmCallSolm.accountMap
         (dentGuyWord evmCallSolm I) ≠ ⟨0⟩ := by
     have hne :=
       flopperCodeSize_ne_accountMapEquiv_addressSlot
@@ -1469,15 +1469,15 @@ theorem flopperDentBodyCoreKissNoCodeMoveCallerNeTicZero
       UInt256.ofNat I.source.val ≠
         flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ_evm I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨2⟩ σ_evm I) ≠ ⟨0⟩)
     (hticMove :
       flopperUint48Offset20Word (auctionPackedSlot (dentIdWord I)) σ' I = ⟨0⟩)
     (hashCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ'
+      Reasoning.Theory.extCodeSizeWord σ'
         (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σ' I) ≠ ⟨0⟩)
     (hkissNoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σAsh
+      Reasoning.Theory.extCodeSizeWord σAsh
         (flopperAddressReturnWord (auctionPackedSlot (dentIdWord I)) σAsh I) = ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd2690 : RD flopperBytecode I (Sat256.ofUInt256 g)
@@ -1650,7 +1650,7 @@ theorem flopperDentBodyCoreKissNoCodeMoveCallerNeTicZero
     rw [hguyEq]
     simpa [evmSolm, dentGuyWord, initState, packedSlot] using heq
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨2⟩ σ_solm I) ≠ ⟨0⟩ :=
     flopperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨2⟩ hcodeSize
   have hticMoveSolm : dentTicWord evmCallSolm I = ⟨0⟩ := by
@@ -1658,14 +1658,14 @@ theorem flopperDentBodyCoreKissNoCodeMoveCallerNeTicZero
       hpostAccountsCall packedSlot
     simpa [evmCallSolm, dentTicWord, packedSlot, hcallEnv, hword] using hticMove
   have hashCodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmCallSolm.accountMap
+      Reasoning.Theory.extCodeSizeWord evmCallSolm.accountMap
         (dentGuyWord evmCallSolm I) ≠ ⟨0⟩ := by
     have hne :=
       flopperCodeSize_ne_accountMapEquiv_addressSlot
         hpostAccountsCall packedSlot hashCodeSize
     simpa [evmCallSolm, dentGuyWord, packedSlot, hcallEnv] using hne
   have hkissNoCodeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmAshSolm.accountMap
+      Reasoning.Theory.extCodeSizeWord evmAshSolm.accountMap
         (dentGuyWord evmAshSolm I) = ⟨0⟩ := by
     have hzero :=
       flopperCodeSize_zero_accountMapEquiv_addressSlot

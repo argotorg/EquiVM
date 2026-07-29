@@ -3,7 +3,7 @@ import Mathlib.Util.ParseCommand
 import Lean.Elab.Tactic
 
 open Lean Elab Tactic
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Jug
 
@@ -92,7 +92,7 @@ have _foldNZeroCallReady :
     age = ⟨0⟩ →
       jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size →
         ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256 →
-          Reasoning.Theory.uniswapExtCodeSizeWord σ'
+          Reasoning.Theory.extCodeSizeWord σ'
             (dripVatTargetWord σ' I) ≠ ⟨0⟩ →
             ∃ gasWord k' C', RD jugBytecode I (Sat256.ofUInt256 g)
               (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1650⟩
@@ -146,7 +146,7 @@ have _foldNZeroNoCode :
     age = ⟨0⟩ →
       jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size →
         ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256 →
-          Reasoning.Theory.uniswapExtCodeSizeWord σ'
+          Reasoning.Theory.extCodeSizeWord σ'
             (dripVatTargetWord σ' I) = ⟨0⟩ →
             RDrev jugBytecode (Sat256.ofUInt256 g)
               (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by

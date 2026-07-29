@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Dai.Dispatch
 import Benchmarks.Dss.Dai.Storage
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Dai
 
@@ -4057,7 +4057,7 @@ theorem daiTransferFromX_tailSrcDebitRevertCont {cA σ I} {g : Sat256} {s0 : Sta
   have rdPush := evm_run rd8 with [raw push2 ⟨1399⟩ hd8 (by evm_ov)]
   have rdTail := rdPush.jumpiNT hd11 (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdTail
+  exact RD.solcPush1Dup1Revert0 rdTail
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -4297,7 +4297,7 @@ theorem daiTransferFromX_tailDstOverflowRevertCont {cA σ I} {g : Sat256} {s0 : 
   have rdPush := evm_run rd8 with [raw push2 ⟨1399⟩ hd8 (by evm_ov)]
   have rdTail := rdPush.jumpiNT hd11 (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdTail
+  exact RD.solcPush1Dup1Revert0 rdTail
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 

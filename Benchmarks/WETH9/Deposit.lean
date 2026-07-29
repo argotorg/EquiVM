@@ -12,7 +12,7 @@ converging on the runtime body at pc 760:
 * calldata < 4 (`weth9ShortFallbackBodyCore`, via fallback dispatch; the prologue short-circuits).
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

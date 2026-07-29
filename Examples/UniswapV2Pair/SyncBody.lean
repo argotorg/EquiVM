@@ -1,7 +1,7 @@
 import Examples.UniswapV2Pair.SyncCumulative
 import Examples.UniswapV2Pair.BalanceCallSource
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -336,7 +336,7 @@ theorem syncToken0GuardTrue_initState_of_code
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (htoken0Code :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
@@ -351,10 +351,10 @@ theorem syncToken0GuardTrue_initState_of_code
     simpa [σLockE, σLockS, token0WordE, token0WordS] using
       accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨6⟩ ⟨0⟩
   have hcodeSolm :
-      uniswapExtCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) ≠ ⟨0⟩ := by
+      extCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) ≠ ⟨0⟩ := by
     intro hzero
     have hsame :=
-      uniswapExtCodeSizeWord_accountMapEquiv hLockAccounts
+      extCodeSizeWord_accountMapEquiv hLockAccounts
         (UInt256.land solcAddrMask token0WordE)
     rw [← hslot] at hzero
     rw [← hsame] at hzero
@@ -374,13 +374,13 @@ theorem syncToken0GuardTrue_initState_of_code
           (fun acc => EVM.Word.ofNat acc.code.size) ≠
         ⟨0⟩ := by
     have hcodeSolmRight :
-        uniswapExtCodeSizeWord σLockS (UInt256.land token0WordS solcAddrMask) ≠ ⟨0⟩ := by
+        extCodeSizeWord σLockS (UInt256.land token0WordS solcAddrMask) ≠ ⟨0⟩ := by
       simpa [u256_land_comm] using hcodeSolm
     intro hzero
     apply hcodeSolmRight
     simpa [evmL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
       storageStore_accountMap, storageStore_executionEnv, State.lookupAccount, Solm.EVM.storageLoad,
-      Account.lookupStorage, uniswapAddressAtSlot, uniswapExtCodeSizeWord, uniswapSlotWord, σLockS,
+      Account.lookupStorage, uniswapAddressAtSlot, extCodeSizeWord, uniswapSlotWord, σLockS,
       token0WordS, accountAddress_ofUInt256_eq_ofNat_toNat] using hzero
   have hcodeSourceWord :
       EVM.Word.ofNat
@@ -427,9 +427,9 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallDepthReverts
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd6176⟩ :=
-    RD.uniswapStaticcallDepthLimit rd6175 (by native_decide) hdepth hovStatic
+    RD.solcStaticcallDepthLimit rd6175 (by native_decide) hdepth hovStatic
   have rdRev :=
-    RD.uniswapCallSuccessGuardMissing (okPc := ⟨6192⟩) rd6176 rfl
+    RD.solcCallSuccessGuardMissing (okPc := ⟨6192⟩) rd6176 rfl
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -445,7 +445,7 @@ theorem uniswapSyncBodyCoreRevert_firstCallDepth
       (σ_evm.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
     (htoken0Code :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩)
@@ -499,7 +499,7 @@ theorem uniswapSyncBodyRevert_firstCallDepth
       (σ_evm.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) = ⟨1⟩)
     (htoken0Code :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩)
@@ -526,7 +526,7 @@ theorem syncToken1GuardFalse_of_noCode {σ : AccountMap}
     (hPost : accountMapEquiv σ evm0.accountMap)
     (henv : evm0.executionEnv = I)
     (htoken1NoCode :
-      uniswapExtCodeSizeWord σ (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) =
+      extCodeSizeWord σ (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) =
         ⟨0⟩) :
     evalExpr? config { contract := contract, locals := (∅ : Store).insert "balance0" balance0 }
       evm0 (.binary .gt (.extCodeSize (.storage token1Ref)) (.intLit 0)) =
@@ -537,10 +537,10 @@ theorem syncToken1GuardFalse_of_noCode {σ : AccountMap}
     have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨7⟩ ⟨0⟩
     simpa [token1WordS, token1WordE, uniswapSlotWord, henv] using hword
   have hcodeEvm :
-      uniswapExtCodeSizeWord evm0.accountMap (UInt256.land solcAddrMask token1WordE) =
+      extCodeSizeWord evm0.accountMap (UInt256.land solcAddrMask token1WordE) =
         ⟨0⟩ := by
     have hsame :=
-      uniswapExtCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask token1WordS)
+      extCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask token1WordS)
     rw [← hslot]
     rw [← hsame]
     simpa [token1WordS] using htoken1NoCode
@@ -557,11 +557,11 @@ theorem syncToken1GuardFalse_of_noCode {σ : AccountMap}
           (fun acc => EVM.Word.ofNat acc.code.size) =
         ⟨0⟩ := by
     have hcodeEvmRight :
-        uniswapExtCodeSizeWord evm0.accountMap (UInt256.land token1WordE solcAddrMask) =
+        extCodeSizeWord evm0.accountMap (UInt256.land token1WordE solcAddrMask) =
           ⟨0⟩ := by
       simpa [u256_land_comm] using hcodeEvm
     simpa [State.lookupAccount, Solm.EVM.storageLoad, Account.lookupStorage,
-      uniswapAddressAtSlot, uniswapExtCodeSizeWord, uniswapSlotWord, token1WordE,
+      uniswapAddressAtSlot, extCodeSizeWord, uniswapSlotWord, token1WordE,
       accountAddress_ofUInt256_eq_ofNat_toNat] using hcodeEvmRight
   have hcodeSourceWord :
       EVM.Word.ofNat
@@ -584,7 +584,7 @@ theorem syncToken1GuardTrue_of_code {σ : AccountMap}
     (hPost : accountMapEquiv σ evm0.accountMap)
     (henv : evm0.executionEnv = I)
     (htoken1Code :
-      uniswapExtCodeSizeWord σ (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) ≠
+      extCodeSizeWord σ (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) ≠
         ⟨0⟩) :
     syncToken1GuardTrue evm0 balance0 := by
   let token1WordS := uniswapSlotWord ⟨7⟩ σ I
@@ -593,11 +593,11 @@ theorem syncToken1GuardTrue_of_code {σ : AccountMap}
     have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨7⟩ ⟨0⟩
     simpa [token1WordS, token1WordE, uniswapSlotWord, henv] using hword
   have hcodeEvm :
-      uniswapExtCodeSizeWord evm0.accountMap (UInt256.land solcAddrMask token1WordE) ≠
+      extCodeSizeWord evm0.accountMap (UInt256.land solcAddrMask token1WordE) ≠
         ⟨0⟩ := by
     intro hzero
     have hsame :=
-      uniswapExtCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask token1WordS)
+      extCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask token1WordS)
     rw [← hslot] at hzero
     rw [← hsame] at hzero
     exact htoken1Code (by simpa [token1WordS] using hzero)
@@ -614,13 +614,13 @@ theorem syncToken1GuardTrue_of_code {σ : AccountMap}
           (fun acc => EVM.Word.ofNat acc.code.size) ≠
         ⟨0⟩ := by
     have hcodeEvmRight :
-        uniswapExtCodeSizeWord evm0.accountMap (UInt256.land token1WordE solcAddrMask) ≠
+        extCodeSizeWord evm0.accountMap (UInt256.land token1WordE solcAddrMask) ≠
           ⟨0⟩ := by
       simpa [u256_land_comm] using hcodeEvm
     intro hzero
     apply hcodeEvmRight
     simpa [State.lookupAccount, Solm.EVM.storageLoad, Account.lookupStorage,
-      uniswapAddressAtSlot, uniswapExtCodeSizeWord, uniswapSlotWord, token1WordE,
+      uniswapAddressAtSlot, extCodeSizeWord, uniswapSlotWord, token1WordE,
       accountAddress_ofUInt256_eq_ofNat_toNat] using hzero
   have hcodeSourceWord :
       EVM.Word.ofNat
@@ -736,7 +736,7 @@ theorem uniswapSyncBody
           ⟨1⟩ := by
       exact not_not.mp hlocked
     by_cases htoken0NoCode :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩
@@ -756,7 +756,7 @@ theorem uniswapSyncBody
           intro hz
           have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
             simp [hz]
-          exact RD.uniswapCallSuccessGuardMissing (okPc := ⟨6192⟩) rd6176 hstatus
+          exact RD.solcCallSuccessGuardMissing (okPc := ⟨6192⟩) rd6176 hstatus
             (by native_decide) (by native_decide) (by native_decide) (by native_decide)
             (by native_decide) (by native_decide) (by native_decide)
             (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -771,7 +771,7 @@ theorem uniswapSyncBody
             rw [hz]
             decide
           obtain ⟨_, _, rd6194⟩ :=
-            RD.uniswapCallSuccessGuardOk (okPc := ⟨6192⟩) rd6176 hstatus
+            RD.solcCallSuccessGuardOk (okPc := ⟨6192⟩) rd6176 hstatus
               (by native_decide) (by native_decide) (by native_decide) (by native_decide)
               (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
               (by simp only [List.length_cons, List.length_nil]; omega)
@@ -850,10 +850,10 @@ theorem uniswapSyncBody
               simpa [balance0] using uniswapBalanceOfDecode_ok (returndata := o) ho32
             obtain ⟨_, _, rd6279⟩ := hsecondExt hzTrue ho32
             by_cases htoken1NoCode :
-              uniswapExtCodeSizeWord σ'
+              extCodeSizeWord σ'
                 (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) = ⟨0⟩
             · have rdRev :=
-                RD.uniswapExtcodesizeGuardMissing (okPc := ⟨6291⟩) rd6279 htoken1NoCode
+                RD.solcExtcodesizeGuardMissing (okPc := ⟨6291⟩) rd6279 htoken1NoCode
                   (by native_decide) (by native_decide) (by native_decide)
                   (by native_decide) (by native_decide) (by native_decide)
                   (by native_decide) (by native_decide) (by native_decide)
@@ -876,7 +876,7 @@ theorem uniswapSyncBody
                   syncToken1GuardTrue evm0S (uniswapUint256Value balance0) :=
                 syncToken1GuardTrue_of_code hPostAccounts0 henv0I htoken1NoCode
               obtain ⟨_, _, _, rd6294⟩ :=
-                RD.uniswapExtcodesizeGuardOkGas (okPc := ⟨6291⟩) rd6279 htoken1NoCode
+                RD.solcExtcodesizeGuardOkGas (okPc := ⟨6291⟩) rd6279 htoken1NoCode
                   (by native_decide) (by native_decide) (by native_decide)
                   (by native_decide) (by native_decide) (by native_decide)
                   (by jump_dest) (by native_decide) (by native_decide)
@@ -884,7 +884,7 @@ theorem uniswapSyncBody
                   (by simp only [List.length_cons, List.length_nil]; omega)
               obtain ⟨cA'', σ'', z1, o1, A_in1, callGas1, _, _, hΘ1, rd6295,
                   ho1Size⟩ :=
-                RD.uniswapStaticcall rd6294 (by native_decide) hdepth
+                RD.solcStaticcall rd6294 (by native_decide) hdepth
                   (by simp only [List.length_cons, List.length_nil]; omega)
               obtain ⟨evm1S, hcall1All, hPostAccounts1, hcreated1, hσ01,
                   hgenesis1, hblocks1, henv1⟩ :=

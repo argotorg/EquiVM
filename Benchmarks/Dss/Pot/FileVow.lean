@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Pot.FileDsr
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
@@ -709,7 +709,7 @@ theorem potFileVowX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : �
   have rd2269 := rd2268.sub (by native_decide) (by evm_ov)
   have rd2270 := rd2269.dup4 (by native_decide) (by evm_ov)
   have rd2271 := rd2270.and (by native_decide) (by evm_ov)
-  have rd2272 := rd2271.lor (by native_decide) (by evm_ov)
+  have rd2272 := rd2271.or (by native_decide) (by evm_ov)
   have rd2273 := rd2272.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2274⟩ := rd2273.sstore hperm (by native_decide) (by evm_ov)
   have rd2277 := rd2274.push2 ⟨1326⟩ (by native_decide) (by evm_ov)

@@ -3,7 +3,7 @@ import Benchmarks.Dss.Cat.BiteCallGrab
 import Benchmarks.Dss.Cat.BiteCallFess
 import Benchmarks.Dss.Cat.BiteConnectGrab
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000
@@ -72,7 +72,7 @@ theorem RD.catBiteCheckedMulRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd3748 := rd3747.jumpdest (by native_decide) (by evm_ov)
   have rd3751 := rd3748.push2 ⟨3756⟩ (by native_decide) (by evm_ov)
   have rd3752 := rd3751.jumpiNT (by native_decide) rfl (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd3752 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rd3752 (by native_decide) (by native_decide)
     (by native_decide) (by evm_ov)
 
 /-- Entry (`375`) → routine (`1163`) → ilks `STATICCALL` (Seg 1, at pc `1249`): the first view call.
@@ -81,7 +81,7 @@ theorem catBiteReachPostIlks {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
     (hsel : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (catBiteVatTargetWord σ I) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (catBiteVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
       (o' : ByteArray) (A' : Substate) (awout : UInt256) (k' C' : ℕ),
@@ -126,7 +126,7 @@ theorem catBiteReachPostUrns {cA gh bl σ σ₀ A I} {g : UInt256}
     (hSpot : mem.readWithPadding 192 32 = UInt256.toByteArray iSpot)
     (hDust : mem.readWithPadding 256 32 = UInt256.toByteArray iDust)
     (hurn : UInt256.land biteAddrMaskWord urn = biteUrnWord I)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'
       (UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
@@ -459,7 +459,7 @@ theorem catBiteReachFessRegion {cA gh bl σ σ₀ A I} {g : UInt256}
     (hp96 : 96 ≤ p2.toNat) (hpmem : p2.toNat ≤ mem.size)
     (hawcov : p2.toNat ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
     (hpsz : p2.toNat + 96 < UInt256.size)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'
       (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
@@ -505,7 +505,7 @@ theorem catBiteReachGrabRegion {cA gh bl σ σ₀ A I} {g : UInt256}
     (hpsz : p.toNat + 256 < UInt256.size)
     (hthisCanon : (UInt256.ofNat I.codeOwner.val).toNat < EVM.addressModulus)
     (hdink : dink.toNat ≤ 2 ^ 255) (hdart : dart.toNat ≤ 2 ^ 255)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'
       (UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)

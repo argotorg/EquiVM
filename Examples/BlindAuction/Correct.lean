@@ -10,19 +10,18 @@ import Examples.BlindAuction.RevealEnd
 import Examples.BlindAuction.HighestBidder
 import Examples.BlindAuction.HighestBid
 import Reasoning.Initcode
-import Reasoning.Refinement
 
 /-!
 # BlindAuction — top-level correctness proof
 
 This file is the Phase 0 dispatcher assembly for
-`blindAuctionCorrect : runtimeEquivalence!?! …`.  It follows the optimizer-on binary-search
+`blindAuctionCorrect : runtimeEquivalence …`.  It follows the optimizer-on binary-search
 dispatcher shape shared with Ballot/SimpleAuction, but with BlindAuction's payable top-level
 dispatcher: calldata size and selector routing happen before any callvalue check, and non-payable
 guards are proved inside the individual body files.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
@@ -31,7 +30,7 @@ namespace BlindAuction
 
 /-- The deployed BlindAuction runtime bytecode refines the Solm specification. -/
 theorem blindAuctionCorrect :
-    runtimeEquivalence!?! blindAuctionConfig blindAuctionBytecode blindAuctionContract := by
+    runtimeEquivalence blindAuctionConfig blindAuctionBytecode blindAuctionContract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
       hAccounts => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
@@ -668,7 +667,7 @@ theorem blindAuctionInitcodeBiddingOverflowRevert
   obtain ⟨kSload, CSload, rdAfterSload⟩ :=
     rdBeforeSload.sload (by blind_ctor_decode) (by evm_ov)
   have rdBeforeStore := blind_ctor_run rdAfterSload with [
-    push20 solcAddrMask, not, and, lor, swap1, pop, push0]
+    push20 solcAddrMask, not, and, or, swap1, pop, push0]
   have hpacked :
       UInt256.lor (UInt256.land (UInt256.lnot solcAddrMask) oldBeneficiarySlot)
           (UInt256.land solcAddrMask (EVM.word beneficiaryAddress)) =
@@ -752,7 +751,7 @@ theorem blindAuctionInitcodeRevealOverflowRevert
   obtain ⟨kSload, CSload, rdAfterSload⟩ :=
     rdBeforeSload.sload (by blind_ctor_decode) (by evm_ov)
   have rdBeforeStore := blind_ctor_run rdAfterSload with [
-    push20 solcAddrMask, not, and, lor, swap1, pop, push0]
+    push20 solcAddrMask, not, and, or, swap1, pop, push0]
   have hpacked :
       UInt256.lor (UInt256.land (UInt256.lnot solcAddrMask) oldBeneficiarySlot)
           (UInt256.land solcAddrMask (EVM.word beneficiaryAddress)) =
@@ -895,7 +894,7 @@ theorem blindAuctionInitcodeSuccess
   obtain ⟨kSload, CSload, rdAfterSload⟩ :=
     rdBeforeSload.sload (by blind_ctor_decode) (by evm_ov)
   have rdBeforeStore := blind_ctor_run rdAfterSload with [
-    push20 solcAddrMask, not, and, lor, swap1, pop, push0]
+    push20 solcAddrMask, not, and, or, swap1, pop, push0]
   have hpacked :
       UInt256.lor (UInt256.land (UInt256.lnot solcAddrMask) oldBeneficiarySlot)
           (UInt256.land solcAddrMask (EVM.word beneficiaryAddress)) =

@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Flipper.DentRefundEVM
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
 
@@ -71,10 +71,10 @@ theorem flipperDentBodyFrom4733Refund
     dsimp [memHash]
     exact twoWordHashMem_read64 (dentId I) ⟨1⟩ hmemSize hmemRead64
   by_cases hrefundZero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flipperVatTargetWord σ_evm I) = ⟨0⟩
   · have hrefundZeroSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+        Reasoning.Theory.extCodeSizeWord σ_solm
             (flipperVatTargetWord σ_solm I) = ⟨0⟩ :=
       flipperVatCodeSize_zero_accountMapEquiv hAccounts hrefundZero
     have hvatNoCode :=
@@ -92,7 +92,7 @@ theorem flipperDentBodyFrom4733Refund
     exact (flipperDentX_refundNoCode hmemSize hmemRead64 hcallerEvm hrefundZero h)
       |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hrefundNeSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+        Reasoning.Theory.extCodeSizeWord σ_solm
             (flipperVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
       flipperVatCodeSize_ne_zero_accountMapEquiv hAccounts hrefundZero
     have hrefundCodeSolm :=
@@ -315,14 +315,14 @@ theorem flipperDentBodyFrom4733Refund
               (true, evmRefundSolm, outRefund) true := by
           simpa using hcallRefundSolm
         by_cases hfluxZero :
-            Reasoning.Theory.uniswapExtCodeSizeWord (dentAfterRefundMap σ_ref I)
+            Reasoning.Theory.extCodeSizeWord (dentAfterRefundMap σ_ref I)
               (flipperVatTargetWord (dentAfterRefundMap σ_ref I) I) = ⟨0⟩
         · have hfluxZeroEvm :
-              Reasoning.Theory.uniswapExtCodeSizeWord evmGuyEvm.accountMap
+              Reasoning.Theory.extCodeSizeWord evmGuyEvm.accountMap
                 (flipperVatTargetWord evmGuyEvm.accountMap I) = ⟨0⟩ := by
             simpa [hmapGuyEvm] using hfluxZero
           have hfluxZeroSolm :
-              Reasoning.Theory.uniswapExtCodeSizeWord evmGuySolm.accountMap
+              Reasoning.Theory.extCodeSizeWord evmGuySolm.accountMap
                 (flipperVatTargetWord evmGuySolm.accountMap I) = ⟨0⟩ :=
             flipperVatCodeSize_zero_accountMapEquiv hGuyStateEquiv.accountMap hfluxZeroEvm
           have hfluxNoCodeSolm :
@@ -333,7 +333,7 @@ theorem flipperDentBodyFrom4733Refund
                   0 (fun acc => acc.code.size))).toNat = 0 := by
             simpa [evmGuySolm, evmRefundSolm, evm0Solm, initState,
               storageStore_executionEnv, State.lookupAccount] using
-              flipper_uniswapExtCodeSizeWord_zero_lookup_code_zero
+              flipper_extCodeSizeWord_zero_lookup_code_zero
                 (σ := evmGuySolm.accountMap)
                 (target := flipperVatTargetWord evmGuySolm.accountMap I)
                 (addr := flipperVatAddress evmGuySolm.accountMap I)
@@ -352,11 +352,11 @@ theorem flipperDentBodyFrom4733Refund
           exact (flipperDentX_fluxNoCodeAw8 hmemFluxSize hmemFluxRead64 hfluxZero rd4927)
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
         · have hfluxNeEvm :
-              Reasoning.Theory.uniswapExtCodeSizeWord evmGuyEvm.accountMap
+              Reasoning.Theory.extCodeSizeWord evmGuyEvm.accountMap
                 (flipperVatTargetWord evmGuyEvm.accountMap I) ≠ ⟨0⟩ := by
             simpa [hmapGuyEvm] using hfluxZero
           have hfluxNeSolm :
-              Reasoning.Theory.uniswapExtCodeSizeWord evmGuySolm.accountMap
+              Reasoning.Theory.extCodeSizeWord evmGuySolm.accountMap
                 (flipperVatTargetWord evmGuySolm.accountMap I) ≠ ⟨0⟩ :=
             flipperVatCodeSize_ne_zero_accountMapEquiv hGuyStateEquiv.accountMap hfluxNeEvm
           have hfluxCodeSolm :
@@ -368,7 +368,7 @@ theorem flipperDentBodyFrom4733Refund
                     0 (fun acc => acc.code.size))).toNat := by
             simpa [evmGuySolm, evmRefundSolm, evm0Solm, initState,
               storageStore_executionEnv, State.lookupAccount] using
-              flipper_uniswapExtCodeSizeWord_pos_lookup_code_pos
+              flipper_extCodeSizeWord_pos_lookup_code_pos
                 (σ := evmGuySolm.accountMap)
                 (target := flipperVatTargetWord evmGuySolm.accountMap I)
                 (addr := flipperVatAddress evmGuySolm.accountMap I)

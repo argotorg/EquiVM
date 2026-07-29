@@ -1,5 +1,5 @@
 import Benchmarks.Dss.Vow.Bytecode
-import Solm.Dispatch
+import Solm.Semantics
 
 /-!
 # MakerDAO/Sky DSS Vow trusted bytecode facts

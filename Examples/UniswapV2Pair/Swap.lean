@@ -1,7 +1,6 @@
 import Examples.UniswapV2Pair.MutatorDispatch
-import Reasoning.Refinement
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
@@ -952,7 +951,7 @@ theorem uniswapSwapX_lengthHuge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     simpa [solcLegacyMaxU32] using hlenHuge
   have rd548 := rd548₀
   rw [hgtHuge] at rd548
-  have rd549 := RD.lor rd548 (by native_decide) (by evm_ov)
+  have rd549 := RD.or rd548 (by native_decide) (by evm_ov)
   have rd550₀ := rd549.iszero (by native_decide) (by evm_ov)
   have rd550 := rd550₀
   rw [isZero_eq_zero_of_ne (swapU256_lor_one_ne_zero_left _)] at rd550
@@ -1188,7 +1187,7 @@ theorem uniswapSwapX_payloadShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
     (by decide) (by native_decide) (by evm_ov)
   have rd547 := rd546.dup4 (by native_decide) (by evm_ov)
   have rd548 := rd547.gt (by native_decide) (by evm_ov)
-  have rd549 := RD.lor rd548 (by native_decide) (by evm_ov)
+  have rd549 := RD.or rd548 (by native_decide) (by evm_ov)
   have rd550₀ := rd549.iszero (by native_decide) (by evm_ov)
   have rd550 := rd550₀
   rw [isZero_eq_zero_of_ne (swapU256_lor_one_ne_zero_right _)] at rd550

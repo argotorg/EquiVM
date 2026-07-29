@@ -10,7 +10,7 @@ with `require(success)`).  This file carries the EVM trace and the Solm body-exe
 top-level refinement `weth9WithdrawBodyCore` lives in `Withdraw.lean`.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000
@@ -308,7 +308,7 @@ theorem weth9WithdrawDecodeRev {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.iszero (by native_decide) (by simp)
     |>.push2 ⟨522⟩ (by native_decide) (by simp)
     |>.jumpiNT (by native_decide) (by rw [hltShort]; decide) (by simp)
-    |>.uniswapPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+    |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 /-- `callvalue = 0`, `size ≥ 36`: reach the body entry (pc 1395) with `[wad, 164, sel]`. -/
 theorem weth9WithdrawReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -400,7 +400,7 @@ theorem weth9WithdrawRequireRev {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     ugt_one (by omega)
   exact h1415.push2 ⟨1423⟩ (by native_decide) (by simp)
     |>.jumpiNT (by native_decide) (by rw [hgt]; decide) (by simp)
-    |>.uniswapPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+    |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
 
 /-- `bal ≥ wad`: pass the require, re-keccak, `balanceOf[caller] -= wad` (`SSTORE`), reaching the
     `CALL` setup (pc 1447) with the mapping-hash memory and the decremented balance. -/

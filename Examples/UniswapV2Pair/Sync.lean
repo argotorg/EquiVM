@@ -1,8 +1,7 @@
 import Examples.UniswapV2Pair.SyncRuntime
-import Reasoning.Refinement
 import Reasoning.SolmBody
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -1666,7 +1665,7 @@ theorem syncToken0GuardFalse_initState_of_noCode
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (htoken0NoCode :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩) :
@@ -1681,12 +1680,12 @@ theorem syncToken0GuardFalse_initState_of_noCode
     simpa [σLockE, σLockS, token0WordE, token0WordS] using
       accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨6⟩ ⟨0⟩
   have hnoSolm :
-      uniswapExtCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) = ⟨0⟩ := by
+      extCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) = ⟨0⟩ := by
     have hsame :=
-      uniswapExtCodeSizeWord_accountMapEquiv hLockAccounts
+      extCodeSizeWord_accountMapEquiv hLockAccounts
         (UInt256.land solcAddrMask token0WordE)
     have hnoE :
-        uniswapExtCodeSizeWord σLockE (UInt256.land solcAddrMask token0WordE) = ⟨0⟩ := by
+        extCodeSizeWord σLockE (UInt256.land solcAddrMask token0WordE) = ⟨0⟩ := by
       simpa [σLockE, token0WordE] using htoken0NoCode
     rw [← hslot]
     rw [← hsame]
@@ -1707,11 +1706,11 @@ theorem syncToken0GuardFalse_initState_of_noCode
           (fun acc => EVM.Word.ofNat acc.code.size) =
         ⟨0⟩ := by
     have hnoSolmRight :
-        uniswapExtCodeSizeWord σLockS (UInt256.land token0WordS solcAddrMask) = ⟨0⟩ := by
+        extCodeSizeWord σLockS (UInt256.land token0WordS solcAddrMask) = ⟨0⟩ := by
       simpa [u256_land_comm] using hnoSolm
     simpa [evmL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
       storageStore_accountMap, storageStore_executionEnv, State.lookupAccount, Solm.EVM.storageLoad,
-      Account.lookupStorage, uniswapAddressAtSlot, uniswapExtCodeSizeWord, uniswapSlotWord, σLockS,
+      Account.lookupStorage, uniswapAddressAtSlot, extCodeSizeWord, uniswapSlotWord, σLockS,
       token0WordS, accountAddress_ofUInt256_eq_ofNat_toNat] using hnoSolmRight
   have hnoSourceWord :
       EVM.Word.ofNat
@@ -2374,7 +2373,7 @@ theorem uniswapSyncBodyCoreRevert_firstNoCode
       (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0NoCode :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩)
@@ -2427,7 +2426,7 @@ theorem uniswapSyncBodyRevert_firstNoCode
       (σ_evm.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨12⟩ ⟨0⟩)) =
         ⟨1⟩)
     (htoken0NoCode :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩)

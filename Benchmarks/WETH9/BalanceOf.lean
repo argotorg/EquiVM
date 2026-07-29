@@ -7,7 +7,7 @@ import Benchmarks.WETH9.Routines
 decodes one address argument, hashes the mapping slot, loads it, and ABI-encodes the `uint256`.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000
@@ -216,7 +216,7 @@ theorem weth9BalanceOfBodyCoreOk {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
         |>.iszero (by native_decide) (by simp)
         |>.push2 ⟨607⟩ (by native_decide) (by simp)
         |>.jumpiNT (by native_decide) (by rw [hltShort]; decide) (by simp)
-        |>.uniswapPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+        |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
     exact weth9ReEquivDecodeFailed hcode hrev hdisp (weth9Decode_balanceOf_none_short hsz4 hsz)
 
 /-- `balanceOf(address)` body refines its Solm transition (handling both callvalue branches). -/

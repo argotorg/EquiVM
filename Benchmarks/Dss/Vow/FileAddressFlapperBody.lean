@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Vow.FileAddressFlapper
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
@@ -169,7 +169,7 @@ theorem vowFileAddressFlapperNopeCallDepthLimitBodyCore
     (hauthEvm : vowSlotWord (vowCallerWardsSlot I) σ_evm I = ⟨1⟩)
     (hwhat : fileAddressWhat I = fileAddressFlapperBytes)
     (hcodeSizeNope :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (fileAddressVatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
@@ -186,12 +186,12 @@ theorem vowFileAddressFlapperNopeCallDepthLimitBodyCore
       fileAddressVatTargetWord σ_evm I = fileAddressVatTargetWord σ_solm I :=
     fileAddressVatTargetWord_accountMapEquiv hAccounts I
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (fileAddressVatTargetWord σ_solm I) ≠ ⟨0⟩ := by
     intro hzero
     apply hcodeSizeNope
     have hsame :=
-      Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
         (fileAddressVatTargetWord σ_evm I)
     rw [hsame, hVatTargetOrig]
     exact hzero
@@ -207,7 +207,7 @@ theorem vowFileAddressFlapperNopeCallDepthLimitBodyCore
           AccountAddress.ofUInt256 (fileAddressVatTargetWord σ_solm I) := by
       simpa [evm0Solm] using fileAddressVatAddressOf_initState_eq cA gh bl σ_solm σ₀ A I g
     simpa [evm0Solm, initState, State.lookupAccount] using
-      fileAddress_uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+      fileAddress_extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := σ_solm) (target := fileAddressVatTargetWord σ_solm I)
         (addr := fileAddressVatAddressOf evm0Solm) haddr hcodeSizeSolm
   obtain ⟨_, _, hswitch⟩ := RD.vowFileAddressToSwitch hreach hsz68 hsize hauthSolc
@@ -271,10 +271,10 @@ theorem vowFileAddressFlapperHopeNoCodeAfterNopeSuccessBodyCore
     (hauthEvm : vowSlotWord (vowCallerWardsSlot I) σ_evm I = ⟨1⟩)
     (hwhat : fileAddressWhat I = fileAddressFlapperBytes)
     (hcodeSizeNope :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (fileAddressVatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hcodeSizeHope :
-      Reasoning.Theory.uniswapExtCodeSizeWord
+      Reasoning.Theory.extCodeSizeWord
         (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I))
         (fileAddressVatTargetWord
           (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I)) I) = ⟨0⟩) :
@@ -289,12 +289,12 @@ theorem vowFileAddressFlapperHopeNoCodeAfterNopeSuccessBodyCore
       fileAddressVatTargetWord σ_evm I = fileAddressVatTargetWord σ_solm I :=
     fileAddressVatTargetWord_accountMapEquiv hAccounts I
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (fileAddressVatTargetWord σ_solm I) ≠ ⟨0⟩ := by
     intro hzero
     apply hcodeSizeNope
     have hsame :=
-      Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
         (fileAddressVatTargetWord σ_evm I)
     rw [hsame, hVatTargetOrig]
     exact hzero
@@ -310,7 +310,7 @@ theorem vowFileAddressFlapperHopeNoCodeAfterNopeSuccessBodyCore
           AccountAddress.ofUInt256 (fileAddressVatTargetWord σ_solm I) := by
       simpa [evm0Solm] using fileAddressVatAddressOf_initState_eq cA gh bl σ_solm σ₀ A I g
     simpa [evm0Solm, initState, State.lookupAccount] using
-      fileAddress_uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+      fileAddress_extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := σ_solm) (target := fileAddressVatTargetWord σ_solm I)
         (addr := fileAddressVatAddressOf evm0Solm) haddr hcodeSizeSolm
   obtain ⟨σNopeSolm, ANopeSolm, hcallNopeSolm, hStateNope⟩ :=
@@ -345,14 +345,14 @@ theorem vowFileAddressFlapperHopeNoCodeAfterNopeSuccessBodyCore
         fileAddressVatTargetWord evmSetSolm.accountMap I :=
     fileAddressVatTargetWord_accountMapEquiv hAccountsSet I
   have hcodeSizeHopeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmSetSolm.accountMap
+      Reasoning.Theory.extCodeSizeWord evmSetSolm.accountMap
         (fileAddressVatTargetWord evmSetSolm.accountMap I) = ⟨0⟩ := by
     have hsame :=
-      Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccountsSet
+      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccountsSet
         (fileAddressVatTargetWord
           (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I)) I)
     have hzeroAtEvmTarget :
-        Reasoning.Theory.uniswapExtCodeSizeWord evmSetSolm.accountMap
+        Reasoning.Theory.extCodeSizeWord evmSetSolm.accountMap
           (fileAddressVatTargetWord
             (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I)) I) = ⟨0⟩ := by
       rw [← hsame]
@@ -368,7 +368,7 @@ theorem vowFileAddressFlapperHopeNoCodeAfterNopeSuccessBodyCore
           AccountAddress.ofUInt256 (fileAddressVatTargetWord evmSetSolm.accountMap I) :=
       fileAddressVatAddressOf_eq_target_of_env evmSetSolm I hEnvSet
     simpa [evmSetSolm, State.lookupAccount] using
-      fileAddress_uniswapExtCodeSizeWord_zero_lookup_code_zero
+      fileAddress_extCodeSizeWord_zero_lookup_code_zero
         (σ := evmSetSolm.accountMap)
         (target := fileAddressVatTargetWord evmSetSolm.accountMap I)
         (addr := fileAddressVatAddressOf evmSetSolm) haddr hcodeSizeHopeSolm
@@ -428,10 +428,10 @@ theorem vowFileAddressFlapperHopeCallFailureAfterNopeSuccessBodyCore
     (hauthEvm : vowSlotWord (vowCallerWardsSlot I) σ_evm I = ⟨1⟩)
     (hwhat : fileAddressWhat I = fileAddressFlapperBytes)
     (hcodeSizeNope :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (fileAddressVatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hcodeSizeHope :
-      Reasoning.Theory.uniswapExtCodeSizeWord
+      Reasoning.Theory.extCodeSizeWord
         (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I))
         (fileAddressVatTargetWord
           (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I)) I) ≠ ⟨0⟩)
@@ -447,12 +447,12 @@ theorem vowFileAddressFlapperHopeCallFailureAfterNopeSuccessBodyCore
       fileAddressVatTargetWord σ_evm I = fileAddressVatTargetWord σ_solm I :=
     fileAddressVatTargetWord_accountMapEquiv hAccounts I
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (fileAddressVatTargetWord σ_solm I) ≠ ⟨0⟩ := by
     intro hzero
     apply hcodeSizeNope
     have hsame :=
-      Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
         (fileAddressVatTargetWord σ_evm I)
     rw [hsame, hVatTargetOrig]
     exact hzero
@@ -468,7 +468,7 @@ theorem vowFileAddressFlapperHopeCallFailureAfterNopeSuccessBodyCore
           AccountAddress.ofUInt256 (fileAddressVatTargetWord σ_solm I) := by
       simpa [evm0Solm] using fileAddressVatAddressOf_initState_eq cA gh bl σ_solm σ₀ A I g
     simpa [evm0Solm, initState, State.lookupAccount] using
-      fileAddress_uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+      fileAddress_extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := σ_solm) (target := fileAddressVatTargetWord σ_solm I)
         (addr := fileAddressVatAddressOf evm0Solm) haddr hcodeSizeSolm
   obtain ⟨σNopeSolm, ANopeSolm, hcallNopeSolm, hStateNope⟩ :=
@@ -503,12 +503,12 @@ theorem vowFileAddressFlapperHopeCallFailureAfterNopeSuccessBodyCore
         fileAddressVatTargetWord evmSetSolm.accountMap I :=
     fileAddressVatTargetWord_accountMapEquiv hAccountsSet I
   have hcodeSizeHopeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmSetSolm.accountMap
+      Reasoning.Theory.extCodeSizeWord evmSetSolm.accountMap
         (fileAddressVatTargetWord evmSetSolm.accountMap I) ≠ ⟨0⟩ := by
     intro hzero
     apply hcodeSizeHope
     have hsame :=
-      Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccountsSet
+      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccountsSet
         (fileAddressVatTargetWord
           (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I)) I)
     rw [hsame, hTargetSet]
@@ -523,7 +523,7 @@ theorem vowFileAddressFlapperHopeCallFailureAfterNopeSuccessBodyCore
           (fileAddressVatAddressOf (fileAddressSetFlapperEVM evmNopeSolm I))).option 0
             (fun acc => acc.code.size))).toNat := by
     simpa [evmSetSolm, State.lookupAccount] using
-      fileAddress_uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+      fileAddress_extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evmSetSolm.accountMap)
         (target := fileAddressVatTargetWord evmSetSolm.accountMap I)
         (addr := fileAddressVatAddressOf evmSetSolm) haddrHope hcodeSizeHopeSolm
@@ -624,10 +624,10 @@ theorem vowFileAddressFlapperHopeSuccessAfterNopeSuccessBodyCore
     (hauthEvm : vowSlotWord (vowCallerWardsSlot I) σ_evm I = ⟨1⟩)
     (hwhat : fileAddressWhat I = fileAddressFlapperBytes)
     (hcodeSizeNope :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (fileAddressVatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hcodeSizeHope :
-      Reasoning.Theory.uniswapExtCodeSizeWord
+      Reasoning.Theory.extCodeSizeWord
         (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I))
         (fileAddressVatTargetWord
           (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I)) I) ≠ ⟨0⟩)
@@ -643,12 +643,12 @@ theorem vowFileAddressFlapperHopeSuccessAfterNopeSuccessBodyCore
       fileAddressVatTargetWord σ_evm I = fileAddressVatTargetWord σ_solm I :=
     fileAddressVatTargetWord_accountMapEquiv hAccounts I
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (fileAddressVatTargetWord σ_solm I) ≠ ⟨0⟩ := by
     intro hzero
     apply hcodeSizeNope
     have hsame :=
-      Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
         (fileAddressVatTargetWord σ_evm I)
     rw [hsame, hVatTargetOrig]
     exact hzero
@@ -664,7 +664,7 @@ theorem vowFileAddressFlapperHopeSuccessAfterNopeSuccessBodyCore
           AccountAddress.ofUInt256 (fileAddressVatTargetWord σ_solm I) := by
       simpa [evm0Solm] using fileAddressVatAddressOf_initState_eq cA gh bl σ_solm σ₀ A I g
     simpa [evm0Solm, initState, State.lookupAccount] using
-      fileAddress_uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+      fileAddress_extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := σ_solm) (target := fileAddressVatTargetWord σ_solm I)
         (addr := fileAddressVatAddressOf evm0Solm) haddr hcodeSizeSolm
   obtain ⟨σNopeSolm, ANopeSolm, hcallNopeSolm, hStateNope⟩ :=
@@ -699,12 +699,12 @@ theorem vowFileAddressFlapperHopeSuccessAfterNopeSuccessBodyCore
         fileAddressVatTargetWord evmSetSolm.accountMap I :=
     fileAddressVatTargetWord_accountMapEquiv hAccountsSet I
   have hcodeSizeHopeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmSetSolm.accountMap
+      Reasoning.Theory.extCodeSizeWord evmSetSolm.accountMap
         (fileAddressVatTargetWord evmSetSolm.accountMap I) ≠ ⟨0⟩ := by
     intro hzero
     apply hcodeSizeHope
     have hsame :=
-      Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccountsSet
+      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccountsSet
         (fileAddressVatTargetWord
           (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I)) I)
     rw [hsame, hTargetSet]
@@ -719,7 +719,7 @@ theorem vowFileAddressFlapperHopeSuccessAfterNopeSuccessBodyCore
           (fileAddressVatAddressOf (fileAddressSetFlapperEVM evmNopeSolm I))).option 0
             (fun acc => acc.code.size))).toNat := by
     simpa [evmSetSolm, State.lookupAccount] using
-      fileAddress_uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+      fileAddress_extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := evmSetSolm.accountMap)
         (target := fileAddressVatTargetWord evmSetSolm.accountMap I)
         (addr := fileAddressVatAddressOf evmSetSolm) haddrHope hcodeSizeHopeSolm
@@ -822,21 +822,21 @@ theorem vowFileAddressFlapperAuthorizedBodyCore
     twoWordHashMem_read64 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
       solcFreePtrMem_read64
   by_cases hcodeSizeNopeZero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (fileAddressVatTargetWord σ_evm I) = ⟨0⟩
   · exact vowFileAddressFlapperNopeNoCodeBodyCore (sel := sel) hcode hwv hperm hsz68
       hsize hdispatch hdecode hreach hAccounts hauthEvm hwhat hcodeSizeNopeZero
   have hcodeSizeNope :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (fileAddressVatTargetWord σ_evm I) ≠ ⟨0⟩ :=
     hcodeSizeNopeZero
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (fileAddressVatTargetWord σ_solm I) ≠ ⟨0⟩ := by
     intro hzero
     apply hcodeSizeNope
     have hsame :=
-      Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
         (fileAddressVatTargetWord σ_evm I)
     rw [hsame, hVatTargetOrig]
     exact hzero
@@ -852,7 +852,7 @@ theorem vowFileAddressFlapperAuthorizedBodyCore
           AccountAddress.ofUInt256 (fileAddressVatTargetWord σ_solm I) := by
       simpa [evm0Solm] using fileAddressVatAddressOf_initState_eq cA gh bl σ_solm σ₀ A I g
     simpa [evm0Solm, initState, State.lookupAccount] using
-      fileAddress_uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+      fileAddress_extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := σ_solm) (target := fileAddressVatTargetWord σ_solm I)
         (addr := fileAddressVatAddressOf evm0Solm) haddr hcodeSizeSolm
   by_cases hdepthLt : I.depth.val < 1024
@@ -925,7 +925,7 @@ theorem vowFileAddressFlapperAuthorizedBodyCore
             UInt256.toByteArray ⟨128⟩ :=
         fileAddressNopeCalldataMem_read64 _ hmemAuth hread64
       by_cases hcodeSizeHopeZero :
-          Reasoning.Theory.uniswapExtCodeSizeWord
+          Reasoning.Theory.extCodeSizeWord
             (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I))
             (fileAddressVatTargetWord
               (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I)) I) = ⟨0⟩
@@ -933,7 +933,7 @@ theorem vowFileAddressFlapperAuthorizedBodyCore
           hcode hwv hperm hdispatch hdecode rd4300True hmemNope hreadNope
           hcallNopeTrue hAccounts hauthEvm hwhat hcodeSizeNope hcodeSizeHopeZero
       have hcodeSizeHope :
-          Reasoning.Theory.uniswapExtCodeSizeWord
+          Reasoning.Theory.extCodeSizeWord
             (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I))
             (fileAddressVatTargetWord
               (fileAddressSetFlapperAccountMap σNope I (fileAddressDataKey I)) I) ≠ ⟨0⟩ :=

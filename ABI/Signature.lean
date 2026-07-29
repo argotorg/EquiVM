@@ -1,5 +1,7 @@
 import ABI.Types
 
+/-! Function signatures and their canonical string form, as hashed for the 4-byte selector. -/
+
 namespace ABI
 
 structure Signature where

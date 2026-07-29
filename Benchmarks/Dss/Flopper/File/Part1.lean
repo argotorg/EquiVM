@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Flopper.Cage
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -1486,7 +1486,7 @@ theorem RD.flopperFileStoreTtlTail {cA σ I} {g : Sat256} {s0 : State}
   have rd1393pre := evm_run rd1391 with [
     raw dup4 (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov)]
-  have rd1394 := rd1393pre.lor (by native_decide) (by evm_ov)
+  have rd1394 := rd1393pre.or (by native_decide) (by evm_ov)
   have rd1395 := rd1394.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1396raw⟩ := rd1395.sstore hperm (by native_decide) (by evm_ov)
   have hword :
@@ -1542,7 +1542,7 @@ theorem RD.flopperFileStoreTauTail {cA σ I} {g : Sat256} {s0 : State}
     raw dup5 (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
     raw mul (by native_decide) (by evm_ov)]
-  have rd1449 := rd1446pre.lor (by native_decide) (by evm_ov)
+  have rd1449 := rd1446pre.or (by native_decide) (by evm_ov)
   have rd1450 := rd1449.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1451raw⟩ := rd1450.sstore hperm (by native_decide) (by evm_ov)
   have hword :

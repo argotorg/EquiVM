@@ -2,7 +2,7 @@ import Benchmarks.Dss.Flipper.Dispatch
 import Benchmarks.Dss.Flipper.BidAccess
 import Benchmarks.Dss.Flipper.ErrorStringFull
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flipper
 

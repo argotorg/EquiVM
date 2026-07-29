@@ -7,10 +7,9 @@ import Examples.OpenZeppelinBench.ERC6909.Storage
 import Examples.OpenZeppelinBench.ERC6909.SupportsInterface
 import Examples.OpenZeppelinBench.ERC6909.Transfer
 import Examples.OpenZeppelinBench.ERC6909.TransferFrom
-import Reasoning.Refinement
 import Reasoning.SolmBody
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -223,7 +222,7 @@ theorem erc6909NoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
 
 /-- The deployed ERC6909 benchmark runtime bytecode refines the Solm specification. -/
 theorem erc6909Correct :
-    runtimeEquivalence!?! config erc6909BenchBytecode contract := by
+    runtimeEquivalence config erc6909BenchBytecode contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
       hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩

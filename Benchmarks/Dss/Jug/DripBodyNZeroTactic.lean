@@ -4,7 +4,7 @@ import Mathlib.Util.ParseCommand
 import Lean.Elab.Tactic
 
 open Lean Elab Tactic
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Jug
 
@@ -31,7 +31,7 @@ by_cases hRmulOverflowNZero :
     rw [← hrhoWord]
     exact hle
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
           (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
     dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCode
   have hvatCodeSolm :
@@ -145,7 +145,7 @@ by_cases hRmulOverflowNZero :
       age = ⟨0⟩ ∧
         jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size ∧
         ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256 ∧
-        Reasoning.Theory.uniswapExtCodeSizeWord σ'
+        Reasoning.Theory.extCodeSizeWord σ'
           (dripVatTargetWord σ' I) = ⟨0⟩
   · rcases hFoldNoCodeNZero with
       ⟨hage0, hfitRmul, hprevMax, hfoldCode⟩
@@ -162,7 +162,7 @@ by_cases hRmulOverflowNZero :
       rw [← hrhoWord]
       exact hle
     have hcodeSizeSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+        Reasoning.Theory.extCodeSizeWord σ_solm
             (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
       dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCode
     have hvatCodeSolm :
@@ -252,14 +252,14 @@ by_cases hRmulOverflowNZero :
       rw [← hrhoPostWord]
       exact hage0Evm
     have hfoldCodeSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm
+        Reasoning.Theory.extCodeSizeWord σ'_solm
             (dripVatTargetWord σ'_solm I) = ⟨0⟩ :=
       dripVatCodeSize_zero_accountMapEquiv hAccounts' hfoldCode
     have hfoldNoCodeSolmRaw :
         (UInt256.ofNat
           ((σ'_solm.find? (dripVatAddress σ'_solm I)).option 0
             (fun acc => acc.code.size))).toNat = 0 :=
-      drip_uniswapExtCodeSizeWord_zero_lookup_code_zero
+      drip_extCodeSizeWord_zero_lookup_code_zero
         (σ := σ'_solm) (target := dripVatTargetWord σ'_solm I)
         (addr := dripVatAddress σ'_solm I)
         (dripVatAddress_eq_target σ'_solm I) hfoldCodeSolm
@@ -304,7 +304,7 @@ by_cases hRmulOverflowNZero :
         rw [← hrhoWord]
         exact hle
       have hcodeSizeSolm :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+          Reasoning.Theory.extCodeSizeWord σ_solm
               (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
         dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCode
       have hvatCodeSolm :
@@ -417,7 +417,7 @@ by_cases hRmulOverflowNZero :
           age = ⟨0⟩ ∧
             jugRay.toNat * (dripVatIlksPrevWord out).toNat < UInt256.size ∧
             ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256 ∧
-            Reasoning.Theory.uniswapExtCodeSizeWord σ'
+            Reasoning.Theory.extCodeSizeWord σ'
               (dripVatTargetWord σ' I) ≠ ⟨0⟩
       · rcases hFoldCallReadyNZero with
           ⟨hage0, hfitRmul, hprevMax, hfoldCode⟩
@@ -467,7 +467,7 @@ by_cases hRmulOverflowNZero :
             rw [← hrhoWord]
             exact hle
           have hcodeSizeSolm :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+              Reasoning.Theory.extCodeSizeWord σ_solm
                   (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
             dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCode
           have hvatCodeSolm :
@@ -643,7 +643,7 @@ by_cases hRmulOverflowNZero :
             rw [← hrhoPostWord]
             exact hage0Evm
           have hfoldCodeSolmNe :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm
+              Reasoning.Theory.extCodeSizeWord σ'_solm
                   (dripVatTargetWord σ'_solm I) ≠ ⟨0⟩ :=
             dripVatCodeSize_ne_zero_accountMapEquiv hAccounts' hfoldCode
           have hfoldCodeSolm :
@@ -706,7 +706,7 @@ by_cases hRmulOverflowNZero :
             rw [← hrhoWord]
             exact hle
           have hcodeSizeSolm :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+              Reasoning.Theory.extCodeSizeWord σ_solm
                   (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
             dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCode
           have hvatCodeSolm :
@@ -882,7 +882,7 @@ by_cases hRmulOverflowNZero :
             rw [← hrhoPostWord]
             exact hage0Evm
           have hfoldCodeSolmNe :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm
+              Reasoning.Theory.extCodeSizeWord σ'_solm
                   (dripVatTargetWord σ'_solm I) ≠ ⟨0⟩ :=
             dripVatCodeSize_ne_zero_accountMapEquiv hAccounts' hfoldCode
           have hfoldCodeSolm :
@@ -955,7 +955,7 @@ by_cases hRmulOverflowNZero :
           · by_cases hprevMax :
                 ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256
             · by_cases hfoldCode :
-                  Reasoning.Theory.uniswapExtCodeSizeWord σ'
+                  Reasoning.Theory.extCodeSizeWord σ'
                     (dripVatTargetWord σ' I) = ⟨0⟩
               · exact hFoldNoCodeNZero
                   ⟨hage0, hfit, hprevMax, hfoldCode⟩

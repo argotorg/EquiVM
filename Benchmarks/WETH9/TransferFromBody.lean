@@ -11,7 +11,7 @@ the return address `ret`, and the stack tail `S`, in the three branch cases (`sr
 reverts (`balanceOf[src] < wad`; inner `allowance < wad`).
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000
@@ -125,7 +125,7 @@ theorem weth9TFReqBalanceRev {ee g s0 rdata cA σ k C} {src dst wad ret : UInt25
     |>.pushConst (⟨1124⟩ : UInt256) (op := .PUSH2) (width := 2) (by decide) (by native_decide)
         (by simp only [List.length_cons]; omega)
     |>.jumpiNT (by native_decide) (by rw [ugt_one hlt]; decide) (by simp only [List.length_cons]; omega)
-    |>.uniswapPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide)
+    |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide)
         (by simp only [List.length_cons]; omega)
 
 /-- Branch, case `src == msg.sender` (pc 1124 → 1282): the `EQ msg.sender` short-circuits the
@@ -513,7 +513,7 @@ theorem weth9TFBranchSpendRev {ee g s0 rdata cA σ k C} {src dst wad ret : UInt2
     |>.pushConst (⟨1239⟩ : UInt256) (op := .PUSH2) (width := 2) (by decide) (by native_decide)
         (by simp only [List.length_cons]; omega)
     |>.jumpiNT (by native_decide) (by rw [ugt_one hlt]; decide) (by simp only [List.length_cons]; omega)
-    |>.uniswapPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide)
+    |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide)
         (by simp only [List.length_cons]; omega)
 
 /-- `balanceOf[src]` after the debit `-= wad` (wrapping). -/

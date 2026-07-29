@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Vow.CageRuntime
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -96,9 +96,9 @@ theorem cageSourceSecondDaiNoCode
         { contract := contract, locals := cageLocalsAfterFlopCage flapperDai }
         evmFlop cageVatDaiStmts .reverted :=
     cageVatDaiNoCode (evm := evmFlop) (flapperDai := flapperDai) hvatNoCode
-  have hprefix := Reasoning.Refinement.execBlock_append
-    (Reasoning.Refinement.execBlock_append
-      (Reasoning.Refinement.execBlock_append hclear hfirst) hflopper) hsecond
+  have hprefix := execBlock_append
+    (Reasoning.Theory.execBlock_append
+      (Reasoning.Theory.execBlock_append hclear hfirst) hflopper) hsecond
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0
         ((((.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -111,7 +111,7 @@ theorem cageSourceSecondDaiNoCode
           cageFlopperCageStmts) ++ cageVatDaiStmts) ++
           cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term
+   execBlock_append_term
       (s2 := cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
@@ -215,9 +215,9 @@ theorem cageSourceSecondDaiCallFailure
         evmFlop cageVatDaiStmts .reverted :=
     cageVatDaiCallFailure (evm := evmFlop) (evmDai := evmDai2)
       (outDai := outDai2) (flapperDai := flapperDai) hvatCode2 hcallDai2
-  have hprefix := Reasoning.Refinement.execBlock_append
-    (Reasoning.Refinement.execBlock_append
-      (Reasoning.Refinement.execBlock_append hclear hfirst) hflopper) hsecond
+  have hprefix := execBlock_append
+    (Reasoning.Theory.execBlock_append
+      (Reasoning.Theory.execBlock_append hclear hfirst) hflopper) hsecond
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0
         ((((.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -230,7 +230,7 @@ theorem cageSourceSecondDaiCallFailure
           cageFlopperCageStmts) ++ cageVatDaiStmts) ++
           cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term
+   execBlock_append_term
       (s2 := cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
@@ -335,9 +335,9 @@ theorem cageSourceSecondDaiReturnDecodeFailure
         evmFlop cageVatDaiStmts .reverted :=
     cageVatDaiReturnDecodeFailure (evm := evmFlop) (evmDai := evmDai2)
       (outDai := outDai2) (flapperDai := flapperDai) hvatCode2 hcallDai2 hdecDai2
-  have hprefix := Reasoning.Refinement.execBlock_append
-    (Reasoning.Refinement.execBlock_append
-      (Reasoning.Refinement.execBlock_append hclear hfirst) hflopper) hsecond
+  have hprefix := execBlock_append
+    (Reasoning.Theory.execBlock_append
+      (Reasoning.Theory.execBlock_append hclear hfirst) hflopper) hsecond
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0
         ((((.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -350,7 +350,7 @@ theorem cageSourceSecondDaiReturnDecodeFailure
           cageFlopperCageStmts) ++ cageVatDaiStmts) ++
           cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term
+   execBlock_append_term
       (s2 := cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
@@ -470,10 +470,10 @@ theorem cageSourceVatSinNoCode
         evmDai2 cageVatSinStmts .reverted :=
     cageVatSinNoCode (evm := evmDai2) (flapperDai := flapperDai)
       (vatDai := vatDai) hvatNoCode
-  have hprefix := Reasoning.Refinement.execBlock_append
-    (Reasoning.Refinement.execBlock_append
-      (Reasoning.Refinement.execBlock_append
-        (Reasoning.Refinement.execBlock_append hclear hfirst) hflopper) hsecond) hsin
+  have hprefix := execBlock_append
+    (Reasoning.Theory.execBlock_append
+      (Reasoning.Theory.execBlock_append
+        (Reasoning.Theory.execBlock_append hclear hfirst) hflopper) hsecond) hsin
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0
         (((((.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -486,7 +486,7 @@ theorem cageSourceVatSinNoCode
           cageFlopperCageStmts) ++ cageVatDaiStmts) ++ cageVatSinStmts) ++
           cageMinStmts ++ cageVatHealStmts)
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term
+   execBlock_append_term
       (s2 := cageMinStmts ++ cageVatHealStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
@@ -600,10 +600,10 @@ theorem cageSourceVatSinRevertFromBlock
     exact cageVatDaiSuccess (evm := evmFlop) (evmDai := evmDai2)
       (outDai := outDai2) (flapperDai := flapperDai) (vatDai := vatDai)
       hvatCode2 hcallDai2 hdecDai2
-  have hprefix := Reasoning.Refinement.execBlock_append
-    (Reasoning.Refinement.execBlock_append
-      (Reasoning.Refinement.execBlock_append
-        (Reasoning.Refinement.execBlock_append hclear hfirst) hflopper) hsecond) hsin
+  have hprefix := execBlock_append
+    (Reasoning.Theory.execBlock_append
+      (Reasoning.Theory.execBlock_append
+        (Reasoning.Theory.execBlock_append hclear hfirst) hflopper) hsecond) hsin
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0
         (((((.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -616,7 +616,7 @@ theorem cageSourceVatSinRevertFromBlock
           cageFlopperCageStmts) ++ cageVatDaiStmts) ++ cageVatSinStmts) ++
           cageMinStmts ++ cageVatHealStmts)
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term
+   execBlock_append_term
       (s2 := cageMinStmts ++ cageVatHealStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
@@ -800,7 +800,7 @@ theorem vowCageSecondDaiNoCodeBodyCore
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
         ⟨0⟩)
     (hov : R.length + 16 ≤ 1024)
     (hvatCode :
@@ -1059,7 +1059,7 @@ theorem vowCageVatSinNoCodeBodyCore
     (ho32 : 32 ≤ outDai2.size)
     (hosz : outDai2.size < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
         ⟨0⟩)
     (hov : R.length + 18 ≤ 1024)
     (hvatCode :

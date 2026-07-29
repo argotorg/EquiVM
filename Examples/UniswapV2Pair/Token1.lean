@@ -1,8 +1,7 @@
 import Examples.UniswapV2Pair.Dispatch
-import Reasoning.Refinement
 import Reasoning.SolmBody
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -39,7 +38,7 @@ theorem uniswapX_token1 {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDret uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
       (UInt256.toByteArray (token1ReturnWord σ I)) := by
-  exact RD.uniswapAddressGetterExternal (entry := ⟨1332⟩) (routine := ⟨5458⟩)
+  exact RD.addressGetterExternal (entry := ⟨1332⟩) (routine := ⟨5458⟩)
     (slot := ⟨7⟩) hreach uniswap_address_getter_entry_wf uniswap_address_slot_getter_wf
     (by jump_dest) (by jump_dest)
 

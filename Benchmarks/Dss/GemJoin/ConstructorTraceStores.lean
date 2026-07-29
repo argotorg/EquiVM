@@ -112,7 +112,7 @@ theorem gemJoinCtorVatMaskHighReach
   have rd116 := gem_ctor_run rd103 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, swap3, dup4,
     raw and (by gem_ctor_decode) (by evm_ov),
-    lor]
+    or]
   exact ⟨_, _, by
     simpa [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide,
@@ -203,7 +203,7 @@ theorem gemJoinCtorGemStoreReach
   rw [hload] at rd128
   have rd140 := gem_ctor_run rd128 with [
     dup4, dup6, raw and (by gem_ctor_decode) (by evm_ov), swap3,
-    raw and (by gem_ctor_decode) (by evm_ov), swap2, swap1, swap2, lor, swap1,
+    raw and (by gem_ctor_decode) (by evm_ov), swap2, swap1, swap2, or, swap1,
     dup2, swap1]
   obtain ⟨k', C', rd141⟩ := rd140.sstore hperm (by gem_ctor_decode) (by evm_ov)
   exact ⟨k', C', by

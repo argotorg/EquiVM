@@ -2,7 +2,7 @@ import Benchmarks.Dss.Vat.Signed
 
 namespace Benchmarks.Dss.Vat
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -2750,7 +2750,7 @@ theorem execForkSrcInkUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
       (by simpa [locals'] using hdinkAfter)
       (by simpa [locals'] using hstorageAfter)
       (forkDinkSubGuardNegFailCond hfail)
-  exact Reasoning.Refinement.execBlock_append_term hsub (by intro f e h; cases h)
+  exact execBlock_append_term hsub (by intro f e h; cases h)
 
 theorem execForkSrcInkUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (srcInkOld srcInkNew : UInt256)
@@ -2834,7 +2834,7 @@ theorem execForkSrcInkUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
       (by simpa [locals'] using hstorageAfter)
       (by simpa [locals'] using hguardNegEval)
       (forkDinkSubGuardPosFailCond hfail)
-  exact Reasoning.Refinement.execBlock_append_term hsub (by intro f e h; cases h)
+  exact execBlock_append_term hsub (by intro f e h; cases h)
 
 theorem execForkSrcArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (srcArtOld srcArtNew : UInt256)
@@ -3023,7 +3023,7 @@ theorem execForkSrcArtUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
       (by simpa [locals'] using hdartAfter)
       (by simpa [locals'] using hstorageAfter)
       (forkDartSubGuardNegFailCond hfail)
-  exact Reasoning.Refinement.execBlock_append_term hsub (by intro f e h; cases h)
+  exact execBlock_append_term hsub (by intro f e h; cases h)
 
 theorem execForkSrcArtUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (srcArtOld srcArtNew : UInt256)
@@ -3107,7 +3107,7 @@ theorem execForkSrcArtUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
       (by simpa [locals'] using hstorageAfter)
       (by simpa [locals'] using hguardNegEval)
       (forkDartSubGuardPosFailCond hfail)
-  exact Reasoning.Refinement.execBlock_append_term hsub (by intro f e h; cases h)
+  exact execBlock_append_term hsub (by intro f e h; cases h)
 
 theorem execForkDstInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (dstInkOld dstInkNew : UInt256)
@@ -3293,7 +3293,7 @@ theorem execForkDstInkUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
       (by simpa [locals'] using hdinkAfter)
       (by simpa [locals'] using hstorageAfter)
       (forkDinkAddGuardNegFailCond hfail)
-  exact Reasoning.Refinement.execBlock_append_term hadd (by intro f e h; cases h)
+  exact execBlock_append_term hadd (by intro f e h; cases h)
 
 theorem execForkDstInkUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (dstInkOld dstInkNew : UInt256)
@@ -3375,7 +3375,7 @@ theorem execForkDstInkUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
       (by simpa [locals'] using hstorageAfter)
       (by simpa [locals'] using hguardNegEval)
       (forkDinkAddGuardPosFailCond hfail)
-  exact Reasoning.Refinement.execBlock_append_term hadd (by intro f e h; cases h)
+  exact execBlock_append_term hadd (by intro f e h; cases h)
 
 theorem execForkDstArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (dstArtOld dstArtNew : UInt256)
@@ -3561,7 +3561,7 @@ theorem execForkDstArtUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
       (by simpa [locals'] using hdartAfter)
       (by simpa [locals'] using hstorageAfter)
       (forkDartAddGuardNegFailCond hfail)
-  exact Reasoning.Refinement.execBlock_append_term hadd (by intro f e h; cases h)
+  exact execBlock_append_term hadd (by intro f e h; cases h)
 
 theorem execForkDstArtUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (dstArtOld dstArtNew : UInt256)
@@ -3643,7 +3643,7 @@ theorem execForkDstArtUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
       (by simpa [locals'] using hstorageAfter)
       (by simpa [locals'] using hguardNegEval)
       (forkDartAddGuardPosFailCond hfail)
-  exact Reasoning.Refinement.execBlock_append_term hadd (by intro f e h; cases h)
+  exact execBlock_append_term hadd (by intro f e h; cases h)
 
 theorem execForkFinalLoadsOk {evm : EVM.State} {I : ExecutionEnv}
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -7516,16 +7516,16 @@ theorem execForkSourceOk {evm0 : EVM.State} {I : ExecutionEnv}
               (.binary .eq (.var "dstArtFinal") (.intLit 0))) ]
         (.ok { contract := contract, locals := finalLocals } evm4) :=
     execForkFinalRequiresOk hwish hutabLe hvtabLe hsrcDust hdstDust
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hsrcArtBlock
-  have h03 := Reasoning.Refinement.execBlock_append h02 hdstInkBlock
-  have h04 := Reasoning.Refinement.execBlock_append h03 hdstArtBlock
-  have h05 := Reasoning.Refinement.execBlock_append h04 hfinalLoadsBlock
-  have h06 := Reasoning.Refinement.execBlock_append h05 hutabBlock
-  have h06 := Reasoning.Refinement.execBlock_append h06 hvtabBlock
-  have h07 := Reasoning.Refinement.execBlock_append h06 hsrcInkSpotBlock
-  have hblock := Reasoning.Refinement.execBlock_append h07 hdstInkSpotBlock
-  have hblock := Reasoning.Refinement.execBlock_append hblock hfinalBlock
+  have h01 := execBlock_append hprefix hsrcInkBlock
+  have h02 := execBlock_append h01 hsrcArtBlock
+  have h03 := execBlock_append h02 hdstInkBlock
+  have h04 := execBlock_append h03 hdstArtBlock
+  have h05 := execBlock_append h04 hfinalLoadsBlock
+  have h06 := execBlock_append h05 hutabBlock
+  have h06 := execBlock_append h06 hvtabBlock
+  have h07 := execBlock_append h06 hsrcInkSpotBlock
+  have hblock := execBlock_append h07 hdstInkSpotBlock
+  have hblock := execBlock_append hblock hfinalBlock
   simpa [ExecTransitionBody, forkTransition, nonpayable, checkedSubSignedInto,
     checkedAddSignedInto, checkedMulUintInto, List.append_assoc, storageStore_executionEnv] using
     ExecFuncBody.execBlockOK hblock
@@ -7559,8 +7559,8 @@ theorem execForkSourceRevertSrcInkGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
     execForkSrcInkUpdateRevertGuardNeg (evm := evm0) (I := I) (locals := forkStore I)
       srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
       (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew hfail
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hsrcInkRevert
+  have hblock := execBlock_append_term
     (s2 :=
       checkedSubSignedInto "srcArtNew"
         (.storage (urnsF (.var "ilk") (.var "src") "art")) (.var "dart") ++
@@ -7638,8 +7638,8 @@ theorem execForkSourceRevertSrcInkGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
     execForkSrcInkUpdateRevertGuardPos (evm := evm0) (I := I) (locals := forkStore I)
       srcInkOld srcInkNew hsz164 (forkStore_get_ilk I) (forkStore_get_src I)
       (forkStore_get_dink I) (forkStore_urns I) hloadSrcInk hsrcInkNew hguardNeg hfail
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hsrcInkRevert
+  have hblock := execBlock_append_term
     (s2 :=
       checkedSubSignedInto "srcArtNew"
         (.storage (urnsF (.var "ilk") (.var "src") "art")) (.var "dart") ++
@@ -7742,9 +7742,9 @@ theorem execForkSourceRevertSrcArtGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
       (forkStoreSrcInkNew_get_dart I srcInkNew)
       (forkStoreSrcInkNew_get_urns I srcInkNew)
       (by simpa [evm1] using hloadSrcArt) hsrcArtNew hfail
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hsrcArtRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hsrcInkBlock
+  have h02 := execBlock_append h01 hsrcArtRevert
+  have hblock := execBlock_append_term
     (s2 :=
       checkedAddSignedInto "dstInkNew"
         (.storage (urnsF (.var "ilk") (.var "dst") "ink")) (.var "dink") ++
@@ -7846,9 +7846,9 @@ theorem execForkSourceRevertSrcArtGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
       (forkStoreSrcInkNew_get_dart I srcInkNew)
       (forkStoreSrcInkNew_get_urns I srcInkNew)
       (by simpa [evm1] using hloadSrcArt) hsrcArtNew hguardNeg hfail
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hsrcArtRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hsrcInkBlock
+  have h02 := execBlock_append h01 hsrcArtRevert
+  have hblock := execBlock_append_term
     (s2 :=
       checkedAddSignedInto "dstInkNew"
         (.storage (urnsF (.var "ilk") (.var "dst") "ink")) (.var "dink") ++
@@ -7961,10 +7961,10 @@ theorem execForkSourceRevertDstInkGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
       (forkStoreSrcArtNew_get_urns I srcInkNew srcArtNew)
       (by simpa [evm1, evm2, storageStore_executionEnv] using hloadDstInk)
       hdstInkNew hfail
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hsrcArtBlock
-  have h03 := Reasoning.Refinement.execBlock_append h02 hdstInkRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hsrcInkBlock
+  have h02 := execBlock_append h01 hsrcArtBlock
+  have h03 := execBlock_append h02 hdstInkRevert
+  have hblock := execBlock_append_term
     (s2 :=
       checkedAddSignedInto "dstArtNew"
         (.storage (urnsF (.var "ilk") (.var "dst") "art")) (.var "dart") ++
@@ -8076,10 +8076,10 @@ theorem execForkSourceRevertDstInkGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
       (forkStoreSrcArtNew_get_urns I srcInkNew srcArtNew)
       (by simpa [evm1, evm2, storageStore_executionEnv] using hloadDstInk)
       hdstInkNew hguardNeg hfail
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hsrcArtBlock
-  have h03 := Reasoning.Refinement.execBlock_append h02 hdstInkRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hsrcInkBlock
+  have h02 := execBlock_append h01 hsrcArtBlock
+  have h03 := execBlock_append h02 hdstInkRevert
+  have hblock := execBlock_append_term
     (s2 :=
       checkedAddSignedInto "dstArtNew"
         (.storage (urnsF (.var "ilk") (.var "dst") "art")) (.var "dart") ++
@@ -8213,11 +8213,11 @@ theorem execForkSourceRevertDstArtGuardNeg {evm0 : EVM.State} {I : ExecutionEnv}
       (forkStoreDstInkNew_get_urns I srcInkNew srcArtNew dstInkNew)
       (by simpa [evm1, evm2, evm3, storageStore_executionEnv] using hloadDstArt)
       hdstArtNew hfail
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hsrcArtBlock
-  have h03 := Reasoning.Refinement.execBlock_append h02 hdstInkBlock
-  have h04 := Reasoning.Refinement.execBlock_append h03 hdstArtRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hsrcInkBlock
+  have h02 := execBlock_append h01 hsrcArtBlock
+  have h03 := execBlock_append h02 hdstInkBlock
+  have h04 := execBlock_append h03 hdstArtRevert
+  have hblock := execBlock_append_term
     (s2 :=
       [ .letDecl "srcArtFinal" (some uint256)
           (.storage (urnsF (.var "ilk") (.var "src") "art")),
@@ -8350,11 +8350,11 @@ theorem execForkSourceRevertDstArtGuardPos {evm0 : EVM.State} {I : ExecutionEnv}
       (forkStoreDstInkNew_get_urns I srcInkNew srcArtNew dstInkNew)
       (by simpa [evm1, evm2, evm3, storageStore_executionEnv] using hloadDstArt)
       hdstArtNew hguardNeg hfail
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hsrcArtBlock
-  have h03 := Reasoning.Refinement.execBlock_append h02 hdstInkBlock
-  have h04 := Reasoning.Refinement.execBlock_append h03 hdstArtRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hsrcInkBlock
+  have h02 := execBlock_append h01 hsrcArtBlock
+  have h03 := execBlock_append h02 hdstInkBlock
+  have h04 := execBlock_append h03 hdstArtRevert
+  have hblock := execBlock_append_term
     (s2 :=
       [ .letDecl "srcArtFinal" (some uint256)
           (.storage (urnsF (.var "ilk") (.var "src") "art")),
@@ -8590,13 +8590,13 @@ theorem execForkSourceRevertUtabMul {evm0 : EVM.State} {I : ExecutionEnv}
     execForkMulUintIntoRevertOfOverflow (evm := evm4) (locals := localsFinal)
       "utab" (.var "srcArtFinal") (.storage (ilksF (.var "ilk") "rate"))
       srcArtFinal rate hsrcArtEval hrateEval hover
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hsrcArtBlock
-  have h03 := Reasoning.Refinement.execBlock_append h02 hdstInkBlock
-  have h04 := Reasoning.Refinement.execBlock_append h03 hdstArtBlock
-  have h05 := Reasoning.Refinement.execBlock_append h04 hfinalLoadsBlock
-  have h06 := Reasoning.Refinement.execBlock_append h05 hutabRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hsrcInkBlock
+  have h02 := execBlock_append h01 hsrcArtBlock
+  have h03 := execBlock_append h02 hdstInkBlock
+  have h04 := execBlock_append h03 hdstArtBlock
+  have h05 := execBlock_append h04 hfinalLoadsBlock
+  have h06 := execBlock_append h05 hutabRevert
+  have hblock := execBlock_append_term
     (s2 :=
       checkedMulUintInto "vtab" (.var "dstArtFinal")
         (.storage (ilksF (.var "ilk") "rate")) ++
@@ -8829,14 +8829,14 @@ theorem execForkSourceRevertVtabMul {evm0 : EVM.State} {I : ExecutionEnv}
     execForkMulUintIntoRevertOfOverflow (evm := evm4) (locals := localsUtab)
       "vtab" (.var "dstArtFinal") (.storage (ilksF (.var "ilk") "rate"))
       dstArtFinal rate hdstArtEval hrateEval hover
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hsrcArtBlock
-  have h03 := Reasoning.Refinement.execBlock_append h02 hdstInkBlock
-  have h04 := Reasoning.Refinement.execBlock_append h03 hdstArtBlock
-  have h05 := Reasoning.Refinement.execBlock_append h04 hfinalLoadsBlock
-  have h06 := Reasoning.Refinement.execBlock_append h05 hutabBlock
-  have h07 := Reasoning.Refinement.execBlock_append h06 hvtabRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hsrcInkBlock
+  have h02 := execBlock_append h01 hsrcArtBlock
+  have h03 := execBlock_append h02 hdstInkBlock
+  have h04 := execBlock_append h03 hdstArtBlock
+  have h05 := execBlock_append h04 hfinalLoadsBlock
+  have h06 := execBlock_append h05 hutabBlock
+  have h07 := execBlock_append h06 hvtabRevert
+  have hblock := execBlock_append_term
     (s2 :=
       checkedMulUintInto "srcInkSpot" (.var "srcInkFinal")
         (.storage (ilksF (.var "ilk") "spot")) ++
@@ -9089,15 +9089,15 @@ theorem execForkSourceRevertSrcInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
     execForkMulUintIntoRevertOfOverflow (evm := evm4) (locals := localsVtab)
       "srcInkSpot" (.var "srcInkFinal") (.storage (ilksF (.var "ilk") "spot"))
       srcInkFinal spot hsrcInkEval hspotEval hover
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hsrcArtBlock
-  have h03 := Reasoning.Refinement.execBlock_append h02 hdstInkBlock
-  have h04 := Reasoning.Refinement.execBlock_append h03 hdstArtBlock
-  have h05 := Reasoning.Refinement.execBlock_append h04 hfinalLoadsBlock
-  have h06 := Reasoning.Refinement.execBlock_append h05 hutabBlock
-  have h07 := Reasoning.Refinement.execBlock_append h06 hvtabBlock
-  have h08 := Reasoning.Refinement.execBlock_append h07 hsrcInkSpotRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hsrcInkBlock
+  have h02 := execBlock_append h01 hsrcArtBlock
+  have h03 := execBlock_append h02 hdstInkBlock
+  have h04 := execBlock_append h03 hdstArtBlock
+  have h05 := execBlock_append h04 hfinalLoadsBlock
+  have h06 := execBlock_append h05 hutabBlock
+  have h07 := execBlock_append h06 hvtabBlock
+  have h08 := execBlock_append h07 hsrcInkSpotRevert
+  have hblock := execBlock_append_term
     (s2 :=
       checkedMulUintInto "dstInkSpot" (.var "dstInkFinal")
         (.storage (ilksF (.var "ilk") "spot")) ++
@@ -9358,16 +9358,16 @@ theorem execForkSourceRevertDstInkSpotMul {evm0 : EVM.State} {I : ExecutionEnv}
     execForkMulUintIntoRevertOfOverflow (evm := evm4) (locals := localsSrcInkSpot)
       "dstInkSpot" (.var "dstInkFinal") (.storage (ilksF (.var "ilk") "spot"))
       dstInkFinal spot hdstInkEval hspotEval hover
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hsrcArtBlock
-  have h03 := Reasoning.Refinement.execBlock_append h02 hdstInkBlock
-  have h04 := Reasoning.Refinement.execBlock_append h03 hdstArtBlock
-  have h05 := Reasoning.Refinement.execBlock_append h04 hfinalLoadsBlock
-  have h06 := Reasoning.Refinement.execBlock_append h05 hutabBlock
-  have h07 := Reasoning.Refinement.execBlock_append h06 hvtabBlock
-  have h08 := Reasoning.Refinement.execBlock_append h07 hsrcInkSpotBlock
-  have h09 := Reasoning.Refinement.execBlock_append h08 hdstInkSpotRevert
-  have hblock := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hprefix hsrcInkBlock
+  have h02 := execBlock_append h01 hsrcArtBlock
+  have h03 := execBlock_append h02 hdstInkBlock
+  have h04 := execBlock_append h03 hdstArtBlock
+  have h05 := execBlock_append h04 hfinalLoadsBlock
+  have h06 := execBlock_append h05 hutabBlock
+  have h07 := execBlock_append h06 hvtabBlock
+  have h08 := execBlock_append h07 hsrcInkSpotBlock
+  have h09 := execBlock_append h08 hdstInkSpotRevert
+  have hblock := execBlock_append_term
     (s2 :=
       [ .require (bothExpr (wishExpr (.var "src") sender) (wishExpr (.var "dst") sender)),
         .require (.binary .le (.var "utab") (.var "srcInkSpot")),
@@ -9616,16 +9616,16 @@ theorem execForkSourceRevertFinal {evm0 : EVM.State} {I : ExecutionEnv}
       srcInkNew srcArtNew dstInkNew dstArtNew srcArtFinal dstArtFinal
       srcInkFinal dstInkFinal spot utab vtab srcInkSpot dstInkSpot hsz164 hloadSpotFinal
       hdstInkSpotProd hdstInkSpotFit hdstInkSpotGuard
-  have h01 := Reasoning.Refinement.execBlock_append hprefix hsrcInkBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hsrcArtBlock
-  have h03 := Reasoning.Refinement.execBlock_append h02 hdstInkBlock
-  have h04 := Reasoning.Refinement.execBlock_append h03 hdstArtBlock
-  have h05 := Reasoning.Refinement.execBlock_append h04 hfinalLoadsBlock
-  have h06 := Reasoning.Refinement.execBlock_append h05 hutabBlock
-  have h06 := Reasoning.Refinement.execBlock_append h06 hvtabBlock
-  have h07 := Reasoning.Refinement.execBlock_append h06 hsrcInkSpotBlock
-  have hblock := Reasoning.Refinement.execBlock_append h07 hdstInkSpotBlock
-  have hblock := Reasoning.Refinement.execBlock_append hblock hfinalBlock
+  have h01 := execBlock_append hprefix hsrcInkBlock
+  have h02 := execBlock_append h01 hsrcArtBlock
+  have h03 := execBlock_append h02 hdstInkBlock
+  have h04 := execBlock_append h03 hdstArtBlock
+  have h05 := execBlock_append h04 hfinalLoadsBlock
+  have h06 := execBlock_append h05 hutabBlock
+  have h06 := execBlock_append h06 hvtabBlock
+  have h07 := execBlock_append h06 hsrcInkSpotBlock
+  have hblock := execBlock_append h07 hdstInkSpotBlock
+  have hblock := execBlock_append hblock hfinalBlock
   simpa [ExecTransitionBody, forkTransition, nonpayable, checkedSubSignedInto,
     checkedAddSignedInto, checkedMulUintInto, List.append_assoc, storageStore_executionEnv] using
     ExecFuncBody.execBlockRevert hblock
@@ -12036,7 +12036,7 @@ theorem RD.vatForkWishReturnOk
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd6792 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov)]
-  have rd6793 := rd6792.lor (by native_decide) (by evm_ov)
+  have rd6793 := rd6792.or (by native_decide) (by evm_ov)
   have rd6612raw := evm_run rd6793 with [
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
@@ -12750,7 +12750,7 @@ theorem RD.vatForkDustChecksSuccess
   have rd6791 := rd5191pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd5192 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd5196pre := evm_run rd5192 with [
@@ -12787,7 +12787,7 @@ theorem RD.vatForkDustChecksSuccess
   have rd6791' := rd5279pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd5280 := evm_run rd6791' with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd5284pre := evm_run rd5280 with [
@@ -12847,7 +12847,7 @@ theorem RD.vatForkSrcDustCheckRevert
   have rd6791 := rd5191pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd5192 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd5196pre := evm_run rd5192 with [
@@ -12920,7 +12920,7 @@ theorem RD.vatForkDstDustCheckRevert
   have rd6791 := rd5191pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd5192 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd5196pre := evm_run rd5192 with [
@@ -12957,7 +12957,7 @@ theorem RD.vatForkDstDustCheckRevert
   have rd6791' := rd5279pre.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd5280 := evm_run rd6791' with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd5284pre := evm_run rd5280 with [

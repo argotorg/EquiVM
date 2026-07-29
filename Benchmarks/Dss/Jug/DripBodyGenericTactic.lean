@@ -6,7 +6,7 @@ import Mathlib.Util.ParseCommand
 import Lean.Elab.Tactic
 
 open Lean Elab Tactic
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Jug
 
@@ -27,7 +27,7 @@ have hleSolm :
   rw [← hrhoWord]
   exact hle
 have hcodeSizeSolm :
-    Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+    Reasoning.Theory.extCodeSizeWord σ_solm
         (dripVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
   dripVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCode
 have hvatCodeSolm :
@@ -192,10 +192,10 @@ cases hrpowCoupled with
       · by_cases hprevMax :
             ((dripVatIlksPrevWord out).toNat : Int) ≤ maxInt256
         · by_cases hfoldNoCode :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ'
+              Reasoning.Theory.extCodeSizeWord σ'
                 (dripVatTargetWord σ' I) = ⟨0⟩
           · have hfoldCodeSolm :
-                Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm
+                Reasoning.Theory.extCodeSizeWord σ'_solm
                     (dripVatTargetWord σ'_solm I) = ⟨0⟩ :=
               dripVatCodeSize_zero_accountMapEquiv hAccounts'
                 hfoldNoCode
@@ -203,7 +203,7 @@ cases hrpowCoupled with
                 (UInt256.ofNat
                   ((σ'_solm.find? (dripVatAddress σ'_solm I)).option
                     0 (fun acc => acc.code.size))).toNat = 0 :=
-              drip_uniswapExtCodeSizeWord_zero_lookup_code_zero
+              drip_extCodeSizeWord_zero_lookup_code_zero
                 (σ := σ'_solm)
                 (target := dripVatTargetWord σ'_solm I)
                 (addr := dripVatAddress σ'_solm I)
@@ -373,7 +373,7 @@ cases hrpowCoupled with
                 (UInt256.sub rate (dripVatIlksPrevWord out))
                 hfoldBaseSize hsz36 hrateMax hprevMax rfl
             have hfoldCodeSolmNe :
-                Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm
+                Reasoning.Theory.extCodeSizeWord σ'_solm
                     (dripVatTargetWord σ'_solm I) ≠ ⟨0⟩ :=
               dripVatCodeSize_ne_zero_accountMapEquiv hAccounts'
                 hfoldNoCode

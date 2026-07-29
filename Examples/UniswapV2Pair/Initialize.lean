@@ -1,10 +1,9 @@
 import Examples.UniswapV2Pair.ExternalWrappers
 import Examples.UniswapV2Pair.Dispatch
 import Examples.UniswapV2Pair.TransferRoutines
-import Reasoning.Refinement
 import Reasoning.SolmBody
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -462,7 +461,7 @@ theorem uniswapX_initialize_success {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
         State.lookupAccount] using rd3230₀⟩
   have rd3256₀ := evm_run rd3230 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap4, dup5, and,
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, swap2, dup3, and, lor,
+    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, swap2, dup3, and, or,
     swap1, swap2]
   have hset0 :
       UInt256.lor
@@ -491,7 +490,7 @@ theorem uniswapX_initialize_success {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     exact ⟨_, _, by
       simpa [initializeToken1OldWord, uniswapSlotWord, initState, Solm.EVM.storageLoad,
         State.lookupAccount] using rd3261₀⟩
-  have rd3268₀ := evm_run rd3261 with [swap3, swap1, swap4, and, swap2, and, lor, swap1]
+  have rd3268₀ := evm_run rd3261 with [swap3, swap1, swap4, and, swap2, and, or, swap1]
   have hset1 :
       UInt256.lor
           (UInt256.land (initializeToken1OldWord σ I) (UInt256.lnot solcAddrMask))

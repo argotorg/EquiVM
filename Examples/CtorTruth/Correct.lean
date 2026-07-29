@@ -2,7 +2,6 @@ import Examples.CtorTruth.Bytecode
 import Examples.Truth.Correct
 import Reasoning.Memory
 import Reasoning.Solc
-import Reasoning.Theory
 import Reasoning.Dispatch
 import Reasoning.SolmBody
 import Reasoning.Reach
@@ -90,7 +89,7 @@ theorem ctorTruthReEquiv_callvalueZero
 
 /-- Runtime bytecode refines the Solm runtime specification. -/
 theorem ctorTruthRuntimeCorrect :
-    runtimeEquivalence!?! ctorTruthConfig ctorTruthRuntimeBytecode CtorTruth.contract := by
+    runtimeEquivalence ctorTruthConfig ctorTruthRuntimeBytecode CtorTruth.contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize _hperm hσ => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact ctorTruthReEquiv_callvalueZero (g := Sat256.ofUInt256 g) hcode hsize hwv hσ

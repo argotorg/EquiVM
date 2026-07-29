@@ -3,7 +3,7 @@ import Reasoning.ExternalCall
 import Reasoning.MemCascade
 import Benchmarks.Dss.Flipper.Dispatch
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
@@ -1276,12 +1276,12 @@ theorem flipperDealX_toCatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
 theorem flipperDealX_catNoCode {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperCatTargetWord σ I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨5558⟩ [dealId I, ret, sel]
       (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd5638⟩ := flipperDealX_toCatExtcodesizeGuard h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨5638⟩) (okPc := ⟨5650⟩) rd5638
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨5638⟩) (okPc := ⟨5650⟩) rd5638
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1290,7 +1290,7 @@ theorem flipperDealX_catNoCode {cA σ I} {g : Sat256} {s0 : State}
 theorem flipperDealX_toCatCall {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨5558⟩ [dealId I, ret, sel]
       (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨5653⟩
@@ -1300,7 +1300,7 @@ theorem flipperDealX_toCatCall {cA σ I} {g : Sat256} {s0 : State}
       (dealCatCallMem σ I) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨_, _, rd5638⟩ := flipperDealX_toCatExtcodesizeGuard h
   obtain ⟨gasWord, k5653, C5653, rd5653⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨5638⟩) (okPc := ⟨5650⟩) rd5638
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨5638⟩) (okPc := ⟨5650⟩) rd5638
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1310,7 +1310,7 @@ theorem flipperDealX_toCatCall {cA σ I} {g : Sat256} {s0 : State}
 theorem flipperDealX_catPostCall
     {cA gh bl σ σ₀ A I} {g : UInt256} {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
@@ -1375,7 +1375,7 @@ theorem flipperDealX_catCallFailure {I} {g : Sat256} {s0 : State}
       mem aw out acc k C)
     (houtsz : out.size < UInt256.size) :
     RDrev flipperBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨5654⟩) (okPc := ⟨5670⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨5654⟩) (okPc := ⟨5670⟩) h
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1385,7 +1385,7 @@ theorem flipperDealX_catCallFailure {I} {g : Sat256} {s0 : State}
 theorem flipperDealX_catCallDepthLimit {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (h : RD flipperBytecode I g s0 ⟨5558⟩ [dealId I, ret, sel]
       (dealHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
@@ -1425,7 +1425,7 @@ theorem flipperDealX_catCallSuccessToVatStart {I} {g : Sat256} {s0 : State}
       (selector :: target :: id :: ret :: sel :: [])
       mem aw out acc k' C' := by
   obtain ⟨k5672, C5672, rd5672⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨5654⟩) (okPc := ⟨5670⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨5654⟩) (okPc := ⟨5670⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -1555,7 +1555,7 @@ theorem flipperDealX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : St
     raw swap5 (by native_decide) (by evm_ov),
     raw mstore 0 (dealVatFluxIlkMem σmem σ I) (UInt256.ofNat 6)
       (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
-  have rd5727 := RD.uniswapAddress rd5726 (by native_decide) (by evm_ov)
+  have rd5727 := RD.address rd5726 (by native_decide) (by evm_ov)
   have rd5782 := evm_run rd5727 with [
     raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
     raw dup6 (by native_decide) (by evm_ov),
@@ -1619,13 +1619,13 @@ theorem flipperDealX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : St
 theorem flipperDealX_vatNoCode {cA σmem σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨5673⟩
       (selector :: target :: dealId I :: ret :: sel :: [])
       (dealCatCallMem σmem I) (UInt256.ofNat 6) out (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd5782⟩ := flipperDealX_toVatExtcodesizeGuard h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨5782⟩) (okPc := ⟨1611⟩) rd5782
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨5782⟩) (okPc := ⟨1611⟩) rd5782
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1634,7 +1634,7 @@ theorem flipperDealX_vatNoCode {cA σmem σ I} {g : Sat256} {s0 : State}
 theorem flipperDealX_toVatCall {cA σmem σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨5673⟩
       (selector :: target :: dealId I :: ret :: sel :: [])
       (dealCatCallMem σmem I) (UInt256.ofNat 6) out (cA, σ) k C) :
@@ -1645,7 +1645,7 @@ theorem flipperDealX_toVatCall {cA σmem σ I} {g : Sat256} {s0 : State}
       (dealVatFluxCallMem σmem σ I) (UInt256.ofNat 9) out (cA, σ) k' C' := by
   obtain ⟨_, _, rd5782⟩ := flipperDealX_toVatExtcodesizeGuard h
   obtain ⟨gasWord, k1614, C1614, rd1614⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨5782⟩) (okPc := ⟨1611⟩) rd5782
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨5782⟩) (okPc := ⟨1611⟩) rd5782
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1657,7 +1657,7 @@ theorem flipperDealX_vatPostCall
     {cA : Batteries.RBSet AccountAddress compare} {σmem σ : AccountMap} {Acur : Substate}
     {k C : ℕ} {out0 : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
@@ -1731,7 +1731,7 @@ theorem flipperDealX_vatCallFailure {I} {g : Sat256} {s0 : State}
       mem aw out acc k C)
     (houtsz : out.size < UInt256.size) :
     RDrev flipperBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1615⟩) (okPc := ⟨1631⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1615⟩) (okPc := ⟨1631⟩) h
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1741,7 +1741,7 @@ theorem flipperDealX_vatCallFailure {I} {g : Sat256} {s0 : State}
 theorem flipperDealX_vatCallDepthLimit {cA σmem σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (h : RD flipperBytecode I g s0 ⟨5673⟩
       (selector :: target :: dealId I :: ret :: sel :: [])
@@ -1783,7 +1783,7 @@ theorem flipperDealX_vatCallSuccessToDeleteStart {I} {g : Sat256} {s0 : State}
       (⟨260⟩ :: selector :: target :: id :: ret :: sel :: [])
       mem aw out acc k' C' := by
   obtain ⟨k1633, C1633, rd1633⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨1615⟩) (okPc := ⟨1631⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨1615⟩) (okPc := ⟨1631⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)

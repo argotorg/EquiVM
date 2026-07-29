@@ -9,7 +9,7 @@ import Benchmarks.WETH9.Routines
 DappHub/Dai `approve` (caller-keyed outer hash, masked-argument inner hash) over slot 4.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000
@@ -502,7 +502,7 @@ theorem weth9ApproveBodyCoreDecodeFailed_short {cA gh bl σ_evm σ_solm σ₀ A 
       |>.iszero (by native_decide) (by simp)
       |>.push2 ⟨339⟩ (by native_decide) (by simp)
       |>.jumpiNT (by native_decide) (by rw [hltShort]; decide) (by simp)
-      |>.uniswapPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+      |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
   exact weth9ReEquivDecodeFailed hcode hrev (weth9SelectorDispatchApprove hsel)
     (weth9Decode_approve_none_short hsz4 hshort)
 

@@ -60,8 +60,8 @@ theorem fromBytes'_append_zeros (l : List UInt8) (k : ℕ) :
   | nil => simpa using fromBytes'_replicate_zero k
   | cons b bs ih => simp only [List.cons_append, fromBytes']; rw [ih]
 
-/-- The little-endian round-trip `fromBytes' (toBytes' x) = x` (re-proved; evmlean's is
-    `private`). -/
+/-- The little-endian round-trip `fromBytes' (toBytes' x) = x` (evmlean's version is `private`,
+    so it is proved here). -/
 theorem fromBytes'_toBytes' (x : ℕ) : fromBytes' (toBytes' x) = x := by
   match x with
   | .zero => simp [toBytes', fromBytes']
@@ -69,12 +69,6 @@ theorem fromBytes'_toBytes' (x : ℕ) : fromBytes' (toBytes' x) = x := by
     unfold toBytes' fromBytes'
     simp [UInt8.size]
     exact Nat.mod_add_div _ _
-
-/-- Big-endian round-trip: decoding the big-endian bytes of `x` gives back `x`. -/
-theorem fromBytesBigEndian_toBytesBigEndian (x : ℕ) :
-    fromBytesBigEndian (toBytesBigEndian x) = x := by
-  simp only [fromBytesBigEndian, toBytesBigEndian, Function.comp, List.reverse_reverse]
-  exact fromBytes'_toBytes' x
 
 /-- Nonnegative integers are embedded as their natural-value EVM word. -/
 theorem wordOfInt_nonneg (i : Int) (h0 : 0 ≤ i) :
@@ -136,10 +130,6 @@ theorem fromBytes'_drop_wordLE (w : UInt256) (n : Nat) :
     (bs.map (fun b : UInt8 => b.toNat)) hlt
   rw [fromBytes'_eq_ofDigits (bs.drop n), List.map_drop]
   rw [← hdrop, hfull]
-
-theorem fromBytes'_drop1_wordLE (w : UInt256) :
-    fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.drop 1) = w.toNat / 256 := by
-  simpa using fromBytes'_drop_wordLE w 1
 
 theorem fromBytes'_take_wordLE_land_mask (w : UInt256) (n : Nat) (hbits : 8 * n ≤ 256) :
     fromBytes' ((EVM.Word.toBytesLEWithSizeProof w).1.take n) =
@@ -255,10 +245,6 @@ theorem byteArray_write_len_zero (src base : ByteArray) (srcOff dstOff : ℕ) :
   unfold ByteArray.write
   simp
 
-/-- `(A ++ B).size = A.size + B.size` for `ByteArray`. -/
-theorem byteArray_size_append (A B : ByteArray) : (A ++ B).size = A.size + B.size :=
-  ByteArray.size_append
-
 /-- `ffi.ByteArray.zeroes` of a `toNat`-zero size is the empty array. -/
 theorem zeroes_zero {n : Nat} (hn : n = 0) : ffi.ByteArray.zeroes n = ByteArray.empty := by
   apply ByteArray.ext
@@ -286,8 +272,7 @@ theorem empty_readWithPadding_word_zero :
   rfl
 
 /-- **MSTORE write.**  Storing a 32-byte word `v` at offset `off ≥ mem.size` appends it past a
-    zero gap: `mem ++ zeroes (off - mem.size) ++ v.toByteArray`.  (Generic, contract-agnostic;
-    `off - mem.size < USize.size` rules out the address wrap.) -/
+    zero gap: `mem ++ zeroes (off - mem.size) ++ v.toByteArray`.  (Generic, contract-agnostic.) -/
 theorem toByteArray_write_eq (v : UInt256) (mem : ByteArray) (off : ℕ)
     (hoff : mem.size ≤ off) (_hb : off - mem.size < USize.size) :
     (UInt256.toByteArray v).write 0 mem off 32
@@ -413,10 +398,17 @@ theorem empty_append (A : ByteArray) : ByteArray.empty ++ A = A := by
 theorem lt_usize (n : ℕ) (h : n < 2 ^ 32) : n < USize.size := by
   rcases System.Platform.numBits_eq with he | he <;> rw [USize.size, he] <;> omega
 
-/-- The size of a small `zeroes` block (no `USize` wrap). -/
+/-- The size of a `zeroes` block. -/
 theorem zeroes_ofNat_size (n : ℕ) (_h : n < 2 ^ 32) :
     (ffi.ByteArray.zeroes n).size = n := by
   rw [ByteArray_zeroes_size]
+
+-- `zeroes` used to be an `opaque` extern in evmlean, i.e. an unfolding WALL during defeq.  It is
+-- now a plain def (`Array.replicate`), and letting defeq descend into it makes large state
+-- comparisons stack-overflow (observed in UniswapV2Pair/Mint).  Re-erect the wall: reason about
+-- `zeroes` only through the equations above (`ByteArray_zeroes_size`, `zeroes_zero`, …).
+set_option allowUnsafeReducibility true in
+attribute [irreducible] ffi.ByteArray.zeroes
 
 theorem zeroes32_extract_zeroes (n : Nat) (hn : n ≤ 32) :
     (ffi.ByteArray.zeroes 32).extract 0 n =
@@ -1053,7 +1045,7 @@ theorem toByteArray_write_read_window_of_gap
     rw [show off + start - off = start by omega,
       show off + start + len - off = start + len by omega]
 
-/-! ## 4a. Two-word scratch memory for mapping-slot hashes -/
+/-! ## 4. Two-word scratch memory for mapping-slot hashes -/
 
 noncomputable def wordAt0Mem (word : UInt256) (mem : ByteArray) : ByteArray :=
   (UInt256.toByteArray word).write 0 mem 0 32
@@ -1300,7 +1292,7 @@ theorem readBytes32_len (cd : ByteArray) :
 
 /-- **EVM selector extraction.**  `(uInt256OfByteArray (readBytes cd 0 32)) >>> 224` — the EVM's
     `CALLDATALOAD; PUSH 0xe0; SHR` — equals the big-endian number of `cd`'s first four bytes
-    (for `4 ≤ cd.size`).  Fully proved; nothing opaque. -/
+    (for `4 ≤ cd.size`). -/
 theorem selector_toNat (cd : ByteArray) (h : 4 ≤ cd.size) :
     (UInt256.shiftRight (uInt256OfByteArray (ByteArray.readBytes cd 0 32)) ⟨224⟩).toNat
       = fromBytesBigEndian (cd.data.toList.take 4) := by
@@ -1325,7 +1317,7 @@ theorem selector_toNat (cd : ByteArray) (h : 4 ≤ cd.size) :
   rw [readBytes32_toList, List.take_append_of_le_length (by rw [List.length_take]; omega),
       List.take_take, show min 4 32 = 4 from rfl]
 
-/-! ## Generic `MLOAD` word-value helper -/
+/-! ## 7. Generic `MLOAD` word-value helper -/
 
 /-- Simplify the value pushed by `MLOAD` when the offset is in bounds and below the active-word
     limit, leaving the byte read uninterpreted. -/
@@ -1348,7 +1340,7 @@ theorem mloadWordValue_of_readWithPadding {mem : ByteArray} {aw off v : UInt256}
   rw [if_neg (not_or.mpr ⟨by omega, haw⟩), hread, fromByteArrayBigEndian_toByteArray,
     u256_ofNat_toNat]
 
-/-! ## ABI calldata decode coupling (shared by every contract with arguments) -/
+/-! ## 8. ABI calldata decode coupling (shared by every contract with arguments) -/
 
 /-- `uInt256OfByteArray` is the big-endian decode then `ofNat`. -/
 theorem uInt256OfByteArray_eq (arr : ByteArray) :
@@ -1407,14 +1399,6 @@ theorem fromBytes'_inj_of_length {xs ys : List UInt8}
           rw [hxy]
           congr
           exact ih hlen htail
-
-theorem toBytesLEWithSizeProof_fromBytes'_pad32 (bs : List UInt8)
-    (hlen : bs.length = 32) {hfit : fromBytes' bs < UInt256.size} :
-    (EVM.Word.toBytesLEWithSizeProof ({ val := ⟨fromBytes' bs, hfit⟩ } : UInt256)).1 = bs := by
-  apply fromBytes'_inj_of_length
-  · rw [(EVM.Word.toBytesLEWithSizeProof ({ val := ⟨fromBytes' bs, hfit⟩ } : UInt256)).2, hlen]
-  · rw [fromBytes'_toBytesLEWithSizeProof]
-    rfl
 
 theorem fromBytesBigEndian_inj_of_length {xs ys : List UInt8}
     (hlen : xs.length = ys.length)
@@ -1546,7 +1530,7 @@ theorem decode_word_at_eq_any (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ c
   rw [byteArray_toList_eq (cd.readBytes off 32), readBytes_at_toList_any _ _ hsz]
   simp [byteArray_toList_eq]
 
-/-! ## Mapping storage-slot and load coupling
+/-! ## 9. Mapping storage-slot and load coupling
 
 Solidity stores `mapping[key]` at base slot `s` in `keccak256(key ‖ s)` (each a 32-byte big-endian
 word); the Solm layout (`Solm.SolidityLayout`) computes exactly
@@ -1571,26 +1555,6 @@ theorem mappingSlot_single (key baseSlot : UInt256) :
         (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray)))
       = uInt256OfByteArray (ffi.KEC (key.toByteArray ++ baseSlot.toByteArray)) :=
   keccakSlot_eq _
-
-/-- **Nested-mapping slot.**  For `mapping[k₁][k₂]` at base `baseSlot`: the inner slot is the
-    single-mapping slot for `k₁`, and the outer `KECCAK256` over `k₂ ‖ innerSlot` yields the Solm
-    layout slot — matching `uInt256OfByteArray (KEC (k₂ ‖ KEC(k₁ ‖ baseSlot)))`. -/
-theorem mappingSlot_nested (k₁ k₂ baseSlot : UInt256) :
-    UInt256.ofNat (fromByteArrayBigEndian
-        (ffi.KEC (k₂.toByteArray
-          ++ (uInt256OfByteArray (ffi.KEC (k₁.toByteArray ++ baseSlot.toByteArray))).toByteArray)))
-      = uInt256OfByteArray (ffi.KEC (k₂.toByteArray
-          ++ (uInt256OfByteArray (ffi.KEC (k₁.toByteArray ++ baseSlot.toByteArray))).toByteArray)) :=
-  keccakSlot_eq _
-
-/-- **Load coupling.**  The word `RD.sload` pushes (storage of `codeOwner` at `slot`, read from the
-    carried `accountMap`) is exactly the Solm-level `storageLoad` of the same account/slot — so a
-    mapping `SLOAD` at the keccak slot reads the same word the Solm spec's `storageLocLoad` decodes. -/
-theorem sloadVal_eq_storageLoad (self : EVM.State) (slot : UInt256) :
-    (self.accountMap.find? self.executionEnv.codeOwner |>.option ⟨0⟩
-        (fun acc => acc.storage.findD slot ⟨0⟩))
-      = Solm.EVM.storageLoad self self.executionEnv.codeOwner slot :=
-  rfl
 
 
 end Reasoning.Theory

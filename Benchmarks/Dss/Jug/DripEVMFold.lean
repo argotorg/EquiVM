@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Jug.DripEVMRpow
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Jug
 
@@ -178,7 +178,7 @@ theorem RD.jugDripVatFoldCallReady
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (dripVatTargetWord σ' I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ' (dripVatTargetWord σ' I) ≠ ⟨0⟩)
     (rd1570 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
       (delta :: dripVowTargetWord σ' I :: fileDutyIlkWord I :: dripVatFoldSelectorWord ::
@@ -193,7 +193,7 @@ theorem RD.jugDripVatFoldCallReady
       (dripVatFoldCalldataMem σ' I delta mem) (UInt256.ofNat 8) out (cA', σ') k' C' := by
   obtain ⟨_, _, rd1635⟩ := RD.jugDripVatFoldCallGuard hmem hread64 rd1570
   obtain ⟨gasWord, k', C', rd1650⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1635⟩) (okPc := ⟨1647⟩) rd1635
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1635⟩) (okPc := ⟨1647⟩) rd1635
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -206,7 +206,7 @@ theorem RD.jugDripVatFoldNoCode
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (dripVatTargetWord σ' I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ' (dripVatTargetWord σ' I) = ⟨0⟩)
     (rd1570 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1570⟩
       (delta :: dripVowTargetWord σ' I :: fileDutyIlkWord I :: dripVatFoldSelectorWord ::
@@ -215,7 +215,7 @@ theorem RD.jugDripVatFoldNoCode
     RDrev jugBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1635⟩ := RD.jugDripVatFoldCallGuard hmem hread64 rd1570
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1635⟩) (okPc := ⟨1647⟩) rd1635
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1635⟩) (okPc := ⟨1647⟩) rd1635
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -282,7 +282,7 @@ theorem RD.jugDripVatFoldCallFailed
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1651⟩) (okPc := ⟨1667⟩) rd1651
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1651⟩) (okPc := ⟨1667⟩) rd1651
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -302,7 +302,7 @@ theorem RD.jugDripVatFoldCallSucceeded
       (dripVatFoldEndPtr :: dripVatFoldSelectorWord :: targetWord ::
         prev :: rate :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨1651⟩) (okPc := ⟨1667⟩) rd1651
+  exact RD.solcCallSuccessGuardOk (pc := ⟨1651⟩) (okPc := ⟨1667⟩) rd1651
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)

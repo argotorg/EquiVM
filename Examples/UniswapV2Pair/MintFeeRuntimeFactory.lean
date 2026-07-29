@@ -1,6 +1,6 @@
 import Examples.UniswapV2Pair.MintRuntimeBalance
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -115,10 +115,10 @@ theorem uniswapMintFeeRuntimeFactoryMissingCodeReverts
         ⟨0⟩, toWord, ⟨861⟩, sel]
       (feeToSelectorMem (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1))
       feeToStaticcallActiveWords o1 (cA'', σ'') k C)
-    (hfactoryNoCode : uniswapExtCodeSizeWord σ'' (mintFeeFactoryWord σ'' I) = ⟨0⟩) :
+    (hfactoryNoCode : extCodeSizeWord σ'' (mintFeeFactoryWord σ'' I) = ⟨0⟩) :
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapExtcodesizeGuardMissing (okPc := ⟨7777⟩) rd7765 hfactoryNoCode
+  exact RD.solcExtcodesizeGuardMissing (okPc := ⟨7777⟩) rd7765 hfactoryNoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide)
@@ -145,7 +145,7 @@ theorem uniswapMintFeeRuntimeFactoryStaticcallMade
       (feeToSelectorMem (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1))
       feeToStaticcallActiveWords o1 (cA'', σ'') k C)
     (hdepth : I.depth.val < 1024)
-    (hfactoryCode : uniswapExtCodeSizeWord σ'' (mintFeeFactoryWord σ'' I) ≠ ⟨0⟩) :
+    (hfactoryCode : extCodeSizeWord σ'' (mintFeeFactoryWord σ'' I) ≠ ⟨0⟩) :
     ∃ (cAFee : Batteries.RBSet AccountAddress compare) (σFee : AccountMap)
       (zFee : Bool) (outFee : ByteArray) (A_inFee : Substate) (callGasFee : UInt256)
       (k' C' : ℕ),
@@ -178,14 +178,14 @@ theorem uniswapMintFeeRuntimeFactoryStaticcallMade
   let baseMem := balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1
   let factory := mintFeeFactoryWord σ'' I
   obtain ⟨_, _, _, rd7780⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (okPc := ⟨7777⟩) rd7765 hfactoryCode
+    RD.solcExtcodesizeGuardOkGas (okPc := ⟨7777⟩) rd7765 hfactoryCode
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest)
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨cAFee, σFee, zFee, outFee, A_inFee, callGasFee, k', C', hΘ, rd7781,
       houtFeeSize⟩ :=
-    RD.uniswapStaticcall rd7780 (by native_decide) hdepth
+    RD.solcStaticcall rd7780 (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨cAFee, σFee, zFee, outFee, A_inFee, callGasFee, k', C',
     by simpa [baseMem, factory, initState] using hΘ,
@@ -243,7 +243,7 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCall
   · intro hz
     have hstatus : (if zFee then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       simp [hz]
-    exact RD.uniswapCallSuccessGuardMissing (okPc := ⟨7797⟩) rd7781 hstatus
+    exact RD.solcCallSuccessGuardMissing (okPc := ⟨7797⟩) rd7781 hstatus
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -254,7 +254,7 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCall
       rw [hz]
       decide
     obtain ⟨_, _, rd7799⟩ :=
-      RD.uniswapCallSuccessGuardOk (okPc := ⟨7797⟩) rd7781 hstatus
+      RD.solcCallSuccessGuardOk (okPc := ⟨7797⟩) rd7781 hstatus
         (by native_decide) (by native_decide) (by native_decide) (by native_decide)
         (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
         (by simp only [List.length_cons, List.length_nil]; omega)
@@ -279,7 +279,7 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCall
       rw [hz]
       decide
     obtain ⟨_, _, rd7799⟩ :=
-      RD.uniswapCallSuccessGuardOk (okPc := ⟨7797⟩) rd7781 hstatus
+      RD.solcCallSuccessGuardOk (okPc := ⟨7797⟩) rd7781 hstatus
         (by native_decide) (by native_decide) (by native_decide) (by native_decide)
         (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
         (by simp only [List.length_cons, List.length_nil]; omega)

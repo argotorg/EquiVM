@@ -1,6 +1,8 @@
 import ABI.Encode
 import ABI.Decode
 
+/-! Flattening static ABI types into the word-scalar leaves they occupy. -/
+
 namespace ABI
 
 /-- Repeat a list `n` times and concatenate the copies. -/
@@ -41,8 +43,7 @@ end
 mutual
   /-- Flatten a static ABI value into `(type, value)` word-scalar leaves, in ABI order.
 
-  The function succeeds only when every scalar leaf is accepted by `encodeABIWord?`; this makes it
-  a convenient domain predicate for word-level encoder theorems.
+  The function succeeds only when every scalar leaf is accepted by `encodeABIWord?`.
   -/
   def staticWordPairs? : ABIType → Solm.Value → Option (List (ABIType × Solm.Value))
     | ty@(.elem _), value =>

@@ -83,7 +83,7 @@ theorem flapperCtorVatStoreReach
   have rd173 := flapper_ctor_run rd147 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap4, dup5, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, swap2, dup3, and,
-    lor, swap1, swap2]
+    or, swap1, swap2]
   obtain ⟨k', C', rd174raw⟩ := rd173.sstore hperm (by flapper_ctor_decode) (by evm_ov)
   have holdComm :
       UInt256.land (UInt256.lnot solcAddrMask) (solcSlotWord σWards I ⟨2⟩) =
@@ -135,7 +135,7 @@ theorem flapperCtorGemStoreReach
       rfl
     simpa [hload] using rd178raw
   have rd190 := flapper_ctor_run rd178 with [
-    swap4, swap1, swap5, and, swap3, and, swap2, swap1, swap2, lor, swap1, swap2]
+    swap4, swap1, swap5, and, swap3, and, swap2, swap1, swap2, or, swap1, swap2]
   obtain ⟨k', C', rd191raw⟩ := rd190.sstore hperm (by flapper_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
     simpa [flapperCtorGemStored, setAddressOffset0Word,

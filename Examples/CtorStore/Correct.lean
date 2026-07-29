@@ -1,7 +1,6 @@
 import Examples.CtorStore.Bytecode
 import Reasoning.Memory
 import Reasoning.Solc
-import Reasoning.Theory
 import Reasoning.Dispatch
 import Reasoning.SolmBody
 import Reasoning.Reach
@@ -45,7 +44,7 @@ theorem ctorStoreRuntimeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     raw rev 0 (by decide) mem_cost (by evm_ov)]
 
 theorem ctorStoreRuntimeCorrect :
-    runtimeEquivalence!?! ctorStoreConfig ctorStoreRuntimeBytecode CtorStore.contract := by
+    runtimeEquivalence ctorStoreConfig ctorStoreRuntimeBytecode CtorStore.contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode _hsize _hperm
       _hσ => ?_⟩
   exact (ctorStoreRuntimeRevert (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)

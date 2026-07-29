@@ -1,17 +1,14 @@
 import Examples.UniswapV2Pair.Dispatch
-import Reasoning.Refinement
+import Examples.UniswapV2Pair.Permit
 import Reasoning.SolmBody
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
 namespace UniswapV2Pair
 
-/-! ## `PERMIT_TYPEHASH()` constant getter -/
-
-def permitTypehashWord : UInt256 :=
-  ⟨49955707469362902507454157297736832118868343942642399513960811609542965143241⟩
+/-! ## `PERMIT_TYPEHASH()` constant getter (constant lives in Permit.lean) -/
 
 theorem permitTypehashWord_toBytesBE :
     EVM.Word.toBytesBE permitTypehashWord = permitTypehashBytes := by

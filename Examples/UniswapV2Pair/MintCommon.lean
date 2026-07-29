@@ -10,9 +10,8 @@ import Examples.UniswapV2Pair.Sync
 import Examples.UniswapV2Pair.SyncRuntime
 import Examples.UniswapV2Pair.UpdateRoutines
 import Reasoning.ExternalCall
-import Reasoning.Refinement
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -444,7 +443,7 @@ theorem mintFeeFactoryGuardFalse_of_noCode {σ : AccountMap}
     {evm : EVM.State} {I : ExecutionEnv} {reserve0 reserve1 : UInt256}
     (hPost : accountMapEquiv σ evm.accountMap)
     (henv : evm.executionEnv = I)
-    (hfactoryNoCode : uniswapExtCodeSizeWord σ (mintFeeFactoryWord σ I) = ⟨0⟩) :
+    (hfactoryNoCode : extCodeSizeWord σ (mintFeeFactoryWord σ I) = ⟨0⟩) :
     evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
       (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
         .ok (.bool false) := by
@@ -454,10 +453,10 @@ theorem mintFeeFactoryGuardFalse_of_noCode {σ : AccountMap}
     have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨5⟩ ⟨0⟩
     simpa [factoryWordS, factoryWordE, uniswapSlotWord, henv] using hword
   have hcodeEvm :
-      uniswapExtCodeSizeWord evm.accountMap (UInt256.land solcAddrMask factoryWordE) =
+      extCodeSizeWord evm.accountMap (UInt256.land solcAddrMask factoryWordE) =
         ⟨0⟩ := by
     have hsame :=
-      uniswapExtCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask factoryWordS)
+      extCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask factoryWordS)
     rw [← hslot]
     rw [← hsame]
     simpa [factoryWordS, mintFeeFactoryWord] using hfactoryNoCode
@@ -470,11 +469,11 @@ theorem mintFeeFactoryGuardFalse_of_noCode {σ : AccountMap}
           (fun acc => EVM.Word.ofNat acc.code.size) =
         ⟨0⟩ := by
     have hcodeEvmRight :
-        uniswapExtCodeSizeWord evm.accountMap (UInt256.land factoryWordE solcAddrMask) =
+        extCodeSizeWord evm.accountMap (UInt256.land factoryWordE solcAddrMask) =
           ⟨0⟩ := by
       simpa [u256_land_comm] using hcodeEvm
     simpa [State.lookupAccount, Solm.EVM.storageLoad, Account.lookupStorage,
-      uniswapAddressAtSlot, uniswapExtCodeSizeWord, uniswapSlotWord, factoryWordE,
+      uniswapAddressAtSlot, extCodeSizeWord, uniswapSlotWord, factoryWordE,
       accountAddress_ofUInt256_eq_ofNat_toNat] using hcodeEvmRight
   have hcodeSourceWord :
       EVM.Word.ofNat
@@ -496,7 +495,7 @@ theorem mintFeeFactoryGuardTrue_of_code {σ : AccountMap}
     {evm : EVM.State} {I : ExecutionEnv} {reserve0 reserve1 : UInt256}
     (hPost : accountMapEquiv σ evm.accountMap)
     (henv : evm.executionEnv = I)
-    (hfactoryCode : uniswapExtCodeSizeWord σ (mintFeeFactoryWord σ I) ≠ ⟨0⟩) :
+    (hfactoryCode : extCodeSizeWord σ (mintFeeFactoryWord σ I) ≠ ⟨0⟩) :
     evalExpr? config (mintFeeCallFrame reserve0 reserve1) evm
       (.binary .gt (.extCodeSize (.storage factoryRef)) (.intLit 0)) =
         .ok (.bool true) := by
@@ -506,12 +505,12 @@ theorem mintFeeFactoryGuardTrue_of_code {σ : AccountMap}
     have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨5⟩ ⟨0⟩
     simpa [factoryWordS, factoryWordE, uniswapSlotWord, henv] using hword
   have hcodeEvm :
-      uniswapExtCodeSizeWord evm.accountMap (UInt256.land solcAddrMask factoryWordE) ≠
+      extCodeSizeWord evm.accountMap (UInt256.land solcAddrMask factoryWordE) ≠
         ⟨0⟩ := by
     have hsame :=
-      uniswapExtCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask factoryWordS)
+      extCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask factoryWordS)
     have hcodeS :
-        uniswapExtCodeSizeWord σ (UInt256.land solcAddrMask factoryWordS) ≠ ⟨0⟩ := by
+        extCodeSizeWord σ (UInt256.land solcAddrMask factoryWordS) ≠ ⟨0⟩ := by
       simpa [factoryWordS, mintFeeFactoryWord] using hfactoryCode
     intro hzero
     apply hcodeS
@@ -527,13 +526,13 @@ theorem mintFeeFactoryGuardTrue_of_code {σ : AccountMap}
           (fun acc => EVM.Word.ofNat acc.code.size) ≠
         ⟨0⟩ := by
     have hcodeEvmRight :
-        uniswapExtCodeSizeWord evm.accountMap (UInt256.land factoryWordE solcAddrMask) ≠
+        extCodeSizeWord evm.accountMap (UInt256.land factoryWordE solcAddrMask) ≠
           ⟨0⟩ := by
       simpa [u256_land_comm] using hcodeEvm
     intro hzero
     apply hcodeEvmRight
     simpa [State.lookupAccount, Solm.EVM.storageLoad, Account.lookupStorage,
-      uniswapAddressAtSlot, uniswapExtCodeSizeWord, uniswapSlotWord, factoryWordE,
+      uniswapAddressAtSlot, extCodeSizeWord, uniswapSlotWord, factoryWordE,
       accountAddress_ofUInt256_eq_ofNat_toNat] using hzero
   have hcodeSourceWord :
       EVM.Word.ofNat
@@ -833,7 +832,7 @@ theorem mintToken0GuardFalse_initState_of_noCode
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (htoken0NoCode :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
         ⟨0⟩) :
@@ -863,7 +862,7 @@ theorem mintToken0GuardTrue_initState_of_code
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (htoken0Code :
-      uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+      extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
         (UInt256.land solcAddrMask
           (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) ≠
         ⟨0⟩) :
@@ -885,10 +884,10 @@ theorem mintToken0GuardTrue_initState_of_code
     simpa [σLockE, σLockS, token0WordE, token0WordS] using
       accountMapEquiv_storage_findD hLockAccounts I.codeOwner ⟨6⟩ ⟨0⟩
   have hcodeSolm :
-      uniswapExtCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) ≠ ⟨0⟩ := by
+      extCodeSizeWord σLockS (UInt256.land solcAddrMask token0WordS) ≠ ⟨0⟩ := by
     intro hzero
     have hsame :=
-      uniswapExtCodeSizeWord_accountMapEquiv hLockAccounts
+      extCodeSizeWord_accountMapEquiv hLockAccounts
         (UInt256.land solcAddrMask token0WordE)
     rw [← hslot] at hzero
     rw [← hsame] at hzero
@@ -908,13 +907,13 @@ theorem mintToken0GuardTrue_initState_of_code
           (fun acc => EVM.Word.ofNat acc.code.size) ≠
         ⟨0⟩ := by
     have hcodeSolmRight :
-        uniswapExtCodeSizeWord σLockS (UInt256.land token0WordS solcAddrMask) ≠ ⟨0⟩ := by
+        extCodeSizeWord σLockS (UInt256.land token0WordS solcAddrMask) ≠ ⟨0⟩ := by
       simpa [u256_land_comm] using hcodeSolm
     intro hzero
     apply hcodeSolmRight
     simpa [evmL, evmS, uniswapLockEnteredState, uniswapUnlockedState, initState,
       storageStore_accountMap, storageStore_executionEnv, State.lookupAccount, Solm.EVM.storageLoad,
-      Account.lookupStorage, uniswapAddressAtSlot, uniswapExtCodeSizeWord, uniswapSlotWord, σLockS,
+      Account.lookupStorage, uniswapAddressAtSlot, extCodeSizeWord, uniswapSlotWord, σLockS,
       token0WordS, accountAddress_ofUInt256_eq_ofNat_toNat] using hzero
   have hcodeSourceWord :
       EVM.Word.ofNat
@@ -947,7 +946,7 @@ theorem mintToken1GuardFalse_of_noCode {σ : AccountMap}
     (hPost : accountMapEquiv σ evm0.accountMap)
     (henv : evm0.executionEnv = I)
     (htoken1NoCode :
-      uniswapExtCodeSizeWord σ (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) =
+      extCodeSizeWord σ (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) =
         ⟨0⟩) :
     evalExpr? config
       { contract := contract, locals := (mintReserveStore reserveEvm I).insert "balance0" balance0 }
@@ -959,10 +958,10 @@ theorem mintToken1GuardFalse_of_noCode {σ : AccountMap}
     have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨7⟩ ⟨0⟩
     simpa [token1WordS, token1WordE, uniswapSlotWord, henv] using hword
   have hcodeEvm :
-      uniswapExtCodeSizeWord evm0.accountMap (UInt256.land solcAddrMask token1WordE) =
+      extCodeSizeWord evm0.accountMap (UInt256.land solcAddrMask token1WordE) =
         ⟨0⟩ := by
     have hsame :=
-      uniswapExtCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask token1WordS)
+      extCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask token1WordS)
     rw [← hslot]
     rw [← hsame]
     simpa [token1WordS] using htoken1NoCode
@@ -982,11 +981,11 @@ theorem mintToken1GuardFalse_of_noCode {σ : AccountMap}
           (fun acc => EVM.Word.ofNat acc.code.size) =
         ⟨0⟩ := by
     have hcodeEvmRight :
-        uniswapExtCodeSizeWord evm0.accountMap (UInt256.land token1WordE solcAddrMask) =
+        extCodeSizeWord evm0.accountMap (UInt256.land token1WordE solcAddrMask) =
           ⟨0⟩ := by
       simpa [u256_land_comm] using hcodeEvm
     simpa [State.lookupAccount, Solm.EVM.storageLoad, Account.lookupStorage,
-      uniswapAddressAtSlot, uniswapExtCodeSizeWord, uniswapSlotWord, token1WordE,
+      uniswapAddressAtSlot, extCodeSizeWord, uniswapSlotWord, token1WordE,
       accountAddress_ofUInt256_eq_ofNat_toNat] using hcodeEvmRight
   have hcodeSourceWord :
       EVM.Word.ofNat
@@ -1010,7 +1009,7 @@ theorem mintToken1GuardTrue_of_code {σ : AccountMap}
     (hPost : accountMapEquiv σ evm0.accountMap)
     (henv : evm0.executionEnv = I)
     (htoken1Code :
-      uniswapExtCodeSizeWord σ (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) ≠
+      extCodeSizeWord σ (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ I)) ≠
         ⟨0⟩) :
     evalExpr? config
       { contract := contract, locals := (mintReserveStore reserveEvm I).insert "balance0" balance0 }
@@ -1022,11 +1021,11 @@ theorem mintToken1GuardTrue_of_code {σ : AccountMap}
     have hword := accountMapEquiv_storage_findD hPost I.codeOwner ⟨7⟩ ⟨0⟩
     simpa [token1WordS, token1WordE, uniswapSlotWord, henv] using hword
   have hcodeEvm :
-      uniswapExtCodeSizeWord evm0.accountMap (UInt256.land solcAddrMask token1WordE) ≠
+      extCodeSizeWord evm0.accountMap (UInt256.land solcAddrMask token1WordE) ≠
         ⟨0⟩ := by
     intro hzero
     have hsame :=
-      uniswapExtCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask token1WordS)
+      extCodeSizeWord_accountMapEquiv hPost (UInt256.land solcAddrMask token1WordS)
     rw [← hslot] at hzero
     rw [← hsame] at hzero
     exact htoken1Code (by simpa [token1WordS] using hzero)
@@ -1046,13 +1045,13 @@ theorem mintToken1GuardTrue_of_code {σ : AccountMap}
           (fun acc => EVM.Word.ofNat acc.code.size) ≠
         ⟨0⟩ := by
     have hcodeEvmRight :
-        uniswapExtCodeSizeWord evm0.accountMap (UInt256.land token1WordE solcAddrMask) ≠
+        extCodeSizeWord evm0.accountMap (UInt256.land token1WordE solcAddrMask) ≠
           ⟨0⟩ := by
       simpa [u256_land_comm] using hcodeEvm
     intro hzero
     apply hcodeEvmRight
     simpa [State.lookupAccount, Solm.EVM.storageLoad, Account.lookupStorage,
-      uniswapAddressAtSlot, uniswapExtCodeSizeWord, uniswapSlotWord, token1WordE,
+      uniswapAddressAtSlot, extCodeSizeWord, uniswapSlotWord, token1WordE,
       accountAddress_ofUInt256_eq_ofNat_toNat] using hzero
   have hcodeSourceWord :
       EVM.Word.ofNat

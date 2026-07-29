@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Cat.Common
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -50,10 +50,10 @@ theorem RD.catBiteGrabNoCode
     (rd2177 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2177⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: ⟨0⟩ :: R)
       mem aw rdata (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 9 ≤ 1024) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -72,7 +72,7 @@ theorem RD.catBiteGrabCall
     (rd2177 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2177⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: ⟨0⟩ :: R)
       mem aw rdata (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 9 ≤ 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
@@ -89,7 +89,7 @@ theorem RD.catBiteGrabCall
           ((if z then ⟨1⟩ else ⟨0⟩) :: R) mem' aw' o (cA', σ') k' C'
       ∧ o.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd2192⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -113,13 +113,13 @@ theorem RD.catBiteGrabCallDepthLimit
     (rd2177 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2177⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: ⟨0⟩ :: R)
       mem aw rdata (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hov : R.length + 9 ≤ 1024) :
     ∃ mem' aw' k' C', RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2193⟩
       (⟨0⟩ :: R) mem' aw' ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨gasWord, k1, C1, rd2192⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -145,7 +145,7 @@ theorem RD.catBiteGrabCallFailed
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2193⟩) (okPc := ⟨2209⟩) rd2193
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2193⟩) (okPc := ⟨2209⟩) rd2193
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -168,7 +168,7 @@ theorem RD.catBiteGrabCallSucceeded
     ∃ k' C', RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2212⟩
       R mem aw rdata acc k' C' := by
   obtain ⟨k1, C1, rd2211⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨2193⟩) (okPc := ⟨2209⟩) rd2193
+    RD.solcCallSuccessGuardOk (pc := ⟨2193⟩) (okPc := ⟨2209⟩) rd2193
       hstatus
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)

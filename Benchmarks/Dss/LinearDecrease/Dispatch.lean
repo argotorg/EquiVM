@@ -6,7 +6,7 @@ import Benchmarks.Dss.LinearDecrease.Trusted
 Solm dispatch routing facts and shared dispatcher-level proof obligations.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -265,7 +265,7 @@ theorem stairstepNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     |>.selectorArmNotTakenAuto (stairstepArmsWellFormed 5 (by omega))
         (heq0 5 (by omega)) (by simp)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h98 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h98 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem stairstepX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -277,7 +277,7 @@ theorem stairstepX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
     |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 theorem stairstepX_short {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -300,7 +300,7 @@ theorem stairstepX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h98 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h98 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 theorem stairstepX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}

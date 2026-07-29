@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Flipper.Dispatch
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
@@ -1012,7 +1012,7 @@ theorem flipperFileUintX_storeTtl {cA σ I} {g : Sat256} {s0 : State}
       (by evm_ov),
     raw dup4 (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   obtain ⟨_, _, rd1851⟩ := rd1850.sstore hperm (by native_decide) (by evm_ov)
   have rd1988 := rd1851.push2 ⟨1988⟩ (by native_decide) (by evm_ov)
@@ -1110,7 +1110,7 @@ theorem flipperFileUintX_storeTauTail {cA σ I} {g : Sat256} {s0 : State}
   have rd1902 := rd1901.dup5 (by native_decide) (by evm_ov)
   have rd1903 := rd1902.and (by native_decide) (by evm_ov)
   have rd1904 := rd1903.mul (by native_decide) (by evm_ov)
-  have rd1905 := rd1904.lor (by native_decide) (by evm_ov)
+  have rd1905 := rd1904.or (by native_decide) (by evm_ov)
   have rd1906 := rd1905.swap1 (by native_decide) (by evm_ov)
   let slot5New :=
     UInt256.lor (UInt256.mul (UInt256.land (fileUintData I) uint48Mask) uint48Divisor)

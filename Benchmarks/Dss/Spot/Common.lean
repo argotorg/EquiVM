@@ -1,13 +1,11 @@
 import Benchmarks.Dss.Spot.Bytecode
 import Reasoning.ABI
-import Reasoning.Theory
 import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc
 import Reasoning.Memory
 import Reasoning.Storage
 import Reasoning.Dispatch
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
 
@@ -17,7 +15,7 @@ import Mathlib.Tactic.IntervalCases
 Contract-wide selector notation and constants for the optimized Spotter runtime.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

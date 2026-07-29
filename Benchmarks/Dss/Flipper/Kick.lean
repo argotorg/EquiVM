@@ -4,7 +4,7 @@ import Benchmarks.Dss.Flipper.BidAccess
 import Benchmarks.Dss.Flipper.Dispatch
 import Reasoning.MemCascade
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
@@ -1310,7 +1310,7 @@ theorem flipperKickX_toAdd48 {cA σ I} {g : Sat256} {s0 : State}
     raw not (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   rw [hmask160, hstoredGuy] at rd2205pre
   obtain ⟨k2206, C2206, rd2206⟩ := rd2205pre.sstore hperm (by native_decide) (by evm_ov)
@@ -1444,7 +1444,7 @@ theorem flipperKickX_add48Overflow {cA σ σtau I} {g : Sat256} {s0 : State}
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd6290
   have rd6295 := rd6290.push2 ⟨6299⟩ (by native_decide) (by evm_ov)
     |>.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd6295 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rd6295 (by native_decide) (by native_decide)
     (by native_decide) (by evm_ov)
 
 theorem flipperKickX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}

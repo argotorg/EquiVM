@@ -3,7 +3,7 @@ import Benchmarks.Dss.Vat.Rely
 
 namespace Benchmarks.Dss.Vat
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -1131,7 +1131,7 @@ theorem RD.vatSignedAddRevertSecond {g : Sat256} {s0 : State}
   have rd6701 := rd6698.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
   have rd6702 := rd6701.jumpiNT (by native_decide)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd6702
+  exact RD.solcPush1Dup1Revert0 rd6702
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 
@@ -1240,7 +1240,7 @@ theorem RD.vatSignedAddRevert {g : Sat256} {s0 : State}
     have rd6676 := rd6673.push2 ⟨6681⟩ (by native_decide) (by evm_ov)
     have rd6677 := rd6676.jumpiNT (by native_decide)
       (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    exact RD.uniswapPush1Dup1Revert0 rd6677
+    exact RD.solcPush1Dup1Revert0 rd6677
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
   · by_cases hyneg0 : UInt256.slt y ⟨0⟩ = ⟨0⟩

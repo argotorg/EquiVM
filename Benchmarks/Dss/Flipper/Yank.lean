@@ -5,7 +5,7 @@ import Benchmarks.Dss.Flipper.ExternalCallTransport
 import Reasoning.ExternalCall
 import Reasoning.MemCascade
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
 
@@ -1365,12 +1365,12 @@ theorem flipperYankX_toCatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
 theorem flipperYankX_catNoCode {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperCatTargetWord σ I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd1330⟩ := flipperYankX_toCatExtcodesizeGuard h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1330⟩) (okPc := ⟨1342⟩) rd1330
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1330⟩) (okPc := ⟨1342⟩) rd1330
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1379,7 +1379,7 @@ theorem flipperYankX_catNoCode {cA σ I} {g : Sat256} {s0 : State}
 theorem flipperYankX_toCatCall {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨1345⟩
@@ -1389,7 +1389,7 @@ theorem flipperYankX_toCatCall {cA σ I} {g : Sat256} {s0 : State}
       (yankCatCallMem σ I) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨_, _, rd1330⟩ := flipperYankX_toCatExtcodesizeGuard h
   obtain ⟨gasWord, k1345, C1345, rd1345⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1330⟩) (okPc := ⟨1342⟩) rd1330
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1330⟩) (okPc := ⟨1342⟩) rd1330
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1399,7 +1399,7 @@ theorem flipperYankX_toCatCall {cA σ I} {g : Sat256} {s0 : State}
 theorem flipperYankX_catPostCall
     {cA gh bl σ σ₀ A I} {g : UInt256} {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
@@ -1464,7 +1464,7 @@ theorem flipperYankX_catCallFailure {I} {g : Sat256} {s0 : State}
       mem aw out acc k C)
     (houtsz : out.size < UInt256.size) :
     RDrev flipperBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1346⟩) (okPc := ⟨1362⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1346⟩) (okPc := ⟨1362⟩) h
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1474,7 +1474,7 @@ theorem flipperYankX_catCallFailure {I} {g : Sat256} {s0 : State}
 theorem flipperYankX_catCallDepthLimit {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperCatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (h : RD flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
@@ -1514,7 +1514,7 @@ theorem flipperYankX_catCallSuccessToVatStart {I} {g : Sat256} {s0 : State}
       (selector :: target :: id :: ret :: sel :: [])
       mem aw out acc k' C' := by
   obtain ⟨k1364, C1364, rd1364⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨1346⟩) (okPc := ⟨1362⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨1346⟩) (okPc := ⟨1362⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -1621,7 +1621,7 @@ theorem flipperYankX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : St
     raw swap5 (by native_decide) (by evm_ov),
     raw mstore 0 (yankVatFluxIlkMem σmem σ I) (UInt256.ofNat 6)
       (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
-  have rd1413 := RD.uniswapAddress rd1412 (by native_decide) (by evm_ov)
+  have rd1413 := RD.address rd1412 (by native_decide) (by evm_ov)
   have rd1466 := evm_run rd1413 with [
     raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
     raw dup6 (by native_decide) (by evm_ov),
@@ -1676,13 +1676,13 @@ theorem flipperYankX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : St
 theorem flipperYankX_vatNoCode {cA σmem σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨1365⟩
       (selector :: target :: yankId I :: ret :: sel :: [])
       (yankCatCallMem σmem I) (UInt256.ofNat 6) out (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd1466⟩ := flipperYankX_toVatExtcodesizeGuard h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1466⟩) (okPc := ⟨1478⟩) rd1466
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1466⟩) (okPc := ⟨1478⟩) rd1466
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)

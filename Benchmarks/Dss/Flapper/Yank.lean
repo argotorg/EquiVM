@@ -3,7 +3,7 @@ import Benchmarks.Dss.Flapper.Cage
 import Benchmarks.Dss.Flopper.AuctionCommon
 import Reasoning.ExternalCall
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -151,12 +151,12 @@ theorem flapperAddressOfSlot_accountMapEquiv {σ τ : AccountMap} {I : Execution
 theorem flapperCodeSize_ne_accountMapEquiv_addressSlot {σ τ : AccountMap}
     {I : ExecutionEnv} (hAccounts : accountMapEquiv σ τ) (slot : UInt256)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flapperAddressReturnWord slot σ I) ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (flapperAddressReturnWord slot τ I) ≠ ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord slot σ I) ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (flapperAddressReturnWord slot τ I) ≠ ⟨0⟩ := by
   intro hzero
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (flapperAddressReturnWord slot σ I)
   have htarget :
       flapperAddressReturnWord slot σ I = flapperAddressReturnWord slot τ I :=
@@ -167,10 +167,10 @@ theorem flapperCodeSize_ne_accountMapEquiv_addressSlot {σ τ : AccountMap}
 theorem flapperCodeSize_zero_accountMapEquiv_addressSlot {σ τ : AccountMap}
     {I : ExecutionEnv} (hAccounts : accountMapEquiv σ τ) (slot : UInt256)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flapperAddressReturnWord slot σ I) = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (flapperAddressReturnWord slot τ I) = ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord slot σ I) = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (flapperAddressReturnWord slot τ I) = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (flapperAddressReturnWord slot σ I)
   have htarget :
       flapperAddressReturnWord slot σ I = flapperAddressReturnWord slot τ I :=
@@ -1097,11 +1097,11 @@ theorem evalExpr_yank_extCodeGuard_false {evm : EVM.State} {locals : Store}
 theorem flapperExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap}
     {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩) :
+    (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hne
+  unfold Reasoning.Theory.extCodeSizeWord at hne
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
@@ -1123,11 +1123,11 @@ theorem flapperExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap}
 theorem flapperExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap}
     {target : UInt256} {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩) :
+    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
@@ -1176,7 +1176,7 @@ theorem flapperYankBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
     (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
         evm.executionEnv ≠ ⟨0⟩)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (flapperAddressReturnWord ⟨3⟩ evm.accountMap evm.executionEnv) = ⟨0⟩) :
     ExecTransitionBody config contract evm (yankLocals I) yankTransition.body .reverted := by
   have hvat := evalExpr_yank_gem_storage evm I
@@ -1216,7 +1216,7 @@ theorem flapperYankBodyReverts_moveCallFailure
     (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
         evm.executionEnv ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (flapperAddressReturnWord ⟨3⟩ evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
@@ -1266,7 +1266,7 @@ theorem flapperYankBodyReverts_moveCallFailure
             .storage (bidsF (.var "id") "bid")] "_moveRet" ++
           [.delete (bidRef (.var "id"))])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hchecked (by intro f e h; cases h)
+   execBlock_append_term hchecked (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [yankTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
     List.nil_append] using
@@ -1284,7 +1284,7 @@ theorem flapperYankBodyReturns_moveCallSuccess
     (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) evm.accountMap
         evm.executionEnv ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (flapperAddressReturnWord ⟨3⟩ evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
@@ -1347,7 +1347,7 @@ theorem flapperYankBodyReturns_moveCallSuccess
           [.delete (bidRef (.var "id"))])
         (.ok { contract := contract, locals := yankMoveLocals I }
           (yankDeletePostState evm' I)) :=
-    Reasoning.Refinement.execBlock_append hchecked hdelete
+   execBlock_append hchecked hdelete
   refine ExecFuncBody.execBlockOK ?_
   simpa [yankTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
     List.nil_append] using
@@ -1928,7 +1928,7 @@ theorem flapperYankX_toMoveExtcodesizeGuard
     raw dup2 (by native_decide) (by evm_ov),
     raw mstore 6 (yankMoveSelectorMem memMap) (UInt256.ofNat 5)
       (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw uniswapAddress (by native_decide) (by evm_ov),
+    raw address (by native_decide) (by evm_ov),
     raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
@@ -2045,14 +2045,14 @@ theorem flapperYankX_toMoveExtcodesizeGuard
 theorem flapperYankX_moveNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {k C : ℕ}
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) = ⟨0⟩)
     (rd1050 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1062⟩
       [yankIdWord I, ⟨360⟩, sel]
       (twoWordHashMem (yankIdWord I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd1148⟩ := flapperYankX_toMoveExtcodesizeGuard rd1050
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1158⟩) (okPc := ⟨1170⟩) rd1148
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1158⟩) (okPc := ⟨1170⟩) rd1148
     hnoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2061,7 +2061,7 @@ theorem flapperYankX_moveCall
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd1050 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1062⟩
@@ -2114,7 +2114,7 @@ theorem flapperYankX_moveCall
     simpa [src, yankThisWord] using accountAddress_roundtrip I.codeOwner
   obtain ⟨_, _, rd1148⟩ := flapperYankX_toMoveExtcodesizeGuard rd1050
   obtain ⟨gasWord, _, _, rd1163⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1158⟩) (okPc := ⟨1170⟩) rd1148
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1158⟩) (okPc := ⟨1170⟩) rd1148
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -2155,7 +2155,7 @@ theorem flapperYankX_moveCall
 theorem flapperYankX_moveCallDepthLimit
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (flapperAddressReturnWord ⟨3⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth = 1024)
     (rd1050 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1062⟩
@@ -2177,7 +2177,7 @@ theorem flapperYankX_moveCallDepthLimit
   intro id memHash memMap gem src guy bid
   obtain ⟨_, _, rd1148⟩ := flapperYankX_toMoveExtcodesizeGuard rd1050
   obtain ⟨gasWord, _, _, rd1163⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1158⟩) (okPc := ⟨1170⟩) rd1148
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1158⟩) (okPc := ⟨1170⟩) rd1148
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -2208,7 +2208,7 @@ theorem flapperYankX_moveCallFailure
       mem aw out (cA', σ') k C)
     (houtSize : out.size < UInt256.size) :
     RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1174⟩) (okPc := ⟨1190⟩) rd1164
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1174⟩) (okPc := ⟨1190⟩) rd1164
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2325,7 +2325,7 @@ theorem flapperYankBodyCoreMoveNoCode
     (hlive : flapperSlotWord ⟨7⟩ σ_evm I = ⟨0⟩)
     (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I ≠ ⟨0⟩)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flapperAddressReturnWord ⟨3⟩ σ_evm I) = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some yankTransition)
     (hdecode :
@@ -2350,7 +2350,7 @@ theorem flapperYankBodyCoreMoveNoCode
           (auctionPackedSlot (yankIdWord I))
       rw [hword, hzero])
   have hnoCodeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flapperAddressReturnWord ⟨3⟩ σ_solm I) = ⟨0⟩ :=
     flapperCodeSize_zero_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hnoCode
   have hbody :
@@ -2378,7 +2378,7 @@ theorem flapperYankBodyCoreMoveCallFailure
     (hlive : flapperSlotWord ⟨7⟩ σ_evm I = ⟨0⟩)
     (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flapperAddressReturnWord ⟨3⟩ σ_evm I) ≠ ⟨0⟩)
     (rd1164 : RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1174⟩
@@ -2451,7 +2451,7 @@ theorem flapperYankBodyCoreMoveCallFailure
     intro hzero
     exact hguy (by rw [hguyEq, hzero])
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flapperAddressReturnWord ⟨3⟩ σ_solm I) ≠ ⟨0⟩ :=
     flapperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hcodeSize
   have hbody :
@@ -2476,7 +2476,7 @@ theorem flapperYankBodyCoreMoveCallDepthLimit
     (hlive : flapperSlotWord ⟨7⟩ σ_evm I = ⟨0⟩)
     (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flapperAddressReturnWord ⟨3⟩ σ_evm I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hdispatch : dispatchMsg contract I.calldata = some yankTransition)
@@ -2545,7 +2545,7 @@ theorem flapperYankBodyCoreMoveCallDepthLimit
           (auctionPackedSlot (yankIdWord I))
       rw [hword, hzero])
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flapperAddressReturnWord ⟨3⟩ σ_solm I) ≠ ⟨0⟩ :=
     flapperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hcodeSize
   have hbody :
@@ -2577,7 +2577,7 @@ theorem flapperYankBodyCoreMoveCallSuccess
     (hlive : flapperSlotWord ⟨7⟩ σ_evm I = ⟨0⟩)
     (hguy : flapperAddressReturnWord (auctionPackedSlot (yankIdWord I)) σ_evm I ≠ ⟨0⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flapperAddressReturnWord ⟨3⟩ σ_evm I) ≠ ⟨0⟩)
     (rd1164 : RD flapperBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1174⟩
@@ -2649,7 +2649,7 @@ theorem flapperYankBodyCoreMoveCallSuccess
     intro hzero
     exact hguy (by rw [hguyEq, hzero])
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flapperAddressReturnWord ⟨3⟩ σ_solm I) ≠ ⟨0⟩ :=
     flapperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hcodeSize
   have hbody :
@@ -2734,7 +2734,7 @@ theorem flapperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       · exact flapperYankBodyCoreGuyNotSet hcode hsize hwv hsz36 hlive hguy
           hdispatch hdecode hreach hAccounts
       · by_cases hcodeSize :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+            Reasoning.Theory.extCodeSizeWord σ_evm
               (flapperAddressReturnWord ⟨3⟩ σ_evm I) = ⟨0⟩
         · exact flapperYankBodyCoreMoveNoCode hcode hsize hwv hsz36 hlive hguy
             hcodeSize hdispatch hdecode hreach hAccounts

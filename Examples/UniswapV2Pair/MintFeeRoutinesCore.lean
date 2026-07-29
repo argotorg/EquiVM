@@ -1,6 +1,5 @@
 import Examples.UniswapV2Pair.MathRoutines
 import Examples.UniswapV2Pair.MintRoutines
-import Reasoning.Refinement
 import Reasoning.SolmBody
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -228,7 +227,7 @@ theorem uniswapMintFeeFunctionBody_reverts_noCode
   have hchecked := uniswapMintFeeCheckedCallNoCode evm reserve0 reserve1 hguard
   exact ExecFuncBody.execBlockRevert (by
     simpa [mintFeeFunction, List.append_assoc] using
-      (Reasoning.Refinement.execBlock_append_term hchecked (by intro f e h; cases h)))
+      (Reasoning.Theory.execBlock_append_term hchecked (by intro f e h; cases h)))
 
 theorem uniswapMintFeeFunctionBody_reverts_callFailure
     (evm evmFee : EVM.State) (reserve0 reserve1 : UInt256) {out : ByteArray}
@@ -243,7 +242,7 @@ theorem uniswapMintFeeFunctionBody_reverts_callFailure
     uniswapMintFeeCheckedCallFailure evm evmFee reserve0 reserve1 hguard hcall
   exact ExecFuncBody.execBlockRevert (by
     simpa [mintFeeFunction, List.append_assoc] using
-      (Reasoning.Refinement.execBlock_append_term hchecked (by intro f e h; cases h)))
+      (Reasoning.Theory.execBlock_append_term hchecked (by intro f e h; cases h)))
 
 theorem uniswapMintFeeFunctionBody_reverts_decode
     (evm evmFee : EVM.State) (reserve0 reserve1 : UInt256) {out : ByteArray}
@@ -259,7 +258,7 @@ theorem uniswapMintFeeFunctionBody_reverts_decode
     uniswapMintFeeCheckedCallDecodeRevert evm evmFee reserve0 reserve1 hguard hcall hdec
   exact ExecFuncBody.execBlockRevert (by
     simpa [mintFeeFunction, List.append_assoc] using
-      (Reasoning.Refinement.execBlock_append_term hchecked (by intro f e h; cases h)))
+      (Reasoning.Theory.execBlock_append_term hchecked (by intro f e h; cases h)))
 
 theorem uniswapMintFeeCheckedCallSuccess
     (evm evmFee : EVM.State) (reserve0 reserve1 : UInt256) {out : ByteArray}

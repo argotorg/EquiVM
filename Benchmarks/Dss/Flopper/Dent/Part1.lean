@@ -2,7 +2,7 @@ import Benchmarks.Dss.Flopper.AuctionCommon
 import Benchmarks.Dss.Flopper.Tick
 import Benchmarks.Dss.Flopper.Yank
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option linter.unusedSimpArgs false
@@ -1476,7 +1476,7 @@ theorem dentAshDecode_none_short {out : ByteArray} (hshort : out.size < 32) :
 theorem flopperDentBodyAfterAshSuccessKissNoCode
     (localsEvm evmAsh : EVM.State) (I : ExecutionEnv) (outAsh : ByteArray)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) =
+      Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) =
         ⟨0⟩) :
     ExecBlock config { contract := contract, locals := dentAshLocals localsEvm I outAsh } evmAsh
       ([ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ] ++
@@ -1523,13 +1523,13 @@ theorem flopperDentBodyAfterAshSuccessKissNoCode
     simpa [checkedExternalCallStmts] using
       checkedExternalCallNoCode hguard
   simpa [List.cons_append, List.nil_append] using
-    Reasoning.Refinement.execBlock_append hmin hkiss
+   execBlock_append hmin hkiss
 
 theorem flopperDentBodyAfterAshSuccessKissCallFailure
     (localsEvm evmAsh evmKiss : EVM.State) (I : ExecutionEnv)
     (outAsh outKiss : ByteArray)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
+      Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
         ⟨0⟩)
     (hcall :
       typedCallViaEVM config evmAsh
@@ -1582,13 +1582,13 @@ theorem flopperDentBodyAfterAshSuccessKissCallFailure
     simpa [checkedExternalCallStmts] using
       checkedExternalCallFailure hguard htarget hargs hcall
   simpa [List.cons_append, List.nil_append] using
-    Reasoning.Refinement.execBlock_append hmin hkiss
+   execBlock_append hmin hkiss
 
 theorem flopperDentBodyAfterAshSuccessKissCallSuccess
     (localsEvm evmAsh evmKiss : EVM.State) (I : ExecutionEnv)
     (outAsh outKiss : ByteArray)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
+      Reasoning.Theory.extCodeSizeWord evmAsh.accountMap (dentGuyWord evmAsh I) ≠
         ⟨0⟩)
     (hcall :
       typedCallViaEVM config evmAsh
@@ -1642,7 +1642,7 @@ theorem flopperDentBodyAfterAshSuccessKissCallSuccess
     simpa [checkedExternalCallStmts, dentKissRetLocals] using
       checkedExternalCallSuccess hguard htarget hargs hcall (dentKissDecode_ok outKiss)
   simpa [List.cons_append, List.nil_append] using
-    Reasoning.Refinement.execBlock_append hmin hkiss
+   execBlock_append hmin hkiss
 
 theorem evalExpr_dent_live_one_true (evm : EVM.State) (I : ExecutionEnv)
     (hlive : dentLiveWord evm = ⟨1⟩) :

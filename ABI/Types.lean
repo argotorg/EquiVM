@@ -1,3 +1,4 @@
+/-! The Solidity ABI type grammar, and static size/dynamicity computations over it. -/
 
 namespace ABI
 
@@ -7,20 +8,20 @@ def BitWidth := { m : Nat // 0 < m ∧ m ≤ 256 ∧ m % 8 = 0}
 def FinPos N := { n : Nat // 0 < n ∧ n ≤ N }
   deriving DecidableEq, Repr
 
-/- Integer types used by Solidity-style ABI values. -/
+/-- Integer types used by Solidity-style ABI values. -/
 inductive IntType where
   | uint : BitWidth -> IntType
   | sint : BitWidth -> IntType
   deriving DecidableEq, Repr
 
-/- Fixed-point decimal number types used by Solidity-style ABI values. -/
+/-- Fixed-point decimal number types used by Solidity-style ABI values. -/
 -- Note: Just added to have complete coverage of ABI, will not implement right now
 inductive FixedType where
   | ufixed : BitWidth -> FinPos 80 -> FixedType
   | fixed : BitWidth -> FinPos 81 -> FixedType
   deriving DecidableEq, Repr
 
-/- Elemnrary first-order types, per the Solidity ABI. -/
+/-- Elementary first-order types, per the Solidity ABI. -/
 inductive ElemType where
   | bool : ElemType
   | address : ElemType
@@ -30,19 +31,19 @@ inductive ElemType where
   | function : ElemType
   deriving DecidableEq, Repr, Inhabited
 
-/- ABI decoder mode for compiler-specific wrapper behavior. Modern solc decoders reject
-   non-canonical value words and use signed size guards. Legacy solc (coder v1) instead *cleans*
-   value types rather than validating them: normalize `bool` (nonzero → true), mask `address`, and
-   mask narrow `uintN` — using unsigned static-size checks. . Vyper fixed-argument wrappers keep
-   canonical address checks but use minimum static-size checks rather than solc's signed
-   huge-calldata guard. -/
+/-- ABI decoder mode for compiler-specific wrapper behavior. Modern solc decoders reject
+    non-canonical value words and use signed size guards. Legacy solc (coder v1) instead *cleans*
+    value types rather than validating them: normalize `bool` (nonzero → true), mask `address`, and
+    mask narrow `uintN` — using unsigned static-size checks. Vyper fixed-argument wrappers keep
+    canonical address checks but use minimum static-size checks rather than solc's signed
+    huge-calldata guard. -/
 inductive DecodeMode where
   | modern : DecodeMode
   | legacySolc05 : DecodeMode
   | vyper : DecodeMode
   deriving DecidableEq, Repr, Inhabited
 
-/- ABI types for parameters, locals, and return values. -/
+/-- ABI types for parameters, locals, and return values. -/
 inductive ABIType where
   | elem : ElemType -> ABIType
   | array : ABIType -> Nat -> ABIType
@@ -131,8 +132,6 @@ mutual
     | [] => false
     | ty :: tys => isDynamicABIType ty || isDynamicABITypeList tys
 end
-
-def usesLegacyAddressTypes (_types : List ABIType) : Bool := false
 
 mutual
   def staticABIEncodedSize? : ABIType → Option Nat

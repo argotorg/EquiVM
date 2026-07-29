@@ -1,5 +1,5 @@
 import Benchmarks.Dss.Clipper.Common
-import Solm.Dispatch
+import Solm.Semantics
 
 /-!
 # MakerDAO/Sky DSS Clipper trusted selector facts

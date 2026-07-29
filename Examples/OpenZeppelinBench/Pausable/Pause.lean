@@ -1,6 +1,6 @@
 import Examples.OpenZeppelinBench.Pausable.Common
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -123,7 +123,7 @@ theorem pausableX_pause_success {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.land (pausedRawWord σ I) (UInt256.lnot ⟨255⟩) := by
     exact Reasoning.Theory.u256_land_comm (UInt256.lnot ⟨255⟩) (pausedRawWord σ I)
   rw [hland] at rd288
-  have rd291₀ := RD.lor rd288 (by decide) (by evm_ov)
+  have rd291₀ := RD.or rd288 (by decide) (by evm_ov)
   have rd291 := evm_run rd291₀ with [swap1]
   have hlor : UInt256.lor ⟨1⟩ (UInt256.land (pausedRawWord σ I) (UInt256.lnot ⟨255⟩)) =
       pausedSetTrueWord (pausedRawWord σ I) := by

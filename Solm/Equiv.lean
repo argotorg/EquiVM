@@ -1,8 +1,27 @@
 import ABI.Encode
 import ABI.Decode
-import Solm.Dispatch
+import Solm.Semantics
 
-open Solm
+/-!
+The statement of Solm/EVM refinement, layered bottom-up:
+
+* **Result equivalence** — `returnEquiv`/`returnDataEquiv` couple returned bytes with spec
+  return values; `execResultsEquiv` / `ctorResultEquiv` couple whole execution outcomes
+  (final account maps up to `accountMapEquiv`, plus the return data — for constructors, the
+  returned bytes must be the deployed runtime code).
+* **Fixed-input relations** — `runtimeEquivalenceFor` / `constructorEquivalenceFor` couple one
+  EVM execution (`Ethereum.EVM.Ξ`) with one Solm execution (`solmExec` / `solmCtorExec`) at
+  fixed transaction inputs.
+* **∀-closures** — `runtimeEquivalence` (and the precondition-carrying
+  `runtimeEquivalenceWithWF`) and `constructorEquivalence` quantify over all inputs.
+* **Top level** — `contractEquivalence` = constructor + runtime
+
+The `*With` family at the bottom of the file generalizes the constructor relations to
+immutable-dependent runtime code (`runtimeCodeOf : Store → Option ByteArray`).
+-/
+
+namespace Solm
+
 open ABI
 
 /-- Default (zero-initialized) value for an ABI return type. Used when a function
@@ -16,6 +35,7 @@ def defaultAbiValue : ABIType -> Option Value
   | .elem (.bytes n) => some (.fixedBytes n (List.replicate (n.val + 1) 0))
   | _              => none
 
+/-- Equivalence of ABI-returned data. -/
 inductive returnEquiv (o : ByteArray) (r : Option (List Value)) (t : List ABIType) : Prop where
   | returned :
     /- Explicit `return`: the returned values encode flat to the output.  `vs = []`, `t = []`
@@ -47,6 +67,7 @@ inductive returnEquiv (o : ByteArray) (r : Option (List Value)) (t : List ABITyp
 @[simp] theorem encodeReturnValue_eq_singleton (t : ABIType) (v : Value) :
     encodeReturnValue? t v = encodeReturnValues? [t] [v] := rfl
 
+/-- Equivalence of return data, per the transition's return convention. -/
 inductive returnDataEquiv (o : ByteArray) (r : Option (List Value)) : ReturnConvention → Prop where
   | abi {t} :
     returnEquiv o r t →
@@ -127,14 +148,11 @@ inductive execResultsEquiv
   (evmRes: Except Ethereum.EVM.ExecutionException (Ethereum.ExecutionResult (Batteries.RBSet Ethereum.AccountAddress compare × Ethereum.AccountMap × Ethereum.UInt256 × Ethereum.Substate)))
   (solmRes : ExecResult) (returnConvention : ReturnConvention) : Prop where
   | success :
-    -- Resulting states are compared up to storage-map representation (`accountMapEquiv`), the
-    -- sound notion given `SSTORE` zero-canonicalization / `RBMap` non-extensionality. Syntactic
-    -- equality is a special case, so this single constructor subsumes it.
+    -- Resulting states are compared up to storage-map representation (`accountMapEquiv`).
     evmRes = .ok (.success (createdAccounts', σ', g', A') o) →
     solmRes = .returned _ solmState retVal →
     createdAccounts' = solmState.createdAccounts →
     accountMapEquiv σ' solmState.accountMap →
-    -- A' = solmState.substate → /- We ignore the substate -/
     returnDataEquiv o retVal returnConvention →
     execResultsEquiv evmRes solmRes returnConvention
   | revert :
@@ -159,7 +177,6 @@ inductive ctorResultEquiv
     solmRes = .returned _ solmState .none →
     createdAccounts' = solmState.createdAccounts →
     accountMapEquiv σ' solmState.accountMap →
-    -- A' = solmState.substate → /- We ignore the substate -/
     o = runtimeCode →
     ctorResultEquiv evmRes solmRes runtimeCode
   -- Twin of `success` for a ctor body ending in a bare `return` (explicit void return `some []`);
@@ -180,14 +197,22 @@ inductive ctorResultEquiv
     evmRes = .error .InvalidInstruction →
     solmRes = .reverted →
     ctorResultEquiv evmRes solmRes runtimeCode
-  -- Zoe: commenting out so that it matches execResultsEquiv
-  -- | error :
-  --   -- TODO: is this what needs to happen?
-  --   -- Zoe: Do we model all errors in Solm? AFAICT right now, some may cause the evaluation relation to be uninhabited (undef behavior)
-  --   evmRes = .error e →
-  --   solmRes = .reverted →
-  --   ctorResultEquiv evmRes solmRes runtimeCode
 
+/-- Runtime equivalence of a single message call at fixed transaction inputs: couples the EVM
+    execution of the bytecode (`Ethereum.EVM.Ξ`) with the Solm execution of the spec (`solmExec`),
+    both run from the given accounts, gas, substate, and environment `I` (which carries the code
+    and calldata).  The EVM side starts from `σ_evm`, the Solm side from `σ_solm`; the two are
+    only related up to `accountMapEquiv` — that coupling, and the quantification over all inputs,
+    are imposed by the entry points `runtimeEquivalence` / `runtimeEquivalenceWithWF`.
+
+    Holds in exactly one of four ways:
+    * `execution`: Solm dispatches and runs a transition to `solmRes`; the EVM result is
+      `execResultsEquiv`-related to it under the transition's return convention.
+    * `noDispatch`: no Solm transition accepts the calldata, and the EVM reverts.
+    * `decodingFailed`: the selector matches a transition but calldata decoding fails,
+      and the EVM reverts.
+    * `outOfGas`: the EVM exhausts its gas; the spec side is unconstrained.  (TODO: because
+      termination is not forced, a non-terminating EVM program is equivalent to any spec.) -/
 inductive runtimeEquivalenceFor (cfg : Config)
     (contract : ContractDecl) /- Spec -/
     (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
@@ -197,7 +222,7 @@ inductive runtimeEquivalenceFor (cfg : Config)
     (σ_evm : Ethereum.AccountMap)
     -- Solm-side initial maps (fed to `solmExec`).  They need only be `accountMapEquiv` to the
     -- EVM-side `σ_evm`/`σ₀` (not syntactically equal); the storage-observational semantics make
-    -- the two executions agree.  The coupling is imposed as a precondition at `runtimeEquivalence!?!`.
+    -- the two executions agree.  The coupling is imposed as a precondition at `runtimeEquivalence`.
     (σ_solm : Ethereum.AccountMap)
     (σ₀ : Ethereum.AccountMap)
     (g : Ethereum.UInt256)
@@ -235,7 +260,7 @@ def trivialStorageWF : StorageWF := fun _ _ => True
 
 /-- Runtime equivalence under a contract-specific storage well-formedness precondition.
 
-This is the same runtime relation as `runtimeEquivalence!?!`, except the caller must additionally
+This is the same runtime relation as `runtimeEquivalence`, except the caller must additionally
 prove `wf σ_evm I` for the EVM-side initial storage and execution environment.  The old
 unconditional relation remains available as before; new contracts that need reachable-state or
 layout invariants can use this parameterized entry point. -/
@@ -260,8 +285,7 @@ inductive runtimeEquivalenceWithWF (wf : StorageWF) (cfg : Config) (bytecode : B
     ) →
     runtimeEquivalenceWithWF wf cfg bytecode contract
 
--- a Solm contract corresponds to what?
-inductive runtimeEquivalence!?! (cfg : Config) (bytecode : ByteArray) (contract : ContractDecl) : Prop where
+inductive runtimeEquivalence (cfg : Config) (bytecode : ByteArray) (contract : ContractDecl) : Prop where
   | intro :
     (∀ (createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare)
       (genesisBlockHeader : Ethereum.BlockHeader)
@@ -284,17 +308,18 @@ inductive runtimeEquivalence!?! (cfg : Config) (bytecode : ByteArray) (contract 
     accountMapEquiv σ_evm σ_solm →
     runtimeEquivalenceFor cfg contract createdAccounts genesisBlockHeader blocks σ_evm σ_solm σ₀ g A I
     ) →
-    runtimeEquivalence!?! cfg bytecode contract
+    runtimeEquivalence cfg bytecode contract
 
+/-- Sanity check: the two definitions agree for the trivial storage well-formedness predicate. -/
 theorem runtimeEquivalenceWithWF_trivial_iff {cfg : Config} {bytecode : ByteArray}
     {contract : ContractDecl} :
     runtimeEquivalenceWithWF trivialStorageWF cfg bytecode contract ↔
-      runtimeEquivalence!?! cfg bytecode contract := by
+      runtimeEquivalence cfg bytecode contract := by
   constructor
   · intro h
     cases h with
     | intro hrun =>
-        refine runtimeEquivalence!?!.intro ?_
+        refine runtimeEquivalence.intro ?_
         intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
         exact hrun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts trivial
   · intro h
@@ -303,6 +328,24 @@ theorem runtimeEquivalenceWithWF_trivial_iff {cfg : Config} {bytecode : ByteArra
         refine runtimeEquivalenceWithWF.intro ?_
         intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts _hwf
         exact hrun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
+
+
+/-- Constructor (deployment) equivalence at fixed transaction inputs: couples the EVM
+    execution of the init code (`Ethereum.EVM.Ξ`, with `I.code` the deployed initcode and empty
+    calldata) with the Solm execution of the constructor body (`solmCtorExec`) on the argument
+    values `args`.  Unlike the runtime relation there is no dispatch or calldata-decoding case:
+    creation calls are compiler-generated and trusted, so the *spec side* fixes `args`, and the
+    ∀-closure (`constructorEquivalence`) ties them to the deployed initcode via
+    `cfg.selfDeployment`.  The EVM side starts from `σ_evm`, the Solm side from `σ_solm`,
+    related up to `accountMapEquiv` at the entry point.
+
+    Holds in one of two ways:
+    * `execution` — the Solm constructor runs to `solmRes`; the EVM result is
+      `ctorResultEquiv`-related: on success the final states agree up to `accountMapEquiv`
+      **and the EVM's returned bytes are exactly `runtimeCode`** (the deployed runtime bytecode);
+      reverts and `INVALID` halts pair with a Solm revert.
+    * `outOfGas` — the EVM exhausts its gas; the spec side is unconstrained. (same
+      termination caveat as `runtimeEquivalenceFor`) -/
 
 inductive constructorEquivalenceFor (cfg : Config)
     (contract : ContractDecl) /- Spec -/
@@ -376,10 +419,12 @@ inductive constructorEquivalence (cfg : Config) (initcode : ByteArray) (contract
 -- We do not have a model of message calls (Θ) for the spec (which would handle balance transfer for example)
 -- If it were implemented however it would likely exactly mirror the EVM version except for calling solmExec
 -- instead of EVM.Ξ, so on the equivalence checking level it is uninteresting
+
+/-- Top-level contract equivalence -/
 inductive contractEquivalence (cfg : Config) (initcode : EVM.Bytes) (runtimeCode : EVM.Bytes) (contract : ContractDecl) : Prop where
   | intro :
     constructorEquivalence cfg initcode contract runtimeCode →
-    runtimeEquivalence!?! cfg runtimeCode contract →
+    runtimeEquivalence cfg runtimeCode contract →
     contractEquivalence cfg initcode runtimeCode contract
 
 inductive contractEquivalenceWF (wf : StorageWF) (cfg : Config) (initcode : EVM.Bytes)
@@ -479,7 +524,7 @@ inductive contractEquivalenceWith (cfg : Config) (initcode : EVM.Bytes) (runtime
     (contract : ContractDecl) (runtimeCodeOf : Store → Option ByteArray) : Prop where
   | intro :
     constructorEquivalenceWith cfg initcode contract runtimeCodeOf →
-    runtimeEquivalence!?! cfg runtimeCode contract →
+    runtimeEquivalence cfg runtimeCode contract →
     contractEquivalenceWith cfg initcode runtimeCode contract runtimeCodeOf
 
 inductive contractEquivalenceWithWF (wf : StorageWF) (cfg : Config) (initcode : EVM.Bytes)
@@ -489,3 +534,5 @@ inductive contractEquivalenceWithWF (wf : StorageWF) (cfg : Config) (initcode : 
     constructorEquivalenceWith cfg initcode contract runtimeCodeOf →
     runtimeEquivalenceWithWF wf cfg runtimeCode contract →
     contractEquivalenceWithWF wf cfg initcode runtimeCode contract runtimeCodeOf
+
+end Solm

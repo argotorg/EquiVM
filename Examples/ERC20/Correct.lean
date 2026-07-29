@@ -7,12 +7,10 @@ import Examples.ERC20.Approve
 import Examples.ERC20.Transfer
 import Examples.ERC20.TransferFrom
 import Reasoning.ABI
-import Reasoning.Theory
 import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc
 import Reasoning.Dispatch
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Reasoning.Initcode
 import Reasoning.Memory
@@ -28,7 +26,7 @@ machinery driver (one `RD.dispatchTo`); the per-function body proofs and the sel
 / revert facts are named obligations discharged in ERC20-local helper files.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -353,7 +351,7 @@ theorem erc20NonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     `callvalue ≠ 0` / short calldata / no-match revert; otherwise the dispatcher machinery
     (`erc20ReachBody`) drives the EVM to the matched function's body entry, handed to that function's
     body obligation. -/
-theorem erc20Correct : runtimeEquivalence!?! erc20Config erc20Bytecode erc20Contract := by
+theorem erc20Correct : runtimeEquivalence erc20Config erc20Bytecode erc20Contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
       hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩

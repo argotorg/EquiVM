@@ -1,6 +1,6 @@
 import Benchmarks.Dss.StairstepExponentialDecrease.PriceSource
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -482,7 +482,7 @@ theorem stairstepPriceRmulRayOverflowReverts {cA σ I} {g : Sat256} {s0 : State}
     raw jumpdest (by native_decide) (by evm_ov),
     raw push2 ⟨1265⟩ (by native_decide) (by evm_ov),
     raw jumpiNT (by native_decide) rfl (by evm_ov)]
-  exact RD.uniswapPush1Dup1Revert0 rd1261pre
+  exact RD.solcPush1Dup1Revert0 rd1261pre
     (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
@@ -624,7 +624,7 @@ theorem stairstepPriceRmulOverflowReverts {cA σ I} {g : Sat256} {s0 : State}
     raw jumpdest (by native_decide) (by evm_ov),
     raw push2 ⟨1265⟩ (by native_decide) (by evm_ov),
     raw jumpiNT (by native_decide) rfl (by evm_ov)]
-  exact RD.uniswapPush1Dup1Revert0 rd1261pre
+  exact RD.solcPush1Dup1Revert0 rd1261pre
     (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
 
 set_option maxHeartbeats 1000000 in

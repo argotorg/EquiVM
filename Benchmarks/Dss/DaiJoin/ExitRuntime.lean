@@ -1,6 +1,6 @@
 import Benchmarks.Dss.DaiJoin.Exit
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
@@ -83,7 +83,7 @@ theorem daiJoinExitVatNoCodeReverts (evm : EVM.State) (I : ExecutionEnv)
     (hliveOne : exitLiveWord evm.accountMap evm.executionEnv = ⟨1⟩)
     (hfit : daiJoinONEWord.toNat * (exitWadWord I).toNat < UInt256.size)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (daiJoinVatTargetWord evm.accountMap evm.executionEnv) = ⟨0⟩) :
     ExecTransitionBody config contract evm (exitStore I) exitTransition.body .reverted := by
   have hlive :
@@ -130,7 +130,7 @@ theorem daiJoinExitVatMoveCallFailedReverts (evm evmVat : EVM.State)
     (hliveOne : exitLiveWord evm.accountMap evm.executionEnv = ⟨1⟩)
     (hfit : daiJoinONEWord.toNat * (exitWadWord I).toNat < UInt256.size)
     (hcode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (daiJoinVatTargetWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config evm
@@ -189,7 +189,7 @@ theorem daiJoinExitDaiMintNoCodeAfterVatReverts (evm evmVat : EVM.State)
     (hliveOne : exitLiveWord evm.accountMap evm.executionEnv = ⟨1⟩)
     (hfit : daiJoinONEWord.toNat * (exitWadWord I).toNat < UInt256.size)
     (hvatCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (daiJoinVatTargetWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcallMove :
       typedCallViaEVM config evm
@@ -198,7 +198,7 @@ theorem daiJoinExitDaiMintNoCodeAfterVatReverts (evm evmVat : EVM.State)
           .int (Int.ofNat (daiJoinRadWord (exitWadWord I)).toNat)]
         (true, evmVat, out) true)
     (hdaiNoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmVat.accountMap
+      Reasoning.Theory.extCodeSizeWord evmVat.accountMap
         (daiJoinDaiTargetWord evmVat.accountMap evmVat.executionEnv) = ⟨0⟩) :
     ExecTransitionBody config contract evm (exitStore I) exitTransition.body .reverted := by
   have hlive :
@@ -265,7 +265,7 @@ theorem daiJoinExitDaiMintCallFailedAfterVatReverts (evm evmVat evmMint : EVM.St
     (hliveOne : exitLiveWord evm.accountMap evm.executionEnv = ⟨1⟩)
     (hfit : daiJoinONEWord.toNat * (exitWadWord I).toNat < UInt256.size)
     (hvatCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (daiJoinVatTargetWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcallMove :
       typedCallViaEVM config evm
@@ -274,7 +274,7 @@ theorem daiJoinExitDaiMintCallFailedAfterVatReverts (evm evmVat evmMint : EVM.St
           .int (Int.ofNat (daiJoinRadWord (exitWadWord I)).toNat)]
         (true, evmVat, outMove) true)
     (hdaiCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmVat.accountMap
+      Reasoning.Theory.extCodeSizeWord evmVat.accountMap
         (daiJoinDaiTargetWord evmVat.accountMap evmVat.executionEnv) ≠ ⟨0⟩)
     (hcallMint :
       typedCallViaEVM config evmVat
@@ -352,7 +352,7 @@ theorem daiJoinExitDaiMintSuccessAfterVatReturns (evm evmVat evmMint : EVM.State
     (hliveOne : exitLiveWord evm.accountMap evm.executionEnv = ⟨1⟩)
     (hfit : daiJoinONEWord.toNat * (exitWadWord I).toNat < UInt256.size)
     (hvatCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (daiJoinVatTargetWord evm.accountMap evm.executionEnv) ≠ ⟨0⟩)
     (hcallMove :
       typedCallViaEVM config evm
@@ -361,7 +361,7 @@ theorem daiJoinExitDaiMintSuccessAfterVatReturns (evm evmVat evmMint : EVM.State
           .int (Int.ofNat (daiJoinRadWord (exitWadWord I)).toNat)]
         (true, evmVat, outMove) true)
     (hdaiCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmVat.accountMap
+      Reasoning.Theory.extCodeSizeWord evmVat.accountMap
         (daiJoinDaiTargetWord evmVat.accountMap evmVat.executionEnv) ≠ ⟨0⟩)
     (hcallMint :
       typedCallViaEVM config evmVat
@@ -458,7 +458,7 @@ theorem daiJoinExitVatMoveCallFailedCore
     (hliveOne : exitLiveWord σ_solm I = ⟨1⟩)
     (hfit : daiJoinONEWord.toNat * (exitWadWord I).toNat < UInt256.size)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (daiJoinVatTargetWord σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ_evm (daiJoinVatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd1467 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1467⟩
@@ -484,7 +484,7 @@ theorem daiJoinExitVatMoveCallFailedCore
   have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g) evmE := by
     simpa [evmE] using daiJoinExitVatMoveCallFailed rd1467 hout
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (daiJoinVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_solm (daiJoinVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
     daiJoinVatCodeSize_ne_zero_accountMapEquiv hAccounts hcodeSize
   rcases hΘ with ⟨g'', A', hΘ⟩
   have hdepthNe : evmE.executionEnv.depth ≠ 1024 := by
@@ -559,9 +559,9 @@ theorem daiJoinExitDaiMintNoCodeCore
     (hliveOne : exitLiveWord σ_solm I = ⟨1⟩)
     (hfit : daiJoinONEWord.toNat * (exitWadWord I).toNat < UInt256.size)
     (hvatCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (daiJoinVatTargetWord σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ_evm (daiJoinVatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hdaiCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) = ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd1485 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1485⟩
@@ -586,7 +586,7 @@ theorem daiJoinExitDaiMintNoCodeCore
   have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g) evmE := by
     simpa [evmE] using daiJoinExitDaiMintNoCode rd1485 hdaiCodeSize
   have hvatCodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (daiJoinVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_solm (daiJoinVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
     daiJoinVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCodeSize
   rcases hΘ with ⟨g'', A', hΘ⟩
   have hdepthNe : evmE.executionEnv.depth ≠ 1024 := by
@@ -632,7 +632,7 @@ theorem daiJoinExitDaiMintNoCodeCore
       (by rfl)
       (by rfl)
   have hdaiCodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm (daiJoinDaiTargetWord σ'_solm I) = ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ'_solm (daiJoinDaiTargetWord σ'_solm I) = ⟨0⟩ :=
     daiJoinDaiCodeSize_zero_accountMapEquiv hAccounts' hdaiCodeSize
   have hbody :
       ExecTransitionBody config contract evmS (exitStore I) exitTransition.body .reverted := by
@@ -665,9 +665,9 @@ theorem daiJoinExitDaiMintCallFailedCore
     (hliveOne : exitLiveWord σ_solm I = ⟨1⟩)
     (hfit : daiJoinONEWord.toNat * (exitWadWord I).toNat < UInt256.size)
     (hvatCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (daiJoinVatTargetWord σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ_evm (daiJoinVatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hdaiCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd1576 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1576⟩
@@ -706,7 +706,7 @@ theorem daiJoinExitDaiMintCallFailedCore
   have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g) evmE := by
     simpa [evmE] using daiJoinExitDaiMintCallFailed rd1576 houtMint
   have hvatCodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (daiJoinVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_solm (daiJoinVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
     daiJoinVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCodeSize
   rcases hΘMove with ⟨gMove'', AMove', hΘMove⟩
   have hdepthNe : evmE.executionEnv.depth ≠ 1024 := by
@@ -752,7 +752,7 @@ theorem daiJoinExitDaiMintCallFailedCore
       (by rfl)
       (by rfl)
   have hdaiCodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm (daiJoinDaiTargetWord σ'_solm I) ≠ ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ'_solm (daiJoinDaiTargetWord σ'_solm I) ≠ ⟨0⟩ :=
     daiJoinDaiCodeSize_ne_zero_accountMapEquiv hAccounts' hdaiCodeSize
   rcases hΘMint with ⟨gMint'', AMint', hΘMint⟩
   let evmVatE : EVM.State :=
@@ -851,9 +851,9 @@ theorem daiJoinExitDaiMintSuccessCore
     (hliveOne : exitLiveWord σ_solm I = ⟨1⟩)
     (hfit : daiJoinONEWord.toNat * (exitWadWord I).toNat < UInt256.size)
     (hvatCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (daiJoinVatTargetWord σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ_evm (daiJoinVatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hdaiCodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ' (daiJoinDaiTargetWord σ' I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd1576 : RD daiJoinBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1576⟩
@@ -918,7 +918,7 @@ theorem daiJoinExitDaiMintSuccessCore
         (rdata := outMint) (acc := (cA'', σ'')) hperm hmintMemSize hmintRead64
         (by simpa using rd1594)
   have hvatCodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (daiJoinVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_solm (daiJoinVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
     daiJoinVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCodeSize
   rcases hΘMove with ⟨gMove'', AMove', hΘMove⟩
   have hdepthNe : evmE.executionEnv.depth ≠ 1024 := by
@@ -964,7 +964,7 @@ theorem daiJoinExitDaiMintSuccessCore
       (by rfl)
       (by rfl)
   have hdaiCodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm (daiJoinDaiTargetWord σ'_solm I) ≠ ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ'_solm (daiJoinDaiTargetWord σ'_solm I) ≠ ⟨0⟩ :=
     daiJoinDaiCodeSize_ne_zero_accountMapEquiv hAccounts' hdaiCodeSize
   rcases hΘMint with ⟨gMint'', AMint', hΘMint⟩
   let evmVatE : EVM.State :=
@@ -1091,13 +1091,13 @@ theorem daiJoinExitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C) :
           runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
         by_cases hvatCode :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+            Reasoning.Theory.extCodeSizeWord σ_evm
               (daiJoinVatTargetWord σ_evm I) = ⟨0⟩
         · have hrev : RDrev daiJoinBytecode (Sat256.ofUInt256 g)
               (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
             daiJoinExitVatMoveNoCode rd1377 hvatCode
           have hvatCodeSolm :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+              Reasoning.Theory.extCodeSizeWord σ_solm
                 (daiJoinVatTargetWord σ_solm I) = ⟨0⟩ :=
             daiJoinVatCodeSize_zero_accountMapEquiv hAccounts hvatCode
           have hbody :
@@ -1126,7 +1126,7 @@ theorem daiJoinExitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             · obtain ⟨_, _, rd1485⟩ :=
                 daiJoinExitVatMoveCallSucceeded (by simpa using rd1467)
               by_cases hdaiCode :
-                  Reasoning.Theory.uniswapExtCodeSizeWord σ'
+                  Reasoning.Theory.extCodeSizeWord σ'
                     (daiJoinDaiTargetWord σ' I) = ⟨0⟩
               · exact daiJoinExitDaiMintNoCodeCore
                   (cA := cA) (cA' := cA') (gh := gh) (bl := bl)
@@ -1170,7 +1170,7 @@ theorem daiJoinExitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               daiJoinExitVatMoveCallFailed rd1467 (by simp [UInt256.size])
             let evmS := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
             have hvatCodeSolm :
-                Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+                Reasoning.Theory.extCodeSizeWord σ_solm
                   (daiJoinVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
               daiJoinVatCodeSize_ne_zero_accountMapEquiv hAccounts hvatCode
             have hcallSolm :

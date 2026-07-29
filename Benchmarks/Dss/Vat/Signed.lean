@@ -2,7 +2,7 @@ import Benchmarks.Dss.Vat.Slip
 
 namespace Benchmarks.Dss.Vat
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 theorem uintWordLeMaxInt256_of_slt_zero {w : UInt256}
     (hmax : UInt256.slt w ⟨0⟩ = ⟨0⟩) :

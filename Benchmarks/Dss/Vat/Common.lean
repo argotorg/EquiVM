@@ -2,12 +2,10 @@ import Benchmarks.Dss.Vat.Bytecode
 import Reasoning.ABI
 import Reasoning.Dispatch
 import Reasoning.Memory
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Reasoning.Solc
 import Reasoning.Stepping
 import Reasoning.Storage
-import Reasoning.Theory
 import Mathlib.Tactic.IntervalCases
 
 /-!
@@ -16,7 +14,7 @@ import Mathlib.Tactic.IntervalCases
 Contract-wide selector notation and proof-shape abbreviations for the optimized Vat runtime.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Vat
 
@@ -917,7 +915,7 @@ theorem sdiv_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List 
     (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
     Xstep (D_J code 0) s
       = (if s.machineState.gasAvailable.toNat < 5 then .error .OutOfGass
-         else .ok (stMul s (UInt256.sdiv a b) t, .none)) := by
+         else .ok (stBinop5 s (UInt256.sdiv a b) t, .none)) := by
   have hd : decode s.executionEnv.code s.machineState.pc = some (.SDIV, .none) := by
     rw [hcode, hpc]
     exact hdec
@@ -925,7 +923,7 @@ theorem sdiv_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List 
   have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by
     simp only [List.length_cons]
     omega
-  simp only [if_neg hov', GasConstants.Glow, stMul]
+  simp only [if_neg hov', GasConstants.Glow, stBinop5]
 
 -- LIBRARY CANDIDATE: signed-division RD step analogous to Reasoning.Reach.RD.div.
 theorem RD.sdiv {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
@@ -942,23 +940,23 @@ theorem RD.sdiv {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   · have st := sdiv_xstep hcode hpc hdec hstk hov
     by_cases gg : g.toNat < C + 5
     · exact Or.inl (hX.trans (stepOOG hgas st hk hC (by omega)))
-    · refine Or.inr ⟨stMul s (UInt256.sdiv a b) t,
+    · refine Or.inr ⟨stBinop5 s (UInt256.sdiv a b) t,
         hX.trans (stepContinue hgas st hk (Nat.not_lt.mp gg)), ?_, ?_, ?_, ?_,
         by omega, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
-      · simp only [stMul]
+      · simp only [stBinop5]
         exact hcode
-      · simp only [stMul]
+      · simp only [stBinop5]
         rw [hpc]
       · rfl
-      · simp only [stMul]
+      · simp only [stBinop5]
         rw [hgas, Sat256.subNat_sub_add_of_sub_sub]
-      · simp only [stMul]
+      · simp only [stBinop5]
         exact hmem
-      · simp only [stMul]
+      · simp only [stBinop5]
         exact haw
-      · simp only [stMul]
+      · simp only [stBinop5]
         exact hrdata
-      · simp only [stMul]
+      · simp only [stBinop5]
         exact hacc
       · exact hee
       · exact hworld
@@ -1080,7 +1078,7 @@ theorem RD.vatSignedMulRevert {g : Sat256} {s0 : State}
       rw [hcond] at rd6718pre
       simpa [prod] using rd6718pre.jumpiNT (by native_decide)
         (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    exact RD.uniswapPush1Dup1Revert0 rd6719
+    exact RD.solcPush1Dup1Revert0 rd6719
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
   · have rd6723 := by
@@ -1120,7 +1118,7 @@ theorem RD.vatSignedMulRevert {g : Sat256} {s0 : State}
       exact hmulFail (Or.inr (by simpa [prod] using heqNe))
     have rd6748 := by
       simpa [prod] using rd6747.jumpiNT (by native_decide) heq0 (by evm_ov)
-    exact RD.uniswapPush1Dup1Revert0 rd6748
+    exact RD.solcPush1Dup1Revert0 rd6748
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
 
@@ -1272,7 +1270,7 @@ theorem RD.vatSignedSubRevert {g : Sat256} {s0 : State}
     have rd6818 := rd6815.push2 ⟨6823⟩ (by native_decide) (by evm_ov)
     have rd6819 := rd6818.jumpiNT (by native_decide)
       (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    exact RD.uniswapPush1Dup1Revert0 rd6819
+    exact RD.solcPush1Dup1Revert0 rd6819
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
   · have hrd6814 :
@@ -1333,7 +1331,7 @@ theorem RD.vatSignedSubRevert {g : Sat256} {s0 : State}
     rw [hltIsZero] at rd6842
     have rd6843 := rd6842.jumpiNT (by native_decide)
       (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    exact RD.uniswapPush1Dup1Revert0 rd6843
+    exact RD.solcPush1Dup1Revert0 rd6843
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
 

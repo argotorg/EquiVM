@@ -5,12 +5,11 @@ import Examples.SimpleAuction.Beneficiary
 import Examples.SimpleAuction.AuctionEndTime
 import Examples.SimpleAuction.HighestBidder
 import Examples.SimpleAuction.HighestBid
-import Reasoning.Refinement
 import Reasoning.Initcode
 import Reasoning.Memory
 import Reasoning.Solc
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -48,7 +47,7 @@ theorem simpleAuctionNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
 
 /-- The deployed SimpleAuction runtime bytecode refines the Solm specification. -/
 theorem simpleAuctionCorrect :
-    runtimeEquivalence!?! simpleAuctionConfig simpleAuctionBytecode simpleAuctionContract := by
+    runtimeEquivalence simpleAuctionConfig simpleAuctionBytecode simpleAuctionContract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
       hAccounts => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
@@ -496,7 +495,7 @@ theorem simpleAuctionInitcodeOverflowRevert
     obtain ⟨kSload, CSload, rdAfterSload⟩ :=
       rdBeforeSload.sload (by simple_ctor_decode) (by evm_ov)
     have rdBeforeStore := simple_ctor_run rdAfterSload with [
-      push20 solcAddrMask, not, and, lor, swap1, pop, push0]
+      push20 solcAddrMask, not, and, or, swap1, pop, push0]
     have hpacked :
         UInt256.lor (UInt256.land (UInt256.lnot solcAddrMask) oldBeneficiarySlot)
             (UInt256.land solcAddrMask (EVM.word beneficiaryAddress)) =
@@ -583,7 +582,7 @@ theorem simpleAuctionInitcodeSuccess
   obtain ⟨kSload, CSload, rdAfterSload⟩ :=
     rdBeforeSload.sload (by simple_ctor_decode) (by evm_ov)
   have rdBeforeStore := simple_ctor_run rdAfterSload with [
-    push20 solcAddrMask, not, and, lor, swap1, pop, push0]
+    push20 solcAddrMask, not, and, or, swap1, pop, push0]
   have hpacked :
       UInt256.lor (UInt256.land (UInt256.lnot solcAddrMask) oldBeneficiarySlot)
           (UInt256.land solcAddrMask (EVM.word beneficiaryAddress)) =

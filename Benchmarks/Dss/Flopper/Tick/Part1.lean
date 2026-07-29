@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Flopper.AuctionCommon
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -1077,7 +1077,7 @@ theorem flopperTickBodyReverts_addOverflow (evm : EVM.State) (I : ExecutionEnv)
       ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evmLot
         (checkedAdd48Into "end_" now48 (.storage tauRef) ++
           [.assign .storage (bidsF (.var "id") "end") (.var "end_")]) .reverted :=
-    Reasoning.Refinement.execBlock_append_term hendChecked (by intro f e h; cases h)
+   execBlock_append_term hendChecked (by intro f e h; cases h)
   have htail :
       ExecBlock config { contract := contract, locals := tickLotBaseLocals evm I } evm
         ([.assign .storage (bidsF (.var "id") "lot")
@@ -1085,7 +1085,7 @@ theorem flopperTickBodyReverts_addOverflow (evm : EVM.State) (I : ExecutionEnv)
           (checkedAdd48Into "end_" now48 (.storage tauRef) ++
             [.assign .storage (bidsF (.var "id") "end") (.var "end_")]))
         .reverted :=
-    Reasoning.Refinement.execBlock_append hlotAssign hendTail
+   execBlock_append hlotAssign hendTail
   refine ExecFuncBody.execBlockRevert ?_
   simpa [tickTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
     using
@@ -1142,7 +1142,7 @@ theorem flopperTickBodyReturns_success (evm : EVM.State) (I : ExecutionEnv)
           (checkedAdd48Into "end_" now48 (.storage tauRef) ++
             [.assign .storage (bidsF (.var "id") "end") (.var "end_")]))
         (.ok { contract := contract, locals := tickEndLocals evm I } (tickPostState evm I)) :=
-    Reasoning.Refinement.execBlock_append hlotAssign hendLet
+   execBlock_append hlotAssign hendLet
   refine ExecFuncBody.execBlockOK ?_
   simpa [tickTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
     using

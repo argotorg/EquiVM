@@ -1,6 +1,6 @@
 import Examples.UniswapV2Pair.SkimSecondSafeTransferDynamicOffsetRuntime
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -1364,7 +1364,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyShortReverts_dynamic_offset
   have rd6684 := rd6684₀
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd6684
   have rd6685 := evm_run rd6684 with [jumpiNT (by native_decide)]
-  exact RD.uniswapPush1Dup1Revert0 rd6685 (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rd6685 (by native_decide)
     (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 

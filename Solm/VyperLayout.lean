@@ -7,9 +7,7 @@ open ABI
 /-!
 # Vyper storage-layout helpers
 
-Vyper exposes concrete storage layouts through compiler output, so this module intentionally does
-not try to mirror the compiler's allocation algorithm.  It only packages the representation rules
-needed by hand-recorded layouts.
+This file only packages the representation rules needed by hand-recorded layouts.
 -/
 
 def vyperWordLoc (slot : EVM.Word) (ty : ElemType) : StorageLoc :=

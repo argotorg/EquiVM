@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Vow.Kiss
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
@@ -308,11 +308,11 @@ theorem RD.vowKissHealNoCode
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (kissDaiTargetWord σ' I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ' (kissDaiTargetWord σ' I) = ⟨0⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1903⟩ := RD.vowKissToHealExtcodesizeGuard rd hmem hread64
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1903⟩) (okPc := ⟨1915⟩) rd1903
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1903⟩) (okPc := ⟨1915⟩) rd1903
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -328,7 +328,7 @@ theorem RD.vowKissToHealCall
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (kissDaiTargetWord σ' I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ' (kissDaiTargetWord σ' I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1918⟩
       (gasWord :: kissDaiTargetWord σ' I :: kissHealOutSize :: kissHealOutPtr ::
@@ -337,7 +337,7 @@ theorem RD.vowKissToHealCall
       (kissHealCalldataMem I mem) (UInt256.ofNat 6) o (cA', σ') k' C' := by
   obtain ⟨_, _, rd1903⟩ := RD.vowKissToHealExtcodesizeGuard rd hmem hread64
   obtain ⟨gasWord, k1918, C1918, rd1918⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1903⟩) (okPc := ⟨1915⟩) rd1903
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1903⟩) (okPc := ⟨1915⟩) rd1903
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -354,7 +354,7 @@ theorem RD.vowKissHealPostCall
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (kissDaiTargetWord σ' I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ' (kissDaiTargetWord σ' I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hperm : I.perm = true) :
     ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
@@ -418,7 +418,7 @@ theorem RD.vowKissHealCallFailure
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1919⟩) (okPc := ⟨1935⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1919⟩) (okPc := ⟨1935⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -437,7 +437,7 @@ theorem RD.vowKissHealCallSuccessToReturn
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨412⟩
       [sel] mem aw rdata acc k' C' := by
-  obtain ⟨_, _, rd1937⟩ := RD.uniswapCallSuccessGuardOk
+  obtain ⟨_, _, rd1937⟩ := RD.solcCallSuccessGuardOk
     (pc := ⟨1919⟩) (okPc := ⟨1935⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -473,7 +473,7 @@ theorem RD.vowKissHealCallDepthLimit
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (kissDaiTargetWord σ' I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ' (kissDaiTargetWord σ' I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1919⟩
@@ -514,7 +514,7 @@ theorem RD.vowKissDaiCallDepthLimit
     (hsize : I.calldata.size < UInt256.size)
     (hashEnough : (kissRad I).toNat ≤ (vowSlotWord ⟨6⟩ σ I).toNat)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (kissDaiTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1704⟩
@@ -524,7 +524,7 @@ theorem RD.vowKissDaiCallDepthLimit
   obtain ⟨_, _, _, rd1703⟩ :=
     RD.vowKissToDaiStaticcall hreach hsz36 hsize hashEnough hcodeSize
   obtain ⟨k1704, C1704, rd1704raw⟩ :=
-    RD.uniswapStaticcallDepthLimit rd1703 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcallDepthLimit rd1703 (by native_decide) hdepth (by evm_ov)
   have haw :
       UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
         (kissDaiOutPtr I).toNat (kissDaiInSize I).toNat)
@@ -576,14 +576,14 @@ theorem typedCallViaEVM_zero_setSubstate {cfg : Config} {evm evm' : EVM.State}
 
 -- LIBRARY CANDIDATE: converts the word-level extcodesize guard used by traces into the
 -- source-level positive code-size fact used by `evalExpr_extCodeSize`.
-theorem uniswapExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap} {target : UInt256}
+theorem extCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hne : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩) :
+    (hne : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hne
+  unfold Reasoning.Theory.extCodeSizeWord at hne
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       exfalso
@@ -602,15 +602,15 @@ theorem uniswapExtCodeSizeWord_ne_zero_lookup_code_pos {σ : AccountMap} {target
             · simp [UInt256.toNat, hword] at hzeroNat
       simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
 
--- LIBRARY CANDIDATE: zero counterpart of `uniswapExtCodeSizeWord_ne_zero_lookup_code_pos`.
-theorem uniswapExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
+-- LIBRARY CANDIDATE: zero counterpart of `extCodeSizeWord_ne_zero_lookup_code_pos`.
+theorem extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
     (haddr : addr = AccountAddress.ofUInt256 target)
-    (hzero : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩) :
+    (hzero : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩) :
     (UInt256.ofNat
       ((σ.find? addr).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   subst addr
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
@@ -1007,7 +1007,7 @@ theorem vowKissHealNoCodeBodyCore
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSizeEvm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σAsh_evm (kissDaiTargetWord σAsh_evm I) =
+      Reasoning.Theory.extCodeSizeWord σAsh_evm (kissDaiTargetWord σAsh_evm I) =
         ⟨0⟩)
     (hashEnough : (kissRad I).toNat ≤ (vowSlotWord ⟨6⟩ σ_solm I).toNat)
     (hvatCode :
@@ -1186,11 +1186,11 @@ theorem vowKissBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hashEnoughEvm : (kissRad I).toNat ≤ (vowSlotWord ⟨6⟩ σ_evm I).toNat := by
     omega
   by_cases hcodeSizeDai :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) = ⟨0⟩
+      Reasoning.Theory.extCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) = ⟨0⟩
   · exact vowKissNoVatCodeBodyCore hcode hwv hsz36 hsize hdispatch hdecode hreach
       hAccounts hashEnoughEvm hcodeSizeDai
   have hcodeSizeDaiNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) ≠ ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) ≠ ⟨0⟩ :=
     hcodeSizeDai
   have hAshOrig : vowSlotWord ⟨6⟩ σ_evm I = vowSlotWord ⟨6⟩ σ_solm I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨6⟩ ⟨0⟩
@@ -1204,11 +1204,11 @@ theorem vowKissBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hashEnoughSolm : (kissRad I).toNat ≤ (vowSlotWord ⟨6⟩ σ_solm I).toNat := by
     simpa [← hAshOrig] using hashEnoughEvm
   have hcodeSizeSolmNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (kissDaiTargetWord σ_solm I) ≠ ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ_solm (kissDaiTargetWord σ_solm I) ≠ ⟨0⟩ := by
     intro hzero
     apply hcodeSizeDaiNE
     have hsame :=
-      Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
         (kissDaiTargetWord σ_evm I)
     rw [hsame, hTargetOrig]
     exact hzero
@@ -1217,7 +1217,7 @@ theorem vowKissBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat := by
     simpa [initState, State.lookupAccount] using
-      uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+      extCodeSizeWord_ne_zero_lookup_code_pos
         (σ := σ_solm) (target := kissDaiTargetWord σ_solm I)
         (addr := kissVatAddress σ_solm I)
         (kissVatAddress_eq_daiTarget_account σ_solm I) hcodeSizeSolmNE
@@ -1403,16 +1403,16 @@ theorem vowKissBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 (by decide : (⟨1⟩ : UInt256) ≠ ⟨6⟩)).trans hslotDai
           simp [kissVatAddress, vowAddressReturnWord, hslotAsh]
         by_cases hcodeSizeHeal :
-            Reasoning.Theory.uniswapExtCodeSizeWord σAshEvm
+            Reasoning.Theory.extCodeSizeWord σAshEvm
               (kissDaiTargetWord σAshEvm I) = ⟨0⟩
         · have hcodeSizeHealSolm :
-              Reasoning.Theory.uniswapExtCodeSizeWord evmAshSolm.accountMap
+              Reasoning.Theory.extCodeSizeWord evmAshSolm.accountMap
                 (kissDaiTargetWord evmAshSolm.accountMap I) = ⟨0⟩ := by
             have hsame :=
-              Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccountsAsh
+              Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccountsAsh
                 (kissDaiTargetWord σAshEvm I)
             have hzeroAtEvmTarget :
-                Reasoning.Theory.uniswapExtCodeSizeWord evmAshSolm.accountMap
+                Reasoning.Theory.extCodeSizeWord evmAshSolm.accountMap
                   (kissDaiTargetWord σAshEvm I) = ⟨0⟩ := by
               rw [← hsame]
               exact hcodeSizeHeal
@@ -1428,7 +1428,7 @@ theorem vowKissBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     ⟨6⟩ AshNew).lookupAccount
                   (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
             simpa [evmAshSolm, State.lookupAccount] using
-              uniswapExtCodeSizeWord_zero_lookup_code_zero
+              extCodeSizeWord_zero_lookup_code_zero
                 (σ := evmAshSolm.accountMap)
                 (target := kissDaiTargetWord evmAshSolm.accountMap I)
                 (addr := kissVatAddress σ_solm I) haddrHeal hcodeSizeHealSolm
@@ -1437,19 +1437,19 @@ theorem vowKissBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             hcodeSizeHeal hashEnoughSolm hvatCodeSolm hcallDaiSolm hdecDai hvatDaiEnough
             hAshLoadDai hvatLoadDai hAshNew hvatNoCodeHeal
         have hcodeSizeHealNE :
-            Reasoning.Theory.uniswapExtCodeSizeWord σAshEvm
+            Reasoning.Theory.extCodeSizeWord σAshEvm
               (kissDaiTargetWord σAshEvm I) ≠ ⟨0⟩ :=
           hcodeSizeHeal
         have hcodeSizeHealSolmNE :
-            Reasoning.Theory.uniswapExtCodeSizeWord evmAshSolm.accountMap
+            Reasoning.Theory.extCodeSizeWord evmAshSolm.accountMap
               (kissDaiTargetWord evmAshSolm.accountMap I) ≠ ⟨0⟩ := by
           intro hzero
           apply hcodeSizeHealNE
           have hsame :=
-            Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccountsAsh
+            Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccountsAsh
               (kissDaiTargetWord σAshEvm I)
           have hzeroAtEvmTarget :
-              Reasoning.Theory.uniswapExtCodeSizeWord evmAshSolm.accountMap
+              Reasoning.Theory.extCodeSizeWord evmAshSolm.accountMap
                 (kissDaiTargetWord σAshEvm I) = ⟨0⟩ := by
             simpa [hTargetAshEq] using hzero
           rw [hsame]
@@ -1465,7 +1465,7 @@ theorem vowKissBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   ⟨6⟩ AshNew).lookupAccount
                 (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat := by
           simpa [evmAshSolm, State.lookupAccount] using
-            uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+            extCodeSizeWord_ne_zero_lookup_code_pos
               (σ := evmAshSolm.accountMap)
               (target := kissDaiTargetWord evmAshSolm.accountMap I)
               (addr := kissVatAddress σ_solm I) haddrHeal hcodeSizeHealSolmNE

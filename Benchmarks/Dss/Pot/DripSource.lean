@@ -15,7 +15,7 @@ mutate the EVM state, so the later `Pie`/`vat`/`vow` reads are threaded through 
 state and reduced back to the original words with the storage-store/load preservation lemmas.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

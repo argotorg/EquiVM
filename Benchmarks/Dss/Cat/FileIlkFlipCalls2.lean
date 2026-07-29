@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Cat.FileIlkFlipCalls
 import Benchmarks.Dss.Cat.FileAddress
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
@@ -112,7 +112,7 @@ theorem RD.catFileIlkFlipNopePostCall {cA gh bl σ σ₀ A I} {g : Sat256} {flip
         ⟨3696042234⟩ :: fifVatM σ I :: flip :: fileIlkFlipWhatWord I :: fileIlkFlipIlkWord I ::
         ret :: sel :: [])
       (fifNopeCdMem I (fifNopeArg σ I)) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (fifVatM σ I) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (fifVatM σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hperm : I.perm = true) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
@@ -128,7 +128,7 @@ theorem RD.catFileIlkFlipNopePostCall {cA gh bl σ σ₀ A I} {g : Sat256} {flip
               accountMap := σ', substate := A', createdAccounts := cA' }, out) true
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd3561⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3546⟩) (okPc := ⟨3558⟩) rd hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3546⟩) (okPc := ⟨3558⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp)
@@ -169,9 +169,9 @@ theorem RD.catFileIlkFlipNopeNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {flip r
         ⟨3696042234⟩ :: fifVatM σ I :: flip :: fileIlkFlipWhatWord I :: fileIlkFlipIlkWord I ::
         ret :: sel :: [])
       (fifNopeCdMem I (fifNopeArg σ I)) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (fifVatM σ I) = ⟨0⟩) :
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (fifVatM σ I) = ⟨0⟩) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3546⟩) (okPc := ⟨3558⟩) rd hcodeSize
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3546⟩) (okPc := ⟨3558⟩) rd hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp)
@@ -185,7 +185,7 @@ theorem RD.catFileIlkFlipNopeCallFailure {cA gh bl σ σ₀ A I} {g : Sat256}
       mem aw rdata acc k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨3562⟩) (okPc := ⟨3578⟩) rd rfl
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨3562⟩) (okPc := ⟨3578⟩) rd rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -202,7 +202,7 @@ theorem RD.catFileIlkFlipNopeCallSuccessToStore {cA gh bl σ σ₀ A I} {g : Sat
       (fifVatM σ I :: flip :: fileIlkFlipWhatWord I :: fileIlkFlipIlkWord I :: ret :: sel :: [])
       mem aw rdata acc k' C' := by
   obtain ⟨k1, C1, rd3580⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨3562⟩) (okPc := ⟨3578⟩) rd
+    RD.solcCallSuccessGuardOk (pc := ⟨3562⟩) (okPc := ⟨3578⟩) rd
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by simp)
@@ -317,7 +317,7 @@ theorem RD.catFileIlkFlipStore {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k 
   have rd3619 := rd3618.and (by native_decide) (by evm_ov)
   have rd3620 := rd3619.swap2 (by native_decide) (by evm_ov)
   have rd3621 := rd3620.dup3 (by native_decide) (by evm_ov)
-  have rd3622 := rd3621.lor (by native_decide) (by evm_ov)
+  have rd3622 := rd3621.or (by native_decide) (by evm_ov)
   rw [u256_land_comm solcAddrMask flip, setAddressOffset0Word_bytecode] at rd3622
   have rd3623 := rd3622.swap1 (by native_decide) (by evm_ov)
   have rd3624 := rd3623.swap3 (by native_decide) (by evm_ov)
@@ -534,7 +534,7 @@ theorem RD.catFileIlkFlipHopePostCall {cA gh bl σ σ₀ A I} {g : Sat256} {flip
       (fifHopeCdMem mem (UInt256.land flip solcAddrMask)) (UInt256.ofNat 6) ByteArray.empty
       (cA', σ') k C)
     (hmem : mem.size = 164)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ' (fifVat2M σ' I) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ' (fifVat2M σ' I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hperm : I.perm = true) :
     ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
@@ -551,7 +551,7 @@ theorem RD.catFileIlkFlipHopePostCall {cA gh bl σ σ₀ A I} {g : Sat256} {flip
               accountMap := σ'', substate := A'', createdAccounts := cA'' }, out) true
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd3694⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3679⟩) (okPc := ⟨3691⟩) rd hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3679⟩) (okPc := ⟨3691⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp)
@@ -593,9 +593,9 @@ theorem RD.catFileIlkFlipHopeNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {flip r
         ret :: sel :: [])
       (fifHopeCdMem mem (UInt256.land flip solcAddrMask)) (UInt256.ofNat 6) ByteArray.empty
       (cA', σ') k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ' (fifVat2M σ' I) = ⟨0⟩) :
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ' (fifVat2M σ' I) = ⟨0⟩) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3679⟩) (okPc := ⟨3691⟩) rd hcodeSize
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3679⟩) (okPc := ⟨3691⟩) rd hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp)
@@ -609,7 +609,7 @@ theorem RD.catFileIlkFlipHopeCallFailure {cA gh bl σ σ₀ A I} {g : Sat256}
       mem aw rdata acc k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨3695⟩) (okPc := ⟨3711⟩) rd rfl
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨3695⟩) (okPc := ⟨3711⟩) rd rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -624,7 +624,7 @@ theorem RD.catFileIlkFlipHopeCallSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
       mem aw rdata acc k C) :
     RDret catBytecode g (initState cA gh bl σ σ₀ g A I) acc ByteArray.empty := by
   obtain ⟨_, _, rd3713⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨3695⟩) (okPc := ⟨3711⟩) rd
+    RD.solcCallSuccessGuardOk (pc := ⟨3695⟩) (okPc := ⟨3711⟩) rd
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by simp)

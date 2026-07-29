@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Flapper.Tick
 import Benchmarks.Dss.Flopper.Kick.Part1
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
@@ -1486,7 +1486,7 @@ theorem flapperKickBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
     (hendFit :
       (kickNow48Word evm).toNat + (kickTauWord (kickAfterGuyState evm I)).toNat < 2 ^ 48)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord (kickAfterEndState evm I).accountMap
+      Reasoning.Theory.extCodeSizeWord (kickAfterEndState evm I).accountMap
         (kickVatWord (kickAfterEndState evm I).accountMap
           (kickAfterEndState evm I).executionEnv) = ⟨0⟩) :
     ExecTransitionBody config contract evm (kickLocals I) kickTransition.body .reverted := by
@@ -1528,7 +1528,7 @@ theorem flapperKickBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
           [sender, thisAddr, .var "lot"] "_moveRet" ++
           [.return [.var "id"]])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hchecked (by intro f e h; cases h)
+   execBlock_append_term hchecked (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append, evmMove] using
@@ -1590,7 +1590,7 @@ theorem flapperKickBodyReverts_moveCallFailure
     (hendFit :
       (kickNow48Word evm).toNat + (kickTauWord (kickAfterGuyState evm I)).toNat < 2 ^ 48)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (kickAfterEndState evm I).accountMap
+      Reasoning.Theory.extCodeSizeWord (kickAfterEndState evm I).accountMap
         (kickVatWord (kickAfterEndState evm I).accountMap
           (kickAfterEndState evm I).executionEnv) ≠ ⟨0⟩)
     (hcall :
@@ -1642,7 +1642,7 @@ theorem flapperKickBodyReverts_moveCallFailure
           [sender, thisAddr, .var "lot"] "_moveRet" ++
           [.return [.var "id"]])
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term hchecked (by intro f e h; cases h)
+   execBlock_append_term hchecked (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append, evmMove] using
@@ -1704,7 +1704,7 @@ theorem flapperKickBodyReturns_moveCallSuccess
     (hendFit :
       (kickNow48Word evm).toNat + (kickTauWord (kickAfterGuyState evm I)).toNat < 2 ^ 48)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (kickAfterEndState evm I).accountMap
+      Reasoning.Theory.extCodeSizeWord (kickAfterEndState evm I).accountMap
         (kickVatWord (kickAfterEndState evm I).accountMap
           (kickAfterEndState evm I).executionEnv) ≠ ⟨0⟩)
     (hcall :
@@ -1773,7 +1773,7 @@ theorem flapperKickBodyReturns_moveCallSuccess
           [.return [.var "id"]])
         (.returned { contract := contract, locals := kickMoveLocals evm I }
           evm' (some [.int (Int.ofNat (kickIdWord evm).toNat)])) :=
-    Reasoning.Refinement.execBlock_append hchecked hreturn
+   execBlock_append hchecked hreturn
   refine ExecFuncBody.execBlockRet ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append, evmMove] using
@@ -2356,7 +2356,7 @@ theorem flapperKickX_fillAddOverflow {cA σ I} {g : Sat256} {s0 : State} {k C : 
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd4987
   have rd4990 := rd4987.push2 ⟨4930⟩ (by native_decide) (by evm_ov)
   have rd4991 := rd4990.jumpiNT (by native_decide) rfl (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd4991
+  exact RD.solcPush1Dup1Revert0 rd4991
     (by native_decide) (by native_decide) (by native_decide)
     (by simp)
 
@@ -2633,7 +2633,7 @@ theorem flapperKickX_toCheckedAddStart {cA σ I} {g : Sat256} {s0 : State}
     raw not (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   obtain ⟨k4290, C4290, rd4290raw⟩ := rd4288pre.sstore hperm
     (by native_decide) (by evm_ov)
@@ -2821,7 +2821,7 @@ theorem flapperKickX_endAddOverflow {cA σ I} {g : Sat256} {s0 : State}
     rw [hltTrue]
     native_decide
   have rd4959 := rd4958.jumpiNT (by native_decide) hcond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd4959
+  exact RD.solcPush1Dup1Revert0 rd4959
     (by native_decide) (by native_decide) (by native_decide)
     (by simp)
 
@@ -2937,7 +2937,7 @@ theorem flapperKickX_toMoveSetupStart {cA σ I} {g : Sat256} {s0 : State}
     raw swap5 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap5 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov)]
   obtain ⟨k4377, C4377, rd4377raw⟩ := rd4376pre.sstore hperm
@@ -3066,7 +3066,7 @@ theorem flapperKickX_toMoveExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
         simp [Benchmarks.Dss.Flopper.dentMoveSrcMem, src, kickSenderWord,
           show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 from by native_decide])
       (by native_decide) (by evm_ov),
-    raw uniswapAddress (by native_decide) (by evm_ov),
+    raw address (by native_decide) (by evm_ov),
     raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
     raw dup3 (by native_decide) (by evm_ov),
     raw add (by native_decide) (by evm_ov),
@@ -3201,7 +3201,7 @@ theorem RD.flapperKickReturnWordFromMem8 {cA σ I} {g : Sat256} {s0 : State}
 theorem flapperKickX_moveNoCode
     {cA gh bl σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord (kickRuntimeBeforeMoveMap I.codeOwner σ I)
+      Reasoning.Theory.extCodeSizeWord (kickRuntimeBeforeMoveMap I.codeOwner σ I)
         (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I) = ⟨0⟩)
     (rd4379 : RD flapperBytecode I g (initState cA gh bl σStart σ₀ g A I) ⟨4379⟩
       [flapperSlotWord ⟨2⟩ (kickRuntimeBeforeMoveMap I.codeOwner σ I) I,
@@ -3212,7 +3212,7 @@ theorem flapperKickX_moveNoCode
       (cA, kickRuntimeBeforeMoveMap I.codeOwner σ I) k C) :
     RDrev flapperBytecode g (initState cA gh bl σStart σ₀ g A I) := by
   obtain ⟨_, _, rd4446⟩ := flapperKickX_toMoveExtcodesizeGuard rd4379
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨4446⟩) (okPc := ⟨4458⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨4446⟩) (okPc := ⟨4458⟩)
     rd4446 hnoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3222,7 +3222,7 @@ theorem flapperKickX_moveCall
     {cA gh bl σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hperm : I.perm = true)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (kickRuntimeBeforeMoveMap I.codeOwner σ I)
+      Reasoning.Theory.extCodeSizeWord (kickRuntimeBeforeMoveMap I.codeOwner σ I)
         (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd4379 : RD flapperBytecode I g (initState cA gh bl σStart σ₀ g A I) ⟨4379⟩
@@ -3283,7 +3283,7 @@ theorem flapperKickX_moveCall
     simpa [guy, kickThisWord] using accountAddress_roundtrip I.codeOwner
   obtain ⟨_, _, rd4446⟩ := flapperKickX_toMoveExtcodesizeGuard rd4379
   obtain ⟨gasWord, _, _, rd4461⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4446⟩) (okPc := ⟨4458⟩) rd4446
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4446⟩) (okPc := ⟨4458⟩) rd4446
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -3325,7 +3325,7 @@ theorem flapperKickX_moveCall
 theorem flapperKickX_moveCallDepthLimit
     {cA gh bl σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord (kickRuntimeBeforeMoveMap I.codeOwner σ I)
+      Reasoning.Theory.extCodeSizeWord (kickRuntimeBeforeMoveMap I.codeOwner σ I)
         (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ I) I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (rd4379 : RD flapperBytecode I g (initState cA gh bl σStart σ₀ g A I) ⟨4379⟩
@@ -3351,7 +3351,7 @@ theorem flapperKickX_moveCallDepthLimit
   intro id memStore memEndStore σBeforeMove src guy rad vat
   obtain ⟨_, _, rd4446⟩ := flapperKickX_toMoveExtcodesizeGuard rd4379
   obtain ⟨gasWord, _, _, rd4461⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4446⟩) (okPc := ⟨4458⟩) rd4446
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4446⟩) (okPc := ⟨4458⟩) rd4446
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -3383,7 +3383,7 @@ theorem flapperKickX_moveCallFailure
       mem aw out (cA', σ') k C)
     (houtSize : out.size < UInt256.size) :
     RDrev flapperBytecode g (initState cA gh bl σStart σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨4462⟩) (okPc := ⟨4478⟩) rd4462
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨4462⟩) (okPc := ⟨4478⟩) rd4462
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -3498,7 +3498,7 @@ theorem flapperKickX_moveCallSuccess
         UInt256.toByteArray id :=
     toByteArray_write32_read_back memEvent id 128 (by rw [hmemEventSize]; omega)
   obtain ⟨k4480, C4480, rd4480raw⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨4462⟩) (okPc := ⟨4478⟩) rd4462
+    RD.solcCallSuccessGuardOk (pc := ⟨4462⟩) (okPc := ⟨4478⟩) rd4462
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -3937,12 +3937,12 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀) (A := A)
                     (I := I) (g := g) hAccounts hendFit
                 by_cases hnoCode :
-                    Reasoning.Theory.uniswapExtCodeSizeWord
+                    Reasoning.Theory.extCodeSizeWord
                       (kickRuntimeBeforeMoveMap I.codeOwner σ_evm I)
                       (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ_evm I) I) =
                         ⟨0⟩
                 · have hnoCodeSolm :
-                      Reasoning.Theory.uniswapExtCodeSizeWord
+                      Reasoning.Theory.extCodeSizeWord
                           (kickAfterEndState evmSolm I).accountMap
                           (kickVatWord (kickAfterEndState evmSolm I).accountMap
                             (kickAfterEndState evmSolm I).executionEnv) = ⟨0⟩ := by
@@ -3960,12 +3960,12 @@ theorem flapperKickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   exact (flapperKickX_moveNoCode (g := Sat256.ofUInt256 g) hnoCode rd4379)
                     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
                 · have hcodeSize :
-                      Reasoning.Theory.uniswapExtCodeSizeWord
+                      Reasoning.Theory.extCodeSizeWord
                         (kickRuntimeBeforeMoveMap I.codeOwner σ_evm I)
                         (kickVatWord (kickRuntimeBeforeMoveMap I.codeOwner σ_evm I) I) ≠
                           ⟨0⟩ := hnoCode
                   have hcodeSizeSolm :
-                      Reasoning.Theory.uniswapExtCodeSizeWord
+                      Reasoning.Theory.extCodeSizeWord
                           (kickAfterEndState evmSolm I).accountMap
                           (kickVatWord (kickAfterEndState evmSolm I).accountMap
                             (kickAfterEndState evmSolm I).executionEnv) ≠ ⟨0⟩ := by

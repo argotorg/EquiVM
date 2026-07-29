@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Cat.BiteConnect
 import Benchmarks.Dss.Cat.BiteBodyMem
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000
@@ -97,7 +97,7 @@ theorem catBiteReachGrabRegionC {cA gh bl σ σ₀ A I} {g : UInt256}
     (hpsz : p.toNat + 256 < UInt256.size)
     (hthisCanon : (UInt256.ofNat I.codeOwner.val).toNat < EVM.addressModulus)
     (hdink : dink.toNat ≤ 2 ^ 255) (hdart : dart.toNat ≤ 2 ^ 255)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'
       (UInt256.land (solcSlotWord σ' I ⟨3⟩) biteAddrMaskWord) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
@@ -130,7 +130,7 @@ theorem catBiteReachGrabRegionC {cA gh bl σ σ₀ A I} {g : UInt256}
   have hencode := catBiteGrabEncode_eq p (biteIlkWord I) urn (UInt256.ofNat I.codeOwner.val)
     (solcSlotWord σ' I ⟨4⟩) dink dart hp96 hpmem (by omega) hthisCanon hdink hdart
   obtain ⟨gasWord, _, _, rd2192⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177 hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177 hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp)
@@ -175,7 +175,7 @@ theorem catBiteReachFessRegionC {cA gh bl σ σ₀ A I} {g : UInt256}
     (hp96 : 96 ≤ p2.toNat) (hpmem : p2.toNat ≤ mem.size)
     (hawcov : p2.toNat ≤ aw.toNat * 32) (hawsz : aw.toNat * 32 < UInt256.size)
     (hpsz : p2.toNat + 96 < UInt256.size)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ'
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ'
       (UInt256.land biteAddrMaskWord (solcSlotWord σ' I ⟨4⟩)) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
@@ -201,7 +201,7 @@ theorem catBiteReachFessRegionC {cA gh bl σ σ₀ A I} {g : UInt256}
     catBiteTraceFessBuild rd2242 hFree64 hp96 hpmem hawcov hawsz hpsz (by simp)
   have hencode := catBiteFessEncode_eq p2 dartRate hpmem (by omega)
   obtain ⟨gasWord, _, _, rd2299⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd2284 hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd2284 hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp)

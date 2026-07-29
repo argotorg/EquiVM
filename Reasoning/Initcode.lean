@@ -1,4 +1,5 @@
 import Ethereum.Semantics
+import EVM.Types
 import Reasoning.EVMWord
 
 /-!

@@ -1,11 +1,10 @@
 import Examples.BlindAuction.Beneficiary
 import Examples.BlindAuction.Ended
 import Examples.BlindAuction.Storage
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Reasoning.ExternalCall
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -765,7 +764,7 @@ theorem blindAuctionX_auctionEnd_afterStoreAndLog {cA gh bl σ σ₀ A I} {g : S
       UInt256.land (auctionEndEndedRawWord σ I) (UInt256.lnot ⟨255⟩) := by
     exact Reasoning.Theory.u256_land_comm (UInt256.lnot ⟨255⟩) (auctionEndEndedRawWord σ I)
   rw [hland] at rd728
-  have rd731₀ := RD.lor rd728 (by decide) (by evm_ov)
+  have rd731₀ := RD.or rd728 (by decide) (by evm_ov)
   have rd731 := rd731₀
   have hlor : UInt256.lor ⟨1⟩
         (UInt256.land (auctionEndEndedRawWord σ I) (UInt256.lnot ⟨255⟩)) =

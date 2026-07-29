@@ -43,9 +43,9 @@ abbrev calldataWord (cd : ByteArray) (off : Nat) : UInt256 :=
 ABI types whose top-level calldata representation is a single scalar word and whose decoder path
 runs through `decodeABIWord?`.
 
-This intentionally excludes fixed bytes/function for now: they are also one word on the wire, but
-their decoder validates padding bytes rather than only the decoded word. Arrays, tuples, strings,
-and dynamic bytes are a later structural tier.
+This intentionally excludes fixed bytes/function: they are also one word on the wire, but their
+decoder validates padding bytes rather than only the decoded word. Arrays, tuples, strings, and
+dynamic bytes are structural types with their own decode lemmas below.
 -/
 def isABIScalarWordType : ABIType → Bool
   | .elem (.bytes _) => false
@@ -1260,7 +1260,6 @@ theorem readNat_drop4_zero_eq_calldataWord {cd : ByteArray}
   rfl
 
 theorem readNat_drop4_dynamic_eq_calldataWord {cd : ByteArray}
-    (_hoffMax : ¬ solcMaxU64 < (calldataWord cd 4).toNat)
     (hlenWord : 4 + (calldataWord cd 4).toNat + 32 ≤ cd.size) :
     readNat? (cd.toList.drop 4) (calldataWord cd 4).toNat =
       some (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat := by
@@ -1393,7 +1392,7 @@ theorem decodeCalldata_string_none_length_huge {cd : ByteArray} {x : Solm.Ident}
       · rw [if_pos htotal]
       · rw [if_neg htotal]
         have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
-        have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
+        have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hlenWord
         simp [decodeCalldata.decodeArgs, decodeABIValues?, decodeABIValue?, isDynamicABIType,
           abiTupleHeadSize?, solcMaxLen, hreadOff, hoffMax, hreadLen, hlenHuge]
 
@@ -1423,7 +1422,7 @@ theorem decodeCalldata_string_none_payload_short {cd : ByteArray} {x : Solm.Iden
       · rw [if_pos htotal]
       · rw [if_neg htotal]
         have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
-        have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
+        have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hlenWord
         have hpayloadRead :
             readBytes? (cd.toList.drop 4) ((calldataWord cd 4).toNat + 32)
               (calldataWord cd (4 + (calldataWord cd 4).toNat)).toNat = none := by
@@ -1670,12 +1669,6 @@ theorem decodeABIValue_bytes32_ok {bytes : List UInt8} {start : Nat}
   rw [if_pos hlen]
   simp [zeroPadding?, readBytes?]
 
-theorem decodeABIValue_bytes32_none_short {bytes : List UInt8} {start : Nat}
-    (hshort : ¬ ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? abiBytes32 bytes start = none := by
-  simp only [abiBytes32, abiBytes32Width, decodeABIValue?, readBytes?, bind, Option.bind]
-  rw [if_neg hshort]
-
 theorem decodeABIValues_bytes32_address_ok {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)
     (hlen32 : ((bytes.drop 32).take 32).length = 32)
@@ -1876,32 +1869,6 @@ theorem decodeScalarWords_addr_uint256_none_short {bytes : List UInt8}
     · rw [decodeScalarWord_address_none_noncanon (start := 0) (by simpa using htake0)
         (by simpa using hcanon)]
       simp only [Option.bind, bind]
-
-theorem decodeABIValues_addr_uint256_ok {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hlen32 : ((bytes.drop 32).take 32).length = 32)
-    (hcanon : (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
-    decodeABIValues? [.elem .address, abiUInt256] bytes 0 0 64 64 =
-      some ([.address (Ethereum.AccountAddress.ofNat (ABI.bytesToWord (bytes.take 32)).toNat),
-        .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)], 64) := by
-  rw [decodeABIValues_scalarWords_eq (types := [.elem .address, abiUInt256])
-    (bytes := bytes) (cursor := 0) (total := 64) (by decide) (by norm_num)]
-  rw [decodeScalarWords_addr_uint256_ok hlen0 hlen32 hcanon]
-
-theorem decodeABIValues_addr_uint256_none_noncanon {bytes : List UInt8}
-    (hlen0 : (bytes.take 32).length = 32)
-    (hnc : ¬ (ABI.bytesToWord (bytes.take 32)).toNat < EVM.addressModulus) :
-    decodeABIValues? [.elem .address, abiUInt256] bytes 0 0 64 64 = none := by
-  rw [decodeABIValues_scalarWords_eq (types := [.elem .address, abiUInt256])
-    (bytes := bytes) (cursor := 0) (total := 64) (by decide) (by norm_num)]
-  rw [decodeScalarWords_addr_uint256_none_noncanon hlen0 hnc]
-
-theorem decodeABIValues_addr_uint256_none_short {bytes : List UInt8}
-    (hshort : bytes.length < 64) :
-    decodeABIValues? [.elem .address, abiUInt256] bytes 0 0 64 64 = none := by
-  rw [decodeABIValues_scalarWords_eq (types := [.elem .address, abiUInt256])
-    (bytes := bytes) (cursor := 0) (total := 64) (by decide) (by norm_num)]
-  rw [decodeScalarWords_addr_uint256_none_short hshort]
 
 theorem decodeCalldata_addr_uint256_ok {cd : ByteArray} {x y : Solm.Ident}
     (hsz68 : 68 ≤ cd.size) (hbig : cd.size < 2 ^ 255 + 4)
@@ -2292,8 +2259,6 @@ theorem decodeCalldata_addr_bool_none_huge {cd : ByteArray} {x y : Solm.Ident}
   rw [if_pos]
   · exact ⟨rfl, by rw [List.length_drop, htlen]; omega⟩
 
-
-/-! ## Address-argument calldata decoding (single + two address) -/
 
 /-! ## Single-address calldata decoding -/
 
@@ -4345,50 +4310,6 @@ theorem decodeABIValue_dynamicArray_bytes32_lookup_shape {bytes : List UInt8}
             exact decodeABIArrayStaticElems_bytes32_lookup_shape hstatic hbound
 
 /-! ## Return decoding -/
-
-theorem decodeReturnValue_uint256_ok {returndata : ByteArray}
-    (hlo : 32 ≤ returndata.size) (hhi : returndata.size < (2 : Nat) ^ 255) :
-    ABI.decodeReturnValue? abiUInt256 returndata =
-      some (.int (Int.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))) := by
-  have hlen : returndata.toList.length = returndata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  have htake0 : (returndata.toList.take 32).length = 32 := by
-    rw [List.length_take, hlen]
-    omega
-  have hword := bytesToWord_take32_eq_extract0_32 (returndata := returndata)
-  unfold ABI.decodeReturnValue?
-  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
-    (by decide)]
-  rw [if_neg (by
-    rintro ⟨_, hhuge⟩
-    rw [hlen] at hhuge
-    omega)]
-  rw [decodeScalarWords_uint256_ok (bytes := returndata.toList) htake0]
-  simp [hword, UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)]
-
-theorem decodeReturnValue_uint256_none_short {returndata : ByteArray}
-    (hshort : returndata.size < 32) :
-    ABI.decodeReturnValue? abiUInt256 returndata = none := by
-  have hlen : returndata.toList.length = returndata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  unfold ABI.decodeReturnValue?
-  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
-    (by decide)]
-  rw [if_neg (by
-    rintro ⟨_, hhuge⟩
-    rw [hlen] at hhuge
-    omega)]
-  rw [decodeScalarWords_uint256_none_short (bytes := returndata.toList) (by rw [hlen]; omega)]
-
-theorem decodeReturnValue_uint256_none_huge {returndata : ByteArray}
-    (hhuge : (2 : Nat) ^ 255 ≤ returndata.size) :
-    ABI.decodeReturnValue? abiUInt256 returndata = none := by
-  have hlen : returndata.toList.length = returndata.size := by
-    rw [byteArray_toList_eq, Array.length_toList]; rfl
-  unfold ABI.decodeReturnValue?
-  rw [decodeReturnValues_scalarWords_eq (types := [abiUInt256]) (returndata := returndata)
-    (by decide)]
-  rw [if_pos (by exact ⟨by simp, by rw [hlen]; exact hhuge⟩)]
 
 /-! ## Return-value (`RETURN`) ABI encoding -/
 

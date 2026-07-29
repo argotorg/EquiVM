@@ -1,6 +1,6 @@
 import Examples.UniswapV2Pair.SkimSafeTransferReturn
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -996,7 +996,7 @@ theorem RD.uniswapSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
   have rd6485 := rd6480.pushConst transferSelectorWord (width := 4) (op := .PUSH4)
     (by native_decide) (by native_decide) (by evm_ov)
   have rd6491 := evm_run rd6485 with [
-    push1 ⟨224⟩, shl, lor, dup2,
+    push1 ⟨224⟩, shl, or, dup2,
     raw mstore 0 (safeTransferRuntimeMem7 base toWord value) (UInt256.ofNat 10)
       (by native_decide) mem_cost
       (by unfold safeTransferRuntimeMem7 safeTransferRuntimePatchedSelectorWord; rfl)
@@ -1065,7 +1065,7 @@ theorem RD.uniswapSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
     raw mload 3 ⟨0⟩ (UInt256.ofNat 13) (by native_decide)
       mem_cost (safeTransferRuntimeCallMem1_mload356 toWord value hbase)
       (by native_decide) (by evm_ov),
-    and, dup1, dup3, lor, dup6,
+    and, dup1, dup3, or, dup6,
     raw mstore 0 (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13)
       (by native_decide) mem_cost
       (by

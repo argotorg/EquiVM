@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Vow.FlapAdd
 import Benchmarks.Dss.Vow.VatDaiCall
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -66,7 +66,7 @@ theorem RD.vowFlapToDai0ExtcodesizeGuard
     dup2,
     raw mstore 0 (vatDaiSelectorMem mem) (UInt256.ofNat 6)
       (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    uniswapAddress,
+    address,
     push1 ⟨4⟩,
     dup3,
     add,
@@ -119,11 +119,11 @@ theorem RD.vowFlapDai0NoCode
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1056⟩ := RD.vowFlapToDai0ExtcodesizeGuard rd hmem hread64
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1056⟩) (okPc := ⟨1068⟩) rd1056
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1056⟩) (okPc := ⟨1068⟩) rd1056
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -140,7 +140,7 @@ theorem RD.vowFlapToDai0Staticcall
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1071⟩
       (gasWord :: kissDaiTargetWord acc.2 I :: ⟨128⟩ :: ⟨36⟩ ::
@@ -149,7 +149,7 @@ theorem RD.vowFlapToDai0Staticcall
       (vatDaiCalldataMem I mem) (UInt256.ofNat 6) o acc k' C' := by
   obtain ⟨_, _, rd1056⟩ := RD.vowFlapToDai0ExtcodesizeGuard rd hmem hread64
   obtain ⟨gasWord, k1071, C1071, rd1071⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1056⟩) (okPc := ⟨1068⟩) rd1056
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1056⟩) (okPc := ⟨1068⟩) rd1056
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -167,7 +167,7 @@ theorem RD.vowFlapDai0PostCall
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
       (outDai : ByteArray) (A' : Substate) (k' C' : ℕ),
@@ -194,7 +194,7 @@ theorem RD.vowFlapDai0PostCall
     RD.vowFlapToDai0Staticcall rd hmem hread64 hcodeSize
   obtain ⟨cA', σ', z, outDai, A_in, callGas, k1072, C1072, hΘpack, rd1072raw,
       hosz⟩ :=
-    RD.uniswapStaticcall rd1071 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcall rd1071 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   let evmDaiIn := { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := acc.2
@@ -227,7 +227,7 @@ theorem RD.vowFlapDai0CallFailure
     (hov : rest.length + 5 ≤ 1024) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1072⟩) (okPc := ⟨1088⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1072⟩) (okPc := ⟨1088⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -245,7 +245,7 @@ theorem RD.vowFlapDai0CallSuccessToDecode
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1090⟩
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨1072⟩) (okPc := ⟨1088⟩) rd
+  exact RD.solcCallSuccessGuardOk (pc := ⟨1072⟩) (okPc := ⟨1088⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)

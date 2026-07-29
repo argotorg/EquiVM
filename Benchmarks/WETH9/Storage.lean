@@ -8,7 +8,7 @@ uint256 store that WETH9's `deposit`/`withdraw`/`transferFrom` perform.  The two
 are general library candidates (`Reasoning.Storage`).
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

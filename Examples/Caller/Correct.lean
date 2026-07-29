@@ -2,7 +2,6 @@ import Examples.Caller.Bytecode
 import Examples.Caller.Spec
 import Reasoning.ABI
 import Reasoning.EVMWord
-import Reasoning.Theory
 import Reasoning.Dispatch
 import Reasoning.SolmBody
 import Reasoning.Stepping
@@ -1324,7 +1323,7 @@ theorem callerReEquiv_callvalueZero
 
 /-- The runtime bytecode refines the Solm specification, for every initial state. -/
 theorem callerCorrect :
-    runtimeEquivalence!?! callerConfig callerBytecode callerContract := by
+    runtimeEquivalence callerConfig callerBytecode callerContract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I
       hcode hsize hperm hσ => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩

@@ -89,7 +89,7 @@ end Reasoning.Reach
 
 namespace Benchmarks.Dss.Vat
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 /-! ## `frob(bytes32,address,address,address,int256,int256)` -/
 
@@ -5250,7 +5250,7 @@ theorem RD.vatFrobCeilingCheckSuccess
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3422 := evm_run rd3421 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3426 := evm_run rd3422 with [
@@ -5470,7 +5470,7 @@ theorem RD.vatFrobCeilingCheckRevert
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3422 := evm_run rd3421 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3426 := evm_run rd3422 with [
@@ -5808,7 +5808,7 @@ theorem RD.vatFrobSafetyCheckSuccess
   have rd6791 := rd3540.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd3541 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3545 := evm_run rd3541 with [
@@ -5966,7 +5966,7 @@ theorem RD.vatFrobSafetyCheckRevert
   have rd6791 := rd3540.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd3541 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3545 := evm_run rd3541 with [
@@ -6267,7 +6267,7 @@ theorem RD.vatWishReturnOk
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd6792 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov)]
-  have rd6793 := rd6792.lor (by native_decide) (by evm_ov)
+  have rd6793 := rd6792.or (by native_decide) (by evm_ov)
   have rd6612raw := evm_run rd6793 with [
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
@@ -6372,7 +6372,7 @@ theorem RD.vatFrobUWishCheckSuccess
     raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov),
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3640 := evm_run rd3636 with [
@@ -6469,7 +6469,7 @@ theorem RD.vatFrobUWishCheckRevertFall
     raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov),
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3640 := evm_run rd3636 with [
@@ -6648,7 +6648,7 @@ theorem RD.vatFrobVWishCheckSuccess
     raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov),
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3727 := evm_run rd3723 with [
@@ -6737,7 +6737,7 @@ theorem RD.vatFrobVWishCheckRevert
     raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov),
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3727 := evm_run rd3723 with [
@@ -6889,7 +6889,7 @@ theorem RD.vatFrobWWishCheckSuccess
     raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov),
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3814 := evm_run rd3810 with [
@@ -6992,7 +6992,7 @@ theorem RD.vatFrobWWishCheckRevert
     raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov),
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3814 := evm_run rd3810 with [
@@ -7245,7 +7245,7 @@ theorem RD.vatFrobDustCheckSuccess
   have rd6791 := rd3902.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd3903 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3907 := evm_run rd3903 with [
@@ -7428,7 +7428,7 @@ theorem RD.vatFrobDustCheckRevert
   have rd6791 := rd3902.jump (by native_decide) (by jump_dest) (by evm_ov)
   have rd3903 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd3907 := evm_run rd3903 with [
@@ -11913,11 +11913,11 @@ theorem execFrobLoadedPrefixThreeAdds {evm : EVM.State} {I : ExecutionEnv}
             ilkDust)
       (by simp [ilkArtNew]) (by simpa [ilkArtNew] using hIlkNeg)
       (by simpa [ilkArtNew] using hIlkPos)
-  have h01 := Reasoning.Refinement.execBlock_append hprefix
+  have h01 := execBlock_append hprefix
     (by simpa [localsLoaded] using hInkBlock)
-  have h02 := Reasoning.Refinement.execBlock_append h01
+  have h02 := execBlock_append h01
     (by simpa [localsLoaded, localsInk] using hArtBlock)
-  have h03 := Reasoning.Refinement.execBlock_append h02
+  have h03 := execBlock_append h02
     (by simpa [localsLoaded, localsInk, localsArt] using hIlkBlock)
   simpa [localsLoaded, localsInk, localsArt, List.append_assoc] using h03
 
@@ -12483,7 +12483,7 @@ theorem execFrobCeilingInkSpotCheckedOk {evm : EVM.State} {locals : Store}
     exact execForkMulUintIntoOk "inkSpot" (.var "urnInkNew") (.var "ilkSpot")
       urnInkNew ilkSpot inkSpot hurnInkNewEval hilkSpotEval hinkSpot hinkFit
       hinkGuardEval
-  have h := Reasoning.Refinement.execBlock_append hceilingBlock hinkBlock
+  have h := execBlock_append hceilingBlock hinkBlock
   simpa [localsCeiling, List.append_assoc] using h
 
 theorem execFrobCeilingSafetyOk {evm : EVM.State} {locals : Store}
@@ -12579,7 +12579,7 @@ theorem execFrobCeilingSafetyOk {evm : EVM.State} {locals : Store}
     · simpa [localsFinal] using hceilingReq
     · exact ExecBlock.consNormal (ExecStmt.requireTrue (by
         simpa [localsFinal] using hsafeReq)) ExecBlock.nil
-  have h := Reasoning.Refinement.execBlock_append hmul hreqs
+  have h := execBlock_append hmul hreqs
   simpa [localsFinal, List.append_assoc] using h
 
 theorem execFrobCeilingRequireRevert {evm : EVM.State} {locals : Store}
@@ -12643,7 +12643,7 @@ theorem execFrobCeilingRequireRevert {evm : EVM.State} {locals : Store}
         .reverted := by
     exact ExecBlock.consRevert (ExecStmt.requireFalse (by
       simpa [localsFinal] using hceilingReq))
-  have h := Reasoning.Refinement.execBlock_append hmul hreq
+  have h := execBlock_append hmul hreq
   simpa [localsFinal, List.append_assoc] using h
 
 theorem execFrobSafetyRequireRevert {evm : EVM.State} {locals : Store}
@@ -12734,7 +12734,7 @@ theorem execFrobSafetyRequireRevert {evm : EVM.State} {locals : Store}
     · simpa [localsFinal] using hceilingReq
     · exact ExecBlock.consRevert (ExecStmt.requireFalse (by
         simpa [localsFinal] using hsafeReq))
-  have h := Reasoning.Refinement.execBlock_append hmul hreqs
+  have h := execBlock_append hmul hreqs
   simpa [localsFinal, List.append_assoc] using h
 
 theorem execFrobAuthorizationDustOk {evm : EVM.State} {locals : Store}
@@ -13610,7 +13610,7 @@ theorem execFrobGemUpdateOk {evm : EVM.State} {I : ExecutionEnv}
         [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew") ]
         (.ok { contract := contract, locals := localsGem } evmGem) := by
     exact ExecBlock.consNormal (ExecStmt.assign hnewEval hassign) ExecBlock.nil
-  have h := Reasoning.Refinement.execBlock_append hsub hassignBlock
+  have h := execBlock_append hsub hassignBlock
   simpa [localsGem, evmGem, List.append_assoc] using h
 
 theorem execFrobDaiAddCheckedOk {evm : EVM.State} {I : ExecutionEnv}
@@ -13852,7 +13852,7 @@ theorem execFrobDaiUpdateOk {evm : EVM.State} {I : ExecutionEnv}
         [ .assign .storage (daiRef (.var "w")) (.var "daiNew") ]
         (.ok { contract := contract, locals := localsDai } evmDai) := by
     exact ExecBlock.consNormal (ExecStmt.assign hnewEval hassign) ExecBlock.nil
-  have h := Reasoning.Refinement.execBlock_append hadd hassignBlock
+  have h := execBlock_append hadd hassignBlock
   simpa [localsDai, evmDai, List.append_assoc] using h
 
 theorem execFrobFinalStoreTailGemRevertFromBlock {evm : EVM.State}
@@ -13876,7 +13876,7 @@ theorem execFrobFinalStoreTailGemRevertFromBlock {evm : EVM.State}
           .assign .storage (ilksF (.var "i") "line") (.var "ilkLine"),
           .assign .storage (ilksF (.var "i") "dust") (.var "ilkDust") ])
       .reverted := by
-  have h := Reasoning.Refinement.execBlock_append_term
+  have h := execBlock_append_term
     (s2 :=
       [ .assign .storage (gemRef (.var "i") (.var "v")) (.var "gemNew") ] ++
         checkedAddSignedInto "daiNew" (.storage (daiRef (.var "w"))) (.var "dtab") ++
@@ -13917,8 +13917,8 @@ theorem execFrobFinalStoreTailDaiRevertFromBlock {evm evmGem : EVM.State}
           .assign .storage (ilksF (.var "i") "line") (.var "ilkLine"),
           .assign .storage (ilksF (.var "i") "dust") (.var "ilkDust") ])
       .reverted := by
-  have h01 := Reasoning.Refinement.execBlock_append hGem hDai
-  have h := Reasoning.Refinement.execBlock_append_term
+  have h01 := execBlock_append hGem hDai
+  have h := execBlock_append_term
     (s2 :=
       [ .assign .storage (daiRef (.var "w")) (.var "daiNew"),
         .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew"),
@@ -14171,8 +14171,8 @@ theorem execFrobFinalStoreTailOk {evm : EVM.State} {I : ExecutionEnv}
         (evalVarAfterDai (evm' := evmLine) hilkDust (by native_decide)
           (by native_decide))
         hassignDust) ExecBlock.nil
-  have h01 := Reasoning.Refinement.execBlock_append hgemBlock hdaiBlock
-  have h02 := Reasoning.Refinement.execBlock_append h01 hstores
+  have h01 := execBlock_append hgemBlock hdaiBlock
+  have h02 := execBlock_append h01 hstores
   simpa [localsGem, localsDai, evmGem, evmDai, evmInk, evmArt, evmIlk, evmRate,
     evmSpot, evmLine, evmDust, List.append_assoc] using h02
 
@@ -14270,7 +14270,7 @@ theorem execFrobDebtAddStoreOk {evm : EVM.State} {locals : Store}
         [ .assign .storage debtRef (.var "debtNew") ]
         (.ok { contract := contract, locals := localsDebt } evmDebt) := by
     exact ExecBlock.consNormal (ExecStmt.assign hdebtNewEval hdebtAssign) ExecBlock.nil
-  have h := Reasoning.Refinement.execBlock_append hAdd hAssign
+  have h := execBlock_append hAdd hAssign
   simpa [localsDebt, evmDebt, List.append_assoc] using h
 
 theorem execFrobDebtAddCheckedRevertGuardNeg {evm : EVM.State} {locals : Store}
@@ -14406,7 +14406,7 @@ theorem execFrobLoadedPrefixUrnInkRevertGuardNeg {evm : EVM.State} {I : Executio
           frobStoreIlkDust_get_dink I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine
             ilkDust)
       (by simp [urnInkNew]) (by simpa [urnInkNew] using hcond)
-  have h := Reasoning.Refinement.execBlock_append hprefix
+  have h := execBlock_append hprefix
     (by simpa [localsLoaded] using hInkBlock)
   simpa [localsLoaded, List.append_assoc] using h
 
@@ -14444,7 +14444,7 @@ theorem execFrobLoadedPrefixUrnInkRevertGuardPos {evm : EVM.State} {I : Executio
             ilkDust)
       (by simp [urnInkNew]) (by simpa [urnInkNew] using hguardNeg)
       (by simpa [urnInkNew] using hcond)
-  have h := Reasoning.Refinement.execBlock_append hprefix
+  have h := execBlock_append hprefix
     (by simpa [localsLoaded] using hInkBlock)
   simpa [localsLoaded, List.append_assoc] using h
 
@@ -14513,9 +14513,9 @@ theorem execFrobLoadedPrefixUrnArtRevertGuardNeg {evm : EVM.State} {I : Executio
           frobStoreIlkDust_get_dart I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine
             ilkDust)
       (by simp [urnArtNew]) (by simpa [urnArtNew] using hcond)
-  have h01 := Reasoning.Refinement.execBlock_append hprefix
+  have h01 := execBlock_append hprefix
     (by simpa [localsLoaded] using hInkBlock)
-  have h02 := Reasoning.Refinement.execBlock_append h01
+  have h02 := execBlock_append h01
     (by simpa [localsLoaded, localsInk] using hArtBlock)
   simpa [localsLoaded, localsInk, List.append_assoc] using h02
 
@@ -14586,9 +14586,9 @@ theorem execFrobLoadedPrefixUrnArtRevertGuardPos {evm : EVM.State} {I : Executio
             ilkDust)
       (by simp [urnArtNew]) (by simpa [urnArtNew] using hArtNeg)
       (by simpa [urnArtNew] using hcond)
-  have h01 := Reasoning.Refinement.execBlock_append hprefix
+  have h01 := execBlock_append hprefix
     (by simpa [localsLoaded] using hInkBlock)
-  have h02 := Reasoning.Refinement.execBlock_append h01
+  have h02 := execBlock_append h01
     (by simpa [localsLoaded, localsInk] using hArtBlock)
   simpa [localsLoaded, localsInk, List.append_assoc] using h02
 
@@ -14690,11 +14690,11 @@ theorem execFrobLoadedPrefixIlkArtRevertGuardNeg {evm : EVM.State} {I : Executio
           frobStoreIlkDust_get_dart I urnInk urnArt ilkArt ilkRate ilkSpot ilkLine
             ilkDust)
       (by simp [ilkArtNew]) (by simpa [ilkArtNew] using hcond)
-  have h01 := Reasoning.Refinement.execBlock_append hprefix
+  have h01 := execBlock_append hprefix
     (by simpa [localsLoaded] using hInkBlock)
-  have h02 := Reasoning.Refinement.execBlock_append h01
+  have h02 := execBlock_append h01
     (by simpa [localsLoaded, localsInk] using hArtBlock)
-  have h03 := Reasoning.Refinement.execBlock_append h02
+  have h03 := execBlock_append h02
     (by simpa [localsLoaded, localsInk, localsArt] using hIlkBlock)
   simpa [localsLoaded, localsInk, localsArt, List.append_assoc] using h03
 
@@ -14798,11 +14798,11 @@ theorem execFrobLoadedPrefixIlkArtRevertGuardPos {evm : EVM.State} {I : Executio
             ilkDust)
       (by simp [ilkArtNew]) (by simpa [ilkArtNew] using hIlkNeg)
       (by simpa [ilkArtNew] using hcond)
-  have h01 := Reasoning.Refinement.execBlock_append hprefix
+  have h01 := execBlock_append hprefix
     (by simpa [localsLoaded] using hInkBlock)
-  have h02 := Reasoning.Refinement.execBlock_append h01
+  have h02 := execBlock_append h01
     (by simpa [localsLoaded, localsInk] using hArtBlock)
-  have h03 := Reasoning.Refinement.execBlock_append h02
+  have h03 := execBlock_append h02
     (by simpa [localsLoaded, localsInk, localsArt] using hIlkBlock)
   simpa [localsLoaded, localsInk, localsArt, List.append_assoc] using h03
 

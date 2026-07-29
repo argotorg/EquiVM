@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Cat.BiteBodyReach
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 4000000
@@ -297,7 +297,7 @@ theorem kickEncodeP_eq (p urn vow tab dink : UInt256) {mem : ByteArray}
   have hw0 : EVM.word 0 = (⟨0⟩ : UInt256) := by decide
   simp [hw0, ByteArray.append_assoc]
 
-/-- `2516 → 2532`: the EXTCODESIZE guard (`RD.uniswapExtcodesizeGuardOkGas`) + the `kick` `CALL`
+/-- `2516 → 2532`: the EXTCODESIZE guard (`RD.solcExtcodesizeGuardOkGas`) + the `kick` `CALL`
 (`perm := true`, value `0`, `depth < 1024`, inOff/retOff `p`, argsLen `164`, retLen `32`) + the
 `Θ`→Solm coupling (`callCoincides`).  The kick `CALL` copies its 1-word return `o'` (the auction `id`)
 into memory at `p`, so the post-call memory is `o'.write 0 mem' p (min 32 o'.size)`.  Generic in the
@@ -310,7 +310,7 @@ theorem catBiteKickGuardCallP {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
       (target :: target :: ⟨0⟩ :: p :: ⟨164⟩ :: p :: ⟨32⟩ :: R)
       mem' aw o (cAx, σx) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σx target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σx target ≠ ⟨0⟩)
     (hencode : config.externalABI.encode? "kick" args = some (mem'.readWithPadding p.toNat 164))
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 9 ≤ 1024) :
@@ -329,7 +329,7 @@ theorem catBiteKickGuardCallP {cA gh bl σ σ₀ A I} {g : UInt256}
               accountMap := σ', substate := A', createdAccounts := cA' }, o') I.perm
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd2531⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
@@ -921,7 +921,7 @@ theorem catBiteReachKickC {cA gh bl σ σ₀ A I} {g : UInt256}
     (hawsz : aw.toNat * 32 < UInt256.size)
     (hpmem : p.toNat + 164 ≤ mem.size) (hpsz : p.toNat + 164 < UInt256.size)
     (hperm : I.perm = true) (hRateFit : iRate.toNat * dart.toNat < UInt256.size)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σx
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σx
       (UInt256.land biteAddrMaskWord milkFlip) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
@@ -959,7 +959,7 @@ theorem catBiteReachKickC {cA gh bl σ σ₀ A I} {g : UInt256}
     hp96 hpmem hpsz (seg8_maskBound urn) (seg8_maskBound _)
   -- 2516 → 2532: inline EXTCODESIZE guard + kick CALL (concrete post-call active-words)
   obtain ⟨gasWord, _, _, rd2531⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd2516 hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd2516 hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)

@@ -2,7 +2,7 @@ import Benchmarks.Dss.Cure.Common
 import Benchmarks.Dss.Cure.Cage
 import Reasoning.ExternalCall
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Cure
 
@@ -485,7 +485,7 @@ theorem evalExpr_loadPosGtZero_true (evm : EVM.State) (I : ExecutionEnv)
 theorem evalExpr_loadExtCodeSizeGtZero_false_of_src {cA gh bl σ σ₀ A I} {g : Sat256}
     {locals : Store}
     (hsrc : locals.get? "src" = some (.address (loadSrc I)))
-    (hnoCode : uniswapExtCodeSizeWord σ (loadKey I) = ⟨0⟩) :
+    (hnoCode : extCodeSizeWord σ (loadKey I) = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState cA gh bl σ σ₀ g A I)
       (.binary .gt (.extCodeSize (.var "src")) (.intLit 0)) = .ok (.bool false) := by
@@ -508,7 +508,7 @@ theorem evalExpr_loadExtCodeSizeGtZero_false_of_src {cA gh bl σ σ₀ A I} {g :
         rfl
     | some acc =>
         have hnoAcc : UInt256.ofNat acc.code.size = ⟨0⟩ := by
-          simpa [uniswapExtCodeSizeWord, loadKey_address_eq I, hacc] using hnoCode
+          simpa [extCodeSizeWord, loadKey_address_eq I, hacc] using hnoCode
         simpa [hacc] using hnoAcc
   have hext :
       evalExpr? config { contract := contract, locals := locals } evm0
@@ -528,7 +528,7 @@ theorem evalExpr_loadExtCodeSizeGtZero_false_of_src {cA gh bl σ σ₀ A I} {g :
   · native_decide
 
 theorem evalExpr_loadExtCodeSizeGtZero_false {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hnoCode : uniswapExtCodeSizeWord σ (loadKey I) = ⟨0⟩) :
+    (hnoCode : extCodeSizeWord σ (loadKey I) = ⟨0⟩) :
     evalExpr? config { contract := contract, locals := loadLocals I }
       (initState cA gh bl σ σ₀ g A I)
       (.binary .gt (.extCodeSize (.var "src")) (.intLit 0)) = .ok (.bool false) := by
@@ -539,7 +539,7 @@ theorem evalExpr_loadExtCodeSizeGtZero_false {cA gh bl σ σ₀ A I} {g : Sat256
 theorem evalExpr_loadExtCodeSizeGtZero_true_of_src {cA gh bl σ σ₀ A I} {g : Sat256}
     {locals : Store}
     (hsrc : locals.get? "src" = some (.address (loadSrc I)))
-    (hcode : uniswapExtCodeSizeWord σ (loadKey I) ≠ ⟨0⟩) :
+    (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := locals }
       (initState cA gh bl σ σ₀ g A I)
       (.binary .gt (.extCodeSize (.var "src")) (.intLit 0)) = .ok (.bool true) := by
@@ -559,9 +559,9 @@ theorem evalExpr_loadExtCodeSizeGtZero_true_of_src {cA gh bl σ σ₀ A I} {g : 
       ((σ.find? (loadSrc I)).option 0 (fun acc => acc.code.size)) ≠ ⟨0⟩
     cases hacc : σ.find? (loadSrc I) with
     | none =>
-        exact False.elim (hcode (by simp [uniswapExtCodeSizeWord, loadKey_address_eq I, hacc, Option.option]))
+        exact False.elim (hcode (by simp [extCodeSizeWord, loadKey_address_eq I, hacc, Option.option]))
     | some acc =>
-        simpa [uniswapExtCodeSizeWord, loadKey_address_eq I, hacc] using hcode
+        simpa [extCodeSizeWord, loadKey_address_eq I, hacc] using hcode
   have hcodePos :
       0 < (EVM.Word.ofNat
         ((evm0.lookupAccount (loadSrc I)).option 0 (fun acc => acc.code.size))).toNat :=

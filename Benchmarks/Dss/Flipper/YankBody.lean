@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Flipper.YankCalls
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
 
@@ -68,10 +68,10 @@ theorem flipperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (bidTabWord (yankId I) σ_evm I).toNat
         · obtain ⟨_, _, hafterBidLt⟩ := flipperYankX_bidLt (I := I) hbidLtEvm hafterGuy
           by_cases hcatZero :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+              Reasoning.Theory.extCodeSizeWord σ_evm
                 (flipperCatTargetWord σ_evm I) = ⟨0⟩
           · have hcatZeroSolm :
-                Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+                Reasoning.Theory.extCodeSizeWord σ_solm
                     (flipperCatTargetWord σ_solm I) = ⟨0⟩ :=
               flipperCatCodeSize_zero_accountMapEquiv hAccounts hcatZero
             have hnoCode :
@@ -102,7 +102,7 @@ theorem flipperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             exact (flipperYankX_catNoCode (I := I) hcatZero hafterBidLt)
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
           · have hcatNeSolm :
-                Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+                Reasoning.Theory.extCodeSizeWord σ_solm
                     (flipperCatTargetWord σ_solm I) ≠ ⟨0⟩ :=
               flipperCatCodeSize_ne_zero_accountMapEquiv hAccounts hcatZero
             have hcatCode := flipperCatCode_pos_of_codeSize_ne_zero
@@ -244,10 +244,10 @@ theorem flipperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 have hAccountsCat : accountMapEquiv σ_cat σ_cat_solm := by
                   simpa [evmCatEvm, evmCatSolm] using hCatStateEquiv'.accountMap
                 by_cases hvatZero :
-                    Reasoning.Theory.uniswapExtCodeSizeWord σ_cat
+                    Reasoning.Theory.extCodeSizeWord σ_cat
                       (flipperVatTargetWord σ_cat I) = ⟨0⟩
                 · have hvatZeroSolm :
-                      Reasoning.Theory.uniswapExtCodeSizeWord σ_cat_solm
+                      Reasoning.Theory.extCodeSizeWord σ_cat_solm
                           (flipperVatTargetWord σ_cat_solm I) = ⟨0⟩ :=
                     flipperVatCodeSize_zero_accountMapEquiv hAccountsCat hvatZero
                   have hvatNoCode :
@@ -257,7 +257,7 @@ theorem flipperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             evmCatSolm.executionEnv)).option
                           0 (fun acc => acc.code.size))).toNat = 0 := by
                     simpa [evmCatSolm, evm0Solm, initState, State.lookupAccount] using
-                      flipper_uniswapExtCodeSizeWord_zero_lookup_code_zero
+                      flipper_extCodeSizeWord_zero_lookup_code_zero
                         (σ := σ_cat_solm) (target := flipperVatTargetWord σ_cat_solm I)
                         (addr := flipperVatAddress σ_cat_solm I)
                         (flipperVatAddress_eq_target σ_cat_solm I) hvatZeroSolm
@@ -273,7 +273,7 @@ theorem flipperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   exact (flipperYankX_vatNoCode hvatZero rd1365)
                     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
                 · have hvatNeSolm :
-                      Reasoning.Theory.uniswapExtCodeSizeWord σ_cat_solm
+                      Reasoning.Theory.extCodeSizeWord σ_cat_solm
                           (flipperVatTargetWord σ_cat_solm I) ≠ ⟨0⟩ :=
                     flipperVatCodeSize_ne_zero_accountMapEquiv hAccountsCat hvatZero
                   have hvatCodeSolm :
@@ -284,7 +284,7 @@ theorem flipperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               evmCatSolm.executionEnv)).option
                             0 (fun acc => acc.code.size))).toNat := by
                     simpa [evmCatSolm, evm0Solm, initState, State.lookupAccount] using
-                      flipper_uniswapExtCodeSizeWord_pos_lookup_code_pos
+                      flipper_extCodeSizeWord_pos_lookup_code_pos
                         (σ := σ_cat_solm) (target := flipperVatTargetWord σ_cat_solm I)
                         (addr := flipperVatAddress σ_cat_solm I)
                         (flipperVatAddress_eq_target σ_cat_solm I) hvatNeSolm
@@ -414,10 +414,10 @@ theorem flipperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     have hAccountsVat : accountMapEquiv σ_vat σ_vat_solm := by
                       simpa [evmVatEvm, evmVatSolm] using hVatStateEquiv'.accountMap
                     by_cases hmoveZero :
-                        Reasoning.Theory.uniswapExtCodeSizeWord σ_vat
+                        Reasoning.Theory.extCodeSizeWord σ_vat
                           (flipperVatTargetWord σ_vat I) = ⟨0⟩
                     · have hmoveZeroSolm :
-                          Reasoning.Theory.uniswapExtCodeSizeWord σ_vat_solm
+                          Reasoning.Theory.extCodeSizeWord σ_vat_solm
                               (flipperVatTargetWord σ_vat_solm I) = ⟨0⟩ :=
                         flipperVatCodeSize_zero_accountMapEquiv hAccountsVat hmoveZero
                       have hmoveNoCode :
@@ -428,7 +428,7 @@ theorem flipperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               0 (fun acc => acc.code.size))).toNat = 0 := by
                         simpa [evmVatSolm, evmCatSolm, evm0Solm, initState,
                           State.lookupAccount] using
-                          flipper_uniswapExtCodeSizeWord_zero_lookup_code_zero
+                          flipper_extCodeSizeWord_zero_lookup_code_zero
                             (σ := σ_vat_solm)
                             (target := flipperVatTargetWord σ_vat_solm I)
                             (addr := flipperVatAddress σ_vat_solm I)
@@ -447,7 +447,7 @@ theorem flipperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       exact (flipperYankX_moveNoCode hmoveZero rd1501)
                         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
                     · have hmoveNeSolm :
-                          Reasoning.Theory.uniswapExtCodeSizeWord σ_vat_solm
+                          Reasoning.Theory.extCodeSizeWord σ_vat_solm
                               (flipperVatTargetWord σ_vat_solm I) ≠ ⟨0⟩ :=
                         flipperVatCodeSize_ne_zero_accountMapEquiv hAccountsVat hmoveZero
                       have hmoveCodeSolm :
@@ -459,7 +459,7 @@ theorem flipperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 0 (fun acc => acc.code.size))).toNat := by
                         simpa [evmVatSolm, evmCatSolm, evm0Solm, initState,
                           State.lookupAccount] using
-                          flipper_uniswapExtCodeSizeWord_pos_lookup_code_pos
+                          flipper_extCodeSizeWord_pos_lookup_code_pos
                             (σ := σ_vat_solm)
                             (target := flipperVatTargetWord σ_vat_solm I)
                             (addr := flipperVatAddress σ_vat_solm I)

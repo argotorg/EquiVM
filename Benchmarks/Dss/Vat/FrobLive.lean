@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Vat.FrobLiveSuccess
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Vat
 
@@ -252,7 +252,7 @@ theorem hsourceRevertFromPrefix {evm : EVM.State} {I : ExecutionEnv}
       ExecBlock config { contract := contract, locals := frobStore I } evm
         frobTransition.body .reverted := by
     rw [hbody]
-    exact Reasoning.Refinement.execBlock_append_term (s2 := tail) hsrcPrefixRevert
+    exact execBlock_append_term (s2 := tail) hsrcPrefixRevert
       (by intro f e h; cases h)
   exact ExecFuncBody.execBlockRevert hblock
 
@@ -1085,7 +1085,7 @@ theorem hsourceRevertFromFinalStoreTail {evm evmDebt : EVM.State} {I : Execution
         .reverted) :
     ExecTransitionBody config contract evm (frobStore I) frobTransition.body
       .reverted := by
-  have hblock := Reasoning.Refinement.execBlock_append hsourceDust htail
+  have hblock := execBlock_append hsourceDust htail
   exact ExecFuncBody.execBlockRevert (by
     simpa [ExecTransitionBody, frobTransition, List.append_assoc] using hblock)
 
@@ -1475,7 +1475,7 @@ theorem execFrobLoadedPrefixDtabMulRevertRange {evm : EVM.State}
         .reverted :=
     execFrobDtabMulCheckedRevertRange
       (evm := evm) (I := I) localsIlk ilkRate dtab hrateGet hdartGet hdtab hbad
-  have hfull := Reasoning.Refinement.execBlock_append
+  have hfull := execBlock_append
     (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk] using hthree)
     hdtabBlock
   simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
@@ -1565,7 +1565,7 @@ theorem execFrobLoadedPrefixDtabMulRevertMaxSlt {evm : EVM.State}
       execFrobDtabMulCheckedRevertMaxSlt
         (evm := evm) (I := I) localsIlk ilkRate dtab hrateGet hdartGet hdtab
         hdtabLo hdtabHi hRateMaxFail
-    have hfull := Reasoning.Refinement.execBlock_append
+    have hfull := execBlock_append
       (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk] using hthree)
       hdtabBlock
     simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
@@ -1668,7 +1668,7 @@ theorem execFrobLoadedPrefixTabMulRevertOverflow {evm : EVM.State}
     execFrobDtabMulCheckedOk
       (evm := evm) (I := I) localsIlk ilkRate dtab hrateGetIlk hdartGet
       hdtab hdtabLo hdtabHi hdtabGuards.1 hdtabGuards.2
-  have hsourceDtab := Reasoning.Refinement.execBlock_append
+  have hsourceDtab := execBlock_append
     (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk] using hthree)
     hdtabBlock
   have hrateGetDtab :
@@ -1695,7 +1695,7 @@ theorem execFrobLoadedPrefixTabMulRevertOverflow {evm : EVM.State}
       (evm := evm) (locals := localsIlk.insert "dtab" (.int dtab))
       ilkRate urnArtNew hrateGetDtab hurnArtNewGet
       (by simpa [urnArtNew] using htabOverflow)
-  have hfull := Reasoning.Refinement.execBlock_append
+  have hfull := execBlock_append
     (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
       List.append_assoc] using hsourceDtab)
     htabBlock
@@ -1805,7 +1805,7 @@ theorem execFrobLoadedPrefixThroughTabOk {evm : EVM.State}
       execFrobDtabMulCheckedOk
         (evm := evm) (I := I) localsIlk ilkRate dtab hrateGetIlk hdartGet
         hdtab hdtabLo hdtabHi hdtabGuards.1 hdtabGuards.2
-  have hsourceDtab := Reasoning.Refinement.execBlock_append
+  have hsourceDtab := execBlock_append
     (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk] using hthree)
     hdtabBlock
   have hTabMulS :
@@ -1839,7 +1839,7 @@ theorem execFrobLoadedPrefixThroughTabOk {evm : EVM.State}
     exact execFrobTabMulCheckedOk (evm := evm) (locals := localsDtab)
       ilkRate urnArtNew tab hrateGetDtab hurnArtNewGet (by rfl)
       htabFitGuard.1 htabFitGuard.2
-  have hfull := Reasoning.Refinement.execBlock_append
+  have hfull := execBlock_append
     (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
       localsDtab, List.append_assoc] using hsourceDtab)
     htabBlock
@@ -1962,7 +1962,7 @@ theorem execFrobLoadedPrefixThroughDebtOk {evm : EVM.State}
       debtOld debtNew dtabWord dtab hbaseDebt hdtabGet hdebtLoad hdtabMod hnew
       (signedAddGuardNegCond_of_word hdtabLo hdtabHi hdtabMod hDebtNeg)
       (signedAddGuardPosCond_of_word hdtabLo hdtabHi hdtabMod hDebtPos)
-  have hfull := Reasoning.Refinement.execBlock_append
+  have hfull := execBlock_append
     (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
       localsDtab, tab, localsTab, List.append_assoc] using hsourceTab)
     hdebtBlock
@@ -2072,7 +2072,7 @@ theorem execFrobLoadedPrefixDebtAddRevertGuardNeg {evm : EVM.State}
       debtOld debtNew dtabWord dtab hbaseDebt hdtabGet hdebtLoad hdtabMod hnew
       (signedAddGuardNegFalseCond_of_word hdtabLo hdtabHi hdtabMod
         hDebtNegFail)
-  have hfull := Reasoning.Refinement.execBlock_append
+  have hfull := execBlock_append
     (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
       localsDtab, tab, localsTab, List.append_assoc] using hsourceTab)
     hdebtBlock
@@ -2185,7 +2185,7 @@ theorem execFrobLoadedPrefixDebtAddRevertGuardPos {evm : EVM.State}
       (signedAddGuardNegCond_of_word hdtabLo hdtabHi hdtabMod hDebtNeg)
       (signedAddGuardPosFalseCond_of_word hdtabLo hdtabHi hdtabMod
         hDebtPosFail)
-  have hfull := Reasoning.Refinement.execBlock_append
+  have hfull := execBlock_append
     (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
       localsDtab, tab, localsTab, List.append_assoc] using hsourceTab)
     hdebtBlock
@@ -2580,7 +2580,7 @@ theorem execFrobLoadedPrefixThroughSafetyOk {evm : EVM.State}
       (by rfl) hCeilingFitGuard.1 hCeilingFitGuard.2
       (by rfl) hInkFitGuard.1 hInkFitGuard.2
       hceilingReqEval hsafetyReqEval
-  have hfull := Reasoning.Refinement.execBlock_append
+  have hfull := execBlock_append
     (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
       localsDtab, tab, localsTab, localsDebt, evmDebt, List.append_assoc]
       using hsourceDebt)
@@ -2707,7 +2707,7 @@ theorem execFrobLoadedPrefixCeilingMulRevertOverflow {evm : EVM.State}
       (evm := evmDebt) (locals := localsDebt)
       ilkArtNew ilkRate hlocalsDebtIlkArtNew hlocalsDebtRate
       (by simpa [ilkArtNew] using hover)
-  have hfull := Reasoning.Refinement.execBlock_append
+  have hfull := execBlock_append
     (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
       localsDtab, tab, localsTab, localsDebt, evmDebt, List.append_assoc]
       using hsourceDebt)
@@ -2900,8 +2900,8 @@ theorem execFrobLoadedPrefixInkSpotMulRevertOverflow {evm : EVM.State}
         rw [store_get_ne _ _ (by decide)]
         exact hlocalsDebtSpot)
       (by simpa [urnInkNew] using hover)
-  have hmulRevert := Reasoning.Refinement.execBlock_append hceilBlock hinkBlock
-  have hfull := Reasoning.Refinement.execBlock_append
+  have hmulRevert := execBlock_append hceilBlock hinkBlock
+  have hfull := execBlock_append
     (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
       localsDtab, tab, localsTab, localsDebt, evmDebt, List.append_assoc]
       using hsourceDebt)
@@ -3208,7 +3208,7 @@ theorem execFrobLoadedPrefixCeilingRequireRevert {evm : EVM.State}
       (by rfl) hCeilingFitGuard.1 hCeilingFitGuard.2
       (by rfl) hInkFitGuard.1 hInkFitGuard.2
       hceilingReqEval
-  have hfull := Reasoning.Refinement.execBlock_append
+  have hfull := execBlock_append
     (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
       localsDtab, tab, localsTab, localsDebt, evmDebt, List.append_assoc]
       using hsourceDebt)
@@ -3592,7 +3592,7 @@ theorem execFrobLoadedPrefixSafetyRequireRevert {evm : EVM.State}
       (by rfl) hCeilingFitGuard.1 hCeilingFitGuard.2
       (by rfl) hInkFitGuard.1 hInkFitGuard.2
       hceilingReqEval hsafetyReqEval
-  have hfull := Reasoning.Refinement.execBlock_append
+  have hfull := execBlock_append
     (by simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk,
       localsDtab, tab, localsTab, localsDebt, evmDebt, List.append_assoc]
       using hsourceDebt)
@@ -5098,7 +5098,7 @@ theorem vatFrobBodyCoreLiveFinalArithmeticOverflowReverts
               (eitherExpr (.binary .eq (.var "urnArtNew") (.intLit 0))
                 (.binary .ge (.var "tab") (.var "ilkDust"))) ])
         (.ok { contract := contract, locals := localsSafe } evmDebt) := by
-    have hprefix := Reasoning.Refinement.execBlock_append hsourceSafety hauthDust
+    have hprefix := execBlock_append hsourceSafety hauthDust
     simpa [List.append_assoc] using hprefix
   obtain ⟨_, _, hDustDone⟩ :=
     RD.vatFrobAuthorizationDustChecksSuccess
@@ -6789,7 +6789,7 @@ theorem vatFrobBodyCoreLiveWishAuthDustReverts
         .reverted := by
     intro hauthRevert
     exact hsourceRevertFromAuthorizationDust (by
-      have hprefix := Reasoning.Refinement.execBlock_append hsourceSafety hauthRevert
+      have hprefix := execBlock_append hsourceSafety hauthRevert
       simpa [localsLoaded, urnInkNew, urnArtNew, ilkArtNew, localsIlk, localsDtab,
         tab, localsTab, debtOld, dtabWord, debtNew, localsDebt, evmDebt,
         ceilingDebt, inkSpot, localsSafe, List.append_assoc] using hprefix)

@@ -197,7 +197,7 @@ theorem vowCtorNonpayableRDrev
         (by simp only [List.length_cons, List.length_nil]; omega))
   simpa [code, show ((⟨8⟩ : UInt256) + UInt256.ofNat 3 + ⟨1⟩) = ⟨12⟩ from by native_decide]
     using
-      RD.uniswapPush1Dup1Revert0 (code := code) (ee := I) (g := g)
+      RD.solcPush1Dup1Revert0 (code := code) (ee := I) (g := g)
         (s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) rd12
         (by ctor_decode) (by ctor_decode) (by ctor_decode)
         (by simp only [List.length_cons, List.length_nil]; omega)
@@ -811,7 +811,7 @@ theorem vowCtorVatStoreReach
     raw swap3 (by ctor_decode) (by evm_ov),
     raw dup4 (by ctor_decode) (by evm_ov),
     raw and (by ctor_decode) (by evm_ov),
-    raw lor (by ctor_decode) (by evm_ov),
+    raw or (by ctor_decode) (by evm_ov),
     raw swap3 (by ctor_decode) (by evm_ov),
     raw dup4 (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov)]
@@ -882,7 +882,7 @@ theorem vowCtorFlapperStoreReach
     raw dup5 (by ctor_decode) (by evm_ov),
     raw and (by ctor_decode) (by evm_ov),
     raw dup2 (by ctor_decode) (by evm_ov),
-    raw lor (by ctor_decode) (by evm_ov),
+    raw or (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov),
     raw swap2 (by ctor_decode) (by evm_ov)]
   have hload :
@@ -973,7 +973,7 @@ theorem vowCtorFlopperStoreReach
     raw swap4 (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov),
     raw swap4 (by ctor_decode) (by evm_ov),
-    raw lor (by ctor_decode) (by evm_ov),
+    raw or (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov),
     raw swap3 (by ctor_decode) (by evm_ov)]
   have hload :
@@ -1233,11 +1233,11 @@ theorem vowCtorHopeNoCode
           (vowCtorWardsHashMem I vat flapper flopper))
         (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σFinal (UInt256.land solcAddrMask vatStored) =
+      Reasoning.Theory.extCodeSizeWord σFinal (UInt256.land solcAddrMask vatStored) =
         ⟨0⟩) :
     RDrev (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) g
       (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) := by
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨201⟩) (okPc := ⟨213⟩) rd201
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨201⟩) (okPc := ⟨213⟩) rd201
     hcodeSize
     (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode)
     (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode)
@@ -1260,7 +1260,7 @@ theorem vowCtorHopeCallReady
           (vowCtorWardsHashMem I vat flapper flopper))
         (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σFinal (UInt256.land solcAddrMask vatStored) ≠
+      Reasoning.Theory.extCodeSizeWord σFinal (UInt256.land solcAddrMask vatStored) ≠
         ⟨0⟩) :
     ∃ gasWord k' C', RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
       (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨216⟩
@@ -1273,7 +1273,7 @@ theorem vowCtorHopeCallReady
         (vowCtorWardsHashMem I vat flapper flopper))
       (UInt256.ofNat 9) ByteArray.empty (createdAccounts, σFinal) k' C' := by
   obtain ⟨gasWord, k', C', rd216⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨201⟩) (okPc := ⟨213⟩) rd201
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨201⟩) (okPc := ⟨213⟩) rd201
       hcodeSize
       (by ctor_decode) (by ctor_decode) (by ctor_decode) (by ctor_decode)
       (by ctor_decode) (by ctor_decode) (by ctor_jump_dest) (by ctor_decode)
@@ -1708,7 +1708,7 @@ theorem vowCtorSolmExecReverts_noCode
       exact ExecBlock.consRevert (ExecStmt.requireFalse hguard)
     simpa [ExecTransitionBody, contract, constructorDecl, nonpayable, checkedExternalCallStmts,
       locals, evm0, evm1, evm2, evm3, evm4, List.cons_append, List.nil_append] using
-      Reasoning.Refinement.execBlock_append hprefix htail
+     execBlock_append hprefix htail
 
 theorem vowCtorSolmExecReverts_callFailure
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -1782,7 +1782,7 @@ theorem vowCtorSolmExecReverts_callFailure
           (by simpa [evm0, evm1, evm2, evm3, evm4] using hcall))
     simpa [ExecTransitionBody, contract, constructorDecl, nonpayable, checkedExternalCallStmts,
       locals, evm0, evm1, evm2, evm3, evm4, List.cons_append, List.nil_append] using
-      Reasoning.Refinement.execBlock_append hprefix htail
+     execBlock_append hprefix htail
 
 theorem vowCtorSolmExecSuccess
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -1879,7 +1879,7 @@ theorem vowCtorSolmExecSuccess
           (.ok { contract := contract, locals := localsHope } evm5) := by
       simpa [constructorDecl, nonpayable, checkedExternalCallStmts, locals, evm0, evm1, evm2,
         evm3, evm4, evm5, List.cons_append, List.nil_append] using
-        Reasoning.Refinement.execBlock_append hprefix htail
+       execBlock_append hprefix htail
     simpa [ExecTransitionBody, contract, constructorDecl, locals, localsHope, evm0, evm5] using
       ExecFuncBody.execBlockOK hblock
 

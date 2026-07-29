@@ -5,7 +5,7 @@ import Benchmarks.Dss.Cat.BiteCallKick
 import Benchmarks.Dss.Cat.BiteConnectMem
 import Benchmarks.Dss.Cat.BiteConnectDecode
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000
@@ -185,7 +185,7 @@ theorem catBiteReach2383to2532 {cA gh bl σ σ₀ A I} {g : UInt256}
     (hmemsize : 292 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σx (UInt256.land biteAddrMaskWord milkFlip) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σx (UInt256.land biteAddrMaskWord milkFlip) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 40 ≤ 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool) (o' : ByteArray)

@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Spot.PokeTrace
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Spot
 
@@ -150,10 +150,10 @@ theorem RD.spotPokePeekNoCode
       [pokeIlkWord I, ⟨214⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (pokePipTargetWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) = ⟨0⟩) :
     RDrev spotBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd664⟩ := RD.spotPokeToPeekExtcodesizeGuard hsz36 rd598
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨664⟩) (okPc := ⟨676⟩) rd664
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨664⟩) (okPc := ⟨676⟩) rd664
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -167,7 +167,7 @@ theorem RD.spotPokePeekCallReady
       [pokeIlkWord I, ⟨214⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (pokePipTargetWord σ I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (pokePipTargetWord σ I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD spotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨679⟩
       (gasWord :: pokePipTargetWord σ I :: ⟨0⟩ :: pokePeekOutPtr ::
@@ -177,7 +177,7 @@ theorem RD.spotPokePeekCallReady
       (pokePeekCalldataMem I) (UInt256.ofNat 5) ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨_, _, rd664⟩ := RD.spotPokeToPeekExtcodesizeGuard hsz36 rd598
   obtain ⟨gasWord, k', C', rd679⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨664⟩) (okPc := ⟨676⟩) rd664
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨664⟩) (okPc := ⟨676⟩) rd664
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -269,7 +269,7 @@ theorem RD.spotPokePeekCallFailed
       mem (UInt256.ofNat 6) rdata (cA', σ') k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev spotBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨680⟩) (okPc := ⟨696⟩) rd680
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨680⟩) (okPc := ⟨696⟩) rd680
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -290,7 +290,7 @@ theorem RD.spotPokePeekCallSucceeded
       (pokePeekEndPtr :: pokePeekSelectorPlainWord :: pokePipTargetWord σ I ::
         ⟨0⟩ :: ⟨0⟩ :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) rdata acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨680⟩) (okPc := ⟨696⟩) rd680
+  exact RD.solcCallSuccessGuardOk (pc := ⟨680⟩) (okPc := ⟨696⟩) rd680
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -343,7 +343,7 @@ theorem RD.spotPokePeekReturnDecodeShortReverts
     decide
   have rdFallthrough := RD.jumpiNT rdPushOk (by native_decide) hcond
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -593,7 +593,7 @@ theorem RD.spotCheckedMulOverflowReverts
   have heqCond : UInt256.eq (UInt256.div (x * y) y) x = ⟨0⟩ :=
     u256_eq_of_ne hdivNe
   have rdFallthrough := rd2082.jumpiNT (by native_decide) heqCond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -979,7 +979,7 @@ theorem RD.spotPokeVatFileCallReady
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (pokeVatTargetWord σ' I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ' (pokeVatTargetWord σ' I) ≠ ⟨0⟩)
     (rd798 : RD spotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨798⟩
       (spot :: scratch :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
@@ -993,7 +993,7 @@ theorem RD.spotPokeVatFileCallReady
       (pokeVatFileCalldataMem I spot mem) (UInt256.ofNat 8) out (cA', σ') k' C' := by
   obtain ⟨_, _, rd886⟩ := RD.spotPokeVatFileCallGuard hmem hread64 rd798
   obtain ⟨gasWord, k', C', rd901⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨886⟩) (okPc := ⟨898⟩) rd886
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨886⟩) (okPc := ⟨898⟩) rd886
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1006,14 +1006,14 @@ theorem RD.spotPokeVatFileNoCode
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ' (pokeVatTargetWord σ' I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ' (pokeVatTargetWord σ' I) = ⟨0⟩)
     (rd798 : RD spotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨798⟩
       (spot :: scratch :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out (cA', σ') k C) :
     RDrev spotBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd886⟩ := RD.spotPokeVatFileCallGuard hmem hread64 rd798
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨886⟩) (okPc := ⟨898⟩) rd886
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨886⟩) (okPc := ⟨898⟩) rd886
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1079,7 +1079,7 @@ theorem RD.spotPokeVatFileCallFailed
       mem (UInt256.ofNat 8) rdata (cA'', σ'') k C)
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev spotBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨902⟩) (okPc := ⟨918⟩) rd902
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨902⟩) (okPc := ⟨918⟩) rd902
     rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1100,7 +1100,7 @@ theorem RD.spotPokeVatFileCallSucceeded
       (pokeVatFileEndPtr :: pokeVatFileSelectorPlainWord :: pokeVatTargetWord σ' I ::
         spot :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 8) rdata acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨902⟩) (okPc := ⟨918⟩) rd902
+  exact RD.solcCallSuccessGuardOk (pc := ⟨902⟩) (okPc := ⟨918⟩) rd902
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide)

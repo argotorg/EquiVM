@@ -20,14 +20,14 @@ non-matching selector (and calldata < 4) fall through to the payable fallback (`
 There is no shared callvalue guard — each non-payable function guards its own callvalue.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
 namespace Benchmarks.WETH9
 
 theorem weth9Correct :
-    runtimeEquivalence!?! config weth9Bytecode contract := by
+    runtimeEquivalence config weth9Bytecode contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts => ?_⟩
   by_cases hsz : 4 ≤ I.calldata.size
   · by_cases h0 : selIs I (weth9SelBytes 0)

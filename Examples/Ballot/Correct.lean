@@ -9,19 +9,17 @@ import Examples.Ballot.WinningProposal
 import Examples.Ballot.WinnerName
 import Examples.Ballot.DelegateComplete
 import Reasoning.ABI
-import Reasoning.Theory
 import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc
 import Reasoning.Dispatch
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
 
 /-!
 # Ballot — top-level correctness proof
 
-This is the routing proof for `ballotCorrect : runtimeEquivalence!?! …`.  It mirrors
+This is the routing proof for `ballotCorrect : runtimeEquivalence …`.  It mirrors
 `Examples/ERC20/Correct.lean`: `by_cases` on `callvalue = 0`, `size ≥ 4`, then each of the eight
 selectors, dispatching to that function's body obligation, with the shared revert paths.
 
@@ -49,7 +47,7 @@ Body entry PCs (dispatch targets), read off the bytecode disassembly:
 | `0xe2ba53f0` | `winnerName()`               | `417` (`0x1a1`) |
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -602,7 +600,7 @@ theorem ballotNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
 /-! ## Top-level theorem — drive the dispatcher, route each body to its correctness -/
 
 /-- The deployed Ballot runtime bytecode refines the Solm specification, for every initial state. -/
-theorem ballotCorrect : runtimeEquivalence!?! ballotConfig ballotBytecode ballotContract := by
+theorem ballotCorrect : runtimeEquivalence ballotConfig ballotBytecode ballotContract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm
       hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩

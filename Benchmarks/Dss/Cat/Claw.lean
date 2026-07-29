@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Cat.Storage
 import Benchmarks.Dss.Cat.Arithmetic
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
@@ -97,7 +97,7 @@ theorem RD.catClawSubReverts {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     raw iszero (by native_decide) (by evm_ov),
     raw push2 ⟨3756⟩ (by native_decide) (by evm_ov)]
   have rdRev := rdPre.jumpiNT (by native_decide) (by rw [hgt]; decide) (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdRev
+  exact RD.solcPush1Dup1Revert0 rdRev
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 

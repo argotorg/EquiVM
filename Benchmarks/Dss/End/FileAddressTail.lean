@@ -1,6 +1,6 @@
 import Benchmarks.Dss.End.FileAddress
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.End
 
@@ -567,7 +567,7 @@ theorem endFileAddressX_spot_ok {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw sub (by native_decide) (by evm_ov),
     raw dup4 (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   have hstoreWord :
       UInt256.lor (UInt256.land (fileAddressDataKey I) solcAddrMask)
@@ -695,7 +695,7 @@ theorem endFileAddressX_cure_ok {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw sub (by native_decide) (by evm_ov),
     raw dup4 (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   have hstoreWord :
       UInt256.lor (UInt256.land (fileAddressDataKey I) solcAddrMask)

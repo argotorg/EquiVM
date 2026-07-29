@@ -1,6 +1,6 @@
 import Benchmarks.Dss.StairstepExponentialDecrease.RpowSource
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -281,7 +281,7 @@ theorem RD.stairstepRpowLoopRevertXX
   have hcond : UInt256.isZero (UInt256.shiftRight x (⟨128⟩ : UInt256)) = ⟨0⟩ :=
     isZero_eq_zero_of_ne (rpowShiftRight128_ne_zero_of_square_overflow x hover)
   have rdFallthrough := rd1110pre.jumpiNT (by native_decide) hcond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 
@@ -328,7 +328,7 @@ theorem RD.stairstepRpowLoopRevertXXRound
     rw [hlt]
     native_decide
   have rdFallthrough := rd1126pre.jumpiNT (by native_decide) hcond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 
@@ -479,7 +479,7 @@ theorem RD.stairstepRpowLoopRevertZX
     raw iszero (by native_decide) (by evm_ov),
     raw push2 ⟨1169⟩ (by native_decide) (by evm_ov)]
   have rdFallthrough := rd1164pre.jumpiNT (by native_decide) hmulGuardFail (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 
@@ -571,7 +571,7 @@ theorem RD.stairstepRpowLoopRevertZXRound
     rw [hlt]
     native_decide
   have rdFallthrough := rd1180pre.jumpiNT (by native_decide) hcond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 

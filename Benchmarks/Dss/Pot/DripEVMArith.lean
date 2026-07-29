@@ -4,7 +4,7 @@ import Benchmarks.Dss.Pot.DripCommon
 # Pot `drip()` — EVM-side internal-arithmetic traces (`@1894`–`@2005`)
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -180,7 +180,7 @@ theorem RD.potMulRevertsDrip {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     raw jumpdest (by native_decide) (by evm_ov),
     raw push2 ⟨2294⟩ (by native_decide) (by evm_ov)]
   have rd2332 := rd2331.jumpiNT (by native_decide) hne (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd2332 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rd2332 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons]; omega)
 
 /-! ## `_rmul @2542` (calls `_mul @2300`, divides by `ONE`) -/
@@ -329,7 +329,7 @@ theorem potDripX_subReverts {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ} {sel
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd2344
   have rd2347 := rd2344.push2 ⟨2294⟩ (by native_decide) (by evm_ov)
   have rd2348 := rd2347.jumpiNT (by native_decide) rfl (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd2348 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rd2348 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
 
 /-! ## Storage writes `chi := tmp`, `rho := now` (`@1950 → @1960`) -/

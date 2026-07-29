@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Cat.BiteRevertLeaves
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000
@@ -36,11 +36,11 @@ theorem RD.catBiteIlksNoCode
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1233⟩
       (target :: target :: outPtr :: inSize :: outPtr :: outSize :: R)
       mem aw o (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target = ⟨0⟩)
     (hov : R.length + 8 ≤ 1024) :
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) :=
-  RD.uniswapExtcodesizeGuardMissing (pc := ⟨1233⟩) (okPc := ⟨1245⟩) rd hcodeSize
+  RD.solcExtcodesizeGuardMissing (pc := ⟨1233⟩) (okPc := ⟨1245⟩) rd hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_cons]; omega)
@@ -58,7 +58,7 @@ theorem RD.catBiteIlksCallFailed
     (hov : R.length + 5 ≤ 1024) :
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) :=
-  RD.uniswapCallSuccessGuardMissing (pc := ⟨1249⟩) (okPc := ⟨1265⟩) rd rfl
+  RD.solcCallSuccessGuardMissing (pc := ⟨1249⟩) (okPc := ⟨1265⟩) rd rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
@@ -88,7 +88,7 @@ theorem RD.catBiteIlksReturnDecodeShortReverts
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1267⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨1249⟩) (okPc := ⟨1265⟩) rd hstatus
+    RD.solcCallSuccessGuardOk (pc := ⟨1249⟩) (okPc := ⟨1265⟩) rd hstatus
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
@@ -112,7 +112,7 @@ theorem RD.catBiteIlksReturnDecodeShortReverts
     rw [hlt]; decide
   have rdFallthrough := RD.jumpiNT rd1282 (by native_decide) hcond
     (by simp only [List.length_cons]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 
@@ -129,7 +129,7 @@ theorem catBiteUrnsNoCodeLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1383⟩
       (target :: target :: outPtr :: ⟨68⟩ :: outPtr :: ⟨64⟩ :: R) mem aw o (cA, σ_evm) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ_evm target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ_evm target = ⟨0⟩)
     (hov : R.length + 8 ≤ 1024)
     (hbody :
       ExecTransitionBody config contract
@@ -204,7 +204,7 @@ theorem catBiteGrabNoCodeLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2177⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: ⟨0⟩ :: R) mem aw rdata (cA, σ_evm) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ_evm target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ_evm target = ⟨0⟩)
     (hov : R.length + 9 ≤ 1024)
     (hbody :
       ExecTransitionBody config contract
@@ -226,7 +226,7 @@ theorem catBiteFessNoCodeLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2284⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: outSize :: R) mem aw rdata (cA, σ_evm) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ_evm target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ_evm target = ⟨0⟩)
     (hov : R.length + 9 ≤ 1024)
     (hbody :
       ExecTransitionBody config contract
@@ -249,7 +249,7 @@ theorem catBiteKickNoCodeLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g target : UI
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2516⟩
       (target :: target :: ⟨0⟩ :: ⟨128⟩ :: ⟨164⟩ :: ⟨128⟩ :: ⟨32⟩ :: R) mem aw rdata (cAx, σx) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σx target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σx target = ⟨0⟩)
     (hov : R.length + 9 ≤ 1024)
     (hbody :
       ExecTransitionBody config contract
@@ -272,7 +272,7 @@ theorem catBiteIlksNoCodeLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (rd : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1233⟩
       (target :: target :: outPtr :: inSize :: outPtr :: outSize :: R) mem aw o (cA, σ_evm) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ_evm target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ_evm target = ⟨0⟩)
     (hov : R.length + 8 ≤ 1024)
     (hbody :
       ExecTransitionBody config contract
@@ -621,7 +621,7 @@ theorem RD.catBiteKickReturnDecodeShortReverts
   have hcond : UInt256.isZero (UInt256.lt (UInt256.ofNat o.size) ⟨32⟩) = ⟨0⟩ := by
     rw [hlt]; decide
   have rdFallthrough := RD.jumpiNT rd2565 (by native_decide) hcond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
 
 /-- **kick return-decode-short leaf.** EVM cursor at the `kick` success-guard `@2532` with a

@@ -27,7 +27,6 @@ import Benchmarks.Dss.Vat.Suck
 import Benchmarks.Dss.Vat.Urns
 import Benchmarks.Dss.Vat.Vice
 import Benchmarks.Dss.Vat.Wards
-import Reasoning.Refinement
 import Solm.Equiv
 
 /-!
@@ -38,7 +37,7 @@ are present. The runtime-equivalence proof is intentionally left as the benchmar
 also exposes the whole-contract wrapper that combines the constructor and runtime targets.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -152,8 +151,8 @@ theorem vatNoSelectorMatches {I : ExecutionEnv}
   · simpa [selIs] using hwards
 
 theorem vatCorrect :
-    runtimeEquivalence!?! config vatBytecode contract := by
-  refine runtimeEquivalence!?!.intro ?_
+    runtimeEquivalence config vatBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hLine : selIs I (vatSelBytes 0)

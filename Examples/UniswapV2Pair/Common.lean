@@ -1,7 +1,6 @@
 import Examples.UniswapV2Pair.Bytecode
 import Reasoning.ABI
 import Reasoning.Dispatch
-import Reasoning.Refinement
 import Reasoning.Solc
 import Reasoning.SolmBody
 import Reasoning.Storage
@@ -419,7 +418,7 @@ theorem natLandClearMiddle112_224 (n : Nat) (hn : n < 2 ^ 256) :
     rw [Nat.shiftLeft_eq]]
   rw [show n / 2 ^ 224 * 2 ^ 224 = (n / 2 ^ 224) <<< 224 by
     rw [Nat.shiftLeft_eq]]
-  rw [nat_testBit_shiftLeft, nat_testBit_shiftLeft]
+  rw [testBit_shiftLeft, testBit_shiftLeft]
   by_cases hi112 : i < 112
   · have hi224 : i < 224 := by omega
     simp [hi112, hi224]
@@ -430,7 +429,7 @@ theorem natLandClearMiddle112_224 (n : Nat) (hn : n < 2 ^ 256) :
       by_cases hi256 : i < 256
       · have hsub32 : i - 224 < 32 := by omega
         rw [show decide (i - 224 < 32) = true by simp [hsub32]]
-        rw [nat_div_pow_testBit n 224 i h224le]
+        rw [divPow_testBit n 224 i h224le]
         simp [hi112, hi224]
       · have hsub32 : ¬ (i - 224 < 32) := by omega
         rw [show decide (i - 224 < 32) = false by simp [hsub32]]
@@ -438,7 +437,7 @@ theorem natLandClearMiddle112_224 (n : Nat) (hn : n < 2 ^ 256) :
           have hpow : n < 2 ^ i :=
             lt_of_lt_of_le hn (Nat.pow_le_pow_right (by norm_num) (by omega))
           exact Nat.testBit_lt_two_pow hpow
-        rw [nat_div_pow_testBit n 224 i h224le, hnfalse]
+        rw [divPow_testBit n 224 i h224le, hnfalse]
         simp [hi112, hi224]
 
 theorem uint112Offset14MiddleClear_toNat (old : UInt256) :
@@ -1102,7 +1101,7 @@ theorem uniswapCheckedTokenBalanceOfThisCallsPrefix
       (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall1 hdec1
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append htoken0 htoken1
+    using execBlock_append htoken0 htoken1
 
 theorem uniswapCheckedTokenBalanceOfThisFirstCallNoCode
     (evm : EVM.State) (locals : Store)
@@ -1117,7 +1116,7 @@ theorem uniswapCheckedTokenBalanceOfThisFirstCallNoCode
     exact uniswapCheckedExternalBalanceOfThisNoCode
       (evm := evm) (locals := locals) (ref := token0Ref) (retVar := "balance0") hguard0
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append_term
+    using execBlock_append_term
       (s2 := token1BalanceOfThisStmts "balance1") hfirst (by intro f e h; cases h)
 
 theorem uniswapCheckedTokenBalanceOfThisFirstCallFailure
@@ -1141,7 +1140,7 @@ theorem uniswapCheckedTokenBalanceOfThisFirstCallFailure
       (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall0
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append_term
+    using execBlock_append_term
       (s2 := token1BalanceOfThisStmts "balance1") hfirst (by intro f e h; cases h)
 
 theorem uniswapCheckedTokenBalanceOfThisFirstCallDecodeRevert
@@ -1166,7 +1165,7 @@ theorem uniswapCheckedTokenBalanceOfThisFirstCallDecodeRevert
       (by simp [evalStorageRef, evalStorageRefSteps, token0Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall0 hdec0
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append_term
+    using execBlock_append_term
       (s2 := token1BalanceOfThisStmts "balance1") hfirst (by intro f e h; cases h)
 
 theorem uniswapCheckedTokenBalanceOfThisSecondCallNoCode
@@ -1201,7 +1200,7 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallNoCode
       (evm := evm0) (locals := locals.insert "balance0" balance0)
       (ref := token1Ref) (retVar := "balance1") hguard1
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append htoken0 htoken1
+    using execBlock_append htoken0 htoken1
 
 theorem uniswapCheckedTokenBalanceOfThisSecondCallFailure
     (evm evm0 evm1 : EVM.State) (locals : Store)
@@ -1244,7 +1243,7 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallFailure
       (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall1
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append htoken0 htoken1
+    using execBlock_append htoken0 htoken1
 
 theorem uniswapCheckedTokenBalanceOfThisSecondCallDecodeRevert
     (evm evm0 evm1 : EVM.State) (locals : Store)
@@ -1288,7 +1287,7 @@ theorem uniswapCheckedTokenBalanceOfThisSecondCallDecodeRevert
       (by simp [evalStorageRef, evalStorageRefSteps, token1Ref, EvalResult.bind, pure, bind])
       (by decide) (by rfl) hcall1 hdec1
   simpa [pairBalanceOfThisStmts, token0BalanceOfThisStmts, token1BalanceOfThisStmts]
-    using Reasoning.Refinement.execBlock_append htoken0 htoken1
+    using execBlock_append htoken0 htoken1
 
 theorem uniswapAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -1699,7 +1698,7 @@ theorem RD.uniswapLockEnterLocked {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
     (by rfl)
     hov
 
-theorem RD.uniswapAddressSlotGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
+theorem RD.addressSlotGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc slot ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 pc (ret :: R) mem aw rdata
@@ -1826,7 +1825,7 @@ theorem RD.uniswapReturnUint8_949 {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
     (solcReturnMem_read128 (UInt256.land val ⟨255⟩))
     hov
 
-theorem RD.uniswapAddressGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+theorem RD.addressGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry routine slot : UInt256}
     (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
@@ -1904,8 +1903,6 @@ end Reasoning.Reach
 
 namespace UniswapV2Pair
 
-open Reasoning.Refinement
-
 theorem uniswapAddressGetterBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
     {transition : TransitionDecl} {entry routine slot : UInt256}
@@ -1945,7 +1942,7 @@ theorem uniswapAddressGetterBodyCore
     simpa [uniswapAddressReturnWord] using
       (returnEquiv_of_encode
         (solcAddressReturnEncoding (addrTy := addr) rfl (uniswapSlotWord slot σ_evm I)))
-  exact (RD.uniswapAddressGetterExternal (g := Sat256.ofUInt256 g)
+  exact (RD.addressGetterExternal (g := Sat256.ofUInt256 g)
       (entry := entry) (routine := routine) (slot := slot) hreach hentry hgetter hroutine
       (by jump_dest)).reEquivExecutionTransport
     hcode hdispatch hdecode hbody hval hAccounts henc

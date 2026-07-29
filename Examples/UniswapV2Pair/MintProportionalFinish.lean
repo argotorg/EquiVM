@@ -3,7 +3,7 @@ import Examples.UniswapV2Pair.MintInternalMintRuntime
 import Examples.UniswapV2Pair.MintFeeSqrtSmall
 import Examples.UniswapV2Pair.SyncCumulative
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

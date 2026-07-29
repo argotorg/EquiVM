@@ -10,7 +10,7 @@ composes a genuine `.internalCall "_mul"` (discharged with `internalCallFunction
 followed by division by `ONE = 10^27`.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

@@ -5,7 +5,7 @@ import Benchmarks.Dss.Cat.BiteSource
 import Reasoning.ExternalCall
 import Benchmarks.Dss.Cat.BiteCallKick
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000
@@ -283,7 +283,7 @@ theorem RD.catBiteIlksStaticcall
       (target :: target :: catBiteIlksOutPtr :: catBiteIlksInSize :: catBiteIlksOutPtr ::
         catBiteIlksOutSize :: t)
       mem aw o (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hencode : config.externalABI.encode? "ilks" args =
         some (mem.readWithPadding catBiteIlksOutPtr.toNat catBiteIlksInSize.toNat))
@@ -302,12 +302,12 @@ theorem RD.catBiteIlksStaticcall
               accountMap := σ', substate := A', createdAccounts := cA' }, o') false
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd1248⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1233⟩) (okPc := ⟨1245⟩) rd hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1233⟩) (okPc := ⟨1245⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
   obtain ⟨cA', σ', z, o', A_in, callGas, k', C', hΘpack, rd1249, hosz⟩ :=
-    RD.uniswapStaticcall rd1248 (by native_decide) hdepth (by omega)
+    RD.solcStaticcall rd1248 (by native_decide) hdepth (by omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, o', A', _, k', C', rd1249, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
@@ -334,7 +334,7 @@ theorem catBiteTraceSeg1 {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1163⟩
       (urn :: biteIlkWord I :: R)
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (catBiteVatTargetWord σ I) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (catBiteVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 17 ≤ 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
@@ -389,7 +389,7 @@ theorem catBiteTraceSeg2a {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1289⟩
       (⟨128⟩ :: rest) mem aw o' acc k' C' := by
   obtain ⟨_, _, rd1267⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨1249⟩) (okPc := ⟨1265⟩) rd hstatus
+    RD.solcCallSuccessGuardOk (pc := ⟨1249⟩) (okPc := ⟨1265⟩) rd hstatus
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons]; omega)
@@ -668,7 +668,7 @@ theorem RD.catBiteUrnsStaticcallGen
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1383⟩
       (target :: target :: outPtr :: ⟨68⟩ :: outPtr :: ⟨64⟩ :: R)
       mem aw o (cAx, σx) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σx target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σx target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hencode : config.externalABI.encode? "urns" args =
         some (mem.readWithPadding outPtr.toNat 68))
@@ -688,12 +688,12 @@ theorem RD.catBiteUrnsStaticcallGen
               accountMap := σ', substate := A', createdAccounts := cA' }, o') false
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd1398⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
   obtain ⟨cA', σ', z, o', A_in, callGas, k', C', hΘpack, rd1399, hosz⟩ :=
-    RD.uniswapStaticcall rd1398 (by native_decide) hdepth (by omega)
+    RD.solcStaticcall rd1398 (by native_decide) hdepth (by omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, o', A', _, k', C', rd1399, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
@@ -1827,7 +1827,7 @@ theorem catBiteTraceGrabBuild {cA gh bl σ σ₀ A I} {g : UInt256}
   have rd2116 := RD.mstore _ (catBiteGrabUrnMemP p ilk urn mem) (catBiteAwStep aw (p + ⟨36⟩).toNat)
     rd2115 (by native_decide) catBiteMstoreCostM rfl hcol3 (by evm_ov)
   -- 2117 → 2122 : address(this), MSTORE #4 @ p+68
-  have rd2117 := rd2116.uniswapAddress (by native_decide) (by evm_ov)
+  have rd2117 := rd2116.address (by native_decide) (by evm_ov)
   have rd2118 := rd2117.push1 ⟨68⟩ (by native_decide) (by evm_ov)
   have rd2120 := rd2118.dup6 (by native_decide) (by evm_ov)
   have rd2121 := rd2120.add (by native_decide) (by evm_ov)
@@ -2040,7 +2040,7 @@ theorem RD.catBiteGrabCallGen {cA gh bl σ σ₀ A I} {g : UInt256} {args : List
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2177⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: ⟨0⟩ :: R)
       mem aw rdata (cAx, σx) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σx target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σx target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hencode : config.externalABI.encode? "grab" args =
         some (mem.readWithPadding inOff.toNat inSize.toNat))
@@ -2058,7 +2058,7 @@ theorem RD.catBiteGrabCallGen {cA gh bl σ σ₀ A I} {g : UInt256} {args : List
               accountMap := σ', substate := A', createdAccounts := cA' }, o') I.perm
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd2192⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
@@ -2086,7 +2086,7 @@ theorem RD.catBiteFessCallGen {cA gh bl σ σ₀ A I} {g : UInt256} {args : List
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2284⟩
       (target :: target :: ⟨0⟩ :: inOff :: inSize :: outOff :: outSize :: R)
       mem aw rdata (cAx, σx) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σx target ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σx target ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hencode : config.externalABI.encode? "fess" args =
         some (mem.readWithPadding inOff.toNat inSize.toNat))
@@ -2104,7 +2104,7 @@ theorem RD.catBiteFessCallGen {cA gh bl σ σ₀ A I} {g : UInt256} {args : List
               accountMap := σ', substate := A', createdAccounts := cA' }, o') I.perm
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd2299⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
@@ -2548,7 +2548,7 @@ theorem catBiteTraceSeg8a {cA gh bl σ σ₀ A I} {g : UInt256}
     (haw292 : 292 ≤ aw.toNat * 32)
     (hmemsize : 292 ≤ mem.size)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σx (UInt256.land biteAddrMaskWord milkFlip) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σx (UInt256.land biteAddrMaskWord milkFlip) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 40 ≤ 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)

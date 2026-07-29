@@ -45,16 +45,19 @@ jobs:
             Examples.OpenZeppelinBench.AccessControl.Correct \
             Examples.OpenZeppelinBench.Pausable.Correct \
             Examples.OpenZeppelinBench.ERC6909.Correct \
+<<<<<<< HEAD
             Examples.UniswapV2Pair.Correct
+=======
+            Examples.UniswapV2Pair.Correct \
+            Examples.Reuse.Correct \
+            Examples.VyperERC20.Correct
+>>>>>>> 4f907e58cf6c0a68e7dc4a4e504245671810cfaf
 
       # Mirrors the imports of Benchmarks.lean. Remove lines to prune.
       - name: Build benchmarks
         run: |
           lake build \
             Benchmarks.WETH9.Correct \
-            Benchmarks.Safe.Correct \
-            Benchmarks.UniswapV3Pool.Correct \
-            Benchmarks.UniswapV2Router02.Correct \
             Benchmarks.Dss.Dai.Correct \
             Benchmarks.Dss.Jug.Correct \
             Benchmarks.Dss.Vat.Correct \
@@ -73,12 +76,8 @@ jobs:
             Benchmarks.Dss.Flipper.Correct \
             Benchmarks.Dss.Flopper.Correct \
             Benchmarks.Dss.GemJoin.Correct \
-            Benchmarks.Dss.DaiJoin.Correct \
-            Benchmarks.CompoundIII.CometRewards.Correct \
-            Benchmarks.CompoundIII.Comet.Correct \
-            Benchmarks.EAS.Attester.Correct \
-            Benchmarks.ERC721.Correct \
-            Benchmarks.Auction.Correct \
-            Benchmarks.OpenZeppelinBench.VestingWallet.Correct \
-            Benchmarks.OpenZeppelinBench.TimelockController.Correct \
-            Benchmarks.Klima.Correct
+            Benchmarks.Dss.DaiJoin.Correct
+
+      # Scaffolded benchmarks: specs + bytecode compile, proofs are sorry stubs.
+      - name: Build benchmark scaffolds
+        run: lake build Benchmarks.Scaffolds

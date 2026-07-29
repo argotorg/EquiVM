@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Spot.PokeTraceBody
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Spot
 
@@ -25,9 +25,9 @@ theorem spotPokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     obtain ⟨_, _, rd598⟩ := spotPokeX_decoded (g := Sat256.ofUInt256 g)
       hsz36 hsize hreach
     by_cases hcodeSize :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (pokePipTargetWord σ_evm I) = ⟨0⟩
+        Reasoning.Theory.extCodeSizeWord σ_evm (pokePipTargetWord σ_evm I) = ⟨0⟩
     · have hcodeSizeSolm :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (pokePipTargetWord σ_solm I) = ⟨0⟩ :=
+          Reasoning.Theory.extCodeSizeWord σ_solm (pokePipTargetWord σ_solm I) = ⟨0⟩ :=
         pokePipCodeSize_zero_accountMapEquiv hsz36 hAccounts hcodeSize
       have hpipNoCodeSolm :
           (UInt256.ofNat
@@ -48,7 +48,7 @@ theorem spotPokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     · obtain ⟨gasWord, _, _, rd679⟩ :=
         RD.spotPokePeekCallReady hsz36 rd598 hcodeSize
       have hcodeSizeSolm :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (pokePipTargetWord σ_solm I) ≠ ⟨0⟩ :=
+          Reasoning.Theory.extCodeSizeWord σ_solm (pokePipTargetWord σ_solm I) ≠ ⟨0⟩ :=
         pokePipCodeSize_ne_zero_accountMapEquiv hsz36 hAccounts hcodeSize
       have hpipCodeSolm :
           0 <
@@ -198,9 +198,9 @@ theorem spotPokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   substate := A'_solm
                   createdAccounts := cA' }
               by_cases hvatCodeSize :
-                  Reasoning.Theory.uniswapExtCodeSizeWord σ' (pokeVatTargetWord σ' I) = ⟨0⟩
+                  Reasoning.Theory.extCodeSizeWord σ' (pokeVatTargetWord σ' I) = ⟨0⟩
               · have hvatCodeSizeSolm :
-                    Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm
+                    Reasoning.Theory.extCodeSizeWord σ'_solm
                         (pokeVatTargetWord σ'_solm I) = ⟨0⟩ :=
                   pokeVatCodeSize_zero_accountMapEquiv hAccounts' hvatCodeSize
                 have hvatNoCodeSolm :
@@ -295,7 +295,7 @@ theorem spotPokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (typedCallViaEVM_zero_substate_irrel
                       (evm := evmPipS) (A0 := A') hfileCallSolmAligned hfileDepth)
                 have hvatCodeSizeSolm :
-                    Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm
+                    Reasoning.Theory.extCodeSizeWord σ'_solm
                         (pokeVatTargetWord σ'_solm I) ≠ ⟨0⟩ :=
                   pokeVatCodeSize_ne_zero_accountMapEquiv hAccounts' hvatCodeSize
                 have hvatCodeSolm :
@@ -559,10 +559,10 @@ theorem spotPokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             hvalScaled (by simpa [val] using hfitVal) hfitPar
                             hparNeS hspot1S hfitMat hmatNeS hspot2S
                         by_cases hvatCodeSize :
-                            Reasoning.Theory.uniswapExtCodeSizeWord σ'
+                            Reasoning.Theory.extCodeSizeWord σ'
                               (pokeVatTargetWord σ' I) = ⟨0⟩
                         · have hvatCodeSizeSolm :
-                              Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm
+                              Reasoning.Theory.extCodeSizeWord σ'_solm
                                   (pokeVatTargetWord σ'_solm I) = ⟨0⟩ :=
                             pokeVatCodeSize_zero_accountMapEquiv hAccounts' hvatCodeSize
                           have hvatNoCodeSolm :
@@ -683,7 +683,7 @@ theorem spotPokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 (evm := evmPipS) (A0 := A')
                                 hfileCallSolmAligned hfileDepth)
                           have hvatCodeSizeSolm :
-                              Reasoning.Theory.uniswapExtCodeSizeWord σ'_solm
+                              Reasoning.Theory.extCodeSizeWord σ'_solm
                                   (pokeVatTargetWord σ'_solm I) ≠ ⟨0⟩ :=
                             pokeVatCodeSize_ne_zero_accountMapEquiv hAccounts' hvatCodeSize
                           have hvatCodeSolm :

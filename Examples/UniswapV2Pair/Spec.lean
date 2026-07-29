@@ -259,7 +259,9 @@ def permitStructHashExpr : Expr :=
 def permitDigestExpr : Expr :=
   .keccak256 (.abiEncodePacked
     [ (bytes2, .fixedBytesLit bytes2Width [0x19, 0x01]),
-      (bytes32, .storage domainSeparatorRef),
+      -- The cached pre-increment read: solc loads DOMAIN_SEPARATOR (slot 3) before the nonce
+      -- SSTORE, so the spec binds it up front rather than re-reading storage here.
+      (bytes32, .var "domainSeparator"),
       (bytes32, .var "structHash") ])
 
 /-! ## Internal functions -/
@@ -525,9 +527,11 @@ def permitTransition : TransitionDecl :=
     body :=
       nonpayable ++
         [ .require (.binary .ge (.var "deadline") now),
+          .letDecl "domainSeparator" (some bytes32) (.storage domainSeparatorRef),
           .letDecl "nonce" (some uint256) (.storage (noncesRef (.var "owner"))),
+          -- solc 0.5.16 compiles `nonces[owner]++` UNchecked: the store wraps mod 2^256.
           .assign .storage (noncesRef (.var "owner"))
-            (u256 (.binary .add (.var "nonce") (.intLit 1))),
+            (wrapU256 (.binary .add (.var "nonce") (.intLit 1))),
           .letDecl "structHash" (some bytes32) permitStructHashExpr,
           .letDecl "digest" (some bytes32) permitDigestExpr,
           .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
@@ -764,6 +768,13 @@ def decodeOptionalBoolOrEmpty? (out : EVM.Bytes) : Option (List Value) :=
     | some (.bool true) => some []
     | _ => none
 
+-- `ecrecover` returndata decode.  The bytecode performs an unconditional zero-padded 32-byte
+-- read of the staticcall output (empty returndata from the precompile ⇒ zero word), so the
+-- model decode is total.
+open Ethereum Ethereum.EVM in
+def decodeEcrecoverOutput? (out : EVM.Bytes) : Option (List Value) :=
+  some [.address (AccountAddress.ofNat (fromByteArrayBigEndian (out.readWithPadding 0 32)))]
+
 def encodeEcrecoverInput? (args : List Value) : Option EVM.Bytes := do
   let payload <- ABI.encodeABIValues? [bytes32, uint8, bytes32, bytes32] args
   some payload.toByteArray
@@ -794,7 +805,7 @@ def uniswapExternalABI : ExternalCallABI where
     else if name = "uniswapV2Call" then
       some []
     else if name = "ecrecover" then
-      (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 addr out).map (fun v => [v])
+      decodeEcrecoverOutput? out
     else
       none
 

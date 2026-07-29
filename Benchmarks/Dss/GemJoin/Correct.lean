@@ -18,13 +18,13 @@ This file exposes the runtime-equivalence proof and the whole-contract wrapper t
 the constructor and runtime targets.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.GemJoin
 
 theorem gemJoinCorrect :
-    runtimeEquivalence!?! config gemJoinBytecode contract := by
-  refine runtimeEquivalence!?!.intro ?_
+    runtimeEquivalence config gemJoinBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hcage : selIs I (gemJoinSelBytes 0)

@@ -1405,7 +1405,7 @@ theorem stringStoreLiteX_setStoreHelperZero {cA gh bl σinit σ₀ A I} {g : Sat
   have rd1021 := RD.swap6 rd1019 (by native_decide) (by evm_ov)
   have rd1123 := evm_run rd1021 with [
     pop, dup1, not, dup5, and, swap4, pop, dup1, dup7,
-    and, dup5, lor, swap3, pop, pop, pop, swap4, swap3, pop, pop, pop,
+    and, dup5, or, swap3, pop, pop, pop, swap4, swap3, pop, pop, pop,
     jump (by jump_dest),
     jumpdest, dup3]
   obtain ⟨_, _, rd1126₀⟩ := rd1123.sstore hperm (by native_decide) (by evm_ov)
@@ -1549,7 +1549,7 @@ theorem stringStoreLiteX_setEmptyWriteZeroFrom1405 {cA gh bl σinit σ₀ A I}
     jump (by jump_dest),
     jumpdest, not, dup1, dup4, and, swap2, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest),
-    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, lor, swap1, pop,
+    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
@@ -2705,14 +2705,14 @@ theorem nat_land_high_mask5_eq_div_mul {n : Nat} (hn : n < 2 ^ 256) :
   rw [Nat.testBit_and]
   rw [show (n / 32) * 32 = (n / 2 ^ 5) <<< 5 by
     rw [h32, Nat.shiftLeft_eq]]
-  rw [nat_testBit_shiftLeft]
+  rw [testBit_shiftLeft]
   by_cases hi5 : i < 5
   · have hmask : (2 ^ 256 - 2 ^ 5).testBit i = false := by
       rw [show (2 : Nat) ^ 256 - 2 ^ 5 = (2 ^ (256 - 5) - 1) <<< 5 by
         rw [Nat.shiftLeft_eq]
         rw [Nat.sub_mul]
         simp]
-      rw [nat_testBit_shiftLeft]
+      rw [testBit_shiftLeft]
       simp [hi5]
     rw [hmask]
     simp [hi5]
@@ -2724,14 +2724,14 @@ theorem nat_land_high_mask5_eq_div_mul {n : Nat} (hn : n < 2 ^ 256) :
           rw [Nat.shiftLeft_eq]
           rw [Nat.sub_mul]
           simp]
-        rw [nat_testBit_shiftLeft]
+        rw [testBit_shiftLeft]
         simp [hi5]
         change (2 ^ (256 - 5) - 1).testBit (i - 5) = true
         rw [Nat.testBit_two_pow_sub_one]
         simp [show i - 5 < 256 - 5 by omega]
       rw [hmask]
       simp [hi5]
-      simpa [h32] using (nat_div_pow_testBit n 5 i h5i).symm
+      simpa [h32] using (divPow_testBit n 5 i h5i).symm
     · have hmask :
           (2 ^ 256 - 2 ^ 5).testBit i = false := by
         exact Nat.testBit_lt_two_pow (lt_of_lt_of_le (by
@@ -2741,7 +2741,7 @@ theorem nat_land_high_mask5_eq_div_mul {n : Nat} (hn : n < 2 ^ 256) :
         exact Nat.testBit_lt_two_pow (lt_of_lt_of_le hn
           (Nat.pow_le_pow_right (by norm_num) (Nat.le_of_not_gt hi256)))
       have hdivbit : (n / 2 ^ 5).testBit (i - 5) = false := by
-        rw [nat_div_pow_testBit n 5 i h5i, hnbit]
+        rw [divPow_testBit n 5 i h5i, hnbit]
       rw [hmask, hdivbit]
       simp [hi5]
 

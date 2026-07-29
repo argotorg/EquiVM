@@ -37,13 +37,13 @@ import Solm.Equiv
 # MakerDAO/Sky DSS End benchmark correctness
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.End
 
 theorem endCorrect :
-    runtimeEquivalence!?! config endBytecode contract := by
-  refine runtimeEquivalence!?!.intro ?_
+    runtimeEquivalence config endBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hwards : selIs I (selectorOf wardsTransition)

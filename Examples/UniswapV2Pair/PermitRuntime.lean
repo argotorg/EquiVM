@@ -1,9 +1,8 @@
 import Examples.UniswapV2Pair.MutatorDispatch
 import Examples.UniswapV2Pair.Routines
 import Reasoning.MemCascade
-import Reasoning.Refinement
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
@@ -1624,7 +1623,7 @@ theorem RD.uniswapPermitEcrecoverStaticcallMade {g : Sat256} {s0 : State}
   have rd5813 := rd5813₀
   rw [hInSize, hOutOffset, hTail] at rd5813
   obtain ⟨cA', σ', z, o, A_in, callGas, k', C', htheta, rd5814, houtSize⟩ :=
-    RD.uniswapStaticcall rd5813 (by native_decide) hdepth
+    RD.solcStaticcall rd5813 (by native_decide) hdepth
       (by simp only [List.length_cons]; omega)
   have haw : UInt256.ofNat
         (MachineState.M
@@ -1703,7 +1702,7 @@ theorem RD.uniswapPermitEcrecoverStaticcallDepthReverts {g : Sat256} {s0 : State
   have rd5813 := rd5813₀
   rw [hInSize, hOutOffset, hTail] at rd5813
   obtain ⟨k', C', rd5814₀⟩ :=
-    RD.uniswapStaticcallDepthLimit rd5813 (by native_decide) hdepth
+    RD.solcStaticcallDepthLimit rd5813 (by native_decide) hdepth
       (by simp only [List.length_cons]; omega)
   have haw : UInt256.ofNat
         (MachineState.M
@@ -1720,7 +1719,7 @@ theorem RD.uniswapPermitEcrecoverStaticcallDepthReverts {g : Sat256} {s0 : State
       (permitRuntimeEcrecoverStaticcallMem baseMem digest v r s ByteArray.empty)
       (UInt256.ofNat 20) ByteArray.empty (cA, σ) k' C' := by
     simpa [permitRuntimeEcrecoverStaticcallMem] using rd5814
-  exact RD.uniswapCallSuccessGuardMissing (okPc := ⟨5830⟩) rd5814' rfl
+  exact RD.solcCallSuccessGuardMissing (okPc := ⟨5830⟩) rd5814' rfl
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)

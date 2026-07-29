@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Jug.FileBase
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
@@ -631,7 +631,7 @@ theorem jugFileVowX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : �
   have rd2097 := rd2096.sub (by native_decide) (by evm_ov)
   have rd2098 := rd2097.dup4 (by native_decide) (by evm_ov)
   have rd2099 := rd2098.and (by native_decide) (by evm_ov)
-  have rd2100 := rd2099.lor (by native_decide) (by evm_ov)
+  have rd2100 := rd2099.or (by native_decide) (by evm_ov)
   have rd2101 := rd2100.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2102⟩ := rd2101.sstore hperm (by native_decide) (by evm_ov)
   have rd2105 := rd2102.push2 ⟨1013⟩ (by native_decide) (by evm_ov)

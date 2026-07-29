@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Cure.LoadBase
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -83,7 +83,7 @@ theorem cureLoadSourceBodyNoCodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hnoCode : uniswapExtCodeSizeWord σ (loadKey I) = ⟨0⟩) :
+    (hnoCode : extCodeSizeWord σ (loadKey I) = ⟨0⟩) :
     ExecTransitionBody config contract
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) (loadLocals I)
       loadTransition.body .reverted := by
@@ -137,7 +137,7 @@ theorem cureLoadSourceBodyNoCodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
               .assign .storage lCountRef (incUnchecked (.storage lCountRef)) ]
             [] ])
         .reverted := by
-    exact Reasoning.Refinement.execBlock_append_term hcall (by intro f e h; cases h)
+    exact execBlock_append_term hcall (by intro f e h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -170,7 +170,7 @@ theorem cureLoadSourceBodyCallFailureRevert {cA gh bl σ σ₀ A I} {g : UInt256
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hcode : uniswapExtCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
+    (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -232,7 +232,7 @@ theorem cureLoadSourceBodyCallFailureRevert {cA gh bl σ σ₀ A I} {g : UInt256
               .assign .storage lCountRef (incUnchecked (.storage lCountRef)) ]
             [] ])
         .reverted := by
-    exact Reasoning.Refinement.execBlock_append_term hcallBlock (by intro f e h; cases h)
+    exact execBlock_append_term hcallBlock (by intro f e h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -265,7 +265,7 @@ theorem cureLoadSourceBodyReturnDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt25
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hcode : uniswapExtCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
+    (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -330,7 +330,7 @@ theorem cureLoadSourceBodyReturnDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt25
               .assign .storage lCountRef (incUnchecked (.storage lCountRef)) ]
             [] ])
         .reverted := by
-    exact Reasoning.Refinement.execBlock_append_term hcallBlock (by intro f e h; cases h)
+    exact execBlock_append_term hcallBlock (by intro f e h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -363,7 +363,7 @@ theorem cureLoadSourceBodySubRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hcode : uniswapExtCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
+    (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -550,7 +550,7 @@ theorem cureLoadSourceBodySubRevert {cA gh bl σ σ₀ A I} {g : UInt256}
           .reverted := by
       refine ExecBlock.consNormal (ExecStmt.assign hnewVar hassignAmt) ?_
       exact ExecBlock.consRevert hsubStmt
-    exact Reasoning.Refinement.execBlock_append hcallBlock hrest
+    exact execBlock_append hcallBlock hrest
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -583,7 +583,7 @@ theorem cureLoadSourceBodyAddRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hcode : uniswapExtCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
+    (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -829,7 +829,7 @@ theorem cureLoadSourceBodyAddRevert {cA gh bl σ σ₀ A I} {g : UInt256}
       refine ExecBlock.consNormal (ExecStmt.assign hnewVar hassignAmt) ?_
       refine ExecBlock.consNormal hsubStmt ?_
       exact ExecBlock.consRevert haddStmt
-    exact Reasoning.Refinement.execBlock_append hcallBlock hrest
+    exact execBlock_append hcallBlock hrest
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -862,7 +862,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hcode : uniswapExtCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
+    (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -1161,7 +1161,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
       refine ExecBlock.consNormal haddStmt ?_
       refine ExecBlock.consNormal (ExecStmt.assign hsayNewVar hassignSay) ?_
       exact ExecBlock.consNormal (ExecStmt.iteFalse hcond ExecBlock.nil) ExecBlock.nil
-    exact Reasoning.Refinement.execBlock_append hcallBlock hrest
+    exact execBlock_append hcallBlock hrest
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -1194,7 +1194,7 @@ theorem cureLoadSourceBodyOkLoadedZero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
     (hlive : cureSlotWord ⟨1⟩ σ I = ⟨0⟩)
     (hpos : cureSlotWord (loadPosSlotFor I) σ I ≠ ⟨0⟩)
-    (hcode : uniswapExtCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
+    (hcode : extCodeSizeWord σ (loadKey I) ≠ ⟨0⟩)
     (hcall :
       typedCallViaEVM config
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I)
@@ -1511,7 +1511,7 @@ theorem cureLoadSourceBodyOkLoadedZero {cA gh bl σ σ₀ A I} {g : UInt256}
       refine ExecBlock.consNormal haddStmt ?_
       refine ExecBlock.consNormal (ExecStmt.assign hsayNewVar hassignSay) ?_
       exact ExecBlock.consNormal htail ExecBlock.nil
-    exact Reasoning.Refinement.execBlock_append hcallBlock hrest
+    exact execBlock_append hcallBlock hrest
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::

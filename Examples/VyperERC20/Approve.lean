@@ -1,7 +1,7 @@
 import Examples.VyperERC20.Allowance
 import Examples.ERC20.Approve
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option linter.unusedSimpArgs false
@@ -427,7 +427,7 @@ theorem erc20X_approveFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     raw push4 approveSelectorWord (by vyper_erc20_approve_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨68⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiNT (by rw [hsizeGuard, hwv]; decide),
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiNT (by simpa [approveSpenderWord, calldataWord] using hcanonSpenderGuard),
@@ -523,7 +523,7 @@ theorem erc20ApproveX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     raw push4 approveSelectorWord (by vyper_erc20_approve_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨68⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by rw [hwv, hsizeGuard68]; decide) (by vyper_erc20_approve_decode)]
   exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) rd801 rfl (by norm_num)
@@ -545,7 +545,7 @@ theorem erc20ApproveX_noncanon_spender {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     raw push4 approveSelectorWord (by vyper_erc20_approve_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨68⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiNT (by rw [hwv, hsizeGuard]; decide),
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiT (by

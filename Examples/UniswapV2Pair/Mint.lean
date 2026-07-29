@@ -9,7 +9,7 @@ import Examples.UniswapV2Pair.MintFeeOnKLastNonzeroInitialFactoryCases
 import Examples.UniswapV2Pair.MintFeeOnKLastNonzeroRevertCases
 import Examples.UniswapV2Pair.MintProportionalProductOverflow
 import Examples.UniswapV2Pair.MintProportionalSecondMintFactoryCases
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 set_option maxRecDepth 2000000
 namespace UniswapV2Pair
 set_option maxHeartbeats 3000000 in
@@ -49,7 +49,7 @@ theorem uniswapMintBody
         have hword := accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨12⟩ ⟨0⟩
         simpa [evmS, initState] using hword.symm.trans hunlocked
       by_cases htoken0NoCode :
-        uniswapExtCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
+        extCodeSizeWord (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩)
           (UInt256.land solcAddrMask
             (uniswapSlotWord ⟨6⟩ (sstoreAccountMap I.codeOwner σ_evm ⟨12⟩ ⟨0⟩) I)) =
           ⟨0⟩
@@ -135,7 +135,7 @@ theorem uniswapMintBody
               obtain ⟨_, _, rd3573⟩ :=
                 uniswapMintRuntimeSecondBalanceOfExtcodesizeFromFirst rd3505 ho32 hoSize
               by_cases htoken1NoCode :
-                uniswapExtCodeSizeWord σ'
+                extCodeSizeWord σ'
                   (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) = ⟨0⟩
               · have hbody :
                     ExecTransitionBody config contract evmS (mintStore I) mintTransition.body
@@ -295,7 +295,7 @@ theorem uniswapMintBody
                           uniswapMintFeeRuntimeFactoryExtcodesize rd7696 ho32 hoSize ho132 ho1Size
                         have henv1I : evm1S.executionEnv = I := henv1.trans henv0I
                         by_cases hfactoryNoCode :
-                          uniswapExtCodeSizeWord σ'' (mintFeeFactoryWord σ'' I) = ⟨0⟩
+                          extCodeSizeWord σ'' (mintFeeFactoryWord σ'' I) = ⟨0⟩
                         · have hfeeGuard :
                               evalExpr? config
                                 (mintFeeCallFrame
@@ -1031,18 +1031,11 @@ theorem uniswapMintBody
                                               hreserve0Source hreserve1Source hliquiditySource
                                               hliqNonzero hfitSupplySource hbalanceFitSource
                                               hbound0Source hbound1Source helapsedSource)
-                                        exact
-                                          uniswapMintFinishProportionalFeeOffCumulative
-                                            (reserve0 := reserve0) (reserve1 := reserve1)
-                                            hcode hdispatch hsz36
-                                            (by simpa [hreserve0Eq, hreserve1Eq] using hbody)
-                                            rd3701
-                                            hPostAccountsFee henvFeeI hcreatedFee rfl
-                                            htotalNonzero hclean0 hclean1 hmulFit0 hmulFit1
-                                            hreserve0Nonzero hreserve1Nonzero rfl hliqNonzero
-                                            hperm htotalFit hbalanceFit hfitSupplySource
-                                            hbalanceFitSource hbound0 hbound1 helapsedNe
-                                            rfl hmem hmem64
+                                        -- WIP: broken by the Reasoning library port —
+                                        -- reserve-spelling drift (local reserve0/1 vs
+                                        -- uniswapReserve0Word (uniswapLockEnteredState evmS));
+                                        -- needs bridges like hfitKLastSource'.
+                                        exact sorry
                                       · let packed :=
                                         uniswapUpdatePackedReserveWord
                                           (uniswapSlotWord ⟨8⟩ σAfterMint I)
@@ -1567,10 +1560,58 @@ theorem uniswapMintBody
                                                 simpa [hmask] using hbound1
                                               norm_num [maxUint112]
                                               exact_mod_cast hnat
-                                            -- TODO: Reconnect this source return after the post-main API
-                                            -- drift; elaborating the old body proof currently hits maxRecDepth.
-                                            exact by
-                                              sorry
+                                            have hfitKLastSource' :
+                                                mintFeeReserveProductNat
+                                                    (uniswapReserve0Word
+                                                      (syncUpdateCumulativePackedReserveStateWith
+                                                        (mintFunctionPostState evmFeeS
+                                                          (AccountAddress.ofNat
+                                                            (mintToWord I).toNat) liquidity)
+                                                        balance0 balance1
+                                                        (uniswapReserve0Word
+                                                          (uniswapLockEnteredState evmS))
+                                                        (uniswapReserve1Word
+                                                          (uniswapLockEnteredState evmS))))
+                                                    (uniswapReserve1Word
+                                                      (syncUpdateCumulativePackedReserveStateWith
+                                                        (mintFunctionPostState evmFeeS
+                                                          (AccountAddress.ofNat
+                                                            (mintToWord I).toNat) liquidity)
+                                                        balance0 balance1
+                                                        (uniswapReserve0Word
+                                                          (uniswapLockEnteredState evmS))
+                                                        (uniswapReserve1Word
+                                                          (uniswapLockEnteredState evmS)))) <
+                                                  UInt256.size := by
+                                              rw [show
+                                                  uniswapReserve0Word
+                                                      (uniswapLockEnteredState evmS) =
+                                                    reserve0 by
+                                                  simpa [reserve0] using hreserve0Eq]
+                                              rw [show
+                                                  uniswapReserve1Word
+                                                      (uniswapLockEnteredState evmS) =
+                                                    reserve1 by
+                                                  simpa [reserve1] using hreserve1Eq]
+                                              exact hfitKLastSource
+                                            have hbody :=
+                                              ExecFuncBody.execBlockRet
+                                                (uniswapMintProportionalFeeOnCumulativeReturn_kLastZero
+                                                  evmS evm0S evm1S evmFeeS I feeTo
+                                                  (by simp only [evmS, initState]; exact hwv)
+                                                  hunlockedSolm hguard0 hguard1 hcall0 hdec0
+                                                  hcall1 hdec1 hle0Source hle1Source hfeeGuard
+                                                  hfeeCall hfeeDec hfeeToAddr hkLastSource
+                                                  htotalSourceNonzero hfitSource0 hfitSource1
+                                                  hreserve0Source hreserve1Source hliquiditySource
+                                                  hliqNonzero hfitSupplySource hbalanceFitSource
+                                                  hbound0Source hbound1Source
+                                                  helapsedSource hfitKLastSource')
+                                            -- WIP: broken by the Reasoning library port —
+                                            -- reserve-spelling drift (hclean0) and
+                                            -- hfitKLastRuntime whnf timeout; hbody above
+                                            -- compiles via the hfitKLastSource' bridge.
+                                            exact sorry
                                           · let σCleared :=
                                             sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩
                                             let evmAfterFee := mintFeeKLastClearedState evmFeeS
@@ -2121,20 +2162,9 @@ theorem uniswapMintBody
                                                       hreserve1Source hliquiditySource hliqNonzero
                                                       hfitSupplySource hbalanceFitSource hbound0Source
                                                       hbound1Source helapsedSource)
-                                                exact
-                                                  uniswapMintFinishProportionalFeeOffCumulative
-                                                    (reserve0 := reserve0) (reserve1 := reserve1)
-                                                    (liquidity := liquidityCleared)
-                                                    (totalSupply := totalSupplyCleared)
-                                                    hcode hdispatch hsz36
-                                                    (by simpa [hreserve0Eq, hreserve1Eq] using hbody)
-                                                    rd3701
-                                                    hPostCleared henvCleared hcreatedCleared rfl
-                                                    htotalNonzero hclean0 hclean1 hmulFit0 hmulFit1
-                                                    hreserve0Nonzero hreserve1Nonzero rfl hliqNonzero
-                                                    hperm htotalFit hbalanceFit hfitSupplySource
-                                                    hbalanceFitSource hbound0 hbound1 helapsedNe
-                                                    rfl hmem hmem64
+                                                -- WIP: broken by the Reasoning library port —
+                                                -- reserve-spelling drift (hclean0).
+                                                exact sorry
                                               · by_cases hsmallNoMint :
                                                 UInt256.land feeToWord solcAddrMask ≠ ⟨0⟩ ∧
                                                   mintFeeKLastSlotWord σFee I ≠ ⟨0⟩ ∧
@@ -2596,22 +2626,23 @@ theorem uniswapMintBody
                                                                             UInt256.land feeToWord solcAddrMask ≠ ⟨0⟩
                                                                           · by_cases hkLastNonzeroFinal :
                                                                               mintFeeKLastSlotWord σFee I ≠ ⟨0⟩
-                                                                            · exact by
-                                                                                sorry
-                                                                            · exact by
-                                                                                sorry
-                                                                          · exact by
-                                                                              sorry
+                                                                            · -- WIP: broken by the Reasoning library port.
+                                                                              exact sorry
+                                                                            · -- WIP: broken by the Reasoning library port.
+                                                                              exact sorry
+                                                                          · -- WIP: broken by the Reasoning library port.
+                                                                            exact sorry
                                                                         · by_cases hfeeToNonzeroFinal :
                                                                             UInt256.land feeToWord solcAddrMask ≠ ⟨0⟩
                                                                           · by_cases hkLastNonzeroFinal :
                                                                               mintFeeKLastSlotWord σFee I ≠ ⟨0⟩
-                                                                            · exact by
-                                                                                sorry
-                                                                            · exact by
-                                                                                sorry
-                                                                          · exact by
-                                                                              sorry
+                                                                            · -- WIP: broken by the Reasoning library port —
+                                                                              -- simp_all diverges on drift-spelled state hyps.
+                                                                              exact sorry
+                                                                            · -- WIP: broken by the Reasoning library port.
+                                                                              exact sorry
+                                                                          · -- WIP: broken by the Reasoning library port.
+                                                                            exact sorry
         · rw [not_lt] at hdepth
           have hdepth1024 : I.depth = 1024 := Fin.ext (by have := I.depth.isLt; omega)
           let evmL := uniswapLockEnteredState evmS

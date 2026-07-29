@@ -13,6 +13,10 @@ open ABI
  -
  -/
 
+/-
+ - This is an attempt to mechanize the Solidity storage layout generation.
+ - It is currently work in progress and known to be incomplete and not fully correct.
+-/
 
 -- Difference with `StorageLoc` is that size can be larger than a slot, so we can deal with broad intermediate locs
 structure IntermediateStorageLoc where

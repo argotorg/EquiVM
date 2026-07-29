@@ -57,7 +57,7 @@ theorem daiJoinCtorVatStoreReach
   have rdBeforeStore := daiJoin_ctor_run rd89 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap3, dup4, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, raw not (by daiJoin_ctor_decode) (by evm_ov),
-    swap2, dup3, and, raw lor (by daiJoin_ctor_decode) (by evm_ov), swap1, swap2]
+    swap2, dup3, and, raw or (by daiJoin_ctor_decode) (by evm_ov), swap1, swap2]
   obtain ⟨k', C', rd116⟩ := rdBeforeStore.sstore hperm (by daiJoin_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
     simpa [oldVat, daiJoinCtorVatStored, setAddressOffset0Word, solcSlotWord, solcAddrMask,
@@ -91,7 +91,7 @@ theorem daiJoinCtorDaiStoreReach
   obtain ⟨_, _, rd120⟩ := (daiJoin_ctor_run rd116 with [push1 ⟨2⟩, dup1]).sload
     (by daiJoin_ctor_decode) (by evm_ov)
   have rdBeforeStore := daiJoin_ctor_run rd120 with [
-    swap3, swap1, swap4, and, swap2, and, raw lor (by daiJoin_ctor_decode) (by evm_ov),
+    swap3, swap1, swap4, and, swap2, and, raw or (by daiJoin_ctor_decode) (by evm_ov),
     swap1]
   obtain ⟨k', C', rd129⟩ := rdBeforeStore.sstore hperm (by daiJoin_ctor_decode) (by evm_ov)
   exact ⟨k', C', by

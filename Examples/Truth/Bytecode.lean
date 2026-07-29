@@ -1,5 +1,5 @@
 import Examples.Truth.Spec
-import Solm.Dispatch
+import Solm.Semantics
 import Ethereum.Semantics
 import Reasoning.JumpDest
 

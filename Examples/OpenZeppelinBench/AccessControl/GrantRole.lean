@@ -1,9 +1,8 @@
 import Examples.OpenZeppelinBench.AccessControl.Storage
 import Examples.OpenZeppelinBench.AccessControl.RevokeRole
-import Reasoning.Refinement
 import Reasoning.SolmBody
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
@@ -1105,7 +1104,7 @@ theorem accessControlGrantRoleX_grant_write {cA gh bl σ σ₀ A I} {g : Sat256}
     exact u256_land_comm (UInt256.lnot ⟨255⟩)
       (grantRoleTargetStorageWord σ I)
   have rd597pre := evm_run rd589 with [
-    push1 ⟨255⟩, not, and, push1 ⟨1⟩, lor, swap1]
+    push1 ⟨255⟩, not, and, push1 ⟨1⟩, or, swap1]
   have hsetWord :
       UInt256.lor ⟨1⟩
           (UInt256.land (UInt256.lnot ⟨255⟩) (grantRoleTargetStorageWord σ I)) =

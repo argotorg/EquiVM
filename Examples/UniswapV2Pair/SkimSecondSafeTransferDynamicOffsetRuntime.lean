@@ -1,7 +1,7 @@
 import Examples.UniswapV2Pair.SkimDynamicSecondRuntime
 import Examples.UniswapV2Pair.SkimSecondSafeTransferDynamicRuntime
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -424,8 +424,8 @@ theorem skimSafeTransferReturnDataMem_size_le_ptr_add32
     omega
 
 private theorem byteArray_zeroes_size_le (n : Nat) :
-    (ffi.ByteArray.zeroes n).size ≤ n := by
-  rw [ByteArray_zeroes_size]
+    (ffi.ByteArray.zeroes n).size ≤ n :=
+  (ByteArray_zeroes_size n).le
 
 private theorem byteArray_copySlice_size_le
     (source destination : ByteArray) (sourceOffset destinationOffset length : Nat) :
@@ -2485,7 +2485,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
   have rd6485 := rd6480.pushConst transferSelectorWord (width := 4) (op := .PUSH4)
     (by native_decide) (by native_decide) (by evm_ov)
   have rd6491 := evm_run rd6485 with [
-    push1 ⟨224⟩, shl, lor, dup2,
+    push1 ⟨224⟩, shl, or, dup2,
     raw mstore 0 (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsMem4 out1)
       (by native_decide)
@@ -2693,7 +2693,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
         prevValue value ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size)
       (by unfold skimSecondSafeTransferDynamicWordsCall2; rfl)
       (by evm_ov),
-    and, dup1, dup3, lor, dup6,
+    and, dup1, dup3, or, dup6,
     raw mstore 0
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsCall2 out1)

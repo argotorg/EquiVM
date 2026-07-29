@@ -239,7 +239,7 @@ macro "uniswap_address_uint256_external_entry_wf" : term =>
     repeat' first | apply And.intro | native_decide)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.uniswapAddressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.addressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {entry ret routine : UInt256}
     (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
@@ -261,7 +261,7 @@ theorem RD.uniswapAddressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat25
     hd13 hd14 hd17 hdecoded hsz68 hsize
 
 set_option maxHeartbeats 1000000 in
-theorem RD.uniswapAddressUint256ExternalMaskAndJump {g : Sat256} {s0 : State}
+theorem RD.addressUint256ExternalMaskAndJump {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
@@ -282,7 +282,7 @@ theorem RD.uniswapAddressUint256ExternalMaskAndJump {g : Sat256} {s0 : State}
     hd31 hd32 hd33 hd34 hd35 hd36 hd38 hd39 hd40 hd43 hcanon hroutine hov
 
 set_option maxHeartbeats 1000000 in
-theorem RD.uniswapAddressUint256ExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
+theorem RD.addressUint256ExternalMaskAndJumpMasked {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
@@ -414,7 +414,7 @@ macro "uniswap_address_address_uint256_external_entry_wf" : term =>
     repeat' first | apply And.intro | native_decide)
 
 set_option maxHeartbeats 1000000 in
-theorem RD.uniswapAddressAddressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem RD.addressAddressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {entry ret routine : UInt256}
     (hreach : ∃ k C, RD UniswapV2Pair.uniswapV2PairBytecode I g
       (Reasoning.Theory.initState cA gh bl σ σ₀ g A I) entry [sel]
@@ -440,7 +440,7 @@ theorem RD.uniswapAddressAddressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g 
     hd13 hd14 hd17 hdecoded hlt
 
 set_option maxHeartbeats 1000000 in
-theorem RD.uniswapAddressAddressUint256ExternalMaskAndJump {g : Sat256} {s0 : State}
+theorem RD.addressAddressUint256ExternalMaskAndJump {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {entry ret routine de : UInt256} {R : List UInt256}
     {rdata : ByteArray} {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
     (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0
@@ -1093,7 +1093,8 @@ theorem uniswapTransferLogMem_size (src toWord value : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [uniswapTransferCreditHashMem_size]; omega)
       (by rw [uniswapTransferCreditHashMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, uniswapTransferCreditHashMem_size,
-    ByteArray_zeroes_size, toByteArray_size]
+    ByteArray_zeroes_size,
+    toByteArray_size]
 
 theorem uniswapTransferLogMem_read64 (src toWord value : UInt256) :
     (uniswapTransferLogMem src toWord value).readWithPadding 64 32 =
@@ -1131,10 +1132,11 @@ theorem uniswapTransferLogMem_read128 (src toWord value : UInt256) :
       (by rw [uniswapTransferCreditHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 128 (by
       rw [ByteArray.size_append, ByteArray.size_append, uniswapTransferCreditHashMem_size,
-        ByteArray_zeroes_size, toByteArray_size])]
+        ByteArray_zeroes_size, 
+        toByteArray_size])]
   rw [extract_append_right_window
       (uniswapTransferCreditHashMem src toWord ++
-        ffi.ByteArray.zeroes (128 - (uniswapTransferCreditHashMem src toWord).size))
+        ffi.ByteArray.zeroes ((128 - (uniswapTransferCreditHashMem src toWord).size)))
       (UInt256.toByteArray value) 128 (128 + 32) (by
         rw [ByteArray.size_append, uniswapTransferCreditHashMem_size, ByteArray_zeroes_size])]
   rw [ByteArray.size_append, uniswapTransferCreditHashMem_size, ByteArray_zeroes_size]
@@ -1350,7 +1352,8 @@ theorem uniswapApproveLogMem_size (owner spender value : UInt256) :
   rw [toByteArray_write_eq _ _ _ (by rw [uniswapApproveHashMem_size]; omega)
       (by rw [uniswapApproveHashMem_size]; exact lt_usize _ (by norm_num)),
     ByteArray.size_append, ByteArray.size_append, uniswapApproveHashMem_size,
-    ByteArray_zeroes_size, toByteArray_size]
+    ByteArray_zeroes_size,
+    toByteArray_size]
 
 theorem uniswapApproveLogMem_read64 (owner spender value : UInt256) :
     (uniswapApproveLogMem owner spender value).readWithPadding 64 32 =
@@ -1388,10 +1391,11 @@ theorem uniswapApproveLogMem_read128 (owner spender value : UInt256) :
       (by rw [uniswapApproveHashMem_size]; exact lt_usize _ (by norm_num))]
   rw [readWithPadding_eq_extract _ 128 (by
       rw [ByteArray.size_append, ByteArray.size_append, uniswapApproveHashMem_size,
-        ByteArray_zeroes_size, toByteArray_size])]
+        ByteArray_zeroes_size, 
+        toByteArray_size])]
   rw [extract_append_right_window
       (uniswapApproveHashMem owner spender ++
-        ffi.ByteArray.zeroes (128 - (uniswapApproveHashMem owner spender).size))
+        ffi.ByteArray.zeroes ((128 - (uniswapApproveHashMem owner spender).size)))
       (UInt256.toByteArray value) 128 (128 + 32) (by
         rw [ByteArray.size_append, uniswapApproveHashMem_size, ByteArray_zeroes_size])]
   rw [ByteArray.size_append, uniswapApproveHashMem_size, ByteArray_zeroes_size]

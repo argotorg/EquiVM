@@ -4,7 +4,6 @@ import Reasoning.Dispatch
 import Reasoning.Initcode
 import Reasoning.Memory
 import Reasoning.Reach
-import Reasoning.Refinement
 import Reasoning.Solc
 import Reasoning.SolmBody
 import Reasoning.Storage
@@ -16,7 +15,7 @@ import Mathlib.Tactic.IntervalCases
 Contract-wide selector notation and constants for the optimized Clipper runtime.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
 
 set_option maxRecDepth 2000000

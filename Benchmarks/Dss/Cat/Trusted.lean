@@ -1,5 +1,5 @@
 import Benchmarks.Dss.Cat.Bytecode
-import Solm.Dispatch
+import Solm.Semantics
 
 /-!
 # MakerDAO/Sky DSS Cat trusted bytecode facts

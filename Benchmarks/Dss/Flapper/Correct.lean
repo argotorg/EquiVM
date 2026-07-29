@@ -29,13 +29,13 @@ are present. The runtime-equivalence proof is intentionally left as the benchmar
 also exposes the whole-contract wrapper that combines the constructor and runtime targets.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flapper
 
 theorem flapperCorrect :
-    runtimeEquivalence!?! config flapperBytecode contract := by
-  refine runtimeEquivalence!?!.intro ?_
+    runtimeEquivalence config flapperBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbeg : selIs I (flapperSelBytes 0)

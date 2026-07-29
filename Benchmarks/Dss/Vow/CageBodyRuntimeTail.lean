@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Vow.CageBodyRuntime
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -28,7 +28,7 @@ theorem vowCageVatSinNoCodeAt3115BodyCore
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) =
         ⟨0⟩)
     (hov : R.length + 18 ≤ 1024)
     (hvatCode :
@@ -184,10 +184,10 @@ theorem vowCageBodyToMinHeal
           hgenesisDai2 henvDai2 hAccountsDai2 => ?_)
       hcode hsize hperm hwv hsel hAccounts
   by_cases hcodeSizeVatSin :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_dai2 (kissDaiTargetWord σ_dai2 I) =
+      Reasoning.Theory.extCodeSizeWord σ_dai2 (kissDaiTargetWord σ_dai2 I) =
         ⟨0⟩
   · have hcodeSizeVatSinSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord evmDai2.accountMap
+        Reasoning.Theory.extCodeSizeWord evmDai2.accountMap
             (kissDaiTargetWord evmDai2.accountMap I) = ⟨0⟩ :=
       cageVatCodeSize_zero_accountMapEquiv hAccountsDai2 hcodeSizeVatSin
     have hownerDai2 : evmDai2.executionEnv.codeOwner = I.codeOwner := by
@@ -206,11 +206,11 @@ theorem vowCageBodyToMinHeal
       hvatCode hcallDai hdecDai hflapperCode hcallFlap hflopperCode hcallFlop
       hvatCode2 hcallDai2 hdecDai2 hvatNoCode
   have hcodeSizeVatSinNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_dai2 (kissDaiTargetWord σ_dai2 I) ≠
+      Reasoning.Theory.extCodeSizeWord σ_dai2 (kissDaiTargetWord σ_dai2 I) ≠
         ⟨0⟩ :=
     hcodeSizeVatSin
   have hcodeSizeVatSinSolmNE :
-      Reasoning.Theory.uniswapExtCodeSizeWord evmDai2.accountMap
+      Reasoning.Theory.extCodeSizeWord evmDai2.accountMap
           (kissDaiTargetWord evmDai2.accountMap I) ≠ ⟨0⟩ :=
     cageVatCodeSize_ne_accountMapEquiv hAccountsDai2 hcodeSizeVatSinNE
   have hownerDai2 : evmDai2.executionEnv.codeOwner = I.codeOwner := by
@@ -437,10 +437,10 @@ theorem vowCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     simp [henvSin]
   by_cases hle : vatDai.toNat ≤ vatSin.toNat
   · by_cases hcodeSizeHeal :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_sin (kissDaiTargetWord σ_sin I) =
+        Reasoning.Theory.extCodeSizeWord σ_sin (kissDaiTargetWord σ_sin I) =
           ⟨0⟩
     · have hcodeSizeHealSolm :
-          Reasoning.Theory.uniswapExtCodeSizeWord evmSin.accountMap
+          Reasoning.Theory.extCodeSizeWord evmSin.accountMap
               (kissDaiTargetWord evmSin.accountMap I) = ⟨0⟩ :=
         cageVatCodeSize_zero_accountMapEquiv hAccountsSin hcodeSizeHeal
       have hvatNoCode :
@@ -458,11 +458,11 @@ theorem vowCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         hcallFlap hflopperCode hcallFlop hvatCode2 hcallDai2 hdecDai2 hvatCodeSin
         hcallSin hdecSin hle hvatNoCode
     have hcodeSizeHealNE :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_sin (kissDaiTargetWord σ_sin I) ≠
+        Reasoning.Theory.extCodeSizeWord σ_sin (kissDaiTargetWord σ_sin I) ≠
           ⟨0⟩ :=
       hcodeSizeHeal
     have hcodeSizeHealSolmNE :
-        Reasoning.Theory.uniswapExtCodeSizeWord evmSin.accountMap
+        Reasoning.Theory.extCodeSizeWord evmSin.accountMap
             (kissDaiTargetWord evmSin.accountMap I) ≠ ⟨0⟩ :=
       cageVatCodeSize_ne_accountMapEquiv hAccountsSin hcodeSizeHealNE
     have hvatCodeHeal :
@@ -570,10 +570,10 @@ theorem vowCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   · have hlt : vatSin.toNat < vatDai.toNat := by
       omega
     by_cases hcodeSizeHeal :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_sin (kissDaiTargetWord σ_sin I) =
+        Reasoning.Theory.extCodeSizeWord σ_sin (kissDaiTargetWord σ_sin I) =
           ⟨0⟩
     · have hcodeSizeHealSolm :
-          Reasoning.Theory.uniswapExtCodeSizeWord evmSin.accountMap
+          Reasoning.Theory.extCodeSizeWord evmSin.accountMap
               (kissDaiTargetWord evmSin.accountMap I) = ⟨0⟩ :=
         cageVatCodeSize_zero_accountMapEquiv hAccountsSin hcodeSizeHeal
       have hvatNoCode :
@@ -591,11 +591,11 @@ theorem vowCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         hcallFlap hflopperCode hcallFlop hvatCode2 hcallDai2 hdecDai2 hvatCodeSin
         hcallSin hdecSin hlt hvatNoCode
     have hcodeSizeHealNE :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_sin (kissDaiTargetWord σ_sin I) ≠
+        Reasoning.Theory.extCodeSizeWord σ_sin (kissDaiTargetWord σ_sin I) ≠
           ⟨0⟩ :=
       hcodeSizeHeal
     have hcodeSizeHealSolmNE :
-        Reasoning.Theory.uniswapExtCodeSizeWord evmSin.accountMap
+        Reasoning.Theory.extCodeSizeWord evmSin.accountMap
             (kissDaiTargetWord evmSin.accountMap I) ≠ ⟨0⟩ :=
       cageVatCodeSize_ne_accountMapEquiv hAccountsSin hcodeSizeHealNE
     have hvatCodeHeal :

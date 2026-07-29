@@ -3,7 +3,7 @@ import Benchmarks.Dss.Cat.BiteEVM
 import Benchmarks.Dss.Cat.BiteWalk
 import Solm.Equiv
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

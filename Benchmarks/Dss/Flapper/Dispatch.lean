@@ -6,7 +6,7 @@ import Benchmarks.Dss.Flapper.Trusted
 Solm dispatch routing facts and the shared dispatcher revert entry points.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -603,7 +603,7 @@ theorem flapperX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
     |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 /-- Calldata shorter than a selector reverts at the shared dispatcher revert block. -/
@@ -628,7 +628,7 @@ theorem flapperX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 /-- A fallthrough `PUSH2 300; JUMP` reaches the shared revert block. -/
@@ -643,7 +643,7 @@ theorem flapperJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UI
       (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem flapperLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -666,7 +666,7 @@ theorem flapperLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
     |>.selectorArmNotTakenAuto (flapperLowLowArmsWellFormed 4 (by omega))
         (heq0 4 (by omega)) (by simp)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem flapperLowHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}

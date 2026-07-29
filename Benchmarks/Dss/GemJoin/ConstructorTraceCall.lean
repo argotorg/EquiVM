@@ -89,7 +89,7 @@ theorem gemJoinCtorDecimalsStaticcallReach
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (gemTarget : UInt256)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σAcc gemTarget ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σAcc gemTarget ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (rd184 :
       RD (gemJoinCtorCode vat ilk gem) I g0
@@ -125,14 +125,14 @@ theorem gemJoinCtorDecimalsStaticcallReach
         out (createdAccounts', σ') k' C' ∧
       out.size < UInt256.size := by
   obtain ⟨gasWord, kGas, CGas, rd199⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas
+    RD.solcExtcodesizeGuardOkGas
       (pc := ⟨184⟩) (okPc := ⟨196⟩)
       rd184 hcodeSize
       (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode)
       (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_jd)
       (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode) (by evm_ov)
   obtain ⟨createdAccounts', σ', z, out, Ain, callGas, k', C', hTheta, rd200, houtSize⟩ :=
-    RD.uniswapStaticcall rd199 (by gem_ctor_decode) hdepth (by evm_ov)
+    RD.solcStaticcall rd199 (by gem_ctor_decode) hdepth (by evm_ov)
   exact ⟨createdAccounts', σ', z, out, Ain, callGas, k', C', hTheta, by
     simpa [show (⟨199⟩ : UInt256) + ⟨1⟩ = ⟨200⟩ from by native_decide] using rd200,
     houtSize⟩
@@ -144,7 +144,7 @@ theorem gemJoinCtorDecimalsStaticcallDepthLimitReach
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (gemTarget : UInt256)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σAcc gemTarget ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σAcc gemTarget ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (rd184 :
       RD (gemJoinCtorCode vat ilk gem) I g0
@@ -167,14 +167,14 @@ theorem gemJoinCtorDecimalsStaticcallDepthLimitReach
           (⟨224⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat))
       ByteArray.empty (createdAccounts, σAcc) k' C' := by
   obtain ⟨gasWord, kGas, CGas, rd199⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas
+    RD.solcExtcodesizeGuardOkGas
       (pc := ⟨184⟩) (okPc := ⟨196⟩)
       rd184 hcodeSize
       (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode)
       (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_jd)
       (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode) (by evm_ov)
   obtain ⟨k', C', rd200⟩ :=
-    RD.uniswapStaticcallDepthLimit rd199 (by gem_ctor_decode) hdepth (by evm_ov)
+    RD.solcStaticcallDepthLimit rd199 (by gem_ctor_decode) hdepth (by evm_ov)
   exact ⟨k', C', by
     simpa [show (⟨199⟩ : UInt256) + ⟨1⟩ = ⟨200⟩ from by native_decide]
       using rd200⟩
@@ -186,7 +186,7 @@ theorem gemJoinCtorDecimalsNoCodeReverts
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) {k C : ℕ}
     (gemTarget : UInt256)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σAcc gemTarget = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σAcc gemTarget = ⟨0⟩)
     (rd184 :
       RD (gemJoinCtorCode vat ilk gem) I g0
         (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨184⟩
@@ -197,7 +197,7 @@ theorem gemJoinCtorDecimalsNoCodeReverts
         (createdAccounts, σAcc) k C) :
     RDrev (gemJoinCtorCode vat ilk gem) g0
       (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) := by
-  exact RD.uniswapExtcodesizeGuardMissing
+  exact RD.solcExtcodesizeGuardMissing
     (pc := ⟨184⟩) (okPc := ⟨196⟩)
     rd184 hcodeSize
     (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode)
@@ -291,7 +291,7 @@ theorem gemJoinCtorDecimalsStatusOkReach
       [⟨228⟩, ⟨826074471⟩, gemTarget, EVM.word gem.val, ilk, EVM.word vat.val]
       mem aw out acc k' C' := by
   subst z
-  exact RD.uniswapCallSuccessGuardOk
+  exact RD.solcCallSuccessGuardOk
     (pc := ⟨200⟩) (okPc := ⟨216⟩) rd200
     (by decide)
     (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode)
@@ -312,7 +312,7 @@ theorem gemJoinCtorDecimalsStatusFailReverts
         mem aw out acc k C) :
     RDrev (gemJoinCtorCode vat ilk gem) g0 s0 := by
   subst z
-  exact RD.uniswapCallSuccessGuardMissing
+  exact RD.solcCallSuccessGuardMissing
     (pc := ⟨200⟩) (okPc := ⟨216⟩) rd200 rfl
     (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode)
     (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode)
@@ -459,7 +459,7 @@ theorem gemJoinCtorDecimalsReturnDecodeShortReverts
     decide
   have rdFallthrough := RD.jumpiNT rdPushOk (by gem_ctor_decode) hcond
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by gem_ctor_decode) (by gem_ctor_decode) (by gem_ctor_decode)
     (by simp only [List.length_cons, List.length_nil]; omega)
 

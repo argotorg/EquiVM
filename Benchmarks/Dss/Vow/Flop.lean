@@ -2,7 +2,7 @@ import Benchmarks.Dss.Vow.HealSuccess
 import Benchmarks.Dss.Vow.VatDaiCall
 import Benchmarks.Dss.Vow.VatSinCall
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -188,7 +188,7 @@ theorem RD.vowFlopToSin0ExtcodesizeGuard
     dup2,
     raw mstore 6 (healSinSelectorMem solcFreePtrMem) (UInt256.ofNat 5)
       (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    uniswapAddress,
+    address,
     push1 ⟨4⟩,
     dup3,
     add,
@@ -242,11 +242,11 @@ theorem RD.vowFlopVatSin0NoCode
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) = ⟨0⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd3663⟩ := RD.vowFlopToSin0ExtcodesizeGuard hreach
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3663⟩) (okPc := ⟨1273⟩) rd3663
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3663⟩) (okPc := ⟨1273⟩) rd3663
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -258,7 +258,7 @@ theorem RD.vowFlopToSin0Staticcall
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (kissDaiTargetWord σ I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) ≠ ⟨0⟩) :
     ∃ gasWord k C, RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1276⟩
       (gasWord :: kissDaiTargetWord σ I :: healSinOutPtr ::
@@ -267,7 +267,7 @@ theorem RD.vowFlopToSin0Staticcall
       (healSinCalldataMem I solcFreePtrMem) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd3663⟩ := RD.vowFlopToSin0ExtcodesizeGuard hreach
   obtain ⟨gasWord, k, C, rd1276⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3663⟩) (okPc := ⟨1273⟩) rd3663
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3663⟩) (okPc := ⟨1273⟩) rd3663
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -280,7 +280,7 @@ theorem RD.vowFlopSin0PostCall
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨646⟩ [sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (kissDaiTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (kissDaiTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
       (o : ByteArray) (A' : Substate) (k C : ℕ),
@@ -299,7 +299,7 @@ theorem RD.vowFlopSin0PostCall
   obtain ⟨gasWord, _, _, rd1276⟩ :=
     RD.vowFlopToSin0Staticcall hreach hcodeSize
   obtain ⟨cA', σ', z, o, A_in, callGas, k1277, C1277, hΘpack, rd1277raw, hosz⟩ :=
-    RD.uniswapStaticcall rd1276 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcall rd1276 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, o, A', k1277, C1277, ?_, ?_, hosz⟩
   · have haw :
@@ -779,7 +779,7 @@ theorem RD.vowFlopToDai1ExtcodesizeGuard
     dup2,
     raw mstore 0 (vatDaiSelectorMem mem) (UInt256.ofNat 6)
       (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    uniswapAddress,
+    address,
     push1 ⟨4⟩,
     dup3,
     add,
@@ -833,12 +833,12 @@ theorem RD.vowFlopDai1NoCode
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) = ⟨0⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd3816⟩ :=
     RD.vowFlopToDai1ExtcodesizeGuard rd henough hmem hread64
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3816⟩) (okPc := ⟨3828⟩) rd3816
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3816⟩) (okPc := ⟨3828⟩) rd3816
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -856,7 +856,7 @@ theorem RD.vowFlopToDai1Staticcall
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord acc.2 (kissDaiTargetWord acc.2 I) ≠ ⟨0⟩) :
     ∃ gasWord k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3831⟩
       (gasWord :: kissDaiTargetWord acc.2 I :: ⟨128⟩ :: ⟨36⟩ ::
@@ -866,7 +866,7 @@ theorem RD.vowFlopToDai1Staticcall
   obtain ⟨_, _, rd3816⟩ :=
     RD.vowFlopToDai1ExtcodesizeGuard rd henough hmem hread64
   obtain ⟨gasWord, k3831, C3831, rd3831⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3816⟩) (okPc := ⟨3828⟩) rd3816
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3816⟩) (okPc := ⟨3828⟩) rd3816
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1312,7 +1312,7 @@ theorem vowFlopVatSin0NoCodeBodyCore
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C)
     (hAccounts : accountMapEquiv σ_evm σ_solm)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ_evm (kissDaiTargetWord σ_evm I) = ⟨0⟩) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hrev := RD.vowFlopVatSin0NoCode hreach hcodeSize
   have hVat : vowSlotWord ⟨1⟩ σ_evm I = vowSlotWord ⟨1⟩ σ_solm I :=
@@ -1320,9 +1320,9 @@ theorem vowFlopVatSin0NoCodeBodyCore
   have hTarget : kissDaiTargetWord σ_evm I = kissDaiTargetWord σ_solm I := by
     simp [kissDaiTargetWord, hVat]
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (kissDaiTargetWord σ_solm I) = ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ_solm (kissDaiTargetWord σ_solm I) = ⟨0⟩ := by
     have hsame :=
-      Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
         (kissDaiTargetWord σ_evm I)
     rw [← hTarget, ← hsame]
     exact hcodeSize
@@ -1335,7 +1335,7 @@ theorem vowFlopVatSin0NoCodeBodyCore
         (((initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
           (kissVatAddress σ_solm I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
     simpa [initState, State.lookupAccount] using
-      uniswapExtCodeSizeWord_zero_lookup_code_zero
+      extCodeSizeWord_zero_lookup_code_zero
         (σ := σ_solm) (target := kissDaiTargetWord σ_solm I)
         (addr := kissVatAddress σ_solm I) haddr hcodeSizeSolm
   have hbody := vowFlopSourceVatSin0NoCode (cA := cA) (gh := gh) (bl := bl)

@@ -419,7 +419,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlock
       (ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hreturn)))
   refine ExecFuncBody.execBlockRet ?_
   simpa [mintFeeFunction, List.append_assoc] using
-    Reasoning.Refinement.execBlock_append hchecked htail
+   execBlock_append hchecked htail
 
 theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_positiveNoLiquidity
     (evm evmFee : EVM.State) (reserve0 reserve1 : UInt256) {out : ByteArray}
@@ -481,7 +481,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_positiveNoLiquidity
             (mintFeeKLastWord evmFee) rootK rootKLast)
           evmFee) := by
     simpa [mintFeeRootComparisonStmt, mintFeePositiveRootBranchStmts, List.append_assoc]
-      using Reasoning.Refinement.execBlock_append hprefix
+      using execBlock_append hprefix
         (uniswapMintFeeAfterRoots_positiveNoLiquidity evmFee reserve0 reserve1 feeTo
           (mintFeeKLastWord evmFee) rootK rootKLast hroot hrootKNonneg hrootKSize
           hrootKLastNonneg hnumFit hrootFiveFit hdenFit hdenom hliq)
@@ -561,7 +561,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_positiveWithLiquidity
             rootK rootKLast)
           (mintFunctionPostState evmFee feeTo (mintFeeLiquidityWord evmFee rootK rootKLast))) := by
     simpa [mintFeeRootComparisonStmt, mintFeePositiveRootBranchStmts, List.append_assoc]
-      using Reasoning.Refinement.execBlock_append hprefix
+      using execBlock_append hprefix
         (uniswapMintFeeAfterRoots_positiveWithLiquidity evmFee reserve0 reserve1 feeTo
           (mintFeeKLastWord evmFee) rootK rootKLast hroot hrootKNonneg hrootKSize
           hrootKLastNonneg hnumFit hrootFiveFit hdenFit hdenom hliq hliqFit hfitSupply
@@ -632,7 +632,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
             (mintFeeKLastWord evmFee) rootK rootKLast)
           evmFee) := by
     simpa [mintFeeRootComparisonStmt, mintFeePositiveRootBranchStmts, List.append_assoc]
-      using Reasoning.Refinement.execBlock_append hprefix
+      using execBlock_append hprefix
         (uniswapMintFeeAfterRoots_noMint evmFee reserve0 reserve1 feeTo
           (mintFeeKLastWord evmFee) rootK rootKLast hroot)
   have htail :
@@ -749,7 +749,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
               (mintFeeKLastWord evmFee) rootK rootKLast))))
   refine ExecFuncBody.execBlockRet ?_
   simpa [mintFeeFunction, List.append_assoc] using
-    Reasoning.Refinement.execBlock_append hchecked htail
+   execBlock_append hchecked htail
 
 theorem mintFeeAssignKLastZero
     (evm : EVM.State) (reserve0 reserve1 : UInt256) (feeTo : AccountAddress)
@@ -880,7 +880,7 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastZero
               (mintFeeKLastWord evmFee)))))
   refine ExecFuncBody.execBlockRet ?_
   simpa [mintFeeFunction, List.append_assoc] using
-    Reasoning.Refinement.execBlock_append hchecked htail
+   execBlock_append hchecked htail
 
 theorem uniswapMintFeeFunctionBody_feeOn_kLastZero
     (evm evmFee : EVM.State) (reserve0 reserve1 : UInt256) {out : ByteArray}
@@ -1010,7 +1010,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastZero
               (mintFeeKLastWord evmFee)))))
   refine ExecFuncBody.execBlockRet ?_
   simpa [mintFeeFunction, List.append_assoc] using
-    Reasoning.Refinement.execBlock_append hchecked htail
+   execBlock_append hchecked htail
 
 theorem uniswapMintFeeFunctionBody_feeOff_kLastNonzero
     (evm evmFee : EVM.State) (reserve0 reserve1 : UInt256) {out : ByteArray}
@@ -1137,7 +1137,7 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastNonzero
               feeTo false (mintFeeKLastWord evmFee)))))
   refine ExecFuncBody.execBlockRet ?_
   simpa [mintFeeFunction, List.append_assoc] using
-    Reasoning.Refinement.execBlock_append hchecked htail
+   execBlock_append hchecked htail
 
 
 end UniswapV2Pair

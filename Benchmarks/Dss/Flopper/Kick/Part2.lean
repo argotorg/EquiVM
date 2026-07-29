@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Flopper.Kick.Part1
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -159,7 +159,7 @@ theorem flopperKickX_addOverflow {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     rw [hltTrue]
     native_decide
   have rd4763 := rd4759.jumpiNT (by native_decide) hcond (by evm_ov)
-  exact RD.uniswapPush1Dup1Revert0 rd4763
+  exact RD.solcPush1Dup1Revert0 rd4763
     (by native_decide) (by native_decide) (by native_decide)
     (by simp)
 
@@ -274,7 +274,7 @@ theorem flopperKickX_toEventStart {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     raw swap4 (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap4 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov),
     raw swap3 (by native_decide) (by evm_ov)]
   obtain ⟨k3796, C3796, rd3796raw⟩ := rd3795pre'.sstore hperm

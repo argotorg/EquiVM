@@ -1,4 +1,4 @@
-import Reasoning.Theory
+import Ethereum.Semantics
 import Mathlib.Data.Nat.Bitwise
 import Mathlib.Data.Nat.Digits.Defs
 import Mathlib.Data.Nat.Digits.Lemmas
@@ -8,9 +8,9 @@ import Mathlib.Data.Nat.Digits.Lemmas
 
 The EVM executes arithmetic and comparisons on 256-bit stack words, even when the Solidity source
 type is narrower.  This file collects generic `UInt256` facts used by bytecode traces: no-wrap
-`toNat` lemmas, unsigned comparisons, and signed `SLT` facts parameterized by the comparison
-literal.  Memory byte-level facts stay in `Reasoning.Memory`; solc conventions stay in
-`Reasoning.Solc`.
+`toNat` lemmas, arithmetic/bitwise normalization, unsigned comparisons, signed `SLT` facts
+parameterized by the comparison literal, `compare`-order instances, and the bitwise word-rounding
+behind solc's memory allocation.  Memory byte-level facts stay in `Reasoning.Memory`.
 -/
 
 open Ethereum Ethereum.EVM
@@ -18,6 +18,12 @@ open Ethereum Ethereum.EVM
 namespace Reasoning.Theory
 
 /-! ## Word reconstruction and no-wrap arithmetic -/
+
+/-- A `UInt256` with `toNat = 0` is `⟨0⟩`.  (Used to discharge `callvalue = 0` tests.) -/
+theorem uint256_toNat_eq_zero {a : UInt256} (h : a.toNat = 0) : a = ⟨0⟩ := by
+  obtain ⟨⟨v, hlt⟩⟩ := a
+  simp only [UInt256.toNat] at h
+  subst h; rfl
 
 /-- `AccountAddress.ofUInt256` is the same address as taking the word's natural value. -/
 theorem accountAddress_ofUInt256_eq_ofNat_toNat (w : UInt256) :
@@ -218,9 +224,7 @@ theorem usub_uadd_lit_cancel_mod {base n : ℕ}
         haddn, ulit_toNat' base hbase, ulit_toNat' n hn]
     omega
 
-/-! ## Unsigned comparisons and small arithmetic helpers -/
-
-/-! ### Arithmetic and bitwise normalization -/
+/-! ## Arithmetic and bitwise normalization -/
 
 theorem nat_land_comm (a b : ℕ) : Nat.land a b = Nat.land b a := by
   apply Nat.eq_of_testBit_eq
@@ -395,10 +399,6 @@ theorem testBit_shiftLeft (m k i : Nat) :
           · have hnk : ¬ i < k := by omega
             simp [hi, hnk, Nat.succ_sub_succ_eq_sub]
 
-theorem nat_testBit_shiftLeft (m k i : Nat) :
-    (m <<< k).testBit i = if i < k then false else m.testBit (i - k) :=
-  testBit_shiftLeft m k i
-
 /-- Bit access after dropping the low `k` bits by division. -/
 theorem divPow_testBit (n k i : Nat) (hk : k ≤ i) :
     (n / 2 ^ k).testBit (i - k) = n.testBit i := by
@@ -408,10 +408,6 @@ theorem divPow_testBit (n k i : Nat) (hk : k ≤ i) :
     rw [← Nat.pow_add]
     congr
     omega]
-
-theorem nat_div_pow_testBit (n k i : Nat) (hk : k ≤ i) :
-    (n / 2 ^ k).testBit (i - k) = n.testBit i :=
-  divPow_testBit n k i hk
 
 theorem nat_land_mask_eq_mod (n k : Nat) :
     Nat.land n (2 ^ k - 1) = n % 2 ^ k := by
@@ -502,6 +498,8 @@ theorem u256_land_high_mask_eq_self (w : UInt256) {k : Nat} (hk : k ≤ 256)
     exact h
   rw [hdiv]
   exact Nat.mod_eq_of_lt w.val.isLt
+
+/-! ## Unsigned comparisons -/
 
 /-- `LT` returns `1` when the strict order holds. -/
 theorem ult_one {a b : UInt256} (h : a.toNat < b.toNat) : UInt256.lt a b = ⟨1⟩ := by
@@ -746,21 +744,6 @@ theorem slt_ofNat_lit_one_low {n m : ℕ}
   apply slt_lit_one_low hm
   rw [ulit_toNat' n (lt_size_of_lt_sign (lt_trans hlo hm))]
   exact hlo
-
-/-! ## Small arithmetic tactic
-
-`evm_arith` is deliberately modest: it handles closed literal goals immediately, and can close many
-side conditions after a parametric word lemma has reduced them to natural arithmetic.  It is not
-intended to replace the named lemmas above.
--/
-
-macro "evm_arith" : tactic =>
-  `(tactic|
-    first
-    | decide
-    | omega
-    | norm_num [UInt256.size]
-    | (simp only [UInt256.size] <;> omega))
 
 /-! ## Word equality (`UInt256.eq`) and low-bit masking -/
 

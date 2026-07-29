@@ -1,6 +1,6 @@
 import Examples.VyperERC20.TransferFromBase
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 20000000
@@ -34,7 +34,7 @@ theorem erc20X_transferFromAfterAllowanceSLoad {cA gh bl σ σ₀ A I} {g : Sat2
     jumpdest,
     raw push4 transferFromSelectorWord (by vyper_erc20_transferFrom_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨100⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨100⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiNT (by rw [u256_lor_comm, hwv, u256_lor_zero]; exact hsizeGuard),
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
     jumpiNT (by simpa [transferFromFromWord, calldataWord] using hcanonFromGuard),

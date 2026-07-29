@@ -1,6 +1,6 @@
 import Examples.BlindAuction.Reveal.Common
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 800000
@@ -980,7 +980,7 @@ theorem scratch_RD_placeBid_true_zero {g : Sat256} {s0 : State} {I : ExecutionEn
   have rd1649 := evm_run rd1629 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and]
-  have rd1650 := RD.lor rd1649 (by decide) (by evm_ov)
+  have rd1650 := RD.or rd1649 (by decide) (by evm_ov)
   have hpack :
       UInt256.lor
           (UInt256.land bidder (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩))
@@ -1364,7 +1364,7 @@ theorem scratch_RD_placeBid_true_nonzero {g : Sat256} {s0 : State} {I : Executio
   have rd1649 := evm_run rd1629 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and]
-  have rd1650 := RD.lor rd1649 (by decide) (by evm_ov)
+  have rd1650 := RD.or rd1649 (by decide) (by evm_ov)
   have hpack :
       UInt256.lor
           (UInt256.land bidder (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩))
@@ -1586,7 +1586,7 @@ theorem scratch_RD_placeBid_true_nonzero_anyMem {g : Sat256} {s0 : State} {I : E
   have rd1649 := evm_run rd1629 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, not, and,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup5, and]
-  have rd1650 := RD.lor rd1649 (by decide) (by evm_ov)
+  have rd1650 := RD.or rd1649 (by decide) (by evm_ov)
   have hpack :
       UInt256.lor
           (UInt256.land bidder (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩))

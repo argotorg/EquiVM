@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Vow.FlapKick
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -218,13 +218,13 @@ theorem flapFlapperAddressOf_eq_vowAddressReturnWord (evm : EVM.State)
 theorem flapFlapperCode_pos_of_codeSize_ne (evm : EVM.State) (I : ExecutionEnv)
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (vowAddressReturnWord ⟨2⟩ evm.accountMap I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       ((evm.lookupAccount (flapFlapperAddressOf evm)).option 0
         (fun acc => acc.code.size))).toNat := by
   simpa [State.lookupAccount] using
-    uniswapExtCodeSizeWord_ne_zero_lookup_code_pos
+    extCodeSizeWord_ne_zero_lookup_code_pos
       (σ := evm.accountMap) (target := vowAddressReturnWord ⟨2⟩ evm.accountMap I)
       (addr := flapFlapperAddressOf evm)
       (flapFlapperAddressOf_eq_vowAddressReturnWord evm I howner) hne
@@ -232,13 +232,13 @@ theorem flapFlapperCode_pos_of_codeSize_ne (evm : EVM.State) (I : ExecutionEnv)
 theorem flapFlapperCode_zero_of_codeSize_zero (evm : EVM.State) (I : ExecutionEnv)
     (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord evm.accountMap
+      Reasoning.Theory.extCodeSizeWord evm.accountMap
         (vowAddressReturnWord ⟨2⟩ evm.accountMap I) = ⟨0⟩) :
     (UInt256.ofNat
       ((evm.lookupAccount (flapFlapperAddressOf evm)).option 0
         (fun acc => acc.code.size))).toNat = 0 := by
   simpa [State.lookupAccount] using
-    uniswapExtCodeSizeWord_zero_lookup_code_zero
+    extCodeSizeWord_zero_lookup_code_zero
       (σ := evm.accountMap) (target := vowAddressReturnWord ⟨2⟩ evm.accountMap I)
       (addr := flapFlapperAddressOf evm)
       (flapFlapperAddressOf_eq_vowAddressReturnWord evm I howner) hzero
@@ -730,7 +730,7 @@ theorem flapSourceInsufficientSurplus
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 flapTransition.body
         .reverted := by
-    have hcat := Reasoning.Refinement.execBlock_append hprefix htail
+    have hcat := execBlock_append hprefix htail
     simpa [flapTransition, flapPrefixToDaiStmts, flapTailStmts,
       flapPostDaiToKickStmts, flapKickAndReturnStmts, nonpayable,
       checkedExternalCallStmts, locals, evm0] using hcat
@@ -1212,7 +1212,7 @@ theorem flapPostDaiToKickSuccess
         (vatDai := vatDai) (vatSin1 := vatSin1) (freeSin := freeSin) (debt := debt)
         (BumpVal := BumpVal) (id := id)
         hBumpLoad hflapperCode hcallKick hdecKick
-  have htail := Reasoning.Refinement.execBlock_append hpost hkick
+  have htail := execBlock_append hpost hkick
   simpa [flapTailStmts] using htail
 
 theorem flapSourceBlockSuccess
@@ -1328,7 +1328,7 @@ theorem flapSourceBlockSuccess
       ExecBlock config { contract := contract, locals := locals } evm0 flapTransition.body
         (.returned { contract := contract, locals := locals8 } evmKick
           (some [.int (Int.ofNat id.toNat)])) := by
-    have hcat := Reasoning.Refinement.execBlock_append hprefix htail
+    have hcat := execBlock_append hprefix htail
     simpa [flapTransition, flapPrefixToDaiStmts, flapTailStmts,
       flapPostDaiToKickStmts, flapKickAndReturnStmts, nonpayable,
       checkedExternalCallStmts, locals, evm0] using hcat

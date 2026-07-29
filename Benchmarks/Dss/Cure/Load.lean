@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Cure.LoadTrace
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -130,10 +130,10 @@ theorem cureLoadBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
           (ee := I) (key := key) (ret := ⟨484⟩) (R := [sel])
           hafterLive hcanonKey hposSolc solcFreePtrMem_size (by simp)
-        by_cases hnoCodeEvm : uniswapExtCodeSizeWord σ_evm key = ⟨0⟩
-        · have hnoCodeSolm : uniswapExtCodeSizeWord σ_solm key = ⟨0⟩ := by
+        by_cases hnoCodeEvm : extCodeSizeWord σ_evm key = ⟨0⟩
+        · have hnoCodeSolm : extCodeSizeWord σ_solm key = ⟨0⟩ := by
             have hsame :=
-              Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv _hAccounts key
+              Reasoning.Theory.extCodeSizeWord_accountMapEquiv _hAccounts key
             rw [← hsame]
             exact hnoCodeEvm
           let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
@@ -155,12 +155,12 @@ theorem cureLoadBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             (ee := I) (key := key) (ret := ⟨484⟩) (R := [sel])
             hafterPos hcanonKey hnoCodeEvm hposMem hposRead64 (by simp)
           exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
-        · have hcodeSizeEvm : uniswapExtCodeSizeWord σ_evm key ≠ ⟨0⟩ := hnoCodeEvm
-          have hcodeSizeSolm : uniswapExtCodeSizeWord σ_solm key ≠ ⟨0⟩ := by
+        · have hcodeSizeEvm : extCodeSizeWord σ_evm key ≠ ⟨0⟩ := hnoCodeEvm
+          have hcodeSizeSolm : extCodeSizeWord σ_solm key ≠ ⟨0⟩ := by
             intro hzero
             apply hcodeSizeEvm
             have hsame :=
-              Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv _hAccounts key
+              Reasoning.Theory.extCodeSizeWord_accountMapEquiv _hAccounts key
             rw [hsame]
             exact hzero
           have hposMem :

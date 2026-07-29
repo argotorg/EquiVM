@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Flipper.Common
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flipper
 
@@ -412,7 +412,7 @@ theorem flipperCheckedMulRevert {cA σ I} {g : Sat256} {s0 : State}
     raw push2 ⟨6299⟩ (by native_decide) (by evm_ov),
     raw jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
       (by evm_ov)]
-  exact RD.uniswapPush1Dup1Revert0 rd6337
+  exact RD.solcPush1Dup1Revert0 rd6337
     (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
 
 end Benchmarks.Dss.Flipper

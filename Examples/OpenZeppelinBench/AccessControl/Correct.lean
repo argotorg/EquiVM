@@ -5,9 +5,8 @@ import Examples.OpenZeppelinBench.AccessControl.HasRole
 import Examples.OpenZeppelinBench.AccessControl.RenounceRole
 import Examples.OpenZeppelinBench.AccessControl.RevokeRole
 import Examples.OpenZeppelinBench.AccessControl.SupportsInterface
-import Reasoning.Refinement
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -68,7 +67,7 @@ theorem accessControlNoDispatch {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
 
 /-- The deployed AccessControl benchmark runtime bytecode refines the Solm specification. -/
 theorem accessControlCorrect :
-    runtimeEquivalence!?! config accessControlBenchBytecode contract := by
+    runtimeEquivalence config accessControlBenchBytecode contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz : 4 ≤ I.calldata.size

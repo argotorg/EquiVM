@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Flopper.Deal
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -397,7 +397,7 @@ theorem flopperDealX_mintNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
       (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flopperAddressReturnWord ⟨3⟩ σ I) =
+      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨3⟩ σ I) =
         ⟨0⟩)
     (rd3966 : ∃ k C, RD flopperBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨3966⟩
@@ -408,7 +408,7 @@ theorem flopperDealX_mintNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     flopperDealX_readyToMint (g := g) htic hfinished rd3966
   obtain ⟨_, _, rd4253⟩ :=
     flopperDealX_toMintExtcodesizeGuard hmemStart hread64Start rd4159
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨4253⟩) (okPc := ⟨1160⟩) rd4253
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨4253⟩) (okPc := ⟨1160⟩) rd4253
     hnoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -418,7 +418,7 @@ theorem flopperDealX_mintCall
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flopperAddressReturnWord ⟨3⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨3⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
@@ -459,7 +459,7 @@ theorem flopperDealX_mintCall
   obtain ⟨_, _, rd4253⟩ :=
     flopperDealX_toMintExtcodesizeGuard hmemStart hread64Start rd4159
   obtain ⟨gasWord, _, _, rd1163⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4253⟩) (okPc := ⟨1160⟩) rd4253
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4253⟩) (okPc := ⟨1160⟩) rd4253
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -500,7 +500,7 @@ theorem flopperDealX_mintCall
 theorem flopperDealX_mintCallDepthLimit
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flopperAddressReturnWord ⟨3⟩ σ I) ≠
+      Reasoning.Theory.extCodeSizeWord σ (flopperAddressReturnWord ⟨3⟩ σ I) ≠
         ⟨0⟩)
     (hdepth : I.depth = 1024)
     (htic : flopperUint48Offset20Word (auctionPackedSlot (dealIdWord I)) σ I ≠ ⟨0⟩)
@@ -528,7 +528,7 @@ theorem flopperDealX_mintCallDepthLimit
   obtain ⟨_, _, rd4253⟩ :=
     flopperDealX_toMintExtcodesizeGuard hmemStart hread64Start rd4159
   obtain ⟨gasWord, _, _, rd1163⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨4253⟩) (okPc := ⟨1160⟩) rd4253
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨4253⟩) (okPc := ⟨1160⟩) rd4253
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -559,7 +559,7 @@ theorem flopperDealX_mintCallFailure
       mem (UInt256.ofNat 7) out (cA', σ') k C)
     (houtSize : out.size < UInt256.size) :
     RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1164⟩) (okPc := ⟨1180⟩) rd1164
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1164⟩) (okPc := ⟨1180⟩) rd1164
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -733,7 +733,7 @@ theorem flopperDealBodyCoreMintNoCode
       (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ_evm I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (hnoCode :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨3⟩ σ_evm I) = ⟨0⟩)
     (hdispatch : dispatchMsg contract I.calldata = some dealTransition)
     (hdecode :
@@ -769,7 +769,7 @@ theorem flopperDealBodyCoreMintNoCode
         right
         simpa [evmSolm, initState, dealEndWord, dealTimestampWord, hendEq] using h
   have hnoCodeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨3⟩ σ_solm I) = ⟨0⟩ :=
     flopperCodeSize_zero_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hnoCode
   have hbody :
@@ -802,7 +802,7 @@ theorem flopperDealBodyCoreMintCallFailure
       (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ_evm I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨3⟩ σ_evm I) ≠ ⟨0⟩)
     (rd1164 : RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
@@ -882,7 +882,7 @@ theorem flopperDealBodyCoreMintCallFailure
         right
         simpa [evmSolm, initState, dealEndWord, dealTimestampWord, hendEq] using h
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨3⟩ σ_solm I) ≠ ⟨0⟩ :=
     flopperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hcodeSize
   have hbody :
@@ -911,7 +911,7 @@ theorem flopperDealBodyCoreMintCallDepthLimit
       (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ_evm I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨3⟩ σ_evm I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hdispatch : dispatchMsg contract I.calldata = some dealTransition)
@@ -976,7 +976,7 @@ theorem flopperDealBodyCoreMintCallDepthLimit
         right
         simpa [evmSolm, initState, dealEndWord, dealTimestampWord, hendEq] using h
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨3⟩ σ_solm I) ≠ ⟨0⟩ :=
     flopperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hcodeSize
   have hbody :
@@ -1013,7 +1013,7 @@ theorem flopperDealBodyCoreMintCallSuccess
       (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ_evm I).toNat <
         (UInt256.ofNat I.header.timestamp).toNat)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flopperAddressReturnWord ⟨3⟩ σ_evm I) ≠ ⟨0⟩)
     (rd1164 : RD flopperBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1164⟩
@@ -1092,7 +1092,7 @@ theorem flopperDealBodyCoreMintCallSuccess
         right
         simpa [evmSolm, initState, dealEndWord, dealTimestampWord, hendEq] using h
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+      Reasoning.Theory.extCodeSizeWord σ_solm
         (flopperAddressReturnWord ⟨3⟩ σ_solm I) ≠ ⟨0⟩ :=
     flopperCodeSize_ne_accountMapEquiv_addressSlot hAccounts ⟨3⟩ hcodeSize
   have hbody :
@@ -1187,7 +1187,7 @@ theorem flopperDealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ_evm I).toNat <
                 (UInt256.ofNat I.header.timestamp).toNat := Or.inl hticLt
           by_cases hcodeSize :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+              Reasoning.Theory.extCodeSizeWord σ_evm
                 (flopperAddressReturnWord ⟨3⟩ σ_evm I) = ⟨0⟩
           · exact flopperDealBodyCoreMintNoCode hcode hsize hwv hsz36 hlive htic
               hfinished hcodeSize hdispatch hdecode hreach hAccounts
@@ -1275,7 +1275,7 @@ theorem flopperDealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 (flopperUint48Offset26Word (auctionPackedSlot (dealIdWord I)) σ_evm I).toNat <
                   (UInt256.ofNat I.header.timestamp).toNat := Or.inr hendLt
             by_cases hcodeSize :
-                Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+                Reasoning.Theory.extCodeSizeWord σ_evm
                   (flopperAddressReturnWord ⟨3⟩ σ_evm I) = ⟨0⟩
             · exact flopperDealBodyCoreMintNoCode hcode hsize hwv hsz36 hlive htic
                 hfinished hcodeSize hdispatch hdecode hreach hAccounts

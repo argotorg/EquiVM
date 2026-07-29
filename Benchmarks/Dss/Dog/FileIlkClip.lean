@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Dog.FileIlkUint
 import Reasoning.ExternalCall
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Dog.Immutables
 
 set_option maxHeartbeats 0
@@ -758,10 +758,10 @@ theorem fileIlkClipClip_eq_clipKey (I : ExecutionEnv) :
 theorem fileIlkClipCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (fileIlkClipClipKey I) = ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (fileIlkClipClipKey I) = ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) = ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (fileIlkClipClipKey I) = ⟨0⟩ := by
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (fileIlkClipClipKey I)
   rw [← hsame]
   exact hzero
@@ -769,24 +769,24 @@ theorem fileIlkClipCodeSize_zero_accountMapEquiv {σ τ : AccountMap} {I : Execu
 theorem fileIlkClipCodeSize_ne_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ)
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (fileIlkClipClipKey I) ≠ ⟨0⟩) :
-    Reasoning.Theory.uniswapExtCodeSizeWord τ (fileIlkClipClipKey I) ≠ ⟨0⟩ := by
+      Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) ≠ ⟨0⟩) :
+    Reasoning.Theory.extCodeSizeWord τ (fileIlkClipClipKey I) ≠ ⟨0⟩ := by
   intro hzero
   apply hne
   have hsame :=
-    Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hAccounts
+    Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts
       (fileIlkClipClipKey I)
   rw [hsame]
   exact hzero
 
 theorem fileIlkClipCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
     (hzero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (fileIlkClipClipKey I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) = ⟨0⟩) :
     (UInt256.ofNat
       (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   rw [fileIlkClipClip_eq_clipKey I]
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hzero
+  unfold Reasoning.Theory.extCodeSizeWord at hzero
   cases hacc : σ.find? (AccountAddress.ofUInt256 (fileIlkClipClipKey I)) with
   | none =>
       simpa [initState, State.lookupAccount, hacc, Option.option] using
@@ -797,12 +797,12 @@ theorem fileIlkClipCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt2
 
 theorem fileIlkClipCode_pos_of_codeSize_ne {cA gh bl σ σ₀ A I} {g : UInt256}
     (hne :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (fileIlkClipClipKey I) ≠ ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat
       (((initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I).lookupAccount
         (fileIlkClipClip I)).option 0 (fun acc => acc.code.size))).toNat := by
   rw [fileIlkClipClip_eq_clipKey I]
-  unfold Reasoning.Theory.uniswapExtCodeSizeWord at hne
+  unfold Reasoning.Theory.extCodeSizeWord at hne
   cases hacc : σ.find? (AccountAddress.ofUInt256 (fileIlkClipClipKey I)) with
   | none =>
       exfalso
@@ -2084,12 +2084,12 @@ theorem RD.dogFileIlkClipNoCodeRevert {v : DogImmutables} {code : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (fileIlkClipClipKey ee) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey ee) = ⟨0⟩)
     (hov : R.length + 18 ≤ 1024) :
     RDrev code g s0 := by
   obtain ⟨_, _, rd2566⟩ :=
     RD.dogFileIlkClipToExtcodesize hpatch h hmatch hmem hread64 hov
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨2566⟩) (okPc := ⟨2578⟩)
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨2566⟩) (okPc := ⟨2578⟩)
     rd2566 hcodeSize
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -2133,7 +2133,7 @@ theorem RD.dogFileIlkClipToStaticcall {v : DogImmutables} {code : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (fileIlkClipClipKey ee) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey ee) ≠ ⟨0⟩)
     (hov : R.length + 18 ≤ 1024) :
     ∃ gasWord k' C', RD code ee g s0 ⟨2581⟩
       (gasWord :: fileIlkClipClipKey ee :: ⟨128⟩ :: ⟨4⟩ :: ⟨128⟩ :: ⟨32⟩ ::
@@ -2143,7 +2143,7 @@ theorem RD.dogFileIlkClipToStaticcall {v : DogImmutables} {code : ByteArray}
   obtain ⟨_, _, rd2566⟩ :=
     RD.dogFileIlkClipToExtcodesize hpatch h hmatch hmem hread64 hov
   obtain ⟨gasWord, k', C', rd2581⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨2566⟩) (okPc := ⟨2578⟩)
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨2566⟩) (okPc := ⟨2578⟩)
       rd2566 hcodeSize
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -2188,7 +2188,7 @@ theorem RD.dogFileIlkClipPostStaticcall {v : DogImmutables} {code : ByteArray}
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (fileIlkClipClipKey I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hov : R.length + 18 ≤ 1024) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
@@ -2208,7 +2208,7 @@ theorem RD.dogFileIlkClipPostStaticcall {v : DogImmutables} {code : ByteArray}
   obtain ⟨_, _, _, rd2581⟩ :=
     RD.dogFileIlkClipToStaticcall hpatch h hmatch hmem hread64 hcodeSize hov
   obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘpack, rd2582raw, hosz⟩ :=
-    RD.uniswapStaticcall rd2581
+    RD.solcStaticcall rd2581
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
         native_decide)
@@ -2272,7 +2272,7 @@ theorem RD.dogFileIlkClipCallFailure {v : DogImmutables} {code : ByteArray}
     (hrdataSize : rdata.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
     RDrev code g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨2582⟩) (okPc := ⟨2598⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨2582⟩) (okPc := ⟨2598⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -2324,14 +2324,14 @@ theorem RD.dogFileIlkClipStaticcallDepthLimitRevert {v : DogImmutables} {code : 
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (fileIlkClipClipKey I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (fileIlkClipClipKey I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024)
     (hov : R.length + 18 ≤ 1024) :
     RDrev code g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, _, rd2581⟩ :=
     RD.dogFileIlkClipToStaticcall hpatch h hmatch hmem hread64 hcodeSize hov
   obtain ⟨_, _, rd2582raw⟩ :=
-    RD.uniswapStaticcallDepthLimit rd2581
+    RD.solcStaticcallDepthLimit rd2581
       (by
         rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
         native_decide)
@@ -2367,7 +2367,7 @@ theorem RD.dogFileIlkClipCallSuccessToDecode {v : DogImmutables} {code : ByteArr
     ∃ k' C', RD code ee g s0 ⟨2600⟩
       (d0 :: d1 :: d2 :: d3 :: d4 :: d5 :: ret :: sel :: R)
       mem aw out acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (pc := ⟨2582⟩) (okPc := ⟨2598⟩) rd
+  exact RD.solcCallSuccessGuardOk (pc := ⟨2582⟩) (okPc := ⟨2598⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by
       rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
@@ -3054,7 +3054,7 @@ theorem RD.dogFileIlkClipStoreLog {v : DogImmutables} {code : ByteArray}
     raw and
       (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
       (by evm_ov),
-    raw lor
+    raw or
       (by rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
       (by evm_ov),
     raw swap1
@@ -3261,12 +3261,12 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
           fileIlkClipWhatWord I = ABI.bytesToWord fileIlkClipClipBytes :=
         fileIlkClipWhatWord_eq_of_bytes_eq (by omega) hwhatClip
       by_cases hcodeSize :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (fileIlkClipClipKey I) = ⟨0⟩
+          Reasoning.Theory.extCodeSizeWord σ_evm (fileIlkClipClipKey I) = ⟨0⟩
       · have hrev := RD.dogFileIlkClipNoCodeRevert
           (v := v) (code := code) (ret := ⟨313⟩) (sel := sel) (R := [])
           hpatch hswitch hwordClip hmemAuth hread64Auth hcodeSize (by simp)
         have hcodeSizeSolm :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (fileIlkClipClipKey I) = ⟨0⟩ :=
+            Reasoning.Theory.extCodeSizeWord σ_solm (fileIlkClipClipKey I) = ⟨0⟩ :=
           fileIlkClipCodeSize_zero_accountMapEquiv hAccounts hcodeSize
         have hclipNoCode :
             (UInt256.ofNat
@@ -3284,11 +3284,11 @@ theorem dogFileIlkClipBodyCoreOk {v : DogImmutables} {code : ByteArray}
               hwv hauthSolm hwhatClip hclipNoCode)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hcodeSizeNe :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (fileIlkClipClipKey I) ≠
+            Reasoning.Theory.extCodeSizeWord σ_evm (fileIlkClipClipKey I) ≠
               ⟨0⟩ :=
           hcodeSize
         have hcodeSizeSolmNe :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (fileIlkClipClipKey I) ≠
+            Reasoning.Theory.extCodeSizeWord σ_solm (fileIlkClipClipKey I) ≠
               ⟨0⟩ :=
           fileIlkClipCodeSize_ne_accountMapEquiv hAccounts hcodeSizeNe
         have hclipCode :

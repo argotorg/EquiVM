@@ -7,7 +7,7 @@ import Benchmarks.Dss.Flipper.CommonRoutines
 Shared runtime-dispatch obligations for the optimized Flipper bytecode.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -232,7 +232,7 @@ theorem flipperX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
     |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 /-- `callvalue ≠ 0` makes the global non-payable guard revert before dispatch. -/
@@ -744,7 +744,7 @@ theorem flipperJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UI
     (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h289 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h289 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem flipperLowHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -829,7 +829,7 @@ theorem flipperHighLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : 
     |>.selectorArmNotTakenAuto (flipperHighLowArmsWellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h289 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h289 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem flipperX_short {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -852,7 +852,7 @@ theorem flipperX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h289 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h289 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length]; omega)
 
 theorem flipperX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}

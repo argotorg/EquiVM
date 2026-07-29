@@ -10,7 +10,7 @@ JUMPDEST gt; POP` — the peel lemmas below are the per-function analogues of th
 `solcGuardCallvalueZero` / `solcGuardCallvalueNonzeroRevert`.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000
@@ -74,7 +74,7 @@ theorem weth9GuardPeelRev {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s
     |>.iszero hd3 (by simp)
     |>.pushConst gt (op := .PUSH2) (width := 2) (by simp) hd4 (by simp)
     |>.jumpiNT hd7 hcond (by simp)
-    |>.uniswapPush1Dup1Revert0 hd8 hd10 hd11 (by simp)
+    |>.solcPush1Dup1Revert0 hd8 hd10 hd11 (by simp)
 
 /-- Combined nested-mapping getter (chains the library inner-hash / outer-hash / load-and-jump).
     LIBRARY CANDIDATE: `Reasoning.Solc` — the nested analogue of `RD.solcSingleMappingGetter`. -/

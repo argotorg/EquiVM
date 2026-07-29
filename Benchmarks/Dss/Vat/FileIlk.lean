@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Vat.FileLine
 import Benchmarks.Dss.Vat.Ilks
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 50000000
 set_option maxHeartbeats 1000000

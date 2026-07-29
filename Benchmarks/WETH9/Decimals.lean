@@ -6,7 +6,7 @@ import Benchmarks.WETH9.Routines
 `decimals` is a public non-payable uint8 getter reading storage slot 2 (masked with `0xff`).
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000

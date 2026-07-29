@@ -2,7 +2,7 @@ import Benchmarks.Dss.Cat.FileIlkFlipCalls2
 import Benchmarks.Dss.Cat.BiteSource
 import Solm.Equiv
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 400000
@@ -226,14 +226,14 @@ theorem fifVatGuardFalse {evm : EVM.State} {locals : Store}
   simp [evalExpr?, EvalResult.bind, bind, biteVatRead hbase, evalBinaryOp?, EVM.Word.ofNat, hcode]
 
 theorem fifExtCodeSizeWord_eq (σ : AccountMap) (target : UInt256) :
-    uniswapExtCodeSizeWord σ target =
+    extCodeSizeWord σ target =
       UInt256.ofNat ((σ.find? (AccountAddress.ofUInt256 target)).option 0
         (fun acc => acc.code.size)) := by
-  unfold uniswapExtCodeSizeWord
+  unfold extCodeSizeWord
   cases σ.find? (AccountAddress.ofUInt256 target) <;> rfl
 
 theorem fifVatCodeZero {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hzero : uniswapExtCodeSizeWord σ (fifVatM σ I) = ⟨0⟩) :
+    (hzero : extCodeSizeWord σ (fifVatM σ I) = ⟨0⟩) :
     (UInt256.ofNat (((initState cA gh bl σ σ₀ g A I).lookupAccount
       (biteVatAddr (initState cA gh bl σ σ₀ g A I))).option 0 (fun acc => acc.code.size))).toNat = 0 := by
   rw [show (initState cA gh bl σ σ₀ g A I).lookupAccount
@@ -243,7 +243,7 @@ theorem fifVatCodeZero {cA gh bl σ σ₀ A I} {g : Sat256}
   rw [← fifExtCodeSizeWord_eq, hzero]; rfl
 
 theorem fifVatCodePos {cA gh bl σ σ₀ A I} {g : Sat256}
-    (hne : uniswapExtCodeSizeWord σ (fifVatM σ I) ≠ ⟨0⟩) :
+    (hne : extCodeSizeWord σ (fifVatM σ I) ≠ ⟨0⟩) :
     0 < (UInt256.ofNat (((initState cA gh bl σ σ₀ g A I).lookupAccount
       (biteVatAddr (initState cA gh bl σ σ₀ g A I))).option 0 (fun acc => acc.code.size))).toNat := by
   rw [show (initState cA gh bl σ σ₀ g A I).lookupAccount
@@ -256,7 +256,7 @@ theorem fifVatCodePos {cA gh bl σ σ₀ A I} {g : Sat256}
 
 theorem fifVatCodeZeroGen {evm : EVM.State} {target : UInt256}
     (haddr : biteVatAddr evm = AccountAddress.ofUInt256 target)
-    (hzero : uniswapExtCodeSizeWord evm.accountMap target = ⟨0⟩) :
+    (hzero : extCodeSizeWord evm.accountMap target = ⟨0⟩) :
     (UInt256.ofNat ((evm.lookupAccount (biteVatAddr evm)).option 0
       (fun acc => acc.code.size))).toNat = 0 := by
   rw [haddr, show evm.lookupAccount (AccountAddress.ofUInt256 target) =
@@ -265,7 +265,7 @@ theorem fifVatCodeZeroGen {evm : EVM.State} {target : UInt256}
 
 theorem fifVatCodePosGen {evm : EVM.State} {target : UInt256}
     (haddr : biteVatAddr evm = AccountAddress.ofUInt256 target)
-    (hne : uniswapExtCodeSizeWord evm.accountMap target ≠ ⟨0⟩) :
+    (hne : extCodeSizeWord evm.accountMap target ≠ ⟨0⟩) :
     0 < (UInt256.ofNat ((evm.lookupAccount (biteVatAddr evm)).option 0
       (fun acc => acc.code.size))).toNat := by
   rw [haddr, show evm.lookupAccount (AccountAddress.ofUInt256 target) =
@@ -309,9 +309,9 @@ theorem RD.catFileIlkFlipHopeNoCodeGen {cA gh bl σ σ₀ A I} {g : Sat256} {fli
         ⟨2746363844⟩ :: fifVat2M σ' I :: flip :: fileIlkFlipWhatWord I :: fileIlkFlipIlkWord I ::
         ret :: sel :: [])
       (fifHopeCdMem mem (UInt256.land flip solcAddrMask)) (UInt256.ofNat 6) rdata (cA', σ') k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ' (fifVat2M σ' I) = ⟨0⟩) :
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ' (fifVat2M σ' I) = ⟨0⟩) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3679⟩) (okPc := ⟨3691⟩) rd hcodeSize
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3679⟩) (okPc := ⟨3691⟩) rd hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by simp)
@@ -324,7 +324,7 @@ theorem RD.catFileIlkFlipHopePostCallGen {cA gh bl σ σ₀ A I} {g : Sat256} {f
         ret :: sel :: [])
       (fifHopeCdMem mem (UInt256.land flip solcAddrMask)) (UInt256.ofNat 6) rdata (cA', σ') k C)
     (hmem : mem.size = 164)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ' (fifVat2M σ' I) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ' (fifVat2M σ' I) ≠ ⟨0⟩)
     (hdepth : I.depth.val < 1024)
     (hperm : I.perm = true) :
     ∃ (cA'' : Batteries.RBSet AccountAddress compare) (σ'' : AccountMap) (z : Bool)
@@ -341,7 +341,7 @@ theorem RD.catFileIlkFlipHopePostCallGen {cA gh bl σ σ₀ A I} {g : Sat256} {f
               accountMap := σ'', substate := A'', createdAccounts := cA'' }, out) true
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd3694⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3679⟩) (okPc := ⟨3691⟩) rd hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3679⟩) (okPc := ⟨3691⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp)
@@ -384,11 +384,11 @@ theorem RD.catFileIlkFlipNopeDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256} {fl
         ⟨3696042234⟩ :: fifVatM σ I :: flip :: fileIlkFlipWhatWord I :: fileIlkFlipIlkWord I ::
         ret :: sel :: [])
       (fifNopeCdMem I (fifNopeArg σ I)) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k C)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord σ (fifVatM σ I) ≠ ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (fifVatM σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = 1024) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨gasWord, k1, C1, rd3561⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3546⟩) (okPc := ⟨3558⟩) rd hcodeSize
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3546⟩) (okPc := ⟨3558⟩) rd hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
       (by native_decide) (by native_decide) (by simp)
@@ -943,20 +943,20 @@ theorem catFileIlkFlipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       have hVat3 : solcSlotWord σ_evm I ⟨3⟩ = solcSlotWord σ_solm I ⟨3⟩ :=
         accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨3⟩ ⟨0⟩
       have hVatM : fifVatM σ_evm I = fifVatM σ_solm I := by unfold fifVatM; rw [hVat3]
-      have hcodeEq : uniswapExtCodeSizeWord σ_evm (fifVatM σ_evm I) =
-          uniswapExtCodeSizeWord σ_solm (fifVatM σ_solm I) :=
-        (uniswapExtCodeSizeWord_accountMapEquiv hAccounts (fifVatM σ_evm I)).trans
-          (congrArg (uniswapExtCodeSizeWord σ_solm) hVatM)
-      by_cases hcodeNope : uniswapExtCodeSizeWord σ_evm (fifVatM σ_evm I) = ⟨0⟩
+      have hcodeEq : extCodeSizeWord σ_evm (fifVatM σ_evm I) =
+          extCodeSizeWord σ_solm (fifVatM σ_solm I) :=
+        (extCodeSizeWord_accountMapEquiv hAccounts (fifVatM σ_evm I)).trans
+          (congrArg (extCodeSizeWord σ_solm) hVatM)
+      by_cases hcodeNope : extCodeSizeWord σ_evm (fifVatM σ_evm I) = ⟨0⟩
       · -- vat has no code → both sides revert at the nope guard
-        have hcodeSolm : uniswapExtCodeSizeWord σ_solm (fifVatM σ_solm I) = ⟨0⟩ :=
+        have hcodeSolm : extCodeSizeWord σ_solm (fifVatM σ_solm I) = ⟨0⟩ :=
           hcodeEq.symm.trans hcodeNope
         exact (RD.catFileIlkFlipNopeNoCode rd3546 hcodeNope).reEquivExecutionRevert
           hcode hdispatch hdecode
           (fileIlkFlipNopeNoCodeSource (σ := σ_solm) hwv hauthSolm hflip
             (fifVatCodeZero hcodeSolm))
       · -- vat has code
-        have hcodeSolmNe : uniswapExtCodeSizeWord σ_solm (fifVatM σ_solm I) ≠ ⟨0⟩ :=
+        have hcodeSolmNe : extCodeSizeWord σ_solm (fifVatM σ_solm I) ≠ ⟨0⟩ :=
           fun h => hcodeNope (hcodeEq.trans h)
         have hIlksAgree :
             solcSlotWord σ_evm I (solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord I)) =
@@ -1067,9 +1067,9 @@ theorem catFileIlkFlipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 solcSlotWord σStore I ⟨3⟩ = solcSlotWord evmStoreSolm.accountMap I ⟨3⟩ :=
               accountMapEquiv_storage_findD hAccountsStore I.codeOwner ⟨3⟩ ⟨0⟩
             have hHopeCode :
-                uniswapExtCodeSizeWord evmStoreSolm.accountMap (fifVat2M σStore I) =
-                  uniswapExtCodeSizeWord σStore (fifVat2M σStore I) :=
-              (uniswapExtCodeSizeWord_accountMapEquiv hAccountsStore (fifVat2M σStore I)).symm
+                extCodeSizeWord evmStoreSolm.accountMap (fifVat2M σStore I) =
+                  extCodeSizeWord σStore (fifVat2M σStore I) :=
+              (extCodeSizeWord_accountMapEquiv hAccountsStore (fifVat2M σStore I)).symm
             have hHopeTarget :
                 biteVatAddr evmStoreSolm = AccountAddress.ofUInt256 (fifVat2M σStore I) := by
               have hinner :
@@ -1085,7 +1085,7 @@ theorem catFileIlkFlipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 solcAddrMask).toNat = AccountAddress.ofNat (fifVat2M σStore I).toNat
               rw [hinner]
             rw [← hVatAddrBridge, ← hNopeArgCoupling] at hcallNope_solm
-            by_cases hcodeHope : uniswapExtCodeSizeWord σStore (fifVat2M σStore I) = ⟨0⟩
+            by_cases hcodeHope : extCodeSizeWord σStore (fifVat2M σStore I) = ⟨0⟩
             · -- vat has no code at the hope call → both sides revert at the hope guard
               exact (RD.catFileIlkFlipHopeNoCodeGen rd3679 hcodeHope).reEquivExecutionRevert
                 hcode hdispatch hdecode
@@ -1095,7 +1095,7 @@ theorem catFileIlkFlipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             · obtain ⟨cA'', σ'', z2, out2, A'', k2, C2, rd3695, hcallHope_evm, hout2sz⟩ :=
                 RD.catFileIlkFlipHopePostCallGen rd3679 hStoreMem164 hcodeHope hdepth hperm
               have hcodeStoreSolmNe :
-                  uniswapExtCodeSizeWord evmStoreSolm.accountMap (fifVat2M σStore I) ≠ ⟨0⟩ :=
+                  extCodeSizeWord evmStoreSolm.accountMap (fifVat2M σStore I) ≠ ⟨0⟩ :=
                 fun h => hcodeHope (hHopeCode.symm.trans h)
               -- bridge the EVM hope CALL target/arg to the Solm-source forms
               have hcanon2 : (fifVat2M σStore I).toNat < EVM.addressModulus := by

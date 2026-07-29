@@ -7,13 +7,22 @@ import Ethereum.Theory.StaticStorage
 import Ethereum.Theory.StorageExtensionality
 
 /-!
-# Storage — ordered-map (`Batteries.RBMap`) facts for EVM storage maps
+# Storage — EVM storage maps, Solidity storage layout, and account-map equivalences
 
-Generic lookup/update facts for the red-black-tree maps that back EVM storage (`Storage`) and the
-account map (`AccountMap`), independent of any contract or keccak layout: a write at one slot
-preserves lookup at a different slot.  The `RBNode`/`RBMap` `find?_erase_ne` machinery fills the gap
-left by `Batteries` (which ships `find?_insert_of_ne` but no erase analogue).  The `UInt256`
-`compare` instances these rely on live in `Reasoning.EVMWord`.
+Contract-agnostic layers, bottom up:
+
+- **Ordered-map (`Batteries.RBMap`) facts** for the red-black-tree maps that back EVM storage
+  (`Storage`) and the account map (`AccountMap`): a write at one slot preserves lookup at a
+  different slot.  The `RBNode`/`RBMap` `find?_erase_ne` machinery fills the gap left by
+  `Batteries` (which ships `find?_insert_of_ne` but no erase analogue).
+- **`StorageLoc` load/store facts** for the Solidity value encodings: full-slot uint256/bytes32,
+  packed unsigned integers, addresses at byte offsets 0/1, packed bools.
+- **The Solidity bytes/string storage layout**: writing, reading, deleting, and clearing the
+  length slot and the keccak-addressed data words.
+- **`accountMapEquiv` / `EVMStateEquiv`**: account-map equivalence up to storage representation,
+  with preservation lemmas for `SLOAD`/`SSTORE` and code-size reads used by the refinement proofs.
+
+The `UInt256` `compare` instances these rely on live in `Reasoning.EVMWord`.
 -/
 
 open Ethereum Ethereum.EVM Solm
@@ -227,27 +236,6 @@ theorem storageLocStore_int_some (evm : EVM.State) (loc : StorageLoc) (n : Int) 
   exact ⟨_, rfl⟩
 
 /-! ## Solidity bytes/string storage layout -/
-
-theorem uInt256_shiftRight_zero_left (s : UInt256) :
-    UInt256.shiftRight (⟨0⟩ : UInt256) s = ⟨0⟩ := by
-  cases s with
-  | mk val =>
-    unfold UInt256.shiftRight
-    simp
-    intro _
-    apply Fin.ext
-    rw [Fin.shiftRight_val]
-    simp [Nat.zero_shiftRight]
-
-theorem fromBytes'_zero_take1_wordLE :
-    fromBytes' ((EVM.Word.toBytesLEWithSizeProof (⟨0⟩ : UInt256)).1.take 1) = 0 := by
-  native_decide
-
-theorem storageLocLoad_bytesLikeLengthLoc_zero {evm : EVM.State} {base : UInt256}
-    (hload : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner base = ⟨0⟩) :
-    storageLocLoad evm (bytesLikeLengthLoc base evm) = .int 0 := by
-  unfold bytesLikeLengthLoc checkBytesPacked storageLocLoad wordToElem
-  simp [hload, fromBytes'_zero_take1_wordLE, uInt256_shiftRight_zero_left]
 
 theorem solidityDecodeBytesLengthHeader_zero :
     solidityDecodeBytesLengthHeader ⟨0⟩ = .ok 0 := by
@@ -483,9 +471,6 @@ theorem storageLocStore_address_offset0 (evm : EVM.State)
   ring
 
 /-! ## Solidity address storage at byte offset 1 -/
-
-def addressOffset1Loc (slot : UInt256) : StorageLoc :=
-  { slot := slot, offset := 1, size := 20, hbound := by decide, type := .address }
 
 theorem storageLocLoad_address_offset1 (evm : EVM.State) (slot : UInt256)
     {hbound : (1 : Fin 32).val + (20 : Fin 33).val - 1 < 32} :
@@ -1278,13 +1263,6 @@ theorem storage_find?_update_insert_self (storage : Storage)
     · simp only [hzero, if_false]
       rw [storage_find?_insert_insert_self]
 
-/-- Account lookup after two same-address writes is the same as after the final write. -/
-theorem accountMap_find?_insert_insert_self (σ : AccountMap)
-    (write read : AccountAddress) (acc1 acc2 : Account) :
-    ((σ.insert write acc1).insert write acc2).find? read =
-      (σ.insert write acc2).find? read :=
-  rbmap_find?_insert_insert_self σ write read acc1 acc2
-
 /-- Inserting one account preserves lookup at a different address. -/
 theorem accountMap_find?_insert_ne (σ : AccountMap) (read write : AccountAddress)
     (acc : Account) (hne : read ≠ write) :
@@ -1375,10 +1353,10 @@ theorem accountMapEquiv_code_size_word {σ τ : AccountMap}
     simp [hσ, hτ, Option.option] at hστ ⊢
   exact congrArg (fun code => EVM.Word.ofNat code.size) hστ.2.2.1
 
-theorem uniswapExtCodeSizeWord_accountMapEquiv {σ τ : AccountMap}
+theorem extCodeSizeWord_accountMapEquiv {σ τ : AccountMap}
     (hστ : accountMapEquiv σ τ) (target : UInt256) :
-    uniswapExtCodeSizeWord σ target = uniswapExtCodeSizeWord τ target := by
-  simpa [uniswapExtCodeSizeWord] using
+    extCodeSizeWord σ target = extCodeSizeWord τ target := by
+  simpa [extCodeSizeWord] using
     accountMapEquiv_code_size_word hστ (AccountAddress.ofUInt256 target)
 
 theorem accountStorageStateEq_storage_findD {σ τ : AccountMap}
@@ -2347,16 +2325,6 @@ theorem storageStore_codeOwner {evm₁ evm₂ : EVM.State} (h : EVMStateEquiv ev
   h.storageStore (congrArg ExecutionEnv.codeOwner h.executionEnv) slot hval
 
 end EVMStateEquiv
-
-theorem storageLoad_storageStore_accountMapEquiv {evm1 evm2 : EVM.State}
-    (hAccounts : accountMapEquiv evm1.accountMap evm2.accountMap)
-    (addr : AccountAddress) (writeSlot val1 val2 readSlot : UInt256)
-    (hval : val1 = val2) :
-    Solm.EVM.storageLoad (Solm.EVM.storageStore evm1 addr writeSlot val1) addr readSlot =
-      Solm.EVM.storageLoad (Solm.EVM.storageStore evm2 addr writeSlot val2) addr readSlot := by
-  subst val2
-  exact storageLoad_accountMapEquiv
-    (storageStore_accountMapEquiv hAccounts addr writeSlot val1) addr readSlot
 
 theorem accountMapEquiv_sstoreAccountMap_two {σ τ : AccountMap}
     (a1 a2 : AccountAddress) (slot1 val1 slot2 val2 : UInt256)

@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Vow.FlopAsh
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -1423,7 +1423,7 @@ theorem vowFlopKickNoCodeBodyCore
           0 (fun acc => acc.code.size))).toNat = 0)
     (hflopperNoCodeEvm :
       let σAsh := sstoreAccountMap I.codeOwner acc.2 ⟨6⟩ AshNew
-      Reasoning.Theory.uniswapExtCodeSizeWord σAsh
+      Reasoning.Theory.extCodeSizeWord σAsh
         (vowAddressReturnWord ⟨3⟩ σAsh I) = ⟨0⟩) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   let memDai := outDai.write 0 (vatDaiCalldataMem I mem) 128 32

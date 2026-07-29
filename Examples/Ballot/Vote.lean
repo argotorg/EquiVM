@@ -1,10 +1,9 @@
 import Examples.Ballot.Common
 import Examples.Ballot.Proposals
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Mathlib.Data.Nat.Bitwise
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 1000000
@@ -1221,7 +1220,7 @@ theorem ballotVoteX_afterSenderStores {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
   have rd593 := evm_run rd586 with [jumpdest, push1 ⟨1⟩, dup2, dup2, add, dup1]
   obtain ⟨_, _, rd594⟩ := rd593.sload (by decide) (by evm_ov)
   have rd600 := evm_run rd594 with [push1 ⟨255⟩, not, and, swap1, swap2]
-  have rd601 := RD.lor rd600 (by decide) (by evm_ov)
+  have rd601 := RD.or rd600 (by decide) (by evm_ov)
   have rd602 := evm_run rd601 with [swap1]
   obtain ⟨_, _, rd603⟩ := rd602.sstore hperm (by decide) (by evm_ov)
   have rd610 := evm_run rd603 with [push1 ⟨2⟩, dup1, dup3, add, dup4, swap1]

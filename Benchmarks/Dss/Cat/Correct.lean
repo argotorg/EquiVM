@@ -15,7 +15,6 @@ import Benchmarks.Dss.Cat.Rely
 import Benchmarks.Dss.Cat.Vat
 import Benchmarks.Dss.Cat.Vow
 import Benchmarks.Dss.Cat.Wards
-import Reasoning.Refinement
 import Solm.Equiv
 
 /-!
@@ -26,7 +25,7 @@ refinement lemma, and handles the shared revert paths (non-payable guard, short 
 selector). The whole-contract wrapper combines the constructor and runtime targets.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -115,8 +114,8 @@ theorem catNoSelectorMatches {I : ExecutionEnv}
   · simpa [catSelBytes, selIs] using hwards
 
 theorem catCorrect :
-    runtimeEquivalence!?! config catBytecode contract := by
-  refine runtimeEquivalence!?!.intro ?_
+    runtimeEquivalence config catBytecode contract := by
+  refine runtimeEquivalence.intro ?_
   intro cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hbite : selIs I ⟨#[0x45, 0xcf, 0x22, 0x30]⟩

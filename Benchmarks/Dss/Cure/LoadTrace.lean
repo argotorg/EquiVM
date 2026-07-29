@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Cure.LoadSource
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -362,14 +362,14 @@ theorem RD.cureLoadNoCodeRevert {g : Sat256} {s0 : State}
     (h : RD cureBytecode ee g s0 ⟨1520⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
         rdata (cA, σ) k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
-    (hnoCode : uniswapExtCodeSizeWord σ key = ⟨0⟩)
+    (hnoCode : extCodeSizeWord σ key = ⟨0⟩)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 16 ≤ 1024) :
     RDrev cureBytecode g s0 := by
   obtain ⟨Rext, _, _, _hRext, hRextLen, rd1586⟩ :=
     RD.cureLoadToCureExtcodesizeGuard h hcanonKey hmem hread64 hov
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨1586⟩) (okPc := ⟨1598⟩) rd1586
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨1586⟩) (okPc := ⟨1598⟩) rd1586
     hnoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -381,7 +381,7 @@ theorem RD.cureLoadStaticcallSetup {g : Sat256} {s0 : State}
     (h : RD cureBytecode ee g s0 ⟨1520⟩ (key :: ret :: R) mem (UInt256.ofNat 3)
         rdata (cA, σ) k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
-    (hcodeSize : uniswapExtCodeSizeWord σ key ≠ ⟨0⟩)
+    (hcodeSize : extCodeSizeWord σ key ≠ ⟨0⟩)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hov : R.length + 16 ≤ 1024) :
@@ -395,7 +395,7 @@ theorem RD.cureLoadStaticcallSetup {g : Sat256} {s0 : State}
   obtain ⟨Rext, _, _, hRext, hRextLen, rd1586⟩ :=
     RD.cureLoadToCureExtcodesizeGuard h hcanonKey hmem hread64 hov
   obtain ⟨gasWord, k1601, C1601, rd1601⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨1586⟩) (okPc := ⟨1598⟩) rd1586
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨1586⟩) (okPc := ⟨1598⟩) rd1586
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -411,7 +411,7 @@ theorem RD.cureLoadStaticcall
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1520⟩
         (key :: ret :: R) mem (UInt256.ofNat 3) rdata (cA_call, σCall) k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
-    (hcodeSize : uniswapExtCodeSizeWord σCall key ≠ ⟨0⟩)
+    (hcodeSize : extCodeSizeWord σCall key ≠ ⟨0⟩)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hdepth : I.depth.val < 1024)
@@ -442,7 +442,7 @@ theorem RD.cureLoadStaticcall
     RD.cureLoadStaticcallSetup h hcanonKey hcodeSize hmem hread64 hov
   obtain ⟨cA', σ', z, out, A_in, callGas, k1602, C1602, hΘpack,
       rd1602raw, houtsz⟩ :=
-    RD.uniswapStaticcall rd1601 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcall rd1601 (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   let evmIn := { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σCall
@@ -484,7 +484,7 @@ theorem RD.cureLoadStaticcallDepthLimit
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1520⟩
         (key :: ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k C)
     (hcanonKey : key.toNat < EVM.addressModulus)
-    (hcodeSize : uniswapExtCodeSizeWord σ key ≠ ⟨0⟩)
+    (hcodeSize : extCodeSizeWord σ key ≠ ⟨0⟩)
     (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hdepth : I.depth = 1024)
@@ -500,7 +500,7 @@ theorem RD.cureLoadStaticcallDepthLimit
   obtain ⟨_, _, _, rd1601⟩ :=
     RD.cureLoadStaticcallSetup h hcanonKey hcodeSize hmem hread64 hov
   obtain ⟨k1602, C1602, rd1602raw⟩ :=
-    RD.uniswapStaticcallDepthLimit rd1601 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcallDepthLimit rd1601 (by native_decide) hdepth (by evm_ov)
   have haw :
       UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 5).toNat
         (⟨128⟩ : UInt256).toNat
@@ -516,7 +516,7 @@ theorem RD.cureLoadCallFailure {g : Sat256} {s0 : State}
     (hosz : o.size < UInt256.size)
     (hov : rest.length + 5 ≤ 1024) :
     RDrev cureBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨1602⟩) (okPc := ⟨1618⟩) rd
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨1602⟩) (okPc := ⟨1618⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -533,7 +533,7 @@ theorem RD.cureLoadCallSuccessToReturnDecode {g : Sat256} {s0 : State}
     ∃ k' C', RD cureBytecode ee g s0 ⟨1623⟩
       (d3 :: d4 :: d5 :: d6 :: R) mem aw o acc k' C' := by
   obtain ⟨_, _, rd1620⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨1602⟩) (okPc := ⟨1618⟩) rd
+    RD.solcCallSuccessGuardOk (pc := ⟨1602⟩) (okPc := ⟨1618⟩) rd
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -583,7 +583,7 @@ theorem RD.cureLoadReturnDecodeShortReverts {g : Sat256} {s0 : State}
     decide
   have rdFallthrough := RD.jumpiNT rdPushOk (by native_decide) hcond
     (by simp only [List.length_cons]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough
+  exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by native_decide) (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 

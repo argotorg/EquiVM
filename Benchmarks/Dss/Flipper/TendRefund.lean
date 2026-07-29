@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Flipper.TendSameCaller
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
 
@@ -1774,13 +1774,13 @@ theorem flipperTendX_refundNoCode {cA σ I} {g : Sat256} {s0 : State}
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcaller : solcSourceWord I ≠ bidGuyWord (tendId I) σ I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨3486⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd3616⟩ := flipperTendX_toRefundExtcodesizeGuard
     hmemSize hmemRead64 hcaller h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3616⟩) (okPc := ⟨3628⟩) rd3616
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3616⟩) (okPc := ⟨3628⟩) rd3616
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1792,7 +1792,7 @@ theorem flipperTendX_toRefundCall {cA σ I} {g : Sat256} {s0 : State}
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcaller : solcSourceWord I ≠ bidGuyWord (tendId I) σ I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨3486⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨3631⟩
@@ -1804,7 +1804,7 @@ theorem flipperTendX_toRefundCall {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd3616⟩ := flipperTendX_toRefundExtcodesizeGuard
     hmemSize hmemRead64 hcaller h
   obtain ⟨gasWord, k3631, C3631, rd3631⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3616⟩) (okPc := ⟨3628⟩) rd3616
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3616⟩) (okPc := ⟨3628⟩) rd3616
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -1817,7 +1817,7 @@ theorem flipperTendX_refundDepthLimit {cA σ I} {g : Sat256} {s0 : State}
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcaller : solcSourceWord I ≠ bidGuyWord (tendId I) σ I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = (1024 : Fin 1025))
     (h : RD flipperBytecode I g s0 ⟨3486⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
@@ -1857,7 +1857,7 @@ theorem flipperTendX_refundPostCall
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcaller : solcSourceWord I ≠ bidGuyWord (tendId I) σ I)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
@@ -1938,7 +1938,7 @@ theorem flipperTendX_refundCallFailure {I} {g : Sat256} {s0 : State}
       mem aw out acc k C)
     (houtsz : out.size < UInt256.size) :
     RDrev flipperBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (pc := ⟨3632⟩) (okPc := ⟨3648⟩) h
+  exact RD.solcCallSuccessGuardMissing (pc := ⟨3632⟩) (okPc := ⟨3648⟩) h
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -1954,7 +1954,7 @@ theorem flipperTendX_refundCallSuccessToStoreStart {I} {g : Sat256} {s0 : State}
     ∃ k' C', RD flipperBytecode I g s0 ⟨3652⟩
       (target :: bid :: lot :: id :: ret :: sel :: []) mem aw out acc k' C' := by
   obtain ⟨_, _, rd3649⟩ :=
-    RD.uniswapCallSuccessGuardOk (pc := ⟨3632⟩) (okPc := ⟨3648⟩) h
+    RD.solcCallSuccessGuardOk (pc := ⟨3632⟩) (okPc := ⟨3648⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
@@ -2039,7 +2039,7 @@ theorem flipperTendX_storeRefundGuyToPayStart {cA σ I} {g : Sat256} {s0 : State
     raw not (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov),
     raw caller (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov),
+    raw or (by native_decide) (by evm_ov),
     raw swap1 (by native_decide) (by evm_ov)]
   rw [hmask160, hstoredRaw] at rd3684
   obtain ⟨k3685, C3685, rd3685raw⟩ := rd3684.sstore hperm (by native_decide) (by evm_ov)
@@ -2442,13 +2442,13 @@ theorem flipperTendX_payNoCodeAw8 {cA σ I} {g : Sat256} {s0 : State}
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) = ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 8) rdata (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   obtain ⟨_, _, rd3784⟩ := flipperTendX_toPayExtcodesizeGuardAw8
     hmemSize hmemRead64 h
-  exact RD.uniswapExtcodesizeGuardMissing (pc := ⟨3784⟩) (okPc := ⟨3796⟩) rd3784
+  exact RD.solcExtcodesizeGuardMissing (pc := ⟨3784⟩) (okPc := ⟨3796⟩) rd3784
     hcodeSize
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -2459,7 +2459,7 @@ theorem flipperTendX_toPayCallAw8 {cA σ I} {g : Sat256} {s0 : State}
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (h : RD flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 8) rdata (cA, σ) k C) :
     ∃ gasWord k' C', RD flipperBytecode I g s0 ⟨3799⟩
@@ -2471,7 +2471,7 @@ theorem flipperTendX_toPayCallAw8 {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd3784⟩ := flipperTendX_toPayExtcodesizeGuardAw8
     hmemSize hmemRead64 h
   obtain ⟨gasWord, k3799, C3799, rd3799⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (pc := ⟨3784⟩) (okPc := ⟨3796⟩) rd3784
+    RD.solcExtcodesizeGuardOkGas (pc := ⟨3784⟩) (okPc := ⟨3796⟩) rd3784
       hcodeSize
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
@@ -2483,7 +2483,7 @@ theorem flipperTendX_payDepthLimitAw8 {cA σ I} {g : Sat256} {s0 : State}
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hdepth : I.depth = (1024 : Fin 1025))
     (h : RD flipperBytecode I g s0 ⟨3686⟩ [tendBid I, tendLot I, tendId I, ret, sel]
       mem (UInt256.ofNat 8) rdata (cA, σ) k C) :
@@ -2520,7 +2520,7 @@ theorem flipperTendX_payPostCallAw8
     (hmemSize : mem.size = 228)
     (hmemRead64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ (flipperVatTargetWord σ I) ≠ ⟨0⟩)
     (hperm : I.perm = true)
     (hdepth : I.depth.val < 1024)
     (h : RD flipperBytecode I (Sat256.ofUInt256 g)
@@ -2654,10 +2654,10 @@ theorem flipperTendBodyFrom3486Refund
     dsimp [memHash]
     exact twoWordHashMem_read64 (tendId I) ⟨1⟩ hmemSize hmemRead64
   by_cases hrefundZero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+      Reasoning.Theory.extCodeSizeWord σ_evm
         (flipperVatTargetWord σ_evm I) = ⟨0⟩
   · have hrefundZeroSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+        Reasoning.Theory.extCodeSizeWord σ_solm
             (flipperVatTargetWord σ_solm I) = ⟨0⟩ :=
       flipperVatCodeSize_zero_accountMapEquiv hAccounts hrefundZero
     have hvatNoCode :=
@@ -2675,7 +2675,7 @@ theorem flipperTendBodyFrom3486Refund
     exact (flipperTendX_refundNoCode hmemSize hmemRead64 hcallerEvm hrefundZero h)
       |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hrefundNeSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+        Reasoning.Theory.extCodeSizeWord σ_solm
             (flipperVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
       flipperVatCodeSize_ne_zero_accountMapEquiv hAccounts hrefundZero
     have hrefundCodeSolm :=
@@ -2909,14 +2909,14 @@ theorem flipperTendBodyFrom3486Refund
               (true, evmRefundSolm, outRefund) true := by
           simpa using hcallRefundSolm
         by_cases hpayZero :
-            Reasoning.Theory.uniswapExtCodeSizeWord (tendAfterRefundMap σ_ref I)
+            Reasoning.Theory.extCodeSizeWord (tendAfterRefundMap σ_ref I)
               (flipperVatTargetWord (tendAfterRefundMap σ_ref I) I) = ⟨0⟩
         · have hpayZeroEvm :
-              Reasoning.Theory.uniswapExtCodeSizeWord evmGuyEvm.accountMap
+              Reasoning.Theory.extCodeSizeWord evmGuyEvm.accountMap
                 (flipperVatTargetWord evmGuyEvm.accountMap I) = ⟨0⟩ := by
             simpa [hmapGuyEvm] using hpayZero
           have hpayZeroSolm :
-              Reasoning.Theory.uniswapExtCodeSizeWord evmGuySolm.accountMap
+              Reasoning.Theory.extCodeSizeWord evmGuySolm.accountMap
                 (flipperVatTargetWord evmGuySolm.accountMap I) = ⟨0⟩ :=
             flipperVatCodeSize_zero_accountMapEquiv hGuyStateEquiv.accountMap hpayZeroEvm
           have hpayNoCodeSolm :
@@ -2927,7 +2927,7 @@ theorem flipperTendBodyFrom3486Refund
                   0 (fun acc => acc.code.size))).toNat = 0 := by
             simpa [evmGuySolm, evmRefundSolm, evm0Solm, initState,
               storageStore_executionEnv, State.lookupAccount] using
-              flipper_uniswapExtCodeSizeWord_zero_lookup_code_zero
+              flipper_extCodeSizeWord_zero_lookup_code_zero
                 (σ := evmGuySolm.accountMap)
                 (target := flipperVatTargetWord evmGuySolm.accountMap I)
                 (addr := flipperVatAddress evmGuySolm.accountMap I)
@@ -2946,11 +2946,11 @@ theorem flipperTendBodyFrom3486Refund
           exact (flipperTendX_payNoCodeAw8 hmemPaySize hmemPayRead64 hpayZero rd3686)
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
         · have hpayNeEvm :
-              Reasoning.Theory.uniswapExtCodeSizeWord evmGuyEvm.accountMap
+              Reasoning.Theory.extCodeSizeWord evmGuyEvm.accountMap
                 (flipperVatTargetWord evmGuyEvm.accountMap I) ≠ ⟨0⟩ := by
             simpa [hmapGuyEvm] using hpayZero
           have hpayNeSolm :
-              Reasoning.Theory.uniswapExtCodeSizeWord evmGuySolm.accountMap
+              Reasoning.Theory.extCodeSizeWord evmGuySolm.accountMap
                 (flipperVatTargetWord evmGuySolm.accountMap I) ≠ ⟨0⟩ :=
             flipperVatCodeSize_ne_zero_accountMapEquiv hGuyStateEquiv.accountMap hpayNeEvm
           have hpayCodeSolm :
@@ -2962,7 +2962,7 @@ theorem flipperTendBodyFrom3486Refund
                     0 (fun acc => acc.code.size))).toNat := by
             simpa [evmGuySolm, evmRefundSolm, evm0Solm, initState,
               storageStore_executionEnv, State.lookupAccount] using
-              flipper_uniswapExtCodeSizeWord_pos_lookup_code_pos
+              flipper_extCodeSizeWord_pos_lookup_code_pos
                 (σ := evmGuySolm.accountMap)
                 (target := flipperVatTargetWord evmGuySolm.accountMap I)
                 (addr := flipperVatAddress evmGuySolm.accountMap I)

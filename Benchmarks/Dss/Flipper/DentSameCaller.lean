@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Flipper.DentTail
 import Benchmarks.Dss.Flipper.ExternalCallTransport
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxHeartbeats 0
 
@@ -74,9 +74,9 @@ theorem flipperDentBodyFrom4733SameCaller
     dsimp [memFlux]
     exact twoWordHashMem_read64 (dentId I) ⟨1⟩ hmemSize hmemRead64
   by_cases hfluxZero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (flipperVatTargetWord σ_evm I) = ⟨0⟩
+      Reasoning.Theory.extCodeSizeWord σ_evm (flipperVatTargetWord σ_evm I) = ⟨0⟩
   · have hfluxZeroSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+        Reasoning.Theory.extCodeSizeWord σ_solm
             (flipperVatTargetWord σ_solm I) = ⟨0⟩ :=
       flipperVatCodeSize_zero_accountMapEquiv hAccounts hfluxZero
     have hvatNoCode :=
@@ -94,7 +94,7 @@ theorem flipperDentBodyFrom4733SameCaller
     exact (flipperDentX_fluxNoCode hmemFluxSize hmemFluxRead64 hfluxZero rd4927)
       |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hfluxNeSolm :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_solm
+        Reasoning.Theory.extCodeSizeWord σ_solm
             (flipperVatTargetWord σ_solm I) ≠ ⟨0⟩ :=
       flipperVatCodeSize_ne_zero_accountMapEquiv hAccounts hfluxZero
     have hvatCodeSolm :=

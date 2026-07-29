@@ -1,7 +1,7 @@
 import Benchmarks.Dss.Vow.CageBody
 import Benchmarks.Dss.Vow.FlapBody
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -328,7 +328,7 @@ theorem cageFirstDaiFlapperNoCode
     ExecBlock config { contract := contract, locals := ∅ } evm
       (cageFirstVatDaiStmts ++ cageFlapperCageStmts) .reverted := by
   have hfirst := cageFirstVatDaiNoCode (evm := evm) hvatNoCode
-  exact Reasoning.Refinement.execBlock_append_term (s2 := cageFlapperCageStmts) hfirst
+  exact execBlock_append_term (s2 := cageFlapperCageStmts) hfirst
     (by intro f e h; cases h)
 
 theorem cageFirstDaiFlapperCallFailure
@@ -345,7 +345,7 @@ theorem cageFirstDaiFlapperCallFailure
       (cageFirstVatDaiStmts ++ cageFlapperCageStmts) .reverted := by
   have hfirst := cageFirstVatDaiCallFailure (evm := evm) (evmDai := evmDai)
     (outDai := outDai) hvatCode hcallDai
-  exact Reasoning.Refinement.execBlock_append_term (s2 := cageFlapperCageStmts) hfirst
+  exact execBlock_append_term (s2 := cageFlapperCageStmts) hfirst
     (by intro f e h; cases h)
 
 theorem cageFirstDaiFlapperReturnDecodeFailure
@@ -363,7 +363,7 @@ theorem cageFirstDaiFlapperReturnDecodeFailure
       (cageFirstVatDaiStmts ++ cageFlapperCageStmts) .reverted := by
   have hfirst := cageFirstVatDaiReturnDecodeFailure (evm := evm) (evmDai := evmDai)
     (outDai := outDai) hvatCode hcallDai hdecDai
-  exact Reasoning.Refinement.execBlock_append_term (s2 := cageFlapperCageStmts) hfirst
+  exact execBlock_append_term (s2 := cageFlapperCageStmts) hfirst
     (by intro f e h; cases h)
 
 theorem cageFirstDaiFlapperCageNoCode
@@ -389,7 +389,7 @@ theorem cageFirstDaiFlapperCageNoCode
     (outDai := outDai) (flapperDai := flapperDai) hvatCode hcallDai hdecDai
   have hflapper := cageFlapperCageNoCode (evm := evmDai)
     (flapperDai := flapperDai) hflapperNoCode
-  exact Reasoning.Refinement.execBlock_append hfirst hflapper
+  exact execBlock_append hfirst hflapper
 
 theorem cageFirstDaiFlapperCageCallFailure
     {evm evmDai evmFlap : EVM.State} {outDai outFlap : ByteArray}
@@ -419,7 +419,7 @@ theorem cageFirstDaiFlapperCageCallFailure
     (outDai := outDai) (flapperDai := flapperDai) hvatCode hcallDai hdecDai
   have hflapper := cageFlapperCageCallFailure (evm := evmDai) (evmFlap := evmFlap)
     (outFlap := outFlap) (flapperDai := flapperDai) hflapperCode hcallFlap
-  exact Reasoning.Refinement.execBlock_append hfirst hflapper
+  exact execBlock_append hfirst hflapper
 
 theorem cageFirstDaiFlapperCageSuccess
     {evm evmDai evmFlap : EVM.State} {outDai outFlap : ByteArray}
@@ -451,7 +451,7 @@ theorem cageFirstDaiFlapperCageSuccess
     (outDai := outDai) (flapperDai := flapperDai) hvatCode hcallDai hdecDai
   have hflapper := cageFlapperCageSuccess (evm := evmDai) (evmFlap := evmFlap)
     (outFlap := outFlap) (flapperDai := flapperDai) hflapperCode hcallFlap
-  exact Reasoning.Refinement.execBlock_append hfirst hflapper
+  exact execBlock_append hfirst hflapper
 
 theorem cageSourceFirstDaiNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -490,7 +490,7 @@ theorem cageSourceFirstDaiNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
         (cageFirstVatDaiStmts ++ cageFlapperCageStmts) .reverted := by
     exact cageFirstDaiFlapperNoCode (evm := evmAsh)
       (by simpa [evm0, evmLive, evmSin, evmAsh] using hvatNoCode)
-  have hprefix := Reasoning.Refinement.execBlock_append hclear hfirst
+  have hprefix := execBlock_append hclear hfirst
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0
         ((.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -501,7 +501,7 @@ theorem cageSourceFirstDaiNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
             .assign .storage AshRef (.intLit 0) ] ++
           cageFirstVatDaiStmts ++ cageFlapperCageStmts) ++ cageAfterFlapperStmts)
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term (s2 := cageAfterFlapperStmts)
+   execBlock_append_term (s2 := cageAfterFlapperStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
   have hbody := ExecFuncBody.execBlockRevert hblock
@@ -558,7 +558,7 @@ theorem cageSourceFirstDaiCallFailure
       (outDai := outDai)
       (by simpa [evm0, evmLive, evmSin, evmAsh] using hvatCode)
       (by simpa [evm0, evmLive, evmSin, evmAsh] using hcallDai)
-  have hprefix := Reasoning.Refinement.execBlock_append hclear hfirst
+  have hprefix := execBlock_append hclear hfirst
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0
         ((.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -569,7 +569,7 @@ theorem cageSourceFirstDaiCallFailure
             .assign .storage AshRef (.intLit 0) ] ++
           cageFirstVatDaiStmts ++ cageFlapperCageStmts) ++ cageAfterFlapperStmts)
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term (s2 := cageAfterFlapperStmts)
+   execBlock_append_term (s2 := cageAfterFlapperStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
   have hbody := ExecFuncBody.execBlockRevert hblock
@@ -628,7 +628,7 @@ theorem cageSourceFirstDaiReturnDecodeFailure
       (by simpa [evm0, evmLive, evmSin, evmAsh] using hvatCode)
       (by simpa [evm0, evmLive, evmSin, evmAsh] using hcallDai)
       hdecDai
-  have hprefix := Reasoning.Refinement.execBlock_append hclear hfirst
+  have hprefix := execBlock_append hclear hfirst
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0
         ((.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -639,7 +639,7 @@ theorem cageSourceFirstDaiReturnDecodeFailure
             .assign .storage AshRef (.intLit 0) ] ++
           cageFirstVatDaiStmts ++ cageFlapperCageStmts) ++ cageAfterFlapperStmts)
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term (s2 := cageAfterFlapperStmts)
+   execBlock_append_term (s2 := cageAfterFlapperStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
   have hbody := ExecFuncBody.execBlockRevert hblock
@@ -705,7 +705,7 @@ theorem cageSourceFlapperCageNoCode
       (by simpa [evm0, evmLive, evmSin, evmAsh] using hvatCode)
       (by simpa [evm0, evmLive, evmSin, evmAsh] using hcallDai)
       hdecDai hflapperNoCode
-  have hprefix := Reasoning.Refinement.execBlock_append hclear hfirst
+  have hprefix := execBlock_append hclear hfirst
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0
         ((.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -716,7 +716,7 @@ theorem cageSourceFlapperCageNoCode
             .assign .storage AshRef (.intLit 0) ] ++
           cageFirstVatDaiStmts ++ cageFlapperCageStmts) ++ cageAfterFlapperStmts)
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term (s2 := cageAfterFlapperStmts)
+   execBlock_append_term (s2 := cageAfterFlapperStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
   have hbody := ExecFuncBody.execBlockRevert hblock
@@ -787,7 +787,7 @@ theorem cageSourceFlapperCageCallFailure
       (by simpa [evm0, evmLive, evmSin, evmAsh] using hvatCode)
       (by simpa [evm0, evmLive, evmSin, evmAsh] using hcallDai)
       hdecDai hflapperCode hcallFlap
-  have hprefix := Reasoning.Refinement.execBlock_append hclear hfirst
+  have hprefix := execBlock_append hclear hfirst
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0
         ((.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -798,7 +798,7 @@ theorem cageSourceFlapperCageCallFailure
             .assign .storage AshRef (.intLit 0) ] ++
           cageFirstVatDaiStmts ++ cageFlapperCageStmts) ++ cageAfterFlapperStmts)
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term (s2 := cageAfterFlapperStmts)
+   execBlock_append_term (s2 := cageAfterFlapperStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
   have hbody := ExecFuncBody.execBlockRevert hblock
@@ -881,8 +881,8 @@ theorem cageSourceFlopperCageNoCode
         evmFlap cageFlopperCageStmts .reverted :=
     cageFlopperCageNoCode (evm := evmFlap) (flapperDai := flapperDai)
       hflopperNoCode
-  have hprefix := Reasoning.Refinement.execBlock_append
-    (Reasoning.Refinement.execBlock_append hclear hfirst) hflopper
+  have hprefix := execBlock_append
+    (Reasoning.Theory.execBlock_append hclear hfirst) hflopper
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0
         (((.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -895,7 +895,7 @@ theorem cageSourceFlopperCageNoCode
           cageFlopperCageStmts) ++
           cageVatDaiStmts ++ cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term
+   execBlock_append_term
       (s2 := cageVatDaiStmts ++ cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
@@ -982,8 +982,8 @@ theorem cageSourceFlopperCageCallFailure
         evmFlap cageFlopperCageStmts .reverted :=
     cageFlopperCageCallFailure (evm := evmFlap) (evmFlop := evmFlop)
       (outFlop := outFlop) (flapperDai := flapperDai) hflopperCode hcallFlop
-  have hprefix := Reasoning.Refinement.execBlock_append
-    (Reasoning.Refinement.execBlock_append hclear hfirst) hflopper
+  have hprefix := execBlock_append
+    (Reasoning.Theory.execBlock_append hclear hfirst) hflopper
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0
         (((.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -996,7 +996,7 @@ theorem cageSourceFlopperCageCallFailure
           cageFlopperCageStmts) ++
           cageVatDaiStmts ++ cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
         .reverted :=
-    Reasoning.Refinement.execBlock_append_term
+   execBlock_append_term
       (s2 := cageVatDaiStmts ++ cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
@@ -1083,7 +1083,7 @@ theorem vowCageFirstDaiNoCodeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : U
     (hauthEvm : vowSlotWord (vowCallerWardsSlot I) σ_evm I = ⟨1⟩)
     (hliveEvm : vowSlotWord ⟨12⟩ σ_evm I = ⟨1⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord
+      Reasoning.Theory.extCodeSizeWord
         (vowCageClearedAccountMap I.codeOwner σ_evm)
         (kissDaiTargetWord (vowCageClearedAccountMap I.codeOwner σ_evm) I) =
           ⟨0⟩) :
@@ -1113,7 +1113,7 @@ theorem vowCageFirstDaiNoCodeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : U
   obtain ⟨_, _, rdLoads⟩ := RD.vowCageFirstDaiLoadTargets
     (R := [vowSelWord I]) rdClear (by simp)
   have hcodeSizeRaw :
-      Reasoning.Theory.uniswapExtCodeSizeWord σClearedEvm
+      Reasoning.Theory.extCodeSizeWord σClearedEvm
         (UInt256.land solcAddrMask (solcSlotWord σClearedEvm I ⟨1⟩)) = ⟨0⟩ := by
     simpa [σClearedEvm, kissDaiTargetWord, vowSlotWord, solcSlotWord,
       u256_land_comm] using hcodeSize
@@ -1136,10 +1136,10 @@ theorem vowCageFirstDaiNoCodeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : U
     have hslot := accountMapEquiv_storage_findD hClearedAccounts I.codeOwner ⟨1⟩ ⟨0⟩
     simp [kissDaiTargetWord, vowSlotWord, hslot]
   have hcodeSizeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σClearedSolm
+      Reasoning.Theory.extCodeSizeWord σClearedSolm
         (kissDaiTargetWord σClearedSolm I) = ⟨0⟩ := by
     have hsame :=
-      Reasoning.Theory.uniswapExtCodeSizeWord_accountMapEquiv hClearedAccounts
+      Reasoning.Theory.extCodeSizeWord_accountMapEquiv hClearedAccounts
         (kissDaiTargetWord σClearedEvm I)
     rw [← hTargetCleared, ← hsame]
     simpa [σClearedEvm] using hcodeSize
@@ -1168,7 +1168,7 @@ theorem vowCageFirstDaiNoCodeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : U
         ((evmAsh.lookupAccount (cageVatAddressOf evmAsh)).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
     have hzero :=
-      uniswapExtCodeSizeWord_zero_lookup_code_zero
+      extCodeSizeWord_zero_lookup_code_zero
         (σ := σClearedSolm) (target := kissDaiTargetWord σClearedSolm I)
         (addr := cageVatAddressOf evmAsh) haddr hcodeSizeSolm
     simpa [evmAsh, evmSin, evmLive, evm0, initState, State.lookupAccount,
@@ -1316,7 +1316,7 @@ theorem vowCageFlapperCageNoCodeBodyCore
       mem (UInt256.ofNat 6) rdata acc k C)
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
-    (hcodeSize : Reasoning.Theory.uniswapExtCodeSizeWord acc.2 target = ⟨0⟩)
+    (hcodeSize : Reasoning.Theory.extCodeSizeWord acc.2 target = ⟨0⟩)
     (hov : R.length + 13 ≤ 1024)
     (hvatCode :
       let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
@@ -1425,7 +1425,7 @@ theorem vowCageFlopperCageNoCodeBodyCore
     (hmem : mem.size = 164)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
     (hcodeSize :
-      Reasoning.Theory.uniswapExtCodeSizeWord acc.2
+      Reasoning.Theory.extCodeSizeWord acc.2
         (vowAddressReturnWord ⟨3⟩ acc.2 I) = ⟨0⟩)
     (hov : R.length + 15 ≤ 1024)
     (hvatCode :
@@ -1550,7 +1550,7 @@ theorem cageMinHealLeftNoCode
     (vatSin := vatSin) (evm := evm) hle
   have hheal := cageVatHealNoCode (flapperDai := flapperDai) (vatDai := vatDai)
     (vatSin := vatSin) (healRad := vatDai) (evm := evm) hvatNoCode
-  exact Reasoning.Refinement.execBlock_append hmin hheal
+  exact execBlock_append hmin hheal
 
 theorem cageMinHealRightNoCode
     {evm : EVM.State} {flapperDai vatDai vatSin : UInt256}
@@ -1567,7 +1567,7 @@ theorem cageMinHealRightNoCode
     (vatSin := vatSin) (evm := evm) hlt
   have hheal := cageVatHealNoCode (flapperDai := flapperDai) (vatDai := vatDai)
     (vatSin := vatSin) (healRad := vatSin) (evm := evm) hvatNoCode
-  exact Reasoning.Refinement.execBlock_append hmin hheal
+  exact execBlock_append hmin hheal
 
 theorem cageMinHealLeftCallFailure
     {evm evmHeal : EVM.State} {outHeal : ByteArray}
@@ -1589,7 +1589,7 @@ theorem cageMinHealLeftCallFailure
   have hheal := cageVatHealCallFailure (flapperDai := flapperDai) (vatDai := vatDai)
     (vatSin := vatSin) (healRad := vatDai) (evm := evm) (evmHeal := evmHeal)
     (outHeal := outHeal) hvatCode hcallHeal
-  exact Reasoning.Refinement.execBlock_append hmin hheal
+  exact execBlock_append hmin hheal
 
 theorem cageMinHealRightCallFailure
     {evm evmHeal : EVM.State} {outHeal : ByteArray}
@@ -1611,7 +1611,7 @@ theorem cageMinHealRightCallFailure
   have hheal := cageVatHealCallFailure (flapperDai := flapperDai) (vatDai := vatDai)
     (vatSin := vatSin) (healRad := vatSin) (evm := evm) (evmHeal := evmHeal)
     (outHeal := outHeal) hvatCode hcallHeal
-  exact Reasoning.Refinement.execBlock_append hmin hheal
+  exact execBlock_append hmin hheal
 
 theorem cageMinHealLeftSuccess
     {evm evmHeal : EVM.State} {outHeal : ByteArray}
@@ -1635,7 +1635,7 @@ theorem cageMinHealLeftSuccess
   have hheal := cageVatHealSuccess (flapperDai := flapperDai) (vatDai := vatDai)
     (vatSin := vatSin) (healRad := vatDai) (evm := evm) (evmHeal := evmHeal)
     (outHeal := outHeal) hvatCode hcallHeal
-  exact Reasoning.Refinement.execBlock_append hmin hheal
+  exact execBlock_append hmin hheal
 
 theorem cageMinHealRightSuccess
     {evm evmHeal : EVM.State} {outHeal : ByteArray}
@@ -1659,6 +1659,6 @@ theorem cageMinHealRightSuccess
   have hheal := cageVatHealSuccess (flapperDai := flapperDai) (vatDai := vatDai)
     (vatSin := vatSin) (healRad := vatSin) (evm := evm) (evmHeal := evmHeal)
     (outHeal := outHeal) hvatCode hcallHeal
-  exact Reasoning.Refinement.execBlock_append hmin hheal
+  exact execBlock_append hmin hheal
 
 end Benchmarks.Dss.Vow

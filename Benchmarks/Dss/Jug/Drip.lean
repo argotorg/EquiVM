@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Jug.DripBodyAddReturnsTactic
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Jug
 
@@ -32,7 +32,7 @@ theorem jugDripBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             (UInt256.ofNat I.header.timestamp).toNat := by
         omega
       by_cases hvatCode :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (dripVatTargetWord σ_evm I) = ⟨0⟩
+          Reasoning.Theory.extCodeSizeWord σ_evm (dripVatTargetWord σ_evm I) = ⟨0⟩
       · exact jugDripBodyCoreVatIlksNoCode hcode hsize hwv hsz36 hle hdispatch
           (jugDecode_drip_ok hsz36) hreach hAccounts hvatCode
       · by_cases hdepth : I.depth.val < 1024

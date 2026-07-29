@@ -17,7 +17,7 @@ marker on its stack (the slot value was popped at the Loop-1 exit), so this is a
 re-parameterization by the slot-1 header.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 4000000

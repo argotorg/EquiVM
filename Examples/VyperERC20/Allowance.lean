@@ -1,6 +1,6 @@
 import Examples.VyperERC20.BalanceOf
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option linter.unusedSimpArgs false
@@ -454,7 +454,7 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     calldatasize,
     lt,
     callvalue,
-    lor,
+    or,
     push2 ⟨801⟩,
     jumpiNT (by rw [hsizeGuard, hwv]; decide),
     push1 ⟨4⟩,
@@ -596,7 +596,7 @@ theorem erc20AllowanceX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     calldatasize,
     lt,
     callvalue,
-    lor,
+    or,
     push2 ⟨801⟩,
     jumpiT (by rw [hwv, hsizeGuard68]; decide) (by vyper_erc20_allowance_decode)]
   exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
@@ -626,7 +626,7 @@ theorem erc20AllowanceX_noncanon_owner {cA gh bl σ σ₀ A I} {g : Sat256}
     calldatasize,
     lt,
     callvalue,
-    lor,
+    or,
     push2 ⟨801⟩,
     jumpiNT (by rw [hwv, hsizeGuard]; decide),
     push1 ⟨4⟩,
@@ -668,7 +668,7 @@ theorem erc20AllowanceX_noncanon_spender {cA gh bl σ σ₀ A I} {g : Sat256}
     calldatasize,
     lt,
     callvalue,
-    lor,
+    or,
     push2 ⟨801⟩,
     jumpiNT (by rw [hwv, hsizeGuard]; decide),
     push1 ⟨4⟩,

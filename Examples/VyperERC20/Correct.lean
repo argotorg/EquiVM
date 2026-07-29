@@ -8,7 +8,7 @@ import Examples.VyperERC20.Transfer
 import Examples.VyperERC20.TransferFromRuntime
 import Solm.Equiv
 import Reasoning.ABI
-import Reasoning.Theory
+import Reasoning.Dispatch
 import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc
@@ -1449,7 +1449,7 @@ theorem erc20ApproveNonPayableRuntime
     jumpdest,
     raw push4 approveSelectorWord (by vyper_erc20_approve_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨68⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by
       simpa [u256_lor_comm] using
         (u256_lor_ne_zero_right
@@ -1509,7 +1509,7 @@ theorem erc20TransferFromNonPayableRuntime
     jumpdest,
     raw push4 transferFromSelectorWord (by native_decide) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨100⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨100⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by
       simpa [u256_lor_comm] using
         (u256_lor_ne_zero_right
@@ -1534,7 +1534,7 @@ theorem erc20BalanceOfNonPayableRuntime
     jumpdest,
     raw push4 balanceOfSelectorWord (by vyper_erc20_balance_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨36⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨36⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by
       simpa [u256_lor_comm] using
         (u256_lor_ne_zero_right
@@ -1559,7 +1559,7 @@ theorem erc20TransferNonPayableRuntime
     jumpdest,
     raw push4 transferSelectorWord (by vyper_erc20_transfer_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨68⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by
       simpa [u256_lor_comm] using
         (u256_lor_ne_zero_right
@@ -1584,7 +1584,7 @@ theorem erc20AllowanceNonPayableRuntime
     jumpdest,
     raw push4 allowanceSelectorWord (by vyper_erc20_allowance_decode) (by evm_ov),
     dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
-    push1 ⟨68⟩, calldatasize, lt, callvalue, lor, push2 ⟨801⟩,
+    push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by
       simpa [u256_lor_comm] using
         (u256_lor_ne_zero_right
@@ -1630,7 +1630,7 @@ The dispatcher routing is explicit here.  The proven Vyper function-body obligat
 `approve`, `totalSupply`, `balanceOf`, `transfer`, and `allowance`; only `transferFrom`
 success remains isolated above as a bytecode obligation. -/
 theorem runtimeCorrect :
-    runtimeEquivalence!?! config vyperERC20Bytecode contract := by
+    runtimeEquivalence config vyperERC20Bytecode contract := by
   refine ⟨fun cA gh bl σ_evm σ_solm σ₀ g A I hcode hsize hperm hAccounts => ?_⟩
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases h0 : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true

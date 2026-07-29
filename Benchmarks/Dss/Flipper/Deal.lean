@@ -2,7 +2,7 @@ import Benchmarks.Dss.Flipper.ExternalCallTransport
 import Benchmarks.Dss.Flipper.DealTicEVM
 import Benchmarks.Dss.Flipper.Dispatch
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Flipper
 
@@ -173,7 +173,7 @@ theorem flipperDealBodyCoreCatNoCodeEndExpired {cA gh bl σ_evm σ_solm σ₀ A 
     (hendLtEvm :
       (bidEndWord (dealId I) σ_evm I).toNat < (UInt256.ofNat I.header.timestamp).toNat)
     (hcatZero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (flipperCatTargetWord σ_evm I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ_evm (flipperCatTargetWord σ_evm I) = ⟨0⟩) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
@@ -215,7 +215,7 @@ theorem flipperDealBodyCoreCatNoCodeEndExpired {cA gh bl σ_evm σ_solm σ₀ A 
       (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hticNeSolm hticGeSolm hendLtSolm
   have hcatZeroSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (flipperCatTargetWord σ_solm I) = ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_solm (flipperCatTargetWord σ_solm I) = ⟨0⟩ :=
     flipperCatCodeSize_zero_accountMapEquiv hAccounts hcatZero
   have hcatNoCode :=
     flipperCatCode_zero_of_codeSize_zero (cA := cA) (gh := gh) (bl := bl)
@@ -241,7 +241,7 @@ theorem flipperDealBodyCoreCatNoCodeTicExpired {cA gh bl σ_evm σ_solm σ₀ A 
     (hticLtEvm :
       (bidTicWord (dealId I) σ_evm I).toNat < (UInt256.ofNat I.header.timestamp).toNat)
     (hcatZero :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (flipperCatTargetWord σ_evm I) = ⟨0⟩) :
+      Reasoning.Theory.extCodeSizeWord σ_evm (flipperCatTargetWord σ_evm I) = ⟨0⟩) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
     calldata_size_ge_of_selIs I (flipperSelBytes 3) rfl hsel
@@ -278,7 +278,7 @@ theorem flipperDealBodyCoreCatNoCodeTicExpired {cA gh bl σ_evm σ_solm σ₀ A 
       (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       hticNeSolm hticLtSolm
   have hcatZeroSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (flipperCatTargetWord σ_solm I) = ⟨0⟩ :=
+      Reasoning.Theory.extCodeSizeWord σ_solm (flipperCatTargetWord σ_solm I) = ⟨0⟩ :=
     flipperCatCodeSize_zero_accountMapEquiv hAccounts hcatZero
   have hcatNoCode :=
     flipperCatCode_zero_of_codeSize_zero (cA := cA) (gh := gh) (bl := bl)
@@ -310,7 +310,7 @@ theorem flipperDealBodyCoreCatCallDepthLimit {cA gh bl σ_evm σ_solm σ₀ A I}
           (bidEndWord (dealId I) σ_evm I).toNat <
             (UInt256.ofNat I.header.timestamp).toNat))
     (hcatNe :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (flipperCatTargetWord σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ_evm (flipperCatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hdepthEq : I.depth = 1024) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -369,7 +369,7 @@ theorem flipperDealBodyCoreCatCallDepthLimit {cA gh bl σ_evm σ_solm σ₀ A I}
         (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
         hticNeSolm hticGeSolm hendLtSolm
   have hcatNeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (flipperCatTargetWord σ_solm I) ≠
+      Reasoning.Theory.extCodeSizeWord σ_solm (flipperCatTargetWord σ_solm I) ≠
         ⟨0⟩ :=
     flipperCatCodeSize_ne_zero_accountMapEquiv hAccounts hcatNe
   have hcatCode := flipperCatCode_pos_of_codeSize_ne_zero (cA := cA) (gh := gh) (bl := bl)
@@ -418,7 +418,7 @@ theorem flipperDealBodyCoreCatPostCall {cA gh bl σ_evm σ_solm σ₀ A I}
           (bidEndWord (dealId I) σ_evm I).toNat <
             (UInt256.ofNat I.header.timestamp).toNat))
     (hcatNe :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_evm (flipperCatTargetWord σ_evm I) ≠ ⟨0⟩)
+      Reasoning.Theory.extCodeSizeWord σ_evm (flipperCatTargetWord σ_evm I) ≠ ⟨0⟩)
     (hdepthNe : I.depth ≠ 1024) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
@@ -477,7 +477,7 @@ theorem flipperDealBodyCoreCatPostCall {cA gh bl σ_evm σ_solm σ₀ A I}
         (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
         hticNeSolm hticGeSolm hendLtSolm
   have hcatNeSolm :
-      Reasoning.Theory.uniswapExtCodeSizeWord σ_solm (flipperCatTargetWord σ_solm I) ≠
+      Reasoning.Theory.extCodeSizeWord σ_solm (flipperCatTargetWord σ_solm I) ≠
         ⟨0⟩ :=
     flipperCatCodeSize_ne_zero_accountMapEquiv hAccounts hcatNe
   have hcatCode := flipperCatCode_pos_of_codeSize_ne_zero (cA := cA) (gh := gh) (bl := bl)
@@ -575,9 +575,9 @@ theorem flipperDealBodyCoreCatPostCall {cA gh bl σ_evm σ_solm σ₀ A I}
       simpa [evmCatEvm, evmCatSolm] using hCatStateEquiv'.accountMap
     obtain ⟨_, _, rd5673⟩ := flipperDealX_catCallSuccessToVatStart rd5654True
     by_cases hvatZero :
-        Reasoning.Theory.uniswapExtCodeSizeWord σ_cat (flipperVatTargetWord σ_cat I) = ⟨0⟩
+        Reasoning.Theory.extCodeSizeWord σ_cat (flipperVatTargetWord σ_cat I) = ⟨0⟩
     · have hvatZeroSolm :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_cat_solm
+          Reasoning.Theory.extCodeSizeWord σ_cat_solm
               (flipperVatTargetWord σ_cat_solm I) = ⟨0⟩ :=
         flipperVatCodeSize_zero_accountMapEquiv hAccountsCat hvatZero
       have hvatNoCode :
@@ -586,7 +586,7 @@ theorem flipperDealBodyCoreCatPostCall {cA gh bl σ_evm σ_solm σ₀ A I}
               (flipperVatAddress evmCatSolm.accountMap evmCatSolm.executionEnv)).option
               0 (fun acc => acc.code.size))).toNat = 0 := by
         simpa [evmCatSolm, evm0Solm, initState, State.lookupAccount] using
-          flipper_uniswapExtCodeSizeWord_zero_lookup_code_zero
+          flipper_extCodeSizeWord_zero_lookup_code_zero
             (σ := σ_cat_solm) (target := flipperVatTargetWord σ_cat_solm I)
             (addr := flipperVatAddress σ_cat_solm I)
             (flipperVatAddress_eq_target σ_cat_solm I) hvatZeroSolm
@@ -601,7 +601,7 @@ theorem flipperDealBodyCoreCatPostCall {cA gh bl σ_evm σ_solm σ₀ A I}
       exact (flipperDealX_vatNoCode hvatZero rd5673)
         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hvatNeSolm :
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_cat_solm
+          Reasoning.Theory.extCodeSizeWord σ_cat_solm
               (flipperVatTargetWord σ_cat_solm I) ≠ ⟨0⟩ :=
         flipperVatCodeSize_ne_zero_accountMapEquiv hAccountsCat hvatZero
       have hvatCodeSolm :
@@ -611,7 +611,7 @@ theorem flipperDealBodyCoreCatPostCall {cA gh bl σ_evm σ_solm σ₀ A I}
                 (flipperVatAddress evmCatSolm.accountMap evmCatSolm.executionEnv)).option
                 0 (fun acc => acc.code.size))).toNat := by
         simpa [evmCatSolm, evm0Solm, initState, State.lookupAccount] using
-          flipper_uniswapExtCodeSizeWord_pos_lookup_code_pos
+          flipper_extCodeSizeWord_pos_lookup_code_pos
             (σ := σ_cat_solm) (target := flipperVatTargetWord σ_cat_solm I)
             (addr := flipperVatAddress σ_cat_solm I)
             (flipperVatAddress_eq_target σ_cat_solm I) hvatNeSolm
@@ -790,7 +790,7 @@ theorem flipperDealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (bidTicWord (dealId I) σ_evm I).toNat ∧
             (bidEndWord (dealId I) σ_evm I).toNat <
               (UInt256.ofNat I.header.timestamp).toNat) →
-          Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+          Reasoning.Theory.extCodeSizeWord σ_evm
               (flipperCatTargetWord σ_evm I) ≠ ⟨0⟩ →
         runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
       intro hfinishedEvm hcatNe
@@ -805,7 +805,7 @@ theorem flipperDealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (bidTicWord (dealId I) σ_evm I).toNat <
             (UInt256.ofNat I.header.timestamp).toNat
       · by_cases hcatZero :
-            Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+            Reasoning.Theory.extCodeSizeWord σ_evm
               (flipperCatTargetWord σ_evm I) = ⟨0⟩
         · exact flipperDealBodyCoreCatNoCodeTicExpired hcode hsize hwv hsel hAccounts hsz36
             hticEvm hticLtEvm hcatZero
@@ -818,7 +818,7 @@ theorem flipperDealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             (bidEndWord (dealId I) σ_evm I).toNat <
               (UInt256.ofNat I.header.timestamp).toNat
         · by_cases hcatZero :
-              Reasoning.Theory.uniswapExtCodeSizeWord σ_evm
+              Reasoning.Theory.extCodeSizeWord σ_evm
                 (flipperCatTargetWord σ_evm I) = ⟨0⟩
           · exact flipperDealBodyCoreCatNoCodeEndExpired hcode hsize hwv hsel hAccounts hsz36
               hticEvm hticGeEvm hendLtEvm hcatZero

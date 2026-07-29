@@ -10,7 +10,7 @@ contract-independent (it only exercises `evalExpr?`/`Store` on the binary-locals
 touches Pot's storage layout or external ABI), so all are flagged `LIBRARY CANDIDATE`.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 

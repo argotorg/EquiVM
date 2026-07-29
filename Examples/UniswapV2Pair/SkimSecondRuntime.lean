@@ -430,7 +430,7 @@ theorem RD.uniswapSkimSecondBalanceReturnWordDecodeShortReverts {g : Sat256} {s0
     decide
   have rdFallthrough := RD.jumpiNT rdPushOk (by native_decide) hcond
     (by simp only [List.length_cons]; omega)
-  exact RD.uniswapPush1Dup1Revert0 rdFallthrough (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rdFallthrough (by native_decide)
     (by native_decide) (by native_decide)
     (by simp only [List.length_cons]; omega)
 
@@ -443,7 +443,7 @@ theorem RD.uniswapSkimSecondBalanceCallFailureReverts {g : Sat256} {s0 : State}
     (hstatus : status = ⟨0⟩) (houtSize : out.size < UInt256.size)
     (hov : R.length + 5 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
-  exact RD.uniswapCallSuccessGuardMissing (okPc := ⟨5289⟩) h hstatus
+  exact RD.solcCallSuccessGuardMissing (okPc := ⟨5289⟩) h hstatus
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
@@ -458,7 +458,7 @@ theorem RD.uniswapSkimSecondBalanceCallSuccessToDecode {g : Sat256} {s0 : State}
     (hstatus : status ≠ ⟨0⟩) (hov : R.length + 3 ≤ 1024) :
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5291⟩
       R mem (UInt256.ofNat 13) out acc k' C' := by
-  exact RD.uniswapCallSuccessGuardOk (okPc := ⟨5289⟩) h hstatus
+  exact RD.solcCallSuccessGuardOk (okPc := ⟨5289⟩) h hstatus
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by jump_dest) (by native_decide) (by native_decide) hov
 
@@ -598,7 +598,7 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade {g : Sat256} {s0 : State}
       (UInt256.ofNat 13) out0 (cA, σ) k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
     (hdepth : ee.depth.val < 1024)
-    (htoken1Code : uniswapExtCodeSizeWord σ (UInt256.land token1 solcAddrMask) ≠ ⟨0⟩) :
+    (htoken1Code : extCodeSizeWord σ (UInt256.land token1 solcAddrMask) ≠ ⟨0⟩) :
     ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap)
       (z : Bool) (out : ByteArray) (A_in : Substate) (callGas : UInt256) (k' C' : ℕ),
       (∃ (g'' : UInt256) (A' : Substate),
@@ -642,7 +642,7 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade {g : Sat256} {s0 : State}
     (skimSecondBalanceSelectorMem (UInt256.ofNat ee.codeOwner.val) o toWord value)
     (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd5353 := evm_run rd5348 with [uniswapAddress, push1 ⟨4⟩, dup3, add]
+  have rd5353 := evm_run rd5348 with [address, push1 ⟨4⟩, dup3, add]
   have rd5354 := rd5353.mstore 0
     (skimSecondBalanceCalldataMem (UInt256.ofNat ee.codeOwner.val) o toWord value)
     (UInt256.ofNat 13) (by native_decide) mem_cost
@@ -679,13 +679,13 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade {g : Sat256} {s0 : State}
     show UInt256.sub (⟨292⟩ : UInt256) ⟨292⟩ = ⟨0⟩ from by decide,
     show (⟨0⟩ : UInt256) + ⟨36⟩ = ⟨36⟩ from by decide] at rd5421
   obtain ⟨gasWord, _, _, rd5272⟩ :=
-    RD.uniswapExtcodesizeGuardOkGas (okPc := ⟨5269⟩) rd5421 htoken1Code
+    RD.solcExtcodesizeGuardOkGas (okPc := ⟨5269⟩) rd5421 htoken1Code
       (by native_decide) (by native_decide) (by native_decide) (by native_decide)
       (by native_decide) (by native_decide) (by jump_dest)
       (by native_decide) (by native_decide) (by native_decide)
       (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘ, rd5273, houtSize⟩ :=
-    RD.uniswapStaticcall rd5272 (by native_decide) hdepth
+    RD.solcStaticcall rd5272 (by native_decide) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨cA', σ', z, out, A_in, callGas, k', C', ?_, ?_, houtSize⟩
   · simpa [token1Clean, skimSecondBalanceStaticcallMem] using hΘ
@@ -706,7 +706,7 @@ theorem RD.uniswapSkimSecondBalanceOfNoCodeReverts {g : Sat256} {s0 : State}
       (skimSafeTransferCallMem2 (UInt256.ofNat ee.codeOwner.val) o toWord value)
       (UInt256.ofNat 13) out0 (cA, σ) k C)
     (ho32 : 32 ≤ o.size) (hoSize : o.size < UInt256.size)
-    (htoken1NoCode : uniswapExtCodeSizeWord σ (UInt256.land token1 solcAddrMask) = ⟨0⟩) :
+    (htoken1NoCode : extCodeSizeWord σ (UInt256.land token1 solcAddrMask) = ⟨0⟩) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   let packedWord := uniswapSlotWord ⟨8⟩ σ ee
   let token1Clean := UInt256.land token1 solcAddrMask
@@ -729,7 +729,7 @@ theorem RD.uniswapSkimSecondBalanceOfNoCodeReverts {g : Sat256} {s0 : State}
     (skimSecondBalanceSelectorMem (UInt256.ofNat ee.codeOwner.val) o toWord value)
     (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl) (by native_decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd5353 := evm_run rd5348 with [uniswapAddress, push1 ⟨4⟩, dup3, add]
+  have rd5353 := evm_run rd5348 with [address, push1 ⟨4⟩, dup3, add]
   have rd5354 := rd5353.mstore 0
     (skimSecondBalanceCalldataMem (UInt256.ofNat ee.codeOwner.val) o toWord value)
     (UInt256.ofNat 13) (by native_decide) mem_cost
@@ -765,7 +765,7 @@ theorem RD.uniswapSkimSecondBalanceOfNoCodeReverts {g : Sat256} {s0 : State}
   rw [show (⟨292⟩ : UInt256) + ⟨36⟩ = ⟨328⟩ from by decide,
     show UInt256.sub (⟨292⟩ : UInt256) ⟨292⟩ = ⟨0⟩ from by decide,
     show (⟨0⟩ : UInt256) + ⟨36⟩ = ⟨36⟩ from by decide] at rd5421
-  exact RD.uniswapExtcodesizeGuardMissing (okPc := ⟨5269⟩) rd5421 htoken1NoCode
+  exact RD.solcExtcodesizeGuardMissing (okPc := ⟨5269⟩) rd5421 htoken1NoCode
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by native_decide)

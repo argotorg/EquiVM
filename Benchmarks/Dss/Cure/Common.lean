@@ -1,13 +1,11 @@
 import Benchmarks.Dss.Cure.Trusted
 import Reasoning.ABI
-import Reasoning.Theory
 import Reasoning.Stepping
 import Reasoning.Reach
 import Reasoning.Solc
 import Reasoning.Memory
 import Reasoning.Storage
 import Reasoning.Dispatch
-import Reasoning.Refinement
 import Reasoning.SolmBody
 import Mathlib.Tactic.IntervalCases
 
@@ -18,7 +16,7 @@ Contract-wide selector notation and top-level revert/no-dispatch placeholders fo
 Cure runtime.
 -/
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 
@@ -354,7 +352,7 @@ theorem solcGuardCallvalueNonzeroRevertLegacy {cA gh bl σ σ₀ A I} {g : Sat25
   (h.pushConst ctgt hopC hpushC (by simp only [List.length]; omega)
     |>.jumpiNT hjumpi (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega))
-    |>.uniswapPush1Dup1Revert0 hr0 hr1 hr2 (by simp only [List.length]; omega)
+    |>.solcPush1Dup1Revert0 hr0 hr1 hr2 (by simp only [List.length]; omega)
 
 /-- Legacy solc short-calldata revert for `PUSH1 0; DUP1; REVERT` stubs. -/
 theorem solcCalldataShortRevertLegacy {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -383,7 +381,7 @@ theorem solcCalldataShortRevertLegacy {cA gh bl σ σ₀ A I} {g : Sat256}
     |>.pushConst rtgt hopR hd_pR (by simp only [List.length]; omega)
     |>.jumpiT hd_ji (lt_four_ne_zero_of_lt hsz) hjd (by simp only [List.length]; omega)
     |>.jumpdest hd_jd (by simp only [List.length]; omega))
-    |>.uniswapPush1Dup1Revert0 hr0 hr1 hr2 (by simp only [List.length]; omega)
+    |>.solcPush1Dup1Revert0 hr0 hr1 hr2 (by simp only [List.length]; omega)
 
 /-- `callvalue ≠ 0` makes the global solc non-payable guard revert before dispatch. -/
 theorem cureX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -822,7 +820,7 @@ theorem cureJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt2
   have h300 := h.push2 cureDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem cureLowLowerNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -844,7 +842,7 @@ theorem cureLowLowerNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
     |>.selectorArmNotTakenAuto (cureLowLowerArmsWellFormed 4 (by omega))
         (heq0 4 (by omega)) (by simp)
     |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.uniswapPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
     (by native_decide) (by simp only [List.length_singleton]; omega)
 
 theorem cureLowUpperNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}

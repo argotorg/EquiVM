@@ -7,7 +7,6 @@ import Reasoning.Reach
 import Reasoning.SolmBody
 import Reasoning.Solc
 import Reasoning.Storage
-import Reasoning.Theory
 import Mathlib.Tactic.IntervalCases
 
 /-!
@@ -419,7 +418,7 @@ theorem decodeCalldata_string_some {cd : ByteArray} {x : Solm.Ident}
     rw [htlen] at hhuge
     omega)]
   have hreadOff := readNat_drop4_zero_eq_calldataWord (cd := cd) hsz36
-  have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hoffMax hlenWord
+  have hreadLen := readNat_drop4_dynamic_eq_calldataWord (cd := cd) hlenWord
   have hpayloadRead := readBytes_drop4_string_payload (cd := cd) hpayload
   have hnotHeadShort : ¬ cd.toList.length - 4 < 32 := by
     rw [htlen]
@@ -3969,7 +3968,7 @@ theorem stringStoreLiteX_setEmptyWriteShortZero {cA gh bl σ σ₀ A I} {g : Sat
     jump (by jump_dest),
     jumpdest, not, dup1, dup4, and, swap2, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest),
-    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, lor, swap1, pop,
+    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
@@ -4087,7 +4086,7 @@ theorem stringStoreLiteX_setEmptyWriteShortValid {cA gh bl σ σ₀ A I} {g : Sa
     jump (by jump_dest),
     jumpdest, not, dup1, dup4, and, swap2, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest),
-    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, lor, swap1, pop,
+    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
@@ -4135,7 +4134,7 @@ theorem stringStoreLiteX_setWriteShortPackedFrom1436 {cA gh bl σinit σ₀ A I}
     jump (by jump_dest),
     jumpdest, not, dup1, dup4, and, swap2, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest),
-    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, lor, swap1, pop,
+    jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
   obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)

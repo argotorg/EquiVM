@@ -114,7 +114,7 @@ theorem cureCtorNonpayableRDrev
         (by simp only [List.length_cons, List.length_nil]; omega))
   simpa [show ((⟨8⟩ : UInt256) + UInt256.ofNat 3 + ⟨1⟩) = ⟨12⟩ from by native_decide]
     using
-      RD.uniswapPush1Dup1Revert0 (code := cureCreationBytecode) (ee := I) (g := g)
+      RD.solcPush1Dup1Revert0 (code := cureCreationBytecode) (ee := I) (g := g)
         (s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) rd12
         (by ctor_decode) (by ctor_decode) (by ctor_decode)
         (by simp only [List.length_cons, List.length_nil]; omega)

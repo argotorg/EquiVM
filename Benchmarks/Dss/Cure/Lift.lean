@@ -1,6 +1,6 @@
 import Benchmarks.Dss.Cure.Rely
 
-open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 set_option maxRecDepth 2000000
 set_option maxHeartbeats 0
@@ -640,7 +640,7 @@ theorem RD.cureLiftStoreAndLog {g : Sat256} {s0 : State}
   have rdElemStorePre := evm_run rdCleared with [
     raw swap1 (by native_decide) (by evm_ov),
     raw dup2 (by native_decide) (by evm_ov),
-    raw lor (by native_decide) (by evm_ov)]
+    raw or (by native_decide) (by evm_ov)]
   rw [hnewWord] at rdElemStorePre
   have rdElemStoreReady := evm_run rdElemStorePre with [
     raw swap1 (by native_decide) (by evm_ov),
