@@ -264,15 +264,16 @@ theorem clipperIlkPush32Decode (v : ClipperImmutables) {code : ByteArray}
     (hlen : bs.length = 32) :
     decode code (⟨6799⟩ : UInt256) =
       some (.Push .PUSH32, some (EVM.Word.ofNat (fromBytesBigEndian bs), 32)) := by
-  unfold decode
-  rw [patchRuntime_get?_disjoint hpatch
-    (by apply clipperIlkPatchesWindowDisjoint32 v; native_decide)]
-  change some (Operation.Push Operation.POp.PUSH32,
-      some (uInt256OfByteArray (code.extract' 6800 6832), 32)) =
-    some (Operation.Push Operation.POp.PUSH32,
-      some (EVM.Word.ofNat (fromBytesBigEndian bs), 32))
-  rw [clipperIlkPatchPayload v hpatch hilk hlen]
-  rw [uInt256OfByteArray_word_toBytesBE]
+  exact decode_push32_of_get?_extract'
+    (pc := (⟨6799⟩ : UInt256)) (w := EVM.Word.ofNat (fromBytesBigEndian bs))
+    (by
+      rw [patchRuntime_get?_disjoint hpatch
+        (by apply clipperIlkPatchesWindowDisjoint32 v; native_decide)]
+      native_decide)
+    (by
+      rw [show (⟨6799⟩ : UInt256).toNat + 1 = 6800 by native_decide]
+      rw [show (⟨6799⟩ : UInt256).toNat + 33 = 6832 by native_decide]
+      exact clipperIlkPatchPayload v hpatch hilk hlen)
 
 set_option maxHeartbeats 1000000 in
 theorem clipperIlkConstGetterWf (v : ClipperImmutables) {code : ByteArray}

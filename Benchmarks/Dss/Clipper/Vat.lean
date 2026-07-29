@@ -348,14 +348,16 @@ theorem clipperVatPush32Decode (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
     decode code (⟨3144⟩ : UInt256) =
       some (.Push .PUSH32, some (EVM.Word.ofNat (↑v.vat : Nat), 32)) := by
-  unfold decode
-  rw [patchRuntime_get?_disjoint hpatch
-    (by apply clipperVatPatchesWindowDisjoint32 v; native_decide)]
-  change some (Operation.Push Operation.POp.PUSH32,
-      some (uInt256OfByteArray (code.extract' 3145 3177), 32)) =
-    some (Operation.Push Operation.POp.PUSH32, some (EVM.Word.ofNat (↑v.vat : Nat), 32))
-  rw [clipperVatPatchPayload v hpatch]
-  rw [uInt256OfByteArray_word_toBytesBE]
+  exact decode_push32_of_get?_extract'
+    (pc := (⟨3144⟩ : UInt256)) (w := EVM.Word.ofNat (↑v.vat : Nat))
+    (by
+      rw [patchRuntime_get?_disjoint hpatch
+        (by apply clipperVatPatchesWindowDisjoint32 v; native_decide)]
+      native_decide)
+    (by
+      rw [show (⟨3144⟩ : UInt256).toNat + 1 = 3145 by native_decide]
+      rw [show (⟨3144⟩ : UInt256).toNat + 33 = 3177 by native_decide]
+      exact clipperVatPatchPayload v hpatch)
 
 set_option maxHeartbeats 1000000 in
 theorem clipperVatConstGetterWf (v : ClipperImmutables) {code : ByteArray}
