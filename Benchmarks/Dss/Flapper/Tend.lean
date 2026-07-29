@@ -7878,7 +7878,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                   [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
             .reverted := by
         simpa [List.append_assoc] using
-         .execBlock_append hskipRefund hpayTail
+         execBlock_append hskipRefund hpayTail
       have hbody :
           ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
             .reverted := by
@@ -7954,7 +7954,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                     [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
               .reverted := by
           simpa [List.append_assoc] using
-           .execBlock_append hskipRefund hpayTail
+           execBlock_append hskipRefund hpayTail
         have hbody :
             ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
               .reverted := by
@@ -8086,7 +8086,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                         [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                   .reverted := by
               simpa [List.append_assoc] using
-               .execBlock_append hskipRefund hpayTail
+               execBlock_append hskipRefund hpayTail
             have hbody :
                 ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
                   .reverted := by
@@ -8142,7 +8142,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                       [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                 .reverted := by
             simpa [List.append_assoc] using
-             .execBlock_append hskipRefund hpayTail
+             execBlock_append hskipRefund hpayTail
           have hbody :
               ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
                 .reverted := by
@@ -8373,7 +8373,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                         [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                   .reverted := by
               simpa [evmGuySolm] using
-               .execBlock_append hprefix hpayTail
+               execBlock_append hprefix hpayTail
             have hbody :
                 ExecTransitionBody config contract evmSolm (tendLocals I) tendTransition.body
                   .reverted := by
@@ -8562,7 +8562,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                             [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                       .reverted := by
                   simpa [evmGuySolm] using
-                   .execBlock_append hprefix hpayTail
+                   execBlock_append hprefix hpayTail
                 have hbody :
                     ExecTransitionBody config contract evmSolm (tendLocals I)
                       tendTransition.body .reverted := by
@@ -8613,7 +8613,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
                     .reverted := by
                 simpa [evmGuySolm] using
-                 .execBlock_append hprefix hpayTail
+                 execBlock_append hprefix hpayTail
               have hbody :
                   ExecTransitionBody config contract evmSolm (tendLocals I)
                     tendTransition.body .reverted := by

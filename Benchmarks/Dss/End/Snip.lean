@@ -8191,7 +8191,7 @@ theorem endSnipTailAfterUsrReturns {I σLoc}
           I σLoc dogOut vatOut saleOut hlot hart))
       ExecBlock.nil
   simpa [List.append_assoc] using
-   .execBlock_append hsuck
+   execBlock_append hsuck
       (Reasoning.Theory.execBlock_append hyank hartBlock)
 
 theorem endSnipTailReverts_suck {I} {dogOut vatOut saleOut : ByteArray}
@@ -8216,7 +8216,7 @@ theorem endSnipTailReverts_suck {I} {dogOut vatOut saleOut : ByteArray}
               (.binary .lt (.var "art") (.intLit int256Limit))) ])
       .reverted := by
   simpa [List.append_assoc] using
-   .execBlock_append_term hsuck (by intro f' e' h; cases h)
+   execBlock_append_term hsuck (by intro f' e' h; cases h)
 
 theorem endSnipTailReverts_yank {I} {dogOut vatOut saleOut : ByteArray}
     {evmUsr evmSuck : EVM.State}
@@ -8259,7 +8259,7 @@ theorem endSnipTailReverts_yank {I} {dogOut vatOut saleOut : ByteArray}
         .reverted := by
     exact.execBlock_append_term hyank (by intro f' e' h; cases h)
   simpa [List.append_assoc] using
-   .execBlock_append hsuck hyankTail
+   execBlock_append hsuck hyankTail
 
 theorem endSnipTailReverts_artDivZero {I} {dogOut vatOut saleOut : ByteArray}
     {evmUsr evmSuck evmYank : EVM.State}
@@ -8303,7 +8303,7 @@ theorem endSnipTailReverts_artDivZero {I} {dogOut vatOut saleOut : ByteArray}
         .reverted :=
     ExecBlock.consRevert (endSnipStmtArtReverts evmYank I dogOut vatOut saleOut hrate)
   simpa [List.append_assoc] using
-   .execBlock_append hsuck
+   execBlock_append hsuck
       (Reasoning.Theory.execBlock_append hyank hartRevert)
 
 theorem endSnipTailReverts_artAddOverflow {I σLoc}
@@ -8357,7 +8357,7 @@ theorem endSnipTailReverts_artAddOverflow {I σLoc}
     exact ExecBlock.consRevert
       (endSnipStmtArtNewAddReverts evmYank I σLoc dogOut vatOut saleOut hsz68 hArtLoad hover)
   simpa [List.append_assoc] using
-   .execBlock_append hsuck
+   execBlock_append hsuck
       (Reasoning.Theory.execBlock_append hyank hartBlock)
 
 theorem endSnipTailReverts_intGuardLot {I σLoc}
@@ -8419,7 +8419,7 @@ theorem endSnipTailReverts_intGuardLot {I σLoc}
           (endSnipPostArtState evmYank I (endSnipArtNewWord σLoc I vatOut saleOut))
           I σLoc dogOut vatOut saleOut hlot))
   simpa [List.append_assoc] using
-   .execBlock_append hsuck
+   execBlock_append hsuck
       (Reasoning.Theory.execBlock_append hyank hartBlock)
 
 theorem endSnipTailReverts_intGuardArt {I σLoc}
@@ -8482,7 +8482,7 @@ theorem endSnipTailReverts_intGuardArt {I σLoc}
           (endSnipPostArtState evmYank I (endSnipArtNewWord σLoc I vatOut saleOut))
           I σLoc dogOut vatOut saleOut hlot hart))
   simpa [List.append_assoc] using
-   .execBlock_append hsuck
+   execBlock_append hsuck
       (Reasoning.Theory.execBlock_append hyank hartBlock)
 
 theorem endSnipBodyReverts_afterUsrTailReverted {I} {dogOut vatOut saleOut : ByteArray}

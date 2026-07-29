@@ -340,7 +340,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert
   refine ExecFuncBody.execBlockRevert ?_
   simpa [mintFeeFunction, mintFeeRootComparisonStmt, mintFeePositiveRootBranchStmts,
     List.append_assoc] using
-   .execBlock_append hchecked htail
+   execBlock_append hchecked htail
 
 theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_fromRootBlockRevert
     (reserveEvm callEvm evmFee : EVM.State) (I : ExecutionEnv)

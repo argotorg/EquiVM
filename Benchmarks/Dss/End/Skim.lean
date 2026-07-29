@@ -7431,7 +7431,7 @@ theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       have hurnsInkArt :=
                        .execBlock_append hurnsBlock hinkArt
                       simpa [List.append_assoc] using
-                       .execBlock_append hprefix hurnsInkArt
+                       execBlock_append hprefix hurnsInkArt
                     have hTagCoupleUrns :
                         endSkimTagWord σ_urns I = endSkimTagWord σ_urns_solm I := by
                       simpa [endSkimTagWord, endSlotWord] using

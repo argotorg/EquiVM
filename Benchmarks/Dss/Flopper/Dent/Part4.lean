@@ -109,7 +109,7 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticZero_kissSuccess
             [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]))
         .reverted := by
     simpa [List.cons_append, List.nil_append, evmGuy, evmLot] using
-     .execBlock_append htailIteLot htickTail
+     execBlock_append htailIteLot htickTail
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
     using
@@ -246,7 +246,7 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticZero_kissSuccess
         (.ok { contract := contract, locals := dentKissRetTicLocals evm evmGuy I outAsh }
           (dentPostState evmGuy I)) := by
     simpa [List.cons_append, List.nil_append, evmGuy, evmLot] using
-     .execBlock_append htailIteLot htickLet
+     execBlock_append htailIteLot htickLet
   refine ExecFuncBody.execBlockOK ?_
   simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append,
     evmGuy] using
@@ -354,7 +354,7 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticNonzero
             [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]))
         .reverted := by
     simpa [List.cons_append, List.nil_append, evmGuy, evmLot] using
-     .execBlock_append htailIteLot htickTail
+     execBlock_append htailIteLot htickTail
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
     using
@@ -468,7 +468,7 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticNonzero
         (.ok { contract := contract, locals := dentMoveTicLocals evm evmGuy I }
           (dentPostState evmGuy I)) := by
     simpa [List.cons_append, List.nil_append, evmGuy, evmLot] using
-     .execBlock_append htailIteLot htickLet
+     execBlock_append htailIteLot htickLet
   refine ExecFuncBody.execBlockOK ?_
   simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append,
     evmGuy] using

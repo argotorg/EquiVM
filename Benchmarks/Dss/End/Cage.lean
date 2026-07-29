@@ -3128,7 +3128,7 @@ theorem endCageExecBlock_append_revert {f f1 : Frame} {e e1 : EVM.State}
    .execBlock_append_term
       (s2 := tail) h2 (by intro f' e' h; cases h)
   simpa [List.append_assoc] using
-   .execBlock_append (s2 := s2 ++ tail) h1 h2tail
+   execBlock_append (s2 := s2 ++ tail) h1 h2tail
 
 theorem endCageSourceAuthReverts {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -3427,7 +3427,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   (endCageSourceStorePrefixStmts ++ endCageSourceVatStmts)
                   (.ok { contract := contract, locals := lVat } evmS1) := by
               simpa [l0, List.append_assoc] using
-               .execBlock_append (s2 := endCageSourceVatStmts)
+               execBlock_append (s2 := endCageSourceVatStmts)
                   hSrc0 hVatBlock
             by_cases hCatCodeE :
                 Reasoning.Theory.extCodeSizeWord evmE1.accountMap
@@ -3584,7 +3584,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         endCageSourceCatStmts)
                       (.ok { contract := contract, locals := lCat } evmS2) := by
                   simpa [List.append_assoc] using
-                   .execBlock_append (s2 := endCageSourceCatStmts)
+                   execBlock_append (s2 := endCageSourceCatStmts)
                       hSrcVat hCatBlock
                 by_cases hDogCodeE :
                     Reasoning.Theory.extCodeSizeWord evmE2.accountMap
@@ -3745,7 +3745,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             endCageSourceCatStmts ++ endCageSourceDogStmts)
                           (.ok { contract := contract, locals := lDog } evmS3) := by
                       simpa [List.append_assoc] using
-                       .execBlock_append
+                       execBlock_append
                           (s2 := endCageSourceDogStmts) hSrcCat hDogBlock
                     by_cases hVowCodeE :
                         Reasoning.Theory.extCodeSizeWord evmE3.accountMap
@@ -3912,7 +3912,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                 endCageSourceVowStmts)
                               (.ok { contract := contract, locals := lVow } evmS4) := by
                           simpa [List.append_assoc] using
-                           .execBlock_append
+                           execBlock_append
                               (s2 := endCageSourceVowStmts) hSrcDog hVowBlock
                         by_cases hSpotCodeE :
                             Reasoning.Theory.extCodeSizeWord evmE4.accountMap
@@ -4089,7 +4089,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   (.ok { contract := contract, locals := lSpot }
                                     evmS5) := by
                               simpa [List.append_assoc] using
-                               .execBlock_append
+                               execBlock_append
                                   (s2 := endCageSourceSpotStmts) hSrcVow hSpotBlock
                             by_cases hPotCodeE :
                                 Reasoning.Theory.extCodeSizeWord evmE5.accountMap
@@ -4279,7 +4279,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       (.ok { contract := contract, locals := lPot }
                                         evmS6) := by
                                   simpa [List.append_assoc] using
-                                   .execBlock_append
+                                   execBlock_append
                                       (s2 := endCageSourcePotStmts) hSrcSpot hPotBlock
                                 by_cases hCureCodeE :
                                     Reasoning.Theory.extCodeSizeWord evmE6.accountMap
@@ -4489,7 +4489,7 @@ theorem endCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                           (.ok { contract := contract, locals := lCure }
                                             evmS7) := by
                                       simpa [List.append_assoc] using
-                                       .execBlock_append
+                                       execBlock_append
                                           (s2 := endCageSourceCureStmts) hSrcPot
                                           hCureBlock
                                     have hbody :

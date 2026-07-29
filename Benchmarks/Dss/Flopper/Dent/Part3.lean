@@ -1143,7 +1143,7 @@ theorem flopperDentBodyReverts_afterAshRevert_moveCallerNe_ticZero
             (.intLit 0) [.var "kissAmt"] "_kissRet")
         .reverted := by
     simpa [List.append_assoc] using
-     .execBlock_append hashChecked hafterAsh
+     execBlock_append hashChecked hafterAsh
   have hafterMove :
       ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmMove
         [.ite (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))
@@ -1605,7 +1605,7 @@ theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
             (.intLit 0) [.var "kissAmt"] "_kissRet")
         (.ok { contract := contract, locals := dentKissRetLocals evm I outAsh } evmKiss) := by
     simpa [List.append_assoc] using
-     .execBlock_append hashChecked hafterAsh
+     execBlock_append hashChecked hafterAsh
   have hinnerGuy :
       ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmMove
         [.ite (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))

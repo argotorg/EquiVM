@@ -9915,7 +9915,7 @@ theorem endSkipTailAfterTabReturns {I σLoc}
   have htail3 :=.execBlock_append htail2 hhope
   have htail4 :=.execBlock_append htail3 hyank
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
-   .execBlock_append htail4 hartBlock
+   execBlock_append htail4 hartBlock
 
 theorem endSkipTailReverts_suck1 {I} {catOut vatOut bidOut : ByteArray}
     {evmTab : EVM.State}
@@ -9925,7 +9925,7 @@ theorem endSkipTailReverts_suck1 {I} {catOut vatOut bidOut : ByteArray}
     ExecBlock config { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
       evmTab endSkipTailNoGrabStmts .reverted := by
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
-   .execBlock_append_term hsuck1 (by intro f' e' h; cases h)
+   execBlock_append_term hsuck1 (by intro f' e' h; cases h)
 
 theorem endSkipTailReverts_suck2 {I} {catOut vatOut bidOut : ByteArray}
     {evmTab evmSuck1 : EVM.State}
@@ -9951,7 +9951,7 @@ theorem endSkipTailReverts_suck2 {I} {catOut vatOut bidOut : ByteArray}
         (s2 := endSkipHopeStmts ++ endSkipYankStmts ++ endSkipArtStmts)
         hsuck2 (by intro f' e' h; cases h))
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
-   .execBlock_append hsuck1 hsuck2Tail
+   execBlock_append hsuck1 hsuck2Tail
 
 theorem endSkipTailReverts_hope {I} {catOut vatOut bidOut : ByteArray}
     {evmTab evmSuck1 evmSuck2 : EVM.State}
@@ -9983,7 +9983,7 @@ theorem endSkipTailReverts_hope {I} {catOut vatOut bidOut : ByteArray}
         hhope (by intro f' e' h; cases h))
   have htail2 :=.execBlock_append hsuck1 hsuck2
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
-   .execBlock_append htail2 hhopeTail
+   execBlock_append htail2 hhopeTail
 
 theorem endSkipTailReverts_yank {I} {catOut vatOut bidOut : ByteArray}
     {evmTab evmSuck1 evmSuck2 evmHope : EVM.State}
@@ -10018,7 +10018,7 @@ theorem endSkipTailReverts_yank {I} {catOut vatOut bidOut : ByteArray}
   have htail2 :=.execBlock_append hsuck1 hsuck2
   have htail3 :=.execBlock_append htail2 hhope
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
-   .execBlock_append htail3 hyankTail
+   execBlock_append htail3 hyankTail
 
 theorem endSkipTailReverts_artDivZero {I} {catOut vatOut bidOut : ByteArray}
     {evmTab evmSuck1 evmSuck2 evmHope evmYank : EVM.State}
@@ -10056,7 +10056,7 @@ theorem endSkipTailReverts_artDivZero {I} {catOut vatOut bidOut : ByteArray}
   have htail3 :=.execBlock_append htail2 hhope
   have htail4 :=.execBlock_append htail3 hyank
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
-   .execBlock_append htail4 hartRevert
+   execBlock_append htail4 hartRevert
 
 theorem endSkipTailReverts_artAddOverflow {I σLoc}
     {catOut vatOut bidOut : ByteArray}
@@ -10104,7 +10104,7 @@ theorem endSkipTailReverts_artAddOverflow {I σLoc}
   have htail3 :=.execBlock_append htail2 hhope
   have htail4 :=.execBlock_append htail3 hyank
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
-   .execBlock_append htail4 hartBlock
+   execBlock_append htail4 hartBlock
 
 theorem endSkipTailReverts_intGuardLot {I σLoc}
     {catOut vatOut bidOut : ByteArray}
@@ -10160,7 +10160,7 @@ theorem endSkipTailReverts_intGuardLot {I σLoc}
   have htail3 :=.execBlock_append htail2 hhope
   have htail4 :=.execBlock_append htail3 hyank
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
-   .execBlock_append htail4 hartBlock
+   execBlock_append htail4 hartBlock
 
 theorem endSkipTailReverts_intGuardArt {I σLoc}
     {catOut vatOut bidOut : ByteArray}
@@ -10217,7 +10217,7 @@ theorem endSkipTailReverts_intGuardArt {I σLoc}
   have htail3 :=.execBlock_append htail2 hhope
   have htail4 :=.execBlock_append htail3 hyank
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
-   .execBlock_append htail4 hartBlock
+   execBlock_append htail4 hartBlock
 
 theorem endSkipBodyReverts_afterTabTailReverted {I} {catOut vatOut bidOut : ByteArray}
     {evm0 evmTab : EVM.State}

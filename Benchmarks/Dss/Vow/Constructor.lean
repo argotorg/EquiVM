@@ -1708,7 +1708,7 @@ theorem vowCtorSolmExecReverts_noCode
       exact ExecBlock.consRevert (ExecStmt.requireFalse hguard)
     simpa [ExecTransitionBody, contract, constructorDecl, nonpayable, checkedExternalCallStmts,
       locals, evm0, evm1, evm2, evm3, evm4, List.cons_append, List.nil_append] using
-     .execBlock_append hprefix htail
+     execBlock_append hprefix htail
 
 theorem vowCtorSolmExecReverts_callFailure
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -1782,7 +1782,7 @@ theorem vowCtorSolmExecReverts_callFailure
           (by simpa [evm0, evm1, evm2, evm3, evm4] using hcall))
     simpa [ExecTransitionBody, contract, constructorDecl, nonpayable, checkedExternalCallStmts,
       locals, evm0, evm1, evm2, evm3, evm4, List.cons_append, List.nil_append] using
-     .execBlock_append hprefix htail
+     execBlock_append hprefix htail
 
 theorem vowCtorSolmExecSuccess
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -1879,7 +1879,7 @@ theorem vowCtorSolmExecSuccess
           (.ok { contract := contract, locals := localsHope } evm5) := by
       simpa [constructorDecl, nonpayable, checkedExternalCallStmts, locals, evm0, evm1, evm2,
         evm3, evm4, evm5, List.cons_append, List.nil_append] using
-       .execBlock_append hprefix htail
+       execBlock_append hprefix htail
     simpa [ExecTransitionBody, contract, constructorDecl, locals, localsHope, evm0, evm5] using
       ExecFuncBody.execBlockOK hblock
 
