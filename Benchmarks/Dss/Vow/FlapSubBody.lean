@@ -224,7 +224,7 @@ theorem vowFlapFreeSinUnderflowBodyCore
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 flapTransition.body
         .reverted := by
-    have hcat :=.execBlock_append hprefix htail
+    have hcat := execBlock_append hprefix htail
     simpa [flapTransition, flapPrefixToDaiStmts, flapTailStmts,
       flapPostDaiToKickStmts, flapKickAndReturnStmts, nonpayable, checkedExternalCallStmts,
       locals, evm0] using hcat
@@ -508,7 +508,7 @@ theorem vowFlapDebtUnderflowBodyCore
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 flapTransition.body
         .reverted := by
-    have hcat :=.execBlock_append hprefix htail
+    have hcat := execBlock_append hprefix htail
     simpa [flapTransition, flapPrefixToDaiStmts, flapTailStmts,
       flapPostDaiToKickStmts, flapKickAndReturnStmts, nonpayable, checkedExternalCallStmts,
       locals, evm0] using hcat
@@ -825,7 +825,7 @@ theorem vowFlapDebtNotZeroBodyCore
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 flapTransition.body
         .reverted := by
-    have hcat :=.execBlock_append hprefix htail
+    have hcat := execBlock_append hprefix htail
     simpa [flapTransition, flapPrefixToDaiStmts, flapTailStmts,
       flapPostDaiToKickStmts, flapKickAndReturnStmts, nonpayable, checkedExternalCallStmts,
       locals, evm0] using hcat

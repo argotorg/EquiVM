@@ -2834,7 +2834,7 @@ theorem endCashBodyReverts_fluxNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
             .require
               (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
         .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 :=
         [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
           .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
@@ -2962,7 +2962,7 @@ theorem endCashBodyReverts_fluxCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
             .require
               (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
         .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 :=
         [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
           .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
@@ -3325,7 +3325,7 @@ theorem endCashTailReverts_outExceedsBag (evm : EVM.State) (I : ExecutionEnv)
           (.binary .le (.var "outNew") (.storage (bagRef sender))) ]
         .reverted :=
     ExecBlock.consRevert (ExecStmt.requireFalse hreq)
-  have happ :=.execBlock_append
+  have happ := execBlock_append
     (s2 := [ .require
       (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
     hprefix htail
@@ -3390,7 +3390,7 @@ theorem endCashTailReturns (evm : EVM.State) (I : ExecutionEnv)
           (.binary .le (.var "outNew") (.storage (bagRef sender))) ]
         (.ok { contract := contract, locals := endCashStoreOutNew σ I outNew } evmPost) :=
     ExecBlock.consNormal (ExecStmt.requireTrue hreq) ExecBlock.nil
-  have happ :=.execBlock_append
+  have happ := execBlock_append
     (s2 := [ .require
       (.binary .le (.var "outNew") (.storage (bagRef sender))) ])
     hprefix htail
@@ -3560,7 +3560,7 @@ theorem endCashBodyReverts_outAddOverflow {cA gh bl σ σ₀ A I} {g : UInt256}
   have hblock :
       ExecBlock config { contract := contract, locals := endCashStore I } evm0
         cashTransition.body .reverted := by
-    have happ :=.execBlock_append
+    have happ := execBlock_append
       (s2 :=
         [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
           .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
@@ -3614,7 +3614,7 @@ theorem endCashBodyReverts_outExceedsBag {cA gh bl σ σ₀ A I} {g : UInt256}
   have hblock :
       ExecBlock config { contract := contract, locals := endCashStore I } evm0
         cashTransition.body .reverted := by
-    have happ :=.execBlock_append
+    have happ := execBlock_append
       (s2 :=
         [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
           .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),
@@ -3674,7 +3674,7 @@ theorem endCashBodyReturns {cA gh bl σ σ₀ A I} {g : UInt256}
         cashTransition.body
         (.ok { contract := contract, locals := endCashStoreOutNew σ I outNew }
           (endCashPostState evmFlux I outNew)) := by
-    have happ :=.execBlock_append
+    have happ := execBlock_append
       (s2 :=
         [ .internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew",
           .assign .storage (outRef (.var "ilk") sender) (.var "outNew"),

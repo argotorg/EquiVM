@@ -1364,7 +1364,7 @@ theorem endFreeBodyReverts_urnsNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
   have hurnsWithTail :
       ExecBlock config { contract := contract, locals := endFreeStore I } evm0
         (endFreeUrnsCallStmts ++ endFreeAfterUrnsStmts) .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 := endFreeAfterUrnsStmts) hurnsBlock (by intro f' e' h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := endFreeStore I } evm0
@@ -1438,7 +1438,7 @@ theorem endFreeBodyReverts_urnsCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
   have hurnsWithTail :
       ExecBlock config { contract := contract, locals := endFreeStore I } evm0
         (endFreeUrnsCallStmts ++ endFreeAfterUrnsStmts) .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 := endFreeAfterUrnsStmts) hurnsBlock (by intro f' e' h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := endFreeStore I } evm0
@@ -1514,7 +1514,7 @@ theorem endFreeBodyReverts_urnsDecodeShort {cA gh bl σ σ₀ A I} {g : UInt256}
   have hurnsWithTail :
       ExecBlock config { contract := contract, locals := endFreeStore I } evm0
         (endFreeUrnsCallStmts ++ endFreeAfterUrnsStmts) .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 := endFreeAfterUrnsStmts) hurnsBlock (by intro f' e' h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := endFreeStore I } evm0
@@ -2121,7 +2121,7 @@ theorem endFreeBodyReverts_artNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
   have hblock :
       ExecBlock config { contract := contract, locals := endFreeStore I } evm0
         freeTransition.body .reverted := by
-    have hseq :=.execBlock_append
+    have hseq := execBlock_append
       (s2 := endFreeAfterUrnsStmts) hprefix htail
     simpa [freeTransition, nonpayable, endFreeUrnsCallStmts, endFreeAfterUrnsStmts,
       checkedExternalCallStmts, List.cons_append, List.nil_append, List.append_assoc] using hseq
@@ -2160,7 +2160,7 @@ theorem endFreeBodyReverts_inkOverflow {cA gh bl σ σ₀ A I} {g : UInt256}
   have hblock :
       ExecBlock config { contract := contract, locals := endFreeStore I } evm0
         freeTransition.body .reverted := by
-    have hseq :=.execBlock_append
+    have hseq := execBlock_append
       (s2 := endFreeAfterUrnsStmts) hprefix htail
     simpa [freeTransition, nonpayable, endFreeUrnsCallStmts, endFreeAfterUrnsStmts,
       checkedExternalCallStmts, List.cons_append, List.nil_append, List.append_assoc] using hseq
@@ -2204,7 +2204,7 @@ theorem endFreeBodyReverts_grabNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
   have hblock :
       ExecBlock config { contract := contract, locals := endFreeStore I } evm0
         freeTransition.body .reverted := by
-    have hseq :=.execBlock_append
+    have hseq := execBlock_append
       (s2 := endFreeAfterUrnsStmts) hprefix htail
     simpa [freeTransition, nonpayable, endFreeUrnsCallStmts, endFreeAfterUrnsStmts,
       checkedExternalCallStmts, List.cons_append, List.nil_append, List.append_assoc] using hseq
@@ -2260,7 +2260,7 @@ theorem endFreeBodyReverts_grabCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
   have hblock :
       ExecBlock config { contract := contract, locals := endFreeStore I } evm0
         freeTransition.body .reverted := by
-    have hseq :=.execBlock_append
+    have hseq := execBlock_append
       (s2 := endFreeAfterUrnsStmts) hprefix htail
     simpa [freeTransition, nonpayable, endFreeUrnsCallStmts, endFreeAfterUrnsStmts,
       checkedExternalCallStmts, List.cons_append, List.nil_append, List.append_assoc] using hseq
@@ -2318,7 +2318,7 @@ theorem endFreeBodyReturns_grabSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
       ExecBlock config { contract := contract, locals := endFreeStore I } evm0
         freeTransition.body
         (.ok { contract := contract, locals := endFreeStoreGrab I out } evmGrab) := by
-    have hseq :=.execBlock_append
+    have hseq := execBlock_append
       (s2 := endFreeAfterUrnsStmts) hprefix htail
     simpa [freeTransition, nonpayable, endFreeUrnsCallStmts, endFreeAfterUrnsStmts,
       checkedExternalCallStmts, List.cons_append, List.nil_append, List.append_assoc] using hseq

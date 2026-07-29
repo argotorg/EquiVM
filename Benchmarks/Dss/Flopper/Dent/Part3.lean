@@ -127,7 +127,7 @@ theorem flopperDentBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
               [],
             .assign .storage (bidsF (.var "id") "guy") sender ])
         .reverted :=
-   .execBlock_append_term hchecked (by intro f e h; cases h)
+   execBlock_append_term hchecked (by intro f e h; cases h)
   have hite :
       ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -165,7 +165,7 @@ theorem flopperDentBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
           checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]))
         .reverted :=
-   .execBlock_append_term hite (by intro f e h; cases h)
+   execBlock_append_term hite (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
     using
@@ -272,7 +272,7 @@ theorem flopperDentBodyReverts_moveCallFailure
               [],
             .assign .storage (bidsF (.var "id") "guy") sender ])
         .reverted :=
-   .execBlock_append_term hchecked (by intro f e h; cases h)
+   execBlock_append_term hchecked (by intro f e h; cases h)
   have hite :
       ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -310,7 +310,7 @@ theorem flopperDentBodyReverts_moveCallFailure
           checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]))
         .reverted :=
-   .execBlock_append_term hite (by intro f e h; cases h)
+   execBlock_append_term hite (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
     using
@@ -455,7 +455,7 @@ theorem flopperDentBodyReverts_ashNoCode_moveCallerNe_ticZero
             (.intLit 0) [] "Ash" ++
           [ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ])
         .reverted :=
-   .execBlock_append_term hashChecked (by intro f e h; cases h)
+   execBlock_append_term hashChecked (by intro f e h; cases h)
   have hashBranch :
       ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmMove
         (checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "Ash"
@@ -464,7 +464,7 @@ theorem flopperDentBodyReverts_ashNoCode_moveCallerNe_ticZero
           checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
             (.intLit 0) [.var "kissAmt"] "_kissRet")
         .reverted :=
-   .execBlock_append_term hashMin (by intro f e h; cases h)
+   execBlock_append_term hashMin (by intro f e h; cases h)
   have hafterMove :
       ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmMove
         [.ite (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))
@@ -491,7 +491,7 @@ theorem flopperDentBodyReverts_ashNoCode_moveCallerNe_ticZero
               [],
             .assign .storage (bidsF (.var "id") "guy") sender ])
         .reverted :=
-   .execBlock_append hchecked hafterMove
+   execBlock_append hchecked hafterMove
   have hite :
       ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -529,7 +529,7 @@ theorem flopperDentBodyReverts_ashNoCode_moveCallerNe_ticZero
           checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]))
         .reverted :=
-   .execBlock_append_term hite (by intro f e h; cases h)
+   execBlock_append_term hite (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
     using
@@ -680,7 +680,7 @@ theorem flopperDentBodyReverts_ashCallFailure_moveCallerNe_ticZero
             (.intLit 0) [] "Ash" ++
           [ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ])
         .reverted :=
-   .execBlock_append_term hashChecked (by intro f e h; cases h)
+   execBlock_append_term hashChecked (by intro f e h; cases h)
   have hashBranch :
       ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmMove
         (checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "Ash"
@@ -689,7 +689,7 @@ theorem flopperDentBodyReverts_ashCallFailure_moveCallerNe_ticZero
           checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
             (.intLit 0) [.var "kissAmt"] "_kissRet")
         .reverted :=
-   .execBlock_append_term hashMin (by intro f e h; cases h)
+   execBlock_append_term hashMin (by intro f e h; cases h)
   have hafterMove :
       ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmMove
         [.ite (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))
@@ -716,7 +716,7 @@ theorem flopperDentBodyReverts_ashCallFailure_moveCallerNe_ticZero
               [],
             .assign .storage (bidsF (.var "id") "guy") sender ])
         .reverted :=
-   .execBlock_append hchecked hafterMove
+   execBlock_append hchecked hafterMove
   have hite :
       ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -754,7 +754,7 @@ theorem flopperDentBodyReverts_ashCallFailure_moveCallerNe_ticZero
           checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]))
         .reverted :=
-   .execBlock_append_term hite (by intro f e h; cases h)
+   execBlock_append_term hite (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
     using
@@ -907,7 +907,7 @@ theorem flopperDentBodyReverts_ashDecodeShort_moveCallerNe_ticZero
             (.intLit 0) [] "Ash" ++
           [ .internalCall "min" [.var "bid", .var "Ash"] "kissAmt" ])
         .reverted :=
-   .execBlock_append_term hashChecked (by intro f e h; cases h)
+   execBlock_append_term hashChecked (by intro f e h; cases h)
   have hashBranch :
       ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmMove
         (checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "Ash"
@@ -916,7 +916,7 @@ theorem flopperDentBodyReverts_ashDecodeShort_moveCallerNe_ticZero
           checkedExternalCallStmts (.storage (bidsF (.var "id") "guy")) "kiss"
             (.intLit 0) [.var "kissAmt"] "_kissRet")
         .reverted :=
-   .execBlock_append_term hashMin (by intro f e h; cases h)
+   execBlock_append_term hashMin (by intro f e h; cases h)
   have hafterMove :
       ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmMove
         [.ite (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0))
@@ -943,7 +943,7 @@ theorem flopperDentBodyReverts_ashDecodeShort_moveCallerNe_ticZero
               [],
             .assign .storage (bidsF (.var "id") "guy") sender ])
         .reverted :=
-   .execBlock_append hchecked hafterMove
+   execBlock_append hchecked hafterMove
   have hite :
       ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -981,7 +981,7 @@ theorem flopperDentBodyReverts_ashDecodeShort_moveCallerNe_ticZero
           checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]))
         .reverted :=
-   .execBlock_append_term hite (by intro f e h; cases h)
+   execBlock_append_term hite (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
     using
@@ -1170,7 +1170,7 @@ theorem flopperDentBodyReverts_afterAshRevert_moveCallerNe_ticZero
               [],
             .assign .storage (bidsF (.var "id") "guy") sender ])
         .reverted :=
-   .execBlock_append hchecked hafterMove
+   execBlock_append hchecked hafterMove
   have hite :
       ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -1208,7 +1208,7 @@ theorem flopperDentBodyReverts_afterAshRevert_moveCallerNe_ticZero
           checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]))
         .reverted :=
-   .execBlock_append_term hite (by intro f e h; cases h)
+   execBlock_append_term hite (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
     using
@@ -1436,7 +1436,7 @@ theorem flopperDentBodyMoveSuccessTicNonzeroToLot
               [],
             .assign .storage (bidsF (.var "id") "guy") sender ])
         (.ok { contract := contract, locals := dentMoveLocals evm I } evmGuy) :=
-   .execBlock_append hchecked hguyAssign
+   execBlock_append hchecked hguyAssign
   have hite :
       ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -1466,7 +1466,7 @@ theorem flopperDentBodyMoveSuccessTicNonzeroToLot
               (dentMoveLocals_get_id evm I) (dentMoveLocals_get_bids evm I)))
       ExecBlock.nil
   have htail :=
-   .execBlock_append hite hlotAssign
+   execBlock_append hite hlotAssign
   simpa [evmGuy, evmLot] using htail
 
 set_option maxHeartbeats 1000000 in
@@ -1640,7 +1640,7 @@ theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
               [],
             .assign .storage (bidsF (.var "id") "guy") sender ])
         (.ok { contract := contract, locals := dentKissRetLocals evm I outAsh } evmGuy) :=
-   .execBlock_append hchecked hinnerGuy
+   execBlock_append hchecked hinnerGuy
   have hite :
       ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -1672,7 +1672,7 @@ theorem flopperDentBodyMoveAshKissSuccessTicZeroToLot
               (dentKissRetLocals_get_bids evm I outAsh)))
       ExecBlock.nil
   have htail :=
-   .execBlock_append hite hlotAssign
+   execBlock_append hite hlotAssign
   simpa [evmGuy, evmLot] using htail
 
 end Benchmarks.Dss.Flopper

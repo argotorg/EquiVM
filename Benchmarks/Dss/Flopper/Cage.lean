@@ -296,7 +296,7 @@ theorem flopperCageX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
     raw not (by native_decide) (by evm_ov),
     raw and (by native_decide) (by evm_ov)]
   have rd3245 := rd3244.caller (by native_decide) (by evm_ov)
-  have rd3246 := rd3245.lor (by native_decide) (by evm_ov)
+  have rd3246 := rd3245.or (by native_decide) (by evm_ov)
   have rd3247 := rd3246.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3248raw⟩ := rd3247.sstore hperm (by native_decide) (by evm_ov)
   have hsourceClean : UInt256.land (relySourceWord I) solcAddrMask = relySourceWord I := by

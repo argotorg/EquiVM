@@ -779,7 +779,7 @@ theorem RD.vowFileAddressNopeSuccessStoreFlapperWithTarget
   have rd4344 := rd4343.and (by native_decide) (by evm_ov)
   have rd4345 := rd4344.swap2 (by native_decide) (by evm_ov)
   have rd4346 := rd4345.dup3 (by native_decide) (by evm_ov)
-  have rd4347 := rd4346.lor (by native_decide) (by evm_ov)
+  have rd4347 := rd4346.or (by native_decide) (by evm_ov)
   have rd4348 := rd4347.swap1 (by native_decide) (by evm_ov)
   have rd4349 := rd4348.swap3 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4350⟩ := rd4349.sstore hperm (by native_decide) (by evm_ov)

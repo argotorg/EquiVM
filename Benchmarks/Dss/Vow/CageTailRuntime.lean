@@ -96,7 +96,7 @@ theorem cageSourceSecondDaiNoCode
         { contract := contract, locals := cageLocalsAfterFlopCage flapperDai }
         evmFlop cageVatDaiStmts .reverted :=
     cageVatDaiNoCode (evm := evmFlop) (flapperDai := flapperDai) hvatNoCode
-  have hprefix :=.execBlock_append
+  have hprefix := execBlock_append
     (Reasoning.Theory.execBlock_append
       (Reasoning.Theory.execBlock_append hclear hfirst) hflopper) hsecond
   have hblock :
@@ -111,7 +111,7 @@ theorem cageSourceSecondDaiNoCode
           cageFlopperCageStmts) ++ cageVatDaiStmts) ++
           cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
         .reverted :=
-   .execBlock_append_term
+   execBlock_append_term
       (s2 := cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
@@ -215,7 +215,7 @@ theorem cageSourceSecondDaiCallFailure
         evmFlop cageVatDaiStmts .reverted :=
     cageVatDaiCallFailure (evm := evmFlop) (evmDai := evmDai2)
       (outDai := outDai2) (flapperDai := flapperDai) hvatCode2 hcallDai2
-  have hprefix :=.execBlock_append
+  have hprefix := execBlock_append
     (Reasoning.Theory.execBlock_append
       (Reasoning.Theory.execBlock_append hclear hfirst) hflopper) hsecond
   have hblock :
@@ -230,7 +230,7 @@ theorem cageSourceSecondDaiCallFailure
           cageFlopperCageStmts) ++ cageVatDaiStmts) ++
           cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
         .reverted :=
-   .execBlock_append_term
+   execBlock_append_term
       (s2 := cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
@@ -335,7 +335,7 @@ theorem cageSourceSecondDaiReturnDecodeFailure
         evmFlop cageVatDaiStmts .reverted :=
     cageVatDaiReturnDecodeFailure (evm := evmFlop) (evmDai := evmDai2)
       (outDai := outDai2) (flapperDai := flapperDai) hvatCode2 hcallDai2 hdecDai2
-  have hprefix :=.execBlock_append
+  have hprefix := execBlock_append
     (Reasoning.Theory.execBlock_append
       (Reasoning.Theory.execBlock_append hclear hfirst) hflopper) hsecond
   have hblock :
@@ -350,7 +350,7 @@ theorem cageSourceSecondDaiReturnDecodeFailure
           cageFlopperCageStmts) ++ cageVatDaiStmts) ++
           cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
         .reverted :=
-   .execBlock_append_term
+   execBlock_append_term
       (s2 := cageVatSinStmts ++ cageMinStmts ++ cageVatHealStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
@@ -470,7 +470,7 @@ theorem cageSourceVatSinNoCode
         evmDai2 cageVatSinStmts .reverted :=
     cageVatSinNoCode (evm := evmDai2) (flapperDai := flapperDai)
       (vatDai := vatDai) hvatNoCode
-  have hprefix :=.execBlock_append
+  have hprefix := execBlock_append
     (Reasoning.Theory.execBlock_append
       (Reasoning.Theory.execBlock_append
         (Reasoning.Theory.execBlock_append hclear hfirst) hflopper) hsecond) hsin
@@ -486,7 +486,7 @@ theorem cageSourceVatSinNoCode
           cageFlopperCageStmts) ++ cageVatDaiStmts) ++ cageVatSinStmts) ++
           cageMinStmts ++ cageVatHealStmts)
         .reverted :=
-   .execBlock_append_term
+   execBlock_append_term
       (s2 := cageMinStmts ++ cageVatHealStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)
@@ -600,7 +600,7 @@ theorem cageSourceVatSinRevertFromBlock
     exact cageVatDaiSuccess (evm := evmFlop) (evmDai := evmDai2)
       (outDai := outDai2) (flapperDai := flapperDai) (vatDai := vatDai)
       hvatCode2 hcallDai2 hdecDai2
-  have hprefix :=.execBlock_append
+  have hprefix := execBlock_append
     (Reasoning.Theory.execBlock_append
       (Reasoning.Theory.execBlock_append
         (Reasoning.Theory.execBlock_append hclear hfirst) hflopper) hsecond) hsin
@@ -616,7 +616,7 @@ theorem cageSourceVatSinRevertFromBlock
           cageFlopperCageStmts) ++ cageVatDaiStmts) ++ cageVatSinStmts) ++
           cageMinStmts ++ cageVatHealStmts)
         .reverted :=
-   .execBlock_append_term
+   execBlock_append_term
       (s2 := cageMinStmts ++ cageVatHealStmts)
       (by simpa [List.append_assoc] using hprefix)
       (by intro f e h; cases h)

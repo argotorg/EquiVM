@@ -3125,7 +3125,7 @@ theorem endCageExecBlock_append_revert {f f1 : Frame} {e e1 : EVM.State}
     ExecBlock config f e (s1 ++ s2 ++ tail) .reverted := by
   have h2tail :
       ExecBlock config f1 e1 (s2 ++ tail) .reverted :=
-   .execBlock_append_term
+   execBlock_append_term
       (s2 := tail) h2 (by intro f' e' h; cases h)
   simpa [List.append_assoc] using
    execBlock_append (s2 := s2 ++ tail) h1 h2tail

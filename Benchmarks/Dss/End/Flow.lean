@@ -4015,7 +4015,7 @@ theorem endFlowBodyReverts_vatIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
             .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
             .assign .storage (fixRef (.var "ilk")) (.var "fixV") ])
         .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 :=
         [ .letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1),
           .internalCall "rmul" [.storage (ArtRef (.var "ilk")), .var "rate"] "wad0",
@@ -4206,7 +4206,7 @@ theorem endFlowBodyReverts_vatIlksOkTailReverted {cA gh bl σ σ₀ A I} {g : UI
   have hblock :
       ExecBlock config { contract := contract, locals := endFlowStore I } evm0
         flowTransition.body .reverted := by
-    have happ :=.execBlock_append
+    have happ := execBlock_append
       (s2 :=
         [ .letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1),
           .internalCall "rmul" [.storage (ArtRef (.var "ilk")), .var "rate"] "wad0",
@@ -4264,7 +4264,7 @@ theorem endFlowBodyReturns_vatIlksOkTail {cA gh bl σ σ₀ A I} {g : UInt256}
   have hblock :
       ExecBlock config { contract := contract, locals := endFlowStore I } evm0
         flowTransition.body (.ok fPost evmPost) := by
-    have happ :=.execBlock_append
+    have happ := execBlock_append
       (s2 :=
         [ .letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1),
           .internalCall "rmul" [.storage (ArtRef (.var "ilk")), .var "rate"] "wad0",
@@ -4336,7 +4336,7 @@ theorem endFlowBodyReturns {cA gh bl σ σ₀ A I} {g : UInt256}
         flowTransition.body
         (.ok { contract := contract, locals := endFlowStoreFixV σ I out }
           (endFlowPostState evmVat I (endFlowFixVWord σ I out))) := by
-    have happ :=.execBlock_append
+    have happ := execBlock_append
       (s2 :=
         [ .letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1),
           .internalCall "rmul" [.storage (ArtRef (.var "ilk")), .var "rate"] "wad0",

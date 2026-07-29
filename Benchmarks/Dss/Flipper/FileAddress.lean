@@ -559,7 +559,7 @@ theorem flipperFileAddressX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State}
   have rd5940 := rd5939.sub (by native_decide) (by evm_ov)
   have rd5941 := rd5940.dup4 (by native_decide) (by evm_ov)
   have rd5942 := rd5941.and (by native_decide) (by evm_ov)
-  have rd5943 := rd5942.lor (by native_decide) (by evm_ov)
+  have rd5943 := rd5942.or (by native_decide) (by evm_ov)
   have rd5944 := rd5943.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd5945⟩ := rd5944.sstore hperm (by native_decide) (by evm_ov)
   have rd5948 := rd5945.push2 ⟨1988⟩ (by native_decide) (by evm_ov)

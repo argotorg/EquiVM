@@ -88,7 +88,7 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticZero_kissSuccess
           evmLot
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]) .reverted :=
-   .execBlock_append_term htickChecked (by intro f e h; cases h)
+   execBlock_append_term htickChecked (by intro f e h; cases h)
   have htail :
       ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
         ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -333,7 +333,7 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticNonzero
       ExecBlock config { contract := contract, locals := dentMoveLocals evm I } evmLot
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]) .reverted :=
-   .execBlock_append_term htickChecked (by intro f e h; cases h)
+   execBlock_append_term htickChecked (by intro f e h; cases h)
   have htail :
       ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
         ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -561,7 +561,7 @@ theorem flopperDentBodyReverts_addOverflow_callerEq (evm : EVM.State) (I : Execu
       ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evmLot
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]) .reverted :=
-   .execBlock_append_term htickChecked (by intro f e h; cases h)
+   execBlock_append_term htickChecked (by intro f e h; cases h)
   have htail :
       ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evm
         ([.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -581,7 +581,7 @@ theorem flopperDentBodyReverts_addOverflow_callerEq (evm : EVM.State) (I : Execu
           (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
             [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]))
         .reverted :=
-   .execBlock_append htailIteLot htickTail
+   execBlock_append htailIteLot htickTail
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
     using
@@ -696,7 +696,7 @@ theorem flopperDentBodyReturns_success_callerEq (evm : EVM.State) (I : Execution
           (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
             [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")]))
         (.ok { contract := contract, locals := dentTicLocals evm I } (dentPostState evm I)) :=
-   .execBlock_append htailIteLot htickLet
+   execBlock_append htailIteLot htickLet
   refine ExecFuncBody.execBlockOK ?_
   simpa [dentTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append]
     using

@@ -804,7 +804,7 @@ theorem spotFilePipX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
   have rd2042 := rd2041.sub (by native_decide) (by evm_ov)
   have rd2043 := rd2042.dup4 (by native_decide) (by evm_ov)
   have rd2044 := rd2043.and (by native_decide) (by evm_ov)
-  have rd2045 := rd2044.lor (by native_decide) (by evm_ov)
+  have rd2045 := rd2044.or (by native_decide) (by evm_ov)
   have rd2046 := rd2045.swap1 (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2047⟩ := rd2046.sstore hperm (by native_decide) (by evm_ov)
   have hword :

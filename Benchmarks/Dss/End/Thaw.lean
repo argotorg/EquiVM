@@ -3103,7 +3103,7 @@ theorem endThawBodyReverts_daiNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
           [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
             .assign .storage debtRef (.var "debtNew") ])
         .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 :=
           [ .require (.binary .eq (.var "vatDai") (.intLit 0)),
             .internalCall "add" [.storage whenRef, .storage waitRef] "deadline",
@@ -3247,7 +3247,7 @@ theorem endThawBodyReverts_daiCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
           [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
             .assign .storage debtRef (.var "debtNew") ])
         .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 :=
           [ .require (.binary .eq (.var "vatDai") (.intLit 0)),
             .internalCall "add" [.storage whenRef, .storage waitRef] "deadline",
@@ -3350,7 +3350,7 @@ theorem endThawBodyReverts_daiBlockReverted {cA gh bl σ σ₀ A I} {g : UInt256
           [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
             .assign .storage debtRef (.var "debtNew") ])
         .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 :=
           [ .require (.binary .eq (.var "vatDai") (.intLit 0)),
             .internalCall "add" [.storage whenRef, .storage waitRef] "deadline",
@@ -3525,7 +3525,7 @@ theorem endThawBodyReverts_daiOkTailReverted {cA gh bl σ σ₀ A I} {g : UInt25
           [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
             .assign .storage debtRef (.var "debtNew") ])
         .reverted := by
-    exact.execBlock_append
+    exact execBlock_append
       (s2 :=
           [ .require (.binary .eq (.var "vatDai") (.intLit 0)),
             .internalCall "add" [.storage whenRef, .storage waitRef] "deadline",
@@ -3636,7 +3636,7 @@ theorem endThawBodyReverts_daiNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
         [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
           .assign .storage debtRef (.var "debtNew") ])
         .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 :=
         [ .internalCall "add" [.storage whenRef, .storage waitRef] "deadline",
           .require (.binary .ge nowT (.var "deadline")) ] ++
@@ -3788,7 +3788,7 @@ theorem endThawBodyReverts_deadlineAddOverflow {cA gh bl σ σ₀ A I} {g : UInt
         [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
           .assign .storage debtRef (.var "debtNew") ])
         .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 :=
         [ .require (.binary .ge nowT (.var "deadline")) ] ++
         checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt" ++
@@ -3967,7 +3967,7 @@ theorem endThawBodyReverts_waitNotFinished {cA gh bl σ σ₀ A I} {g : UInt256}
         [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
           .assign .storage debtRef (.var "debtNew") ])
         .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 :=
         checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt" ++
         checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
@@ -4695,7 +4695,7 @@ theorem endThawBodyReturns_daiOkTail {cA gh bl σ σ₀ A I} {g : UInt256}
           [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
             .assign .storage debtRef (.var "debtNew") ])
         (.ok fPost evmPost) := by
-    exact.execBlock_append
+    exact execBlock_append
       (s2 :=
           [ .require (.binary .eq (.var "vatDai") (.intLit 0)),
             .internalCall "add" [.storage whenRef, .storage waitRef] "deadline",
@@ -4901,14 +4901,14 @@ theorem endThawReadyTailRevertsAtDebt (evmDai : EVM.State) (out : ByteArray)
         [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
           .assign .storage debtRef (.var "debtNew") ])
         .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 :=
         checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
           (perm := false) ++
         [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
           .assign .storage debtRef (.var "debtNew") ])
       hdebt (by intro f' e' h; cases h)
-  exact.execBlock_append
+  exact execBlock_append
     (s2 :=
       checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt" ++
       checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
@@ -4964,14 +4964,14 @@ theorem endThawReadyTailRevertsAfterDebt (evmDai evmDebt : EVM.State)
         [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
           .assign .storage debtRef (.var "debtNew") ])
         .reverted := by
-    exact.execBlock_append
+    exact execBlock_append
       (s2 :=
         checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
           (perm := false) ++
         [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
           .assign .storage debtRef (.var "debtNew") ])
       hdebt htellTail
-  exact.execBlock_append
+  exact execBlock_append
     (s2 :=
       checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt" ++
       checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
@@ -5031,7 +5031,7 @@ theorem endThawReadyTailReturnsAfterDebt (evmDai evmDebt evmTell : EVM.State)
           .assign .storage debtRef (.var "debtNew") ])
         (.ok { contract := contract, locals := postLocals }
           (endThawPostState evmTell debtNew)) := by
-    exact.execBlock_append
+    exact execBlock_append
       (s2 :=
         [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
           .assign .storage debtRef (.var "debtNew") ])
@@ -5046,14 +5046,14 @@ theorem endThawReadyTailReturnsAfterDebt (evmDai evmDebt evmTell : EVM.State)
           .assign .storage debtRef (.var "debtNew") ])
         (.ok { contract := contract, locals := postLocals }
           (endThawPostState evmTell debtNew)) := by
-    exact.execBlock_append
+    exact execBlock_append
       (s2 :=
         checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
           (perm := false) ++
         [ .internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew",
           .assign .storage debtRef (.var "debtNew") ])
       hdebt hafterTell
-  exact.execBlock_append
+  exact execBlock_append
     (s2 :=
       checkedExternalCallStmts (.storage vatRef) "debt" (.intLit 0) [] "vatDebt" ++
       checkedExternalCallStmts (.storage cureRef) "tell" (.intLit 0) [] "cureTell"
@@ -5642,7 +5642,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       [.var "vatDebt", .var "cureTell"] "debtNew",
                                     .assign .storage debtRef (.var "debtNew") ])
                                   .reverted := by
-                                exact.execBlock_append_term
+                                exact execBlock_append_term
                                   (s2 :=
                                     [ .internalCall "sub"
                                         [.var "vatDebt", .var "cureTell"] "debtNew",
@@ -5781,7 +5781,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         [.var "vatDebt", .var "cureTell"] "debtNew",
                                       .assign .storage debtRef (.var "debtNew") ])
                                     .reverted := by
-                                  exact.execBlock_append_term
+                                  exact execBlock_append_term
                                     (s2 :=
                                       [ .internalCall "sub"
                                           [.var "vatDebt", .var "cureTell"] "debtNew",
@@ -5863,7 +5863,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                           [.var "vatDebt", .var "cureTell"] "debtNew",
                                         .assign .storage debtRef (.var "debtNew") ])
                                       .reverted := by
-                                    exact.execBlock_append_term
+                                    exact execBlock_append_term
                                       (s2 :=
                                         [ .internalCall "sub"
                                             [.var "vatDebt", .var "cureTell"] "debtNew",
@@ -6071,7 +6071,7 @@ theorem endThawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                           .assign .storage debtRef (.var "debtNew") ])
                                         .reverted := by
                                       exact
-                                       .execBlock_append
+                                       execBlock_append
                                           (s2 :=
                                             [ .internalCall "sub"
                                                 [.var "vatDebt", .var "cureTell"] "debtNew",

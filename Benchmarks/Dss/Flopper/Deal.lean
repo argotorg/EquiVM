@@ -781,7 +781,7 @@ theorem flopperDealBodyReverts_mintCallFailure
           "_mintRet" ++
           [.delete (bidRef (.var "id"))])
         .reverted :=
-   .execBlock_append_term hchecked (by intro f e h; cases h)
+   execBlock_append_term hchecked (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dealTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
     List.nil_append] using
@@ -854,7 +854,7 @@ theorem flopperDealBodyReturns_mintCallSuccess
           [.delete (bidRef (.var "id"))])
         (.ok { contract := contract, locals := dealMintLocals I }
           (auctionDeletePostState (dealIdWord I) evm')) :=
-   .execBlock_append hchecked hdelete
+   execBlock_append hchecked hdelete
   refine ExecFuncBody.execBlockOK ?_
   simpa [dealTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
     List.nil_append] using

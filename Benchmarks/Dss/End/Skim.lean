@@ -6538,11 +6538,11 @@ theorem endSkimBodyReverts_afterArtTailReverted {I} {vatOut urnOut : ByteArray}
               (.binary .le (.var "wad") (.intLit int256Limit))
               (.binary .le (.var "art") (.intLit int256Limit))) ] ++ grabTail)
         .reverted := by
-    exact.execBlock_append_term htail (by intro f' e' h; cases h)
+    exact execBlock_append_term htail (by intro f' e' h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := endSkimStore I } evm0
         skimTransition.body .reverted := by
-    have hseq :=.execBlock_append hprefixArt htailWithGrab
+    have hseq := execBlock_append hprefixArt htailWithGrab
     simpa [skimTransition, grabTail, List.append_assoc] using hseq
   exact ExecFuncBody.execBlockRevert hblock
 
@@ -6606,11 +6606,11 @@ theorem endSkimBodyReverts_afterArtTailGrabReverted {I σLoc}
               (.binary .le (.var "wad") (.intLit int256Limit))
               (.binary .le (.var "art") (.intLit int256Limit))) ] ++ grabTail)
         .reverted := by
-    exact.execBlock_append htail hgrab
+    exact execBlock_append htail hgrab
   have hblock :
       ExecBlock config { contract := contract, locals := endSkimStore I } evm0
         skimTransition.body .reverted := by
-    have hseq :=.execBlock_append hprefixArt htailWithGrab
+    have hseq := execBlock_append hprefixArt htailWithGrab
     simpa [skimTransition, grabTail, List.append_assoc] using hseq
   exact ExecFuncBody.execBlockRevert hblock
 
@@ -6677,13 +6677,13 @@ theorem endSkimBodyReturns_afterArtTailGrabSuccess {I σLoc}
               (.binary .le (.var "art") (.intLit int256Limit))) ] ++ grabTail)
         (.ok { contract := contract, locals := endSkimStoreGrab σLoc I vatOut urnOut }
           evmGrab) := by
-    exact.execBlock_append htail hgrab
+    exact execBlock_append htail hgrab
   have hblock :
       ExecBlock config { contract := contract, locals := endSkimStore I } evm0
         skimTransition.body
         (.ok { contract := contract, locals := endSkimStoreGrab σLoc I vatOut urnOut }
           evmGrab) := by
-    have hseq :=.execBlock_append hprefixArt htailWithGrab
+    have hseq := execBlock_append hprefixArt htailWithGrab
     simpa [skimTransition, grabTail, List.append_assoc] using hseq
   exact ExecFuncBody.execBlockOK hblock
 
@@ -6737,7 +6737,7 @@ theorem endSkimBodyReverts_vatIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
              .unary .neg (asInt256 (.var "wad")), .unary .neg (asInt256 (.var "art"))]
             "_grab")
         .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 :=
         [ .letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1) ] ++
         checkedExternalCallStmts (.storage vatRef) "urns" (.intLit 0)
@@ -6887,7 +6887,7 @@ theorem endSkimPrefixRateSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
           "vatIlk" ++
         [ .letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1) ])
         (.ok { contract := contract, locals := endSkimStoreRate I out } evmVat) := by
-    exact.execBlock_append hvat hrate
+    exact execBlock_append hvat hrate
   simp only [nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -6930,12 +6930,12 @@ theorem endSkimBodyReverts_afterRateUrnsBlock {I} {vatOut : ByteArray}
       ExecBlock config { contract := contract, locals := endSkimStoreRate I vatOut } evmRate
         (checkedExternalCallStmts (.storage vatRef) "urns" (.intLit 0)
           [.var "ilk", .var "urn"] "vatUrn" ++ afterUrns) .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 := afterUrns) hurns (by intro f' e' h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := endSkimStore I } evm0
         skimTransition.body .reverted := by
-    have hseq :=.execBlock_append hprefix hurnsWithTail
+    have hseq := execBlock_append hprefix hurnsWithTail
     simpa [skimTransition, afterUrns, List.append_assoc] using hseq
   exact ExecFuncBody.execBlockRevert hblock
 
@@ -7429,7 +7429,7 @@ theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               locals := endSkimStoreArt I vatOut urnOut }
                             evmUrnsSolm) := by
                       have hurnsInkArt :=
-                       .execBlock_append hurnsBlock hinkArt
+                       execBlock_append hurnsBlock hinkArt
                       simpa [List.append_assoc] using
                        execBlock_append hprefix hurnsInkArt
                     have hTagCoupleUrns :

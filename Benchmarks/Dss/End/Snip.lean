@@ -6311,7 +6311,7 @@ theorem endSnipBodyReverts_dogIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
           [.var "ilk", .var "usr", thisAddr, vowAddr, asInt256 (.var "lot"),
             asInt256 (.var "art")] "_grab")
         .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 :=
         [ .letDecl "clip" (some addr) (.tupleGet (.var "dogIlk") 0) ] ++
         checkedExternalCallStmts (.storage vatRef) "vatIlks" (.intLit 0) [.var "ilk"]
@@ -6464,7 +6464,7 @@ theorem endSnipPrefixClipSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
           "dogIlk" ++
         [ .letDecl "clip" (some addr) (.tupleGet (.var "dogIlk") 0) ])
         (.ok { contract := contract, locals := endSnipStoreClip I out } evmDog) := by
-    exact.execBlock_append hdog hclip
+    exact execBlock_append hdog hclip
   simp only [nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -6715,8 +6715,8 @@ theorem endSnipPrefixRateSuccess {I} {dogOut vatOut : ByteArray}
           "vatIlk" ++
         [ .letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1) ])
         (.ok { contract := contract, locals := endSnipStoreRate I dogOut vatOut } evmVat) := by
-    exact.execBlock_append hvat hrate
-  have hseq :=.execBlock_append hprefix hvatRate
+    exact execBlock_append hvat hrate
+  have hseq := execBlock_append hprefix hvatRate
   simpa [List.append_assoc] using hseq
 
 theorem endSnipBodyReverts_afterClipVatIlksBlock {I} {dogOut : ByteArray}
@@ -6758,12 +6758,12 @@ theorem endSnipBodyReverts_afterClipVatIlksBlock {I} {dogOut : ByteArray}
       ExecBlock config { contract := contract, locals := endSnipStoreClip I dogOut } evmDog
         (checkedExternalCallStmts (.storage vatRef) "vatIlks" (.intLit 0) [.var "ilk"]
           "vatIlk" ++ afterVat) .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 := afterVat) hvat (by intro f' e' h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := endSnipStore I } evm0
         snipTransition.body .reverted := by
-    have hseq :=.execBlock_append hprefix hvatWithTail
+    have hseq := execBlock_append hprefix hvatWithTail
     simpa [snipTransition, afterVat, List.append_assoc] using hseq
   exact ExecFuncBody.execBlockRevert hblock
 
@@ -7146,7 +7146,7 @@ theorem endSnipPrefixUsrSuccess {I} {dogOut vatOut saleOut : ByteArray}
           .letDecl "usr" (some addr) (.tupleGet (.var "clipSale") 3) ]
         (.ok { contract := contract, locals := endSnipStoreUsr I dogOut vatOut saleOut }
           evmSales) := by
-    exact.execBlock_append htab
+    exact execBlock_append htab
       (Reasoning.Theory.execBlock_append hlot husr)
   have hsalesTail :
       ExecBlock config { contract := contract, locals := endSnipStoreRate I dogOut vatOut }
@@ -7158,8 +7158,8 @@ theorem endSnipPrefixUsrSuccess {I} {dogOut vatOut saleOut : ByteArray}
           .letDecl "usr" (some addr) (.tupleGet (.var "clipSale") 3) ])
         (.ok { contract := contract, locals := endSnipStoreUsr I dogOut vatOut saleOut }
           evmSales) := by
-    exact.execBlock_append hsales htail
-  have hseq :=.execBlock_append hprefix hsalesTail
+    exact execBlock_append hsales htail
+  have hseq := execBlock_append hprefix hsalesTail
   simpa [List.append_assoc] using hseq
 
 theorem endSnipVatReceiver_afterUsr {σ I dogOut vatOut saleOut evm}
@@ -8257,7 +8257,7 @@ theorem endSnipTailReverts_yank {I} {dogOut vatOut saleOut : ByteArray}
               (.binary .lt (.var "lot") (.intLit int256Limit))
               (.binary .lt (.var "art") (.intLit int256Limit))) ])
         .reverted := by
-    exact.execBlock_append_term hyank (by intro f' e' h; cases h)
+    exact execBlock_append_term hyank (by intro f' e' h; cases h)
   simpa [List.append_assoc] using
    execBlock_append hsuck hyankTail
 
@@ -8537,11 +8537,11 @@ theorem endSnipBodyReverts_afterUsrTailReverted {I} {dogOut vatOut saleOut : Byt
                 (.binary .lt (.var "lot") (.intLit int256Limit))
                 (.binary .lt (.var "art") (.intLit int256Limit))) ] ++ grabTail)
         .reverted := by
-    exact.execBlock_append_term htail (by intro f' e' h; cases h)
+    exact execBlock_append_term htail (by intro f' e' h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := endSnipStore I } evm0
         snipTransition.body .reverted := by
-    have hseq :=.execBlock_append hprefixUsr htailWithGrab
+    have hseq := execBlock_append hprefixUsr htailWithGrab
     simpa [snipTransition, grabTail, List.append_assoc] using hseq
   exact ExecFuncBody.execBlockRevert hblock
 
@@ -8606,11 +8606,11 @@ theorem endSnipBodyReverts_afterUsrTailGrabReverted {I σLoc}
                 (.binary .lt (.var "lot") (.intLit int256Limit))
                 (.binary .lt (.var "art") (.intLit int256Limit))) ] ++ grabTail)
         .reverted := by
-    exact.execBlock_append htail hgrab
+    exact execBlock_append htail hgrab
   have hblock :
       ExecBlock config { contract := contract, locals := endSnipStore I } evm0
         snipTransition.body .reverted := by
-    have hseq :=.execBlock_append hprefixUsr htailWithGrab
+    have hseq := execBlock_append hprefixUsr htailWithGrab
     simpa [snipTransition, grabTail, List.append_assoc] using hseq
   exact ExecFuncBody.execBlockRevert hblock
 
@@ -8679,13 +8679,13 @@ theorem endSnipBodyReturns_afterUsrTailGrabSuccess {I σLoc}
                 (.binary .lt (.var "art") (.intLit int256Limit))) ] ++ grabTail)
         (.ok { contract := contract, locals := endSnipStoreGrab σLoc I dogOut vatOut saleOut }
           evmGrab) := by
-    exact.execBlock_append htail hgrab
+    exact execBlock_append htail hgrab
   have hblock :
       ExecBlock config { contract := contract, locals := endSnipStore I } evm0
         snipTransition.body
         (.ok { contract := contract, locals := endSnipStoreGrab σLoc I dogOut vatOut saleOut }
           evmGrab) := by
-    have hseq :=.execBlock_append hprefixUsr htailWithGrab
+    have hseq := execBlock_append hprefixUsr htailWithGrab
     simpa [snipTransition, grabTail, List.append_assoc] using hseq
   exact ExecFuncBody.execBlockOK hblock
 
@@ -8730,12 +8730,12 @@ theorem endSnipBodyReverts_afterRateSalesBlock {I} {dogOut vatOut : ByteArray}
         evmVat
         (checkedExternalCallStmts (.var "clip") "sales" (.intLit 0) [.var "id"]
           "clipSale" (perm := false) ++ afterSales) .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 := afterSales) hsales (by intro f' e' h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := endSnipStore I } evm0
         snipTransition.body .reverted := by
-    have hseq :=.execBlock_append hprefix hsalesWithTail
+    have hseq := execBlock_append hprefix hsalesWithTail
     simpa [snipTransition, afterSales, List.append_assoc] using hseq
   exact ExecFuncBody.execBlockRevert hblock
 

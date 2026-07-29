@@ -981,14 +981,14 @@ theorem vatSuckSourceSuccess (evm : EVM.State) (I : ExecutionEnv)
   have hdebtAssign :=
     vatSuckAssignDebtOk evmVice I (sinNew := sinNew) (daiNew := daiNew)
       (viceNew := viceNew) (debtNew := debtNew)
-  have h01 :=.execBlock_append hprefix hsinAdd
-  have h02 :=.execBlock_append h01 hsinAssign
-  have h03 :=.execBlock_append h02 hdaiAdd
-  have h04 :=.execBlock_append h03 hdaiAssign
-  have h05 :=.execBlock_append h04 hviceAdd
-  have h06 :=.execBlock_append h05 hviceAssign
-  have h07 :=.execBlock_append h06 hdebtAdd
-  have hblock :=.execBlock_append h07 hdebtAssign
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiAdd
+  have h04 := execBlock_append h03 hdaiAssign
+  have h05 := execBlock_append h04 hviceAdd
+  have h06 := execBlock_append h05 hviceAssign
+  have h07 := execBlock_append h06 hdebtAdd
+  have hblock := execBlock_append h07 hdebtAssign
   simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
     List.append_assoc, suckPostState, evmSin, evmDai, evmVice, storageStore_executionEnv] using
     ExecFuncBody.execBlockOK hblock
@@ -1027,10 +1027,10 @@ theorem vatSuckSourceRevertDaiOverflow (evm : EVM.State) (I : ExecutionEnv)
   have hdaiRevert :=
     vatSuckDaiAddBlockRevert evmSin I (sinNew := sinNew) (daiVal := daiVal)
       hdaiLoad hdaiOverflow
-  have h01 :=.execBlock_append hprefix hsinAdd
-  have h02 :=.execBlock_append h01 hsinAssign
-  have h03 :=.execBlock_append h02 hdaiRevert
-  have hblock :=.execBlock_append_term
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiRevert
+  have hblock := execBlock_append_term
     (s2 :=
       [ .assign .storage (daiRef (.var "v")) (.var "daiNew") ] ++
       checkedAddUintInto "viceNew" (.storage viceRef) (.var "rad") ++
@@ -1100,10 +1100,10 @@ theorem vatSuckSourceRevertDaiOverflowVat
   have hdaiRevert :=
     vatSuckDaiAddBlockRevert evmSin I (sinNew := sinNew) (daiVal := daiVal)
       hdaiLoad hdaiOverflowLoad
-  have h01 :=.execBlock_append hprefix hsinAdd
-  have h02 :=.execBlock_append h01 hsinAssign
-  have h03 :=.execBlock_append h02 hdaiRevert
-  have hblock :=.execBlock_append_term
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiRevert
+  have hblock := execBlock_append_term
     (s2 :=
       [ .assign .storage (daiRef (.var "v")) (.var "daiNew") ] ++
       checkedAddUintInto "viceNew" (.storage viceRef) (.var "rad") ++
@@ -1158,12 +1158,12 @@ theorem vatSuckSourceRevertViceOverflow (evm : EVM.State) (I : ExecutionEnv)
   have hviceRevert :=
     vatSuckViceAddBlockRevert evmDai I (sinNew := sinNew) (daiNew := daiNew)
       (viceVal := viceVal) hviceLoad hviceOverflow
-  have h01 :=.execBlock_append hprefix hsinAdd
-  have h02 :=.execBlock_append h01 hsinAssign
-  have h03 :=.execBlock_append h02 hdaiAdd
-  have h04 :=.execBlock_append h03 hdaiAssign
-  have h05 :=.execBlock_append h04 hviceRevert
-  have hblock :=.execBlock_append_term
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiAdd
+  have h04 := execBlock_append h03 hdaiAssign
+  have h05 := execBlock_append h04 hviceRevert
+  have hblock := execBlock_append_term
     (s2 :=
       [ .assign .storage viceRef (.var "viceNew") ] ++
       checkedAddUintInto "debtNew" (.storage debtRef) (.var "rad") ++
@@ -1261,12 +1261,12 @@ theorem vatSuckSourceRevertViceOverflowVat
           sinNew).executionEnv.codeOwner (suckDaiSlot I) daiNew)
       I (sinNew := sinNew) (daiNew := daiNew)
       (viceVal := vatSlotWord suckViceSlot σDaiSolm I) hviceLoad hviceOverflow
-  have h01 :=.execBlock_append hprefix hsinAdd
-  have h02 :=.execBlock_append h01 hsinAssign
-  have h03 :=.execBlock_append h02 hdaiAdd
-  have h04 :=.execBlock_append h03 hdaiAssign
-  have h05 :=.execBlock_append h04 hviceRevert
-  have hblock :=.execBlock_append_term
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiAdd
+  have h04 := execBlock_append h03 hdaiAssign
+  have h05 := execBlock_append h04 hviceRevert
+  have hblock := execBlock_append_term
     (s2 :=
       [ .assign .storage viceRef (.var "viceNew") ] ++
       checkedAddUintInto "debtNew" (.storage debtRef) (.var "rad") ++
@@ -1332,14 +1332,14 @@ theorem vatSuckSourceRevertDebtOverflow (evm : EVM.State) (I : ExecutionEnv)
   have hdebtRevert :=
     vatSuckDebtAddBlockRevert evmVice I (sinNew := sinNew) (daiNew := daiNew)
       (viceNew := viceNew) (debtVal := debtVal) hdebtLoad hdebtOverflow
-  have h01 :=.execBlock_append hprefix hsinAdd
-  have h02 :=.execBlock_append h01 hsinAssign
-  have h03 :=.execBlock_append h02 hdaiAdd
-  have h04 :=.execBlock_append h03 hdaiAssign
-  have h05 :=.execBlock_append h04 hviceAdd
-  have h06 :=.execBlock_append h05 hviceAssign
-  have h07 :=.execBlock_append h06 hdebtRevert
-  have hblock :=.execBlock_append_term
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiAdd
+  have h04 := execBlock_append h03 hdaiAssign
+  have h05 := execBlock_append h04 hviceAdd
+  have h06 := execBlock_append h05 hviceAssign
+  have h07 := execBlock_append h06 hdebtRevert
+  have hblock := execBlock_append_term
     (s2 := [ .assign .storage debtRef (.var "debtNew") ])
     h07 (by intro f' e' h; cases h)
   simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
@@ -1439,14 +1439,14 @@ theorem vatSuckSourceRevertDebtOverflowVat
     vatSuckDebtAddBlockRevert evmVice I (sinNew := sinNew) (daiNew := daiNew)
       (viceNew := viceNew) (debtVal := vatSlotWord suckDebtSlot σViceSolm I)
       hdebtLoad hdebtOverflow
-  have h01 :=.execBlock_append hprefix hsinAdd
-  have h02 :=.execBlock_append h01 hsinAssign
-  have h03 :=.execBlock_append h02 hdaiAdd
-  have h04 :=.execBlock_append h03 hdaiAssign
-  have h05 :=.execBlock_append h04 hviceAdd
-  have h06 :=.execBlock_append h05 hviceAssign
-  have h07 :=.execBlock_append h06 hdebtRevert
-  have hblock :=.execBlock_append_term
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiAdd
+  have h04 := execBlock_append h03 hdaiAssign
+  have h05 := execBlock_append h04 hviceAdd
+  have h06 := execBlock_append h05 hviceAssign
+  have h07 := execBlock_append h06 hdebtRevert
+  have hblock := execBlock_append_term
     (s2 := [ .assign .storage debtRef (.var "debtNew") ])
     h07 (by intro f' e' h; cases h)
   simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
@@ -1555,14 +1555,14 @@ theorem vatSuckSourceSuccessVat
   have hdebtAssign :=
     vatSuckAssignDebtOk evmVice I (sinNew := sinNew) (daiNew := daiNew)
       (viceNew := viceNew) (debtNew := debtNew)
-  have h01 :=.execBlock_append hprefix hsinAdd
-  have h02 :=.execBlock_append h01 hsinAssign
-  have h03 :=.execBlock_append h02 hdaiAdd
-  have h04 :=.execBlock_append h03 hdaiAssign
-  have h05 :=.execBlock_append h04 hviceAdd
-  have h06 :=.execBlock_append h05 hviceAssign
-  have h07 :=.execBlock_append h06 hdebtAdd
-  have hblock :=.execBlock_append h07 hdebtAssign
+  have h01 := execBlock_append hprefix hsinAdd
+  have h02 := execBlock_append h01 hsinAssign
+  have h03 := execBlock_append h02 hdaiAdd
+  have h04 := execBlock_append h03 hdaiAssign
+  have h05 := execBlock_append h04 hviceAdd
+  have h06 := execBlock_append h05 hviceAssign
+  have h07 := execBlock_append h06 hdebtAdd
+  have hblock := execBlock_append h07 hdebtAssign
   simpa [ExecTransitionBody, suckTransition, nonpayable, auth, checkedAddUintInto,
     List.append_assoc, suckPostState, evmSin, evmDai, evmVice, evmDebt,
     storageStore_executionEnv] using ExecFuncBody.execBlockOK hblock

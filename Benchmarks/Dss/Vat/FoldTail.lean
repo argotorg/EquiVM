@@ -285,8 +285,8 @@ theorem vatFoldSourceRevertAfterRateBlock (evm : EVM.State) (I : ExecutionEnv)
     · exact evalCallvalueEq_true hwv
     refine ExecBlock.consNormal (ExecStmt.requireTrue hauth) ?_
     exact ExecBlock.consNormal (ExecStmt.requireTrue hlive) ExecBlock.nil
-  have h01 :=.execBlock_append hprefix hrateRevert
-  have hblock :=.execBlock_append_term
+  have h01 := execBlock_append hprefix hrateRevert
+  have hblock := execBlock_append_term
     (s2 :=
       [ .assign .storage (ilksF (.var "i") "rate") (.var "rateNew") ] ++
       checkedMulSignedInto "rad" (.storage (ilksF (.var "i") "Art")) (.var "rate") ++
@@ -330,9 +330,9 @@ theorem vatFoldSourceRevertAfterRadBlock (evm evmRate : EVM.State) (I : Executio
     · exact evalCallvalueEq_true hwv
     refine ExecBlock.consNormal (ExecStmt.requireTrue hauth) ?_
     exact ExecBlock.consNormal (ExecStmt.requireTrue hlive) ExecBlock.nil
-  have h01 :=.execBlock_append hprefix hrateOk
-  have h02 :=.execBlock_append h01 hradRevert
-  have hblock :=.execBlock_append_term
+  have h01 := execBlock_append hprefix hrateOk
+  have h02 := execBlock_append h01 hradRevert
+  have hblock := execBlock_append_term
     (s2 :=
       checkedAddSignedInto "daiNew" (.storage (daiRef (.var "u"))) (.var "rad") ++
       [ .assign .storage (daiRef (.var "u")) (.var "daiNew") ] ++
@@ -757,12 +757,12 @@ theorem vatFoldSourceSuccess (evm : EVM.State) (I : ExecutionEnv)
     (by simpa [evmDai, evmRate, storageStore_executionEnv] using hDebtGuardPos)
   have hdebtAssign := vatFoldAssignDebtOk evmDai I (rateNew := rateNew) (rad := rad)
     (daiNew := daiNew) (debtNew := debtNew)
-  have h01 :=.execBlock_append hprefix hrateBlock
-  have h02 :=.execBlock_append h01 hradBlock
-  have h03 :=.execBlock_append h02 hdaiBlock
-  have h04 :=.execBlock_append h03 hdaiAssign
-  have h05 :=.execBlock_append h04 hdebtBlock
-  have hblock :=.execBlock_append h05 hdebtAssign
+  have h01 := execBlock_append hprefix hrateBlock
+  have h02 := execBlock_append h01 hradBlock
+  have h03 := execBlock_append h02 hdaiBlock
+  have h04 := execBlock_append h03 hdaiAssign
+  have h05 := execBlock_append h04 hdebtBlock
+  have hblock := execBlock_append h05 hdebtAssign
   simpa [ExecTransitionBody, foldTransition, nonpayable, auth, requireLive,
     List.append_assoc, evmRate, evmDai, foldPostState, storageStore_executionEnv] using
     ExecFuncBody.execBlockOK hblock

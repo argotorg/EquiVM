@@ -2099,7 +2099,7 @@ theorem flapperTendPaySuccessTail
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
           (tendAfterBidStore evmPay I)) :=
-   .execBlock_append hpayChecked hbidAssign
+   execBlock_append hpayChecked hbidAssign
   have hticExpr :
       evalExpr? config { contract := contract, locals := tendTicLocals baseLocals evmPay I }
           (tendAfterBidStore evmPay I) (.var "tic_") =
@@ -2128,7 +2128,7 @@ theorem flapperTendPaySuccessTail
               (tendTicLocals_get_id evmPay I hid)
               (tendTicLocals_get_bids evmPay I hbids) haddFit))
           ExecBlock.nil)
-  exact.execBlock_append hpayBidTail htick
+  exact execBlock_append hpayBidTail htick
 
 set_option maxHeartbeats 1000000 in
 theorem flapperTendBodyReturns_success_callerEq
@@ -2203,7 +2203,7 @@ theorem flapperTendBodyReturns_success_callerEq
               [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])))
         (.ok { contract := contract, locals := tendTicLocals (tendBegBidLocals evm I) evmPay I }
           (tendPostState evmPay I)) :=
-   .execBlock_append hskipRefund hpayTail
+   execBlock_append hskipRefund hpayTail
   refine ExecFuncBody.execBlockOK ?_
   simpa [tendTransition, nonpayable, checkedMulUintInto, List.cons_append, List.nil_append,
     List.append_assoc] using
@@ -2305,7 +2305,7 @@ theorem flapperTendRefundSuccessPrefix
           [.assign .storage (bidsF (.var "id") "guy") sender])
         (.ok { contract := contract, locals := tendRefundRetLocals evm I }
           (tendAfterGuyStore evmRefund I)) :=
-   .execBlock_append hrefundChecked hassign
+   execBlock_append hrefundChecked hassign
   exact ExecBlock.consNormal (ExecStmt.iteTrue hcallerCond hbranch) ExecBlock.nil
 
 set_option maxHeartbeats 1000000 in
@@ -2481,7 +2481,7 @@ theorem flapperTendRefundNoCodeTail
               .storage (bidsF (.var "id") "bid")] "_refundRet" ++
           [.assign .storage (bidsF (.var "id") "guy") sender])
         .reverted :=
-   .execBlock_append_term hrefundChecked (by intro f e h; cases h)
+   execBlock_append_term hrefundChecked (by intro f e h; cases h)
   have hite :
       ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -2492,7 +2492,7 @@ theorem flapperTendRefundNoCodeTail
           []]
         .reverted :=
     ExecBlock.consRevert (ExecStmt.iteTrue hcallerCond hthen)
-  exact.execBlock_append_term hite (by intro f e h; cases h)
+  exact execBlock_append_term hite (by intro f e h; cases h)
 
 theorem flapperTendRefundCallFailureTail
     (evm evmRefund : EVM.State) (I : ExecutionEnv) (outRefund : ByteArray)
@@ -2557,7 +2557,7 @@ theorem flapperTendRefundCallFailureTail
               .storage (bidsF (.var "id") "bid")] "_refundRet" ++
           [.assign .storage (bidsF (.var "id") "guy") sender])
         .reverted :=
-   .execBlock_append_term hrefundChecked (by intro f e h; cases h)
+   execBlock_append_term hrefundChecked (by intro f e h; cases h)
   have hite :
       ExecBlock config { contract := contract, locals := tendBegBidLocals evm I } evm
         [.ite (.binary .ne sender (.storage (bidsF (.var "id") "guy")))
@@ -2568,7 +2568,7 @@ theorem flapperTendRefundCallFailureTail
           []]
         .reverted :=
     ExecBlock.consRevert (ExecStmt.iteTrue hcallerCond hthen)
-  exact.execBlock_append_term hite (by intro f e h; cases h)
+  exact execBlock_append_term hite (by intro f e h; cases h)
 
 theorem flapperTendPayNoCodeTail
     (evm : EVM.State) (I : ExecutionEnv) (baseLocals : Store)
@@ -2616,8 +2616,8 @@ theorem flapperTendPayNoCodeTail
           "_payRet" ++
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         .reverted :=
-   .execBlock_append_term hchecked (by intro f e h; cases h)
-  exact.execBlock_append_term hpayBidTail
+   execBlock_append_term hchecked (by intro f e h; cases h)
+  exact execBlock_append_term hpayBidTail
     (by intro f e h; cases h)
 
 set_option maxHeartbeats 1000000 in
@@ -2679,8 +2679,8 @@ theorem flapperTendPayCallFailureTail
           "_payRet" ++
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         .reverted :=
-   .execBlock_append_term hchecked (by intro f e h; cases h)
-  exact.execBlock_append_term hpayBidTail
+   execBlock_append_term hchecked (by intro f e h; cases h)
+  exact execBlock_append_term hpayBidTail
     (by intro f e h; cases h)
 
 set_option maxHeartbeats 1000000 in
@@ -2774,7 +2774,7 @@ theorem flapperTendPayAddOverflowTail
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
           (tendAfterBidStore evmPay I)) :=
-   .execBlock_append hpayChecked hbidAssign
+   execBlock_append hpayChecked hbidAssign
   have htickChecked :
       ExecBlock config { contract := contract, locals := tendPayRetLocals baseLocals }
           (tendAfterBidStore evmPay I)
@@ -2794,8 +2794,8 @@ theorem flapperTendPayAddOverflowTail
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])
         .reverted :=
-   .execBlock_append_term htickChecked (by intro f e h; cases h)
-  exact.execBlock_append hpayBidTail htickTail
+   execBlock_append_term htickChecked (by intro f e h; cases h)
+  exact execBlock_append hpayBidTail htickTail
 
 set_option maxHeartbeats 1000000 in
 theorem flapperTendBodyReverts_afterIncrease

@@ -137,7 +137,7 @@ theorem cureLoadSourceBodyNoCodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
               .assign .storage lCountRef (incUnchecked (.storage lCountRef)) ]
             [] ])
         .reverted := by
-    exact.execBlock_append_term hcall (by intro f e h; cases h)
+    exact execBlock_append_term hcall (by intro f e h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -232,7 +232,7 @@ theorem cureLoadSourceBodyCallFailureRevert {cA gh bl σ σ₀ A I} {g : UInt256
               .assign .storage lCountRef (incUnchecked (.storage lCountRef)) ]
             [] ])
         .reverted := by
-    exact.execBlock_append_term hcallBlock (by intro f e h; cases h)
+    exact execBlock_append_term hcallBlock (by intro f e h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -330,7 +330,7 @@ theorem cureLoadSourceBodyReturnDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt25
               .assign .storage lCountRef (incUnchecked (.storage lCountRef)) ]
             [] ])
         .reverted := by
-    exact.execBlock_append_term hcallBlock (by intro f e h; cases h)
+    exact execBlock_append_term hcallBlock (by intro f e h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -550,7 +550,7 @@ theorem cureLoadSourceBodySubRevert {cA gh bl σ σ₀ A I} {g : UInt256}
           .reverted := by
       refine ExecBlock.consNormal (ExecStmt.assign hnewVar hassignAmt) ?_
       exact ExecBlock.consRevert hsubStmt
-    exact.execBlock_append hcallBlock hrest
+    exact execBlock_append hcallBlock hrest
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -829,7 +829,7 @@ theorem cureLoadSourceBodyAddRevert {cA gh bl σ σ₀ A I} {g : UInt256}
       refine ExecBlock.consNormal (ExecStmt.assign hnewVar hassignAmt) ?_
       refine ExecBlock.consNormal hsubStmt ?_
       exact ExecBlock.consRevert haddStmt
-    exact.execBlock_append hcallBlock hrest
+    exact execBlock_append hcallBlock hrest
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -1161,7 +1161,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
       refine ExecBlock.consNormal haddStmt ?_
       refine ExecBlock.consNormal (ExecStmt.assign hsayNewVar hassignSay) ?_
       exact ExecBlock.consNormal (ExecStmt.iteFalse hcond ExecBlock.nil) ExecBlock.nil
-    exact.execBlock_append hcallBlock hrest
+    exact execBlock_append hcallBlock hrest
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::
@@ -1511,7 +1511,7 @@ theorem cureLoadSourceBodyOkLoadedZero {cA gh bl σ σ₀ A I} {g : UInt256}
       refine ExecBlock.consNormal haddStmt ?_
       refine ExecBlock.consNormal (ExecStmt.assign hsayNewVar hassignSay) ?_
       exact ExecBlock.consNormal htail ExecBlock.nil
-    exact.execBlock_append hcallBlock hrest
+    exact execBlock_append hcallBlock hrest
   have hblock :
       ExecBlock config { contract := contract, locals := loadLocals I } evm0
         (.require (.binary .eq (.env .callvalue) (.intLit 0)) ::

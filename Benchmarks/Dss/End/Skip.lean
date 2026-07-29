@@ -7620,7 +7620,7 @@ theorem endSkipBodyReverts_catIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
           [.var "ilk", .var "usr", thisAddr, vowAddr, asInt256 (.var "lot"),
             asInt256 (.var "art")] "_grab")
         .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 :=
         [ .letDecl "flip" (some addr) (.tupleGet (.var "catIlk") 0) ] ++
         checkedExternalCallStmts (.storage vatRef) "vatIlks" (.intLit 0) [.var "ilk"]
@@ -7778,7 +7778,7 @@ theorem endSkipPrefixFlipSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
           "catIlk" ++
         [ .letDecl "flip" (some addr) (.tupleGet (.var "catIlk") 0) ])
         (.ok { contract := contract, locals := endSkipStoreFlip I out } evmCat) := by
-    exact.execBlock_append hcat hflip
+    exact execBlock_append hcat hflip
   simp only [nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
@@ -8031,8 +8031,8 @@ theorem endSkipPrefixRateSuccess {I} {catOut vatOut : ByteArray}
         [ .letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1) ])
         (.ok { contract := contract, locals := endSkipStoreRate I catOut vatOut }
           evmVat) := by
-    exact.execBlock_append hvat hrate
-  have hseq :=.execBlock_append hprefix hvatRate
+    exact execBlock_append hvat hrate
+  have hseq := execBlock_append hprefix hvatRate
   simpa [List.append_assoc] using hseq
 
 theorem endSkipBodyReverts_afterFlipVatIlksBlock {I} {catOut : ByteArray}
@@ -8078,12 +8078,12 @@ theorem endSkipBodyReverts_afterFlipVatIlksBlock {I} {catOut : ByteArray}
       ExecBlock config { contract := contract, locals := endSkipStoreFlip I catOut } evmCat
         (checkedExternalCallStmts (.storage vatRef) "vatIlks" (.intLit 0) [.var "ilk"]
           "vatIlk" ++ afterVat) .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 := afterVat) hvat (by intro f' e' h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := endSkipStore I } evm0
         skipTransition.body .reverted := by
-    have hseq :=.execBlock_append hprefix hvatWithTail
+    have hseq := execBlock_append hprefix hvatWithTail
     simpa [skipTransition, afterVat, List.append_assoc] using hseq
   exact ExecFuncBody.execBlockRevert hblock
 
@@ -8512,8 +8512,8 @@ theorem endSkipPrefixTabSuccess {I} {catOut vatOut bidOut : ByteArray}
           .letDecl "tab" (some uint256) (.tupleGet (.var "flipBid") 7) ])
         (.ok { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
           evmBids) := by
-    exact.execBlock_append hbids hlets
-  have hseq :=.execBlock_append hprefix hbidsLets
+    exact execBlock_append hbids hlets
+  have hseq := execBlock_append hprefix hbidsLets
   simpa [List.append_assoc] using hseq
 
 theorem endSkipBodyReverts_afterRateBidsBlock {I} {catOut vatOut : ByteArray}
@@ -8561,12 +8561,12 @@ theorem endSkipBodyReverts_afterRateBidsBlock {I} {catOut vatOut : ByteArray}
         evmVat
         (checkedExternalCallStmts (.var "flip") "bids" (.intLit 0) [.var "id"]
           "flipBid" (perm := false) ++ afterBids) .reverted := by
-    exact.execBlock_append_term
+    exact execBlock_append_term
       (s2 := afterBids) hbids (by intro f' e' h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := endSkipStore I } evm0
         skipTransition.body .reverted := by
-    have hseq :=.execBlock_append hprefix hbidsWithTail
+    have hseq := execBlock_append hprefix hbidsWithTail
     simpa [skipTransition, afterBids, List.append_assoc] using hseq
   exact ExecFuncBody.execBlockRevert hblock
 
@@ -9911,9 +9911,9 @@ theorem endSkipTailAfterTabReturns {I σLoc}
           (endSkipPostArtState evmYank I (endSkipArtNewWord σLoc I vatOut bidOut))
           I σLoc catOut vatOut bidOut hlot hart))
       ExecBlock.nil
-  have htail2 :=.execBlock_append hsuck1 hsuck2
-  have htail3 :=.execBlock_append htail2 hhope
-  have htail4 :=.execBlock_append htail3 hyank
+  have htail2 := execBlock_append hsuck1 hsuck2
+  have htail3 := execBlock_append htail2 hhope
+  have htail4 := execBlock_append htail3 hyank
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
    execBlock_append htail4 hartBlock
 
@@ -9981,7 +9981,7 @@ theorem endSkipTailReverts_hope {I} {catOut vatOut bidOut : ByteArray}
       (Reasoning.Theory.execBlock_append_term
         (s2 := endSkipYankStmts ++ endSkipArtStmts)
         hhope (by intro f' e' h; cases h))
-  have htail2 :=.execBlock_append hsuck1 hsuck2
+  have htail2 := execBlock_append hsuck1 hsuck2
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
    execBlock_append htail2 hhopeTail
 
@@ -10014,9 +10014,9 @@ theorem endSkipTailReverts_yank {I} {catOut vatOut bidOut : ByteArray}
       ExecBlock config
         { contract := contract, locals := endSkipStoreHope I catOut vatOut bidOut }
         evmHope (endSkipYankStmts ++ endSkipArtStmts) .reverted := by
-    exact.execBlock_append_term hyank (by intro f' e' h; cases h)
-  have htail2 :=.execBlock_append hsuck1 hsuck2
-  have htail3 :=.execBlock_append htail2 hhope
+    exact execBlock_append_term hyank (by intro f' e' h; cases h)
+  have htail2 := execBlock_append hsuck1 hsuck2
+  have htail3 := execBlock_append htail2 hhope
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
    execBlock_append htail3 hyankTail
 
@@ -10052,9 +10052,9 @@ theorem endSkipTailReverts_artDivZero {I} {catOut vatOut bidOut : ByteArray}
       ExecBlock config { contract := contract, locals := endSkipStoreYank I catOut vatOut bidOut }
         evmYank endSkipArtStmts .reverted :=
     ExecBlock.consRevert (endSkipStmtArtReverts evmYank I catOut vatOut bidOut hrate)
-  have htail2 :=.execBlock_append hsuck1 hsuck2
-  have htail3 :=.execBlock_append htail2 hhope
-  have htail4 :=.execBlock_append htail3 hyank
+  have htail2 := execBlock_append hsuck1 hsuck2
+  have htail3 := execBlock_append htail2 hhope
+  have htail4 := execBlock_append htail3 hyank
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
    execBlock_append htail4 hartRevert
 
@@ -10100,9 +10100,9 @@ theorem endSkipTailReverts_artAddOverflow {I σLoc}
     refine ExecBlock.consNormal (endSkipStmtArt evmYank I catOut vatOut bidOut hrate) ?_
     exact ExecBlock.consRevert
       (endSkipStmtArtNewAddReverts evmYank I σLoc catOut vatOut bidOut hsz68 hArtLoad hover)
-  have htail2 :=.execBlock_append hsuck1 hsuck2
-  have htail3 :=.execBlock_append htail2 hhope
-  have htail4 :=.execBlock_append htail3 hyank
+  have htail2 := execBlock_append hsuck1 hsuck2
+  have htail3 := execBlock_append htail2 hhope
+  have htail4 := execBlock_append htail3 hyank
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
    execBlock_append htail4 hartBlock
 
@@ -10156,9 +10156,9 @@ theorem endSkipTailReverts_intGuardLot {I σLoc}
         (endSkipEvalExpr_intGuard_false_lot
           (endSkipPostArtState evmYank I (endSkipArtNewWord σLoc I vatOut bidOut))
           I σLoc catOut vatOut bidOut hlot))
-  have htail2 :=.execBlock_append hsuck1 hsuck2
-  have htail3 :=.execBlock_append htail2 hhope
-  have htail4 :=.execBlock_append htail3 hyank
+  have htail2 := execBlock_append hsuck1 hsuck2
+  have htail3 := execBlock_append htail2 hhope
+  have htail4 := execBlock_append htail3 hyank
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
    execBlock_append htail4 hartBlock
 
@@ -10213,9 +10213,9 @@ theorem endSkipTailReverts_intGuardArt {I σLoc}
         (endSkipEvalExpr_intGuard_false_art
           (endSkipPostArtState evmYank I (endSkipArtNewWord σLoc I vatOut bidOut))
           I σLoc catOut vatOut bidOut hlot hart))
-  have htail2 :=.execBlock_append hsuck1 hsuck2
-  have htail3 :=.execBlock_append htail2 hhope
-  have htail4 :=.execBlock_append htail3 hyank
+  have htail2 := execBlock_append hsuck1 hsuck2
+  have htail3 := execBlock_append htail2 hhope
+  have htail4 := execBlock_append htail3 hyank
   simpa [endSkipTailNoGrabStmts, List.append_assoc] using
    execBlock_append htail4 hartBlock
 
@@ -10246,11 +10246,11 @@ theorem endSkipBodyReverts_afterTabTailReverted {I} {catOut vatOut bidOut : Byte
   have htailWithGrab :
       ExecBlock config { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
         evmTab (endSkipTailNoGrabStmts ++ endSkipGrabStmts) .reverted := by
-    exact.execBlock_append_term htail (by intro f' e' h; cases h)
+    exact execBlock_append_term htail (by intro f' e' h; cases h)
   have hblock :
       ExecBlock config { contract := contract, locals := endSkipStore I } evm0
         skipTransition.body .reverted := by
-    have hseq :=.execBlock_append hprefixTab htailWithGrab
+    have hseq := execBlock_append hprefixTab htailWithGrab
     simpa [skipTransition, endSkipTailNoGrabStmts, endSkipGrabStmts, endSkipSuck1Stmts,
       endSkipSuck2Stmts, endSkipHopeStmts, endSkipYankStmts, endSkipArtStmts,
       List.append_assoc] using hseq
@@ -10289,11 +10289,11 @@ theorem endSkipBodyReverts_afterTabTailGrabReverted {I σLoc}
   have htailWithGrab :
       ExecBlock config { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut }
         evmTab (endSkipTailNoGrabStmts ++ endSkipGrabStmts) .reverted := by
-    exact.execBlock_append htail hgrab
+    exact execBlock_append htail hgrab
   have hblock :
       ExecBlock config { contract := contract, locals := endSkipStore I } evm0
         skipTransition.body .reverted := by
-    have hseq :=.execBlock_append hprefixTab htailWithGrab
+    have hseq := execBlock_append hprefixTab htailWithGrab
     simpa [skipTransition, endSkipTailNoGrabStmts, endSkipGrabStmts, endSkipSuck1Stmts,
       endSkipSuck2Stmts, endSkipHopeStmts, endSkipYankStmts, endSkipArtStmts,
       List.append_assoc] using hseq
@@ -10339,13 +10339,13 @@ theorem endSkipBodyReturns_afterTabTailGrabSuccess {I σLoc}
         evmTab (endSkipTailNoGrabStmts ++ endSkipGrabStmts)
         (.ok { contract := contract, locals := endSkipStoreGrab σLoc I catOut vatOut bidOut }
           evmGrab) := by
-    exact.execBlock_append htail hgrab
+    exact execBlock_append htail hgrab
   have hblock :
       ExecBlock config { contract := contract, locals := endSkipStore I } evm0
         skipTransition.body
         (.ok { contract := contract, locals := endSkipStoreGrab σLoc I catOut vatOut bidOut }
           evmGrab) := by
-    have hseq :=.execBlock_append hprefixTab htailWithGrab
+    have hseq := execBlock_append hprefixTab htailWithGrab
     simpa [skipTransition, endSkipTailNoGrabStmts, endSkipGrabStmts, endSkipSuck1Stmts,
       endSkipSuck2Stmts, endSkipHopeStmts, endSkipYankStmts, endSkipArtStmts,
       List.append_assoc] using hseq

@@ -1528,7 +1528,7 @@ theorem flapperKickBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
           [sender, thisAddr, .var "lot"] "_moveRet" ++
           [.return [.var "id"]])
         .reverted :=
-   .execBlock_append_term hchecked (by intro f e h; cases h)
+   execBlock_append_term hchecked (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append, evmMove] using
@@ -1642,7 +1642,7 @@ theorem flapperKickBodyReverts_moveCallFailure
           [sender, thisAddr, .var "lot"] "_moveRet" ++
           [.return [.var "id"]])
         .reverted :=
-   .execBlock_append_term hchecked (by intro f e h; cases h)
+   execBlock_append_term hchecked (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append, evmMove] using
@@ -1773,7 +1773,7 @@ theorem flapperKickBodyReturns_moveCallSuccess
           [.return [.var "id"]])
         (.returned { contract := contract, locals := kickMoveLocals evm I }
           evm' (some [.int (Int.ofNat (kickIdWord evm).toNat)])) :=
-   .execBlock_append hchecked hreturn
+   execBlock_append hchecked hreturn
   refine ExecFuncBody.execBlockRet ?_
   simpa [kickTransition, nonpayable, auth, checkedAddUintInto, checkedAdd48Into,
     checkedExternalCallStmts, List.cons_append, List.nil_append, evmMove] using

@@ -718,7 +718,7 @@ theorem RD.vatFluxWishBranchOk
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd6792 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov)]
-  have rd6793 := rd6792.lor (by native_decide) (by evm_ov)
+  have rd6793 := rd6792.or (by native_decide) (by evm_ov)
   have rd6612raw := evm_run rd6793 with [
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
@@ -763,7 +763,7 @@ theorem RD.vatFluxWishBranchRevert
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]
   have rd6792 := evm_run rd6791 with [
     raw jumpdest (by native_decide) (by evm_ov)]
-  have rd6793 := rd6792.lor (by native_decide) (by evm_ov)
+  have rd6793 := rd6792.or (by native_decide) (by evm_ov)
   have rd6612raw := evm_run rd6793 with [
     raw swap1 (by native_decide) (by evm_ov),
     raw jump (by native_decide) (by jump_dest) (by evm_ov)]

@@ -730,7 +730,7 @@ theorem flapSourceInsufficientSurplus
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 flapTransition.body
         .reverted := by
-    have hcat :=.execBlock_append hprefix htail
+    have hcat := execBlock_append hprefix htail
     simpa [flapTransition, flapPrefixToDaiStmts, flapTailStmts,
       flapPostDaiToKickStmts, flapKickAndReturnStmts, nonpayable,
       checkedExternalCallStmts, locals, evm0] using hcat
@@ -1212,7 +1212,7 @@ theorem flapPostDaiToKickSuccess
         (vatDai := vatDai) (vatSin1 := vatSin1) (freeSin := freeSin) (debt := debt)
         (BumpVal := BumpVal) (id := id)
         hBumpLoad hflapperCode hcallKick hdecKick
-  have htail :=.execBlock_append hpost hkick
+  have htail := execBlock_append hpost hkick
   simpa [flapTailStmts] using htail
 
 theorem flapSourceBlockSuccess
@@ -1328,7 +1328,7 @@ theorem flapSourceBlockSuccess
       ExecBlock config { contract := contract, locals := locals } evm0 flapTransition.body
         (.returned { contract := contract, locals := locals8 } evmKick
           (some [.int (Int.ofNat id.toNat)])) := by
-    have hcat :=.execBlock_append hprefix htail
+    have hcat := execBlock_append hprefix htail
     simpa [flapTransition, flapPrefixToDaiStmts, flapTailStmts,
       flapPostDaiToKickStmts, flapKickAndReturnStmts, nonpayable,
       checkedExternalCallStmts, locals, evm0] using hcat

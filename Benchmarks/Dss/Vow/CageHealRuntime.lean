@@ -118,7 +118,7 @@ theorem cageSourceVatSinSuccessTailRevertFromBlock
     exact cageVatDaiSuccess (evm := evmFlop) (evmDai := evmDai2)
       (outDai := outDai2) (flapperDai := flapperDai) (vatDai := vatDai)
       hvatCode2 hcallDai2 hdecDai2
-  have hprefix :=.execBlock_append
+  have hprefix := execBlock_append
     (Reasoning.Theory.execBlock_append
       (Reasoning.Theory.execBlock_append
         (Reasoning.Theory.execBlock_append
@@ -258,7 +258,7 @@ theorem cageSourceVatSinSuccessTailOkFromBlock
     exact cageVatDaiSuccess (evm := evmFlop) (evmDai := evmDai2)
       (outDai := outDai2) (flapperDai := flapperDai) (vatDai := vatDai)
       hvatCode2 hcallDai2 hdecDai2
-  have hprefix :=.execBlock_append
+  have hprefix := execBlock_append
     (Reasoning.Theory.execBlock_append
       (Reasoning.Theory.execBlock_append
         (Reasoning.Theory.execBlock_append

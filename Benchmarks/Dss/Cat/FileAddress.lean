@@ -566,7 +566,7 @@ theorem RD.catFileAddressStoreVow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd3206 := rd3205.sub (by native_decide) (by evm_ov)
   have rd3207 := rd3206.dup4 (by native_decide) (by evm_ov)
   have rd3208 := rd3207.and (by native_decide) (by evm_ov)
-  have rd3209 := rd3208.lor (by native_decide) (by evm_ov)
+  have rd3209 := rd3208.or (by native_decide) (by evm_ov)
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
     solcAddrMask from by decide] at rd3209
   rw [setAddressOffset0Word_bytecode] at rd3209

@@ -1266,7 +1266,7 @@ theorem flapperYankBodyReverts_moveCallFailure
             .storage (bidsF (.var "id") "bid")] "_moveRet" ++
           [.delete (bidRef (.var "id"))])
         .reverted :=
-   .execBlock_append_term hchecked (by intro f e h; cases h)
+   execBlock_append_term hchecked (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [yankTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
     List.nil_append] using
@@ -1347,7 +1347,7 @@ theorem flapperYankBodyReturns_moveCallSuccess
           [.delete (bidRef (.var "id"))])
         (.ok { contract := contract, locals := yankMoveLocals I }
           (yankDeletePostState evm' I)) :=
-   .execBlock_append hchecked hdelete
+   execBlock_append hchecked hdelete
   refine ExecFuncBody.execBlockOK ?_
   simpa [yankTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
     List.nil_append] using

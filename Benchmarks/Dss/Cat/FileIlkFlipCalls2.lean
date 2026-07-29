@@ -317,7 +317,7 @@ theorem RD.catFileIlkFlipStore {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k 
   have rd3619 := rd3618.and (by native_decide) (by evm_ov)
   have rd3620 := rd3619.swap2 (by native_decide) (by evm_ov)
   have rd3621 := rd3620.dup3 (by native_decide) (by evm_ov)
-  have rd3622 := rd3621.lor (by native_decide) (by evm_ov)
+  have rd3622 := rd3621.or (by native_decide) (by evm_ov)
   rw [u256_land_comm solcAddrMask flip, setAddressOffset0Word_bytecode] at rd3622
   have rd3623 := rd3622.swap1 (by native_decide) (by evm_ov)
   have rd3624 := rd3623.swap3 (by native_decide) (by evm_ov)

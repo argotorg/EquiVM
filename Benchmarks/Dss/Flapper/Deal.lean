@@ -1445,7 +1445,7 @@ theorem flapperDealBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
           checkedExternalCallStmts (.storage gemRef) "burn" (.intLit 0)
             [thisAddr, .storage (bidsF (.var "id") "bid")] "_burnRet")
         .reverted :=
-   .execBlock_append_term hchecked (by intro f e h; cases h)
+   execBlock_append_term hchecked (by intro f e h; cases h)
   have htail :
       ExecBlock config { contract := contract, locals := dealLotLocals evm I } evm
         ((checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
@@ -1456,7 +1456,7 @@ theorem flapperDealBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
             .internalCall "sub" [.storage fillRef, .var "lot"] "fillNew",
             .assign .storage fillRef (.var "fillNew")])
         .reverted :=
-   .execBlock_append_term hmoveTail (by intro f e h; cases h)
+   execBlock_append_term hmoveTail (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dealTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
     List.nil_append] using
@@ -1520,7 +1520,7 @@ theorem flapperDealBodyReverts_moveCallFailure
           checkedExternalCallStmts (.storage gemRef) "burn" (.intLit 0)
             [thisAddr, .storage (bidsF (.var "id") "bid")] "_burnRet")
         .reverted :=
-   .execBlock_append_term hchecked (by intro f e h; cases h)
+   execBlock_append_term hchecked (by intro f e h; cases h)
   have htail :
       ExecBlock config { contract := contract, locals := dealLotLocals evm I } evm
         ((checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
@@ -1531,7 +1531,7 @@ theorem flapperDealBodyReverts_moveCallFailure
             .internalCall "sub" [.storage fillRef, .var "lot"] "fillNew",
             .assign .storage fillRef (.var "fillNew")])
         .reverted :=
-   .execBlock_append_term hmoveTail (by intro f e h; cases h)
+   execBlock_append_term hmoveTail (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dealTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
     List.nil_append] using
@@ -1624,7 +1624,7 @@ theorem flapperDealBodyReverts_burnNoCode
           checkedExternalCallStmts (.storage gemRef) "burn" (.intLit 0)
             [thisAddr, .storage (bidsF (.var "id") "bid")] "_burnRet")
         .reverted :=
-   .execBlock_append hmoveChecked hburnChecked
+   execBlock_append hmoveChecked hburnChecked
   have htail :
       ExecBlock config { contract := contract, locals := dealLotLocals evm I } evm
         ((checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
@@ -1635,7 +1635,7 @@ theorem flapperDealBodyReverts_burnNoCode
             .internalCall "sub" [.storage fillRef, .var "lot"] "fillNew",
             .assign .storage fillRef (.var "fillNew")])
         .reverted :=
-   .execBlock_append_term hmoveTail (by intro f e h; cases h)
+   execBlock_append_term hmoveTail (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dealTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
     List.nil_append] using
@@ -1737,7 +1737,7 @@ theorem flapperDealBodyReverts_burnCallFailure
           checkedExternalCallStmts (.storage gemRef) "burn" (.intLit 0)
             [thisAddr, .storage (bidsF (.var "id") "bid")] "_burnRet")
         .reverted :=
-   .execBlock_append hmoveChecked hburnChecked
+   execBlock_append hmoveChecked hburnChecked
   have htail :
       ExecBlock config { contract := contract, locals := dealLotLocals evm I } evm
         ((checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
@@ -1748,7 +1748,7 @@ theorem flapperDealBodyReverts_burnCallFailure
             .internalCall "sub" [.storage fillRef, .var "lot"] "fillNew",
             .assign .storage fillRef (.var "fillNew")])
         .reverted :=
-   .execBlock_append_term hmoveTail (by intro f e h; cases h)
+   execBlock_append_term hmoveTail (by intro f e h; cases h)
   refine ExecFuncBody.execBlockRevert ?_
   simpa [dealTransition, nonpayable, checkedExternalCallStmts, List.cons_append,
     List.nil_append] using
@@ -1844,7 +1844,7 @@ theorem flapperDealBodyBurnSuccessPrefix
     simpa [checkedExternalCallStmts, dealBurnLocals] using
       checkedExternalCallSuccess hburnGuard hgem hburnArgs hburnCall
         (dealBurnDecode_ok outBurn)
-  exact.execBlock_append hmoveChecked hburnChecked
+  exact execBlock_append hmoveChecked hburnChecked
 
 theorem flapperDealBodyReverts_fillSubUnderflow
     (evm evmMove evmBurn : EVM.State) (I : ExecutionEnv)
