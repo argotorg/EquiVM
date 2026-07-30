@@ -1031,11 +1031,16 @@ theorem uniswapMintBody
                                               hreserve0Source hreserve1Source hliquiditySource
                                               hliqNonzero hfitSupplySource hbalanceFitSource
                                               hbound0Source hbound1Source helapsedSource)
-                                        -- WIP: broken by the Reasoning library port —
-                                        -- reserve-spelling drift (local reserve0/1 vs
-                                        -- uniswapReserve0Word (uniswapLockEnteredState evmS));
-                                        -- needs bridges like hfitKLastSource'.
-                                        exact sorry
+                                        exact
+                                          uniswapMintFinishProportionalFeeOffCumulative
+                                            hcode hdispatch hsz36
+                                            (by simpa [hreserve0Eq, hreserve1Eq] using hbody)
+                                            rd3701 hPostAccountsFee henvFeeI hcreatedFee
+                                            (by rfl) htotalNonzero hclean0 hclean1 hmulFit0
+                                            hmulFit1 hreserve0Nonzero hreserve1Nonzero
+                                            (by rfl) hliqNonzero hperm htotalFit
+                                            hbalanceFit hfitSupplySource hbalanceFitSource
+                                            hbound0 hbound1 helapsedNe (by rfl) hmem hmem64
                                       · let packed :=
                                         uniswapUpdatePackedReserveWord
                                           (uniswapSlotWord ⟨8⟩ σAfterMint I)
@@ -1607,11 +1612,17 @@ theorem uniswapMintBody
                                                   hliqNonzero hfitSupplySource hbalanceFitSource
                                                   hbound0Source hbound1Source
                                                   helapsedSource hfitKLastSource')
-                                            -- WIP: broken by the Reasoning library port —
-                                            -- reserve-spelling drift (hclean0) and
-                                            -- hfitKLastRuntime whnf timeout; hbody above
-                                            -- compiles via the hfitKLastSource' bridge.
-                                            exact sorry
+                                            exact
+                                              uniswapMintFinishProportionalFeeOnCumulativeKLastUpdated
+                                                hcode hdispatch hsz36
+                                                (by simpa [hreserve0Eq, hreserve1Eq] using hbody)
+                                                rd3701 hPostAccountsFee henvFeeI hcreatedFee
+                                                (by rfl) htotalNonzero hclean0 hclean1
+                                                hmulFit0 hmulFit1 hreserve0Nonzero
+                                                hreserve1Nonzero (by rfl) hliqNonzero
+                                                hperm htotalFit hbalanceFit hfitSupplySource
+                                                hbalanceFitSource hbound0 hbound1 helapsedNe
+                                                hfitKLastRuntime hmem hmem64
                                           · let σCleared :=
                                             sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩
                                             let evmAfterFee := mintFeeKLastClearedState evmFeeS
@@ -2162,9 +2173,19 @@ theorem uniswapMintBody
                                                       hreserve1Source hliquiditySource hliqNonzero
                                                       hfitSupplySource hbalanceFitSource hbound0Source
                                                       hbound1Source helapsedSource)
-                                                -- WIP: broken by the Reasoning library port —
-                                                -- reserve-spelling drift (hclean0).
-                                                exact sorry
+                                                exact
+                                                  uniswapMintFinishProportionalFeeOffCumulative
+                                                    hcode hdispatch hsz36
+                                                    (by
+                                                      simpa [hreserve0Eq, hreserve1Eq] using hbody)
+                                                    rd3701 hPostCleared henvCleared
+                                                    hcreatedCleared (by rfl)
+                                                    htotalNonzero hclean0 hclean1 hmulFit0
+                                                    hmulFit1 hreserve0Nonzero hreserve1Nonzero
+                                                    (by rfl) hliqNonzero hperm
+                                                    htotalFit hbalanceFit hfitSupplySource
+                                                    hbalanceFitSource hbound0 hbound1
+                                                    helapsedNe (by rfl) hmem hmem64
                                               · by_cases hsmallNoMint :
                                                 UInt256.land feeToWord solcAddrMask ≠ ⟨0⟩ ∧
                                                   mintFeeKLastSlotWord σFee I ≠ ⟨0⟩ ∧
