@@ -176,8 +176,14 @@ The only acceptable trusted facts are:
 - The selector / jump-dest facts in `Bytecode.lean` (the selector
   bytes of each function).
 
-- Axioms that already exist in `Reasoning/`, including the
-  external-call axioms described in §6.
+- The pre-existing library axiom `keccak_size` in
+  `Reasoning/Memory.lean` (Keccak output is 32 bytes), used by
+  contracts that hash at run time.
+
+- For contracts with external calls: EVMLean's precompile output-size
+  axioms (declared in `Ethereum/Theory/ReturnDataBound.lean`). These
+  enter the footprint through the return-data size bound of the
+  external-call machinery; you never invoke them directly.
 
 Do not introduce new axioms about EVM semantics, Solm semantics, or
 mapping-slot noncollision. If you think you need one, stop, report the
@@ -435,8 +441,8 @@ Function calls should be proven modularly. In particular:
   big bytecode). `evm_run` cooked steps auto-supply it; raw steps
   write `(by native_decide)` for decode, `(by decide)` for small side
   conditions, `(by jump_dest)` for jump-dest membership, `(by evm_ov)`
-  for stack-overflow bounds. Keep these — the resulting `ofReduceBool`
-  axiom dependency is expected and fine.
+  for stack-overflow bounds. Keep these — the resulting `native_decide`
+  axiom dependencies (`….native_decide.ax_*`) are expected and fine.
 
 - Raise `maxHeartbeats` only on the file/lemma that needs it, with
   `set_option … in` on that one theorem, not globally.
@@ -538,13 +544,14 @@ path, and `<Namespace>` the contract's namespace — e.g. for
 The build must succeed with no `sorry`.
 
 The axiom footprint should contain only
-`propext`/`Classical.choice`/`Quot.sound`, the expected `ofReduceBool`
-(from `native_decide`), the pre-existing library axiom
-`ByteArray_zeroes_size`, your contract's selector/jump-dest facts, and
-— for any contract with an external call — the tolerated external-call
-axiom `Reasoning.Reach.Theta_returnData_size_lt_2pow138` (a known
-trusted base being removed separately; do not block on it).
-(`typedCallViaEVM_accountMapEquiv` is a proved theorem in
-`Reasoning/ExternalCall.lean`, not an axiom — it does not appear in the
-footprint.) Flag only anything beyond this set — a new axiom your work
-introduced.
+`propext`/`Classical.choice`/`Quot.sound`, the `native_decide`
+evaluation axioms (`….native_decide.ax_*`), your contract's
+selector/jump-dest facts, and — where applicable — the library axiom
+`keccak_size` (contracts that hash at run time) and EVMLean's
+precompile output-size axioms (`Ethereum.EVM.ffi_sha256_output_size`,
+`Ethereum.EVM.blob*_output_chunks`, …), which enter through the
+external-call return-data bound.
+(`ByteArray_zeroes_size`, `Theta_returnData_size_lt_2pow138`, and
+`typedCallViaEVM_accountMapEquiv` are proved theorems, not axioms —
+they do not appear in the footprint.) Flag only anything beyond this
+set — a new axiom your work introduced.
