@@ -49,31 +49,32 @@ jobs:
             Examples.Reuse.Correct \
             Examples.VyperERC20.Correct
 
+      # Benchmarks are too large for regular GitHub-hosted CI right now, commenting out. TODO add separate workflow
       # Mirrors the imports of Benchmarks.lean. Remove lines to prune.
-      - name: Build benchmarks
-        run: |
-          lake build \
-            Benchmarks.WETH9.Correct \
-            Benchmarks.Dss.Dai.Correct \
-            Benchmarks.Dss.Jug.Correct \
-            Benchmarks.Dss.Vat.Correct \
-            Benchmarks.Dss.Pot.Correct \
-            Benchmarks.Dss.Spot.Correct \
-            Benchmarks.Dss.Vow.Correct \
-            Benchmarks.Dss.LinearDecrease.Correct \
-            Benchmarks.Dss.StairstepExponentialDecrease.Correct \
-            Benchmarks.Dss.ExponentialDecrease.Correct \
-            Benchmarks.Dss.Cat.Correct \
-            Benchmarks.Dss.Clipper.Correct \
-            Benchmarks.Dss.Cure.Correct \
-            Benchmarks.Dss.Dog.Correct \
-            Benchmarks.Dss.End.Correct \
-            Benchmarks.Dss.Flapper.Correct \
-            Benchmarks.Dss.Flipper.Correct \
-            Benchmarks.Dss.Flopper.Correct \
-            Benchmarks.Dss.GemJoin.Correct \
-            Benchmarks.Dss.DaiJoin.Correct
+      # - name: Build benchmarks
+      #   run: |
+      #     lake build \
+      #       Benchmarks.WETH9.Correct \
+      #       Benchmarks.Dss.Dai.Correct \
+      #       Benchmarks.Dss.Jug.Correct \
+      #       Benchmarks.Dss.Vat.Correct \
+      #       Benchmarks.Dss.Pot.Correct \
+      #       Benchmarks.Dss.Spot.Correct \
+      #       Benchmarks.Dss.Vow.Correct \
+      #       Benchmarks.Dss.LinearDecrease.Correct \
+      #       Benchmarks.Dss.StairstepExponentialDecrease.Correct \
+      #       Benchmarks.Dss.ExponentialDecrease.Correct \
+      #       Benchmarks.Dss.Cat.Correct \
+      #       Benchmarks.Dss.Clipper.Correct \
+      #       Benchmarks.Dss.Cure.Correct \
+      #       Benchmarks.Dss.Dog.Correct \
+      #       Benchmarks.Dss.End.Correct \
+      #       Benchmarks.Dss.Flapper.Correct \
+      #       Benchmarks.Dss.Flipper.Correct \
+      #       Benchmarks.Dss.Flopper.Correct \
+      #       Benchmarks.Dss.GemJoin.Correct \
+      #       Benchmarks.Dss.DaiJoin.Correct
 
-      # Scaffolded benchmarks: specs + bytecode compile, proofs are sorry stubs.
-      - name: Build benchmark scaffolds
-        run: lake build Benchmarks.Scaffolds
+      # # Scaffolded benchmarks: specs + bytecode compile, proofs are sorry stubs.
+      # - name: Build benchmark scaffolds
+      #   run: lake build Benchmarks.Scaffolds
