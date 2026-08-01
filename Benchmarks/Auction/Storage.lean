@@ -52,7 +52,7 @@ theorem loadUint8 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (auctionUint8LocAt slot 0) =
       .int (Int.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨255⟩).toNat) :=
-  storageLocLoad_uint_offset0 evm slot 1 ⟨8, by decide⟩ (by decide)
+  storageLocLoad_uint_offset0 evm slot 1 ⟨8, by decide⟩ (by decide) (by decide)
 
 theorem loadBool (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (auctionBoolLoc slot) =

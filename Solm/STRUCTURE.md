@@ -4,10 +4,13 @@ Sol⁻ is the high-level specification language of EquiVM. Its structure
 mirrors a subset of Solidity. Solidity's structs like inheritance, 
 modifiers are assumed to be desugared away.
 
-Note that there are semantics differences between Solidity and Sol⁻, 
-for example in Sol⁻, in-memory integers have unbounded range.
-This facilitates reasoning using unbounded mathematical integers, and only 
-converts to bounded integers at the storage boundary.
+Sol⁻ uses unbounded mathematical integers for in-memory values and arithmetic,
+including negation. Overflow handling is explicit: `uintN(e)` and `intN(e)`
+normalize to the target width, while `e as uintN` and `e as intN` assert that
+the value is in range and revert otherwise. For example, adding 250 and 10
+produces 260; `uint8(250 + 10)` produces 4; `(250 + 10) as uint8` reverts.
+Storage conversion also applies the field's width. ABI encoding and modern
+ABI decoding validate values instead of silently truncating them.
 
 Currently, Sol⁻ does not currently model events, error payloads, or gas.
 ```

@@ -9822,45 +9822,15 @@ theorem decodeABIValues_bytes32_address_address_int256_int256_legacy_ok {bytes :
   have htakeBytes32 :
       List.take (↑bytes32Width + 1) (List.take 32 bytes) = List.take 32 bytes := by
     simp [bytes32Width]
-  have hltWord96 :
-      ↑(ABI.bytesToWord ((bytes.drop 96).take 32)).val < EVM.wordModulus := by
-    change (ABI.bytesToWord ((bytes.drop 96).take 32)).val.val < EVM.twoPow 256
-    exact (ABI.bytesToWord ((bytes.drop 96).take 32)).val.isLt
-  have hltWord128 :
-      ↑(ABI.bytesToWord ((bytes.drop 128).take 32)).val < EVM.wordModulus := by
-    change (ABI.bytesToWord ((bytes.drop 128).take 32)).val.val < EVM.twoPow 256
-    exact (ABI.bytesToWord ((bytes.drop 128).take 32)).val.isLt
-  have hmod96Val :
-      (↑(ABI.bytesToWord ((bytes.drop 96).take 32)).val) % EVM.wordModulus =
-        ↑(ABI.bytesToWord ((bytes.drop 96).take 32)).val :=
-    Nat.mod_eq_of_lt hltWord96
-  have hmod96Int :
-      ((↑(↑(ABI.bytesToWord ((bytes.drop 96).take 32)).val) : Int) %
-          (↑EVM.wordModulus : Int)) =
-        (↑(↑(ABI.bytesToWord ((bytes.drop 96).take 32)).val) : Int) := by
-    exact Int.emod_eq_of_lt (Int.natCast_nonneg _) (by exact_mod_cast hltWord96)
-  have hmod128Val :
-      (↑(ABI.bytesToWord ((bytes.drop 128).take 32)).val) % EVM.wordModulus =
-        ↑(ABI.bytesToWord ((bytes.drop 128).take 32)).val :=
-    Nat.mod_eq_of_lt hltWord128
-  have hmod128Int :
-      ((↑(↑(ABI.bytesToWord ((bytes.drop 128).take 32)).val) : Int) %
-          (↑EVM.wordModulus : Int)) =
-        (↑(↑(ABI.bytesToWord ((bytes.drop 128).take 32)).val) : Int) := by
-    exact Int.emod_eq_of_lt (Int.natCast_nonneg _) (by exact_mod_cast hltWord128)
   set_option linter.unusedSimpArgs false in
     simp (config := { maxSteps := 200000 }) [decodeABIValues?, decodeABIValue?, readBytes?,
       readWord?, decodeABIWord?,
       bytes32, addr, int256, bytes32Width, int256Int, isDynamicABIType,
       staticABIEncodedSize?, hlen0, hlen32, hlen64, hlen96, hlen128, htakeBytes32,
-      hge32, hge64, hge96, hge128, UInt256.toNat,
-      show EVM.twoPow (256 - 1) = EVM.twoPow 255 by rfl,
-      show EVM.twoPow 256 = EVM.wordModulus by rfl]
-  rw [hmod96Val]
-  rw [hmod96Int]
-  rw [hmod128Val]
-  rw [hmod128Int]
-  exact ⟨rfl, rfl⟩
+      hge32, hge64, hge96, hge128, UInt256.toNat]
+  constructor
+  · exact normalizeInt_sint256_word (ABI.bytesToWord ((bytes.drop 96).take 32))
+  · exact normalizeInt_sint256_word (ABI.bytesToWord ((bytes.drop 128).take 32))
 
 set_option maxHeartbeats 0 in
 theorem decodeCalldata_legacyBytes32_address_address_int256_int256_ok {cd : ByteArray}

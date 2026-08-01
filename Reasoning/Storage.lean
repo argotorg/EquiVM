@@ -109,21 +109,39 @@ def uint256Loc (slot : UInt256) : StorageLoc :=
 theorem storageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint256Loc slot) =
       .int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat) := by
-  have htake :
+  have htakeNat :
       (EVM.Word.toBytesLEWithSizeProof
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0 (32 : Fin 33).val =
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0 32 =
         (EVM.Word.toBytesLEWithSizeProof
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1 := by
     rw [List.extract_eq_take_drop, List.drop_zero]
-    exact List.take_of_length_le (by
-      rw [(EVM.Word.toBytesLEWithSizeProof
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
-      norm_num)
+    apply List.take_of_length_le
+    rw [(EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2]
+  have htakeFin :
+      (EVM.Word.toBytesLEWithSizeProof
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0
+            (32 : Fin 33).val =
+        (EVM.Word.toBytesLEWithSizeProof
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1 := by
+    exact htakeNat
   unfold storageLocLoad uint256Loc wordToElem
   simp only [Fin.val_zero, Nat.zero_add]
-  congr
-  rw [htake, fromBytes'_toBytesLEWithSizeProof]
-  rfl
+  rw [normalizeInt_uint_eq_self]
+  · congr
+    rw [htakeFin, fromBytes'_toBytesLEWithSizeProof]
+    rfl
+  · exact Int.natCast_nonneg _
+  · apply Int.ofNat_lt.mpr
+    change fromBytes' ((EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract 0 32) <
+        EVM.twoPow 256
+    rw [htakeNat]
+    have hle := EVM.fromBytes'_le (bs := (EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1)
+    rw [(EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2] at hle
+    exact hle
 
 theorem storageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
     storageLocStore evm (uint256Loc slot) (.int (Int.ofNat val.toNat)) =
@@ -193,7 +211,7 @@ theorem storageLocStore_bytes32 (evm : EVM.State) (slot word : UInt256) (v : Val
 theorem storageLocLoad_uint_offset0 (evm : EVM.State) (slot : UInt256)
     (size : Fin 33) (width : ABI.BitWidth)
     {hbound : (0 : Fin 32).val + size.val - 1 < 32}
-    (hbits : 8 * size.val ≤ 256) :
+    (hwidth : width.val = 8 * size.val) (hbits : 8 * size.val ≤ 256) :
     storageLocLoad evm
         { slot := slot, offset := 0, size := size, hbound := hbound,
           type := .int (.uint width) } =
@@ -202,16 +220,30 @@ theorem storageLocLoad_uint_offset0 (evm : EVM.State) (slot : UInt256)
         (UInt256.ofNat (2 ^ (8 * size.val) - 1))).toNat) := by
   unfold storageLocLoad wordToElem
   simp only [Fin.val_zero, Nat.zero_add]
-  change Value.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
-    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 size.val))) = _
-  rw [List.extract_eq_take_drop, List.drop_zero]
-  simpa [Nat.sub_zero] using
-    fromBytes'_take_wordLE_land_mask
-      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) size.val hbits
+  rw [normalizeInt_uint_eq_self]
+  · change Value.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 size.val))) = _
+    rw [List.extract_eq_take_drop, List.drop_zero]
+    simpa [Nat.sub_zero] using
+      fromBytes'_take_wordLE_land_mask
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) size.val hbits
+  · exact Int.natCast_nonneg _
+  · apply Int.ofNat_lt.mpr
+    change fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract 0 size.val) <
+        EVM.twoPow width.val
+    rw [List.extract_eq_take_drop, List.drop_zero, hwidth]
+    have hle := EVM.fromBytes'_le (bs := (EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.take size.val)
+    rw [List.length_take, (EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2,
+      Nat.min_eq_left (by omega)] at hle
+    exact hle
 
 theorem storageLocLoad_uint_offset (evm : EVM.State) (slot : UInt256)
     (offset : Fin 32) (size : Fin 33) (width : ABI.BitWidth)
     {hbound : offset.val + size.val - 1 < 32}
+    (hwidth : width.val = 8 * size.val)
     (hoff : 8 * offset.val < 256) (hsize : 8 * size.val ≤ 256) :
     storageLocLoad evm
         { slot := slot, offset := offset, size := size, hbound := hbound,
@@ -219,15 +251,30 @@ theorem storageLocLoad_uint_offset (evm : EVM.State) (slot : UInt256)
       .int (Int.ofNat (UInt256.land
         (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
           (UInt256.ofNat (256 ^ offset.val)))
-        (UInt256.ofNat (256 ^ size.val - 1))).toNat) := by
+          (UInt256.ofNat (256 ^ size.val - 1))).toNat) := by
   unfold storageLocLoad wordToElem
-  change Value.int (Int.ofNat (fromBytes' (((EVM.Word.toBytesLEWithSizeProof
-    (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract
-      offset.val (offset.val + size.val)))) = _
-  rw [List.extract_eq_take_drop]
-  simpa [Nat.add_sub_cancel_left] using
-    fromBytes'_drop_take_wordLE_land_div_mask
-      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) offset.val size.val hoff hsize
+  change Value.int (normalizeInt (.uint width) (Int.ofNat (fromBytes'
+    ((EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.extract
+        offset.val (offset.val + size.val))))) = _
+  rw [normalizeInt_uint_eq_self]
+  · rw [List.extract_eq_take_drop]
+    simpa [Nat.add_sub_cancel_left] using
+      fromBytes'_drop_take_wordLE_land_div_mask
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) offset.val size.val hoff hsize
+  · exact Int.natCast_nonneg _
+  · apply Int.ofNat_lt.mpr
+    change fromBytes' (((EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1).extract
+        offset.val (offset.val + size.val)) < EVM.twoPow width.val
+    rw [List.extract_eq_take_drop, Nat.add_sub_cancel_left, hwidth]
+    have hle := EVM.fromBytes'_le (bs := ((EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).1.drop offset.val).take
+        size.val)
+    rw [List.length_take, List.length_drop, (EVM.Word.toBytesLEWithSizeProof
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)).2,
+      Nat.min_eq_left (by omega)] at hle
+    exact hle
 
 theorem storageLocStore_int_some (evm : EVM.State) (loc : StorageLoc) (n : Int) :
     ∃ evm', storageLocStore evm loc (.int n) = some evm' := by

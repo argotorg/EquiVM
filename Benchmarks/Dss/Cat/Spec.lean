@@ -33,6 +33,9 @@ def vowAddr : Expr := .storage { base := "vow" }
 def WAD : Int := 1000000000000000000
 def int256Limit : Int := 57896044618658097711785492504343953926634992332820282019728792003956564819968
 
+theorem int256Limit_eq_twoPow : int256Limit = Int.ofNat (EVM.twoPow 255) := by
+  native_decide
+
 def u256 (e : Expr) : Expr := .inRange uint256Int e
 def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
 def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
@@ -413,8 +416,8 @@ def biteTransition : TransitionDecl :=
             (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
       checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
         [ .var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "dink")),
-          .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+          asInt256 (.unary .neg (asInt256 (.var "dink"))),
+          asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" ++
       checkedMulUintInto "dartRate" (.var "dart") (.var "rate") ++
       checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "dartRate"] "_fessRet" ++
       checkedMulUintInto "tabBase" (.var "dartRate") (.var "milkChop") ++

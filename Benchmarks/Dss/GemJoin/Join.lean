@@ -312,17 +312,30 @@ theorem evalExpr_join_wad (evm : EVM.State) (I : ExecutionEnv) :
   unfold EvalResult.ofOption
   rfl
 
-theorem evalExpr_join_asInt256_wad (evm : EVM.State) (I : ExecutionEnv) :
+theorem evalExpr_join_asInt256_wad (evm : EVM.State) (I : ExecutionEnv)
+    (hwad : (joinWadWord I).toNat < intLimit) :
     evalExpr? config { contract := contract, locals := joinStore I } evm
       (asInt256 (.var "wad")) = .ok (joinWadValue I) := by
-  unfold asInt256
-  simp only [evalExpr?, EvalResult.bind, bind]
-  rw [show (joinStore I).get? "wad" = some (joinWadValue I) by
-    unfold joinStore
-    simp]
-  simp [joinWadValue, int256St, int256Int, castValue?, EvalResult.ofOption]
+  have hwadSigned : (joinWadWord I).toNat < EVM.twoPow 255 := by
+    simpa [intLimit_eq_twoPow] using hwad
+  have hnormalize :
+      normalizeInt int256Int (Int.ofNat (joinWadWord I).toNat) =
+        Int.ofNat (joinWadWord I).toNat := by
+    have hword := normalizeInt_sint256_word (joinWadWord I)
+    rw [if_pos hwadSigned] at hword
+    simpa [int256Int] using hword
+  have hcast := evalExpr_cast_int (intType := int256Int) (evalExpr_join_wad evm I)
+  calc
+    evalExpr? config { contract := contract, locals := joinStore I } evm
+        (asInt256 (.var "wad")) =
+        .ok (.int (normalizeInt int256Int (Int.ofNat (joinWadWord I).toNat))) := by
+      simpa only [asInt256, int256St, joinWadValue] using hcast
+    _ = .ok (joinWadValue I) := by
+      simpa only [joinWadValue] using
+        congrArg (fun i => EvalResult.ok (Value.int i)) hnormalize
 
-theorem evalExprs_join_slipArgs (evm : EVM.State) (I : ExecutionEnv) :
+theorem evalExprs_join_slipArgs (evm : EVM.State) (I : ExecutionEnv)
+    (hwad : (joinWadWord I).toNat < intLimit) :
     evalExprs? config { contract := contract, locals := joinStore I } evm
       [.storage ilkRef, .var "usr", asInt256 (.var "wad")] =
         .ok
@@ -331,7 +344,7 @@ theorem evalExprs_join_slipArgs (evm : EVM.State) (I : ExecutionEnv) :
               (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
             joinUsrValue I, joinWadValue I] := by
   simp [evalExprs?, evalExpr_join_ilk evm I, evalExpr_join_usr evm I,
-    evalExpr_join_asInt256_wad evm I, EvalResult.bind, bind, pure]
+    evalExpr_join_asInt256_wad evm I hwad, EvalResult.bind, bind, pure]
 
 theorem evalExprs_join_transferFromArgs (evm : EVM.State) (I : ExecutionEnv) :
     evalExprs? config { contract := contract, locals := joinStore I } evm
@@ -537,7 +550,7 @@ theorem gemJoinJoinBodySuccess (evm evmSlip evmTransfer : EVM.State) (I : Execut
               (EVM.Word.toBytesBE
                 (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
               joinUsrValue I, joinWadValue I] :=
-    evalExprs_join_slipArgs evm I
+    evalExprs_join_slipArgs evm I hwadLow
   have hslipStmt :
       ExecStmt config { contract := contract, locals := joinStore I } evm
         (.externalCall (.storage vatRef) "slip" (.intLit 0)
@@ -637,7 +650,7 @@ theorem gemJoinJoinBodyRevertsSlipCallFailure
               (EVM.Word.toBytesBE
                 (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
               joinUsrValue I, joinWadValue I] :=
-    evalExprs_join_slipArgs evm I
+    evalExprs_join_slipArgs evm I hwadLow
   have hslipStmt :
       ExecStmt config { contract := contract, locals := joinStore I } evm
         (.externalCall (.storage vatRef) "slip" (.intLit 0)
@@ -690,7 +703,7 @@ theorem gemJoinJoinBodyRevertsGemNoCode
               (EVM.Word.toBytesBE
                 (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
               joinUsrValue I, joinWadValue I] :=
-    evalExprs_join_slipArgs evm I
+    evalExprs_join_slipArgs evm I hwadLow
   have hslipStmt :
       ExecStmt config { contract := contract, locals := joinStore I } evm
         (.externalCall (.storage vatRef) "slip" (.intLit 0)
@@ -758,7 +771,7 @@ theorem gemJoinJoinBodyRevertsTransferCallFailure
               (EVM.Word.toBytesBE
                 (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
               joinUsrValue I, joinWadValue I] :=
-    evalExprs_join_slipArgs evm I
+    evalExprs_join_slipArgs evm I hwadLow
   have hslipStmt :
       ExecStmt config { contract := contract, locals := joinStore I } evm
         (.externalCall (.storage vatRef) "slip" (.intLit 0)
@@ -845,7 +858,7 @@ theorem gemJoinJoinBodyRevertsTransferDecode
               (EVM.Word.toBytesBE
                 (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
               joinUsrValue I, joinWadValue I] :=
-    evalExprs_join_slipArgs evm I
+    evalExprs_join_slipArgs evm I hwadLow
   have hslipStmt :
       ExecStmt config { contract := contract, locals := joinStore I } evm
         (.externalCall (.storage vatRef) "slip" (.intLit 0)
@@ -932,7 +945,7 @@ theorem gemJoinJoinBodyRevertsTransferFalse
               (EVM.Word.toBytesBE
                 (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
               joinUsrValue I, joinWadValue I] :=
-    evalExprs_join_slipArgs evm I
+    evalExprs_join_slipArgs evm I hwadLow
   have hslipStmt :
       ExecStmt config { contract := contract, locals := joinStore I } evm
         (.externalCall (.storage vatRef) "slip" (.intLit 0)

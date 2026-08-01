@@ -6398,7 +6398,7 @@ theorem catBiteRevertLitterAdd {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             ?_)))
     refine ExecBlock.consNormal (ExecStmt.requireTrue
       (biteVatGuard_true (bsDink_get_vat I eUrnS iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
-    refine ExecBlock.consNormal (biteGrabSuccessStmt hGrabSolm hGrabDec) ?_
+    refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabSolm hGrabDec) ?_
     refine ExecBlock.consNormal
       (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I eUrnS iArt iRate iSpot iLine iDust ink art))
         (evalExpr_varUInt256 (btGrab_get_rate I eUrnS iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_

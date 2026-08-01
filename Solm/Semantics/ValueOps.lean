@@ -199,7 +199,7 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
         | some k => some (.int (Int.ofNat k))
         | none => none
       else none
-  | .elem (.int _), .int _ => some v
+  | .elem (.int intType), .int i => some (.int (normalizeInt intType i))
   | .contract _, .address _ => some v
   | .struct expected _, .struct actual _ =>
       if expected = actual then some v else none
@@ -207,11 +207,18 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
   | .dynamicArray _, .array _ => some v
   | _, _ => none
 
+theorem castValue_int (intType : IntType) (i : Int) :
+    castValue? (.int i) (.elem (.int intType)) =
+      some (.int (normalizeInt intType i)) := by
+  cases intType <;> rfl
+
 -- `uint256(bytes32 0x…01) = 1`; a width mismatch (`uint128(bytes32)`) is rejected.
 #guard castValue? (.fixedBytes ⟨31, by decide⟩ (List.replicate 31 0 ++ [1]))
     (.elem (.int (.uint ⟨256, by decide⟩))) = some (.int 1)
 #guard castValue? (.fixedBytes ⟨31, by decide⟩ (List.replicate 32 0))
     (.elem (.int (.uint ⟨128, by decide⟩))) = none
+#guard castValue? (.int 511) (.elem (.int (.uint ⟨8, by decide⟩))) = some (.int 255)
+#guard castValue? (.int 255) (.elem (.int (.sint ⟨8, by decide⟩))) = some (.int (-1))
 
 def fixedBytesFromNat (n : Fin 32) (value : Nat) : Value :=
   .fixedBytes n ((EVM.Word.ofNat value).toBytesBE.drop (32 - fixedBytesSize n))

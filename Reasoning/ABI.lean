@@ -664,9 +664,13 @@ theorem decodeScalarWordWithMode_uint256_ok {mode : DecodeMode} {bytes : List UI
     rfl
   | legacySolc05 =>
     -- legacy masks (`n % 2^256`), the identity on a full-width uint256 word.
-    rw [Nat.mod_eq_of_lt (show (↑(ABI.bytesToWord (List.take 32 (List.drop start bytes))).val : ℕ)
-      < EVM.twoPow 256 from (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt)]
-    rfl
+    simp only [Solm.normalizeInt]
+    rw [Int.emod_eq_of_lt]
+    · rfl
+    · exact Int.natCast_nonneg _
+    · apply Int.ofNat_lt.mpr
+      rw [show EVM.twoPow 256 = UInt256.size by rfl]
+      exact (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt
 
 theorem decodeScalarWordWithMode_uint256_none_short {mode : DecodeMode} {bytes : List UInt8}
     {start : Nat}

@@ -513,6 +513,21 @@ decreasing_by
 
 end
 
+theorem evalExpr_cast_int {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {expr : Expr} {intType : IntType} {i : Int}
+    (h : evalExpr? cfg solm evm expr = .ok (.int i)) :
+    evalExpr? cfg solm evm (.cast expr (.elem (.int intType))) =
+      .ok (.int (normalizeInt intType i)) := by
+  simp only [evalExpr?, h, EvalResult.bind, bind, castValue_int, EvalResult.ofOption]
+
+theorem evalExpr_cast_neg_int {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {expr : Expr} {intType : IntType} {i : Int}
+    (h : evalExpr? cfg solm evm expr = .ok (.int i)) :
+    evalExpr? cfg solm evm (.cast (.unary .neg expr) (.elem (.int intType))) =
+      .ok (.int (normalizeInt intType (-i))) := by
+  simp only [evalExpr?, h, EvalResult.bind, bind, evalUnaryOp?,
+    castValue_int, EvalResult.ofOption]
+
 def evalExprs? (cfg : Config) (solm : Frame) (evm : EVM.State)
     (exprs : List Expr) : EvalResult (List Value) :=
   match exprs with

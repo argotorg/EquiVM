@@ -138,7 +138,7 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
           if bits.val = 0 then
             none
           else
-            some (.int (Int.ofNat (n % EVM.twoPow bits.val)))
+            some (.int (Solm.normalizeInt (.uint bits) (Int.ofNat n)))
   | .elem (.int (.sint bits)) =>
       match mode with
       | DecodeMode.modern =>
@@ -173,9 +173,7 @@ def decodeABIWord? (ty : ABIType) (word : EVM.Word) (mode : DecodeMode := Decode
           if bits.val = 0 then
             none
           else
-            let m := n % EVM.twoPow bits.val
-            some (.int (if m < EVM.twoPow (bits.val - 1) then (m : Int)
-              else (m : Int) - (EVM.twoPow bits.val : Int)))
+            some (.int (Solm.normalizeInt (.sint bits) (Int.ofNat n)))
   | _ => none
 
 mutual

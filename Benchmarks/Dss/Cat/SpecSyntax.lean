@@ -96,7 +96,9 @@ def contractSyntax : ContractDecl := solidity% contract Cat {
     require(dart > 0 && dink > 0);
     require(dart <= #int256Limit && dink <= #int256Limit);
     require(vat.code.length > 0);
-    var _grabRet = vat.grab(ilk, urn, address(this), vow, -int256(dink), -int256(dart));
+    -- Negation is unbounded in Solminus; explicitly wrap the signed-minimum case.
+    var _grabRet = vat.grab(ilk, urn, address(this), vow,
+      int256(-int256(dink)), int256(-int256(dart)));
     uint256 dartRate = (dart * rate) as uint256;
     require(rate == 0 || dartRate / rate == dart);
     require(vow.code.length > 0);

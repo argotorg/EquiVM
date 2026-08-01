@@ -5395,15 +5395,29 @@ theorem evalExpr_bark_varUInt256 {v : DogImmutables} {evm : EVM.State} {locals :
 
 theorem evalExpr_bark_neg_asInt256_var {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {name : Ident} {value : UInt256}
-    (h : locals.get? name = some (.int (Int.ofNat value.toNat))) :
+    (h : locals.get? name = some (.int (Int.ofNat value.toNat)))
+    (hbound : value.toNat ≤ dogInt256LimitWord.toNat) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm
-      (.unary .neg (asInt256 (.var name))) =
+      (asInt256 (.unary .neg (asInt256 (.var name)))) =
         .ok (.int (-(Int.ofNat value.toNat))) := by
-  have h' : locals[name]? = some (.int (Int.ofNat value.toNat)) := by
-    rw [← Std.HashMap.get?_eq_getElem?]
-    exact h
-  simp [evalExpr?, asInt256, int256St, castValue?, evalUnaryOp?, EvalResult.ofOption,
-    EvalResult.bind, bind, h']
+  have hbound' : value.toNat ≤ EVM.twoPow 255 := by
+    simpa using hbound
+  have hnormalize :
+      normalizeInt int256Int (-normalizeInt int256Int (Int.ofNat value.toNat)) =
+        -Int.ofNat value.toNat := by
+    simpa [int256Int] using normalizeInt_sint256_neg_word_of_le value hbound'
+  have hvar := evalExpr_bark_varUInt256 (v := v) (evm := evm) (locals := locals)
+    (name := name) (value := value) h
+  have hcast := evalExpr_cast_int (intType := int256Int) hvar
+  have hneg := evalExpr_cast_neg_int (intType := int256Int) hcast
+  calc
+    evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (asInt256 (.unary .neg (asInt256 (.var name)))) =
+        .ok (.int
+          (normalizeInt int256Int (-normalizeInt int256Int (Int.ofNat value.toNat)))) := by
+      simpa only [asInt256, int256St] using hneg
+    _ = .ok (.int (-Int.ofNat value.toNat)) :=
+      congrArg (fun i => EvalResult.ok (Value.int i)) hnormalize
 
 theorem evalExpr_bark_mul256_ok {v : DogImmutables} {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b prod : UInt256}
@@ -5967,11 +5981,13 @@ theorem evalExprs_barkVatGrabArgs {v : DogImmutables} {evm : EVM.State}
         some (.address (AccountAddress.ofNat milkClip.toNat)))
     (hvow : locals.get? "vow" = none)
     (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
-    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat))) :
+    (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hdinkBound : dink.toNat ≤ dogInt256LimitWord.toNat)
+    (hdartBound : dart.toNat ≤ dogInt256LimitWord.toNat) :
     evalExprs? (config v) { contract := contract v, locals := locals } evm
       [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-        .unary .neg (asInt256 (.var "dink")),
-        .unary .neg (asInt256 (.var "dart")) ] =
+        asInt256 (.unary .neg (asInt256 (.var "dink"))),
+        asInt256 (.unary .neg (asInt256 (.var "dart"))) ] =
       .ok
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
           .address (AccountAddress.ofNat milkClip.toNat),
@@ -6007,10 +6023,10 @@ theorem evalExprs_barkVatGrabArgs {v : DogImmutables} {evm : EVM.State}
     evalExpr_barkStorageVow (v := v) (evm := evm) (locals := locals) hvow
   have hdinkExpr :=
     evalExpr_bark_neg_asInt256_var (v := v) (evm := evm) (locals := locals)
-      (name := "dink") (value := dink) hdink
+      (name := "dink") (value := dink) hdink hdinkBound
   have hdartExpr :=
     evalExpr_bark_neg_asInt256_var (v := v) (evm := evm) (locals := locals)
-      (name := "dart") (value := dart) hdart
+      (name := "dart") (value := dart) hdart hdartBound
   simp [evalExprs?, hilkExpr, hurnExpr, hmilkClipExpr, hvowExpr, hdinkExpr, hdartExpr,
     EvalResult.bind, bind, pure]
 
@@ -6022,8 +6038,8 @@ theorem dogBarkVatGrabNoCodeBlock {v : DogImmutables} {evm : EVM.State}
     ExecBlock (config v) { contract := contract v, locals := locals } evm
       (checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
         [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-          .unary .neg (asInt256 (.var "dink")),
-          .unary .neg (asInt256 (.var "dart")) ] "_grabRet")
+          asInt256 (.unary .neg (asInt256 (.var "dink"))),
+          asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet")
       .reverted := by
   simpa [checkedExternalCallStmts] using
     (checkedExternalCallNoCode
@@ -6031,8 +6047,8 @@ theorem dogBarkVatGrabNoCodeBlock {v : DogImmutables} {evm : EVM.State}
       (receiver := vatExpr v) (name := "grab") (sendVal := 0)
       (args :=
         [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-          .unary .neg (asInt256 (.var "dink")),
-          .unary .neg (asInt256 (.var "dart")) ])
+          asInt256 (.unary .neg (asInt256 (.var "dink"))),
+          asInt256 (.unary .neg (asInt256 (.var "dart"))) ])
       (retVar := "_grabRet") (perm := true) hguard)
 
 theorem dogBarkVatGrabCallFailureBlock {v : DogImmutables} {evm evm' : EVM.State}
@@ -6049,6 +6065,8 @@ theorem dogBarkVatGrabCallFailureBlock {v : DogImmutables} {evm evm' : EVM.State
     (hvow : locals.get? "vow" = none)
     (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
     (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hdinkBound : dink.toNat ≤ dogInt256LimitWord.toNat)
+    (hdartBound : dart.toNat ≤ dogInt256LimitWord.toNat)
     (hcall :
       typedCallViaEVM (config v) evm
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "grab" 0
@@ -6061,8 +6079,8 @@ theorem dogBarkVatGrabCallFailureBlock {v : DogImmutables} {evm evm' : EVM.State
     ExecBlock (config v) { contract := contract v, locals := locals } evm
       (checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
         [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-          .unary .neg (asInt256 (.var "dink")),
-          .unary .neg (asInt256 (.var "dart")) ] "_grabRet")
+          asInt256 (.unary .neg (asInt256 (.var "dink"))),
+          asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet")
       .reverted := by
   have hreceiver :
       evalExpr? (config v) { contract := contract v, locals := locals } evm (vatExpr v) =
@@ -6071,7 +6089,7 @@ theorem dogBarkVatGrabCallFailureBlock {v : DogImmutables} {evm evm' : EVM.State
   have hargs :=
     evalExprs_barkVatGrabArgs (v := v) (evm := evm) (locals := locals) (I := I)
       (milkClip := milkClip) (dink := dink) (dart := dart)
-      hilk hurn hmilkClip hvow hdink hdart
+      hilk hurn hmilkClip hvow hdink hdart hdinkBound hdartBound
   simpa [checkedExternalCallStmts] using
     (checkedExternalCallFailure
       (cfg := config v) (C := contract v) (evm := evm) (evm' := evm')
@@ -6079,8 +6097,8 @@ theorem dogBarkVatGrabCallFailureBlock {v : DogImmutables} {evm evm' : EVM.State
       (name := "grab") (target := AccountAddress.ofNat v.vat.toNat) (sendVal := 0)
       (args :=
         [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-          .unary .neg (asInt256 (.var "dink")),
-          .unary .neg (asInt256 (.var "dart")) ])
+          asInt256 (.unary .neg (asInt256 (.var "dink"))),
+          asInt256 (.unary .neg (asInt256 (.var "dart"))) ])
       (argVals :=
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
           .address (AccountAddress.ofNat milkClip.toNat),
@@ -6103,6 +6121,8 @@ theorem dogBarkVatGrabCallSuccessBlock {v : DogImmutables} {evm evm' : EVM.State
     (hvow : locals.get? "vow" = none)
     (hdink : locals.get? "dink" = some (.int (Int.ofNat dink.toNat)))
     (hdart : locals.get? "dart" = some (.int (Int.ofNat dart.toNat)))
+    (hdinkBound : dink.toNat ≤ dogInt256LimitWord.toNat)
+    (hdartBound : dart.toNat ≤ dogInt256LimitWord.toNat)
     (hcall :
       typedCallViaEVM (config v) evm
         (EVM.address (AccountAddress.ofNat v.vat.toNat)) "grab" 0
@@ -6115,8 +6135,8 @@ theorem dogBarkVatGrabCallSuccessBlock {v : DogImmutables} {evm evm' : EVM.State
     ExecBlock (config v) { contract := contract v, locals := locals } evm
       (checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
         [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-          .unary .neg (asInt256 (.var "dink")),
-          .unary .neg (asInt256 (.var "dart")) ] "_grabRet")
+          asInt256 (.unary .neg (asInt256 (.var "dink"))),
+          asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet")
       (.ok { contract := contract v, locals := barkLocalsGrabRet locals } evm') := by
   have hreceiver :
       evalExpr? (config v) { contract := contract v, locals := locals } evm (vatExpr v) =
@@ -6125,7 +6145,7 @@ theorem dogBarkVatGrabCallSuccessBlock {v : DogImmutables} {evm evm' : EVM.State
   have hargs :=
     evalExprs_barkVatGrabArgs (v := v) (evm := evm) (locals := locals) (I := I)
       (milkClip := milkClip) (dink := dink) (dart := dart)
-      hilk hurn hmilkClip hvow hdink hdart
+      hilk hurn hmilkClip hvow hdink hdart hdinkBound hdartBound
   have hdec : (config v).externalABI.decode? "grab" outGrab = some ([] : List Value) := by
     simp [config, externalABI, decodeVoid?]
   simpa [checkedExternalCallStmts, barkLocalsGrabRet] using
@@ -6135,8 +6155,8 @@ theorem dogBarkVatGrabCallSuccessBlock {v : DogImmutables} {evm evm' : EVM.State
       (name := "grab") (target := AccountAddress.ofNat v.vat.toNat) (sendVal := 0)
       (args :=
         [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-          .unary .neg (asInt256 (.var "dink")),
-          .unary .neg (asInt256 (.var "dart")) ])
+          asInt256 (.unary .neg (asInt256 (.var "dink"))),
+          asInt256 (.unary .neg (asInt256 (.var "dart"))) ])
       (argVals :=
         [.fixedBytes bytes32Width (barkIlkBytes I), .address (barkUrn I),
           .address (AccountAddress.ofNat milkClip.toNat),
@@ -7783,8 +7803,8 @@ theorem dogBarkVatIlksInkSpotOverflowSourceBody {v : DogImmutables}
                 (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
           checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
             [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-              .unary .neg (asInt256 (.var "dink")),
-              .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+              asInt256 (.unary .neg (asInt256 (.var "dink"))),
+              asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" ++
           checkedMulUintInto "due" (.var "dart") (.var "rate") ++
           checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
           checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
@@ -8198,8 +8218,8 @@ theorem dogBarkVatIlksArtRateOverflowSourceBody {v : DogImmutables}
           (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
     checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
       [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-        .unary .neg (asInt256 (.var "dink")),
-        .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+        asInt256 (.unary .neg (asInt256 (.var "dink"))),
+        asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" ++
     checkedMulUintInto "due" (.var "dart") (.var "rate") ++
     checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
     checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
@@ -8412,8 +8432,8 @@ theorem dogBarkVatIlksNotUnsafeSourceBody {v : DogImmutables}
           (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
     checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
       [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-        .unary .neg (asInt256 (.var "dink")),
-        .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+        asInt256 (.unary .neg (asInt256 (.var "dink"))),
+        asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" ++
     checkedMulUintInto "due" (.var "dart") (.var "rate") ++
     checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
     checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
@@ -8709,8 +8729,8 @@ theorem dogBarkVatIlksLiquidationLimitHitSourceBody {v : DogImmutables}
           (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
     checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
       [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-        .unary .neg (asInt256 (.var "dink")),
-        .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+        asInt256 (.unary .neg (asInt256 (.var "dink"))),
+        asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" ++
     checkedMulUintInto "due" (.var "dart") (.var "rate") ++
     checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
     checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
@@ -11729,8 +11749,8 @@ theorem dogBarkVatIlksRoomWadOverflowSourceBody {v : DogImmutables}
           (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
     checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
       [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-        .unary .neg (asInt256 (.var "dink")),
-        .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+        asInt256 (.unary .neg (asInt256 (.var "dink"))),
+        asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" ++
     checkedMulUintInto "due" (.var "dart") (.var "rate") ++
     checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
     checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
@@ -11947,8 +11967,8 @@ theorem dogBarkVatIlksMilkChopZeroSourceBody {v : DogImmutables}
           (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
     checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
       [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-        .unary .neg (asInt256 (.var "dink")),
-        .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+        asInt256 (.unary .neg (asInt256 (.var "dink"))),
+        asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" ++
     checkedMulUintInto "due" (.var "dart") (.var "rate") ++
     checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
     checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
@@ -12068,8 +12088,8 @@ theorem dogBarkVatIlksDartTailSourceBlock {v : DogImmutables}
                 (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
           checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
             [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-              .unary .neg (asInt256 (.var "dink")),
-              .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+              asInt256 (.unary .neg (asInt256 (.var "dink"))),
+              asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" ++
           checkedMulUintInto "due" (.var "dart") (.var "rate") ++
           checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
           checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
@@ -12160,8 +12180,8 @@ theorem dogBarkDartTailFromLeftoverBlock {v : DogImmutables}
                 (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
           checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
             [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-              .unary .neg (asInt256 (.var "dink")),
-              .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+              asInt256 (.unary .neg (asInt256 (.var "dink"))),
+              asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" ++
           checkedMulUintInto "due" (.var "dart") (.var "rate") ++
           checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
           checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
@@ -12197,8 +12217,8 @@ theorem dogBarkDartTailFromLeftoverBlock {v : DogImmutables}
               (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
         checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
           [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-            .unary .neg (asInt256 (.var "dink")),
-            .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+            asInt256 (.unary .neg (asInt256 (.var "dink"))),
+            asInt256 (.unary .neg (asInt256 (.var "dart"))) ] "_grabRet" ++
         checkedMulUintInto "due" (.var "dart") (.var "rate") ++
         checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
         checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
@@ -25726,8 +25746,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                               (.intLit 0)
                                               [ .var "ilk", .var "urn", .var "milkClip",
                                                 vowAddr,
-                                                .unary .neg (asInt256 (.var "dink")),
-                                                .unary .neg (asInt256 (.var "dart")) ]
+                                                asInt256 (.unary .neg (asInt256 (.var "dink"))),
+                                                asInt256 (.unary .neg (asInt256 (.var "dart"))) ]
                                               "_grabRet" ++
                                             checkedMulUintInto "due" (.var "dart")
                                               (.var "rate") ++
@@ -25806,8 +25826,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                               (.intLit 0)
                                               [ .var "ilk", .var "urn", .var "milkClip",
                                                 vowAddr,
-                                                .unary .neg (asInt256 (.var "dink")),
-                                                .unary .neg (asInt256 (.var "dart")) ]
+                                                asInt256 (.unary .neg (asInt256 (.var "dink"))),
+                                                asInt256 (.unary .neg (asInt256 (.var "dart"))) ]
                                               "_grabRet" ++
                                             checkedMulUintInto "due" (.var "dart")
                                               (.var "rate") ++
@@ -25951,8 +25971,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                       checkedExternalCallStmts (vatExpr v) "grab"
                                         (.intLit 0)
                                         [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-                                          .unary .neg (asInt256 (.var "dink")),
-                                          .unary .neg (asInt256 (.var "dart")) ]
+                                          asInt256 (.unary .neg (asInt256 (.var "dink"))),
+                                          asInt256 (.unary .neg (asInt256 (.var "dart"))) ]
                                         "_grabRet" ++
                                       checkedMulUintInto "due" (.var "dart") (.var "rate") ++
                                       checkedExternalCallStmts vowAddr "fess" (.intLit 0)
@@ -26374,7 +26394,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                     (dink := dink) (dart := dart)
                                                     hguardTrue hilkDink hurnDink
                                                     hmilkClipDink hvowDink hdinkGet
-                                                    hdartDinkGet hcallGrabSolm
+                                                    hdartDinkGet hdinkBound hdartBound
+                                                    hcallGrabSolm
                                                 have htailPrefix :=
                                                   execBlock_append hprefixOk hgrabRev
                                                 have htailBody :
@@ -26407,7 +26428,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                     (dink := dink) (dart := dart)
                                                     hguardTrue hilkDink hurnDink
                                                     hmilkClipDink hvowDink hdinkGet
-                                                    hdartDinkGet hcallGrabSolm
+                                                    hdartDinkGet hdinkBound hdartBound
+                                                    hcallGrabSolm
                                                 have _hprefixGrab :=
                                                   execBlock_append _hprefixFull hgrabOk
                                                 have _hprefixGrabTail :=
@@ -29201,8 +29223,8 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                               (.intLit 0)
                                               [ .var "ilk", .var "urn", .var "milkClip",
                                                 vowAddr,
-                                                .unary .neg (asInt256 (.var "dink")),
-                                                .unary .neg (asInt256 (.var "dart")) ]
+                                                asInt256 (.unary .neg (asInt256 (.var "dink"))),
+                                                asInt256 (.unary .neg (asInt256 (.var "dart"))) ]
                                               "_grabRet" ++
                                             checkedMulUintInto "due" (.var "dart")
                                               (.var "rate") ++

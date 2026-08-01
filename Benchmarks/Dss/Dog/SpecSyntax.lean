@@ -125,8 +125,8 @@ def contractSyntax (v : DogImmutables) : ContractDecl := solidity% contract Dog 
     ${[Stmt.require (.binary .gt (.extCodeSize (vatExpr v)) (.intLit 0)),
        Stmt.externalCall (vatExpr v) "grab" (.intLit 0)
          [.var "ilk", .var "urn", .var "milkClip", vowAddr,
-           .unary .neg (asInt256 (.var "dink")),
-           .unary .neg (asInt256 (.var "dart"))] "_grabRet"]}
+           asInt256 (.unary .neg (asInt256 (.var "dink"))),
+           asInt256 (.unary .neg (asInt256 (.var "dart")))] "_grabRet"]}
     uint256 due = (dart * rate) as uint256;
     require(rate == 0 || due / rate == dart);
     require(vow.code.length > 0);
