@@ -53,30 +53,12 @@ theorem endReachCatBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : endSelWord I = ⟨0xe4881813⟩ :=
     endSelWord_eq_of_beq I hsz 0xe4 0x88 0x18 0x13 ⟨0xe4881813⟩
       (by native_decide) (by simpa [selIs, endCatConcreteSelector, selectorBytes] using hsel)
-  obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  obtain ⟨_, _, hfirst⟩ :=
+    endReachGroup65FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endCatHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endCatHighSplitPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
-  have h54 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endCatHigh2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
-    simpa [endCatHighSplitPc, endCatHigh2SplitPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h43 endCatHighSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
-  have h65 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endCatFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
-    simpa [endCatHigh2SplitPc, endCatFirstArmPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h54 endCatHigh2SplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endCatFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
@@ -87,7 +69,7 @@ theorem endReachCatBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
     native_decide
-  exact RD.dispatchTo endCatEntryPc 0 h65
+  exact RD.dispatchTo endCatEntryPc 0 hfirst
     (fun j hj => endCatArmsWellFormed j hj)
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 

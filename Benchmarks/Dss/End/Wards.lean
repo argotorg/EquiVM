@@ -74,33 +74,12 @@ theorem endReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : endSelWord I = ⟨0xbf353dbb⟩ :=
     endSelWord_eq_of_beq I hsz 0xbf 0x35 0x3d 0xbb ⟨0xbf353dbb⟩
       (by native_decide) (by simpa [selIs, endWardsConcreteSelector, selectorBytes] using hsel)
-  obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  obtain ⟨_, _, hfirst⟩ :=
+    endReachGroup174FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h43 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endWardsHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endWardsHighSplitPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
-  have h162 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endWardsHighJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
-    simpa [endWardsHighSplitPc, endWardsHighJumpdestPc] using
-      RD.selectorSplitTakenAuto h43 endWardsHighSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
-  have h163 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endWardsMidSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
-    simpa [endWardsMidSplitPc] using h162.jumpdest (by native_decide) (by simp)
-  have h174 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endWardsFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
-    simpa [endWardsMidSplitPc, endWardsFirstArmPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h163 endWardsMidSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endWardsFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
@@ -111,7 +90,7 @@ theorem endReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
     native_decide
-  exact RD.dispatchTo endWardsEntryPc 0 h174
+  exact RD.dispatchTo endWardsEntryPc 0 hfirst
     (fun j hj => endWardsArmsWellFormed j hj)
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 

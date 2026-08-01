@@ -47,33 +47,12 @@ theorem endReachCureBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : endSelWord I = ⟨0x840782ed⟩ :=
     endSelWord_eq_of_beq I hsz 0x84 0x07 0x82 0xed ⟨0x840782ed⟩
       (by native_decide) (by simpa [selIs, endCureConcreteSelector, selectorBytes] using hsel)
-  obtain ⟨k32, C32, h32⟩ :=
-    endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
+  obtain ⟨_, _, hfirst⟩ :=
+    endReachGroup294FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-  have h271 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endLow1JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
-    simpa [endRootSplitPc, endLow1JumpdestPc] using
-      RD.selectorSplitTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
-  have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [endLow1SplitPc] using h271.jumpdest (by native_decide) (by simp)
-  have h283 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endCureHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
-    simpa [endLow1SplitPc, endCureHighSplitPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h272 endLow1SplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
-  have h294 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
-      endCureFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
-      ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) := by
-    simpa [endCureHighSplitPc, endCureFirstArmPc, selArmNextPc, armTgtWidth,
-      selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
-      RD.selectorSplitNotTakenAuto h283 endCureHighSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
+      (by rw [hword]; native_decide)
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endCureFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
@@ -84,7 +63,7 @@ theorem endReachCureBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
     native_decide
-  exact RD.dispatchTo endCureEntryPc 3 h294
+  exact RD.dispatchTo endCureEntryPc 3 hfirst
     (fun j hj => endCureArmsWellFormed j (le_trans hj (by omega)))
     heq0 htake (by jump_dest) (by native_decide) (by simp)
 
