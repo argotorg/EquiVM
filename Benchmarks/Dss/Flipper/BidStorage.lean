@@ -46,7 +46,7 @@ theorem flipperStorageLocLoad_uint48_offset20 (evm : EVM.State) (slot : UInt256)
   have h := storageLocLoad_uint_offset (evm := evm) (slot := slot)
     (offset := ⟨20, by decide⟩) (size := (⟨6, by decide⟩ : Fin 33))
     (width := (⟨48, by decide⟩ : ABI.BitWidth)) (hbound := by decide)
-    (hoff := by decide) (hsize := by decide)
+    (hwidth := by decide) (hoff := by decide) (hsize := by decide)
   have hmask : UInt256.ofNat (256 ^ (⟨6, by decide⟩ : Fin 33).val - 1) =
       uint48Mask := by
     native_decide
@@ -63,7 +63,7 @@ theorem flipperStorageLocLoad_uint48_offset26 (evm : EVM.State) (slot : UInt256)
   have h := storageLocLoad_uint_offset (evm := evm) (slot := slot)
     (offset := ⟨26, by decide⟩) (size := (⟨6, by decide⟩ : Fin 33))
     (width := (⟨48, by decide⟩ : ABI.BitWidth)) (hbound := by decide)
-    (hoff := by decide) (hsize := by decide)
+    (hwidth := by decide) (hoff := by decide) (hsize := by decide)
   have hmask : UInt256.ofNat (256 ^ (⟨6, by decide⟩ : Fin 33).val - 1) =
       uint48Mask := by
     native_decide

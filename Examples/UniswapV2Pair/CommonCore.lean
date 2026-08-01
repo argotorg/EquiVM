@@ -233,6 +233,7 @@ theorem uniswapStorageLocLoad_uint112_offset0 (evm : EVM.State) (slot : UInt256)
   rw [← show UInt256.ofNat (2 ^ (8 * 14) - 1) = reserve112Mask by native_decide]
   simpa [uint112Loc0, uint112Int] using
     storageLocLoad_uint_offset0 evm slot (14 : Fin 33) ⟨112, by decide⟩ (by decide)
+      (by decide)
 
 theorem uniswapStorageLocLoad_uint112_offset14 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint112Loc14 slot) =
@@ -243,7 +244,7 @@ theorem uniswapStorageLocLoad_uint112_offset14 (evm : EVM.State) (slot : UInt256
   rw [← show UInt256.ofNat (256 ^ 14 - 1) = reserve112Mask by native_decide]
   simpa [uint112Loc14, uint112Int] using
     storageLocLoad_uint_offset evm slot (14 : Fin 32) (14 : Fin 33) ⟨112, by decide⟩
-      (by decide) (by decide)
+      (by decide) (by decide) (by decide)
 
 theorem uniswapStorageLocLoad_uint32_offset28 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint32Loc28 slot) =
@@ -254,7 +255,7 @@ theorem uniswapStorageLocLoad_uint32_offset28 (evm : EVM.State) (slot : UInt256)
   rw [← show UInt256.ofNat (256 ^ 4 - 1) = reserve32Mask by native_decide]
   simpa [uint32Loc28, uint32Int] using
     storageLocLoad_uint_offset evm slot (28 : Fin 32) (4 : Fin 33) ⟨32, by decide⟩
-      (by decide) (by decide)
+      (by decide) (by decide) (by decide)
 
 abbrev uniswapReserve0Word (evm : EVM.State) : UInt256 :=
   UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩) reserve112Mask

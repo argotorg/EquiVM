@@ -1017,7 +1017,7 @@ theorem clipperStorageLocLoad_uint64 (evm : EVM.State) (slot : UInt256) :
   simpa [uint64Loc, uint64Int] using
     storageLocLoad_uint_offset0 (evm := evm) (slot := slot)
       (size := ⟨8, by decide⟩) (width := ⟨64, by decide⟩)
-      (hbound := by decide) (by decide)
+      (hbound := by decide) (by decide) (by decide)
 
 theorem clipperStorageLocLoad_uint192 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint192Loc slot ⟨8, by decide⟩ (by decide)) =
@@ -1027,7 +1027,7 @@ theorem clipperStorageLocLoad_uint192 (evm : EVM.State) (slot : UInt256) :
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨192⟩) ⟨1⟩)).toNat) := by
   have h := storageLocLoad_uint_offset (evm := evm) (slot := slot)
     (offset := ⟨8, by decide⟩) (size := ⟨24, by decide⟩)
-    (width := ⟨192, by decide⟩) (hbound := by decide) (by decide) (by decide)
+    (width := ⟨192, by decide⟩) (hbound := by decide) (by decide) (by decide) (by decide)
   simpa [uint192Loc, uint192Int] using h
 
 -- LIBRARY CANDIDATE: ABI-encoding any unsigned integer width whose value is in range.

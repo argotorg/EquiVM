@@ -157,10 +157,7 @@ theorem dogDecodeABIValues_bytes32_bytes32_uint256_legacy_ok {bytes : List UInt8
     staticABIEncodedSize?, decodeABIValue?, readBytes?, hlen0]
   rw [if_pos hge32]
   simp [readWord?, readBytes?, decodeABIWord?, hlen64]
-  rw [Int.emod_eq_of_lt]
-  · simp [UInt256.toNat]
-  · exact Int.natCast_nonneg _
-  · exact_mod_cast (ABI.bytesToWord ((bytes.drop 64).take 32)).val.isLt
+  exact normalizeInt_uint256_word (ABI.bytesToWord ((bytes.drop 64).take 32))
 
 theorem dogDecodeABIValues_bytes32_bytes32_uint256_legacy_none_short {bytes : List UInt8}
     (hshort : bytes.length < 96) :

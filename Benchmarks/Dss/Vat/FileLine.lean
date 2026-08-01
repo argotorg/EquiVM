@@ -313,10 +313,7 @@ theorem decodeABIValues_bytes32_uint256_legacy_ok {bytes : List UInt8}
   simp [decodeABIValues?, bytes32, uint256, bytes32Width, uint256Int, isDynamicABIType,
     staticABIEncodedSize?, decodeABIValue?, readBytes?, hlen0]
   simp [readWord?, readBytes?, decodeABIWord?, hlen32]
-  rw [Int.emod_eq_of_lt]
-  · simp [UInt256.toNat]
-  · exact Int.natCast_nonneg _
-  · exact_mod_cast (ABI.bytesToWord ((bytes.drop 32).take 32)).val.isLt
+  exact normalizeInt_uint256_word (ABI.bytesToWord ((bytes.drop 32).take 32))
 
 theorem decodeABIValues_bytes32_uint256_legacy_none_short {bytes : List UInt8}
     (hshort : bytes.length < 64) :

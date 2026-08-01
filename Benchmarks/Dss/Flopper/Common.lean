@@ -135,7 +135,7 @@ theorem flopperStorageLocLoad_uint48_offset0 (evm : EVM.State) (slot : UInt256) 
         flopperUint48Mask).toNat) := by
   simpa [uint48Loc, flopperUint48Mask] using
     storageLocLoad_uint_offset0 evm slot ⟨6, by decide⟩ ⟨48, by decide⟩
-      (hbound := by decide) (by decide)
+      (hbound := by decide) (by decide) (by decide)
 
 theorem flopperStorageLocLoad_uint48_offset6 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint48Loc slot ⟨6, by decide⟩ (by decide)) =
@@ -145,7 +145,7 @@ theorem flopperStorageLocLoad_uint48_offset6 (evm : EVM.State) (slot : UInt256) 
         flopperUint48Mask).toNat) := by
   simpa [uint48Loc, flopperUint48Mask] using
     storageLocLoad_uint_offset evm slot ⟨6, by decide⟩ ⟨6, by decide⟩ ⟨48, by decide⟩
-      (hbound := by decide) (by decide) (by decide)
+      (hbound := by decide) (by decide) (by decide) (by decide)
 
 theorem flopperAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -234,7 +234,7 @@ theorem flopperStorageLocLoad_uint48_offset20 (evm : EVM.State) (slot : UInt256)
         flopperUint48Mask).toNat) := by
   simpa [uint48Loc, flopperUint48Mask] using
     storageLocLoad_uint_offset evm slot ⟨20, by decide⟩ ⟨6, by decide⟩ ⟨48, by decide⟩
-      (hbound := by decide) (by decide) (by decide)
+      (hbound := by decide) (by decide) (by decide) (by decide)
 
 theorem flopperStorageLocLoad_uint48_offset26 (evm : EVM.State) (slot : UInt256) :
     storageLocLoad evm (uint48Loc slot ⟨26, by decide⟩ (by decide)) =
@@ -244,7 +244,7 @@ theorem flopperStorageLocLoad_uint48_offset26 (evm : EVM.State) (slot : UInt256)
         flopperUint48Mask).toNat) := by
   simpa [uint48Loc, flopperUint48Mask] using
     storageLocLoad_uint_offset evm slot ⟨26, by decide⟩ ⟨6, by decide⟩ ⟨48, by decide⟩
-      (hbound := by decide) (by decide) (by decide)
+      (hbound := by decide) (by decide) (by decide) (by decide)
 
 theorem flopperAddressGetterBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

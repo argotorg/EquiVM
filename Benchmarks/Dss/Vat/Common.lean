@@ -92,25 +92,9 @@ theorem vatDecodeScalarWordWithMode_legacyInt256_ok {bytes : List UInt8} {start 
             Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat -
               Int.ofNat EVM.wordModulus),
           start + 32) := by
-  have hltWord :
-      ↑(ABI.bytesToWord ((bytes.drop start).take 32)).val < EVM.wordModulus := by
-    change (ABI.bytesToWord ((bytes.drop start).take 32)).val.val < EVM.twoPow 256
-    exact (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt
-  have hmodVal :
-      (↑(ABI.bytesToWord ((bytes.drop start).take 32)).val) % EVM.wordModulus =
-        ↑(ABI.bytesToWord ((bytes.drop start).take 32)).val :=
-    Nat.mod_eq_of_lt hltWord
-  have hmodInt :
-      ((↑(↑(ABI.bytesToWord ((bytes.drop start).take 32)).val) : Int) %
-          (↑EVM.wordModulus : Int)) =
-        (↑(↑(ABI.bytesToWord ((bytes.drop start).take 32)).val) : Int) := by
-    exact Int.emod_eq_of_lt (Int.natCast_nonneg _) (by exact_mod_cast hltWord)
   simp [decodeScalarWordWithMode?, readWord?, readBytes?, decodeABIWord?, int256,
-    int256Int, hlen, UInt256.toNat,
-    show EVM.twoPow (256 - 1) = EVM.twoPow 255 by rfl,
-    show EVM.twoPow 256 = EVM.wordModulus by rfl]
-  rw [hmodVal]
-  rw [hmodInt]
+    int256Int, hlen]
+  exact normalizeInt_sint256_word (ABI.bytesToWord ((bytes.drop start).take 32))
 
 theorem vatDecodeScalarWords_address_address_address_int256_int256_legacy_ok
     {bytes : List UInt8}

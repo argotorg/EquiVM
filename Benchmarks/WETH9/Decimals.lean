@@ -72,7 +72,7 @@ theorem weth9DecimalsBodyReturns (evm : EVM.State)
         (hloc := by rfl)
         (hload := by
           simp only [uint8Loc, uint8Int]
-          rw [storageLocLoad_uint_offset0 evm ⟨2⟩ 1 ⟨8, by decide⟩ (by decide)]
+          rw [storageLocLoad_uint_offset0 evm ⟨2⟩ 1 ⟨8, by decide⟩ (by decide) (by decide)]
           rfl)])
 
 /-! ## EVM trace -/
