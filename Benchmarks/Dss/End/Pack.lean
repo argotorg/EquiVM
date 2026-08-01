@@ -1515,6 +1515,15 @@ theorem evalExpr_endPack_vat {locals : Store} (evm : EVM.State)
     (hloc := by rfl)
     (hload := endStorageLocLoad_address_offset0 evm ⟨1⟩)
 
+theorem evalExpr_endPack_vat_addr {locals : Store} (evm : EVM.State)
+    (I : ExecutionEnv) (hbase : locals.get? "vat" = none)
+    (howner : evm.executionEnv.codeOwner = I.codeOwner) :
+    evalExpr? config { contract := contract, locals := locals } evm (.storage vatRef) =
+      .ok (.address (endPackVatAddr evm.accountMap I)) := by
+  simpa [howner, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+    endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
+    evalExpr_endPack_vat (locals := locals) evm hbase
+
 theorem evalStorageRef_endPack_vow {locals : Store} (_hbase : locals.get? "vow" = none)
     (evm : EVM.State) :
     evalStorageRef config { contract := contract, locals := locals } evm
@@ -1539,6 +1548,15 @@ theorem evalExpr_endPack_vow {locals : Store} (evm : EVM.State)
     (hty := by simp [storageTypeAt?, contract, storageDecls, addrSt])
     (hloc := by rfl)
     (hload := endStorageLocLoad_address_offset0 evm ⟨4⟩)
+
+theorem evalExpr_endPack_vow_addr {locals : Store} (evm : EVM.State)
+    (I : ExecutionEnv) (hbase : locals.get? "vow" = none)
+    (howner : evm.executionEnv.codeOwner = I.codeOwner) :
+    evalExpr? config { contract := contract, locals := locals } evm vowAddr =
+      .ok (.address (endPackVowAddr evm.accountMap I)) := by
+  simpa [vowAddr, howner, Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+    endPackVowAddr, endPackVowWord, endSlotWord, solcSlotWord] using
+    evalExpr_endPack_vow (locals := locals) evm hbase
 
 theorem evalStorageRef_endPack_bag {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
     (_hbase : locals.get? "bag" = none)

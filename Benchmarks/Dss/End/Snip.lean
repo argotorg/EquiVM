@@ -20,7 +20,7 @@ abbrev endSnipIlkBytes (I : ExecutionEnv) : List UInt8 :=
 
 abbrev endSnipIdWord (I : ExecutionEnv) : UInt256 := calldataWord I.calldata 36
 
-abbrev endSnipStore (I : ExecutionEnv) : Store :=
+def endSnipStore (I : ExecutionEnv) : Store :=
   ((∅ : Store).insert "ilk" (.fixedBytes bytes32Width (endSnipIlkBytes I))).insert
     "id" (.int (Int.ofNat (endSnipIdWord I).toNat))
 
@@ -59,14 +59,14 @@ abbrev endSnipDogIlkDirtWord (out : ByteArray) : UInt256 :=
 abbrev endSnipDogIlkClipAddr (out : ByteArray) : AccountAddress :=
   AccountAddress.ofNat (endSnipDogIlkClipWord out).toNat
 
-abbrev endSnipStoreDogIlk (I : ExecutionEnv) (out : ByteArray) : Store :=
+def endSnipStoreDogIlk (I : ExecutionEnv) (out : ByteArray) : Store :=
   (endSnipStore I).insert "dogIlk"
     (.tuple [.address (endSnipDogIlkClipAddr out),
       .int (Int.ofNat (endSnipDogIlkChopWord out).toNat),
       .int (Int.ofNat (endSnipDogIlkHoleWord out).toNat),
       .int (Int.ofNat (endSnipDogIlkDirtWord out).toNat)])
 
-abbrev endSnipStoreClip (I : ExecutionEnv) (out : ByteArray) : Store :=
+def endSnipStoreClip (I : ExecutionEnv) (out : ByteArray) : Store :=
   (endSnipStoreDogIlk I out).insert "clip" (.address (endSnipDogIlkClipAddr out))
 
 noncomputable def endSnipDogIlksBaseMem (I : ExecutionEnv) : ByteArray :=
@@ -82,7 +82,7 @@ noncomputable def endSnipDogIlksPostCallMem (I : ExecutionEnv) (out : ByteArray)
   out.write 0 (endSnipDogIlksCalldataMem I) endFlowVatIlksOutPtr.toNat
     (min endSnipDogIlksOutSize.toNat out.size)
 
-abbrev endSnipStoreVatIlk (I : ExecutionEnv) (dogOut vatOut : ByteArray) : Store :=
+def endSnipStoreVatIlk (I : ExecutionEnv) (dogOut vatOut : ByteArray) : Store :=
   (endSnipStoreClip I dogOut).insert "vatIlk"
     (.tuple [.int (Int.ofNat (endFlowVatIlkArtWord vatOut).toNat),
       .int (Int.ofNat (endFlowVatIlkRateWord vatOut).toNat),
@@ -90,7 +90,7 @@ abbrev endSnipStoreVatIlk (I : ExecutionEnv) (dogOut vatOut : ByteArray) : Store
       .int (Int.ofNat (endFlowVatIlkLineWord vatOut).toNat),
       .int (Int.ofNat (endFlowVatIlkDustWord vatOut).toNat)])
 
-abbrev endSnipStoreRate (I : ExecutionEnv) (dogOut vatOut : ByteArray) : Store :=
+def endSnipStoreRate (I : ExecutionEnv) (dogOut vatOut : ByteArray) : Store :=
   (endSnipStoreVatIlk I dogOut vatOut).insert "rate"
     (.int (Int.ofNat (endFlowVatIlkRateWord vatOut).toNat))
 
@@ -152,7 +152,7 @@ abbrev endSnipSaleTicWord (saleOut : ByteArray) : UInt256 :=
 abbrev endSnipSaleTopWord (saleOut : ByteArray) : UInt256 :=
   UInt256.ofNat (fromByteArrayBigEndian (saleOut.extract 160 192))
 
-abbrev endSnipStoreClipSale (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
+def endSnipStoreClipSale (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
     Store :=
   (endSnipStoreRate I dogOut vatOut).insert "clipSale"
     (.tuple [.int (Int.ofNat (endSnipSalePosWord saleOut).toNat),
@@ -162,15 +162,15 @@ abbrev endSnipStoreClipSale (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArra
       .int (Int.ofNat ((endSnipSaleTicWord saleOut).toNat % EVM.twoPow 96)),
       .int (Int.ofNat (endSnipSaleTopWord saleOut).toNat)])
 
-abbrev endSnipStoreTab (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) : Store :=
+def endSnipStoreTab (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) : Store :=
   (endSnipStoreClipSale I dogOut vatOut saleOut).insert "tab"
     (.int (Int.ofNat (endSnipSaleTabWord saleOut).toNat))
 
-abbrev endSnipStoreLot (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) : Store :=
+def endSnipStoreLot (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) : Store :=
   (endSnipStoreTab I dogOut vatOut saleOut).insert "lot"
     (.int (Int.ofNat (endSnipSaleLotWord saleOut).toNat))
 
-abbrev endSnipStoreUsr (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) : Store :=
+def endSnipStoreUsr (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) : Store :=
   (endSnipStoreLot I dogOut vatOut saleOut).insert "usr"
     (.address (endSnipSaleUsrAddr saleOut))
 
@@ -190,18 +190,18 @@ abbrev endSnipYankInSize : UInt256 := ⟨36⟩
 abbrev endSnipYankOutSize : UInt256 := ⟨0⟩
 abbrev endSnipYankEndPtr : UInt256 := ⟨164⟩
 
-abbrev endSnipStoreSuck (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
+def endSnipStoreSuck (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
     Store :=
   (endSnipStoreUsr I dogOut vatOut saleOut).insert "_suck" (collapseReturns [])
 
-abbrev endSnipStoreYank (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
+def endSnipStoreYank (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
     Store :=
   (endSnipStoreSuck I dogOut vatOut saleOut).insert "_yank" (collapseReturns [])
 
 abbrev endSnipArtWord (vatOut saleOut : ByteArray) : UInt256 :=
   UInt256.div (endSnipSaleTabWord saleOut) (endFlowVatIlkRateWord vatOut)
 
-abbrev endSnipStoreArt (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
+def endSnipStoreArt (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
     Store :=
   (endSnipStoreYank I dogOut vatOut saleOut).insert "art"
     (.int (Int.ofNat (endSnipArtWord vatOut saleOut).toNat))
@@ -215,12 +215,138 @@ abbrev endSnipArtNewWord (σ : AccountMap) (I : ExecutionEnv)
     (vatOut saleOut : ByteArray) : UInt256 :=
   endSnipArtOldWord σ I + endSnipArtWord vatOut saleOut
 
-abbrev endSnipStoreArtNew (σ : AccountMap) (I : ExecutionEnv)
+def endSnipStoreArtNew (σ : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : Store :=
   (endSnipStoreArt I dogOut vatOut saleOut).insert "ArtNew"
     (.int (Int.ofNat (endSnipArtNewWord σ I vatOut saleOut).toNat))
 
-abbrev endSnipPostArtState (evm : EVM.State) (I : ExecutionEnv)
+theorem endSnipStoreDogIlk_get_ne (I : ExecutionEnv) (dogOut : ByteArray)
+    {name : Ident} (hne : ("dogIlk" == name) = false) :
+    (endSnipStoreDogIlk I dogOut).get? name = (endSnipStore I).get? name := by
+  rw [endSnipStoreDogIlk, store_get_ne _ _ hne]
+
+theorem endSnipStoreClip_get_ne (I : ExecutionEnv) (dogOut : ByteArray)
+    {name : Ident} (hne : ("clip" == name) = false) :
+    (endSnipStoreClip I dogOut).get? name = (endSnipStoreDogIlk I dogOut).get? name := by
+  rw [endSnipStoreClip, store_get_ne _ _ hne]
+
+theorem endSnipStoreVatIlk_get_ne (I : ExecutionEnv) (dogOut vatOut : ByteArray)
+    {name : Ident} (hne : ("vatIlk" == name) = false) :
+    (endSnipStoreVatIlk I dogOut vatOut).get? name =
+      (endSnipStoreClip I dogOut).get? name := by
+  rw [endSnipStoreVatIlk, store_get_ne _ _ hne]
+
+theorem endSnipStoreRate_get_ne (I : ExecutionEnv) (dogOut vatOut : ByteArray)
+    {name : Ident} (hne : ("rate" == name) = false) :
+    (endSnipStoreRate I dogOut vatOut).get? name =
+      (endSnipStoreVatIlk I dogOut vatOut).get? name := by
+  rw [endSnipStoreRate, store_get_ne _ _ hne]
+
+theorem endSnipStoreClipSale_get_ne (I : ExecutionEnv)
+    (dogOut vatOut saleOut : ByteArray) {name : Ident}
+    (hne : ("clipSale" == name) = false) :
+    (endSnipStoreClipSale I dogOut vatOut saleOut).get? name =
+      (endSnipStoreRate I dogOut vatOut).get? name := by
+  rw [endSnipStoreClipSale, store_get_ne _ _ hne]
+
+theorem endSnipStoreTab_get_ne (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray)
+    {name : Ident} (hne : ("tab" == name) = false) :
+    (endSnipStoreTab I dogOut vatOut saleOut).get? name =
+      (endSnipStoreClipSale I dogOut vatOut saleOut).get? name := by
+  rw [endSnipStoreTab, store_get_ne _ _ hne]
+
+theorem endSnipStoreLot_get_ne (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray)
+    {name : Ident} (hne : ("lot" == name) = false) :
+    (endSnipStoreLot I dogOut vatOut saleOut).get? name =
+      (endSnipStoreTab I dogOut vatOut saleOut).get? name := by
+  rw [endSnipStoreLot, store_get_ne _ _ hne]
+
+theorem endSnipStoreUsr_get_ne (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray)
+    {name : Ident} (hne : ("usr" == name) = false) :
+    (endSnipStoreUsr I dogOut vatOut saleOut).get? name =
+      (endSnipStoreLot I dogOut vatOut saleOut).get? name := by
+  rw [endSnipStoreUsr, store_get_ne _ _ hne]
+
+theorem endSnipStoreSuck_get_ne (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray)
+    {name : Ident} (hne : ("_suck" == name) = false) :
+    (endSnipStoreSuck I dogOut vatOut saleOut).get? name =
+      (endSnipStoreUsr I dogOut vatOut saleOut).get? name := by
+  rw [endSnipStoreSuck, store_get_ne _ _ hne]
+
+theorem endSnipStoreYank_get_ne (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray)
+    {name : Ident} (hne : ("_yank" == name) = false) :
+    (endSnipStoreYank I dogOut vatOut saleOut).get? name =
+      (endSnipStoreSuck I dogOut vatOut saleOut).get? name := by
+  rw [endSnipStoreYank, store_get_ne _ _ hne]
+
+theorem endSnipStoreArt_get_ne (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray)
+    {name : Ident} (hne : ("art" == name) = false) :
+    (endSnipStoreArt I dogOut vatOut saleOut).get? name =
+      (endSnipStoreYank I dogOut vatOut saleOut).get? name := by
+  rw [endSnipStoreArt, store_get_ne _ _ hne]
+
+theorem endSnipStoreArtNew_get_ne (σ : AccountMap) (I : ExecutionEnv)
+    (dogOut vatOut saleOut : ByteArray) {name : Ident}
+    (hne : ("ArtNew" == name) = false) :
+    (endSnipStoreArtNew σ I dogOut vatOut saleOut).get? name =
+      (endSnipStoreArt I dogOut vatOut saleOut).get? name := by
+  rw [endSnipStoreArtNew, store_get_ne _ _ hne]
+
+theorem endSnipStoreRate_get_base (I : ExecutionEnv) (dogOut vatOut : ByteArray)
+    {name : Ident}
+    (hdogIlk : ("dogIlk" == name) = false) (hclip : ("clip" == name) = false)
+    (hvatIlk : ("vatIlk" == name) = false) (hrate : ("rate" == name) = false) :
+    (endSnipStoreRate I dogOut vatOut).get? name = (endSnipStore I).get? name := by
+  rw [endSnipStoreRate_get_ne _ _ _ hrate, endSnipStoreVatIlk_get_ne _ _ _ hvatIlk,
+    endSnipStoreClip_get_ne _ _ hclip, endSnipStoreDogIlk_get_ne _ _ hdogIlk]
+
+theorem endSnipStoreUsr_get_rate (I : ExecutionEnv)
+    (dogOut vatOut saleOut : ByteArray) {name : Ident}
+    (hclipSale : ("clipSale" == name) = false) (htab : ("tab" == name) = false)
+    (hlot : ("lot" == name) = false) (husr : ("usr" == name) = false) :
+    (endSnipStoreUsr I dogOut vatOut saleOut).get? name =
+      (endSnipStoreRate I dogOut vatOut).get? name := by
+  rw [endSnipStoreUsr_get_ne _ _ _ _ husr, endSnipStoreLot_get_ne _ _ _ _ hlot,
+    endSnipStoreTab_get_ne _ _ _ _ htab,
+    endSnipStoreClipSale_get_ne _ _ _ _ hclipSale]
+
+theorem endSnipStoreArtNew_get_usr (σ : AccountMap) (I : ExecutionEnv)
+    (dogOut vatOut saleOut : ByteArray) {name : Ident}
+    (hsuck : ("_suck" == name) = false) (hyank : ("_yank" == name) = false)
+    (hart : ("art" == name) = false) (hartNew : ("ArtNew" == name) = false) :
+    (endSnipStoreArtNew σ I dogOut vatOut saleOut).get? name =
+      (endSnipStoreUsr I dogOut vatOut saleOut).get? name := by
+  rw [endSnipStoreArtNew_get_ne _ _ _ _ _ hartNew,
+    endSnipStoreArt_get_ne _ _ _ _ hart, endSnipStoreYank_get_ne _ _ _ _ hyank,
+    endSnipStoreSuck_get_ne _ _ _ _ hsuck]
+
+theorem endSnipStoreArtNew_get_vat_none (σ : AccountMap) (I : ExecutionEnv)
+    (dogOut vatOut saleOut : ByteArray) :
+    (endSnipStoreArtNew σ I dogOut vatOut saleOut).get? "vat" = none := by
+  rw [endSnipStoreArtNew_get_usr _ _ _ _ _ (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide),
+    endSnipStoreUsr_get_rate _ _ _ _ (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide),
+    endSnipStoreRate_get_base _ _ _ (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide),
+    endSnipStore, store_get_ne _ _ (by native_decide),
+    store_get_ne _ _ (by native_decide)]
+  simp
+
+theorem endSnipStoreArtNew_get_vow_none (σ : AccountMap) (I : ExecutionEnv)
+    (dogOut vatOut saleOut : ByteArray) :
+    (endSnipStoreArtNew σ I dogOut vatOut saleOut).get? "vow" = none := by
+  rw [endSnipStoreArtNew_get_usr _ _ _ _ _ (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide),
+    endSnipStoreUsr_get_rate _ _ _ _ (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide),
+    endSnipStoreRate_get_base _ _ _ (by native_decide) (by native_decide)
+      (by native_decide) (by native_decide),
+    endSnipStore, store_get_ne _ _ (by native_decide),
+    store_get_ne _ _ (by native_decide)]
+  simp
+
+def endSnipPostArtState (evm : EVM.State) (I : ExecutionEnv)
     (artNew : UInt256) : EVM.State :=
   Solm.EVM.storageStore evm evm.executionEnv.codeOwner (endSnipArtSlot I) artNew
 
@@ -250,7 +376,7 @@ theorem endSnip_storageStore_σ₀ (evm : EVM.State) (addr : AccountAddress)
   cases evm.accountMap.find? addr <;> simp [Option.option, State.setAccount,
     Account.updateStorage]
 
-abbrev endSnipStoreGrab (σ : AccountMap) (I : ExecutionEnv)
+def endSnipStoreGrab (σ : AccountMap) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) : Store :=
   (endSnipStoreArtNew σ I dogOut vatOut saleOut).insert "_grab" (collapseReturns [])
 
@@ -1398,7 +1524,7 @@ theorem decodeScalarWordWithMode_legacy_uint96_ok {bytes : List UInt8} {start : 
   simp only [uint96, uint96Int, decodeScalarWordWithMode?, readWord?, readBytes?, bind,
     Option.bind]
   rw [if_pos hlen]
-  simp [decodeABIWord?, UInt256.toNat]
+  simp [decodeABIWord?, UInt256.toNat, normalizeInt]
 
 theorem endSnipSalesDecode_ok {out : ByteArray} (hlo : 192 ≤ out.size) :
     config.externalABI.decode? "sales" out =
@@ -6068,7 +6194,7 @@ theorem endSnipCheckedDogIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
       evalExpr? config { contract := contract, locals := endSnipStore I } evm0
         (.binary .gt (.extCodeSize (.storage dogRef)) (.intLit 0)) = .ok (.bool false) :=
     endEvalExpr_extCodeGuard_false hreceiver hcodeZero
-  simpa [checkedExternalCallStmts] using
+  simpa only [checkedExternalCallStmts] using
     checkedExternalCallNoCode
       (cfg := config) (C := contract) (evm := evm0)
       (locals := endSnipStore I) (receiver := .storage dogRef)
@@ -6113,7 +6239,7 @@ theorem endSnipCheckedDogIlksFailure {cA gh bl σ σ₀ A I} {g : UInt256}
       evalExprs? config { contract := contract, locals := endSnipStore I } evm0 [.var "ilk"] =
         .ok [.fixedBytes bytes32Width (endBytes32ArgBytes I)] := by
     simp [evalExprs?, hilk, endSnipIlkBytes, endBytes32ArgBytes, EvalResult.bind, bind, pure]
-  simpa [checkedExternalCallStmts] using
+  simpa only [checkedExternalCallStmts] using
     checkedExternalCallFailure
       (cfg := config) (C := contract) (evm := evm0) (evm' := evmDog)
       (locals := endSnipStore I) (receiver := .storage dogRef)
@@ -7167,9 +7293,17 @@ theorem endSnipVatReceiver_afterUsr {σ I dogOut vatOut saleOut evm}
     evalExpr? config { contract := contract, locals := endSnipStoreUsr I dogOut vatOut saleOut }
       evm (.storage vatRef) = .ok (.address (endPackVatAddr σ I)) := by
   have hbase : (endSnipStoreUsr I dogOut vatOut saleOut).get? "vat" = none := by
-    simp [endSnipStoreUsr, endSnipStoreLot, endSnipStoreTab, endSnipStoreClipSale,
-      endSnipStoreRate, endSnipStoreVatIlk, endSnipStoreClip, endSnipStoreDogIlk,
-      endSnipStore]
+    rw [endSnipStoreUsr, store_get_ne _ _ (by native_decide),
+      endSnipStoreLot, store_get_ne _ _ (by native_decide),
+      endSnipStoreTab, store_get_ne _ _ (by native_decide),
+      endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
+      endSnipStoreRate, store_get_ne _ _ (by native_decide),
+      endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
+      endSnipStoreClip, store_get_ne _ _ (by native_decide),
+      endSnipStoreDogIlk, store_get_ne _ _ (by native_decide),
+      endSnipStore, store_get_ne _ _ (by native_decide),
+      store_get_ne _ _ (by native_decide)]
+    simp
   simpa [hmap, howner, Solm.EVM.storageLoad, State.lookupAccount,
     endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
     evalExpr_endPack_vat (locals := endSnipStoreUsr I dogOut vatOut saleOut) evm hbase
@@ -7185,9 +7319,17 @@ theorem evalExprs_endSnip_suckArgs_afterUsr (evm : EVM.State) (I : ExecutionEnv)
       evalExpr? config { contract := contract, locals := endSnipStoreUsr I dogOut vatOut saleOut }
         evm vowAddr = .ok (.address (endPackVowAddr σ I)) := by
     have hbase : (endSnipStoreUsr I dogOut vatOut saleOut).get? "vow" = none := by
-      simp [endSnipStoreUsr, endSnipStoreLot, endSnipStoreTab, endSnipStoreClipSale,
-        endSnipStoreRate, endSnipStoreVatIlk, endSnipStoreClip, endSnipStoreDogIlk,
-        endSnipStore]
+      rw [endSnipStoreUsr, store_get_ne _ _ (by native_decide),
+        endSnipStoreLot, store_get_ne _ _ (by native_decide),
+        endSnipStoreTab, store_get_ne _ _ (by native_decide),
+        endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
+        endSnipStoreRate, store_get_ne _ _ (by native_decide),
+        endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
+        endSnipStoreClip, store_get_ne _ _ (by native_decide),
+        endSnipStoreDogIlk, store_get_ne _ _ (by native_decide),
+        endSnipStore, store_get_ne _ _ (by native_decide),
+        store_get_ne _ _ (by native_decide)]
+      simp
     simpa [vowAddr, hmap, howner, Solm.EVM.storageLoad, State.lookupAccount,
       endPackVowAddr, endPackVowWord, endSlotWord, solcSlotWord] using
       evalExpr_endPack_vow (locals := endSnipStoreUsr I dogOut vatOut saleOut) evm hbase
@@ -7307,7 +7449,7 @@ theorem endSnipCheckedSuckSuccess {σ I} {dogOut vatOut saleOut suckOut : ByteAr
         .int (Int.ofNat (endSnipSaleTabWord saleOut).toNat)])
     (out := suckOut) (perm := true) (value := [])
     hguard hreceiver hargs hcall hdec
-  simpa [checkedExternalCallStmts, endSnipStoreSuck, collapseReturns] using hblock
+  simpa only [checkedExternalCallStmts, endSnipStoreSuck, collapseReturns] using hblock
 
 theorem endSnipClipReceiver_afterSuck {I dogOut vatOut saleOut evm} :
     evalExpr? config { contract := contract, locals := endSnipStoreSuck I dogOut vatOut saleOut }
@@ -7348,7 +7490,7 @@ theorem evalExprs_endSnip_yankArgs_afterSuck (evm : EVM.State) (I : ExecutionEnv
       endSnipStoreDogIlk, store_get_ne _ _ (by native_decide),
       endSnipStore, store_get_self]
     rfl
-  simp [evalExprs?, hid, EvalResult.bind, bind, pure]
+  simp only [evalExprs?, hid, EvalResult.bind, bind, pure]
 
 theorem endSnipCheckedYankNoCode {σ I} {dogOut vatOut saleOut : ByteArray}
     {evm : EVM.State}
@@ -7367,7 +7509,7 @@ theorem endSnipCheckedYankNoCode {σ I} {dogOut vatOut saleOut : ByteArray}
       evalExpr? config { contract := contract, locals := endSnipStoreSuck I dogOut vatOut saleOut }
         evm (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)) = .ok (.bool false) :=
     endEvalExpr_extCodeGuard_false hreceiver hcodeZero
-  simpa [checkedExternalCallStmts] using
+  simpa only [checkedExternalCallStmts] using
     checkedExternalCallNoCode
       (cfg := config) (C := contract) (evm := evm)
       (locals := endSnipStoreSuck I dogOut vatOut saleOut) (receiver := .var "clip")
@@ -7396,7 +7538,7 @@ theorem endSnipCheckedYankFailure {σ I} {dogOut vatOut saleOut yankOut : ByteAr
         evm (.binary .gt (.extCodeSize (.var "clip")) (.intLit 0)) = .ok (.bool true) :=
     endEvalExpr_extCodeGuard_true hreceiver hcodePos
   have hargs := evalExprs_endSnip_yankArgs_afterSuck evm I dogOut vatOut saleOut
-  simpa [checkedExternalCallStmts] using
+  simpa only [checkedExternalCallStmts] using
     checkedExternalCallFailure
       (cfg := config) (C := contract) (evm := evm) (evm' := evmYank)
       (locals := endSnipStoreSuck I dogOut vatOut saleOut) (receiver := .var "clip")
@@ -7438,7 +7580,7 @@ theorem endSnipCheckedYankSuccess {σ I} {dogOut vatOut saleOut yankOut : ByteAr
     (argVals := [.int (Int.ofNat (endSnipIdWord I).toNat)])
     (out := yankOut) (perm := true) (value := [])
     hguard hreceiver hargs hcall hdec
-  simpa [checkedExternalCallStmts, endSnipStoreYank, collapseReturns] using hblock
+  simpa only [checkedExternalCallStmts, endSnipStoreYank, collapseReturns] using hblock
 
 theorem evalExpr_endSnip_tab_afterYank (evm : EVM.State) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) :
@@ -7499,21 +7641,72 @@ theorem endSnipStmtArtReverts (evm : EVM.State) (I : ExecutionEnv)
   have hrateExpr := evalExpr_endSnip_rate_afterYank evm I dogOut vatOut saleOut
   exact ExecStmt.letDeclRevert (endEvalExpr_div_uint256_revert_zero htab hrateExpr hrate)
 
+theorem endSnipStoreDogIlk_get_ilk (I : ExecutionEnv) (dogOut : ByteArray) :
+    (endSnipStoreDogIlk I dogOut).get? "ilk" =
+      some (.fixedBytes bytes32Width (endSnipIlkBytes I)) := by
+  rw [endSnipStoreDogIlk, store_get_ne _ _ (by native_decide)]
+  exact endSnipStore_get_ilk I
+
+theorem endSnipStoreClip_get_ilk (I : ExecutionEnv) (dogOut : ByteArray) :
+    (endSnipStoreClip I dogOut).get? "ilk" =
+      some (.fixedBytes bytes32Width (endSnipIlkBytes I)) := by
+  rw [endSnipStoreClip, store_get_ne _ _ (by native_decide)]
+  exact endSnipStoreDogIlk_get_ilk I dogOut
+
+theorem endSnipStoreVatIlk_get_ilk (I : ExecutionEnv) (dogOut vatOut : ByteArray) :
+    (endSnipStoreVatIlk I dogOut vatOut).get? "ilk" =
+      some (.fixedBytes bytes32Width (endSnipIlkBytes I)) := by
+  rw [endSnipStoreVatIlk, store_get_ne _ _ (by native_decide)]
+  exact endSnipStoreClip_get_ilk I dogOut
+
+theorem endSnipStoreRate_get_ilk (I : ExecutionEnv) (dogOut vatOut : ByteArray) :
+    (endSnipStoreRate I dogOut vatOut).get? "ilk" =
+      some (.fixedBytes bytes32Width (endSnipIlkBytes I)) := by
+  rw [endSnipStoreRate, store_get_ne _ _ (by native_decide)]
+  exact endSnipStoreVatIlk_get_ilk I dogOut vatOut
+
+theorem endSnipStoreClipSale_get_ilk (I : ExecutionEnv)
+    (dogOut vatOut saleOut : ByteArray) :
+    (endSnipStoreClipSale I dogOut vatOut saleOut).get? "ilk" =
+      some (.fixedBytes bytes32Width (endSnipIlkBytes I)) := by
+  rw [endSnipStoreClipSale, store_get_ne _ _ (by native_decide)]
+  exact endSnipStoreRate_get_ilk I dogOut vatOut
+
+theorem endSnipStoreTab_get_ilk (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
+    (endSnipStoreTab I dogOut vatOut saleOut).get? "ilk" =
+      some (.fixedBytes bytes32Width (endSnipIlkBytes I)) := by
+  rw [endSnipStoreTab, store_get_ne _ _ (by native_decide)]
+  exact endSnipStoreClipSale_get_ilk I dogOut vatOut saleOut
+
+theorem endSnipStoreLot_get_ilk (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
+    (endSnipStoreLot I dogOut vatOut saleOut).get? "ilk" =
+      some (.fixedBytes bytes32Width (endSnipIlkBytes I)) := by
+  rw [endSnipStoreLot, store_get_ne _ _ (by native_decide)]
+  exact endSnipStoreTab_get_ilk I dogOut vatOut saleOut
+
+theorem endSnipStoreUsr_get_ilk (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
+    (endSnipStoreUsr I dogOut vatOut saleOut).get? "ilk" =
+      some (.fixedBytes bytes32Width (endSnipIlkBytes I)) := by
+  rw [endSnipStoreUsr, store_get_ne _ _ (by native_decide)]
+  exact endSnipStoreLot_get_ilk I dogOut vatOut saleOut
+
+theorem endSnipStoreSuck_get_ilk (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
+    (endSnipStoreSuck I dogOut vatOut saleOut).get? "ilk" =
+      some (.fixedBytes bytes32Width (endSnipIlkBytes I)) := by
+  rw [endSnipStoreSuck, store_get_ne _ _ (by native_decide)]
+  exact endSnipStoreUsr_get_ilk I dogOut vatOut saleOut
+
+theorem endSnipStoreYank_get_ilk (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
+    (endSnipStoreYank I dogOut vatOut saleOut).get? "ilk" =
+      some (.fixedBytes bytes32Width (endSnipIlkBytes I)) := by
+  rw [endSnipStoreYank, store_get_ne _ _ (by native_decide)]
+  exact endSnipStoreSuck_get_ilk I dogOut vatOut saleOut
+
 theorem endSnipStoreArt_get_ilk (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
     (endSnipStoreArt I dogOut vatOut saleOut).get? "ilk" = some (endFlowIlkValue I) := by
-  rw [endSnipStoreArt, store_get_ne _ _ (by native_decide),
-    endSnipStoreYank, store_get_ne _ _ (by native_decide),
-    endSnipStoreSuck, store_get_ne _ _ (by native_decide),
-    endSnipStoreUsr, store_get_ne _ _ (by native_decide),
-    endSnipStoreLot, store_get_ne _ _ (by native_decide),
-    endSnipStoreTab, store_get_ne _ _ (by native_decide),
-    endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
-    endSnipStoreRate, store_get_ne _ _ (by native_decide),
-    endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
-    endSnipStoreClip, store_get_ne _ _ (by native_decide),
-    endSnipStoreDogIlk, store_get_ne _ _ (by native_decide)]
+  rw [endSnipStoreArt, store_get_ne _ _ (by native_decide)]
   simpa [endFlowIlkValue, endBytes32ArgValue, endBytes32ArgBytes, endSnipIlkBytes]
-    using endSnipStore_get_ilk I
+    using endSnipStoreYank_get_ilk I dogOut vatOut saleOut
 
 theorem endSnipStmtArtNewAddReturns (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (dogOut vatOut saleOut : ByteArray)
@@ -7533,9 +7726,20 @@ theorem endSnipStmtArtNewAddReturns (evm : EVM.State) (I : ExecutionEnv)
         evm (.storage (ArtRef (.var "ilk"))) =
           .ok (.int (Int.ofNat (endSnipArtOldWord σ I).toNat)) := by
     have hbase : (endSnipStoreArt I dogOut vatOut saleOut).get? "Art" = none := by
-      simp [endSnipStoreArt, endSnipStoreYank, endSnipStoreSuck, endSnipStoreUsr,
-        endSnipStoreLot, endSnipStoreTab, endSnipStoreClipSale, endSnipStoreRate,
-        endSnipStoreVatIlk, endSnipStoreClip, endSnipStoreDogIlk, endSnipStore]
+      rw [endSnipStoreArt, store_get_ne _ _ (by native_decide),
+        endSnipStoreYank, store_get_ne _ _ (by native_decide),
+        endSnipStoreSuck, store_get_ne _ _ (by native_decide),
+        endSnipStoreUsr, store_get_ne _ _ (by native_decide),
+        endSnipStoreLot, store_get_ne _ _ (by native_decide),
+        endSnipStoreTab, store_get_ne _ _ (by native_decide),
+        endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
+        endSnipStoreRate, store_get_ne _ _ (by native_decide),
+        endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
+        endSnipStoreClip, store_get_ne _ _ (by native_decide),
+        endSnipStoreDogIlk, store_get_ne _ _ (by native_decide),
+        endSnipStore, store_get_ne _ _ (by native_decide),
+        store_get_ne _ _ (by native_decide)]
+      simp
     have hget := endSnipStoreArt_get_ilk I dogOut vatOut saleOut
     have hstorage := evalExpr_endFlow_Art_of_get evm I hbase hget (by omega)
     simpa [hArtLoad, endSnipArtWord, endSnipArtOldWord, endSnipArtSlot,
@@ -7553,31 +7757,14 @@ theorem endSnipStmtArtNewAddReturns (evm : EVM.State) (I : ExecutionEnv)
         evm [.storage (ArtRef (.var "ilk")), .var "art"] =
           .ok [.int (Int.ofNat (endSnipArtOldWord σ I).toNat),
             .int (Int.ofNat (endSnipArtWord vatOut saleOut).toNat)] := by
-    simp [evalExprs?, hArt, hart, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? addFunction.params
-          [.int (Int.ofNat (endSnipArtOldWord σ I).toNat),
-            .int (Int.ofNat (endSnipArtWord vatOut saleOut).toNat)] =
-        some (endUintBinaryLocals (endSnipArtOldWord σ I)
-          (endSnipArtWord vatOut saleOut)) := by
-    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
-  have hbody :=
-    endExecAddFunctionReturn (evm := evm)
-      (x := endSnipArtOldWord σ I) (y := endSnipArtWord vatOut saleOut)
-      (sum := endSnipArtNewWord σ I vatOut saleOut) rfl hfit
-  have hstmt := internalCallFunctionReturn
-    (cfg := config)
-    (caller := { contract := contract, locals := endSnipStoreArt I dogOut vatOut saleOut })
-    (evm := evm) (name := "add") (retVar := "ArtNew")
+    simp only [evalExprs?, hArt, hart, EvalResult.bind, bind, pure]
+  have hstmt := endInternalAddFunctionReturn
+    (evm := evm) (locals := endSnipStoreArt I dogOut vatOut saleOut)
     (args := [.storage (ArtRef (.var "ilk")), .var "art"])
-    (argVals :=
-      [.int (Int.ofNat (endSnipArtOldWord σ I).toNat),
-        .int (Int.ofNat (endSnipArtWord vatOut saleOut).toNat)])
-    (callee := addFunction)
-    (locals := endUintBinaryLocals (endSnipArtOldWord σ I)
-      (endSnipArtWord vatOut saleOut))
-    hargs (by rfl) hbind hbody
-  simpa [endSnipStoreArtNew, resumeAfterInternalCall, collapseReturns,
+    (retVar := "ArtNew") (x := endSnipArtOldWord σ I)
+    (y := endSnipArtWord vatOut saleOut)
+    (sum := endSnipArtNewWord σ I vatOut saleOut) hargs rfl hfit
+  simpa only [endSnipStoreArtNew, resumeAfterInternalCall, collapseReturns,
     endSnipArtNewWord] using hstmt
 
 theorem endSnipStmtArtNewAddReverts (evm : EVM.State) (I : ExecutionEnv)
@@ -7597,9 +7784,20 @@ theorem endSnipStmtArtNewAddReverts (evm : EVM.State) (I : ExecutionEnv)
         evm (.storage (ArtRef (.var "ilk"))) =
           .ok (.int (Int.ofNat (endSnipArtOldWord σ I).toNat)) := by
     have hbase : (endSnipStoreArt I dogOut vatOut saleOut).get? "Art" = none := by
-      simp [endSnipStoreArt, endSnipStoreYank, endSnipStoreSuck, endSnipStoreUsr,
-        endSnipStoreLot, endSnipStoreTab, endSnipStoreClipSale, endSnipStoreRate,
-        endSnipStoreVatIlk, endSnipStoreClip, endSnipStoreDogIlk, endSnipStore]
+      rw [endSnipStoreArt, store_get_ne _ _ (by native_decide),
+        endSnipStoreYank, store_get_ne _ _ (by native_decide),
+        endSnipStoreSuck, store_get_ne _ _ (by native_decide),
+        endSnipStoreUsr, store_get_ne _ _ (by native_decide),
+        endSnipStoreLot, store_get_ne _ _ (by native_decide),
+        endSnipStoreTab, store_get_ne _ _ (by native_decide),
+        endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
+        endSnipStoreRate, store_get_ne _ _ (by native_decide),
+        endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
+        endSnipStoreClip, store_get_ne _ _ (by native_decide),
+        endSnipStoreDogIlk, store_get_ne _ _ (by native_decide),
+        endSnipStore, store_get_ne _ _ (by native_decide),
+        store_get_ne _ _ (by native_decide)]
+      simp
     have hget := endSnipStoreArt_get_ilk I dogOut vatOut saleOut
     have hstorage := evalExpr_endFlow_Art_of_get evm I hbase hget (by omega)
     simpa [hArtLoad, endSnipArtWord, endSnipArtOldWord, endSnipArtSlot,
@@ -7617,29 +7815,12 @@ theorem endSnipStmtArtNewAddReverts (evm : EVM.State) (I : ExecutionEnv)
         evm [.storage (ArtRef (.var "ilk")), .var "art"] =
           .ok [.int (Int.ofNat (endSnipArtOldWord σ I).toNat),
             .int (Int.ofNat (endSnipArtWord vatOut saleOut).toNat)] := by
-    simp [evalExprs?, hArt, hart, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? addFunction.params
-          [.int (Int.ofNat (endSnipArtOldWord σ I).toNat),
-            .int (Int.ofNat (endSnipArtWord vatOut saleOut).toNat)] =
-        some (endUintBinaryLocals (endSnipArtOldWord σ I)
-          (endSnipArtWord vatOut saleOut)) := by
-    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
-  have hbody :=
-    endExecAddFunctionRevert (evm := evm)
-      (x := endSnipArtOldWord σ I) (y := endSnipArtWord vatOut saleOut) hover
-  exact internalCallFunctionRevert
-    (cfg := config)
-    (caller := { contract := contract, locals := endSnipStoreArt I dogOut vatOut saleOut })
-    (evm := evm) (name := "add") (retVar := "ArtNew")
+    simp only [evalExprs?, hArt, hart, EvalResult.bind, bind, pure]
+  exact endInternalAddFunctionRevert
+    (evm := evm) (locals := endSnipStoreArt I dogOut vatOut saleOut)
     (args := [.storage (ArtRef (.var "ilk")), .var "art"])
-    (argVals :=
-      [.int (Int.ofNat (endSnipArtOldWord σ I).toNat),
-        .int (Int.ofNat (endSnipArtWord vatOut saleOut).toNat)])
-    (callee := addFunction)
-    (locals := endUintBinaryLocals (endSnipArtOldWord σ I)
-      (endSnipArtWord vatOut saleOut))
-    hargs (by rfl) hbind hbody
+    (retVar := "ArtNew") (x := endSnipArtOldWord σ I)
+    (y := endSnipArtWord vatOut saleOut) hargs hover
 
 theorem endSnipAssignArt {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
     (artNew : UInt256)
@@ -7649,16 +7830,9 @@ theorem endSnipAssignArt {locals : Store} (evm : EVM.State) (I : ExecutionEnv)
     assignStorageRef? config { contract := contract, locals := locals } evm
       .storage (ArtRef (.var "ilk")) (.int (Int.ofNat artNew.toNat)) =
         .ok ({ contract := contract, locals := locals }, endSnipPostArtState evm I artNew) := by
-  have href := evalStorageRef_endFlow_Art_of_get evm I hget (by omega)
-  apply assignStorageRef_storage_scalar
-      (ty := uint256St)
-      (loc := wordLoc (endSnipArtSlot I))
-      (hbase := hbase)
-      (her := by simpa [endSnipArtSlot, endFlowArtSlot, endSnipIlkKey, endFlowIlkKey] using href)
-      (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
-      (hloc := by rfl)
-  simpa only [endSnipPostArtState] using
-    endStorageLocStore_uint256 evm (endSnipArtSlot I) artNew
+  simpa only [endSnipPostArtState, endSnipArtSlot, endSnipIlkKey, endFlowArtSlot,
+    endFlowIlkKey] using
+    endFlowAssignArtOfGet evm I artNew hbase hget (by omega)
 
 theorem endSnipStmtArtAssign (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (dogOut vatOut saleOut : ByteArray)
@@ -7684,10 +7858,21 @@ theorem endSnipStmtArtAssign (evm : EVM.State) (I : ExecutionEnv)
           .ok ({ contract := contract, locals := endSnipStoreArtNew σ I dogOut vatOut saleOut },
             endSnipPostArtState evm I (endSnipArtNewWord σ I vatOut saleOut)) := by
     have hbase : (endSnipStoreArtNew σ I dogOut vatOut saleOut).get? "Art" = none := by
-      simp [endSnipStoreArtNew, endSnipStoreArt, endSnipStoreYank, endSnipStoreSuck,
-        endSnipStoreUsr, endSnipStoreLot, endSnipStoreTab, endSnipStoreClipSale,
-        endSnipStoreRate, endSnipStoreVatIlk, endSnipStoreClip, endSnipStoreDogIlk,
-        endSnipStore]
+      rw [endSnipStoreArtNew, store_get_ne _ _ (by native_decide),
+        endSnipStoreArt, store_get_ne _ _ (by native_decide),
+        endSnipStoreYank, store_get_ne _ _ (by native_decide),
+        endSnipStoreSuck, store_get_ne _ _ (by native_decide),
+        endSnipStoreUsr, store_get_ne _ _ (by native_decide),
+        endSnipStoreLot, store_get_ne _ _ (by native_decide),
+        endSnipStoreTab, store_get_ne _ _ (by native_decide),
+        endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
+        endSnipStoreRate, store_get_ne _ _ (by native_decide),
+        endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
+        endSnipStoreClip, store_get_ne _ _ (by native_decide),
+        endSnipStoreDogIlk, store_get_ne _ _ (by native_decide),
+        endSnipStore, store_get_ne _ _ (by native_decide),
+        store_get_ne _ _ (by native_decide)]
+      simp
     have hget :
         (endSnipStoreArtNew σ I dogOut vatOut saleOut).get? "ilk" =
           some (endFlowIlkValue I) := by
@@ -7835,26 +8020,10 @@ theorem endSnipVatReceiver_afterArtNewFor {σCall σLoc I dogOut vatOut saleOut 
     (howner : evm.executionEnv.codeOwner = I.codeOwner) :
     evalExpr? config { contract := contract, locals := endSnipStoreArtNew σLoc I dogOut vatOut saleOut } evm
       (.storage vatRef) = .ok (.address (endPackVatAddr σCall I)) := by
-  have hbase : (endSnipStoreArtNew σLoc I dogOut vatOut saleOut).get? "vat" = none := by
-    rw [endSnipStoreArtNew, store_get_ne _ _ (by native_decide),
-      endSnipStoreArt, store_get_ne _ _ (by native_decide),
-      endSnipStoreYank, store_get_ne _ _ (by native_decide),
-      endSnipStoreSuck, store_get_ne _ _ (by native_decide),
-      endSnipStoreUsr, store_get_ne _ _ (by native_decide),
-      endSnipStoreLot, store_get_ne _ _ (by native_decide),
-      endSnipStoreTab, store_get_ne _ _ (by native_decide),
-      endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
-      endSnipStoreRate, store_get_ne _ _ (by native_decide),
-      endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
-      endSnipStoreClip, store_get_ne _ _ (by native_decide),
-      endSnipStoreDogIlk, store_get_ne _ _ (by native_decide),
-      endSnipStore, store_get_ne _ _ (by native_decide),
-      store_get_ne _ _ (by native_decide)]
-    simp
-  simpa [hmap, howner, Solm.EVM.storageLoad, State.lookupAccount,
-    endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
-    evalExpr_endPack_vat
-      (locals := endSnipStoreArtNew σLoc I dogOut vatOut saleOut) evm hbase
+  simpa only [hmap] using
+    evalExpr_endPack_vat_addr
+      (locals := endSnipStoreArtNew σLoc I dogOut vatOut saleOut) evm I
+      (endSnipStoreArtNew_get_vat_none σLoc I dogOut vatOut saleOut) howner
 
 theorem evalExpr_endSnip_ilk_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (dogOut vatOut saleOut : ByteArray) :
@@ -7893,50 +8062,65 @@ theorem evalExpr_endSnip_vow_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
     (howner : evm.executionEnv.codeOwner = I.codeOwner) :
     evalExpr? config { contract := contract, locals := endSnipStoreArtNew σ I dogOut vatOut saleOut }
       evm vowAddr = .ok (.address (endPackVowAddr evm.accountMap I)) := by
-  have hbase : (endSnipStoreArtNew σ I dogOut vatOut saleOut).get? "vow" = none := by
-    rw [endSnipStoreArtNew, store_get_ne _ _ (by native_decide),
-      endSnipStoreArt, store_get_ne _ _ (by native_decide),
-      endSnipStoreYank, store_get_ne _ _ (by native_decide),
-      endSnipStoreSuck, store_get_ne _ _ (by native_decide),
-      endSnipStoreUsr, store_get_ne _ _ (by native_decide),
-      endSnipStoreLot, store_get_ne _ _ (by native_decide),
-      endSnipStoreTab, store_get_ne _ _ (by native_decide),
-      endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
-      endSnipStoreRate, store_get_ne _ _ (by native_decide),
-      endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
-      endSnipStoreClip, store_get_ne _ _ (by native_decide),
-      endSnipStoreDogIlk, store_get_ne _ _ (by native_decide),
-      endSnipStore, store_get_ne _ _ (by native_decide),
-      store_get_ne _ _ (by native_decide)]
-    simp
-  simpa [vowAddr, howner, Solm.EVM.storageLoad, State.lookupAccount,
-    endPackVowAddr, endPackVowWord, endSlotWord, solcSlotWord] using
-    evalExpr_endPack_vow
-      (locals := endSnipStoreArtNew σ I dogOut vatOut saleOut) evm hbase
+  exact evalExpr_endPack_vow_addr
+    (locals := endSnipStoreArtNew σ I dogOut vatOut saleOut) evm I
+    (endSnipStoreArtNew_get_vow_none σ I dogOut vatOut saleOut) howner
 
 theorem evalExpr_endSnip_lot_asInt_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
-    (σ : AccountMap) (dogOut vatOut saleOut : ByteArray) :
+    (σ : AccountMap) (dogOut vatOut saleOut : ByteArray)
+    (hlotBound : (endSnipSaleLotWord saleOut).toNat < 2 ^ 255) :
     evalExpr? config { contract := contract, locals := endSnipStoreArtNew σ I dogOut vatOut saleOut }
       evm (asInt256 (.var "lot")) =
       .ok (.int (Int.ofNat (endSnipSaleLotWord saleOut).toNat)) := by
   have hlot := evalExpr_endSnip_lot_afterArtNew evm I σ dogOut vatOut saleOut
-  simp only [asInt256, evalExpr?, hlot, castValue?, EvalResult.bind, bind, int256St,
-    int256Int]
-  rfl
+  have hcast := evalExpr_cast_int (intType := int256Int) hlot
+  have hbound : (endSnipSaleLotWord saleOut).toNat < EVM.twoPow 255 := by
+    simpa [EVM.twoPow] using hlotBound
+  have hnormalize :
+      normalizeInt int256Int (Int.ofNat (endSnipSaleLotWord saleOut).toNat) =
+        Int.ofNat (endSnipSaleLotWord saleOut).toNat := by
+    simpa [int256Int] using
+      normalizeInt_sint256_word_of_lt (endSnipSaleLotWord saleOut) hbound
+  calc
+    evalExpr? config
+        { contract := contract, locals := endSnipStoreArtNew σ I dogOut vatOut saleOut }
+        evm (asInt256 (.var "lot")) =
+        .ok (.int (normalizeInt int256Int
+          (Int.ofNat (endSnipSaleLotWord saleOut).toNat))) := by
+      simpa only [asInt256, int256St] using hcast
+    _ = .ok (.int (Int.ofNat (endSnipSaleLotWord saleOut).toNat)) := by
+      rw [hnormalize]
 
 theorem evalExpr_endSnip_art_asInt_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
-    (σ : AccountMap) (dogOut vatOut saleOut : ByteArray) :
+    (σ : AccountMap) (dogOut vatOut saleOut : ByteArray)
+    (hartBound : (endSnipArtWord vatOut saleOut).toNat < 2 ^ 255) :
     evalExpr? config { contract := contract, locals := endSnipStoreArtNew σ I dogOut vatOut saleOut }
       evm (asInt256 (.var "art")) =
       .ok (.int (Int.ofNat (endSnipArtWord vatOut saleOut).toNat)) := by
   have hart := evalExpr_endSnip_art_afterArtNew evm I σ dogOut vatOut saleOut
-  simp only [asInt256, evalExpr?, hart, castValue?, EvalResult.bind, bind, int256St,
-    int256Int]
-  rfl
+  have hcast := evalExpr_cast_int (intType := int256Int) hart
+  have hbound : (endSnipArtWord vatOut saleOut).toNat < EVM.twoPow 255 := by
+    simpa [EVM.twoPow] using hartBound
+  have hnormalize :
+      normalizeInt int256Int (Int.ofNat (endSnipArtWord vatOut saleOut).toNat) =
+        Int.ofNat (endSnipArtWord vatOut saleOut).toNat := by
+    simpa [int256Int] using
+      normalizeInt_sint256_word_of_lt (endSnipArtWord vatOut saleOut) hbound
+  calc
+    evalExpr? config
+        { contract := contract, locals := endSnipStoreArtNew σ I dogOut vatOut saleOut }
+        evm (asInt256 (.var "art")) =
+        .ok (.int (normalizeInt int256Int
+          (Int.ofNat (endSnipArtWord vatOut saleOut).toNat))) := by
+      simpa only [asInt256, int256St] using hcast
+    _ = .ok (.int (Int.ofNat (endSnipArtWord vatOut saleOut).toNat)) := by
+      rw [hnormalize]
 
 theorem evalExprs_endSnip_grabArgs (evm : EVM.State) (I : ExecutionEnv)
     (σCall σLoc : AccountMap) (dogOut vatOut saleOut : ByteArray)
-    (howner : evm.executionEnv.codeOwner = I.codeOwner) :
+    (howner : evm.executionEnv.codeOwner = I.codeOwner)
+    (hlotBound : (endSnipSaleLotWord saleOut).toNat < 2 ^ 255)
+    (hartBound : (endSnipArtWord vatOut saleOut).toNat < 2 ^ 255) :
     evalExprs? config { contract := contract, locals := endSnipStoreArtNew σLoc I dogOut vatOut saleOut } evm
       [.var "ilk", .var "usr", thisAddr, vowAddr,
         asInt256 (.var "lot"), asInt256 (.var "art")] =
@@ -7950,8 +8134,10 @@ theorem evalExprs_endSnip_grabArgs (evm : EVM.State) (I : ExecutionEnv)
   have husr := evalExpr_endSnip_usr_afterArtNew evm I σLoc dogOut vatOut saleOut
   have hthis := evalExpr_endSnip_this_afterArtNew evm I σLoc dogOut vatOut saleOut howner
   have hvow := evalExpr_endSnip_vow_afterArtNew evm I σLoc dogOut vatOut saleOut howner
-  have hlot := evalExpr_endSnip_lot_asInt_afterArtNew evm I σLoc dogOut vatOut saleOut
-  have hart := evalExpr_endSnip_art_asInt_afterArtNew evm I σLoc dogOut vatOut saleOut
+  have hlot :=
+    evalExpr_endSnip_lot_asInt_afterArtNew evm I σLoc dogOut vatOut saleOut hlotBound
+  have hart :=
+    evalExpr_endSnip_art_asInt_afterArtNew evm I σLoc dogOut vatOut saleOut hartBound
   rw [evalExprs?]
   simp only [hilk, EvalResult.bind, bind]
   rw [evalExprs?]
@@ -8005,6 +8191,8 @@ theorem endSnipGrabTailReverts_callFailedFor {σCall σLoc I}
     (hmap : evm.accountMap = σCall) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σCall (endPackVatWord σCall I) ≠ ⟨0⟩)
+    (hlotBound : (endSnipSaleLotWord saleOut).toNat < 2 ^ 255)
+    (hartBound : (endSnipArtWord vatOut saleOut).toNat < 2 ^ 255)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σCall I)) "grab" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
@@ -8032,7 +8220,9 @@ theorem endSnipGrabTailReverts_callFailedFor {σCall σLoc I}
         evm (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) =
         .ok (.bool true) :=
     endEvalExpr_extCodeGuard_true hreceiver hcodePos
-  have hargsRaw := evalExprs_endSnip_grabArgs evm I σCall σLoc dogOut vatOut saleOut howner
+  have hargsRaw :=
+    evalExprs_endSnip_grabArgs evm I σCall σLoc dogOut vatOut saleOut howner
+      hlotBound hartBound
   have hargs :
       evalExprs? config
         { contract := contract, locals := endSnipStoreArtNew σLoc I dogOut vatOut saleOut }
@@ -8067,6 +8257,8 @@ theorem endSnipGrabTailReturns_successFor {σCall σLoc I}
     (hmap : evm.accountMap = σCall) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σCall (endPackVatWord σCall I) ≠ ⟨0⟩)
+    (hlotBound : (endSnipSaleLotWord saleOut).toNat < 2 ^ 255)
+    (hartBound : (endSnipArtWord vatOut saleOut).toNat < 2 ^ 255)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σCall I)) "grab" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
@@ -8095,7 +8287,9 @@ theorem endSnipGrabTailReturns_successFor {σCall σLoc I}
         evm (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) =
         .ok (.bool true) :=
     endEvalExpr_extCodeGuard_true hreceiver hcodePos
-  have hargsRaw := evalExprs_endSnip_grabArgs evm I σCall σLoc dogOut vatOut saleOut howner
+  have hargsRaw :=
+    evalExprs_endSnip_grabArgs evm I σCall σLoc dogOut vatOut saleOut howner
+      hlotBound hartBound
   have hargs :
       evalExprs? config
         { contract := contract, locals := endSnipStoreArtNew σLoc I dogOut vatOut saleOut }
@@ -10124,6 +10318,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                       createdAccounts := cA_grab })
                                                   hmapPostSolm hownerPostSolm
                                                   hgrabCodeSolmNE
+                                                  hlot hart
                                                   (by simpa using hgrabCallSolm)
                                               have hbody :
                                                   ExecTransitionBody config contract evmSolm
@@ -10177,6 +10372,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                   (evmGrab := evmGrabSolm)
                                                   hmapPostSolm hownerPostSolm
                                                   hgrabCodeSolmNE
+                                                  hlot hart
                                                   (by simpa [evmGrabSolm] using
                                                     hgrabCallSolm)
                                               have hbody :

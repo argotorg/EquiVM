@@ -35,6 +35,9 @@ def ONE : Int := 1000000000000000000000000000
 def intMax : Int := 57896044618658097711785492504343953926634992332820282019728792003956564819967
 def intLimit : Int := 57896044618658097711785492504343953926634992332820282019728792003956564819968
 
+theorem intLimit_eq_twoPow : intLimit = Int.ofNat (EVM.twoPow 255) := by
+  native_decide
+
 def u256 (e : Expr) : Expr := .inRange uint256Int e
 def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
 def asInt256 (e : Expr) : Expr := .cast e int256St
@@ -244,7 +247,7 @@ def exitTransition : TransitionDecl :=
       nonpayable ++
       [ .require (.binary .le (.var "wad") (.intLit intLimit)) ] ++
       checkedExternalCallStmts (.storage vatRef) "slip" (.intLit 0)
-        [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] "slipRet" ++
+        [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] "slipRet" ++
       checkedExternalCallStmts (.storage gemRef) "transfer" (.intLit 0)
         [.var "usr", .var "wad"] "transferOk" ++
       [ .require (.var "transferOk") ] }

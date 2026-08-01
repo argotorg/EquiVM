@@ -21,7 +21,7 @@ Escapes used, mirroring the AST spec exactly:
 * External callbacks on `msg.sender` use the option form (`{view}` for the constructor's
   `parameters` view call, `{value: 0}` for the mint/swap/flash callbacks — the same
   `.intLit 0` eth as the spec's default).
-* `#(-887272)` for `minTick` (surface `-` would be `.unary .neg`, the spec uses an `intLit`).
+* `#(-887272)` for `minTick` (surface `-` would be a typed `.unary (.neg ...)`, the spec uses an `intLit`).
 -/
 
 open Solm Solm.Notation Benchmarks.UniswapV3Pool.Immutables

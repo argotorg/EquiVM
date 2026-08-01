@@ -63,6 +63,72 @@ theorem normalizeInt_sint256_word (w : EVM.Word) :
     rw [show EVM.twoPow 256 = Ethereum.UInt256.size by rfl]
     exact w.val.isLt
 
+theorem normalizeInt_sint256_word_of_lt (w : EVM.Word)
+    (hbound : w.toNat < EVM.twoPow 255) :
+    normalizeInt (.sint ⟨256, by decide⟩) (Int.ofNat w.toNat) = Int.ofNat w.toNat := by
+  rw [normalizeInt_sint256_word, if_pos hbound]
+
+/-- Negating a nonnegative word in the signed-256 range, including the signed
+minimum boundary, agrees with EVM two's-complement negation. -/
+theorem normalizeInt_sint256_neg_word_of_le (w : EVM.Word)
+    (hbound : w.toNat ≤ EVM.twoPow 255) :
+    normalizeInt (.sint ⟨256, by decide⟩)
+        (-normalizeInt (.sint ⟨256, by decide⟩) (Int.ofNat w.toNat)) =
+      -Int.ofNat w.toNat := by
+  let n := Int.ofNat w.toNat
+  let half := Int.ofNat (EVM.twoPow 255)
+  let modulus := Int.ofNat (EVM.twoPow 256)
+  have hnnonneg : 0 ≤ n := Int.natCast_nonneg _
+  have hnltmod : n < modulus := by
+    apply Int.ofNat_lt.mpr
+    rw [show EVM.twoPow 256 = Ethereum.UInt256.size by rfl]
+    exact w.val.isLt
+  have hnle : n ≤ half := Int.ofNat_le.mpr hbound
+  have hmodulusNat : EVM.twoPow 256 = 2 * EVM.twoPow 255 := by
+    simp only [EVM.twoPow]
+    rw [show 256 = 255 + 1 by omega, pow_succ]
+    omega
+  have hmodulus : modulus = 2 * half := by
+    dsimp [modulus, half]
+    exact_mod_cast hmodulusNat
+  by_cases hnlt : n < half
+  · have hinner : normalizeInt (.sint ⟨256, by decide⟩) n = n := by
+      simp only [normalizeInt]
+      rw [Int.emod_eq_of_lt hnnonneg hnltmod]
+      rw [if_pos hnlt]
+    change normalizeInt (.sint ⟨256, by decide⟩)
+        (-normalizeInt (.sint ⟨256, by decide⟩) n) = -n
+    rw [hinner]
+    by_cases hnzero : n = 0
+    · rw [hnzero]
+      simp only [neg_zero, normalizeInt, Int.zero_emod]
+      rw [if_pos]
+      exact Int.natCast_pos.mpr (by simp [EVM.twoPow])
+    · simp only [normalizeInt]
+      rw [show 256 - 1 = 255 by omega]
+      rw [Int.emod_eq_add_self_emod]
+      rw [Int.emod_eq_of_lt]
+      · rw [if_neg] <;> omega
+      · omega
+      · omega
+  · have hne : n = half := by omega
+    have hinner : normalizeInt (.sint ⟨256, by decide⟩) n = -half := by
+      simp only [normalizeInt]
+      rw [Int.emod_eq_of_lt hnnonneg hnltmod]
+      rw [if_neg hnlt]
+      omega
+    change normalizeInt (.sint ⟨256, by decide⟩)
+        (-normalizeInt (.sint ⟨256, by decide⟩) n) = -n
+    rw [hinner]
+    have hneg : - -half = half := by omega
+    rw [hneg]
+    simp only [normalizeInt]
+    rw [show 256 - 1 = 255 by omega]
+    rw [Int.emod_eq_of_lt]
+    · rw [if_neg] <;> omega
+    · omega
+    · omega
+
 #guard normalizeInt (ABI.IntType.uint ⟨8, by decide⟩) 511 = 255
 #guard normalizeInt (ABI.IntType.uint ⟨8, by decide⟩) (-1) = 255
 #guard normalizeInt (ABI.IntType.sint ⟨8, by decide⟩) 255 = -1

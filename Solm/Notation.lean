@@ -352,6 +352,20 @@ private def originTerm : VarOrigin → MacroM Term
 
 mutual
 
+/-- Recover the statically explicit integer type of a unary-negation operand.
+
+Solm's surface notation is intentionally not a Solidity type checker. Requiring
+an explicit cast/range annotation here prevents the macro from silently choosing
+a width that the evaluator cannot reconstruct after values are type-erased. -/
+private partial def negIntTypeTerm (stx : TSyntax `solExpr) : MacroM Term := do
+  match stx with
+  | `(solExpr| ($e:solExpr)) => negIntTypeTerm e
+  | `(solExpr| $t:ident ($_:solExpr,*)) => intTypeTerm t.raw t.getId.toString
+  | `(solExpr| $_:solExpr as $t:ident) => intTypeTerm t.raw t.getId.toString
+  | _ =>
+      Macro.throwErrorAt stx
+        "solm: unary '-' requires an explicitly typed operand, e.g. '-int256(x)'"
+
 /-- Resolve a flattened path against the environment.  `none` if the head is not a declared
     variable (caller decides whether that is an error). -/
 private partial def resolveRef (env : Env) (stx : Syntax) (comps : List String)
@@ -510,7 +524,8 @@ private partial def elabExpr (env : Env) (stx : TSyntax `solExpr) : MacroM Term 
       `(Solm.Expr.bytesSlice $(← elabExpr env a) $(← elabExpr env i) $(← elabExpr env j))
   | `(solExpr| ! $a) => do `(Solm.Expr.unary Solm.UnaryOp.not $(← elabExpr env a))
   | `(solExpr| ~ $a) => do `(Solm.Expr.unary Solm.UnaryOp.bitNot $(← elabExpr env a))
-  | `(solExpr| - $a) => do `(Solm.Expr.unary Solm.UnaryOp.neg $(← elabExpr env a))
+  | `(solExpr| - $a) => do
+      `(Solm.Expr.unary (Solm.UnaryOp.neg $(← negIntTypeTerm a)) $(← elabExpr env a))
   | `(solExpr| $a ** $b) => mkBin env `exp a b
   | `(solExpr| $a * $b) => mkBin env `mul a b
   | `(solExpr| $a / $b) => mkBin env `div a b

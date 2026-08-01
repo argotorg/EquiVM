@@ -438,7 +438,7 @@ def borrowBalanceOfTransition : TransitionDecl :=
         .return
           [ .ite (.binary .lt (.var "principal") (.intLit 0))
               (presentValueBorrowExpr (.storage baseBorrowIndexRef)
-                (u104 (.unary .neg (.var "principal"))))
+                (u104 (.unary (.neg int104Int) (.cast (.var "principal") int104St))))
               (.intLit 0) ] ] }
 
 def borrowKinkTransition : TransitionDecl :=

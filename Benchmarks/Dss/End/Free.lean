@@ -108,7 +108,7 @@ abbrev endFreeAfterUrnsStmts : List Stmt :=
     .require (.binary .eq (.var "art") (.intLit 0)),
     .require (.binary .le (.var "ink") (.intLit int256Limit)) ] ++
   checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
-    [.var "ilk", sender, sender, vowAddr, .unary .neg (asInt256 (.var "ink")),
+    [.var "ilk", sender, sender, vowAddr, .unary (.neg int256Int) (asInt256 (.var "ink")),
       .intLit 0] "_grab"
 
 noncomputable def endFreeUrnsSelectorMem (mem : ByteArray) : ByteArray :=
@@ -1310,7 +1310,7 @@ theorem endFreeSourceLiveReverts {cA gh bl σ σ₀ A I} {g : UInt256}
           .require (.binary .eq (.var "art") (.intLit 0)),
           .require (.binary .le (.var "ink") (.intLit int256Limit)) ] ++
         checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
-          [.var "ilk", sender, sender, vowAddr, .unary .neg (asInt256 (.var "ink")),
+          [.var "ilk", sender, sender, vowAddr, .unary (.neg int256Int) (asInt256 (.var "ink")),
             .intLit 0] "_grab")
       (by simp only [evm0, initState]; exact hwv)
       hguard
@@ -1677,21 +1677,36 @@ theorem evalExpr_endFree_ilk_afterArt (evm : EVM.State) (I : ExecutionEnv)
           endFreeStore, store_get_self])
 
 theorem evalExpr_endFree_negInk_afterArt (evm : EVM.State) (I : ExecutionEnv)
-    (out : ByteArray) :
+    (out : ByteArray)
+    (hinkBound : (endFreeUrnInkWord out).toNat ≤ 2 ^ 255) :
     evalExpr? config { contract := contract, locals := endFreeStoreArt I out } evm
-      (.unary .neg (asInt256 (.var "ink"))) =
+      (.unary (.neg int256Int) (asInt256 (.var "ink"))) =
         .ok (.int (-(Int.ofNat (endFreeUrnInkWord out).toNat))) := by
   have hink := evalExpr_endFree_ink_afterArt evm I out
-  simp only [asInt256, evalExpr?, hink, castValue?, evalUnaryOp?, EvalResult.bind, bind,
-    int256St, int256Int]
-  rfl
+  have hnormalize :
+      normalizeInt int256Int
+          (-normalizeInt int256Int (Int.ofNat (endFreeUrnInkWord out).toNat)) =
+        -Int.ofNat (endFreeUrnInkWord out).toNat := by
+    simpa [int256Int, EVM.twoPow] using
+      normalizeInt_sint256_neg_word_of_le (endFreeUrnInkWord out) hinkBound
+  have hcast := evalExpr_cast_int (intType := int256Int) hink
+  have hneg := evalExpr_neg_int (intType := int256Int) hcast
+  calc
+    evalExpr? config { contract := contract, locals := endFreeStoreArt I out } evm
+        (.unary (.neg int256Int) (asInt256 (.var "ink"))) =
+        .ok (.int (normalizeInt int256Int
+          (-normalizeInt int256Int (Int.ofNat (endFreeUrnInkWord out).toNat)))) := by
+      simpa only [asInt256, int256St] using hneg
+    _ = .ok (.int (-Int.ofNat (endFreeUrnInkWord out).toNat)) :=
+      congrArg (fun i => EvalResult.ok (Value.int i)) hnormalize
 
 theorem evalExprs_endFree_grabArgs (evm : EVM.State) (I : ExecutionEnv)
     (out : ByteArray)
     (hsrc : evm.executionEnv.source = I.source)
-    (howner : evm.executionEnv.codeOwner = I.codeOwner) :
+    (howner : evm.executionEnv.codeOwner = I.codeOwner)
+    (hinkBound : (endFreeUrnInkWord out).toNat ≤ 2 ^ 255) :
     evalExprs? config { contract := contract, locals := endFreeStoreArt I out } evm
-      [.var "ilk", sender, sender, vowAddr, .unary .neg (asInt256 (.var "ink")),
+      [.var "ilk", sender, sender, vowAddr, .unary (.neg int256Int) (asInt256 (.var "ink")),
         .intLit 0] =
         .ok [.fixedBytes bytes32Width (endBytes32ArgBytes I),
           .address I.source,
@@ -1712,7 +1727,7 @@ theorem evalExprs_endFree_grabArgs (evm : EVM.State) (I : ExecutionEnv)
     simpa [vowAddr, howner, Solm.EVM.storageLoad, State.lookupAccount,
       endPackVowAddr, endPackVowWord, endSlotWord, solcSlotWord] using
       evalExpr_endPack_vow (locals := endFreeStoreArt I out) evm hbase
-  have hneg := evalExpr_endFree_negInk_afterArt evm I out
+  have hneg := evalExpr_endFree_negInk_afterArt evm I out hinkBound
   have hzero :
       evalExpr? config { contract := contract, locals := endFreeStoreArt I out } evm
         (.intLit 0) = .ok (.int 0) := by
@@ -1845,7 +1860,7 @@ theorem endFreeTailReverts_grabNoCode (evm : EVM.State) (I : ExecutionEnv)
   have hgrabBlock :
       ExecBlock config { contract := contract, locals := endFreeStoreArt I out } evm
         (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
-          [.var "ilk", sender, sender, vowAddr, .unary .neg (asInt256 (.var "ink")),
+          [.var "ilk", sender, sender, vowAddr, .unary (.neg int256Int) (asInt256 (.var "ink")),
             .intLit 0] "_grab")
         .reverted := by
     simpa [checkedExternalCallStmts] using
@@ -1854,7 +1869,7 @@ theorem endFreeTailReverts_grabNoCode (evm : EVM.State) (I : ExecutionEnv)
         (locals := endFreeStoreArt I out) (receiver := .storage vatRef)
         (retVar := "_grab") (name := "grab") (sendVal := 0)
         (args :=
-          [.var "ilk", sender, sender, vowAddr, .unary .neg (asInt256 (.var "ink")),
+          [.var "ilk", sender, sender, vowAddr, .unary (.neg int256Int) (asInt256 (.var "ink")),
             .intLit 0])
         (perm := true) hguardGrab
   simp only [endFreeAfterUrnsStmts, List.cons_append, List.nil_append]
@@ -1935,7 +1950,7 @@ theorem endFreeTailReverts_grabCallFailed (evm evmGrab : EVM.State) (I : Executi
     endEvalExpr_extCodeGuard_true hreceiver hcodePos
   have hargs :
       evalExprs? config { contract := contract, locals := endFreeStoreArt I out } evm
-        [.var "ilk", sender, sender, vowAddr, .unary .neg (asInt256 (.var "ink")),
+        [.var "ilk", sender, sender, vowAddr, .unary (.neg int256Int) (asInt256 (.var "ink")),
           .intLit 0] =
         .ok [.fixedBytes bytes32Width (endBytes32ArgBytes I),
           .address I.source,
@@ -1943,11 +1958,11 @@ theorem endFreeTailReverts_grabCallFailed (evm evmGrab : EVM.State) (I : Executi
           .address (endPackVowAddr evm.accountMap I),
           .int (-(Int.ofNat (endFreeUrnInkWord out).toNat)),
           .int 0] :=
-    evalExprs_endFree_grabArgs evm I out hsrc howner
+    evalExprs_endFree_grabArgs evm I out hsrc howner hink
   have hgrabBlock :
       ExecBlock config { contract := contract, locals := endFreeStoreArt I out } evm
         (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
-          [.var "ilk", sender, sender, vowAddr, .unary .neg (asInt256 (.var "ink")),
+          [.var "ilk", sender, sender, vowAddr, .unary (.neg int256Int) (asInt256 (.var "ink")),
             .intLit 0] "_grab")
         .reverted := by
     simpa [checkedExternalCallStmts] using
@@ -1957,7 +1972,7 @@ theorem endFreeTailReverts_grabCallFailed (evm evmGrab : EVM.State) (I : Executi
         (retVar := "_grab") (name := "grab") (target := endPackVatAddr evm.accountMap I)
         (sendVal := 0)
         (args :=
-          [.var "ilk", sender, sender, vowAddr, .unary .neg (asInt256 (.var "ink")),
+          [.var "ilk", sender, sender, vowAddr, .unary (.neg int256Int) (asInt256 (.var "ink")),
             .intLit 0])
         (argVals :=
           [.fixedBytes bytes32Width (endBytes32ArgBytes I),
@@ -2047,7 +2062,7 @@ theorem endFreeTailReturns_grabSuccess (evm evmGrab : EVM.State) (I : ExecutionE
     endEvalExpr_extCodeGuard_true hreceiver hcodePos
   have hargs :
       evalExprs? config { contract := contract, locals := endFreeStoreArt I out } evm
-        [.var "ilk", sender, sender, vowAddr, .unary .neg (asInt256 (.var "ink")),
+        [.var "ilk", sender, sender, vowAddr, .unary (.neg int256Int) (asInt256 (.var "ink")),
           .intLit 0] =
         .ok [.fixedBytes bytes32Width (endBytes32ArgBytes I),
           .address I.source,
@@ -2055,11 +2070,11 @@ theorem endFreeTailReturns_grabSuccess (evm evmGrab : EVM.State) (I : ExecutionE
           .address (endPackVowAddr evm.accountMap I),
           .int (-(Int.ofNat (endFreeUrnInkWord out).toNat)),
           .int 0] :=
-    evalExprs_endFree_grabArgs evm I out hsrc howner
+    evalExprs_endFree_grabArgs evm I out hsrc howner hink
   have hgrabBlock :
       ExecBlock config { contract := contract, locals := endFreeStoreArt I out } evm
         (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
-          [.var "ilk", sender, sender, vowAddr, .unary .neg (asInt256 (.var "ink")),
+          [.var "ilk", sender, sender, vowAddr, .unary (.neg int256Int) (asInt256 (.var "ink")),
             .intLit 0] "_grab")
         (.ok { contract := contract, locals := endFreeStoreGrab I out } evmGrab) := by
     have hdec : config.externalABI.decode? "grab" grabOut = some [] := by
@@ -2070,7 +2085,7 @@ theorem endFreeTailReturns_grabSuccess (evm evmGrab : EVM.State) (I : ExecutionE
       (retVar := "_grab") (name := "grab") (target := endPackVatAddr evm.accountMap I)
       (sendVal := 0)
       (args :=
-        [.var "ilk", sender, sender, vowAddr, .unary .neg (asInt256 (.var "ink")),
+        [.var "ilk", sender, sender, vowAddr, .unary (.neg int256Int) (asInt256 (.var "ink")),
           .intLit 0])
       (argVals :=
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),

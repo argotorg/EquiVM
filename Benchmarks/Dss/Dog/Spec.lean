@@ -416,8 +416,8 @@ def barkBodyRest (v : DogImmutables) : List Stmt :=
             (.binary .le (.var "dink") (.intLit int256Limit))) ] ++
       checkedExternalCallStmts (vatExpr v) "grab" (.intLit 0)
         [ .var "ilk", .var "urn", .var "milkClip", vowAddr,
-          .unary .neg (asInt256 (.var "dink")),
-          .unary .neg (asInt256 (.var "dart")) ] "_grabRet" ++
+          .unary (.neg int256Int) (asInt256 (.var "dink")),
+          .unary (.neg int256Int) (asInt256 (.var "dart")) ] "_grabRet" ++
       checkedMulUintInto "due" (.var "dart") (.var "rate") ++
       checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
       checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++

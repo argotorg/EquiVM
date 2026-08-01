@@ -155,7 +155,7 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     function borrowBalanceOf(address account) external returns (uint256) {
       int104 principal = userBasic[account].principal;
       return principal < 0 ?
-        (((((-principal) as uint104) * baseBorrowIndex) as uint256) / #baseIndexScale) as uint256 :
+        (((((-int104(principal)) as uint104) * baseBorrowIndex) as uint256) / #baseIndexScale) as uint256 :
         0;
     }
 

@@ -387,48 +387,8 @@ theorem endSkimVatIlksPostCallMem_size_gt64 (I : ExecutionEnv) (out : ByteArray)
   unfold endSkimVatIlksPostCallMem
   rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
     show endFlowVatIlksOutSize.toNat = 160 by native_decide]
-  by_cases hlen0 : min 160 out.size = 0
-  · rw [hlen0, byteArray_write_len_zero]
-    rw [endSkimVatIlksCalldataMem_size I]
-    omega
-  · by_cases hext : (endSkimVatIlksCalldataMem I).size < 128 + min 160 out.size
-    · rw [write_eq_gen_extend out (endSkimVatIlksCalldataMem I)
-        128 (min 160 out.size) hlen0 (Nat.min_le_right _ _)
-        (by rw [endSkimVatIlksCalldataMem_size I]; omega) hext]
-      have hbaseSize : (endSkimVatIlksCalldataMem I).size = 164 :=
-        endSkimVatIlksCalldataMem_size I
-      have hprefix :
-          ((endSkimVatIlksCalldataMem I).extract 0 128).size = 128 := by
-        rw [ByteArray.size_extract, hbaseSize]
-        omega
-      have hsrc : (out.extract 0 (min 160 out.size)).size = min 160 out.size := by
-        rw [ByteArray.size_extract]
-        omega
-      rw [ByteArray.size_append, hprefix, hsrc]
-      have hleout : min 160 out.size ≤ out.size := Nat.min_le_right _ _
-      omega
-    · have hin : 128 + min 160 out.size ≤ (endSkimVatIlksCalldataMem I).size := by
-        omega
-      rw [write_eq_gen out (endSkimVatIlksCalldataMem I)
-        128 (min 160 out.size) hlen0 (Nat.min_le_right _ _) hin]
-      have hbaseSize : (endSkimVatIlksCalldataMem I).size = 164 :=
-        endSkimVatIlksCalldataMem_size I
-      have hprefix :
-          ((endSkimVatIlksCalldataMem I).extract 0 128).size = 128 := by
-        rw [ByteArray.size_extract, hbaseSize]
-        omega
-      have hsrc : (out.extract 0 (min 160 out.size)).size = min 160 out.size := by
-        rw [ByteArray.size_extract]
-        omega
-      have htail :
-          ((endSkimVatIlksCalldataMem I).extract
-            (128 + min 160 out.size) (endSkimVatIlksCalldataMem I).size).size =
-              164 - (128 + min 160 out.size) := by
-        rw [ByteArray.size_extract, hbaseSize]
-        omega
-      rw [ByteArray.size_append, ByteArray.size_append, hprefix, hsrc, htail]
-      have hleout : min 160 out.size ≤ out.size := Nat.min_le_right _ _
-      omega
+  exact write128Min160_size_gt64 (endSkimVatIlksCalldataMem I) out
+    (endSkimVatIlksCalldataMem_size I)
 
 theorem endSkimVatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray) :
     (endSkimVatIlksPostCallMem I out).readWithPadding 64 32 =
@@ -5829,33 +5789,68 @@ theorem endSkimVatReceiver_afterGapNew {σ I vatOut urnOut evm}
     evalExpr_endPack_vat (locals := endSkimStoreGapNew σ I vatOut urnOut) evm hbase
 
 theorem evalExpr_endSkim_negWad_afterGapNew (evm : EVM.State) (I : ExecutionEnv)
-    (σ : AccountMap) (vatOut urnOut : ByteArray) :
+    (σ : AccountMap) (vatOut urnOut : ByteArray)
+    (hwadBound : (endSkimWadWord σ I vatOut urnOut).toNat ≤ 2 ^ 255) :
     evalExpr? config { contract := contract, locals := endSkimStoreGapNew σ I vatOut urnOut }
-      evm (.unary .neg (asInt256 (.var "wad"))) =
+      evm (.unary (.neg int256Int) (asInt256 (.var "wad"))) =
         .ok (.int (-(Int.ofNat (endSkimWadWord σ I vatOut urnOut).toNat))) := by
   have hwad := evalExpr_endSkim_wad_afterGapNew evm I σ vatOut urnOut
-  simp only [asInt256, evalExpr?, hwad, castValue?, evalUnaryOp?, EvalResult.bind, bind,
-    int256St, int256Int]
-  rfl
+  have hnormalize :
+      normalizeInt int256Int
+          (-normalizeInt int256Int
+            (Int.ofNat (endSkimWadWord σ I vatOut urnOut).toNat)) =
+        -Int.ofNat (endSkimWadWord σ I vatOut urnOut).toNat := by
+    simpa [int256Int, EVM.twoPow] using
+      normalizeInt_sint256_neg_word_of_le
+        (endSkimWadWord σ I vatOut urnOut) hwadBound
+  have hcast := evalExpr_cast_int (intType := int256Int) hwad
+  have hneg := evalExpr_neg_int (intType := int256Int) hcast
+  calc
+    evalExpr? config { contract := contract, locals := endSkimStoreGapNew σ I vatOut urnOut }
+        evm
+        (.unary (.neg int256Int) (asInt256 (.var "wad"))) =
+        .ok (.int (normalizeInt int256Int
+          (-normalizeInt int256Int
+            (Int.ofNat (endSkimWadWord σ I vatOut urnOut).toNat)))) := by
+      simpa only [asInt256, int256St] using hneg
+    _ = .ok (.int (-Int.ofNat (endSkimWadWord σ I vatOut urnOut).toNat)) :=
+      congrArg (fun i => EvalResult.ok (Value.int i)) hnormalize
 
 theorem evalExpr_endSkim_negArt_afterGapNew (evm : EVM.State) (I : ExecutionEnv)
-    (σ : AccountMap) (vatOut urnOut : ByteArray) :
+    (σ : AccountMap) (vatOut urnOut : ByteArray)
+    (hartBound : (endFreeUrnArtWord urnOut).toNat ≤ 2 ^ 255) :
     evalExpr? config { contract := contract, locals := endSkimStoreGapNew σ I vatOut urnOut }
-      evm (.unary .neg (asInt256 (.var "art"))) =
+      evm (.unary (.neg int256Int) (asInt256 (.var "art"))) =
         .ok (.int (-(Int.ofNat (endFreeUrnArtWord urnOut).toNat))) := by
   have hart := evalExpr_endSkim_art_afterGapNew evm I σ vatOut urnOut
-  simp only [asInt256, evalExpr?, hart, castValue?, evalUnaryOp?, EvalResult.bind, bind,
-    int256St, int256Int]
-  rfl
+  have hnormalize :
+      normalizeInt int256Int
+          (-normalizeInt int256Int (Int.ofNat (endFreeUrnArtWord urnOut).toNat)) =
+        -Int.ofNat (endFreeUrnArtWord urnOut).toNat := by
+    simpa [int256Int, EVM.twoPow] using
+      normalizeInt_sint256_neg_word_of_le (endFreeUrnArtWord urnOut) hartBound
+  have hcast := evalExpr_cast_int (intType := int256Int) hart
+  have hneg := evalExpr_neg_int (intType := int256Int) hcast
+  calc
+    evalExpr? config { contract := contract, locals := endSkimStoreGapNew σ I vatOut urnOut }
+        evm
+        (.unary (.neg int256Int) (asInt256 (.var "art"))) =
+        .ok (.int (normalizeInt int256Int
+          (-normalizeInt int256Int (Int.ofNat (endFreeUrnArtWord urnOut).toNat)))) := by
+      simpa only [asInt256, int256St] using hneg
+    _ = .ok (.int (-Int.ofNat (endFreeUrnArtWord urnOut).toNat)) :=
+      congrArg (fun i => EvalResult.ok (Value.int i)) hnormalize
 
 theorem evalExprs_endSkim_grabArgs (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (vatOut urnOut : ByteArray)
-    (howner : evm.executionEnv.codeOwner = I.codeOwner) :
+    (howner : evm.executionEnv.codeOwner = I.codeOwner)
+    (hwadBound : (endSkimWadWord σ I vatOut urnOut).toNat ≤ 2 ^ 255)
+    (hartBound : (endFreeUrnArtWord urnOut).toNat ≤ 2 ^ 255) :
     evalExprs? config { contract := contract, locals := endSkimStoreGapNew σ I vatOut urnOut }
       evm
       [.var "ilk", .var "urn", thisAddr, vowAddr,
-        .unary .neg (asInt256 (.var "wad")),
-        .unary .neg (asInt256 (.var "art"))] =
+        .unary (.neg int256Int) (asInt256 (.var "wad")),
+        .unary (.neg int256Int) (asInt256 (.var "art"))] =
         .ok [.fixedBytes bytes32Width (endBytes32ArgBytes I),
           .address (endSkimUrnAddr I),
           .address I.codeOwner,
@@ -5915,8 +5910,8 @@ theorem evalExprs_endSkim_grabArgs (evm : EVM.State) (I : ExecutionEnv)
     simpa [vowAddr, howner, Solm.EVM.storageLoad, State.lookupAccount,
       endPackVowAddr, endPackVowWord, endSlotWord, solcSlotWord] using
       evalExpr_endPack_vow (locals := endSkimStoreGapNew σ I vatOut urnOut) evm hbase
-  have hnegWad := evalExpr_endSkim_negWad_afterGapNew evm I σ vatOut urnOut
-  have hnegArt := evalExpr_endSkim_negArt_afterGapNew evm I σ vatOut urnOut
+  have hnegWad := evalExpr_endSkim_negWad_afterGapNew evm I σ vatOut urnOut hwadBound
+  have hnegArt := evalExpr_endSkim_negArt_afterGapNew evm I σ vatOut urnOut hartBound
   simp [evalExprs?, hilk, hurn, hthis, hvow, hnegWad, hnegArt,
     EvalResult.bind, bind, pure]
 
@@ -5929,8 +5924,8 @@ theorem endSkimGrabTailReverts_noCode {σ I} {vatOut urnOut : ByteArray}
       evm
       (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))]
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))]
         "_grab")
       .reverted := by
   have hreceiver := endSkimVatReceiver_afterGapNew
@@ -5950,8 +5945,8 @@ theorem endSkimGrabTailReverts_noCode {σ I} {vatOut urnOut : ByteArray}
       (retVar := "_grab") (name := "grab") (sendVal := 0)
       (args :=
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))])
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))])
       (perm := true) hguard
 
 theorem endSkimGrabTailReverts_callFailed {σ I} {vatOut urnOut grabOut : ByteArray}
@@ -5959,6 +5954,8 @@ theorem endSkimGrabTailReverts_callFailed {σ I} {vatOut urnOut grabOut : ByteAr
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+    (hwadBound : (endSkimWadWord σ I vatOut urnOut).toNat ≤ 2 ^ 255)
+    (hartBound : (endFreeUrnArtWord urnOut).toNat ≤ 2 ^ 255)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σ I)) "grab" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
@@ -5972,8 +5969,8 @@ theorem endSkimGrabTailReverts_callFailed {σ I} {vatOut urnOut grabOut : ByteAr
       evm
       (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))]
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))]
         "_grab")
       .reverted := by
   have hreceiver := endSkimVatReceiver_afterGapNew
@@ -5986,13 +5983,14 @@ theorem endSkimGrabTailReverts_callFailed {σ I} {vatOut urnOut grabOut : ByteAr
         evm (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) =
         .ok (.bool true) :=
     endEvalExpr_extCodeGuard_true hreceiver hcodePos
-  have hargsRaw := evalExprs_endSkim_grabArgs evm I σ vatOut urnOut howner
+  have hargsRaw :=
+    evalExprs_endSkim_grabArgs evm I σ vatOut urnOut howner hwadBound hartBound
   have hargs :
       evalExprs? config { contract := contract, locals := endSkimStoreGapNew σ I vatOut urnOut }
         evm
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))] =
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))] =
           .ok [.fixedBytes bytes32Width (endBytes32ArgBytes I),
             .address (endSkimUrnAddr I),
             .address I.codeOwner,
@@ -6008,8 +6006,8 @@ theorem endSkimGrabTailReverts_callFailed {σ I} {vatOut urnOut grabOut : ByteAr
       (sendVal := 0)
       (args :=
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))])
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))])
       (argVals :=
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
           .address (endSkimUrnAddr I),
@@ -6024,6 +6022,8 @@ theorem endSkimGrabTailReturns_success {σ I} {vatOut urnOut grabOut : ByteArray
     (hmap : evm.accountMap = σ) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σ (endPackVatWord σ I) ≠ ⟨0⟩)
+    (hwadBound : (endSkimWadWord σ I vatOut urnOut).toNat ≤ 2 ^ 255)
+    (hartBound : (endFreeUrnArtWord urnOut).toNat ≤ 2 ^ 255)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σ I)) "grab" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
@@ -6037,8 +6037,8 @@ theorem endSkimGrabTailReturns_success {σ I} {vatOut urnOut grabOut : ByteArray
       evm
       (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))]
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))]
         "_grab")
       (.ok { contract := contract, locals := endSkimStoreGrab σ I vatOut urnOut }
         evmGrab) := by
@@ -6052,13 +6052,14 @@ theorem endSkimGrabTailReturns_success {σ I} {vatOut urnOut grabOut : ByteArray
         evm (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) =
         .ok (.bool true) :=
     endEvalExpr_extCodeGuard_true hreceiver hcodePos
-  have hargsRaw := evalExprs_endSkim_grabArgs evm I σ vatOut urnOut howner
+  have hargsRaw :=
+    evalExprs_endSkim_grabArgs evm I σ vatOut urnOut howner hwadBound hartBound
   have hargs :
       evalExprs? config { contract := contract, locals := endSkimStoreGapNew σ I vatOut urnOut }
         evm
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))] =
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))] =
           .ok [.fixedBytes bytes32Width (endBytes32ArgBytes I),
             .address (endSkimUrnAddr I),
             .address I.codeOwner,
@@ -6075,8 +6076,8 @@ theorem endSkimGrabTailReturns_success {σ I} {vatOut urnOut grabOut : ByteArray
     (sendVal := 0)
     (args :=
       [.var "ilk", .var "urn", thisAddr, vowAddr,
-        .unary .neg (asInt256 (.var "wad")),
-        .unary .neg (asInt256 (.var "art"))])
+        .unary (.neg int256Int) (asInt256 (.var "wad")),
+        .unary (.neg int256Int) (asInt256 (.var "art"))])
     (argVals :=
       [.fixedBytes bytes32Width (endBytes32ArgBytes I),
         .address (endSkimUrnAddr I),
@@ -6110,8 +6111,8 @@ theorem endSkimGrabTailReverts_noCodeFor {σCall σLoc I} {vatOut urnOut : ByteA
       evm
       (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))]
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))]
         "_grab")
       .reverted := by
   have hreceiver := endSkimVatReceiver_afterGapNewFor
@@ -6131,8 +6132,8 @@ theorem endSkimGrabTailReverts_noCodeFor {σCall σLoc I} {vatOut urnOut : ByteA
       (retVar := "_grab") (name := "grab") (sendVal := 0)
       (args :=
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))])
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))])
       (perm := true) hguard
 
 theorem endSkimGrabTailReverts_callFailedFor {σCall σLoc I}
@@ -6140,6 +6141,8 @@ theorem endSkimGrabTailReverts_callFailedFor {σCall σLoc I}
     (hmap : evm.accountMap = σCall) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σCall (endPackVatWord σCall I) ≠ ⟨0⟩)
+    (hwadBound : (endSkimWadWord σLoc I vatOut urnOut).toNat ≤ 2 ^ 255)
+    (hartBound : (endFreeUrnArtWord urnOut).toNat ≤ 2 ^ 255)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σCall I)) "grab" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
@@ -6153,8 +6156,8 @@ theorem endSkimGrabTailReverts_callFailedFor {σCall σLoc I}
       evm
       (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))]
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))]
         "_grab")
       .reverted := by
   have hreceiver := endSkimVatReceiver_afterGapNewFor
@@ -6167,13 +6170,14 @@ theorem endSkimGrabTailReverts_callFailedFor {σCall σLoc I}
         evm (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) =
         .ok (.bool true) :=
     endEvalExpr_extCodeGuard_true hreceiver hcodePos
-  have hargsRaw := evalExprs_endSkim_grabArgs evm I σLoc vatOut urnOut howner
+  have hargsRaw :=
+    evalExprs_endSkim_grabArgs evm I σLoc vatOut urnOut howner hwadBound hartBound
   have hargs :
       evalExprs? config { contract := contract, locals := endSkimStoreGapNew σLoc I vatOut urnOut }
         evm
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))] =
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))] =
           .ok [.fixedBytes bytes32Width (endBytes32ArgBytes I),
             .address (endSkimUrnAddr I),
             .address I.codeOwner,
@@ -6189,8 +6193,8 @@ theorem endSkimGrabTailReverts_callFailedFor {σCall σLoc I}
       (sendVal := 0)
       (args :=
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))])
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))])
       (argVals :=
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
           .address (endSkimUrnAddr I),
@@ -6205,6 +6209,8 @@ theorem endSkimGrabTailReturns_successFor {σCall σLoc I}
     (hmap : evm.accountMap = σCall) (howner : evm.executionEnv.codeOwner = I.codeOwner)
     (hcodeSize :
       Reasoning.Theory.extCodeSizeWord σCall (endPackVatWord σCall I) ≠ ⟨0⟩)
+    (hwadBound : (endSkimWadWord σLoc I vatOut urnOut).toNat ≤ 2 ^ 255)
+    (hartBound : (endFreeUrnArtWord urnOut).toNat ≤ 2 ^ 255)
     (hcall :
       typedCallViaEVM config evm (EVM.address (endPackVatAddr σCall I)) "grab" 0
         [.fixedBytes bytes32Width (endBytes32ArgBytes I),
@@ -6218,8 +6224,8 @@ theorem endSkimGrabTailReturns_successFor {σCall σLoc I}
       evm
       (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))]
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))]
         "_grab")
       (.ok { contract := contract, locals := endSkimStoreGrab σLoc I vatOut urnOut }
         evmGrab) := by
@@ -6233,13 +6239,14 @@ theorem endSkimGrabTailReturns_successFor {σCall σLoc I}
         evm (.binary .gt (.extCodeSize (.storage vatRef)) (.intLit 0)) =
         .ok (.bool true) :=
     endEvalExpr_extCodeGuard_true hreceiver hcodePos
-  have hargsRaw := evalExprs_endSkim_grabArgs evm I σLoc vatOut urnOut howner
+  have hargsRaw :=
+    evalExprs_endSkim_grabArgs evm I σLoc vatOut urnOut howner hwadBound hartBound
   have hargs :
       evalExprs? config { contract := contract, locals := endSkimStoreGapNew σLoc I vatOut urnOut }
         evm
         [.var "ilk", .var "urn", thisAddr, vowAddr,
-          .unary .neg (asInt256 (.var "wad")),
-          .unary .neg (asInt256 (.var "art"))] =
+          .unary (.neg int256Int) (asInt256 (.var "wad")),
+          .unary (.neg int256Int) (asInt256 (.var "art"))] =
           .ok [.fixedBytes bytes32Width (endBytes32ArgBytes I),
             .address (endSkimUrnAddr I),
             .address I.codeOwner,
@@ -6256,8 +6263,8 @@ theorem endSkimGrabTailReturns_successFor {σCall σLoc I}
     (sendVal := 0)
     (args :=
       [.var "ilk", .var "urn", thisAddr, vowAddr,
-        .unary .neg (asInt256 (.var "wad")),
-        .unary .neg (asInt256 (.var "art"))])
+        .unary (.neg int256Int) (asInt256 (.var "wad")),
+        .unary (.neg int256Int) (asInt256 (.var "art"))])
     (argVals :=
       [.fixedBytes bytes32Width (endBytes32ArgBytes I),
         .address (endSkimUrnAddr I),
@@ -6523,7 +6530,7 @@ theorem endSkimBodyReverts_afterArtTailReverted {I} {vatOut urnOut : ByteArray}
   let grabTail :=
     checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
       [.var "ilk", .var "urn", thisAddr, vowAddr,
-       .unary .neg (asInt256 (.var "wad")), .unary .neg (asInt256 (.var "art"))]
+       .unary (.neg int256Int) (asInt256 (.var "wad")), .unary (.neg int256Int) (asInt256 (.var "art"))]
       "_grab"
   have htailWithGrab :
       ExecBlock config { contract := contract, locals := endSkimStoreArt I vatOut urnOut } evmArt
@@ -6580,8 +6587,8 @@ theorem endSkimBodyReverts_afterArtTailGrabReverted {I σLoc}
         evmPost
         (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
           [.var "ilk", .var "urn", thisAddr, vowAddr,
-            .unary .neg (asInt256 (.var "wad")),
-            .unary .neg (asInt256 (.var "art"))]
+            .unary (.neg int256Int) (asInt256 (.var "wad")),
+            .unary (.neg int256Int) (asInt256 (.var "art"))]
           "_grab")
         .reverted) :
     ExecTransitionBody config contract evm0 (endSkimStore I) skimTransition.body
@@ -6589,8 +6596,8 @@ theorem endSkimBodyReverts_afterArtTailGrabReverted {I σLoc}
   let grabTail :=
     checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
       [.var "ilk", .var "urn", thisAddr, vowAddr,
-        .unary .neg (asInt256 (.var "wad")),
-        .unary .neg (asInt256 (.var "art"))]
+        .unary (.neg int256Int) (asInt256 (.var "wad")),
+        .unary (.neg int256Int) (asInt256 (.var "art"))]
       "_grab"
   have htailWithGrab :
       ExecBlock config { contract := contract, locals := endSkimStoreArt I vatOut urnOut }
@@ -6648,8 +6655,8 @@ theorem endSkimBodyReturns_afterArtTailGrabSuccess {I σLoc}
         evmPost
         (checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
           [.var "ilk", .var "urn", thisAddr, vowAddr,
-            .unary .neg (asInt256 (.var "wad")),
-            .unary .neg (asInt256 (.var "art"))]
+            .unary (.neg int256Int) (asInt256 (.var "wad")),
+            .unary (.neg int256Int) (asInt256 (.var "art"))]
           "_grab")
         (.ok { contract := contract, locals := endSkimStoreGrab σLoc I vatOut urnOut }
           evmGrab)) :
@@ -6659,8 +6666,8 @@ theorem endSkimBodyReturns_afterArtTailGrabSuccess {I σLoc}
   let grabTail :=
     checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
       [.var "ilk", .var "urn", thisAddr, vowAddr,
-        .unary .neg (asInt256 (.var "wad")),
-        .unary .neg (asInt256 (.var "art"))]
+        .unary (.neg int256Int) (asInt256 (.var "wad")),
+        .unary (.neg int256Int) (asInt256 (.var "art"))]
       "_grab"
   have htailWithGrab :
       ExecBlock config { contract := contract, locals := endSkimStoreArt I vatOut urnOut }
@@ -6734,7 +6741,7 @@ theorem endSkimBodyReverts_vatIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
               (.binary .le (.var "art") (.intLit int256Limit))) ] ++
           checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
             [.var "ilk", .var "urn", thisAddr, vowAddr,
-             .unary .neg (asInt256 (.var "wad")), .unary .neg (asInt256 (.var "art"))]
+             .unary (.neg int256Int) (asInt256 (.var "wad")), .unary (.neg int256Int) (asInt256 (.var "art"))]
             "_grab")
         .reverted := by
     exact execBlock_append_term
@@ -6756,7 +6763,7 @@ theorem endSkimBodyReverts_vatIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
               (.binary .le (.var "art") (.intLit int256Limit))) ] ++
         checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
           [.var "ilk", .var "urn", thisAddr, vowAddr,
-           .unary .neg (asInt256 (.var "wad")), .unary .neg (asInt256 (.var "art"))]
+           .unary (.neg int256Int) (asInt256 (.var "wad")), .unary (.neg int256Int) (asInt256 (.var "art"))]
           "_grab")
       hvat (by intro f' e' h; cases h)
   have hblock :
@@ -6924,7 +6931,7 @@ theorem endSkimBodyReverts_afterRateUrnsBlock {I} {vatOut : ByteArray}
           (.binary .le (.var "art") (.intLit int256Limit))) ] ++
     checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
       [.var "ilk", .var "urn", thisAddr, vowAddr,
-       .unary .neg (asInt256 (.var "wad")), .unary .neg (asInt256 (.var "art"))]
+       .unary (.neg int256Int) (asInt256 (.var "wad")), .unary (.neg int256Int) (asInt256 (.var "art"))]
       "_grab"
   have hurnsWithTail :
       ExecBlock config { contract := contract, locals := endSkimStoreRate I vatOut } evmRate
@@ -6980,7 +6987,7 @@ theorem endSkimBodyReverts_tagZero {cA gh bl σ σ₀ A I} {g : UInt256}
               (.binary .le (.var "art") (.intLit int256Limit))) ] ++
         checkedExternalCallStmts (.storage vatRef) "grab" (.intLit 0)
           [.var "ilk", .var "urn", thisAddr, vowAddr,
-           .unary .neg (asInt256 (.var "wad")), .unary .neg (asInt256 (.var "art"))]
+           .unary (.neg int256Int) (asInt256 (.var "wad")), .unary (.neg int256Int) (asInt256 (.var "art"))]
           "_grab")
       (by simp only [evm0, initState]; exact hwv)
       hguard
@@ -7910,6 +7917,7 @@ theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                             substate := A_grab_solm
                                             createdAccounts := cA_grab })
                                         hmapPostSolm hownerPostSolm hgrabCodeSolmNE
+                                        hwadLimitSolm hartLimit
                                         (by simpa using hgrabCallSolm)
                                     have hbody :
                                         ExecTransitionBody config contract evmSolm
@@ -7956,6 +7964,7 @@ theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                         (grabOut := ret) (evm := evmPostSolm)
                                         (evmGrab := evmGrabSolm)
                                         hmapPostSolm hownerPostSolm hgrabCodeSolmNE
+                                        hwadLimitSolm hartLimit
                                         (by simpa [evmGrabSolm] using hgrabCallSolm)
                                     have hbody :
                                         ExecTransitionBody config contract evmSolm
@@ -8038,6 +8047,7 @@ theorem endSkimBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       (grabOut := ByteArray.empty) (evm := evmPostSolm)
                                       (evmGrab := { evmPostSolm with substate := A_grab })
                                       hmapPostSolm hownerPostSolm hgrabCodeSolmNE
+                                      hwadLimitSolm hartLimit
                                       (by simpa using hgrabCallSolm)
                                   have hbody :
                                       ExecTransitionBody config contract evmSolm

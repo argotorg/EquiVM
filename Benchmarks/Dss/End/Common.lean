@@ -1230,6 +1230,44 @@ theorem endExecAddFunctionRevert (evm : EVM.State) {x y : UInt256}
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert hAddRev)
   simpa [addFunction, locals] using ExecFuncBody.execBlockRevert hblock
 
+theorem endInternalAddFunctionReturn (evm : EVM.State) {locals : Store}
+    {args : List Expr} {retVar : Ident} {x y sum : UInt256}
+    (hargs :
+      evalExprs? config { contract := contract, locals := locals } evm args =
+        .ok [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
+    (hsum : sum = x + y) (hfit : x.toNat + y.toNat < UInt256.size) :
+    ExecStmt config { contract := contract, locals := locals } evm
+      (.internalCall "add" args retVar)
+      (.ok
+        (resumeAfterInternalCall { contract := contract, locals := locals } retVar
+          (some [.int (Int.ofNat sum.toNat)]))
+        evm) := by
+  exact internalCallFunctionReturn
+    (cfg := config) (caller := { contract := contract, locals := locals })
+    (evm := evm) (name := "add") (retVar := retVar) (args := args)
+    (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
+    (callee := addFunction) (locals := endUintBinaryLocals x y)
+    hargs (by rfl)
+    (by simp [addFunction, uint256, bindParams?, endUintBinaryLocals])
+    (endExecAddFunctionReturn evm hsum hfit)
+
+theorem endInternalAddFunctionRevert (evm : EVM.State) {locals : Store}
+    {args : List Expr} {retVar : Ident} {x y : UInt256}
+    (hargs :
+      evalExprs? config { contract := contract, locals := locals } evm args =
+        .ok [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
+    (hover : UInt256.size ≤ x.toNat + y.toNat) :
+    ExecStmt config { contract := contract, locals := locals } evm
+      (.internalCall "add" args retVar) .reverted := by
+  exact internalCallFunctionRevert
+    (cfg := config) (caller := { contract := contract, locals := locals })
+    (evm := evm) (name := "add") (retVar := retVar) (args := args)
+    (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
+    (callee := addFunction) (locals := endUintBinaryLocals x y)
+    hargs (by rfl)
+    (by simp [addFunction, uint256, bindParams?, endUintBinaryLocals])
+    (endExecAddFunctionRevert evm hover)
+
 theorem endExecMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
     (hprod : prod = x * y) (hfit : x.toNat * y.toNat < UInt256.size) :
     ExecFuncBody config { contract := contract, locals := endUintBinaryLocals x y } evm

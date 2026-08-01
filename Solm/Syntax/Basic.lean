@@ -69,7 +69,8 @@ inductive EnvVar where
 
 inductive UnaryOp where
   | not
-  | neg
+  /-- Integer negation at the operand's declared Solidity width. -/
+  | neg : IntType -> UnaryOp
   | bitNot
   deriving Repr, Inhabited
 

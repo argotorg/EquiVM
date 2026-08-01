@@ -1718,27 +1718,46 @@ theorem evalExpr_exit_wad_le_false (evm : EVM.State) (I : ExecutionEnv)
   simp [EvalResult.ofOption, joinWadValue, evalBinaryOp?]
   exact hwad
 
-theorem evalExpr_exit_neg_asInt256_wad (evm : EVM.State) (I : ExecutionEnv) :
+theorem evalExpr_exit_neg_asInt256_wad (evm : EVM.State) (I : ExecutionEnv)
+    (hwadOk : (joinWadWord I).toNat ≤ intLimit) :
     evalExpr? config { contract := contract, locals := exitStore I } evm
-      (.unary .neg (asInt256 (.var "wad"))) = .ok (exitNegWadValue I) := by
-  unfold asInt256 exitNegWadValue
-  simp only [evalExpr?, EvalResult.bind, bind]
-  rw [show (exitStore I).get? "wad" = some (joinWadValue I) by
-    unfold exitStore joinStore
-    simp]
-  simp [joinWadValue, int256St, int256Int, castValue?, EvalResult.ofOption,
-    evalUnaryOp?]
+      (.unary (.neg int256Int) (asInt256 (.var "wad"))) = .ok (exitNegWadValue I) := by
+  have hwadBound : (joinWadWord I).toNat ≤ 2 ^ 255 := by
+    norm_num [intLimit] at hwadOk ⊢
+    exact hwadOk
+  have hnormalize :
+      normalizeInt int256Int
+          (-normalizeInt int256Int (Int.ofNat (joinWadWord I).toNat)) =
+        -Int.ofNat (joinWadWord I).toNat := by
+    simpa [int256Int, EVM.twoPow] using
+      normalizeInt_sint256_neg_word_of_le (joinWadWord I) hwadBound
+  have hwad :
+      evalExpr? config { contract := contract, locals := exitStore I } evm (.var "wad") =
+        .ok (joinWadValue I) := by
+    simpa [exitStore] using evalExpr_join_wad evm I
+  have hcast := evalExpr_cast_int (intType := int256Int) hwad
+  have hneg := evalExpr_neg_int (intType := int256Int) hcast
+  calc
+    evalExpr? config { contract := contract, locals := exitStore I } evm
+        (.unary (.neg int256Int) (asInt256 (.var "wad"))) =
+        .ok (.int (normalizeInt int256Int
+          (-normalizeInt int256Int (Int.ofNat (joinWadWord I).toNat)))) := by
+      simpa only [asInt256, int256St, joinWadValue] using hneg
+    _ = .ok (exitNegWadValue I) := by
+      simp only [exitNegWadValue]
+      exact congrArg (fun i => EvalResult.ok (Value.int i)) hnormalize
 
-theorem evalExprs_exit_slipArgs (evm : EVM.State) (I : ExecutionEnv) :
+theorem evalExprs_exit_slipArgs (evm : EVM.State) (I : ExecutionEnv)
+    (hwadOk : (joinWadWord I).toNat ≤ intLimit) :
     evalExprs? config { contract := contract, locals := exitStore I } evm
-      [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] =
+      [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] =
         .ok
           [.fixedBytes bytes32Width
             (EVM.Word.toBytesBE
               (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
             .address evm.executionEnv.source, exitNegWadValue I] := by
   simp [evalExprs?, evalExpr_join_ilk evm I, sender, evalExpr?, envValue,
-    evalExpr_exit_neg_asInt256_wad evm I, EvalResult.bind, bind, pure, exitStore]
+    evalExpr_exit_neg_asInt256_wad evm I hwadOk, EvalResult.bind, bind, pure, exitStore]
 
 theorem evalExpr_exit_gem_afterSlip (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := exitLocalsAfterSlip I } evm
@@ -1844,17 +1863,17 @@ theorem gemJoinExitBodySuccess (evm evmSlip evmTransfer : EVM.State) (I : Execut
     simpa [exitStore, joinVatAddressOf] using evalExpr_join_vatCodeGuard_true evm I hvatCode
   have hslipArgs :
       evalExprs? config { contract := contract, locals := exitStore I } evm
-        [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] =
+        [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] =
           .ok
             [.fixedBytes bytes32Width
               (EVM.Word.toBytesBE
                 (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
               .address evm.executionEnv.source, exitNegWadValue I] :=
-    evalExprs_exit_slipArgs evm I
+    evalExprs_exit_slipArgs evm I hwadOk
   have hslipStmt :
       ExecStmt config { contract := contract, locals := exitStore I } evm
         (.externalCall (.storage vatRef) "slip" (.intLit 0)
-          [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] "slipRet")
+          [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] "slipRet")
         (.ok { contract := contract, locals := exitLocalsAfterSlip I } evmSlip) := by
     simpa [exitLocalsAfterSlip, collapseReturns] using
       ExecStmt.externalCallSuccess hvat (by simp [evalExpr?, pure]) hslipArgs hcallSlip
@@ -1949,17 +1968,17 @@ theorem gemJoinExitBodyRevertsSlipCallFailure
     simpa [exitStore, joinVatAddressOf] using evalExpr_join_vatCodeGuard_true evm I hvatCode
   have hslipArgs :
       evalExprs? config { contract := contract, locals := exitStore I } evm
-        [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] =
+        [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] =
           .ok
             [.fixedBytes bytes32Width
               (EVM.Word.toBytesBE
                 (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
               .address evm.executionEnv.source, exitNegWadValue I] :=
-    evalExprs_exit_slipArgs evm I
+    evalExprs_exit_slipArgs evm I hwadOk
   have hslipStmt :
       ExecStmt config { contract := contract, locals := exitStore I } evm
         (.externalCall (.storage vatRef) "slip" (.intLit 0)
-          [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] "slipRet")
+          [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] "slipRet")
         .reverted := by
     exact ExecStmt.externalCallFailure hvat (by simp [evalExpr?, pure]) hslipArgs hcallSlip
   refine ExecFuncBody.execBlockRevert ?_
@@ -2000,17 +2019,17 @@ theorem gemJoinExitBodyRevertsGemNoCode
     simpa [exitStore, joinVatAddressOf] using evalExpr_join_vatCodeGuard_true evm I hvatCode
   have hslipArgs :
       evalExprs? config { contract := contract, locals := exitStore I } evm
-        [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] =
+        [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] =
           .ok
             [.fixedBytes bytes32Width
               (EVM.Word.toBytesBE
                 (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
               .address evm.executionEnv.source, exitNegWadValue I] :=
-    evalExprs_exit_slipArgs evm I
+    evalExprs_exit_slipArgs evm I hwadOk
   have hslipStmt :
       ExecStmt config { contract := contract, locals := exitStore I } evm
         (.externalCall (.storage vatRef) "slip" (.intLit 0)
-          [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] "slipRet")
+          [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] "slipRet")
         (.ok { contract := contract, locals := exitLocalsAfterSlip I } evmSlip) := by
     simpa [exitLocalsAfterSlip, collapseReturns] using
       ExecStmt.externalCallSuccess hvat (by simp [evalExpr?, pure]) hslipArgs hcallSlip
@@ -2065,17 +2084,17 @@ theorem gemJoinExitBodyRevertsTransferCallFailure
     simpa [exitStore, joinVatAddressOf] using evalExpr_join_vatCodeGuard_true evm I hvatCode
   have hslipArgs :
       evalExprs? config { contract := contract, locals := exitStore I } evm
-        [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] =
+        [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] =
           .ok
             [.fixedBytes bytes32Width
               (EVM.Word.toBytesBE
                 (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
               .address evm.executionEnv.source, exitNegWadValue I] :=
-    evalExprs_exit_slipArgs evm I
+    evalExprs_exit_slipArgs evm I hwadOk
   have hslipStmt :
       ExecStmt config { contract := contract, locals := exitStore I } evm
         (.externalCall (.storage vatRef) "slip" (.intLit 0)
-          [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] "slipRet")
+          [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] "slipRet")
         (.ok { contract := contract, locals := exitLocalsAfterSlip I } evmSlip) := by
     simpa [exitLocalsAfterSlip, collapseReturns] using
       ExecStmt.externalCallSuccess hvat (by simp [evalExpr?, pure]) hslipArgs hcallSlip
@@ -2147,17 +2166,17 @@ theorem gemJoinExitBodyRevertsTransferDecode
     simpa [exitStore, joinVatAddressOf] using evalExpr_join_vatCodeGuard_true evm I hvatCode
   have hslipArgs :
       evalExprs? config { contract := contract, locals := exitStore I } evm
-        [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] =
+        [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] =
           .ok
             [.fixedBytes bytes32Width
               (EVM.Word.toBytesBE
                 (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
               .address evm.executionEnv.source, exitNegWadValue I] :=
-    evalExprs_exit_slipArgs evm I
+    evalExprs_exit_slipArgs evm I hwadOk
   have hslipStmt :
       ExecStmt config { contract := contract, locals := exitStore I } evm
         (.externalCall (.storage vatRef) "slip" (.intLit 0)
-          [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] "slipRet")
+          [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] "slipRet")
         (.ok { contract := contract, locals := exitLocalsAfterSlip I } evmSlip) := by
     simpa [exitLocalsAfterSlip, collapseReturns] using
       ExecStmt.externalCallSuccess hvat (by simp [evalExpr?, pure]) hslipArgs hcallSlip
@@ -2229,17 +2248,17 @@ theorem gemJoinExitBodyRevertsTransferFalse
     simpa [exitStore, joinVatAddressOf] using evalExpr_join_vatCodeGuard_true evm I hvatCode
   have hslipArgs :
       evalExprs? config { contract := contract, locals := exitStore I } evm
-        [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] =
+        [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] =
           .ok
             [.fixedBytes bytes32Width
               (EVM.Word.toBytesBE
                 (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨2⟩)),
               .address evm.executionEnv.source, exitNegWadValue I] :=
-    evalExprs_exit_slipArgs evm I
+    evalExprs_exit_slipArgs evm I hwadOk
   have hslipStmt :
       ExecStmt config { contract := contract, locals := exitStore I } evm
         (.externalCall (.storage vatRef) "slip" (.intLit 0)
-          [.storage ilkRef, sender, .unary .neg (asInt256 (.var "wad"))] "slipRet")
+          [.storage ilkRef, sender, .unary (.neg int256Int) (asInt256 (.var "wad"))] "slipRet")
         (.ok { contract := contract, locals := exitLocalsAfterSlip I } evmSlip) := by
     simpa [exitLocalsAfterSlip, collapseReturns] using
       ExecStmt.externalCallSuccess hvat (by simp [evalExpr?, pure]) hslipArgs hcallSlip

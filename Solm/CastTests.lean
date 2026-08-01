@@ -67,6 +67,10 @@ def unsignedNarrowExpr : Expr :=
 def signedNarrowExpr : Expr :=
   .cast (.cast (.intLit 255) int8Storage) int256Storage
 
+def signedMinNegExpr : Expr :=
+  .unary (.neg (.sint ⟨256, by decide⟩))
+    (.cast (.intLit (EVM.twoPow 255)) int256Storage)
+
 example (cfg : Config) (solm : Frame) (evm : EVM.State) :
     evalExpr? cfg solm evm unsignedNarrowExpr = .ok (.int 255) := by
   simp [unsignedNarrowExpr, evalExpr?, uint8Storage, uint256Storage, castValue?,
@@ -76,6 +80,12 @@ example (cfg : Config) (solm : Frame) (evm : EVM.State) :
 example (cfg : Config) (solm : Frame) (evm : EVM.State) :
     evalExpr? cfg solm evm signedNarrowExpr = .ok (.int (-1)) := by
   simp [signedNarrowExpr, evalExpr?, int8Storage, int256Storage, castValue?,
+    EvalResult.bind, bind, pure, EvalResult.ofOption, normalizeInt]
+  native_decide
+
+example (cfg : Config) (solm : Frame) (evm : EVM.State) :
+    evalExpr? cfg solm evm signedMinNegExpr = .ok (.int (-(EVM.twoPow 255 : Int))) := by
+  simp [signedMinNegExpr, evalExpr?, int256Storage, castValue?, evalUnaryOp?,
     EvalResult.bind, bind, pure, EvalResult.ofOption, normalizeInt]
   native_decide
 
@@ -115,5 +125,16 @@ example (cfg : Config) (solm : Frame) (evm : EVM.State) :
 example (cfg : Config) (solm : Frame) (evm : EVM.State) :
     evalExpr? cfg solm evm (.cast (.boolLit true) uint8Storage) = .error .typeError := by
   simp [evalExpr?, uint8Storage, castValue?, pure, bind, EvalResult.bind, EvalResult.ofOption]
+
+def surfaceNegContract : ContractDecl := solidity% contract NegTest {
+  function neg(uint256 value) external returns (int256) {
+    return -int256(value);
+  }
+}
+
+example : surfaceNegContract.transitions[0]!.body =
+    [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+      .return [.unary (.neg (.sint ⟨256, by decide⟩)) (.cast (.var "value") int256Storage)] ] := by
+  rfl
 
 end Solm.CastTests

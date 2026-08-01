@@ -207,6 +207,11 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
   | .dynamicArray _, .array _ => some v
   | _, _ => none
 
+theorem castValue_int (intType : IntType) (i : Int) :
+    castValue? (.int i) (.elem (.int intType)) =
+      some (.int (normalizeInt intType i)) := by
+  cases intType <;> rfl
+
 -- `uint256(bytes32 0x…01) = 1`; a width mismatch (`uint128(bytes32)`) is rejected.
 #guard castValue? (.fixedBytes ⟨31, by decide⟩ (List.replicate 31 0 ++ [1]))
     (.elem (.int (.uint ⟨256, by decide⟩))) = some (.int 1)
@@ -266,7 +271,7 @@ def evalIndex? (container key : Value) : EvalResult Value :=
 def evalUnaryOp? (op : UnaryOp) (v : Value) : Option Value :=
   match op, v with
   | .not, .bool b => some (.bool (!b))
-  | .neg, .int i => some (.int (-i))
+  | .neg intType, .int i => some (.int (normalizeInt intType (-i)))
   | .bitNot, .fixedBytes n bytes =>
       if fixedBytesValid n bytes then some (.fixedBytes n (bytes.map (fun b => ~~~b))) else none
   -- `~x` on an int is the word complement, defined only on `[0, 2^256)`.
@@ -275,9 +280,16 @@ def evalUnaryOp? (op : UnaryOp) (v : Value) : Option Value :=
       else none
   | _, _ => none
 
+theorem evalUnaryOp_neg_int (intType : IntType) (i : Int) :
+    evalUnaryOp? (.neg intType) (.int i) =
+      some (.int (normalizeInt intType (-i))) := by
+  cases intType <;> rfl
+
 #guard evalUnaryOp? .bitNot (.int 0) = some (.int (EVM.wordModulus - 1))
 #guard evalUnaryOp? .bitNot (.int (EVM.wordModulus - 1)) = some (.int 0)
 #guard evalUnaryOp? .bitNot (.int (-1)) = none
+#guard evalUnaryOp? (.neg (.sint ⟨8, by decide⟩)) (.int (-128)) = some (.int (-128))
+#guard evalUnaryOp? (.neg (.sint ⟨8, by decide⟩)) (.int 1) = some (.int (-1))
 
 def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
   match op, v₁, v₂ with
