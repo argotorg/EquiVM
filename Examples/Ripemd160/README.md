@@ -1,6 +1,6 @@
 # Ripemd160Deployed
 
-Executable Solm behavioral specification and runtime-equivalence scaffold for the pure Solidity
+Executable Solm behavioral specification and runtime-equivalence proof for the pure Solidity
 RIPEMD-160 precompile replacement from `evmification/src/ripemd160`.
 
 ## Pinned build
@@ -22,6 +22,6 @@ loading, both 80-round compression paths, chaining, and digest serialization. It
 precompile call or a configured hashing primitive. The fallback hashes all raw calldata and returns
 12 zero bytes followed by the 20-byte digest.
 
-`Bytecode.lean` pins the compiled runtime used by the equivalence target. `Correct.lean` defines
-`runtimeEquivalenceTarget` but deliberately contains no proof. Constructor equivalence is out of
-scope.
+`Bytecode.lean` pins the compiled runtime. `Correct.lean` proves `ripemd160Correct`, covering the
+successful raw fallback, nonpayable rejection, allocator-size rejection, and out-of-gas alternative
+in `runtimeEquivalence`. Constructor equivalence is out of scope.
