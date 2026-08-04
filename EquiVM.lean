@@ -1,5 +1,6 @@
 import Solm
 import Reasoning.ABI
+import Reasoning.Bytecode
 import Reasoning.Constructor
 import Reasoning.Dispatch
 import Reasoning.EVMWord
@@ -9,6 +10,7 @@ import Reasoning.JumpDest
 import Reasoning.MemCascade
 import Reasoning.Memory
 import Reasoning.Reach
+import Reasoning.ReachExact
 import Reasoning.Solc
 import Reasoning.SolmBody
 import Reasoning.Stepping

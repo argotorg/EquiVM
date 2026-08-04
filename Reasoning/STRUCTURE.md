@@ -20,6 +20,8 @@ trusted spec of the FFI hash; asserts nothing about collision resistance).
 | `SolmBody.lean` | The Solm side: `ExecTransitionBody`/`ExecStmt`/`ExecBlock` lemmas. Non-payable guard, call wrappers (external/checked/low-level/delegate), loop rules, block sequencing (`execBlock_append`), locals lookup, storage-access collapse. |
 | `Memory.lean` | Byte-level memory: little-endian word arithmetic, `MSTORE`/`MLOAD` read-write facts, scratch memory for mapping hashes, selector extraction, calldata decode coupling, mapping-slot keccak facts. Home of the `keccak_size` axiom. |
 | `Reach.lean` | The EVM trace layer. `RD` (reached-or-out-of-gas invariant), one forward step lemma per opcode (`RD.<op>`), `CALL`/`STATICCALL` with the callee treated as an opaque `Θ` result, terminal forms `RDret`/`RDrev` with the `reEquiv_*` case builders for `runtimeEquivalenceFor` and the `reEquivElim` eliminators, `Cursor`/`RDc`, and the `evm_run` macro that chains steps with auto-discharged decode/overflow side conditions. |
+| `ReachExact.lean` | Threshold-exact alternative to `RD` for gas-agnostic operations: proves both `g < cost → OOG` and `cost ≤ g → exact cursor/result`; includes exact successful, revert, and exceptional (`RDxErr`, including `INVALID`) terminals; intentionally excludes `GAS` and `CALL`. |
+| `Bytecode.lean` | Small Solm-independent interface for precompile-like bytecode at the caller-visible `Θ` boundary: exact output/gas for valid inputs and one collapsed exceptional-call result for invalid inputs. |
 | `ABI.lean` | Calldata decoding and return-value encoding: per-shape decode lemmas (address/uint256/bool/bytes32/string/dynamic-array combinations), decode-mode variants, failure cases (short, huge, non-canonical), return encodings. |
 | `MemCascade.lean` | Collapsing chains of memory writes into a canonical form. |
 | `JumpDest.lean` | The `@[valid_jumps]` attribute and `jump_dest` tactic discharging jump-target validity (via `native_decide`, deliberately). |
@@ -70,5 +72,5 @@ Constructor ← Reach, SolmBody     Initcode ← EVMWord     JumpDest ← (Ether
 
 ## Build
 
-`lake build Reasoning` builds all fourteen files. A bare `lake build` builds only `Solm`
+`lake build Reasoning` builds the complete reasoning library. A bare `lake build` builds only `Solm`
 (the default target) — use explicit targets.

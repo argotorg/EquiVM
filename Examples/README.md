@@ -27,6 +27,14 @@ All proofs are complete except `UniswapV2Pair` (see status column).
 | `OpenZeppelinBench/Pausable` | [OpenZeppelin `Pausable.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Pausable.sol) (same snapshot) | solc 0.8.35, optimizer on, Shanghai | `pausableCorrect` |
 | `OpenZeppelinBench/ERC6909` | [OpenZeppelin `ERC6909.sol`](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC6909/ERC6909.sol) (same snapshot) | solc 0.8.35, optimizer on, Shanghai | `erc6909Correct` |
 | `UniswapV2Pair` | [`Uniswap/v2-core` `v1.0.1`](https://github.com/Uniswap/v2-core/blob/v1.0.1/contracts/UniswapV2Pair.sol) | solc 0.5.16, optimizer on (200 runs) | `uniswapV2PairCorrect` — **in progress** |
+| `Ripemd160` | Pure Solidity RIPEMD-160 precompile replacement | solc 0.8.35, via IR, optimizer on (10,000 runs), Osaka | `ripemd160Correct` |
+| `Ripemd160Old` | Original pure Solidity RIPEMD-160 precompile replacement | solc 0.8.35, via IR, optimizer off, Osaka | `ripemd160OldCorrect` |
+
+Precompile-style bytecode proofs that do not refine a Sol⁻ contract live under `Precompiles/`.
+`Precompiles/Ripemd160` proves `ripemd160BytecodeSpec`, relating the optimized runtime directly to
+the pure Lean RIPEMD-160 function with an exact gas cost and OOG threshold through the generic
+`BytecodeSpec` interface. The sibling
+`Ripemd160` directory retains only its Solm specification and equivalence layer.
 
 ## File conventions
 

@@ -1,5 +1,5 @@
 import Examples.Ripemd160.SolmGroupLoop
-import Examples.Ripemd160.ParserArithmetic
+import Examples.Precompiles.Ripemd160.ParserArithmetic
 
 /-!
 # RIPEMD-160 Solm block initialization

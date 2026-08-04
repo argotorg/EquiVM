@@ -1,5 +1,5 @@
 import Examples.Ripemd160.SolmBlock
-import Examples.Ripemd160.HashRunPure
+import Examples.Precompiles.Ripemd160.HashRunPure
 
 /-!
 # RIPEMD-160 Solm message-block loop

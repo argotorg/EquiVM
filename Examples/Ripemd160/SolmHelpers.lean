@@ -1,6 +1,6 @@
 import Examples.Ripemd160.Spec
-import Examples.Ripemd160.HashPure
-import Examples.Ripemd160.HashDigest
+import Examples.Precompiles.Ripemd160.HashPure
+import Examples.Precompiles.Ripemd160.HashDigest
 import Reasoning.SolmBody
 
 /-!

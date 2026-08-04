@@ -1,5 +1,6 @@
 import Examples.Ripemd160.SolmHash
-import Examples.Ripemd160.HashWideTrace
+import Examples.Ripemd160.Fallback
+import Examples.Precompiles.Ripemd160.HashWideTrace
 
 /-!
 # RIPEMD-160 Solm fallback
