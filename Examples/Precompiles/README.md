@@ -17,9 +17,10 @@ Current examples:
   trusted padded parser with branch-sensitive exact gas; the remaining Barrett and Montgomery
   arithmetic paths are still being developed.
 - `Blake2f`: an experiment setup for the `evmification` BLAKE2F replacement. The Solidity source is
-  copied locally and tightened to reject invalid final-flag bytes, matching the trusted
-  `evm-semantics` `runBlake2f` model. The patched runtime bytecode is compiled and transcribed;
-  the bytecode-specific gas term and RDx proof are still pending.
+  copied locally and tightened to reject invalid final-flag bytes with empty reverts, matching the
+  trusted `evm-semantics` `runBlake2f` failure observation. The stable patched runtime bytecode is
+  compiled with metadata hash disabled and transcribed; the bytecode-specific gas term and RDx
+  proof are still pending.
 
 Contract-to-Solm equivalence layers, when they exist for the same implementation, remain in their
 ordinary sibling example directories.

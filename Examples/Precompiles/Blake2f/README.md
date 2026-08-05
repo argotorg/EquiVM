@@ -20,9 +20,12 @@ The copied Solidity source has been tightened to match the trusted precompile mo
 
 - `input.length` must be exactly `213`;
 - `input[212]`, the final-block flag, must be exactly `0` or `1`.
+- invalid input checks use empty `revert(0, 0)` rather than Solidity revert strings.
 
 The upstream Solidity implementation accepted any nonzero final flag as `true`, while
-`runBlake2f` treats values `2..255` as a failed call.
+`runBlake2f` treats values `2..255` as a failed call.  Revert strings were also removed because
+their ABI-encoded payloads are caller-visible and therefore not equivalent to the native precompile
+failure observation used by the bytecode proof interface.
 
 ## Lean files
 
@@ -42,13 +45,14 @@ The patched source was compiled with:
 
 ```bash
 /tmp/solc-0.8.35 --via-ir --optimize --optimize-runs 10000 --evm-version osaka \
-  --bin --bin-runtime --abi \
+  --metadata-hash none --bin --bin-runtime --abi \
   -o /tmp/blake2f-build --overwrite \
   Examples/Precompiles/Blake2f/contracts/Blake2fDeployed.sol
 ```
 
-Runtime bytecode is 3591 bytes. Creation bytecode is 3617 bytes.  The transcribed Lean
-`runtimeBytecode` matches `/tmp/blake2f-build/Blake2fDeployed.bin-runtime` byte-for-byte.
+Runtime bytecode is 3342 bytes. Creation bytecode is 3368 bytes. Metadata hash is disabled for a
+stable proof target. The transcribed Lean `runtimeBytecode` matches
+`/tmp/blake2f-build/Blake2fDeployed.bin-runtime` byte-for-byte.
 
 The helper script can transcribe a runtime hex artifact into Lean:
 

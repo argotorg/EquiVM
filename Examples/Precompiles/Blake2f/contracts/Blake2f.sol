@@ -11,6 +11,12 @@ pragma solidity ^0.8.0;
 /// EIP-152 model in `/home/lefteris/evm-semantics/EvmSemantics/EVM/Precompile.lean`:
 /// the final-block flag byte must be exactly 0 or 1. The upstream copy accepted
 /// any nonzero byte as `true`, which does not match `runBlake2f`.
+///
+/// Invalid length and invalid final-flag checks intentionally use empty
+/// `revert(0, 0)` rather than Solidity revert strings.  Revert strings return
+/// nonempty payloads and leftover gas, which are observable at the caller
+/// boundary and therefore do not match the native BLAKE2F precompile failure
+/// observation used by the bytecode proof interface.
 library Blake2f {
     /// @notice Computes the BLAKE2b F compression function.
     /// @param rounds Number of rounds (0..2^32-1).
@@ -156,7 +162,11 @@ library Blake2f {
     /// @param input 213 bytes in EIP-152 format.
     /// @return output 64 bytes of output.
     function compress(bytes memory input) internal pure returns (bytes memory output) {
-        require(input.length == 213, "Blake2f: invalid input length");
+        if (input.length != 213) {
+            assembly {
+                revert(0, 0)
+            }
+        }
 
         uint32 rounds;
         uint64[8] memory h;
@@ -201,7 +211,11 @@ library Blake2f {
             // precompile and in the trusted Lean model.
             finalFlag := shr(248, mload(add(ptr, 212)))
         }
-        require(finalFlag <= 1, "Blake2f: invalid final flag");
+        if (finalFlag > 1) {
+            assembly {
+                revert(0, 0)
+            }
+        }
         finalBlock = finalFlag == 1;
 
         uint64[8] memory res = compress(rounds, h, m, t, finalBlock);
