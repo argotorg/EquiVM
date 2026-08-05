@@ -46,6 +46,20 @@ theorem mstoreCost_of_stack {s : State} {aw off val : UInt256} {t : List UInt256
   rw [htop, haw]
   exact hcost
 
+/-- Compute `MLOAD` memory expansion cost from the literal stack shape. -/
+theorem mloadCost_of_stack {s : State} {aw off : UInt256} {t : List UInt256}
+    {mcost : ℕ}
+    (haw : s.machineState.activeWords = aw)
+    (hstk : s.machineState.stack = off :: t)
+    (hcost : Cₘ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)) - Cₘ aw = mcost) :
+    memoryExpansionCost s .MLOAD = mcost := by
+  simp only [memoryExpansionCost, memoryExpansionCost.μᵢ']
+  have htop : s.machineState.stack[0]! = off := by
+    rw [hstk]
+    rfl
+  rw [htop, haw]
+  exact hcost
+
 /-! ## 1. Little-endian byte arithmetic (`fromBytes'` / `toBytes'`) -/
 
 theorem fromBytes'_replicate_zero (k : ℕ) : fromBytes' (List.replicate k (0 : UInt8)) = 0 := by
@@ -265,6 +279,18 @@ theorem byteArray_readWithPadding_zero (mem : ByteArray) (addr : ℕ) :
   · simp [h]
     exact zeroes_zero (n := 0) (by rfl)
 
+/-- A bounded padded read starting at or beyond the concrete byte-array end consists entirely of
+zero bytes. -/
+theorem readWithPadding_past_end (source : ByteArray) (addr len : ℕ)
+    (haddr : source.size ≤ addr) (hlen : len < 2 ^ 64) :
+    source.readWithPadding addr len = ffi.ByteArray.zeroes len := by
+  unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
+  rw [if_neg (by omega : ¬ len ≥ 2 ^ 64), if_pos haddr]
+  change ByteArray.empty ++ ffi.ByteArray.zeroes len = ffi.ByteArray.zeroes len
+  apply ByteArray.ext
+  simp only [ByteArray.data_append]
+  rw [show ByteArray.empty.data = (#[] : Array UInt8) from rfl, Array.empty_append]
+
 theorem empty_readWithPadding_word_zero :
     uInt256OfByteArray (ByteArray.empty.readWithPadding 0 32) = (⟨0⟩ : UInt256) := by
   unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
@@ -300,6 +326,57 @@ theorem toByteArray_write_eq (v : UInt256) (mem : ByteArray) (off : ℕ)
       Array.extract_eq_self_of_le (show v.toByteArray.data.size ≤ 0 + (32 + 0) from by rw [hsz]),
       Array.extract_eq_empty_of_le (by rw [hDsz]; omega),
       Array.append_empty]
+
+/-- An arbitrary nonempty write beginning beyond the concrete destination appends a zero gap and
+the requested source prefix.  This is the variable-length counterpart of `toByteArray_write_eq`
+and is especially useful for `MSTORE8`. -/
+theorem write_eq_gap (src base : ByteArray) (off len : ℕ)
+    (hlen : len ≠ 0) (hsrc : len ≤ src.size) (hoff : base.size ≤ off)
+    (_hgap : off - base.size < USize.size) :
+    src.write 0 base off len =
+      base ++ ffi.ByteArray.zeroes (off - base.size) ++ src.extract 0 len := by
+  have hpz : (ffi.ByteArray.zeroes (off - base.size)).data.size = off - base.size := by
+    rw [show (ffi.ByteArray.zeroes (off - base.size)).data.size =
+      (ffi.ByteArray.zeroes (off - base.size)).size from rfl, ByteArray_zeroes_size]
+  apply ByteArray.ext
+  unfold ByteArray.write
+  rw [if_neg hlen, if_neg (show ¬ (0 ≥ src.size) from by omega)]
+  simp only [ByteArray.data_copySlice, ByteArray.data_append, ByteArray.data_extract]
+  have hDsz : (base.data ++ (ffi.ByteArray.zeroes (off - base.size)).data).size = off := by
+    rw [Array.size_append, hpz]
+    show base.size + (off - base.size) = off
+    omega
+  rw [show min len (src.size - 0) = len from by omega,
+      show min base.size (off + len) - (off + len) = 0 from by omega,
+      show (ffi.ByteArray.zeroes 0).data = (#[] : Array UInt8) from by
+        rw [zeroes_zero (n := 0) (by rfl)]; rfl,
+      Array.append_empty]
+  have hprefix :
+      (base.data ++ (ffi.ByteArray.zeroes (off - base.size)).data).extract 0 off =
+        base.data ++ (ffi.ByteArray.zeroes (off - base.size)).data :=
+    Array.extract_eq_self_of_le (by rw [hDsz])
+  have hcopy : min (len + 0) (src.data.size - 0) = len := by
+    change min len (src.size - 0) = len
+    omega
+  have hsuffix :
+      (base.data ++ (ffi.ByteArray.zeroes (off - base.size)).data).extract (off + len) =
+        #[] := Array.extract_eq_empty_of_le (by rw [hDsz]; omega)
+  rw [hprefix, hcopy, hsuffix]
+  simp
+
+/-- Extracting an in-bounds window from a zero block produces a zero block of the window length. -/
+theorem zeroes_extract (total start stop : Nat) (hstart : start ≤ stop)
+    (hstop : stop ≤ total) :
+    (ffi.ByteArray.zeroes total).extract start stop =
+      ffi.ByteArray.zeroes (stop - start) := by
+  apply ByteArray.ext
+  apply Array.toList_inj.mp
+  rw [ByteArray.data_extract, Array.toList_extract,
+    byteArray_zeroes_toList, byteArray_zeroes_toList]
+  simp only [List.extract_eq_take_drop]
+  rw [List.drop_replicate, List.take_replicate]
+  congr 1
+  omega
 
 /-- **Partial-overwrite write.**  Storing a 32-byte slice of `src` (its first word) at offset
     `destAddr ≤ base.size` splits `base` into `base[0..destAddr] ++ src[0..32] ++ base[destAddr+32..]`
@@ -565,6 +642,89 @@ theorem write_eq_gen_from (src base : ByteArray) (srcAddr destAddr len : ℕ)
     show (ByteArray.empty).data = (#[] : Array UInt8) from rfl, Array.append_empty,
     hsize, hpL, hsp, Nat.add_zero, show base.data.size = base.size from rfl]
 
+/-- An in-bounds arbitrary-offset write preserves the concrete destination size. -/
+theorem write_size_of_inBounds_from (src base : ByteArray) (srcAddr destAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
+    (hin : destAddr + len ≤ base.size) :
+    (src.write srcAddr base destAddr len).size = base.size := by
+  rw [write_eq_gen_from src base srcAddr destAddr len hlen hsrc hin,
+    ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
+    ByteArray.size_extract, ByteArray.size_extract]
+  omega
+
+/-- **`write` of an arbitrary source window, extending memory.**  This is the arbitrary-source
+offset counterpart of `write_eq_gen_extend`: the destination begins in `base`, but the copied
+window reaches beyond its concrete end. -/
+theorem write_eq_gen_extend_from (src base : ByteArray) (srcAddr destAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (hdest : destAddr ≤ base.size)
+    (hext : base.size < destAddr + len) :
+    src.write srcAddr base destAddr len =
+      base.extract 0 destAddr ++ src.extract srcAddr (srcAddr + len) := by
+  apply ByteArray.ext
+  unfold ByteArray.write
+  rw [if_neg hlen, if_neg (show ¬ (srcAddr ≥ src.size) from by omega)]
+  have hsize : src.data.size = src.size := rfl
+  have hpL : min len (src.size - srcAddr) = len := by omega
+  have hsp : min base.size (destAddr + len) - (destAddr + len) = 0 := by
+    rw [Nat.min_eq_left (by omega)]
+    omega
+  have hdp : destAddr - base.size = 0 := Nat.sub_eq_zero_of_le hdest
+  have hz0 : ffi.ByteArray.zeroes 0 = ByteArray.empty := zeroes_zero (by rfl)
+  simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append,
+    ByteArray.data_extract, show (ByteArray.empty).data = (#[] : Array UInt8) from rfl,
+    Array.append_empty, hsize, hpL, hsp, Nat.add_zero,
+    show base.data.size = base.size from rfl]
+  have htail : base.data.extract (destAddr + len) base.size = #[] :=
+    Array.extract_eq_empty_of_le (by omega)
+  rw [htail, Array.append_empty]
+
+/-- Reading exactly the destination window of an arbitrary-offset `ByteArray.write` recovers the
+source window.  The destination may be overwritten in bounds or extended at its end; the only
+required geometric condition is that the write starts within the existing destination. -/
+theorem write_read_back_from_gen (src base : ByteArray) (srcAddr destAddr len : ℕ)
+    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size) (hdest : destAddr ≤ base.size)
+    (hlen64 : len < 2 ^ 64) :
+    (src.write srcAddr base destAddr len).readWithPadding destAddr len =
+      src.extract srcAddr (srcAddr + len) := by
+  have hpre : (base.extract 0 destAddr).size = destAddr := by
+    rw [ByteArray.size_extract]
+    omega
+  have hslice : (src.extract srcAddr (srcAddr + len)).size = len := by
+    rw [ByteArray.size_extract]
+    omega
+  by_cases hin : destAddr + len ≤ base.size
+  · rw [write_eq_gen_from src base srcAddr destAddr len hlen hsrc hin]
+    rw [readWithPadding_eq_extract' _ destAddr len (Nat.pos_of_ne_zero hlen) hlen64 (by
+      rw [ByteArray.size_append, ByteArray.size_append, hpre, hslice]
+      omega)]
+    rw [extract_append_left _ _ _ _ (by
+      rw [ByteArray.size_append, hpre, hslice])]
+    exact extract_append_right' _ _ _ _ hpre.symm (by rw [hpre, hslice])
+  · have hext : base.size < destAddr + len := Nat.lt_of_not_ge hin
+    rw [write_eq_gen_extend_from src base srcAddr destAddr len hlen hsrc hdest hext]
+    rw [readWithPadding_eq_extract' _ destAddr len (Nat.pos_of_ne_zero hlen) hlen64 (by
+      rw [ByteArray.size_append, hpre, hslice])]
+    exact extract_append_right' _ _ _ _ hpre.symm (by rw [hpre, hslice])
+
+/-- A copy whose source starts at or beyond the source end and whose destination starts at or
+beyond the destination end is a byte-array no-op.  The EVM still expands its logical active-memory
+high-water mark and charges for the requested range; this lemma only records the concrete
+`ByteArray.write` payload behavior. -/
+theorem write_from_source_end_past_dest (src base : ByteArray) (srcAddr destAddr len : ℕ)
+    (hsrc : src.size ≤ srcAddr) (hdest : base.size ≤ destAddr) :
+    src.write srcAddr base destAddr len = base := by
+  unfold ByteArray.write
+  by_cases hlen : len = 0
+  · rw [if_pos hlen]
+  · rw [if_neg hlen, if_pos hsrc]
+    have hcopyLen : min len (base.size - destAddr) = 0 := by omega
+    have hdestAddr : min destAddr base.size = base.size := Nat.min_eq_right hdest
+    rw [hcopyLen, hdestAddr]
+    apply ByteArray.ext
+    simp only [ByteArray.data_copySlice]
+    rw [zeroes_zero (n := 0) (by rfl)]
+    simp [show base.data.size = base.size from rfl]
+
 /-- Data shape of a write to destination offset `0` that may extend the destination. -/
 theorem write0_data (src base : ByteArray) (len : ℕ)
     (hlen : len ≠ 0) (hsrc : len ≤ src.size) :
@@ -718,6 +878,42 @@ theorem write_read_below_gen_extend (src base : ByteArray) (destAddr len readAdd
     rw [extract_prefix _ destAddr readAddr (readAddr + 32) hbelow]
     rw [← readWithPadding_eq_extract base readAddr (by omega)]
 
+/-- An arbitrary bounded read below an arbitrary-offset write is unaffected, whether that write
+stays within the concrete destination or extends it. -/
+theorem write_read_below_gen_from_extend (src base : ByteArray)
+    (srcAddr destAddr written readAddr len : ℕ)
+    (hwritten : written ≠ 0) (hsrc : srcAddr + written ≤ src.size)
+    (hdest : destAddr ≤ base.size) (hbelow : readAddr + len ≤ destAddr)
+    (hreadIn : readAddr + len ≤ base.size) (hpos : 0 < len)
+    (hlen64 : len < 2 ^ 64) :
+    (src.write srcAddr base destAddr written).readWithPadding readAddr len =
+      base.readWithPadding readAddr len := by
+  have hpre : (base.extract 0 destAddr).size = destAddr := by
+    rw [ByteArray.size_extract]
+    omega
+  have hslice : (src.extract srcAddr (srcAddr + written)).size = written := by
+    rw [ByteArray.size_extract]
+    omega
+  by_cases hin : destAddr + written ≤ base.size
+  · rw [write_eq_gen_from src base srcAddr destAddr written hwritten hsrc hin]
+    rw [readWithPadding_eq_extract' _ readAddr len hpos hlen64 (by
+      rw [ByteArray.size_append, ByteArray.size_append, hpre, hslice]
+      omega)]
+    rw [extract_append_left _ _ _ _ (by
+      rw [ByteArray.size_append, hpre, hslice]
+      omega)]
+    rw [extract_append_left _ _ _ _ (by rw [hpre]; exact hbelow)]
+    rw [extract_prefix _ destAddr readAddr (readAddr + len) hbelow]
+    exact (readWithPadding_eq_extract' base readAddr len hpos hlen64 hreadIn).symm
+  · have hext : base.size < destAddr + written := Nat.lt_of_not_ge hin
+    rw [write_eq_gen_extend_from src base srcAddr destAddr written hwritten hsrc hdest hext]
+    rw [readWithPadding_eq_extract' _ readAddr len hpos hlen64 (by
+      rw [ByteArray.size_append, hpre, hslice]
+      omega)]
+    rw [extract_append_left _ _ _ _ (by rw [hpre]; exact hbelow)]
+    rw [extract_prefix _ destAddr readAddr (readAddr + len) hbelow]
+    exact (readWithPadding_eq_extract' base readAddr len hpos hlen64 hreadIn).symm
+
 /-- **Readback of a write.**  Reading the 32-byte window just written returns the source's first
     word. -/
 theorem write32_read_back (src base : ByteArray) (destAddr : ℕ)
@@ -762,6 +958,41 @@ theorem extract_extract_BA (b : ByteArray) (s e s' e' : ℕ) :
     (b.extract s e).extract s' e' = b.extract (s + s') (min (s + e') e) := by
   apply ByteArray.ext; simp only [ByteArray.data_extract, Array.extract_extract]
 
+/-- A bounded read above an arbitrary-offset, arbitrary-length in-bounds write is unaffected. -/
+theorem write_read_above_gen_from (src base : ByteArray)
+    (srcAddr destAddr written readAddr len : ℕ)
+    (hwritten : written ≠ 0) (hsrc : srcAddr + written ≤ src.size)
+    (hwriteIn : destAddr + written ≤ base.size)
+    (habove : destAddr + written ≤ readAddr) (hreadIn : readAddr + len ≤ base.size)
+    (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (src.write srcAddr base destAddr written).readWithPadding readAddr len =
+      base.readWithPadding readAddr len := by
+  have hpre : (base.extract 0 destAddr).size = destAddr := by
+    rw [ByteArray.size_extract]
+    omega
+  have hslice : (src.extract srcAddr (srcAddr + written)).size = written := by
+    rw [ByteArray.size_extract]
+    omega
+  have hprefSize :
+      (base.extract 0 destAddr ++ src.extract srcAddr (srcAddr + written)).size =
+        destAddr + written := by
+    rw [ByteArray.size_append, hpre, hslice]
+  have hsuffix :
+      (base.extract (destAddr + written) base.size).size =
+        base.size - (destAddr + written) := by
+    rw [ByteArray.size_extract]
+    omega
+  rw [write_eq_gen_from src base srcAddr destAddr written hwritten hsrc hwriteIn]
+  rw [readWithPadding_eq_extract' _ readAddr len hpos hlen64 (by
+    rw [ByteArray.size_append, hprefSize, hsuffix]
+    omega)]
+  rw [readWithPadding_eq_extract' base readAddr len hpos hlen64 hreadIn]
+  rw [extract_append_right_window _ _ _ _ (by rw [hprefSize]; exact habove), hprefSize]
+  rw [extract_extract_BA]
+  rw [show destAddr + written + (readAddr - (destAddr + written)) = readAddr by omega]
+  rw [show min (destAddr + written + (readAddr + len - (destAddr + written))) base.size =
+      readAddr + len by omega]
+
 /-- **Non-overlap read above a write.**  A 32-byte read at `readAddr ≥ destAddr+32` (within bounds)
     is unaffected by a write at `destAddr`. -/
 theorem write32_read_above (src base : ByteArray) (destAddr readAddr : ℕ)
@@ -783,6 +1014,51 @@ theorem write32_read_above (src base : ByteArray) (destAddr readAddr : ℕ)
       show destAddr + 32 + (readAddr - (destAddr + 32)) = readAddr from by omega,
       show min (destAddr + 32 + (readAddr + 32 - (destAddr + 32))) base.size = readAddr + 32 from by
         omega]
+
+/-- A padded 32-byte read above an in-bounds word write is unaffected, even when the read
+    reaches or lies beyond the concrete end of memory.  This is the form needed when an EVM
+    allocation turns formerly implicit zero padding into concrete zero bytes. -/
+theorem write32_read_above_padded (src base : ByteArray) (destAddr readAddr : ℕ)
+    (hsrc : 32 ≤ src.size) (hlo : destAddr + 32 ≤ base.size)
+    (habove : destAddr + 32 ≤ readAddr) :
+    (src.write 0 base destAddr 32).readWithPadding readAddr 32 =
+      base.readWithPadding readAddr 32 := by
+  have hsize : (src.write 0 base destAddr 32).size = base.size := by
+    rw [write32_eq src base destAddr hsrc (by omega), ByteArray.size_append,
+      ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
+      ByteArray.size_extract]
+    omega
+  by_cases hpast : base.size ≤ readAddr
+  · rw [readWithPadding_past_end base readAddr 32 hpast (by decide)]
+    rw [readWithPadding_past_end (src.write 0 base destAddr 32) readAddr 32
+      (by rw [hsize]; exact hpast) (by decide)]
+  · have hread : readAddr < base.size := by omega
+    by_cases hin : readAddr + 32 ≤ base.size
+    · exact write32_read_above src base destAddr readAddr hsrc (by omega) habove hin
+    have hspan : base.size ≤ readAddr + 32 := by omega
+    have hreadBase : ¬ readAddr ≥ base.size := by omega
+    unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
+    simp only [if_neg (by norm_num : ¬ ((32 : Nat) ≥ 2 ^ 64)),
+      if_neg hreadBase, hsize]
+    have hmin : min 32 base.size = 32 := by omega
+    rw [hmin]
+    have hextract :
+        (src.write 0 base destAddr 32).extract readAddr (readAddr + 32) =
+          base.extract readAddr (readAddr + 32) := by
+      rw [write32_eq src base destAddr hsrc (by omega)]
+      have hpre : (base.extract 0 destAddr ++ src.extract 0 32).size =
+          destAddr + 32 := by
+        rw [ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract]
+        omega
+      rw [extract_append_right_window _ _ _ _ (by rw [hpre]; exact habove), hpre]
+      rw [extract_extract_BA]
+      rw [show destAddr + 32 + (readAddr - (destAddr + 32)) = readAddr by omega]
+      rw [show min (destAddr + 32 + (readAddr + 32 - (destAddr + 32))) base.size =
+          base.size by omega]
+      apply ByteArray.ext
+      simp only [ByteArray.data_extract]
+      exact (Array.extract_eq_of_size_le_stop (by simpa using hspan)).symm
+    rw [hextract]
 
 /-- Read back a prefix of a 32-byte write. -/
 theorem write32_read_prefix_len (src base : ByteArray) (dest len : Nat)
@@ -840,6 +1116,56 @@ theorem write32_read_above_len (src base : ByteArray) (dest read len : Nat)
   rw [extract_extract_BA]
   rw [show dest + 32 + (read - (dest + 32)) = read by omega]
   rw [show min (dest + 32 + (read + len - (dest + 32))) base.size = read + len by omega]
+
+/-- A padded variable-length read above an in-bounds word write is unaffected, even when the read
+    reaches or lies beyond the concrete end of memory. -/
+theorem write32_read_above_len_padded (src base : ByteArray) (dest read len : Nat)
+    (hsrc : 32 ≤ src.size) (hlo : dest + 32 ≤ base.size)
+    (habove : dest + 32 ≤ read)
+    (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (src.write 0 base dest 32).readWithPadding read len = base.readWithPadding read len := by
+  have hsize : (src.write 0 base dest 32).size = base.size := by
+    rw [write32_eq src base dest hsrc (by omega), ByteArray.size_append,
+      ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
+      ByteArray.size_extract]
+    omega
+  by_cases hpast : base.size ≤ read
+  · rw [readWithPadding_past_end base read len hpast hlen64]
+    rw [readWithPadding_past_end (src.write 0 base dest 32) read len
+      (by rw [hsize]; exact hpast) hlen64]
+  · have hread : read < base.size := by omega
+    by_cases hin : read + len ≤ base.size
+    · exact write32_read_above_len src base dest read len hsrc (by omega)
+        habove hin hpos hlen64
+    have hspan : base.size ≤ read + min len base.size := by
+      by_cases hle : len ≤ base.size
+      · rw [min_eq_left hle]
+        omega
+      · rw [min_eq_right (by omega)]
+        omega
+    have hreadBase : ¬ read ≥ base.size := by omega
+    unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
+    rw [if_neg (by omega : ¬ len ≥ 2 ^ 64), if_neg hreadBase]
+    simp only [hsize]
+    have hextract :
+        (src.write 0 base dest 32).extract read (read + min len base.size) =
+          base.extract read (read + min len base.size) := by
+      rw [write32_eq src base dest hsrc (by omega)]
+      have hpre : (base.extract 0 dest ++ src.extract 0 32).size =
+          dest + 32 := by
+        rw [ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract]
+        omega
+      rw [extract_append_right_window _ _ _ _ (by rw [hpre]; exact habove), hpre]
+      rw [extract_extract_BA]
+      rw [show dest + 32 + (read - (dest + 32)) = read by omega]
+      rw [show min (dest + 32 + (read + min len base.size - (dest + 32))) base.size =
+          base.size by omega]
+      apply ByteArray.ext
+      simp only [ByteArray.data_extract]
+      exact (Array.extract_eq_of_size_le_stop (by simpa using hspan)).symm
+    rw [hextract]
+    simp only [if_neg hreadBase, if_neg (by omega : ¬ len ≥ 2 ^ 64),
+      ByteArray.size_extract]
 
 /-- **Append-shaped write at memory end.**  A nonempty write from source offset `0` to
     destination offset `base.size` appends the requested source prefix. -/
@@ -1005,6 +1331,131 @@ theorem toByteArray_write_read_below_len_of_gap
       omega)]
     rw [extract_append_left _ _ _ _ hread]
     exact (readWithPadding_eq_extract' _ read len hpos hlen64 hread).symm
+
+/-- Reading inside the zero gap created by a word write beyond the concrete end of memory returns
+exactly the requested number of zero bytes. -/
+theorem toByteArray_write_read_gap_of_gap
+    (b : UInt256) (mem : ByteArray) (off read len : ℕ)
+    (hstart : mem.size ≤ read) (hstop : read + len ≤ off)
+    (hpos : 0 < len) (hlen64 : len < 2 ^ 64)
+    (hgap : off - mem.size < USize.size) :
+    ((UInt256.toByteArray b).write 0 mem off 32).readWithPadding read len =
+      ffi.ByteArray.zeroes len := by
+  have hoff : mem.size ≤ off := by omega
+  rw [toByteArray_write_eq b mem off hoff hgap]
+  rw [readWithPadding_eq_extract' _ read len hpos hlen64 (by
+    rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
+      toByteArray_size]
+    omega)]
+  rw [extract_append_left _ _ _ _ (by
+    rw [ByteArray.size_append, ByteArray_zeroes_size]
+    omega)]
+  rw [extract_append_right_window mem (ffi.ByteArray.zeroes (off - mem.size))
+    read (read + len) hstart]
+  rw [zeroes_extract (off - mem.size) (read - mem.size)
+    (read + len - mem.size) (by omega) (by omega)]
+  congr 1
+  omega
+
+/-- A word write above a padded 32-byte read preserves the read even when the read straddles the
+old concrete end of memory.  The zero gap introduced by the write is observationally identical to
+the zeros supplied by `readWithPadding`. -/
+theorem toByteArray_write_read_below_padded_of_gap
+    (b : UInt256) (mem : ByteArray) (off read : ℕ)
+    (hmem32 : 32 ≤ mem.size)
+    (hbelow : read + 32 ≤ off) (hgap : off - mem.size < USize.size) :
+    ((UInt256.toByteArray b).write 0 mem off 32).readWithPadding read 32 =
+      mem.readWithPadding read 32 := by
+  by_cases hin : read + 32 ≤ mem.size
+  · exact toByteArray_write_read_below_of_gap b mem off read hin hbelow hgap
+  by_cases hpast : mem.size ≤ read
+  · rw [toByteArray_write_read_gap_of_gap b mem off read 32 hpast hbelow
+      (by decide) (by decide) hgap]
+    exact (readWithPadding_past_end mem read 32 hpast (by decide)).symm
+  · have hread : read < mem.size := by omega
+    have hoff : mem.size ≤ off := by omega
+    rw [toByteArray_write_eq b mem off hoff hgap]
+    rw [readWithPadding_eq_extract _ read (by
+      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
+        toByteArray_size]
+      omega)]
+    rw [extract_append_left _ (UInt256.toByteArray b) read (read + 32) (by
+      rw [ByteArray.size_append, ByteArray_zeroes_size]
+      omega)]
+    rw [extract_append_span mem (ffi.ByteArray.zeroes (off - mem.size))
+      read (read + 32) (by omega) (by omega)]
+    have hzero := zeroes_extract (off - mem.size) 0 (read + 32 - mem.size)
+      (by omega) (by omega)
+    simp only [Nat.sub_zero] at hzero
+    rw [hzero]
+    unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
+    rw [if_neg (by norm_num : ¬ ((32 : Nat) ≥ 2 ^ 64)), if_neg (by omega)]
+    simp only [min_eq_left hmem32]
+    have hextract : mem.extract read (read + 32) = mem.extract read mem.size := by
+      apply ByteArray.ext
+      simp only [ByteArray.data_extract]
+      have h₁ : mem.data.extract read (read + 32) = mem.data.extract read :=
+        Array.extract_eq_of_size_le_stop (by
+          simpa using (by omega : mem.size ≤ read + 32))
+      have h₂ : mem.data.extract read mem.size = mem.data.extract read :=
+        Array.extract_eq_of_size_le_stop (by simp)
+      exact h₁.trans h₂.symm
+    rw [hextract, ByteArray.size_extract]
+    rw [show min mem.size mem.size - read = mem.size - read by simp]
+    rw [show 32 - (mem.size - read) = read + 32 - mem.size by omega]
+
+/-- A word write above a padded variable-length read preserves the read even when the read
+straddles the old concrete end of memory. -/
+theorem toByteArray_write_read_below_len_padded_of_gap
+    (b : UInt256) (mem : ByteArray) (off read len : ℕ)
+    (hbelow : read + len ≤ off) (hpos : 0 < len) (hlen64 : len < 2 ^ 64)
+    (hgap : off - mem.size < USize.size) :
+    ((UInt256.toByteArray b).write 0 mem off 32).readWithPadding read len =
+      mem.readWithPadding read len := by
+  by_cases hin : read + len ≤ mem.size
+  · exact toByteArray_write_read_below_len_of_gap b mem off read len hin hbelow
+      hpos hlen64 hgap
+  by_cases hpast : mem.size ≤ read
+  · rw [toByteArray_write_read_gap_of_gap b mem off read len hpast hbelow
+      hpos hlen64 hgap]
+    exact (readWithPadding_past_end mem read len hpast hlen64).symm
+  · have hread : read < mem.size := by omega
+    have hoff : mem.size ≤ off := by omega
+    have hspan : mem.size ≤ read + min len mem.size := by
+      by_cases hle : len ≤ mem.size
+      · rw [min_eq_left hle]
+        omega
+      · rw [min_eq_right (by omega)]
+        omega
+    rw [toByteArray_write_eq b mem off hoff hgap]
+    rw [readWithPadding_eq_extract' _ read len hpos hlen64 (by
+      rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
+        toByteArray_size]
+      omega)]
+    rw [extract_append_left _ (UInt256.toByteArray b) read (read + len) (by
+      rw [ByteArray.size_append, ByteArray_zeroes_size]
+      omega)]
+    rw [extract_append_span mem (ffi.ByteArray.zeroes (off - mem.size))
+      read (read + len) (by omega) (by omega)]
+    have hzero := zeroes_extract (off - mem.size) 0 (read + len - mem.size)
+      (by omega) (by omega)
+    simp only [Nat.sub_zero] at hzero
+    rw [hzero]
+    unfold ByteArray.readWithPadding ByteArray.readWithoutPadding
+    rw [if_neg (by omega : ¬ len ≥ 2 ^ 64), if_neg (by omega)]
+    have hextract : mem.extract read (read + min len mem.size) =
+        mem.extract read mem.size := by
+      apply ByteArray.ext
+      simp only [ByteArray.data_extract]
+      have h₁ : mem.data.extract read (read + min len mem.size) = mem.data.extract read :=
+        Array.extract_eq_of_size_le_stop (by simpa using hspan)
+      have h₂ : mem.data.extract read mem.size = mem.data.extract read :=
+        Array.extract_eq_of_size_le_stop (by simp)
+      exact h₁.trans h₂.symm
+    rw [hextract]
+    simp only [ByteArray.size_extract]
+    rw [show min mem.size mem.size - read = mem.size - read by simp]
+    rw [show len - (mem.size - read) = read + len - mem.size by omega]
 
 /-- Reading a window inside a 32-byte word write, allowing the write to extend memory by a zero
     gap. -/

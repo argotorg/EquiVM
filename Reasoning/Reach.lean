@@ -3867,6 +3867,9 @@ macro "mem_cost" : term =>
 declare_syntax_cat evmStep
 /-- Verbatim step: the combinator and all its arguments are written out unchanged. -/
 syntax "raw " ident (term:max)* : evmStep
+/-- Cooked step with a previously proved decode fact, avoiding a repeated `native_decide` compile
+for very large bytecode literals. -/
+syntax "known " ident term:max (term:max)* : evmStep
 /-- Cooked step: combinator + value args; decode/overflow proofs are auto-supplied. -/
 syntax ident (term:max)* : evmStep
 
@@ -3880,6 +3883,12 @@ macro_rules
         match s with
         | `(evmStep| raw $op:ident $args*) =>
             acc ← `($(acc).$op $args*)
+        | `(evmStep| known $op:ident $hdec:term $args*) =>
+            match op.getId with
+            | `jump    => acc ← `($(acc).jump $hdec $(args[0]!) (by evm_ov))
+            | `jumpiT  => acc ← `($(acc).jumpiT $hdec $(args[0]!) $(args[1]!) (by evm_ov))
+            | `jumpiNT => acc ← `($(acc).jumpiNT $hdec $(args[0]!) (by evm_ov))
+            | _        => acc ← `($(acc).$op $args* $hdec (by evm_ov))
         | `(evmStep| $op:ident $args*) =>
             -- The first auto-supplied proof is the `decode code pc = …` obligation; discharge it
             -- with `native_decide` rather than `decide`.  `decode` kernel-reduces by scanning the

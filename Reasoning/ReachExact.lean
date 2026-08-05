@@ -86,6 +86,29 @@ theorem RDx.withIndices {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 
   subst C'
   exact h
 
+/-- Replace a symbolic stack by a propositionally equal one without unfolding the reachability
+proof.  This is especially useful after arithmetic instructions whose library-level operation is
+definitionally, but not syntactically, the corresponding typeclass notation. -/
+theorem RDx.withStack {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {stk stk' : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : Nat}
+    (h : RDx code ee g s0 pc stk mem aw rdata acc k C) (hstk : stk = stk') :
+    RDx code ee g s0 pc stk' mem aw rdata acc k C := by
+  subst stk'
+  exact h
+
+/-- Normalize or replace a cursor program counter without simplifying the full reachability
+proof term. This is useful for long traces whose PC is a closed chain of `UInt256` additions. -/
+theorem RDx.withPC {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc pc' : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : Nat}
+    (h : RDx code ee g s0 pc stk mem aw rdata acc k C) (hpc : pc = pc') :
+    RDx code ee g s0 pc' stk mem aw rdata acc k C := by
+  subst pc'
+  exact h
+
 /-- Exact entry cursor for the state constructed by `Ξ`. -/
 theorem RDx.initState {code : ByteArray}
     {cA : Batteries.RBSet AccountAddress compare} {gh : BlockHeader} {bl : ProcessedBlocks}
@@ -312,6 +335,19 @@ theorem RDx.swap8 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : Stat
     RDx code ee g s0 (pc + ⟨1⟩) (ii :: b :: c :: d :: e :: f :: gg :: hh :: a :: t)
       mem aw rdata acc (k + 1) (C + 3) :=
   rd.stepSwap (fun _ hc hp hs => swap8_xstep hc hp hdec hs hov)
+
+theorem RDx.swap9 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b c d e f gg hh ii jj : UInt256} {t : List UInt256}
+    (rd : RDx code ee g s0 pc
+      (a :: b :: c :: d :: e :: f :: gg :: hh :: ii :: jj :: t)
+      mem aw rdata acc k C)
+    (hdec : decode code pc = some (.SWAP9, .none)) (hov : t.length + 10 ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩)
+      (jj :: b :: c :: d :: e :: f :: gg :: hh :: ii :: a :: t)
+      mem aw rdata acc (k + 1) (C + 3) :=
+  rd.stepSwap (fun _ hc hp hs => swap9_xstep hc hp hdec hs hov)
 
 theorem RDx.swap10 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -590,6 +626,69 @@ theorem RDx.mod {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RDx code ee g s0 (pc + ⟨1⟩) (UInt256.mod a b :: t) mem aw rdata acc
       (k + 1) (C + 5) :=
   h.stepBinop5 (fun _ hc hp hs => mod_xstep hc hp hdec hs hov)
+
+/-- Exact `ADDMOD`; its addition is performed at unbounded precision before reduction. -/
+theorem RDx.addmod {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {a b c : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.ADDMOD, .none)) (hov : t.length + 1 ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩) (UInt256.addMod a b c :: t) mem aw rdata acc
+      (k + 1) (C + 8) := by
+  apply RDx.step (cost := 8) (fun s => stTriop8 s (UInt256.addMod a b c) t) h (by omega)
+  · intro s hm
+    exact addmod_xstep hm.1 hm.2.1 hdec hm.2.2.1 hov
+  · intro s hm
+    rcases hm with ⟨hcode, hpc, _hstk, hmem, haw, hrdata, hacc, hee, hworld⟩
+    refine ⟨?_, ?_, rfl, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · simpa only [stTriop8] using hcode
+    · simp only [stTriop8, hpc]
+    · simpa only [stTriop8] using hmem
+    · simpa only [stTriop8] using haw
+    · simpa only [stTriop8] using hrdata
+    · simpa only [stTriop8] using hacc
+    · simpa only [stTriop8] using hee
+    · simpa only [stTriop8] using hworld
+  · intro _ _
+    simp only [stTriop8]
+
+/-- Exact `MULMOD`; unlike `MUL`, its intermediate product is not reduced modulo `2^256`. -/
+theorem RDx.mulmod {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {a b c : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.MULMOD, .none)) (hov : t.length + 1 ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩) (UInt256.mulMod a b c :: t) mem aw rdata acc
+      (k + 1) (C + 8) := by
+  apply RDx.step (cost := 8) (fun s => stTriop8 s (UInt256.mulMod a b c) t) h (by omega)
+  · intro s hm
+    exact mulmod_xstep hm.1 hm.2.1 hdec hm.2.2.1 hov
+  · intro s hm
+    rcases hm with ⟨hcode, hpc, _hstk, hmem, haw, hrdata, hacc, hee, hworld⟩
+    refine ⟨?_, ?_, rfl, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · simpa only [stTriop8] using hcode
+    · simp only [stTriop8, hpc]
+    · simpa only [stTriop8] using hmem
+    · simpa only [stTriop8] using haw
+    · simpa only [stTriop8] using hrdata
+    · simpa only [stTriop8] using hacc
+    · simpa only [stTriop8] using hee
+    · simpa only [stTriop8] using hworld
+  · intro _ _
+    rfl
+
+/-- Exact `BYTE`. -/
+theorem RDx.byte {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {a b : UInt256} {t : List UInt256}
+    (h : RDx code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.BYTE, .none)) (hov : t.length + 1 ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩) (UInt256.byteAt a b :: t) mem aw rdata acc
+      (k + 1) (C + 3) :=
+  h.stepBinop (fun _ hc hp hs => byte_xstep hc hp hdec hs hov)
 
 /-- Width-generic exact PUSH step. -/
 theorem RDx.pushConst
@@ -1156,6 +1255,82 @@ theorem RDx.calldatacopy
     simp only [stCalldatacopy]
     rw [hmc s hm.2.2.2.2.1 hm.2.2.1, Sat256.subNat_subNat]
 
+/-- `MCOPY` with exact memory expansion and copy-word cost. -/
+theorem RDx.mcopy {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat}
+    {a b c : UInt256} {t : List UInt256} (memoryCost : Nat)
+    (memOut : ByteArray) (awOut : UInt256)
+    (h : RDx code ee g s0 pc (a :: b :: c :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.MCOPY, .none))
+    (hmc : ∀ s : State, s.machineState.activeWords = aw →
+      s.machineState.stack = a :: b :: c :: t →
+      memoryExpansionCost s .MCOPY = memoryCost)
+    (hmem : mem.write b.toNat mem a.toNat c.toNat = memOut)
+    (haw : UInt256.ofNat
+      (MachineState.M aw.toNat (max a.toNat b.toNat) c.toNat) = awOut)
+    (hov : t.length ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩) t memOut awOut rdata acc (k + 1)
+      (C + (memoryCost + (GasConstants.Gverylow +
+        GasConstants.Gcopy * ((c.toNat + 31) / 32)))) := by
+  let cost := memoryCost + (GasConstants.Gverylow +
+    GasConstants.Gcopy * ((c.toNat + 31) / 32))
+  apply RDx.step (cost := cost) (fun s => stMcopy s a b c t) h (by
+    simp only [cost, GasConstants.Gverylow]
+    omega)
+  · intro s hm
+    have hs := mcopy_xstep hm.1 hm.2.1 hdec hm.2.2.1 hov
+    rw [hmc s hm.2.2.2.2.1 hm.2.2.1, collapse_two_stage] at hs
+    simpa only [cost] using hs
+  · intro s hm
+    rcases hm with ⟨hcode, hpc, _hstk, hsMem, hsAw, hrdata, hacc, hee, hworld⟩
+    refine ⟨?_, ?_, rfl, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · simpa only [stMcopy] using hcode
+    · simp only [stMcopy, hpc]
+    · simp only [stMcopy]; rw [hsMem, hmem]
+    · simp only [stMcopy]; rw [hsAw, haw]
+    · simpa only [stMcopy] using hrdata
+    · simpa only [stMcopy] using hacc
+    · simpa only [stMcopy] using hee
+    · simpa only [stMcopy] using hworld
+  · intro s hm
+    simp only [stMcopy, cost]
+    rw [hmc s hm.2.2.2.2.1 hm.2.2.1, Sat256.subNat_subNat]
+
+/-- `MSTORE8` with its exact dynamic memory-expansion cost. -/
+theorem RDx.mstore8 {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : ℕ}
+    {a b : UInt256} {t : List UInt256} (mcost : ℕ) (memout : ByteArray) (awout : UInt256)
+    (h : RDx code ee g s0 pc (a :: b :: t) mem aw rdata acc k C)
+    (hdec : decode code pc = some (.MSTORE8, .none))
+    (hmc : ∀ s : State, s.machineState.activeWords = aw → s.machineState.stack = a :: b :: t →
+        memoryExpansionCost s .MSTORE8 = mcost)
+    (hmemout : (⟨#[UInt8.ofNat b.toNat]⟩ : ByteArray).write 0 mem a.toNat 1 = memout)
+    (hawout : UInt256.ofNat (MachineState.M aw.toNat a.toNat 1) = awout)
+    (hov : t.length ≤ 1024) :
+    RDx code ee g s0 (pc + ⟨1⟩) t memout awout rdata acc
+      (k + 1) (C + (mcost + 3)) := by
+  apply RDx.step (cost := mcost + 3) (fun s => stMStore8 s a b t) h (by omega)
+  · intro s hm
+    have hs := mstore8_xstep hm.1 hm.2.1 hdec hm.2.2.1 hov
+    rw [hmc s hm.2.2.2.2.1 hm.2.2.1] at hs
+    exact hs
+  · intro s hm
+    rcases hm with ⟨hcode, hpc, _hstk, hmem, haw, hrdata, hacc, hee, hworld⟩
+    refine ⟨?_, ?_, rfl, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · simpa only [stMStore8] using hcode
+    · simp only [stMStore8, hpc]
+    · simp only [stMStore8]; rw [hmem, hmemout]
+    · simp only [stMStore8]; rw [haw, hawout]
+    · simpa only [stMStore8] using hrdata
+    · simpa only [stMStore8] using hacc
+    · simpa only [stMStore8] using hee
+    · simpa only [stMStore8] using hworld
+  · intro s hm
+    simp only [stMStore8]
+    rw [hmc s hm.2.2.2.2.1 hm.2.2.1, Sat256.subNat_subNat]
+
 /-- Exact loop induction with a closed-form gas threshold. -/
 theorem RDx.whileLoopGas
     {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
@@ -1225,6 +1400,15 @@ def RDxRet (code : ByteArray) (g : Sat256) (s0 : State)
     X (g.toNat + 1) (D_J code 0) s0 = .ok (.success s' output) ∧
     (s'.createdAccounts, s'.accountMap) = acc ∧
     s'.machineState.gasAvailable = g.subNat cost)
+
+/-- Normalize an exact successful-return cost without unfolding its threshold proof. -/
+theorem RDxRet.withCost {code : ByteArray} {g : Sat256} {s0 : State}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {output : ByteArray} {cost cost' : Nat}
+    (h : RDxRet code g s0 acc output cost) (hcost : cost = cost') :
+    RDxRet code g s0 acc output cost' := by
+  subst cost'
+  exact h
 
 /-- Threshold-exact revert termination. -/
 def RDxRev (code : ByteArray) (g : Sat256) (s0 : State) (cost : Nat) : Prop :=

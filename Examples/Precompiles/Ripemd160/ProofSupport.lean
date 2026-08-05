@@ -119,48 +119,6 @@ theorem nat_land_mask_pow (m k : ℕ) (hm : m < 2 ^ 256) (hk : k ≤ 256) :
       rw [show k + (i - k) = i by omega, hb]
   · simp only [hi, decide_false, Bool.false_and, Bool.and_false]
 
-/-! ### MSTORE8 (two-stage cost `memExp + 3`, pc += 1, pops 2) -/
-
-def stMStore8 (s : State) (a b : UInt256) (t : List UInt256) : State :=
-  { s with machineState := { s.machineState with
-      pc := s.machineState.pc + ⟨1⟩,
-      stack := t,
-      memory := (⟨#[UInt8.ofNat b.toNat]⟩ : ByteArray).write 0
-        s.machineState.memory a.toNat 1,
-      activeWords := UInt256.ofNat (MachineState.M s.machineState.activeWords.toNat a.toNat 1),
-      execLength := s.machineState.execLength + 1,
-      gasAvailable :=
-        (s.machineState.gasAvailable.subNat (memoryExpansionCost s .MSTORE8)).subNat 3 } }
-
-theorem mstore8_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.MSTORE8, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < memoryExpansionCost s .MSTORE8 + 3
-         then .error .OutOfGass else .ok (stMStore8 s a b t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.MSTORE8, .none) := by
-    rw [hcode, hpc]; exact hdec
-  rw [← hcode, step_mstore8 s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 0 > 1024) := by
-    simp only [List.length_cons]; omega
-  simp only [if_neg hov']
-  rw [collapse_two_stage]
-  simp only [GasConstants.Gverylow, stMStore8]
-
-theorem byte_xstep {s : State} {code : ByteArray} {pcv a b : UInt256} {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.BYTE, .none))
-    (hstk : s.machineState.stack = a :: b :: t) (hov : t.length + 1 ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < 3 then .error .OutOfGass
-         else .ok (stBinop s (UInt256.byteAt a b) t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.BYTE, .none) := by
-    rw [hcode, hpc]; exact hdec
-  rw [← hcode, step_byte s hd, hstk]
-  have hov' : ¬ ((a :: b :: t).length - 2 + 1 > 1024) := by simp only [List.length_cons]; omega
-  simp only [if_neg hov', GasConstants.Gverylow, stBinop]
-
 theorem dup12_xstep {s : State} {code : ByteArray}
     {pcv a b c d e f gg hh ii jj kk ll : UInt256} {t : List UInt256}
     (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
@@ -205,46 +163,6 @@ theorem dup16_xstep {s : State} {code : ByteArray}
           oo :: pp :: t).length - 16 + 17 > 1024) := by
     simp only [List.length_cons]; omega
   simp only [if_neg hov', GasConstants.Gverylow, stSwap]
-
-/-! ### MCOPY (`a :: b :: c :: t ↦ t`, copy memory bytes within the same memory) -/
-
-def stMcopy (s : State) (a b c : UInt256) (t : List UInt256) : State :=
-  { s with machineState := { s.machineState with
-      pc := s.machineState.pc + ⟨1⟩,
-      stack := t,
-      memory := s.machineState.memory.write b.toNat s.machineState.memory a.toNat c.toNat,
-      activeWords := UInt256.ofNat
-        (MachineState.M s.machineState.activeWords.toNat (max a.toNat b.toNat) c.toNat),
-      execLength := s.machineState.execLength + 1,
-      gasAvailable :=
-        (s.machineState.gasAvailable.subNat (memoryExpansionCost s .MCOPY)).subNat
-          (GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)) } }
-
-theorem mcopy_xstep {s : State} {code : ByteArray} {pcv a b c : UInt256}
-    {t : List UInt256}
-    (hcode : s.executionEnv.code = code) (hpc : s.machineState.pc = pcv)
-    (hdec : decode code pcv = some (.MCOPY, .none))
-    (hstk : s.machineState.stack = a :: b :: c :: t)
-    (hov : t.length ≤ 1024) :
-    Xstep (D_J code 0) s
-      = (if s.machineState.gasAvailable.toNat < memoryExpansionCost s .MCOPY
-         then .error .OutOfGass
-         else if (s.machineState.gasAvailable.subNat (memoryExpansionCost s .MCOPY)).toNat
-                < GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)
-              then .error .OutOfGass
-              else .ok (stMcopy s a b c t, .none)) := by
-  have hd : decode s.executionEnv.code s.machineState.pc = some (.MCOPY, .none) := by
-    rw [hcode, hpc]; exact hdec
-  rw [← hcode, step_mcopy s hd, hstk]
-  by_cases hg1 : s.machineState.gasAvailable.toNat < memoryExpansionCost s .MCOPY
-  · simp only [hg1, if_true]
-  · by_cases hg2 : (s.machineState.gasAvailable.subNat
-        (memoryExpansionCost s .MCOPY)).toNat
-        < GasConstants.Gverylow + GasConstants.Gcopy * ((c.toNat + 31) / 32)
-    · simp only [hg1, hg2, if_true, if_false]
-    · have hov' : ¬ ((a :: b :: c :: t).length - 3 + 0 > 1024) := by
-        simp only [List.length_cons]; omega
-      simp only [hg1, hg2, hov', if_false, stMcopy]
 
 theorem swap13_xstep {s : State} {code : ByteArray}
     {pcv a b c d e f gg hh ii jj kk ll mm nn : UInt256} {t : List UInt256}
@@ -333,30 +251,6 @@ theorem readWithPadding_size_eq (b : ByteArray) (addr len : Nat) (hlen : len < 2
   rw [ByteArray.size_append, ByteArray_zeroes_size]
   have := readWithoutPadding_size_le b addr len
   omega
-
-/-- `write_eq_gen_extend` with a nonzero source offset. -/
-theorem write_eq_gen_extend_from (src base : ByteArray) (srcAddr destAddr len : ℕ)
-    (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
-    (hdest : destAddr ≤ base.size) (hext : base.size < destAddr + len) :
-    src.write srcAddr base destAddr len =
-      base.extract 0 destAddr ++ src.extract srcAddr (srcAddr + len) := by
-  apply ByteArray.ext
-  unfold ByteArray.write
-  rw [if_neg hlen, if_neg (show ¬ (srcAddr ≥ src.size) from by omega)]
-  have hsize : src.data.size = src.size := rfl
-  have hpL : min len (src.size - srcAddr) = len := by omega
-  have hsp : min base.size (destAddr + len) - (destAddr + len) = 0 := by
-    rw [Nat.min_eq_left (by omega)]
-    omega
-  have hdp : destAddr - base.size = 0 := Nat.sub_eq_zero_of_le hdest
-  have hz0 : ffi.ByteArray.zeroes 0 = ByteArray.empty := zeroes_zero (by rfl)
-  simp only [hdp, hz0, ByteArray.data_copySlice, ByteArray.data_append,
-    ByteArray.data_extract, show (ByteArray.empty).data = (#[] : Array UInt8) from rfl,
-    Array.append_empty, hsize, hpL, hsp, Nat.add_zero,
-    show base.data.size = base.size from rfl]
-  have htail : base.data.extract (destAddr + len) base.size = #[] :=
-    Array.extract_eq_empty_of_le (by omega)
-  rw [htail, Array.append_empty]
 
 /-- An in-bounds write from an arbitrary source window preserves the destination size. -/
 theorem write_size_of_inbounds_from (src base : ByteArray)

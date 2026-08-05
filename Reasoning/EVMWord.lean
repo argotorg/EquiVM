@@ -877,6 +877,49 @@ theorem alloc_round (x : UInt256) (n : ℕ) (hx : x.toNat = 32 * n) (hxb : x.toN
       Nat.and_comm, nat_land_mask _ (by omega)]
   omega
 
+/-- General solc word rounding for a bounded natural byte length. -/
+theorem roundUp32_ofNat (n : Nat) (hn : n + 31 < 2 ^ 256) :
+    UInt256.land (UInt256.ofNat n + ⟨31⟩) (UInt256.lnot ⟨31⟩) =
+      UInt256.ofNat (32 * ((n + 31) / 32)) := by
+  have hsize : UInt256.size = 2 ^ 256 := by decide
+  have hnWord : n < UInt256.size := by rw [hsize]; omega
+  have hround : 32 * ((n + 31) / 32) ≤ n + 31 := by omega
+  have hroundWord : 32 * ((n + 31) / 32) < UInt256.size := by rw [hsize]; omega
+  apply u256_inj
+  rw [uland_toNat, uadd_toNat, lnot31_toNat,
+    UInt256.toNat_ofNat_of_lt hnWord,
+    show (⟨31⟩ : UInt256).toNat = 31 by decide,
+    hsize, Nat.mod_eq_of_lt hn, UInt256.toNat_ofNat_of_lt hroundWord]
+  exact nat_land_mask (n + 31) hn
+
+/-- The total allocation size for a Solidity `bytes` object: one length word plus rounded data. -/
+theorem bytesAllocationSize_ofNat (n : Nat) (hn : n + 63 < 2 ^ 256) :
+    UInt256.land (UInt256.ofNat n + ⟨31⟩) (UInt256.lnot ⟨31⟩) + ⟨32⟩ =
+      UInt256.ofNat (32 + 32 * ((n + 31) / 32)) := by
+  have hsize : UInt256.size = 2 ^ 256 := by decide
+  have hround : 32 * ((n + 31) / 32) ≤ n + 31 := by omega
+  have hroundWord : 32 * ((n + 31) / 32) < UInt256.size := by rw [hsize]; omega
+  have htotalWord : 32 + 32 * ((n + 31) / 32) < UInt256.size := by rw [hsize]; omega
+  rw [roundUp32_ofNat n (by omega)]
+  apply u256_inj
+  rw [uadd_toNat, UInt256.toNat_ofNat_of_lt hroundWord,
+    show (⟨32⟩ : UInt256).toNat = 32 by decide,
+    UInt256.toNat_ofNat_of_lt htotalWord,
+    Nat.mod_eq_of_lt (by rw [hsize]; omega)]
+  omega
+
+/-- Rounding an already word-aligned bounded value with `(x + 31) & ~31` is the identity. -/
+theorem roundAligned32 (x : UInt256) (q : Nat) (hx : x.toNat = 32 * q)
+    (hbound : x.toNat + 31 < 2 ^ 256) :
+    UInt256.land (UInt256.lnot ⟨31⟩) (x + ⟨31⟩) = x := by
+  apply u256_inj
+  rw [uland_toNat, lnot31_toNat, uadd_toNat,
+    show (⟨31⟩ : UInt256).toNat = 31 by decide,
+    show UInt256.size = 2 ^ 256 by decide,
+    Nat.mod_eq_of_lt hbound]
+  rw [Nat.and_comm, nat_land_mask _ hbound]
+  omega
+
 /-- `SHL` by 5 of a length literal is multiplication by 32 (no wrap for `n < 2^251`).  solc uses
     `n << 5` to turn an element count into the `0x20 * n` data byte-size. -/
 theorem ushl5_ofNat_toNat (n : ℕ) (hn : n < 2 ^ 251) :
@@ -892,5 +935,20 @@ theorem ushl5_ofNat_toNat (n : ℕ) (hn : n < 2 ^ 251) :
     calc n * 2 ^ 5 < 2 ^ 251 * 2 ^ 5 := Nat.mul_lt_mul_of_pos_right hn (by norm_num)
       _ ≤ UInt256.size := hub)]
   ring
+
+/-- If at least three memory words are active and multiplication by 32 does not wrap, then the
+byte extent of active memory is strictly above offset 64.  This is the side condition used by
+`MLOAD 0x40` rules to show that the free-memory-pointer read is in bounds. -/
+theorem wordMul32_not_le64_of_ge3 {aw : UInt256}
+    (hge : 3 ≤ aw.toNat) (hNoWrap : aw.toNat * 32 < UInt256.size) :
+    ¬ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ := by
+  have hmul : (aw * (⟨32⟩ : UInt256)).toNat = aw.toNat * 32 := by
+    simpa [show (⟨32⟩ : UInt256).toNat = 32 from by decide] using
+      umul_toNat (a := aw) (b := (⟨32⟩ : UInt256)) hNoWrap
+  intro hgeWord
+  have h64 : (⟨64⟩ : UInt256).toNat ≥ (aw * (⟨32⟩ : UInt256)).toNat := hgeWord
+  rw [hmul] at h64
+  change 64 ≥ aw.toNat * 32 at h64
+  nlinarith
 
 end Reasoning.Theory
