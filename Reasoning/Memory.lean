@@ -1665,6 +1665,136 @@ theorem word_toBytesBE_inj {a b : UInt256}
       hbb.trans (fromByteArrayBigEndian_toByteArray b)
   rw [← ha, ← hb, h]
 
+theorem ushl_ofNat_toNat (x : UInt256) (n : Nat) (hn : n < 256) :
+    (UInt256.shiftLeft x (UInt256.ofNat n)).toNat =
+      (x.toNat <<< n) % UInt256.size := by
+  unfold UInt256.shiftLeft
+  rw [if_neg]
+  · change (x.toNat <<< (UInt256.ofNat n).toNat) % UInt256.size = _
+    rw [ulit_toNat' n (by
+      rw [show UInt256.size = 2 ^ 256 from by decide]
+      omega)]
+  · change ¬(UInt256.ofNat n).toNat ≥ 256
+    rw [ulit_toNat' n (by
+      rw [show UInt256.size = 2 ^ 256 from by decide]
+      omega)]
+    omega
+
+theorem ushr_ofNat_toNat (x : UInt256) (n : Nat) (hn : n < 256) :
+    (UInt256.shiftRight x (UInt256.ofNat n)).toNat = x.toNat >>> n := by
+  unfold UInt256.shiftRight
+  rw [if_neg]
+  · change (x.toNat >>> (UInt256.ofNat n).toNat) % UInt256.size = _
+    rw [ulit_toNat' n (by
+      rw [show UInt256.size = 2 ^ 256 from by decide]
+      omega)]
+    exact Nat.mod_eq_of_lt (lt_of_le_of_lt (Nat.shiftRight_le _ _) x.val.isLt)
+  · change ¬(UInt256.ofNat n).toNat ≥ 256
+    rw [ulit_toNat' n (by
+      rw [show UInt256.size = 2 ^ 256 from by decide]
+      omega)]
+    omega
+
+/-- Byte `i` of `toBytes' n`, read with a default, is the corresponding little-endian byte. -/
+theorem toBytes'_getD (n i : Nat) :
+    (Ethereum.toBytes' n).getD i 0 = UInt8.ofNat (n >>> (8 * i)) := by
+  induction n using Nat.strong_induction_on generalizing i with
+  | h n ih =>
+    cases n with
+    | zero => simp [Ethereum.toBytes']
+    | succ n =>
+      rw [Ethereum.toBytes']
+      cases i with
+      | zero =>
+        rw [← UInt8.toNat_inj]
+        simp [UInt8.size]
+        rfl
+      | succ i =>
+        simp only [List.getD_cons_succ]
+        rw [ih ((n + 1) / UInt8.size) (by
+          exact Nat.div_lt_self (by omega) (by decide)) i]
+        rw [← UInt8.toNat_inj]
+        change ((((n + 1) / UInt8.size) >>> (8 * i)) % 256) =
+          (((n + 1) >>> (8 * (i + 1))) % 256)
+        congr 1
+        simp only [Nat.shiftRight_eq_div_pow]
+        rw [Nat.div_div_eq_div_mul]
+        congr 1
+        change 256 * 2 ^ (8 * i) = _
+        rw [show 256 = 2 ^ 8 by norm_num, ← Nat.pow_add]
+        congr 1
+        omega
+
+theorem word_toBytesLE_getD (w : UInt256) (i : Nat) (hi : i < 32) :
+    (EVM.Word.toBytesLE w).getD i 0 = UInt8.ofNat (w.toNat >>> (8 * i)) := by
+  unfold EVM.Word.toBytesLE
+  let b := Ethereum.toBytes' w.val
+  change (b ++ List.replicate (32 - b.length) 0).getD i 0 = _
+  by_cases hib : i < b.length
+  · rw [List.getD_append _ _ _ _ hib]
+    exact (show (Ethereum.toBytes' w.toNat).getD i 0 = _ from by
+      exact toBytes'_getD w.toNat i)
+  · rw [List.getD_append_right _ _ _ _ (by omega)]
+    have hpad : i - b.length < 32 - b.length := by
+      have hblen : b.length ≤ 32 := by
+        simpa [b] using Ethereum.toBytes'_le (k := 32) w.val.isLt
+      omega
+    have hpad' : i - b.length <
+        (List.replicate (32 - b.length) (0 : UInt8)).length := by
+      simpa using hpad
+    have hz := List.getD_eq_getElem
+      (List.replicate (32 - b.length) (0 : UInt8)) (0 : UInt8) hpad'
+    rw [hz]
+    simp only [List.getElem_replicate]
+    rw [← UInt8.toNat_inj]
+    simp only [UInt8.toNat_ofNat]
+    have hnlt : w.toNat < 2 ^ (8 * b.length) := by
+      simpa [b, fromBytes'_toBytes'] using
+        (Ethereum.fromBytes'_le (bs := b))
+    have hpow : w.toNat < 2 ^ (8 * i) :=
+      lt_of_lt_of_le hnlt (Nat.pow_le_pow_right (by norm_num) (by omega))
+    rw [Nat.shiftRight_eq_div_pow, Nat.div_eq_of_lt hpow]
+    simp
+
+theorem word_toBytesBE_reverse (w : UInt256) :
+    EVM.Word.toBytesBE w = (EVM.Word.toBytesLE w).reverse := by
+  unfold EVM.Word.toBytesBE EVM.Word.toBytesLE
+  simp [Ethereum.toBytesBigEndian]
+
+theorem word_toBytesBE_getD (w : UInt256) (i : Nat) (hi : i < 32) :
+    (EVM.Word.toBytesBE w).getD i 0 =
+      UInt8.ofNat (w.toNat >>> ((31 - i) * 8)) := by
+  rw [word_toBytesBE_reverse]
+  have hlen : (EVM.Word.toBytesLE w).length = 32 := by
+    unfold EVM.Word.toBytesLE
+    have hb := Ethereum.toBytes'_le (k := 32) w.val.isLt
+    simp
+    omega
+  rw [List.getD_reverse i (by rw [hlen]; exact hi), hlen]
+  simpa [Nat.mul_comm] using word_toBytesLE_getD w (31 - i) (by omega)
+
+theorem toByteArray_extract_one (w : UInt256) (i : Nat) (hi : i < 32) :
+    w.toByteArray.extract i (i + 1) =
+      ⟨#[UInt8.ofNat (w.toNat >>> ((31 - i) * 8))]⟩ := by
+  rw [toByteArray_eq_toBytesBE]
+  apply ByteArray.ext
+  apply Array.toList_inj.mp
+  rw [ByteArray.data_extract, Array.toList_extract]
+  simp only
+  rw [List.extract_eq_take_drop]
+  have hlen : (EVM.Word.toBytesBE w).length = 32 := by
+    rw [word_toBytesBE_reverse, List.length_reverse]
+    unfold EVM.Word.toBytesLE
+    have hb := Ethereum.toBytes'_le (k := 32) w.val.isLt
+    simp
+    omega
+  have hdrop : (EVM.Word.toBytesBE w).drop i =
+      (EVM.Word.toBytesBE w).getD i 0 :: (EVM.Word.toBytesBE w).drop (i + 1) := by
+    rw [← List.cons_getElem_drop_succ]
+    rw [List.getD_eq_getElem _ _ (by rwa [hlen])]
+  rw [hdrop, show i + 1 - i = 1 by omega, List.take_succ_cons, List.take_zero]
+  simp only [word_toBytesBE_getD w i hi]
+
 /-! ## 6. `CALLDATALOAD`/`SHR` selector extraction (reusable byte arithmetic) -/
 
 /-- `fromBytes'` (little-endian) of an append splits at the byte boundary. -/
@@ -1891,6 +2021,83 @@ theorem toBytesBE_uInt256OfByteArray_of_size {arr : ByteArray}
 theorem toBytesBE_keccak_uInt256OfByteArray (b : ByteArray) :
     EVM.Word.toBytesBE (uInt256OfByteArray (ffi.KEC b)) = (ffi.KEC b).toList :=
   toBytesBE_uInt256OfByteArray_of_size (keccak_size b)
+
+/-- `BYTE 0` of a 32-byte big-endian decode is the first byte of that array.
+
+Source note: this was first needed by the RIPEMD-160 bytecode proof, but it is generic EVM
+word/byte arithmetic.  BLAKE2F also uses it to connect `CALLDATALOAD; BYTE 0` to the trusted
+precompile input byte. -/
+theorem byteAt_zero_uInt256OfByteArray {arr : ByteArray} {byte : UInt8}
+    (hsize : arr.size = 32) (hfirst : arr.extract 0 1 = ⟨#[byte]⟩) :
+    UInt256.byteAt ⟨0⟩ (uInt256OfByteArray arr) = UInt256.ofNat byte.toNat := by
+  have hwordBytes : (uInt256OfByteArray arr).toByteArray = arr := by
+    rw [toByteArray_eq_toBytesBE]
+    apply ByteArray.ext
+    apply Array.toList_inj.mp
+    simp only
+    simpa [byteArray_toList_eq] using toBytesBE_uInt256OfByteArray_of_size hsize
+  have hone := congrArg (fun b : ByteArray => b.extract 0 1) hwordBytes
+  change (uInt256OfByteArray arr).toByteArray.extract 0 (0 + 1) =
+    arr.extract 0 1 at hone
+  rw [toByteArray_extract_one (uInt256OfByteArray arr) 0 (by decide), hfirst] at hone
+  have hbyte : UInt8.ofNat ((uInt256OfByteArray arr).toNat >>> 248) = byte := by
+    simpa using hone
+  apply u256_inj
+  unfold UInt256.byteAt
+  rw [if_neg (by decide)]
+  rw [show (UInt256.ofNat ((31 - (⟨0⟩ : UInt256).toNat) * 8)) =
+      UInt256.ofNat 248 by decide]
+  change (UInt256.land
+    (UInt256.shiftRight (uInt256OfByteArray arr) (UInt256.ofNat 248)) ⟨0xff⟩).toNat = _
+  rw [uland_toNat, ushr_ofNat_toNat _ 248 (by decide),
+    show (⟨0xff⟩ : UInt256).toNat = 255 from by decide]
+  rw [ulit_toNat' byte.toNat (lt_of_lt_of_le byte.toFin.isLt (by decide))]
+  have hb := congrArg UInt8.toNat hbyte
+  calc
+    (uInt256OfByteArray arr).toNat >>> 248 &&& 255 =
+        ((uInt256OfByteArray arr).toNat >>> 248) % 256 := by
+      simpa using nat_land_mask_eq_mod ((uInt256OfByteArray arr).toNat >>> 248) 8
+    _ = byte.toNat := by simpa using hb
+
+/-- `BYTE 0` is the most-significant byte of an EVM word, equivalently `SHR 248`.
+
+This is deliberately generic rather than tied to a precompile model: Solidity and Yul wrappers
+often spell one-byte validation as either `BYTE 0` on a calldata word or `MLOAD; SHR 248` on a
+materialized memory word. -/
+theorem byteAt_zero_toNat (w : UInt256) :
+    (UInt256.byteAt ⟨0⟩ w).toNat =
+      (UInt256.shiftRight w (UInt256.ofNat 248)).toNat := by
+  unfold UInt256.byteAt
+  rw [if_neg (by decide)]
+  rw [show UInt256.ofNat ((31 - (⟨0⟩ : UInt256).toNat) * 8) =
+      UInt256.ofNat 248 by decide]
+  change (UInt256.land
+    (UInt256.shiftRight w (UInt256.ofNat 248)) ⟨0xff⟩).toNat =
+      (UInt256.shiftRight w (UInt256.ofNat 248)).toNat
+  rw [uland_toNat, ushr_ofNat_toNat w 248 (by decide),
+    show (⟨0xff⟩ : UInt256).toNat = 255 from by decide]
+  rw [show (255 : Nat) = 2 ^ 8 - 1 by decide]
+  change Nat.land (w.toNat >>> 248) (2 ^ 8 - 1) = w.toNat >>> 248
+  rw [nat_land_mask_eq_mod]
+  have hq : w.toNat >>> 248 < 256 := by
+    rw [Nat.shiftRight_eq_div_pow]
+    rw [Nat.div_lt_iff_lt_mul (by positivity)]
+    have hw := w.val.isLt
+    change w.toNat < UInt256.size at hw
+    exact lt_of_lt_of_eq hw (by native_decide)
+  rw [show 2 ^ 8 = 256 by decide, Nat.mod_eq_of_lt hq]
+
+theorem shiftRight248_uInt256OfByteArray_toNat {arr : ByteArray} {byte : UInt8}
+    (hsize : arr.size = 32) (hfirst : arr.extract 0 1 = ⟨#[byte]⟩) :
+    (UInt256.shiftRight (uInt256OfByteArray arr) (UInt256.ofNat 248)).toNat =
+      byte.toNat := by
+  have hbyte := byteAt_zero_uInt256OfByteArray hsize hfirst
+  have htop := byteAt_zero_toNat (uInt256OfByteArray arr)
+  rw [hbyte] at htop
+  have hofNat : (UInt256.ofNat byte.toNat).toNat = byte.toNat :=
+    UInt256.toNat_ofNat_of_lt (lt_of_lt_of_le byte.toFin.isLt (by decide))
+  rw [hofNat] at htop
+  exact htop.symm
 
 /-- `readBytes cd off 32` is `cd`'s bytes `[off, off+32)` when `cd` has at least `off+32` bytes. -/
 theorem readBytes_at_toList (cd : ByteArray) (off : ℕ) (hsz : off + 32 ≤ cd.size)

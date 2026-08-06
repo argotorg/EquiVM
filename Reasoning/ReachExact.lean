@@ -725,6 +725,42 @@ theorem RDx.push4
       (k + 1) (C + 3) :=
   h.pushConst arg (by decide) hdec hov
 
+theorem RDx.push6
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : Nat}
+    (h : RDx code ee g s0 pc stk mem aw rdata acc k C) (arg : UInt256)
+    (hdec : decode code pc = some (.Push .PUSH6, some (arg, 6)))
+    (hov : stk.length + 1 ≤ 1024) :
+    RDx code ee g s0 (pc + UInt256.ofNat 7) (arg :: stk) mem aw rdata acc
+      (k + 1) (C + 3) :=
+  h.pushConst arg (by decide) hdec hov
+
+theorem RDx.push7
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : Nat}
+    (h : RDx code ee g s0 pc stk mem aw rdata acc k C) (arg : UInt256)
+    (hdec : decode code pc = some (.Push .PUSH7, some (arg, 7)))
+    (hov : stk.length + 1 ≤ 1024) :
+    RDx code ee g s0 (pc + UInt256.ofNat 8) (arg :: stk) mem aw rdata acc
+      (k + 1) (C + 3) :=
+  h.pushConst arg (by decide) hdec hov
+
+theorem RDx.push8
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : Nat}
+    (h : RDx code ee g s0 pc stk mem aw rdata acc k C) (arg : UInt256)
+    (hdec : decode code pc = some (.Push .PUSH8, some (arg, 8)))
+    (hov : stk.length + 1 ≤ 1024) :
+    RDx code ee g s0 (pc + UInt256.ofNat 9) (arg :: stk) mem aw rdata acc
+      (k + 1) (C + 3) :=
+  h.pushConst arg (by decide) hdec hov
+
 theorem RDx.push20
     {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
@@ -734,6 +770,18 @@ theorem RDx.push20
     (hdec : decode code pc = some (.Push .PUSH20, some (arg, 20)))
     (hov : stk.length + 1 ≤ 1024) :
     RDx code ee g s0 (pc + UInt256.ofNat 21) (arg :: stk) mem aw rdata acc
+      (k + 1) (C + 3) :=
+  h.pushConst arg (by decide) hdec hov
+
+theorem RDx.push32
+    {code : ByteArray} {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {pc : UInt256} {stk : List UInt256} {mem : ByteArray} {aw : UInt256}
+    {rdata : ByteArray} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {k C : Nat}
+    (h : RDx code ee g s0 pc stk mem aw rdata acc k C) (arg : UInt256)
+    (hdec : decode code pc = some (.Push .PUSH32, some (arg, 32)))
+    (hov : stk.length + 1 ≤ 1024) :
+    RDx code ee g s0 (pc + UInt256.ofNat 33) (arg :: stk) mem aw rdata acc
       (k + 1) (C + 3) :=
   h.pushConst arg (by decide) hdec hov
 

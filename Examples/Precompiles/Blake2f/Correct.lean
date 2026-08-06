@@ -1,50 +1,11 @@
-import Examples.Precompiles.Blake2f.Spec
+import Examples.Precompiles.Blake2f.Correct.Setup
+import Examples.Precompiles.Blake2f.Correct.ZeroRounds
+import Examples.Precompiles.Blake2f.Correct.Invalid
 
 /-!
 # BLAKE2F bytecode proof interface
 
-This file packages the proof obligations needed to close the BLAKE2F experiment.  It contains no
-Solm refinement: the final theorem is directly about bytecode execution at the caller-visible
-`Θ`/`Ξ` projection used by `Reasoning.Bytecode`.
+Aggregator for the Solm-independent BLAKE2F bytecode proof interface.  The theorem bodies live in
+`Correct.Interface`, `Correct.Setup`, `Correct.ZeroRounds`, and `Correct.Invalid` so incremental
+builds only recheck the affected proof segment.
 -/
-
-open Ethereum Ethereum.EVM Reasoning.Reach
-
-namespace Blake2f
-
-/-- Successful valid-input trace obligation for a candidate exact bytecode gas term. -/
-abbrev ValidTrace (gasCost : BytecodeContext → Nat) : Prop :=
-  ∀ ctx : BytecodeContext,
-    ctx.executionEnv.code = runtimeBytecode →
-    accepts ctx →
-    valid ctx →
-    RDxRet runtimeBytecode ctx.gas ctx.initialState
-      (ctx.createdAccounts, ctx.accountMap)
-      (output ctx) (gasCost ctx)
-
-/-- Invalid-input trace obligation.  The exact invalid-path halt kind and threshold are not public:
-`Θ` observes any exceptional `Ξ` result as the same failed call with empty output and zero gas. -/
-abbrev InvalidTrace : Prop :=
-  ∀ ctx : BytecodeContext,
-    ctx.executionEnv.code = runtimeBytecode →
-    accepts ctx →
-    ¬ valid ctx →
-    ∃ exception errorThreshold,
-      RDxErr runtimeBytecode ctx.gas ctx.initialState exception errorThreshold
-
-/-- Close the BLAKE2F precompile-style bytecode spec from branch-local RDx traces. -/
-theorem bytecodeSpec_of_traces
-    (gasCost : BytecodeContext → Nat)
-    (hvalid : ValidTrace gasCost)
-    (hinvalid : InvalidTrace) :
-    bytecodeSpecTarget gasCost := by
-  exact PrecompileSpec.ofRDxRetOrErr
-    (code := runtimeBytecode)
-    (accepts := accepts)
-    (valid := valid)
-    (output := output)
-    (gasCost := gasCost)
-    hvalid
-    hinvalid
-
-end Blake2f

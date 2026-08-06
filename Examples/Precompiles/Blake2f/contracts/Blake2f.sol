@@ -12,11 +12,12 @@ pragma solidity ^0.8.0;
 /// the final-block flag byte must be exactly 0 or 1. The upstream copy accepted
 /// any nonzero byte as `true`, which does not match `runBlake2f`.
 ///
-/// Invalid length and invalid final-flag checks intentionally use empty
-/// `revert(0, 0)` rather than Solidity revert strings.  Revert strings return
-/// nonempty payloads and leftover gas, which are observable at the caller
-/// boundary and therefore do not match the native BLAKE2F precompile failure
-/// observation used by the bytecode proof interface.
+/// Invalid length and invalid final-flag checks intentionally use `invalid()`.
+/// `REVERT`, even with an empty payload, returns unused gas and is therefore
+/// caller-visible at Θ.  Native precompile validation failure is modeled here
+/// by the collapsed exceptional bytecode result: zero gas, `success = false`,
+/// and empty output.  `INVALID` has that caller-observable shape and also keeps
+/// the proof independent of a particular `ExecutionException` constructor.
 library Blake2f {
     /// @notice Computes the BLAKE2b F compression function.
     /// @param rounds Number of rounds (0..2^32-1).
@@ -61,7 +62,7 @@ library Blake2f {
                 case 7 { s := 0xdb7ec13950f4862a }
                 case 8 { s := 0x6fe9b308c2d714a5 }
                 case 9 { s := 0xa2847615fb9e3cd0 }
-                default { revert(0, 0) }
+                default { invalid() }
             }
 
             // ── Allocate working vector v[0..15] in memory (32-byte stride) ──
@@ -162,10 +163,13 @@ library Blake2f {
     /// @param input 213 bytes in EIP-152 format.
     /// @return output 64 bytes of output.
     function compress(bytes memory input) internal pure returns (bytes memory output) {
-        if (input.length != 213) {
-            assembly {
-                revert(0, 0)
-            }
+            if (input.length != 213) {
+                // Proof note: use INVALID, not a revert string.  At Θ, REVERT preserves leftover
+                // gas and may expose returndata; the precompile failure branch is represented by
+                // the collapsed exceptional bytecode result.
+                assembly {
+                    invalid()
+                }
         }
 
         uint32 rounds;
@@ -212,8 +216,11 @@ library Blake2f {
             finalFlag := shr(248, mload(add(ptr, 212)))
         }
         if (finalFlag > 1) {
+            // Proof note: EIP-152 accepts only flag bytes 0 and 1.  Values 2..255 must follow the
+            // same exceptional path as the native precompile model, so this deliberately uses
+            // INVALID instead of a Solidity revert string.
             assembly {
-                revert(0, 0)
+                invalid()
             }
         }
         finalBlock = finalFlag == 1;

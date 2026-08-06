@@ -905,22 +905,26 @@ theorem solcScratchReturnMem_read128 {scratch : ByteArray} (val : UInt256)
 
 /-! ## Dynamic bytes/string return memory -/
 
+/- Source note: these memory constructors are computable.  They are built from `ByteArray.write`
+and word arithmetic; the bytearray layer may still contain FFI-adjacent names, but these helpers
+should not be marked `noncomputable` merely because of that naming. -/
+
 def solcBytesReturnAllocSize (len : UInt256) : UInt256 :=
   ⟨32⟩ + (((⟨31⟩ + len) / ⟨32⟩) * ⟨32⟩)
 
 def solcBytesReturnFreePtr (len : UInt256) : UInt256 :=
   ⟨128⟩ + solcBytesReturnAllocSize len
 
-noncomputable def solcBytesReturnAllocMem (len : UInt256) : ByteArray :=
+def solcBytesReturnAllocMem (len : UInt256) : ByteArray :=
   (solcBytesReturnFreePtr len).toByteArray.write 0 solcFreePtrMem 64 32
 
-noncomputable def solcBytesReturnLengthMem (len : UInt256) : ByteArray :=
+def solcBytesReturnLengthMem (len : UInt256) : ByteArray :=
   len.toByteArray.write 0 (solcBytesReturnAllocMem len) 128 32
 
-noncomputable def solcBytesReturnPayloadMem (len payloadWord : UInt256) : ByteArray :=
+def solcBytesReturnPayloadMem (len payloadWord : UInt256) : ByteArray :=
   payloadWord.toByteArray.write 0 (solcBytesReturnLengthMem len) 160 32
 
-noncomputable def solcBytesReturnPayloadReturnMem (len payloadWord : UInt256) : ByteArray :=
+def solcBytesReturnPayloadReturnMem (len payloadWord : UInt256) : ByteArray :=
   len.toByteArray.write 0 (solcBytesReturnPayloadMem len payloadWord) 192 32
 
 theorem solcBytesReturnAllocMem_size (len : UInt256) :
@@ -1135,11 +1139,11 @@ theorem solcBytesReturnFreePtr_eq_192_of_short_nonzero {len : UInt256}
 
 /-! ## Dynamic bytes/string calldata copy memory -/
 
-noncomputable def solcBytesSetCalldataMem
+def solcBytesSetCalldataMem
     (cd : ByteArray) (len payloadStart : UInt256) : ByteArray :=
   cd.write payloadStart.toNat (solcBytesReturnLengthMem len) 160 len.toNat
 
-noncomputable def solcBytesSetPaddedMem
+def solcBytesSetPaddedMem
     (cd : ByteArray) (len payloadStart : UInt256) : ByteArray :=
   (⟨0⟩ : UInt256).toByteArray.write 0
     (solcBytesSetCalldataMem cd len payloadStart) (((⟨160⟩ : UInt256) + len).toNat) 32

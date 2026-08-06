@@ -23,7 +23,8 @@ namespace Blake2f
 The Solidity fallback is non-payable, so the precompile-style experiment currently scopes the
 bytecode proof to value-free calls. -/
 def accepts (ctx : BytecodeContext) : Prop :=
-  ctx.executionEnv.weiValue = ⟨0⟩
+  ctx.executionEnv.weiValue = ⟨0⟩ ∧
+  ctx.executionEnv.calldata.size < UInt256.size
 
 /-- Valid EIP-152 BLAKE2F inputs: exactly 213 bytes and final flag exactly 0 or 1. -/
 def valid (ctx : BytecodeContext) : Prop :=
