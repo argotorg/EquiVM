@@ -77,8 +77,9 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticZero_kissSuccess
         (checkedAdd48Into "tic_" now48 (.storage ttlRef)) .reverted := by
     simpa [checkedAdd48Into, evmGuy, evmLot] using
       (ExecBlock.consNormal
-        (ExecStmt.letDecl
-          (evalExpr_dent_ticAdd_wrapped_kissRetLocals evm evmGuy I outAsh)) <|
+        (ExecStmt.letDecl_uint_nat
+          (evalExpr_dent_ticAdd_wrapped_kissRetLocals evm evmGuy I outAsh)
+          (by exact Nat.mod_lt _ (by norm_num [EVM.twoPow]))) <|
         ExecBlock.consRevert
           (ExecStmt.requireFalse
             (evalExpr_dent_tic_guard_false_wrapped_kissRetLocals evm evmGuy I outAsh
@@ -126,11 +127,11 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticZero_kissSuccess
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lotOne_mul_guard_true evm I hlotOneFit)) <|
       ExecBlock.consNormal
@@ -213,8 +214,11 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticZero_kissSuccess
           (dentPostState evmGuy I)) := by
     simpa [checkedAdd48Into, evmGuy, evmLot] using
       (ExecBlock.consNormal
-        (ExecStmt.letDecl
-          (evalExpr_dent_ticAdd_ok_kissRetLocals evm evmGuy I outAsh haddFit)) <|
+        (ExecStmt.letDecl_uint_word
+          (evalExpr_dent_ticAdd_ok_kissRetLocals evm evmGuy I outAsh haddFit)
+          (by
+            rw [dentTicPostWord_toNat evmGuy I haddFit]
+            simpa [EVM.twoPow] using haddFit)) <|
         ExecBlock.consNormal
           (ExecStmt.requireTrue
             (evalExpr_dent_tic_guard_true_kissRetLocals evm evmGuy I outAsh haddFit)) <|
@@ -263,11 +267,11 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticZero_kissSuccess
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lotOne_mul_guard_true evm I hlotOneFit)) <|
       ExecBlock.consNormal
@@ -324,7 +328,8 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticNonzero
         (checkedAdd48Into "tic_" now48 (.storage ttlRef)) .reverted := by
     simpa [checkedAdd48Into, evmGuy, evmLot] using
       (ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_ticAdd_wrapped_moveLocals evm evmGuy I)) <|
+        (ExecStmt.letDecl_uint_nat (evalExpr_dent_ticAdd_wrapped_moveLocals evm evmGuy I)
+          (by exact Nat.mod_lt _ (by norm_num [EVM.twoPow]))) <|
         ExecBlock.consRevert
           (ExecStmt.requireFalse
             (evalExpr_dent_tic_guard_false_wrapped_moveLocals evm evmGuy I
@@ -371,11 +376,11 @@ theorem flopperDentBodyReverts_addOverflow_moveCallerNe_ticNonzero
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lotOne_mul_guard_true evm I hlotOneFit)) <|
       ExecBlock.consNormal
@@ -437,7 +442,10 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticNonzero
           (dentPostState evmGuy I)) := by
     simpa [checkedAdd48Into, evmGuy, evmLot] using
       (ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_ticAdd_ok_moveLocals evm evmGuy I haddFit)) <|
+        (ExecStmt.letDecl_uint_word (evalExpr_dent_ticAdd_ok_moveLocals evm evmGuy I haddFit)
+          (by
+            rw [dentTicPostWord_toNat evmGuy I haddFit]
+            simpa [EVM.twoPow] using haddFit)) <|
         ExecBlock.consNormal
           (ExecStmt.requireTrue
             (evalExpr_dent_tic_guard_true_moveLocals evm evmGuy I haddFit)) <|
@@ -485,11 +493,11 @@ theorem flopperDentBodyReturns_success_moveCallerNe_ticNonzero
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lotOne_mul_guard_true evm I hlotOneFit)) <|
       ExecBlock.consNormal
@@ -553,7 +561,9 @@ theorem flopperDentBodyReverts_addOverflow_callerEq (evm : EVM.State) (I : Execu
       ExecBlock config { contract := contract, locals := dentLotOneLocals evm I } evmLot
         (checkedAdd48Into "tic_" now48 (.storage ttlRef)) .reverted := by
     simpa [checkedAdd48Into, evmLot] using
-      (ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_dent_ticAdd_wrapped evm I)) <|
+      (ExecBlock.consNormal
+        (ExecStmt.letDecl_uint_nat (evalExpr_dent_ticAdd_wrapped evm I)
+          (by exact Nat.mod_lt _ (by norm_num [EVM.twoPow]))) <|
         ExecBlock.consRevert
           (ExecStmt.requireFalse
             (evalExpr_dent_tic_guard_false_wrapped evm I haddOverflow)))
@@ -598,11 +608,11 @@ theorem flopperDentBodyReverts_addOverflow_callerEq (evm : EVM.State) (I : Execu
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lotOne_mul_guard_true evm I hlotOneFit)) <|
       ExecBlock.consNormal
@@ -670,7 +680,11 @@ theorem flopperDentBodyReturns_success_callerEq (evm : EVM.State) (I : Execution
           [.assign .storage (bidsF (.var "id") "tic") (.var "tic_")])
         (.ok { contract := contract, locals := dentTicLocals evm I } (dentPostState evm I)) := by
     simpa [checkedAdd48Into, evmLot] using
-      (ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_dent_ticAdd_ok evm I haddFit)) <|
+      (ExecBlock.consNormal
+        (ExecStmt.letDecl_uint_word (evalExpr_dent_ticAdd_ok evm I haddFit)
+          (by
+            rw [dentTicPostWord_toNat evm I haddFit]
+            simpa [EVM.twoPow] using haddFit)) <|
         ExecBlock.consNormal
           (ExecStmt.requireTrue (evalExpr_dent_tic_guard_true evm I haddFit)) <|
         ExecBlock.consNormal
@@ -713,11 +727,11 @@ theorem flopperDentBodyReturns_success_callerEq (evm : EVM.State) (I : Execution
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lotOne_mul_guard_true evm I hlotOneFit)) <|
       ExecBlock.consNormal

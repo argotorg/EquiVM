@@ -47,8 +47,8 @@ def powTransition : TransitionDecl :=
         .letDecl "i" (some uint256) (.intLit 0),
         -- while (i < n) { r := r * 2 ; i := i + 1 }
         .while (.binary .lt (.var "i") (.var "n"))
-          [ .letDecl "r" (some uint256) (.binary .mul (.var "r") (.intLit 2)),
-            .letDecl "i" (some uint256) (.binary .add (.var "i") (.intLit 1)) ],
+          [ .letDecl "r" (some uint256) (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "r") (.intLit 2)),
+            .letDecl "i" (some uint256) (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ],
         -- return r
         .return [(.var "r")] ] }
 

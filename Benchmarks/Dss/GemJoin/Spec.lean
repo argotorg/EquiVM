@@ -39,7 +39,7 @@ theorem intLimit_eq_twoPow : intLimit = Int.ofNat (EVM.twoPow 255) := by
   native_decide
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
+def mul256 (x y : Expr) : Expr := u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) x y)
 def asInt256 (e : Expr) : Expr := .cast e int256St
 
 /-! ## External ABI -/
@@ -160,7 +160,7 @@ def checkedMulUintInto (name : Ident) (x y : Expr) : List Stmt :=
     .require
       (.binary .or
         (.binary .eq y (.intLit 0))
-        (.binary .eq (.binary .div (.var name) y) x)) ]
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x)) ]
 
 /-! ## Constructor -/
 

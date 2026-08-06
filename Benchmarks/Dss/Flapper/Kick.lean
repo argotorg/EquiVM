@@ -289,18 +289,9 @@ theorem evalExpr_add256_ok {evm : EVM.State} {locals : Store}
     (hfit : a.toNat + b.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
       .ok (.int (Int.ofNat sum.toNat)) := by
-  have hlt : ¬ Int.ofNat (a.toNat + b.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
   have hword : sum.toNat = a.toNat + b.toNat := by
     rw [hsum, uadd_toNat, Nat.mod_eq_of_lt hfit]
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  exact evalExpr_checked_add_uint256_word_ok hx hy hword hfit
 
 theorem evalExpr_add256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -311,9 +302,7 @@ theorem evalExpr_add256_revert {evm : EVM.State} {locals : Store}
     (hover : UInt256.size ≤ a.toNat + b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
       .revert := by
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  exact evalExpr_checked_add_uint256_word_revert_of_overflow hx hy hover
 
 theorem kickAfterFillState_executionEnv (evm : EVM.State) (I : ExecutionEnv) :
     (kickAfterFillState evm I).executionEnv = evm.executionEnv := by
@@ -418,6 +407,19 @@ theorem kickEndPostWord_toNat (evm : EVM.State) (I : ExecutionEnv)
       (kickNow48Word evm).toNat + (kickTauWord (kickAfterGuyState evm I)).toNat := by
   unfold kickEndPostWord
   exact UInt256.toNat_ofNat_of_lt (lt_trans hfit (by norm_num [UInt256.size]))
+
+theorem kickEndPostWord_lt (evm : EVM.State) (I : ExecutionEnv)
+    (hfit :
+      (kickNow48Word evm).toNat + (kickTauWord (kickAfterGuyState evm I)).toNat <
+        2 ^ 48) :
+    (kickEndPostWord evm I).toNat < 2 ^ 48 := by
+  rw [kickEndPostWord_toNat evm I hfit]
+  exact hfit
+
+theorem kickEndWrappedNat_lt (evm : EVM.State) (I : ExecutionEnv) :
+    kickEndWrappedNat evm I < 2 ^ 48 := by
+  unfold kickEndWrappedNat
+  exact Nat.mod_lt _ (by norm_num)
 
 theorem evalExpr_kick_live_storage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := kickLocals I } evm (.storage liveRef) =
@@ -1033,11 +1035,18 @@ theorem evalExpr_kick_now48 (locals : Store) (evm0 evm : EVM.State)
     (henv : evm.executionEnv.header.timestamp = evm0.executionEnv.header.timestamp) :
     evalExpr? config { contract := contract, locals := locals } evm now48 =
       .ok (.int (Int.ofNat (kickNow48Word evm0).toNat)) := by
-  unfold now48 wrap48
-  simp only [evalExpr?, envValue, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hmod :
-      Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat % uint48Modulus =
-        Int.ofNat (kickNow48Word evm0).toNat := by
+  have htime :
+      evalExpr? config { contract := contract, locals := locals } evm (.env .timestamp) =
+        .ok (.int (Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)) := by
+    simp [evalExpr?, envValue, pure]
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } evm (.intLit uint48Modulus) =
+        .ok (.int (Int.ofNat (2 ^ 48))) := by
+    simp [evalExpr?, pure, uint48Modulus]
+  have hmod := evalExpr_mod_uint256_word_nat_ok htime hmodulus (by norm_num)
+  have hresult :
+      (UInt256.ofNat evm.executionEnv.header.timestamp).toNat % (2 ^ 48) =
+        (kickNow48Word evm0).toNat := by
     have henvWord :
         (UInt256.ofNat evm.executionEnv.header.timestamp).toNat =
           (kickTimestampWord evm0).toNat := by
@@ -1052,8 +1061,8 @@ theorem evalExpr_kick_now48 (locals : Store) (evm0 evm : EVM.State)
       rw [nat_land_mask_eq_mod]
       exact Nat.mod_eq_of_lt (lt_trans (Nat.mod_lt _ (by norm_num)) (by norm_num [UInt256.size]))
     rw [hnow]
-    norm_num [uint48Modulus, Int.natCast_mod]
-  simpa [uint48Modulus] using hmod
+  rw [hresult] at hmod
+  simpa [now48, wrap48] using hmod
 
 theorem evalExpr_kick_endAdd_ok (evm : EVM.State) (I : ExecutionEnv)
     (hfit :
@@ -1061,60 +1070,67 @@ theorem evalExpr_kick_endAdd_ok (evm : EVM.State) (I : ExecutionEnv)
         2 ^ 48) :
     evalExpr? config { contract := contract, locals := kickIdLocals evm I }
         (kickAfterGuyState evm I)
-        (wrap48 (.binary .add now48 (.storage tauRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))) =
       .ok (.int (Int.ofNat (kickEndPostWord evm I).toNat)) := by
   have hnow := evalExpr_kick_now48 (kickIdLocals evm I) evm (kickAfterGuyState evm I)
     (by simp [kickAfterGuyState_executionEnv])
   have htau := evalExpr_kick_tau_storage evm (kickAfterGuyState evm I) I
   have hendNat := kickEndPostWord_toNat evm I hfit
-  unfold wrap48
-  simp only [evalExpr?, hnow, htau, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hsumMod :
-      (Int.ofNat (kickNow48Word evm).toNat +
-          Int.ofNat (kickTauWord (kickAfterGuyState evm I)).toNat) %
-          uint48Modulus =
-        Int.ofNat (kickEndPostWord evm I).toNat := by
-    rw [hendNat]
-    have hsumCast :
-        Int.ofNat ((kickNow48Word evm).toNat +
-            (kickTauWord (kickAfterGuyState evm I)).toNat) =
-          Int.ofNat (kickNow48Word evm).toNat +
-            Int.ofNat (kickTauWord (kickAfterGuyState evm I)).toNat := by
-      norm_num
-    rw [← hsumCast]
-    have hfitInt :
-        Int.ofNat ((kickNow48Word evm).toNat +
-            (kickTauWord (kickAfterGuyState evm I)).toNat) < uint48Modulus := by
-      change Int.ofNat ((kickNow48Word evm).toNat +
-          (kickTauWord (kickAfterGuyState evm I)).toNat) < Int.ofNat (2 ^ 48)
-      exact Int.ofNat_lt.mpr hfit
-    exact Int.emod_eq_of_lt (Int.natCast_nonneg _) hfitInt
-  simpa [uint48Modulus] using hsumMod
+  have hsumFit :
+      (kickNow48Word evm).toNat + (kickTauWord (kickAfterGuyState evm I)).toNat <
+        UInt256.size := lt_trans hfit (by norm_num [UInt256.size])
+  have hsumToNat :
+      (kickNow48Word evm + kickTauWord (kickAfterGuyState evm I)).toNat =
+        (kickNow48Word evm).toNat + (kickTauWord (kickAfterGuyState evm I)).toNat := by
+    rw [uadd_toNat, Nat.mod_eq_of_lt hsumFit]
+  have hsum := evalExpr_wrapping_add_uint256_word_ok hnow htau rfl
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := kickIdLocals evm I }
+          (kickAfterGuyState evm I) (.intLit uint48Modulus) =
+        .ok (.int (Int.ofNat (2 ^ 48))) := by
+    simp [evalExpr?, pure, uint48Modulus]
+  have hmod := evalExpr_mod_uint256_word_nat_ok hsum hmodulus (by norm_num)
+  have hresultNat :
+      (kickNow48Word evm + kickTauWord (kickAfterGuyState evm I)).toNat % (2 ^ 48) =
+        (kickEndPostWord evm I).toNat := by
+    rw [hsumToNat, Nat.mod_eq_of_lt hfit, hendNat]
+  rw [hresultNat] at hmod
+  simpa [wrap48, uint48Modulus] using hmod
 
 theorem evalExpr_kick_endAdd_wrapped (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := kickIdLocals evm I }
         (kickAfterGuyState evm I)
-        (wrap48 (.binary .add now48 (.storage tauRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))) =
       .ok (.int (Int.ofNat (kickEndWrappedNat evm I))) := by
   have hnow := evalExpr_kick_now48 (kickIdLocals evm I) evm (kickAfterGuyState evm I)
     (by simp [kickAfterGuyState_executionEnv])
   have htau := evalExpr_kick_tau_storage evm (kickAfterGuyState evm I) I
-  unfold wrap48
-  simp only [evalExpr?, hnow, htau, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hsumMod :
-      (Int.ofNat (kickNow48Word evm).toNat +
-          Int.ofNat (kickTauWord (kickAfterGuyState evm I)).toNat) %
-          uint48Modulus =
-        Int.ofNat (kickEndWrappedNat evm I) := by
-    have hsumCast :
-        Int.ofNat ((kickNow48Word evm).toNat +
-            (kickTauWord (kickAfterGuyState evm I)).toNat) =
-          Int.ofNat (kickNow48Word evm).toNat +
-            Int.ofNat (kickTauWord (kickAfterGuyState evm I)).toNat := by
-      norm_num
-    rw [← hsumCast]
-    norm_num [kickEndWrappedNat, uint48Modulus, Int.natCast_mod]
-  simpa [uint48Modulus] using hsumMod
+  have hsumFit :
+      (kickNow48Word evm).toNat + (kickTauWord (kickAfterGuyState evm I)).toNat <
+        UInt256.size := by
+    have hnowLt := kickNow48Word_lt evm
+    have htauLt := kickTauWord_lt (kickAfterGuyState evm I)
+    have hsumLt :
+        (kickNow48Word evm).toNat + (kickTauWord (kickAfterGuyState evm I)).toNat <
+          2 ^ 49 := by omega
+    exact lt_trans hsumLt (by norm_num [UInt256.size])
+  have hsumToNat :
+      (kickNow48Word evm + kickTauWord (kickAfterGuyState evm I)).toNat =
+        (kickNow48Word evm).toNat + (kickTauWord (kickAfterGuyState evm I)).toNat := by
+    rw [uadd_toNat, Nat.mod_eq_of_lt hsumFit]
+  have hsum := evalExpr_wrapping_add_uint256_word_ok hnow htau rfl
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := kickIdLocals evm I }
+          (kickAfterGuyState evm I) (.intLit uint48Modulus) =
+        .ok (.int (Int.ofNat (2 ^ 48))) := by
+    simp [evalExpr?, pure, uint48Modulus]
+  have hmod := evalExpr_mod_uint256_word_nat_ok hsum hmodulus (by norm_num)
+  have hresultNat :
+      (kickNow48Word evm + kickTauWord (kickAfterGuyState evm I)).toNat % (2 ^ 48) =
+        kickEndWrappedNat evm I := by
+    simp [hsumToNat, kickEndWrappedNat]
+  rw [hresultNat] at hmod
+  simpa [wrap48, uint48Modulus] using hmod
 
 theorem evalExpr_kick_end_guard_true (evm : EVM.State) (I : ExecutionEnv)
     (hfit :
@@ -1405,7 +1421,7 @@ theorem flapperKickBodyReverts_overLid (evm : EVM.State) (I : ExecutionEnv)
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_kicks_lt_max_true evm I hkicksLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_fill_add_ok evm I hfillFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_kick_fill_add_ok evm I hfillFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_guard_true evm I hfillFit)) <|
       ExecBlock.consNormal
@@ -1442,7 +1458,7 @@ theorem flapperKickBodyReverts_endAddOverflow (evm : EVM.State) (I : ExecutionEn
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_kicks_lt_max_true evm I hkicksLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_fill_add_ok evm I hfillFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_kick_fill_add_ok evm I hfillFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_guard_true evm I hfillFit)) <|
       ExecBlock.consNormal
@@ -1451,7 +1467,7 @@ theorem flapperKickBodyReverts_endAddOverflow (evm : EVM.State) (I : ExecutionEn
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_le_lid_true evm I hfillLe)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_id_add_orig evm I hkicksLt)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_kick_id_add_orig evm I hkicksLt)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_id_guard_true_orig evm I hkicksLt)) <|
       ExecBlock.consNormal
@@ -1467,7 +1483,8 @@ theorem flapperKickBodyReverts_endAddOverflow (evm : EVM.State) (I : ExecutionEn
         (ExecStmt.assign (evalExpr_kick_sender_afterLot evm I hsrc)
           (assign_kickGuyStorage evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_endAdd_wrapped evm I)) <|
+        (ExecStmt.letDecl_uint_nat (evalExpr_kick_endAdd_wrapped evm I)
+          (by simpa [EVM.twoPow] using kickEndWrappedNat_lt evm I)) <|
       ExecBlock.consRevert
         (ExecStmt.requireFalse
           (evalExpr_kick_end_guard_false_wrapped evm I hendOverflow)))
@@ -1542,7 +1559,7 @@ theorem flapperKickBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_kicks_lt_max_true evm I hkicksLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_fill_add_ok evm I hfillFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_kick_fill_add_ok evm I hfillFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_guard_true evm I hfillFit)) <|
       ExecBlock.consNormal
@@ -1551,7 +1568,7 @@ theorem flapperKickBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_le_lid_true evm I hfillLe)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_id_add_orig evm I hkicksLt)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_kick_id_add_orig evm I hkicksLt)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_id_guard_true_orig evm I hkicksLt)) <|
       ExecBlock.consNormal
@@ -1567,7 +1584,8 @@ theorem flapperKickBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
         (ExecStmt.assign (evalExpr_kick_sender_afterLot evm I hsrc)
           (assign_kickGuyStorage evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_endAdd_ok evm I hendFit)) <|
+        (ExecStmt.letDecl_uint_word (evalExpr_kick_endAdd_ok evm I hendFit)
+          (by simpa [EVM.twoPow] using kickEndPostWord_lt evm I hendFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_end_guard_true evm I hendFit)) <|
       ExecBlock.consNormal
@@ -1656,7 +1674,7 @@ theorem flapperKickBodyReverts_moveCallFailure
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_kicks_lt_max_true evm I hkicksLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_fill_add_ok evm I hfillFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_kick_fill_add_ok evm I hfillFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_guard_true evm I hfillFit)) <|
       ExecBlock.consNormal
@@ -1665,7 +1683,7 @@ theorem flapperKickBodyReverts_moveCallFailure
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_le_lid_true evm I hfillLe)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_id_add_orig evm I hkicksLt)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_kick_id_add_orig evm I hkicksLt)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_id_guard_true_orig evm I hkicksLt)) <|
       ExecBlock.consNormal
@@ -1681,7 +1699,8 @@ theorem flapperKickBodyReverts_moveCallFailure
         (ExecStmt.assign (evalExpr_kick_sender_afterLot evm I hsrc)
           (assign_kickGuyStorage evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_endAdd_ok evm I hendFit)) <|
+        (ExecStmt.letDecl_uint_word (evalExpr_kick_endAdd_ok evm I hendFit)
+          (by simpa [EVM.twoPow] using kickEndPostWord_lt evm I hendFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_end_guard_true evm I hendFit)) <|
       ExecBlock.consNormal
@@ -1787,7 +1806,7 @@ theorem flapperKickBodyReturns_moveCallSuccess
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_kicks_lt_max_true evm I hkicksLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_fill_add_ok evm I hfillFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_kick_fill_add_ok evm I hfillFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_guard_true evm I hfillFit)) <|
       ExecBlock.consNormal
@@ -1796,7 +1815,7 @@ theorem flapperKickBodyReturns_moveCallSuccess
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_fill_le_lid_true evm I hfillLe)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_id_add_orig evm I hkicksLt)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_kick_id_add_orig evm I hkicksLt)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_id_guard_true_orig evm I hkicksLt)) <|
       ExecBlock.consNormal
@@ -1812,7 +1831,8 @@ theorem flapperKickBodyReturns_moveCallSuccess
         (ExecStmt.assign (evalExpr_kick_sender_afterLot evm I hsrc)
           (assign_kickGuyStorage evm I)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_kick_endAdd_ok evm I hendFit)) <|
+        (ExecStmt.letDecl_uint_word (evalExpr_kick_endAdd_ok evm I hendFit)
+          (by simpa [EVM.twoPow] using kickEndPostWord_lt evm I hendFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_kick_end_guard_true evm I hendFit)) <|
       ExecBlock.consNormal

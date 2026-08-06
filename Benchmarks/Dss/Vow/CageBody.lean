@@ -619,7 +619,7 @@ theorem cageMinLeft
       bindParams? minFunction.params
           [.int (Int.ofNat vatDai.toNat), .int (Int.ofNat vatSin.toNat)] =
         some (uintBinaryLocals vatDai vatSin) := by
-    simp [minFunction, uint256, bindParams?, uintBinaryLocals]
+    exact bindParams_minFunction vatDai vatSin
   have hcall :
       ExecStmt config { contract := contract, locals := locals } evm
         (.internalCall "min" [.var "vatDai", .var "vatSin"] "healRad")
@@ -673,7 +673,7 @@ theorem cageMinRight
       bindParams? minFunction.params
           [.int (Int.ofNat vatDai.toNat), .int (Int.ofNat vatSin.toNat)] =
         some (uintBinaryLocals vatDai vatSin) := by
-    simp [minFunction, uint256, bindParams?, uintBinaryLocals]
+    exact bindParams_minFunction vatDai vatSin
   have hcall :
       ExecStmt config { contract := contract, locals := locals } evm
         (.internalCall "min" [.var "vatDai", .var "vatSin"] "healRad")

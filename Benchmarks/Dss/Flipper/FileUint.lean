@@ -229,12 +229,10 @@ theorem evalExpr_fileUintDataWrap48 {evm : EVM.State} {I : ExecutionEnv} {locals
     evalExpr? config { contract := contract, locals := locals } evm (wrap48 (.var "data")) =
       .ok (.int (Int.ofNat (fileUintData48 I).toNat)) := by
   have hdata := evalExpr_fileUintData (evm := evm) (I := I) (locals := locals) h
-  rw [wrap48, evalExpr?]
-  simp only [hdata, EvalResult.bind, bind]
-  rw [show evalExpr? config { contract := contract, locals := locals } evm
-      (.intLit uint48Modulus) = .ok (.int uint48Modulus) by simp [evalExpr?, pure]]
-  change evalBinaryOp? BinaryOp.mod (Value.int (Int.ofNat (fileUintData I).toNat))
-      (Value.int uint48Modulus) = .ok (Value.int (Int.ofNat (fileUintData48 I).toNat))
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } evm
+          (.intLit uint48Modulus) = .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
   have hmod :
       (Int.ofNat (fileUintData I).toNat) % uint48Modulus =
         Int.ofNat (fileUintData48 I).toNat := by
@@ -245,11 +243,15 @@ theorem evalExpr_fileUintDataWrap48 {evm : EVM.State} {I : ExecutionEnv} {locals
           exact (Int.natCast_mod (fileUintData I).toNat (2 ^ 48)).symm
       _ = Int.ofNat (fileUintData48 I).toNat := by
           rw [← uint48Mask_toNat_mod (fileUintData I)]
-  change (if uint48Modulus = 0 then EvalResult.revert else
-      .ok (Value.int ((Int.ofNat (fileUintData I).toNat) % uint48Modulus))) =
-    .ok (Value.int (Int.ofNat (fileUintData48 I).toNat))
-  rw [if_neg (by norm_num [uint48Modulus]), hmod]
-  all_goals decide
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
+  have hfit :
+      Int.ofNat (fileUintData I).toNat % uint48Modulus <
+        Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩) hdata hmodulus
+    (Int.natCast_nonneg _) hpos hfit
+  rw [hmod] at heval
+  simpa [wrap48] using heval
 
 theorem evalExpr_fileUintWhatEq_true {evm : EVM.State} {I : ExecutionEnv} {locals : Store}
     {bs : List UInt8}

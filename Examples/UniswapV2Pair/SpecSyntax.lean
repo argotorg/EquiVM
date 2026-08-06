@@ -92,9 +92,13 @@ def contractSyntax : ContractDecl := solidity% contract UniswapV2Pair {
     uint32 timeElapsed = ((blockTimestamp - blockTimestampLast + #twoPow32) % #twoPow32) as uint32;
     if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
       price0CumulativeLast =
-        (price0CumulativeLast + _reserve1 * #q112 / _reserve0 * timeElapsed) % #twoPow256;
+        (price0CumulativeLast +
+          ${Expr.binary (.mul uint256Int .wrapping)
+            (uq112Price (.var "_reserve1") (.var "_reserve0")) (.var "timeElapsed")}) % #twoPow256;
       price1CumulativeLast =
-        (price1CumulativeLast + _reserve0 * #q112 / _reserve1 * timeElapsed) % #twoPow256;
+        (price1CumulativeLast +
+          ${Expr.binary (.mul uint256Int .wrapping)
+            (uq112Price (.var "_reserve0") (.var "_reserve1")) (.var "timeElapsed")}) % #twoPow256;
     }
     reserve0 = balance0 as uint112;
     reserve1 = balance1 as uint112;
@@ -104,10 +108,14 @@ def contractSyntax : ContractDecl := solidity% contract UniswapV2Pair {
   function sqrt(uint256 y) internal returns (uint256) {
     if (y > 3) {
       uint256 z = y;
-      uint256 x = y / 2 + 1;
+      uint256 x = ${Expr.binary (.add uint256Int .wrapping)
+        (.binary (.div uint256Int .wrapping) (.var "y") (.intLit 2)) (.intLit 1)};
       while (x < z) {
         z = x;
-        x = (y / x + x) / 2;
+        x = ${Expr.binary (.div uint256Int .wrapping)
+          (.binary (.add uint256Int .wrapping)
+            (.binary (.div uint256Int .wrapping) (.var "y") (.var "x")) (.var "x"))
+          (.intLit 2)};
       }
       return z;
     } else if (y != 0) {
@@ -366,7 +374,8 @@ def contractSyntax : ContractDecl := solidity% contract UniswapV2Pair {
     require(deadline >= block.timestamp);
     bytes32 domainSeparator = DOMAIN_SEPARATOR;
     uint256 nonce = nonces[owner];
-    nonces[owner] = (nonce + 1) % #twoPow256;
+    nonces[owner] = ${Expr.binary (.add (.uint ⟨256, by decide⟩) .wrapping)
+      (.var "nonce") (.intLit 1)};
     bytes32 structHash = keccak256(abi.encodePacked(
       bytes32(bytes32(0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9)),
       uint256(uint256(owner)),

@@ -252,7 +252,16 @@ theorem daiBindTransferFromCallStore (I : ExecutionEnv) :
     bindParams? transferFromTransition.params
         [transferFromSrcValue I, transferFromDstValue I, transferFromWadValue I] =
       some (transferFromCallStore I) := by
-  rfl
+  have hsrc : valueMatchesABIType addr (transferFromSrcValue I) = true := by
+    simpa [addr, transferFromSrcValue] using
+      valueMatchesABIType_address (AccountAddress.ofNat (transferFromSrcWord I).toNat)
+  have hdst : valueMatchesABIType addr (transferFromDstValue I) = true := by
+    simpa [addr, transferFromDstValue] using
+      valueMatchesABIType_address (AccountAddress.ofNat (transferFromDstWord I).toNat)
+  have hwad : valueMatchesABIType uint256 (transferFromWadValue I) = true := by
+    simpa [uint256, uint256Int, transferFromWadValue] using
+      valueMatchesABIType_uint256_word (transferFromWadWord I)
+  simp [transferFromTransition, bindParams?, hsrc, hdst, hwad, transferFromCallStore]
 
 theorem daiDecode_transferFrom_ok {I : ExecutionEnv}
     (hsel : selIs I (daiSelBytes 19)) (hsz100 : 100 ≤ I.calldata.size) :
@@ -1204,141 +1213,45 @@ theorem evalExpr_transferFrom_allowanceNeedsSpend_false_max (evm : EVM.State) (I
   simp only [EvalResult.bind, bind]
   rw [evalExpr_transferFrom_allowance_ne_max_false evm I hmax]
 
-theorem evalExpr_transferFrom_allowance_sub_raw (evm : EVM.State) (I : ExecutionEnv) :
-    evalExpr? config { contract := contract, locals := transferFromStore I } evm
-      (.binary .sub (.storage (allowanceRef (.var "src") sender)) (.var "wad")) =
-        .ok (.int (Int.ofNat (transferFromAllowanceWord evm I).toNat -
-          Int.ofNat (transferFromWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [evalExpr_transferFrom_allowance, evalExpr_transferFrom_wad]
-  simp [EvalResult.bind, bind, evalBinaryOp?]
-
-set_option maxHeartbeats 1000000 in
 theorem evalExpr_transferFrom_allowance_debit (evm : EVM.State) (I : ExecutionEnv)
     (henough : (transferFromWadWord I).toNat ≤ (transferFromAllowanceWord evm I).toNat) :
     evalExpr? config { contract := contract, locals := transferFromStore I } evm
       (sub256 (.storage (allowanceRef (.var "src") sender)) (.var "wad")) =
         .ok (.int (Int.ofNat (transferFromAllowanceDebitWord evm I).toNat)) := by
-  have hsub :
-      Int.ofNat (transferFromAllowanceWord evm I).toNat -
-          Int.ofNat (transferFromWadWord I).toNat =
-        Int.ofNat ((transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat) := by
-    exact (Int.ofNat_sub henough).symm
   have htoNat : (transferFromAllowanceDebitWord evm I).toNat =
       (transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat := by
     unfold transferFromAllowanceDebitWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (transferFromAllowanceWord evm I).val.isLt)
-  have hltNat :
-      (transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat < 2 ^ 256 :=
-    lt_of_le_of_lt (Nat.sub_le _ _) (by
-      simpa [UInt256.toNat, UInt256.size] using (transferFromAllowanceWord evm I).val.isLt)
-  have hlt : ¬ Int.ofNat
-        ((transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat) ≥
-      (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr hltNat)
-  have hnotNeg : ¬
-      (Int.ofNat ((transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat) < 0) := by
-    exact not_lt_of_ge (Int.natCast_nonneg _)
-  have hnotBound : ¬
-      115792089237316195423570985008687907853269984665640564039457584007913129639936 ≤
-        (transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat := by
-    exact Nat.not_le_of_lt (by simpa using hltNat)
-  conv_lhs =>
-    unfold sub256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_transferFrom_allowance_sub_raw, hsub]
-  simp [EvalResult.bind, bind, pure, uint256Int, hlt, hnotNeg, hnotBound]
-  by_cases hnegGuard :
-      (↑((transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat) : Int) < 0
-  · exact False.elim (hnotNeg hnegGuard)
-  · rw [if_neg hnegGuard]
-    rw [htoNat]
+  simpa [sub256, u256] using evalExpr_checked_sub_uint256_word_ok
+    (evalExpr_transferFrom_allowance evm I) (evalExpr_transferFrom_wad evm I)
+    htoNat henough
 
-theorem evalExpr_transferFrom_src_sub_raw (evm : EVM.State) (I : ExecutionEnv) :
-    evalExpr? config { contract := contract, locals := transferFromStore I } evm
-      (.binary .sub (.storage (balanceOfRef (.var "src"))) (.var "wad")) =
-        .ok (.int (Int.ofNat (transferFromSrcBalanceWord evm I).toNat -
-          Int.ofNat (transferFromWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [evalExpr_transferFrom_src_balance, evalExpr_transferFrom_wad]
-  simp [EvalResult.bind, bind, evalBinaryOp?]
-
-set_option maxHeartbeats 1000000 in
 theorem evalExpr_transferFrom_src_debit (evm : EVM.State) (I : ExecutionEnv)
     (henough : (transferFromWadWord I).toNat ≤ (transferFromSrcBalanceWord evm I).toNat) :
     evalExpr? config { contract := contract, locals := transferFromStore I } evm
       (sub256 (.storage (balanceOfRef (.var "src"))) (.var "wad")) =
         .ok (.int (Int.ofNat (transferFromSrcDebitWord evm I).toNat)) := by
-  have hsub :
-      Int.ofNat (transferFromSrcBalanceWord evm I).toNat -
-          Int.ofNat (transferFromWadWord I).toNat =
-        Int.ofNat ((transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat) := by
-    exact (Int.ofNat_sub henough).symm
   have htoNat : (transferFromSrcDebitWord evm I).toNat =
       (transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat := by
     unfold transferFromSrcDebitWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (transferFromSrcBalanceWord evm I).val.isLt)
-  have hltNat :
-      (transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat < 2 ^ 256 :=
-    lt_of_le_of_lt (Nat.sub_le _ _) (by
-      simpa [UInt256.toNat, UInt256.size] using (transferFromSrcBalanceWord evm I).val.isLt)
-  have hlt : ¬ Int.ofNat
-        ((transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat) ≥
-      (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr hltNat)
-  have hnotNeg : ¬
-      (Int.ofNat ((transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat) < 0) := by
-    exact not_lt_of_ge (Int.natCast_nonneg _)
-  have hnotBound : ¬
-      115792089237316195423570985008687907853269984665640564039457584007913129639936 ≤
-        (transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat := by
-    exact Nat.not_le_of_lt (by simpa using hltNat)
-  conv_lhs =>
-    unfold sub256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_transferFrom_src_sub_raw, hsub]
-  simp [EvalResult.bind, bind, pure, uint256Int, hlt, hnotNeg, hnotBound]
-  by_cases hnegGuard :
-      (↑((transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat) : Int) < 0
-  · exact False.elim (hnotNeg hnegGuard)
-  · rw [if_neg hnegGuard]
-    rw [htoNat]
+  simpa [sub256, u256] using evalExpr_checked_sub_uint256_word_ok
+    (evalExpr_transferFrom_src_balance evm I) (evalExpr_transferFrom_wad evm I)
+    htoNat henough
 
-theorem evalExpr_transferFrom_dst_add_raw (evm : EVM.State) (I : ExecutionEnv) :
-    evalExpr? config { contract := contract, locals := transferFromStore I } evm
-      (.binary .add (.storage (balanceOfRef (.var "dst"))) (.var "wad")) =
-        .ok (.int (Int.ofNat (transferFromDstBalanceWord evm I).toNat +
-          Int.ofNat (transferFromWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [evalExpr_transferFrom_dst_balance, evalExpr_transferFrom_wad]
-  simp [EvalResult.bind, bind, evalBinaryOp?]
-
-set_option maxHeartbeats 1000000 in
 theorem evalExpr_transferFrom_dst_credit (evm : EVM.State) (I : ExecutionEnv)
     (hfit : transferFromDstCreditNat evm I < UInt256.size) :
     evalExpr? config { contract := contract, locals := transferFromStore I } evm
       (add256 (.storage (balanceOfRef (.var "dst"))) (.var "wad")) =
         .ok (transferFromDstCreditValue evm I) := by
-  have hlt : ¬ Int.ofNat (transferFromDstCreditNat evm I) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  conv_lhs =>
-    unfold add256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_transferFrom_dst_add_raw]
-  simp [EvalResult.bind, bind, pure, evalBinaryOp?, transferFromDstBalanceValue,
-    transferFromWadValue, transferFromDstCreditValue, transferFromDstCreditNat, uint256Int,
-    hlt]
-  constructor
-  · omega
-  · have hfitNat :
-        (transferFromDstBalanceWord evm I).toNat + (transferFromWadWord I).toNat < 2 ^ 256 := by
-      simpa [transferFromDstCreditNat, UInt256.size] using hfit
-    omega
+  simpa [add256, u256, transferFromDstCreditValue,
+      transferFromDstCreditWord_toNat evm I hfit] using
+    evalExpr_checked_add_uint256_word_ok
+      (evalExpr_transferFrom_dst_balance evm I) (evalExpr_transferFrom_wad evm I)
+      (result := transferFromDstCreditWord evm I)
+      (transferFromDstCreditWord_toNat evm I hfit) hfit
 
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_transferFrom_allowance_checkedSub_true (evm : EVM.State) (I : ExecutionEnv)
@@ -1396,19 +1309,9 @@ theorem evalExpr_transferFrom_dst_credit_revert (evm : EVM.State) (I : Execution
     (hover : UInt256.size ≤ transferFromDstCreditNat evm I) :
     evalExpr? config { contract := contract, locals := transferFromStore I } evm
       (add256 (.storage (balanceOfRef (.var "dst"))) (.var "wad")) = .revert := by
-  have hge : (2 : Int) ^ 256 ≤ Int.ofNat (transferFromDstCreditNat evm I) := by
-    exact Int.ofNat_le.mpr (by simpa [UInt256.size] using hover)
-  have hnotNeg : ¬ Int.ofNat (transferFromDstCreditNat evm I) < 0 := by
-    exact not_lt_of_ge (Int.natCast_nonneg _)
-  conv_lhs =>
-    unfold add256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_transferFrom_dst_add_raw]
-  simp [EvalResult.bind, bind, pure, evalBinaryOp?, transferFromDstBalanceValue,
-    transferFromWadValue, transferFromDstCreditNat, uint256Int, hnotNeg, hge]
-  intro _
-  simpa [transferFromDstCreditNat] using hge
+  simpa [add256, u256, transferFromDstCreditNat] using
+    evalExpr_checked_add_uint256_word_revert_of_overflow
+      (evalExpr_transferFrom_dst_balance evm I) (evalExpr_transferFrom_wad evm I) hover
 
 theorem evalExpr_transferFrom_dst_checkedAdd_revert (evm : EVM.State) (I : ExecutionEnv)
     (hover : UInt256.size ≤ transferFromDstCreditNat evm I) :
@@ -2059,141 +1962,45 @@ theorem evalExpr_transferFromCall_allowanceNeedsSpend_false_max (evm : EVM.State
   simp only [EvalResult.bind, bind]
   rw [evalExpr_transferFromCall_allowance_ne_max_false evm I hmax]
 
-theorem evalExpr_transferFromCall_allowance_sub_raw (evm : EVM.State) (I : ExecutionEnv) :
-    evalExpr? config { contract := contract, locals := transferFromCallStore I } evm
-      (.binary .sub (.storage (allowanceRef (.var "src") sender)) (.var "wad")) =
-        .ok (.int (Int.ofNat (transferFromAllowanceWord evm I).toNat -
-          Int.ofNat (transferFromWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [evalExpr_transferFromCall_allowance, evalExpr_transferFromCall_wad]
-  simp [EvalResult.bind, bind, evalBinaryOp?]
-
-set_option maxHeartbeats 1000000 in
 theorem evalExpr_transferFromCall_allowance_debit (evm : EVM.State) (I : ExecutionEnv)
     (henough : (transferFromWadWord I).toNat ≤ (transferFromAllowanceWord evm I).toNat) :
     evalExpr? config { contract := contract, locals := transferFromCallStore I } evm
       (sub256 (.storage (allowanceRef (.var "src") sender)) (.var "wad")) =
         .ok (.int (Int.ofNat (transferFromAllowanceDebitWord evm I).toNat)) := by
-  have hsub :
-      Int.ofNat (transferFromAllowanceWord evm I).toNat -
-          Int.ofNat (transferFromWadWord I).toNat =
-        Int.ofNat ((transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat) := by
-    exact (Int.ofNat_sub henough).symm
   have htoNat : (transferFromAllowanceDebitWord evm I).toNat =
       (transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat := by
     unfold transferFromAllowanceDebitWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (transferFromAllowanceWord evm I).val.isLt)
-  have hltNat :
-      (transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat < 2 ^ 256 :=
-    lt_of_le_of_lt (Nat.sub_le _ _) (by
-      simpa [UInt256.toNat, UInt256.size] using (transferFromAllowanceWord evm I).val.isLt)
-  have hlt : ¬ Int.ofNat
-        ((transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat) ≥
-      (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr hltNat)
-  have hnotNeg : ¬
-      (Int.ofNat ((transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat) < 0) := by
-    exact not_lt_of_ge (Int.natCast_nonneg _)
-  have hnotBound : ¬
-      115792089237316195423570985008687907853269984665640564039457584007913129639936 ≤
-        (transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat := by
-    exact Nat.not_le_of_lt (by simpa using hltNat)
-  conv_lhs =>
-    unfold sub256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_transferFromCall_allowance_sub_raw, hsub]
-  simp [EvalResult.bind, bind, pure, uint256Int, hlt, hnotNeg, hnotBound]
-  by_cases hnegGuard :
-      (↑((transferFromAllowanceWord evm I).toNat - (transferFromWadWord I).toNat) : Int) < 0
-  · exact False.elim (hnotNeg hnegGuard)
-  · rw [if_neg hnegGuard]
-    rw [htoNat]
+  simpa [sub256, u256] using evalExpr_checked_sub_uint256_word_ok
+    (evalExpr_transferFromCall_allowance evm I) (evalExpr_transferFromCall_wad evm I)
+    htoNat henough
 
-theorem evalExpr_transferFromCall_src_sub_raw (evm : EVM.State) (I : ExecutionEnv) :
-    evalExpr? config { contract := contract, locals := transferFromCallStore I } evm
-      (.binary .sub (.storage (balanceOfRef (.var "src"))) (.var "wad")) =
-        .ok (.int (Int.ofNat (transferFromSrcBalanceWord evm I).toNat -
-          Int.ofNat (transferFromWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [evalExpr_transferFromCall_src_balance, evalExpr_transferFromCall_wad]
-  simp [EvalResult.bind, bind, evalBinaryOp?]
-
-set_option maxHeartbeats 1000000 in
 theorem evalExpr_transferFromCall_src_debit (evm : EVM.State) (I : ExecutionEnv)
     (henough : (transferFromWadWord I).toNat ≤ (transferFromSrcBalanceWord evm I).toNat) :
     evalExpr? config { contract := contract, locals := transferFromCallStore I } evm
       (sub256 (.storage (balanceOfRef (.var "src"))) (.var "wad")) =
         .ok (.int (Int.ofNat (transferFromSrcDebitWord evm I).toNat)) := by
-  have hsub :
-      Int.ofNat (transferFromSrcBalanceWord evm I).toNat -
-          Int.ofNat (transferFromWadWord I).toNat =
-        Int.ofNat ((transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat) := by
-    exact (Int.ofNat_sub henough).symm
   have htoNat : (transferFromSrcDebitWord evm I).toNat =
       (transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat := by
     unfold transferFromSrcDebitWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (transferFromSrcBalanceWord evm I).val.isLt)
-  have hltNat :
-      (transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat < 2 ^ 256 :=
-    lt_of_le_of_lt (Nat.sub_le _ _) (by
-      simpa [UInt256.toNat, UInt256.size] using (transferFromSrcBalanceWord evm I).val.isLt)
-  have hlt : ¬ Int.ofNat
-        ((transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat) ≥
-      (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr hltNat)
-  have hnotNeg : ¬
-      (Int.ofNat ((transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat) < 0) := by
-    exact not_lt_of_ge (Int.natCast_nonneg _)
-  have hnotBound : ¬
-      115792089237316195423570985008687907853269984665640564039457584007913129639936 ≤
-        (transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat := by
-    exact Nat.not_le_of_lt (by simpa using hltNat)
-  conv_lhs =>
-    unfold sub256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_transferFromCall_src_sub_raw, hsub]
-  simp [EvalResult.bind, bind, pure, uint256Int, hlt, hnotNeg, hnotBound]
-  by_cases hnegGuard :
-      (↑((transferFromSrcBalanceWord evm I).toNat - (transferFromWadWord I).toNat) : Int) < 0
-  · exact False.elim (hnotNeg hnegGuard)
-  · rw [if_neg hnegGuard]
-    rw [htoNat]
+  simpa [sub256, u256] using evalExpr_checked_sub_uint256_word_ok
+    (evalExpr_transferFromCall_src_balance evm I) (evalExpr_transferFromCall_wad evm I)
+    htoNat henough
 
-theorem evalExpr_transferFromCall_dst_add_raw (evm : EVM.State) (I : ExecutionEnv) :
-    evalExpr? config { contract := contract, locals := transferFromCallStore I } evm
-      (.binary .add (.storage (balanceOfRef (.var "dst"))) (.var "wad")) =
-        .ok (.int (Int.ofNat (transferFromDstBalanceWord evm I).toNat +
-          Int.ofNat (transferFromWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [evalExpr_transferFromCall_dst_balance, evalExpr_transferFromCall_wad]
-  simp [EvalResult.bind, bind, evalBinaryOp?]
-
-set_option maxHeartbeats 1000000 in
 theorem evalExpr_transferFromCall_dst_credit (evm : EVM.State) (I : ExecutionEnv)
     (hfit : transferFromDstCreditNat evm I < UInt256.size) :
     evalExpr? config { contract := contract, locals := transferFromCallStore I } evm
       (add256 (.storage (balanceOfRef (.var "dst"))) (.var "wad")) =
         .ok (transferFromDstCreditValue evm I) := by
-  have hlt : ¬ Int.ofNat (transferFromDstCreditNat evm I) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  conv_lhs =>
-    unfold add256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_transferFromCall_dst_add_raw]
-  simp [EvalResult.bind, bind, pure, evalBinaryOp?, transferFromDstBalanceValue,
-    transferFromWadValue, transferFromDstCreditValue, transferFromDstCreditNat, uint256Int,
-    hlt]
-  constructor
-  · omega
-  · have hfitNat :
-        (transferFromDstBalanceWord evm I).toNat + (transferFromWadWord I).toNat < 2 ^ 256 := by
-      simpa [transferFromDstCreditNat, UInt256.size] using hfit
-    omega
+  simpa [add256, u256, transferFromDstCreditValue,
+      transferFromDstCreditWord_toNat evm I hfit] using
+    evalExpr_checked_add_uint256_word_ok
+      (evalExpr_transferFromCall_dst_balance evm I) (evalExpr_transferFromCall_wad evm I)
+      (result := transferFromDstCreditWord evm I)
+      (transferFromDstCreditWord_toNat evm I hfit) hfit
 
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_transferFromCall_allowance_checkedSub_true (evm : EVM.State) (I : ExecutionEnv)
@@ -2251,19 +2058,9 @@ theorem evalExpr_transferFromCall_dst_credit_revert (evm : EVM.State) (I : Execu
     (hover : UInt256.size ≤ transferFromDstCreditNat evm I) :
     evalExpr? config { contract := contract, locals := transferFromCallStore I } evm
       (add256 (.storage (balanceOfRef (.var "dst"))) (.var "wad")) = .revert := by
-  have hge : (2 : Int) ^ 256 ≤ Int.ofNat (transferFromDstCreditNat evm I) := by
-    exact Int.ofNat_le.mpr (by simpa [UInt256.size] using hover)
-  have hnotNeg : ¬ Int.ofNat (transferFromDstCreditNat evm I) < 0 := by
-    exact not_lt_of_ge (Int.natCast_nonneg _)
-  conv_lhs =>
-    unfold add256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_transferFromCall_dst_add_raw]
-  simp [EvalResult.bind, bind, pure, evalBinaryOp?, transferFromDstBalanceValue,
-    transferFromWadValue, transferFromDstCreditNat, uint256Int, hnotNeg, hge]
-  intro _
-  simpa [transferFromDstCreditNat] using hge
+  simpa [add256, u256, transferFromDstCreditNat] using
+    evalExpr_checked_add_uint256_word_revert_of_overflow
+      (evalExpr_transferFromCall_dst_balance evm I) (evalExpr_transferFromCall_wad evm I) hover
 
 theorem evalExpr_transferFromCall_dst_checkedAdd_revert (evm : EVM.State) (I : ExecutionEnv)
     (hover : UInt256.size ≤ transferFromDstCreditNat evm I) :

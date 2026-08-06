@@ -78,7 +78,8 @@ theorem execAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
           .return [.var "z"] ]
         (.returned { contract := contract, locals := localsZ } evm
           (some [.int (Int.ofNat sum.toNat)])) := by
-    refine ExecBlock.consNormal (ExecStmt.letDecl hAdd) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hAdd (by
+      simpa [uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word sum)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hReq) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hz))
   simpa [addFunction, checkedAddUintInto, locals, localsZ] using ExecFuncBody.execBlockRet hblock
@@ -158,7 +159,8 @@ theorem execSubFunctionReturn (evm : EVM.State) {x y diff : UInt256}
           .return [.var "z"] ]
         (.returned { contract := contract, locals := localsZ } evm
           (some [.int (Int.ofNat diff.toNat)])) := by
-    refine ExecBlock.consNormal (ExecStmt.letDecl hSub) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hSub (by
+      simpa [uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word diff)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hReq) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hz))
   simpa [subFunction, checkedSubUintInto, locals, localsZ] using ExecFuncBody.execBlockRet hblock
@@ -238,7 +240,7 @@ theorem execMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
       evalExpr? config { contract := contract, locals := localsZ } evm
         (.binary .or
           (.binary .eq (.var "y") (.intLit 0))
-          (.binary .eq (.binary .div (.var "z") (.var "y")) (.var "x"))) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "z") (.var "y")) (.var "x"))) =
         .ok (.bool true) := by
     by_cases hy0 : y = (⟨0⟩ : UInt256)
     · have hyEqZero :
@@ -265,14 +267,14 @@ theorem execMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
         simpa [Nat.mul_comm] using Nat.mul_div_right x.toNat (Nat.pos_of_ne_zero hyNatNe)
       have hDivY :
           evalExpr? config { contract := contract, locals := localsZ } evm
-            (.binary .div (.var "z") (.var "y")) = .ok (.int (Int.ofNat x.toNat)) := by
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "z") (.var "y")) = .ok (.int (Int.ofNat x.toNat)) := by
         have h := evalExpr_div_uint256_ok (evm := evm) (locals := localsZ)
           (x := .var "z") (y := .var "y") (a := prod) (b := y)
           (q := UInt256.div prod y) hzZ hyZ hy0 rfl
         simpa [hdivWord] using h
       have hRight :
           evalExpr? config { contract := contract, locals := localsZ } evm
-            (.binary .eq (.binary .div (.var "z") (.var "y")) (.var "x")) =
+            (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "z") (.var "y")) (.var "x")) =
               .ok (.bool true) :=
         evalExpr_eq_int_true hDivY hxZ rfl
       exact evalExpr_or_false_right hyEqZero hRight
@@ -282,11 +284,12 @@ theorem execMulFunctionReturn (evm : EVM.State) {x y prod : UInt256}
           .require
             (.binary .or
               (.binary .eq (.var "y") (.intLit 0))
-              (.binary .eq (.binary .div (.var "z") (.var "y")) (.var "x"))),
+              (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "z") (.var "y")) (.var "x"))),
           .return [.var "z"] ]
         (.returned { contract := contract, locals := localsZ } evm
           (some [.int (Int.ofNat prod.toNat)])) := by
-    refine ExecBlock.consNormal (ExecStmt.letDecl hMul) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hMul (by
+      simpa [uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word prod)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hReq) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hzZ))
   simpa [mulFunction, checkedMulUintInto, locals, localsZ] using ExecFuncBody.execBlockRet hblock
@@ -316,7 +319,7 @@ theorem execMulFunctionRevert (evm : EVM.State) {x y : UInt256}
           .require
             (.binary .or
               (.binary .eq (.var "y") (.intLit 0))
-              (.binary .eq (.binary .div (.var "z") (.var "y")) (.var "x"))),
+              (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "z") (.var "y")) (.var "x"))),
           .return [.var "z"] ]
         .reverted :=
     ExecBlock.consRevert (ExecStmt.letDeclRevert hMulRev)
@@ -352,7 +355,8 @@ theorem execRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
   have hbind :
       bindParams? mulFunction.params
           [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] = some locals := by
-    simp [mulFunction, uintBinaryLocals, bindParams?, locals]
+    simpa [mulFunction, uint256, uint256Int, uintBinaryLocals, locals] using
+      bindParams_uint256_pair "x" "y" x y
   have hcallBody :
       ExecFuncBody config { contract := contract, locals := locals } evm mulFunction.body
         (.returned { contract := contract, locals := localsZ } evm
@@ -383,7 +387,7 @@ theorem execRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
     simp [evalExpr?, pure, one_eq_potRay_toNat]
   have hDivRay :
       evalExpr? config { contract := contract, locals := localsZ } evm
-        (.binary .div (.var "z") (.intLit one)) = .ok (.int (Int.ofNat q.toNat)) :=
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "z") (.intLit one)) = .ok (.int (Int.ofNat q.toNat)) :=
     evalExpr_div_uint256_ok hzZ hRayLit potRay_ne_zero hq
   have hAssign :
       assignStorageRef? config { contract := contract, locals := localsZ } evm .localVar
@@ -400,7 +404,7 @@ theorem execRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm
         [ .internalCall "_mul" [.var "x", .var "y"] "z",
-          .assign .localVar { base := "z" } (.binary .div (.var "z") (.intLit one)),
+          .assign .localVar { base := "z" } (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "z") (.intLit one)),
           .return [.var "z"] ]
         (.returned { contract := contract, locals := localsQ } evm
           (some [.int (Int.ofNat q.toNat)])) := by
@@ -432,7 +436,8 @@ theorem execRmulFunctionRevert (evm : EVM.State) {x y : UInt256}
   have hbind :
       bindParams? mulFunction.params
           [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] = some locals := by
-    simp [mulFunction, uintBinaryLocals, bindParams?, locals]
+    simpa [mulFunction, uint256, uint256Int, uintBinaryLocals, locals] using
+      bindParams_uint256_pair "x" "y" x y
   have hcallRev :
       ExecFuncBody config { contract := contract, locals := locals } evm mulFunction.body
         .reverted :=
@@ -450,7 +455,7 @@ theorem execRmulFunctionRevert (evm : EVM.State) {x y : UInt256}
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm
         [ .internalCall "_mul" [.var "x", .var "y"] "z",
-          .assign .localVar { base := "z" } (.binary .div (.var "z") (.intLit one)),
+          .assign .localVar { base := "z" } (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "z") (.intLit one)),
           .return [.var "z"] ]
         .reverted :=
     ExecBlock.consRevert hMulCall

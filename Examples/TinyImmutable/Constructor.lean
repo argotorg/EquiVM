@@ -753,6 +753,8 @@ theorem tinyCtorRuntimeCodeOf_false (v : TinyImmutables) (owner : AccountAddress
 
 theorem tinyCtorBodyReturns (v : TinyImmutables) (evm : EVM.State)
     (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
+    (hscaleNonneg : 0 ≤ scaleInt)
+    (hscaleFit : scaleInt < Int.ofNat (EVM.twoPow 256))
     (hwv : evm.executionEnv.weiValue = ⟨0⟩) :
     ExecTransitionBody (config v) (contract v) evm
       (tinyCtorArgLocals v owner scaleInt useScale) (contract v).ctor.body
@@ -763,7 +765,8 @@ theorem tinyCtorBodyReturns (v : TinyImmutables) (evm : EVM.State)
   simp only [contract, constructorDecl, nonpayable, List.append_assoc, List.nil_append]
   refine ExecFuncBody.execBlockOK ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (value := .address owner) ?_) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (value := .address owner) ?_ (by
+    simpa [addr] using valueMatchesOptionalABIType_address owner)) ?_
   · show evalExpr? (config v)
         { contract := contract v, locals := tinyCtorArgLocals v owner scaleInt useScale } evm
         (.var "_owner") = .ok (.address owner)
@@ -789,7 +792,9 @@ theorem tinyCtorBodyReturns (v : TinyImmutables) (evm : EVM.State)
                 locals := (tinyCtorArgLocals v owner scaleInt false).insert "imm_owner"
                   (.address owner) } evm
               (.intLit 0) = .ok (.int 0)
-            simp [evalExpr?, pure])) ExecBlock.nil)
+            simp [evalExpr?, pure]) (by
+              simpa [uint256, uint256Int] using
+                valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ExecBlock.nil)
     · refine ExecBlock.consNormal (ExecStmt.iteTrue ?_ ?_) ExecBlock.nil
       · show evalExpr? (config v)
             { contract := contract v
@@ -810,7 +815,10 @@ theorem tinyCtorBodyReturns (v : TinyImmutables) (evm : EVM.State)
             simp [evalExpr?, EvalResult.ofOption]
             rw [show ((tinyCtorArgLocals v owner scaleInt true).insert "imm_owner"
                 (.address owner))["_scale"]? = some (.int scaleInt) by
-              exact tinyCtorOwnerLocals_get_scale v owner scaleInt true]))
+              exact tinyCtorOwnerLocals_get_scale v owner scaleInt true]) (by
+                simpa [uint256, uint256Int] using
+                  valueMatchesOptionalABIType_uint_of_bounds ⟨256, by decide⟩ scaleInt
+                    hscaleNonneg hscaleFit))
           ExecBlock.nil)
 
 theorem tinySolmCtorExecSuccess
@@ -823,6 +831,8 @@ theorem tinySolmCtorExecSuccess
     {A : Substate}
     {I : ExecutionEnv}
     (v : TinyImmutables) (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
+    (hscaleNonneg : 0 ≤ scaleInt)
+    (hscaleFit : scaleInt < Int.ofNat (EVM.twoPow 256))
     (hwv : I.weiValue = ⟨0⟩) :
     solmCtorExec (config v) (contract v) [.address owner, .int scaleInt, .bool useScale]
       createdAccounts genesisBlockHeader blocks σ σ₀ g A I
@@ -836,8 +846,13 @@ theorem tinySolmCtorExecSuccess
     (argsStore := tinyCtorArgLocals v owner scaleInt useScale)
     ?_ rfl ?_ ?_
   · rfl
-  · simp [tinyCtorArgLocals, contract, constructorDecl]
-  · exact tinyCtorBodyReturns v _ owner scaleInt useScale (by simp [initState, hwv])
+  · have hmatches : valueMatchesABIType uint256 (.int scaleInt) = true := by
+      simpa [uint256, uint256Int] using
+        valueMatchesABIType_uint_of_bounds ⟨256, by decide⟩ scaleInt hscaleNonneg hscaleFit
+    simp [tinyCtorArgLocals, contract, constructorDecl, hmatches, addr, boolTy,
+      valueMatchesABIType]
+  · exact tinyCtorBodyReturns v _ owner scaleInt useScale hscaleNonneg hscaleFit
+      (by simp [initState, hwv])
 
 theorem tinySolmCtorExecReverts_nonpayable
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -849,6 +864,8 @@ theorem tinySolmCtorExecReverts_nonpayable
     {A : Substate}
     {I : ExecutionEnv}
     (v : TinyImmutables) (owner : AccountAddress) (scaleInt : Int) (useScale : Bool)
+    (hscaleNonneg : 0 ≤ scaleInt)
+    (hscaleFit : scaleInt < Int.ofNat (EVM.twoPow 256))
     (hwv : I.weiValue ≠ ⟨0⟩) :
     solmCtorExec (config v) (contract v) [.address owner, .int scaleInt, .bool useScale]
       createdAccounts genesisBlockHeader blocks σ σ₀ g A I .reverted := by
@@ -857,7 +874,11 @@ theorem tinySolmCtorExecReverts_nonpayable
     (argsStore := tinyCtorArgLocals v owner scaleInt useScale)
     ?_ rfl ?_ ?_
   · rfl
-  · simp [tinyCtorArgLocals, contract, constructorDecl]
+  · have hmatches : valueMatchesABIType uint256 (.int scaleInt) = true := by
+      simpa [uint256, uint256Int] using
+        valueMatchesABIType_uint_of_bounds ⟨256, by decide⟩ scaleInt hscaleNonneg hscaleFit
+    simp [tinyCtorArgLocals, contract, constructorDecl, hmatches, addr, boolTy,
+      valueMatchesABIType]
   · simpa [contract, constructorDecl, nonpayable] using
       (bodyReverts_nonPayable (cfg := config v) (contract := contract v)
         (evm := initState createdAccounts genesisBlockHeader blocks σ σ₀
@@ -1254,7 +1275,7 @@ theorem tinyImmutableConstructorCorrect (v : TinyImmutables) :
           (tinySolmCtorExecSuccess
             (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
             (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
-            v owner scaleInt false hwv) ?_
+            v owner scaleInt false h0 hlt hwv) ?_
         refine ctorResultEquivWith.success rfl rfl ?_ ?_ ?_
         · rfl
         · simpa [initState] using hσ
@@ -1274,7 +1295,7 @@ theorem tinyImmutableConstructorCorrect (v : TinyImmutables) :
           (tinySolmCtorExecSuccess
             (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
             (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
-            v owner scaleInt true hwv) ?_
+            v owner scaleInt true h0 hlt hwv) ?_
         refine ctorResultEquivWith.success rfl rfl ?_ ?_ ?_
         · rfl
         · simpa [initState] using hσ
@@ -1292,7 +1313,7 @@ theorem tinyImmutableConstructorCorrect (v : TinyImmutables) :
         (tinySolmCtorExecReverts_nonpayable
           (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
           (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (g := g) (A := A) (I := I)
-          v owner scaleInt useScale hwv) ?_
+          v owner scaleInt useScale h0 hlt hwv) ?_
       exact ctorResultEquivWith.revert rfl rfl
 
 end TinyImmutable

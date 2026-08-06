@@ -11,7 +11,7 @@ namespace Benchmarks.Dss.Flipper
 abbrev tendAfterIncreasePayTailStmts : List Stmt :=
   checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
     [sender, .storage (bidsF (.var "id") "gal"),
-      wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+      wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
     "_payRet" ++
   [ .assign .storage (bidsF (.var "id") "bid") (.var "bid") ] ++
   checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
@@ -119,7 +119,7 @@ theorem flipperTendSourceBlockAfterIncreaseSameCallerTail {cA gh bl σ σ₀ A I
       evalExpr? config { contract := contract, locals := tendLocalsBidOne I } evm0
         (.binary .or
           (.binary .eq (.intLit ONE) (.intLit 0))
-          (.binary .eq (.binary .div (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
           .ok (.bool true) := by
     simpa [evm0] using
       evalExpr_tendBidOneRequire_ok (cA := cA) (gh := gh) (bl := bl)
@@ -135,7 +135,7 @@ theorem flipperTendSourceBlockAfterIncreaseSameCallerTail {cA gh bl σ σ₀ A I
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
         (.binary .or
           (.binary .eq (.storage (bidsF (.var "id") "bid")) (.intLit 0))
-          (.binary .eq (.binary .div (.var "begBid")
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "begBid")
             (.storage (bidsF (.var "id") "bid"))) (.storage begRef))) =
           .ok (.bool true) := by
     simpa [evm0] using
@@ -156,9 +156,9 @@ theorem flipperTendSourceBlockAfterIncreaseSameCallerTail {cA gh bl σ σ₀ A I
   refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hlotGuard)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using htabGuard)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hbidGuard)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hmulBid) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hmulBid) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqBid) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hmulBeg) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hmulBeg) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqBeg) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hinc) ?_
   refine ExecBlock.consNormal (ExecStmt.iteFalse hcallerFalse ExecBlock.nil) ?_
@@ -227,7 +227,7 @@ theorem flipperTendSourceBodyPayNoCodeSameCaller {cA gh bl σ σ₀ A I} {g : UI
       ExecBlock config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
         (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
           [sender, .storage (bidsF (.var "id") "gal"),
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet")
         .reverted := by
     simpa [checkedExternalCallStmts] using
@@ -235,7 +235,7 @@ theorem flipperTendSourceBodyPayNoCodeSameCaller {cA gh bl σ σ₀ A I} {g : UI
         (locals := tendLocalsBidOneBegBid σ I) (receiver := .storage vatRef)
         (retVar := "_payRet") (name := "move") (sendVal := 0)
         (args := [sender, .storage (bidsF (.var "id") "gal"),
-          wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))])
+          wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))])
         hguardPay
   have htail :
       ExecBlock config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
@@ -323,7 +323,7 @@ theorem flipperTendSourceBodyPayCallFailureSameCaller {cA gh bl σ σ₀ A I}
   have hargsPay :
       evalExprs? config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
         [sender, .storage (bidsF (.var "id") "gal"),
-          wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))] =
+          wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))] =
           .ok (tendPayMoveArgValsOf evm0 I) := by
     exact evalExprs_tendPayMoveArgs_ofLocals
       (tendLocalsBidOneBegBid_get_id σ I)
@@ -338,7 +338,7 @@ theorem flipperTendSourceBodyPayCallFailureSameCaller {cA gh bl σ σ₀ A I}
       ExecBlock config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
         (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
           [sender, .storage (bidsF (.var "id") "gal"),
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet")
         .reverted := by
     simpa [checkedExternalCallStmts] using
@@ -347,7 +347,7 @@ theorem flipperTendSourceBodyPayCallFailureSameCaller {cA gh bl σ σ₀ A I}
         (receiver := .storage vatRef) (retVar := "_payRet") (name := "move")
         (target := flipperVatAddress evm0.accountMap evm0.executionEnv) (sendVal := 0)
         (args := [sender, .storage (bidsF (.var "id") "gal"),
-          wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))])
+          wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))])
         (argVals := tendPayMoveArgValsOf evm0 I) (out := outPay) (perm := true)
         hguardPay hvat hargsPay hcallPay'
   have htail :
@@ -454,7 +454,7 @@ theorem flipperTendSourceBodySuccessSameCaller {cA gh bl σ σ₀ A I}
   have hargsPay :
       evalExprs? config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
         [sender, .storage (bidsF (.var "id") "gal"),
-          wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))] =
+          wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))] =
           .ok (tendPayMoveArgValsOf evm0 I) := by
     exact evalExprs_tendPayMoveArgs_ofLocals
       (tendLocalsBidOneBegBid_get_id σ I)
@@ -471,7 +471,7 @@ theorem flipperTendSourceBodySuccessSameCaller {cA gh bl σ σ₀ A I}
       ExecBlock config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
         (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
           [sender, .storage (bidsF (.var "id") "gal"),
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet")
         (.ok { contract := contract, locals := tendLocalsAfterPay σ I } evmPay) := by
     simpa [checkedExternalCallStmts, tendLocalsAfterPay] using
@@ -480,7 +480,7 @@ theorem flipperTendSourceBodySuccessSameCaller {cA gh bl σ σ₀ A I}
         (receiver := .storage vatRef) (retVar := "_payRet") (name := "move")
         (target := flipperVatAddress evm0.accountMap evm0.executionEnv) (sendVal := 0)
         (args := [sender, .storage (bidsF (.var "id") "gal"),
-          wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))])
+          wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))])
         (argVals := tendPayMoveArgValsOf evm0 I) (out := outPay) (perm := true)
         (value := []) hguardPay hvat hargsPay hcallPay' hdecPay
   have hbidVar :
@@ -497,7 +497,7 @@ theorem flipperTendSourceBodySuccessSameCaller {cA gh bl σ σ₀ A I}
         (tendLocalsAfterPay_get_id σ I) (tendLocalsAfterPay_get_bids σ I)
   have hletTic :
       evalExpr? config { contract := contract, locals := tendLocalsAfterPay σ I } evmBid
-        (wrap48 (.binary .add now48 (.storage ttlRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage ttlRef))) =
           .ok (.int (Int.ofNat (tendTicNewWord evmBid.accountMap I).toNat)) := by
     exact evalExpr_tendTicNew (evm := evmBid) (locals := tendLocalsAfterPay σ I) (I := I)
       (tendLocalsAfterPay_get_ttl σ I)
@@ -537,7 +537,10 @@ theorem flipperTendSourceBodySuccessSameCaller {cA gh bl σ σ₀ A I}
           evmTic) := by
     refine ExecBlock.consNormal (ExecStmt.assign hbidVar hassignBid) ?_
     simp only [checkedAdd48Into, List.cons_append, List.nil_append]
-    refine ExecBlock.consNormal (ExecStmt.letDecl hletTic) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl_uint_word hletTic
+        (by
+          simpa [EVM.twoPow] using tendTicNewWord_bound evmBid.accountMap I)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hgeTic) ?_
     exact ExecBlock.consNormal (ExecStmt.assign hticVar hassignTic) ExecBlock.nil
   have htail :
@@ -549,7 +552,7 @@ theorem flipperTendSourceBodySuccessSameCaller {cA gh bl σ σ₀ A I}
         ExecBlock config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
           (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
             [sender, .storage (bidsF (.var "id") "gal"),
-              wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+              wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
             "_payRet" ++
           ([ .assign .storage (bidsF (.var "id") "bid") (.var "bid") ] ++
             checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
@@ -647,7 +650,7 @@ theorem flipperTendSourceBodyAdd48OverflowSameCaller {cA gh bl σ σ₀ A I}
   have hargsPay :
       evalExprs? config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
         [sender, .storage (bidsF (.var "id") "gal"),
-          wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))] =
+          wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))] =
           .ok (tendPayMoveArgValsOf evm0 I) := by
     exact evalExprs_tendPayMoveArgs_ofLocals
       (tendLocalsBidOneBegBid_get_id σ I)
@@ -664,7 +667,7 @@ theorem flipperTendSourceBodyAdd48OverflowSameCaller {cA gh bl σ σ₀ A I}
       ExecBlock config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
         (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
           [sender, .storage (bidsF (.var "id") "gal"),
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet")
         (.ok { contract := contract, locals := tendLocalsAfterPay σ I } evmPay) := by
     simpa [checkedExternalCallStmts, tendLocalsAfterPay] using
@@ -673,7 +676,7 @@ theorem flipperTendSourceBodyAdd48OverflowSameCaller {cA gh bl σ σ₀ A I}
         (receiver := .storage vatRef) (retVar := "_payRet") (name := "move")
         (target := flipperVatAddress evm0.accountMap evm0.executionEnv) (sendVal := 0)
         (args := [sender, .storage (bidsF (.var "id") "gal"),
-          wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))])
+          wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))])
         (argVals := tendPayMoveArgValsOf evm0 I) (out := outPay) (perm := true)
         (value := []) hguardPay hvat hargsPay hcallPay' hdecPay
   have hbidVar :
@@ -690,7 +693,7 @@ theorem flipperTendSourceBodyAdd48OverflowSameCaller {cA gh bl σ σ₀ A I}
         (tendLocalsAfterPay_get_id σ I) (tendLocalsAfterPay_get_bids σ I)
   have hletTic :
       evalExpr? config { contract := contract, locals := tendLocalsAfterPay σ I } evmBid
-        (wrap48 (.binary .add now48 (.storage ttlRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage ttlRef))) =
           .ok (.int (Int.ofNat (tendTicNewWord evmBid.accountMap I).toNat)) := by
     exact evalExpr_tendTicNew (evm := evmBid) (locals := tendLocalsAfterPay σ I) (I := I)
       (tendLocalsAfterPay_get_ttl σ I)
@@ -715,7 +718,10 @@ theorem flipperTendSourceBodyAdd48OverflowSameCaller {cA gh bl σ σ₀ A I}
         .reverted := by
     refine ExecBlock.consNormal (ExecStmt.assign hbidVar hassignBid) ?_
     simp only [checkedAdd48Into, List.cons_append, List.nil_append]
-    refine ExecBlock.consNormal (ExecStmt.letDecl hletTic) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl_uint_word hletTic
+        (by
+          simpa [EVM.twoPow] using tendTicNewWord_bound evmBid.accountMap I)) ?_
     exact ExecBlock.consRevert (ExecStmt.requireFalse hgeTicFalse)
   have htail :
       ExecBlock config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
@@ -724,7 +730,7 @@ theorem flipperTendSourceBodyAdd48OverflowSameCaller {cA gh bl σ σ₀ A I}
         ExecBlock config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
           (checkedExternalCallStmts (.storage vatRef) "move" (.intLit 0)
             [sender, .storage (bidsF (.var "id") "gal"),
-              wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+              wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
             "_payRet" ++
           ([ .assign .storage (bidsF (.var "id") "bid") (.var "bid") ] ++
             checkedAdd48Into "tic_" now48 (.storage ttlRef) ++

@@ -513,6 +513,201 @@ decreasing_by
 
 end
 
+theorem evalExpr_binary {cfg : Config} {solm : Frame} {evm : EVM.State}
+    (op : BinaryOp) (lhs rhs : Expr) (hAnd : op ≠ .and) (hOr : op ≠ .or) :
+    evalExpr? cfg solm evm (.binary op lhs rhs) = (do
+      let lhsValue ← evalExpr? cfg solm evm lhs
+      let rhsValue ← evalExpr? cfg solm evm rhs
+      evalBinaryOp? op lhsValue rhsValue) := by
+  rw [evalExpr?]
+  · exact hAnd
+  · exact hOr
+
+theorem evalExpr_checked_sub_uint_ok {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} (bits : BitWidth) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue))
+    (hnonneg : 0 ≤ lhsValue - rhsValue)
+    (hfit : lhsValue - rhsValue < Int.ofNat (EVM.twoPow bits.val)) :
+    evalExpr? cfg solm evm (.binary (.sub (.uint bits) .checked) lhs rhs) =
+      .ok (.int (lhsValue - rhsValue)) := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?]
+  exact evalIntArithResult_checked_uint_ok bits (lhsValue - rhsValue) hnonneg hfit
+
+theorem evalExpr_checked_sub_uint_revert_of_neg {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} (bits : BitWidth) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue))
+    (hneg : lhsValue - rhsValue < 0) :
+    evalExpr? cfg solm evm (.binary (.sub (.uint bits) .checked) lhs rhs) = .revert := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?]
+  exact evalIntArithResult_checked_uint_revert_of_neg bits (lhsValue - rhsValue) hneg
+
+theorem evalExpr_wrapping_sub_int {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} (intType : IntType) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue)) :
+    evalExpr? cfg solm evm (.binary (.sub intType .wrapping) lhs rhs) =
+      .ok (.int (normalizeInt intType (lhsValue - rhsValue))) := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?,
+    evalIntArithResult_wrapping]
+
+theorem evalExpr_checked_add_uint_ok {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} (bits : BitWidth) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue))
+    (hnonneg : 0 ≤ lhsValue + rhsValue)
+    (hfit : lhsValue + rhsValue < Int.ofNat (EVM.twoPow bits.val)) :
+    evalExpr? cfg solm evm (.binary (.add (.uint bits) .checked) lhs rhs) =
+      .ok (.int (lhsValue + rhsValue)) := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?]
+  exact evalIntArithResult_checked_uint_ok bits (lhsValue + rhsValue) hnonneg hfit
+
+theorem evalExpr_checked_add_uint_revert_of_overflow {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} (bits : BitWidth) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue))
+    (hoverflow : Int.ofNat (EVM.twoPow bits.val) ≤ lhsValue + rhsValue) :
+    evalExpr? cfg solm evm (.binary (.add (.uint bits) .checked) lhs rhs) = .revert := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?]
+  exact evalIntArithResult_checked_uint_revert_of_overflow bits (lhsValue + rhsValue) hoverflow
+
+theorem evalExpr_wrapping_add_int {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} (intType : IntType) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue)) :
+    evalExpr? cfg solm evm (.binary (.add intType .wrapping) lhs rhs) =
+      .ok (.int (normalizeInt intType (lhsValue + rhsValue))) := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?,
+    evalIntArithResult_wrapping]
+
+theorem evalExpr_checked_mul_uint_ok {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} (bits : BitWidth) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue))
+    (hnonneg : 0 ≤ lhsValue * rhsValue)
+    (hfit : lhsValue * rhsValue < Int.ofNat (EVM.twoPow bits.val)) :
+    evalExpr? cfg solm evm (.binary (.mul (.uint bits) .checked) lhs rhs) =
+      .ok (.int (lhsValue * rhsValue)) := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?]
+  exact evalIntArithResult_checked_uint_ok bits (lhsValue * rhsValue) hnonneg hfit
+
+theorem evalExpr_checked_mul_uint_revert_of_overflow {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} (bits : BitWidth) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue))
+    (hoverflow : Int.ofNat (EVM.twoPow bits.val) ≤ lhsValue * rhsValue) :
+    evalExpr? cfg solm evm (.binary (.mul (.uint bits) .checked) lhs rhs) = .revert := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?]
+  exact evalIntArithResult_checked_uint_revert_of_overflow bits (lhsValue * rhsValue) hoverflow
+
+theorem evalExpr_checked_mul_sint_ok {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} (bits : BitWidth) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue))
+    (hlower : -Int.ofNat (EVM.twoPow (bits.val - 1)) ≤ lhsValue * rhsValue)
+    (hupper : lhsValue * rhsValue < Int.ofNat (EVM.twoPow (bits.val - 1))) :
+    evalExpr? cfg solm evm (.binary (.mul (.sint bits) .checked) lhs rhs) =
+      .ok (.int (lhsValue * rhsValue)) := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?]
+  exact evalIntArithResult_checked_sint_ok bits (lhsValue * rhsValue) hlower hupper
+
+theorem evalExpr_checked_mul_sint_revert_of_underflow {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} (bits : BitWidth) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue))
+    (hunderflow : lhsValue * rhsValue < -Int.ofNat (EVM.twoPow (bits.val - 1))) :
+    evalExpr? cfg solm evm (.binary (.mul (.sint bits) .checked) lhs rhs) = .revert := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?]
+  exact evalIntArithResult_checked_sint_revert_of_underflow bits
+    (lhsValue * rhsValue) hunderflow
+
+theorem evalExpr_checked_mul_sint_revert_of_overflow {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} (bits : BitWidth) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue))
+    (hoverflow : Int.ofNat (EVM.twoPow (bits.val - 1)) ≤ lhsValue * rhsValue) :
+    evalExpr? cfg solm evm (.binary (.mul (.sint bits) .checked) lhs rhs) = .revert := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?]
+  exact evalIntArithResult_checked_sint_revert_of_overflow bits
+    (lhsValue * rhsValue) hoverflow
+
+theorem evalExpr_wrapping_mul_int {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} (intType : IntType) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue)) :
+    evalExpr? cfg solm evm (.binary (.mul intType .wrapping) lhs rhs) =
+      .ok (.int (normalizeInt intType (lhsValue * rhsValue))) := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?,
+    evalIntArithResult_wrapping]
+
+theorem evalExpr_checked_div_uint_ok {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} (bits : BitWidth) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue))
+    (hrhsNonzero : rhsValue ≠ 0)
+    (hnonneg : 0 ≤ lhsValue.tdiv rhsValue)
+    (hfit : lhsValue.tdiv rhsValue < Int.ofNat (EVM.twoPow bits.val)) :
+    evalExpr? cfg solm evm (.binary (.div (.uint bits) .checked) lhs rhs) =
+      .ok (.int (lhsValue.tdiv rhsValue)) := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?, if_neg hrhsNonzero]
+  exact evalIntArithResult_checked_uint_ok bits (lhsValue.tdiv rhsValue) hnonneg hfit
+
+theorem evalExpr_checked_div_sint_ok {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} (bits : BitWidth) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue))
+    (hrhsNonzero : rhsValue ≠ 0)
+    (hlower : -Int.ofNat (EVM.twoPow (bits.val - 1)) ≤ lhsValue.tdiv rhsValue)
+    (hupper : lhsValue.tdiv rhsValue < Int.ofNat (EVM.twoPow (bits.val - 1))) :
+    evalExpr? cfg solm evm (.binary (.div (.sint bits) .checked) lhs rhs) =
+      .ok (.int (lhsValue.tdiv rhsValue)) := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?, if_neg hrhsNonzero]
+  exact evalIntArithResult_checked_sint_ok bits (lhsValue.tdiv rhsValue) hlower hupper
+
+theorem evalExpr_checked_div_uint_revert_of_zero {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} (bits : BitWidth) (lhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int 0)) :
+    evalExpr? cfg solm evm (.binary (.div (.uint bits) .checked) lhs rhs) = .revert := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?, if_pos]
+
+theorem evalExpr_mod_uint_ok {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {lhs rhs : Expr} (bits : BitWidth) (lhsValue rhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue))
+    (hrhsNonzero : rhsValue ≠ 0)
+    (hnonneg : 0 ≤ lhsValue.tmod rhsValue)
+    (hfit : lhsValue.tmod rhsValue < Int.ofNat (EVM.twoPow bits.val)) :
+    evalExpr? cfg solm evm (.binary (.mod (.uint bits)) lhs rhs) =
+      .ok (.int (lhsValue.tmod rhsValue)) := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?, if_neg hrhsNonzero]
+  exact evalIntArithResult_checked_uint_ok bits (lhsValue.tmod rhsValue) hnonneg hfit
+
+theorem evalExpr_mod_uint_revert_of_zero {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} (bits : BitWidth) (lhsValue : Int)
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int 0)) :
+    evalExpr? cfg solm evm (.binary (.mod (.uint bits)) lhs rhs) = .revert := by
+  rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+  simp only [hlhs, hrhs, EvalResult.bind, bind, evalBinaryOp?, if_pos]
+
 theorem evalExpr_cast_int {cfg : Config} {solm : Frame} {evm : EVM.State}
     {expr : Expr} {intType : IntType} {i : Int}
     (h : evalExpr? cfg solm evm expr = .ok (.int i)) :
@@ -527,6 +722,28 @@ theorem evalExpr_neg_int {cfg : Config} {solm : Frame} {evm : EVM.State}
       .ok (.int (normalizeInt intType (-i))) := by
   simp only [evalExpr?, h, EvalResult.bind, bind, evalUnaryOp_neg_int,
     EvalResult.ofOption]
+
+theorem evalExpr_inRange_uint (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (expr : Expr) (bits : BitWidth) (i : Int)
+    (hEval : evalExpr? cfg solm evm expr = .ok (.int i))
+    (hnonneg : 0 ≤ i)
+    (hfit : i < Int.ofNat (EVM.twoPow bits.val)) :
+    evalExpr? cfg solm evm (.inRange (.uint bits) expr) = .ok (.int i) := by
+  simp only [evalExpr?, hEval, EvalResult.bind, bind]
+  rw [if_neg]
+  · rfl
+  · intro hbad
+    rw [Bool.or_eq_true, decide_eq_true_eq] at hbad
+    rcases hbad with hlow | hhigh
+    · exact (Int.not_lt.mpr hnonneg) hlow
+    · rw [decide_eq_true_eq] at hhigh
+      exact (Int.not_le.mpr (by simpa [EVM.twoPow] using hfit)) hhigh
+
+theorem evalExpr_inRange_revert (cfg : Config) (solm : Frame) (evm : EVM.State)
+    (expr : Expr) (intType : IntType)
+    (hEval : evalExpr? cfg solm evm expr = .revert) :
+    evalExpr? cfg solm evm (.inRange intType expr) = .revert := by
+  simp only [evalExpr?, hEval, EvalResult.bind, bind]
 
 def evalExprs? (cfg : Config) (solm : Frame) (evm : EVM.State)
     (exprs : List Expr) : EvalResult (List Value) :=

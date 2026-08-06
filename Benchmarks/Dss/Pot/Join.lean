@@ -1406,7 +1406,7 @@ theorem potJoinSolmDriverPie {cA gh bl σ_solm σ₀ A I} {g : Sat256} {result :
         I.codeOwner ⟨7⟩).toNat)
       (by simp only [evalExpr?, envValue, joinNowWord, pure]; rfl)
       (evalExpr_joinRhoOf (by simp)) (by rw [hrho]))) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word
     (evalExpr_add256_ok
       (a := Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
         (pieSlot (.address I.source)))
@@ -1479,7 +1479,7 @@ theorem potJoinSolmMulSeg {cA gh bl σ_solm σ₀ A I} {g : Sat256} {result : Ex
           I.codeOwner (pieSlot (.address I.source)) PIEV) I.codeOwner ⟨2⟩).toNat
           + (joinWadWord I).toNat := by
     rw [uadd_toNat, Nat.mod_eq_of_lt hPieFit]
-  refine ExecBlock.consNormal (ExecStmt.letDecl
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word
     (evalExpr_add256_ok
       (a := Solm.EVM.storageLoad (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I)
         I.codeOwner (pieSlot (.address I.source)) PIEV) I.codeOwner ⟨2⟩)
@@ -1602,7 +1602,8 @@ theorem joinMulStmt {evm2 : EVM.State} {I : ExecutionEnv} {c wad : UInt256} {L :
     (callee := mulFunction) (locals := uintBinaryLocals c wad)
     (calleeSolm := { contract := contract, locals := uintBinaryLocalsZ c wad (c * wad) })
     (value := some [.int (Int.ofNat (c * wad).toNat)])
-    hargs rfl rfl (execMulFunctionReturn evm2 rfl hfit)
+    hargs rfl (by simpa [mulFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" c wad) (execMulFunctionReturn evm2 rfl hfit)
   have hres : resumeAfterInternalCall { contract := contract, locals := L } "rad"
       (some [.int (Int.ofNat (c * wad).toNat)])
       = { contract := contract, locals := L.insert "rad" (.int (Int.ofNat (c * wad).toNat)) } := rfl
@@ -1627,7 +1628,8 @@ theorem joinMulStmtRevert {evm2 : EVM.State} {I : ExecutionEnv} {c wad : UInt256
     (name := "_mul") (retVar := "rad") (args := [.storage chiRef, .var "wad"])
     (argVals := [.int (Int.ofNat c.toNat), .int (Int.ofNat wad.toNat)])
     (callee := mulFunction) (locals := uintBinaryLocals c wad)
-    hargs rfl rfl (execMulFunctionRevert evm2 hover)
+    hargs rfl (by simpa [mulFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" c wad) (execMulFunctionRevert evm2 hover)
 
 /-- The Solm frame after the whole `join` body: `rad` and `_moveRet` bound. -/
 abbrev joinPostFrame (L : Store) (r : UInt256) : Frame :=

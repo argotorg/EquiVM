@@ -37,9 +37,9 @@ theorem int256Limit_eq_twoPow : int256Limit = Int.ofNat (EVM.twoPow 255) := by
   native_decide
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
-def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
-def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
+def add256 (x y : Expr) : Expr := u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) x y)
+def sub256 (x y : Expr) : Expr := u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)
+def mul256 (x y : Expr) : Expr := u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) x y)
 def asInt256 (e : Expr) : Expr := .cast e int256St
 
 def zeroPad29 : List UInt8 := List.replicate 29 0
@@ -212,7 +212,7 @@ def checkedMulUintInto (name : Ident) (x y : Expr) : List Stmt :=
     .require
       (.binary .or
         (.binary .eq y (.intLit 0))
-        (.binary .eq (.binary .div (.var name) y) x)) ]
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x)) ]
 
 /-! ## Constructor -/
 
@@ -399,12 +399,12 @@ def biteTransition : TransitionDecl :=
         .internalCall "min" [.var "milkDunk", .var "room"] "dunkRoom" ] ++
       checkedMulUintInto "dunkRoomWad" (.var "dunkRoom") (.intLit WAD) ++
       [ .letDecl "dartDenomRate" (some uint256)
-          (.binary .div (.var "dunkRoomWad") (.var "rate")),
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dunkRoomWad") (.var "rate")),
         .letDecl "dartCandidate" (some uint256)
-          (.binary .div (.var "dartDenomRate") (.var "milkChop")),
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartDenomRate") (.var "milkChop")),
         .internalCall "min" [.var "art", .var "dartCandidate"] "dart" ] ++
       checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-      [ .letDecl "dinkCandidate" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+      [ .letDecl "dinkCandidate" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
         .internalCall "min" [.var "ink", .var "dinkCandidate"] "dink",
         .require
           (.binary .and
@@ -421,7 +421,7 @@ def biteTransition : TransitionDecl :=
       checkedMulUintInto "dartRate" (.var "dart") (.var "rate") ++
       checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "dartRate"] "_fessRet" ++
       checkedMulUintInto "tabBase" (.var "dartRate") (.var "milkChop") ++
-      [ .letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+      [ .letDecl "tab" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ] ++
       checkedAddUintInto "litterNew" (.storage litterRef) (.var "tab") ++
       [ .assign .storage litterRef (.var "litterNew") ] ++
       checkedExternalCallStmts (.var "milkFlip") "kick" (.intLit 0)

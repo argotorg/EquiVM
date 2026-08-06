@@ -13,8 +13,8 @@ theorem evalExpr_mint_proportionalLiquidity_divZero
     (hreserve : locals.get? reserveName = some (.int 0))
     (hfit : mintAmountProductNat amount totalSupply < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (.binary .div
-        (u256 (.binary .mul (.var amountName) (.var "_totalSupply")))
+      (.binary (.div (.uint ⟨256, by decide⟩) .checked)
+        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var amountName) (.var "_totalSupply")))
         (.var reserveName)) = .revert := by
   have hmul := evalExpr_mint_namedProduct_of_get evm amountName "_totalSupply"
     amount totalSupply hamount htotal hfit

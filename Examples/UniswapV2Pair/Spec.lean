@@ -81,12 +81,13 @@ def permitTypehashBytes : List UInt8 :=
 
 def permitTypehashExpr : Expr := .fixedBytesLit bytes32Width permitTypehashBytes
 
-def wrapU256 (e : Expr) : Expr := .binary .mod e (.intLit twoPow256)
+def wrapU256 (e : Expr) : Expr := .binary (.mod (.uint ⟨256, by decide⟩)) e (.intLit twoPow256)
 
 def addressAsUint256 (e : Expr) : Expr := .cast e uint256St
 
 def uq112Price (numerator denominator : Expr) : Expr :=
-  .binary .div (.binary .mul numerator (.intLit q112)) denominator
+  .binary (.div (.uint ⟨256, by decide⟩) .wrapping)
+    (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) numerator (.intLit q112)) denominator
 
 def eip712DomainTypehashExpr : Expr := .keccak256 (.bytesLit eip712DomainTypehashBytes)
 
@@ -284,10 +285,10 @@ def transferFunction : FunctionDecl :=
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
         .assign .storage (balanceOfRef (.var "from"))
-          (.binary .sub (.var "fromBalance") (.var "value")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
-          (u256 (.binary .add (.var "toBalance") (.var "value"))) ] }
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))) ] }
 
 def mintFunction : FunctionDecl :=
   { name := "_mint"
@@ -295,9 +296,9 @@ def mintFunction : FunctionDecl :=
     returnType := []
     body :=
       [ .assign .storage totalSupplyRef
-          (u256 (.binary .add (.storage totalSupplyRef) (.var "value"))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef) (.var "value"))),
         .assign .storage (balanceOfRef (.var "to"))
-          (u256 (.binary .add (.storage (balanceOfRef (.var "to"))) (.var "value"))) ] }
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage (balanceOfRef (.var "to"))) (.var "value"))) ] }
 
 def burnFunction : FunctionDecl :=
   { name := "_burn"
@@ -307,10 +308,10 @@ def burnFunction : FunctionDecl :=
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
         .assign .storage (balanceOfRef (.var "from"))
-          (.binary .sub (.var "fromBalance") (.var "value")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
         .letDecl "_totalSupply" (some uint256) (.storage totalSupplyRef),
         .require (.binary .ge (.var "_totalSupply") (.var "value")),
-        .assign .storage totalSupplyRef (.binary .sub (.var "_totalSupply") (.var "value")) ] }
+        .assign .storage totalSupplyRef (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "_totalSupply") (.var "value")) ] }
 
 def safeTransferFunction : FunctionDecl :=
   { name := "_safeTransfer"
@@ -333,11 +334,11 @@ def updateFunction : FunctionDecl :=
       [ .require (.binary .and
           (.binary .le (.var "balance0") (.intLit maxUint112))
           (.binary .le (.var "balance1") (.intLit maxUint112))),
-        .letDecl "blockTimestamp" (some uint32) (u32 (.binary .mod now (.intLit twoPow32))),
+        .letDecl "blockTimestamp" (some uint32) (u32 (.binary (.mod (.uint ⟨32, by decide⟩)) now (.intLit twoPow32))),
         .letDecl "timeElapsed" (some uint32)
-          (u32 (.binary .mod
-            (.binary .add
-              (.binary .sub (.var "blockTimestamp") (.storage blockTimestampLastRef))
+          (u32 (.binary (.mod (.uint ⟨32, by decide⟩))
+            (.binary (.add (.uint ⟨32, by decide⟩) .wrapping)
+              (.binary (.sub (.uint ⟨32, by decide⟩) .wrapping) (.var "blockTimestamp") (.storage blockTimestampLastRef))
               (.intLit twoPow32))
             (.intLit twoPow32))),
         .ite (.binary .and
@@ -346,12 +347,12 @@ def updateFunction : FunctionDecl :=
               (.binary .ne (.var "_reserve0") (.intLit 0))
               (.binary .ne (.var "_reserve1") (.intLit 0))))
           [ .assign .storage price0CumulativeLastRef
-              (wrapU256 (.binary .add (.storage price0CumulativeLastRef)
-                (.binary .mul (uq112Price (.var "_reserve1") (.var "_reserve0"))
+              (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price0CumulativeLastRef)
+                (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve1") (.var "_reserve0"))
                   (.var "timeElapsed")))),
             .assign .storage price1CumulativeLastRef
-              (wrapU256 (.binary .add (.storage price1CumulativeLastRef)
-                (.binary .mul (uq112Price (.var "_reserve0") (.var "_reserve1"))
+              (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price1CumulativeLastRef)
+                (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve0") (.var "_reserve1"))
                   (.var "timeElapsed")))) ]
           [],
         .assign .storage reserve0Ref (u112 (.var "balance0")),
@@ -366,12 +367,12 @@ def sqrtFunction : FunctionDecl :=
       [ .ite (.binary .gt (.var "y") (.intLit 3))
           [ .letDecl "z" (some uint256) (.var "y"),
             .letDecl "x" (some uint256)
-              (.binary .add (.binary .div (.var "y") (.intLit 2)) (.intLit 1)),
+              (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.binary (.div (.uint ⟨256, by decide⟩) .wrapping) (.var "y") (.intLit 2)) (.intLit 1)),
             .while (.binary .lt (.var "x") (.var "z"))
               [ .assign .localVar { base := "z" } (.var "x"),
                 .assign .localVar { base := "x" }
-                  (.binary .div
-                    (.binary .add (.binary .div (.var "y") (.var "x")) (.var "x"))
+                  (.binary (.div (.uint ⟨256, by decide⟩) .wrapping)
+                    (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.binary (.div (.uint ⟨256, by decide⟩) .wrapping) (.var "y") (.var "x")) (.var "x"))
                     (.intLit 2)) ],
             .return [(.var "z")] ]
           [ .ite (.binary .ne (.var "y") (.intLit 0))
@@ -396,18 +397,18 @@ def mintFeeFunction : FunctionDecl :=
         .ite (.var "feeOn")
           [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
               [ .internalCall "sqrt"
-                  [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                  [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                 .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                 .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                   [ .letDecl "numerator" (some uint256)
-                      (u256 (.binary .mul (.storage totalSupplyRef)
-                        (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                      (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                     .letDecl "denominator" (some uint256)
-                      (u256 (.binary .add
-                        (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                         (.var "rootKLast"))),
                     .letDecl "liquidity" (some uint256)
-                      (.binary .div (.var "numerator") (.var "denominator")),
+                      (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                     .ite (.binary .gt (.var "liquidity") (.intLit 0))
                       [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                       [] ]
@@ -476,10 +477,10 @@ def transferTransition : TransitionDecl :=
         [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef sender)),
           .require (.binary .ge (.var "fromBalance") (.var "value")),
           .assign .storage (balanceOfRef sender)
-            (.binary .sub (.var "fromBalance") (.var "value")),
+            (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
           .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
           .assign .storage (balanceOfRef (.var "to"))
-            (u256 (.binary .add (.var "toBalance") (.var "value"))),
+            (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
           .return [(.boolLit true)] ] }
 
 def transferFromTransition : TransitionDecl :=
@@ -493,15 +494,15 @@ def transferFromTransition : TransitionDecl :=
           .ite (.binary .ne (.var "currentAllowance") (.intLit maxUint256))
             [ .require (.binary .ge (.var "currentAllowance") (.var "value")),
               .assign .storage (allowanceRef (.var "from") sender)
-                (.binary .sub (.var "currentAllowance") (.var "value")) ]
+                (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "currentAllowance") (.var "value")) ]
             [],
           .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
           .require (.binary .ge (.var "fromBalance") (.var "value")),
           .assign .storage (balanceOfRef (.var "from"))
-            (.binary .sub (.var "fromBalance") (.var "value")),
+            (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
           .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
           .assign .storage (balanceOfRef (.var "to"))
-            (u256 (.binary .add (.var "toBalance") (.var "value"))),
+            (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
           .return [(.boolLit true)] ] }
 
 def domainSeparatorTransition : TransitionDecl :=
@@ -532,7 +533,7 @@ def permitTransition : TransitionDecl :=
           .letDecl "nonce" (some uint256) (.storage (noncesRef (.var "owner"))),
           -- solc 0.5.16 compiles `nonces[owner]++` UNchecked: the store wraps mod 2^256.
           .assign .storage (noncesRef (.var "owner"))
-            (wrapU256 (.binary .add (.var "nonce") (.intLit 1))),
+            (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.var "nonce") (.intLit 1)),
           .letDecl "structHash" (some bytes32) permitStructHashExpr,
           .letDecl "digest" (some bytes32) permitDigestExpr,
           .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
@@ -602,22 +603,22 @@ def mintTransition : TransitionDecl :=
           .letDecl "_reserve1" (some uint112) (.storage reserve1Ref) ] ++
       pairBalanceOfThisStmts "balance0" "balance1" ++
         [ .letDecl "amount0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.var "_reserve0"))),
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.var "_reserve0"))),
           .letDecl "amount1" (some uint256)
-            (u256 (.binary .sub (.var "balance1") (.var "_reserve1"))),
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.var "_reserve1"))),
           .internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn",
           .letDecl "_totalSupply" (some uint256) (.storage totalSupplyRef),
           .ite (.binary .eq (.var "_totalSupply") (.intLit 0))
-            [ .internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+            [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
                 "rootLiquidity",
               .letDecl "liquidity" (some uint256)
-                (u256 (.binary .sub (.var "rootLiquidity") (.intLit minimumLiquidity))),
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootLiquidity") (.intLit minimumLiquidity))),
               .internalCall "_mint" [zeroAddr, (.intLit minimumLiquidity)] "_minimumMint" ]
             [ .letDecl "liquidity0" (some uint256)
-                (.binary .div (u256 (.binary .mul (.var "amount0") (.var "_totalSupply")))
+                (.binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "_totalSupply")))
                   (.var "_reserve0")),
               .letDecl "liquidity1" (some uint256)
-                (.binary .div (u256 (.binary .mul (.var "amount1") (.var "_totalSupply")))
+                (.binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount1") (.var "_totalSupply")))
                   (.var "_reserve1")),
               .internalCall "min" [.var "liquidity0", .var "liquidity1"] "liquidity" ],
           .require (.binary .gt (.var "liquidity") (.intLit 0)),
@@ -626,7 +627,7 @@ def mintTransition : TransitionDecl :=
         (.var "_reserve0") (.var "_reserve1") ++
       [ .ite (.var "feeOn")
           [ .assign .storage kLastRef
-              (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+              (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
           [] ] ++
       lockExit ++
         [ .return [(.var "liquidity")] ] }
@@ -647,10 +648,10 @@ def burnTransition : TransitionDecl :=
           .internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn",
           .letDecl "_totalSupply" (some uint256) (.storage totalSupplyRef),
           .letDecl "amount0" (some uint256)
-            (.binary .div (u256 (.binary .mul (.var "liquidity") (.var "balance0")))
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "liquidity") (.var "balance0")))
               (.var "_totalSupply")),
           .letDecl "amount1" (some uint256)
-            (.binary .div (u256 (.binary .mul (.var "liquidity") (.var "balance1")))
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "liquidity") (.var "balance1")))
               (.var "_totalSupply")),
           .require (.binary .and
             (.binary .gt (.var "amount0") (.intLit 0))
@@ -664,7 +665,7 @@ def burnTransition : TransitionDecl :=
         (.var "_reserve0") (.var "_reserve1") ++
       [ .ite (.var "feeOn")
           [ .assign .storage kLastRef
-              (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+              (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
           [] ] ++
       lockExit ++
         [ .return  [.var "amount0", .var "amount1"] ] }
@@ -705,30 +706,30 @@ def swapTransition : TransitionDecl :=
         [ .letDecl "amount0In" (some uint256)
             (.ite
               (.binary .gt (.var "balance0")
-                (.binary .sub (.var "_reserve0") (.var "amount0Out")))
-              (u256 (.binary .sub (.var "balance0")
-                (.binary .sub (.var "_reserve0") (.var "amount0Out"))))
+                (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "amount0Out")))
+              (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0")
+                (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "amount0Out"))))
               (.intLit 0)),
           .letDecl "amount1In" (some uint256)
             (.ite
               (.binary .gt (.var "balance1")
-                (.binary .sub (.var "_reserve1") (.var "amount1Out")))
-              (u256 (.binary .sub (.var "balance1")
-                (.binary .sub (.var "_reserve1") (.var "amount1Out"))))
+                (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "_reserve1") (.var "amount1Out")))
+              (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1")
+                (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "_reserve1") (.var "amount1Out"))))
               (.intLit 0)),
           .require (.binary .or
             (.binary .gt (.var "amount0In") (.intLit 0))
             (.binary .gt (.var "amount1In") (.intLit 0))),
           .letDecl "balance0Adjusted" (some uint256)
-            (u256 (.binary .sub (u256 (.binary .mul (.var "balance0") (.intLit 1000)))
-              (u256 (.binary .mul (.var "amount0In") (.intLit 3))))),
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.intLit 1000)))
+              (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0In") (.intLit 3))))),
           .letDecl "balance1Adjusted" (some uint256)
-            (u256 (.binary .sub (u256 (.binary .mul (.var "balance1") (.intLit 1000)))
-              (u256 (.binary .mul (.var "amount1In") (.intLit 3))))),
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.intLit 1000)))
+              (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount1In") (.intLit 3))))),
           .require (.binary .ge
-            (u256 (.binary .mul (.var "balance0Adjusted") (.var "balance1Adjusted")))
-            (u256 (.binary .mul
-              (u256 (.binary .mul (.var "_reserve0") (.var "_reserve1")))
+            (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "balance0Adjusted") (.var "balance1Adjusted")))
+            (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked)
+              (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1")))
               (.intLit 1000000)))) ] ++
       updateReservesStmtsWith (.var "balance0") (.var "balance1")
         (.var "_reserve0") (.var "_reserve1") ++
@@ -744,11 +745,11 @@ def skimTransition : TransitionDecl :=
           .letDecl "_token1" (some addr) (.storage token1Ref) ] ++
       balanceOfThisStmts (.var "_token0") "balance0" ++
         [ .letDecl "excess0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.storage reserve0Ref))) ] ++
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.storage reserve0Ref))) ] ++
       safeTransferStmts (.var "_token0") (.var "to") (.var "excess0") "ok0" "_ret0" ++
       balanceOfThisStmts (.var "_token1") "balance1" ++
         [ .letDecl "excess1" (some uint256)
-            (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) ] ++
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref))) ] ++
       safeTransferStmts (.var "_token1") (.var "to") (.var "excess1") "ok1" "_ret1" ++
       lockExit }
 

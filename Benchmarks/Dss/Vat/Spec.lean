@@ -40,9 +40,9 @@ def maxInt256 : Int := (2 : Int) ^ 255 - 1
 def u256 (e : Expr) : Expr := .inRange uint256Int e
 def s256 (e : Expr) : Expr := .inRange int256Int e
 
-def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
-def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
-def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
+def add256 (x y : Expr) : Expr := u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) x y)
+def sub256 (x y : Expr) : Expr := u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)
+def mul256 (x y : Expr) : Expr := u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) x y)
 
 def lineParamLit : Expr :=
   .fixedBytesLit bytes32Width
@@ -224,31 +224,31 @@ def checkedMulUintInto (name : Ident) (x y : Expr) : List Stmt :=
   [ .letDecl name (some uint256) (mul256 x y),
     .require
       (eitherExpr (.binary .eq y (.intLit 0))
-        (.binary .eq (.binary .div (.var name) y) x)) ]
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x)) ]
 
 def wordWrap256 (e : Expr) : Expr :=
-  .binary .mod e (.intLit (Int.ofNat EVM.wordModulus))
+  .binary (.mod (.uint ⟨256, by decide⟩)) e (.intLit (Int.ofNat EVM.wordModulus))
 
 def checkedAddSignedInto (name : Ident) (x y : Expr) : List Stmt :=
-  [ .letDecl name (some uint256) (wordWrap256 (.binary .add x y)),
+  [ .letDecl name (some uint256) (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) x y)),
     .require
       (eitherExpr (.binary .ge y (.intLit 0)) (.binary .le (.var name) x)),
     .require
       (eitherExpr (.binary .le y (.intLit 0)) (.binary .ge (.var name) x)) ]
 
 def checkedSubSignedInto (name : Ident) (x y : Expr) : List Stmt :=
-  [ .letDecl name (some uint256) (wordWrap256 (.binary .sub x y)),
+  [ .letDecl name (some uint256) (wordWrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) x y)),
     .require
       (eitherExpr (.binary .le y (.intLit 0)) (.binary .le (.var name) x)),
     .require
       (eitherExpr (.binary .ge y (.intLit 0)) (.binary .ge (.var name) x)) ]
 
 def checkedMulSignedInto (name : Ident) (x y : Expr) : List Stmt :=
-  [ .letDecl name (some int256) (s256 (.binary .mul x y)),
+  [ .letDecl name (some int256) (s256 (.binary (.mul (.sint ⟨256, by decide⟩) .checked) x y)),
     .require (.binary .le x (.intLit maxInt256)),
     .require
       (eitherExpr (.binary .eq y (.intLit 0))
-        (.binary .eq (.binary .div (.var name) y) x)) ]
+        (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var name) y) x)) ]
 
 /-! ## Constructor -/
 

@@ -23,6 +23,40 @@ abbrev uintTernaryLocals (x n b : UInt256) : Store :=
   ((((∅ : Store).insert "b" (.int (Int.ofNat b.toNat))).insert "n"
     (.int (Int.ofNat n.toNat))).insert "x" (.int (Int.ofNat x.toNat)))
 
+@[simp] theorem valueMatchesABIType_jug_uint256_word (word : UInt256) :
+    valueMatchesABIType uint256 (.int (Int.ofNat word.toNat)) = true := by
+  simpa [uint256, uint256Int] using valueMatchesABIType_uint256_word word
+
+@[simp] theorem valueMatchesOptionalABIType_jug_uint256_word (word : UInt256) :
+    valueMatchesOptionalABIType (some uint256) (.int (Int.ofNat word.toNat)) = true := by
+  change valueMatchesABIType uint256 (.int (Int.ofNat word.toNat)) = true
+  exact valueMatchesABIType_jug_uint256_word word
+
+@[simp] theorem bindParams_addFunction (x y : UInt256) :
+    bindParams? addFunction.params [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] =
+      some (uintBinaryLocals x y) := by
+  simpa [addFunction, uintBinaryLocals] using
+    (bindParams_uint256_pair "x" "y" x y)
+
+@[simp] theorem bindParams_diffFunction (x y : UInt256) :
+    bindParams? diffFunction.params [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] =
+      some (uintBinaryLocals x y) := by
+  simpa [diffFunction, uintBinaryLocals] using
+    (bindParams_uint256_pair "x" "y" x y)
+
+@[simp] theorem bindParams_rmulFunction (x y : UInt256) :
+    bindParams? rmulFunction.params [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] =
+      some (uintBinaryLocals x y) := by
+  simpa [rmulFunction, uintBinaryLocals] using
+    (bindParams_uint256_pair "x" "y" x y)
+
+@[simp] theorem bindParams_rpowFunction (x n b : UInt256) :
+    bindParams? rpowFunction.params
+        [.int (Int.ofNat x.toNat), .int (Int.ofNat n.toNat), .int (Int.ofNat b.toNat)] =
+      some (uintTernaryLocals x n b) := by
+  simpa [rpowFunction, uintTernaryLocals] using
+    (bindParams_uint256_triple "x" "n" "b" x n b)
+
 abbrev rpowLocalsZ (x n b z : UInt256) : Store :=
   (uintTernaryLocals x n b).insert "z" (.int (Int.ofNat z.toNat))
 

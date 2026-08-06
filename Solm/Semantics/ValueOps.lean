@@ -207,6 +207,152 @@ def castValue? (v : Value) (ty : StorageType) : Option Value :=
   | .dynamicArray _, .array _ => some v
   | _, _ => none
 
+mutual
+
+/-- Whether a runtime value is already a valid value of an ABI type. This validates rather than
+    converts: integer values must be in the declared range, and compound values must have the
+    declared shape recursively. Struct values use their field order for ABI tuple validation. -/
+def valueMatchesABIType : ABIType → Value → Bool
+  | .elem .bool, .bool _ => true
+  | .elem .address, .address _ => true
+  | .elem (.int intType), .int value => normalizeInt intType value == value
+  | .elem (.bytes expected), .fixedBytes actual bytes =>
+      expected == actual && fixedBytesValid expected bytes
+  | .elem .function, .array values =>
+      values.length == 24 && values.all fun
+        | .int value => 0 ≤ value && value < 256
+        | _ => false
+  | .array elemType length, .array values =>
+      values.length == length && valuesMatchABIType elemType values
+  | .dynamicArray elemType, .array values => valuesMatchABIType elemType values
+  | .tuple types, .tuple values => valuesMatchABITypes types values
+  | .tuple types, .struct _ fields => valuesMatchABITypes types (fields.map (·.2))
+  | .bytes, .bytes _ | .string, .bytes _ => true
+  | _, _ => false
+termination_by type _ => (sizeOf type, 0, 0)
+
+/-- Validate every value in a homogeneous ABI array. -/
+def valuesMatchABIType (type : ABIType) : List Value → Bool
+  | [] => true
+  | value :: values => valueMatchesABIType type value && valuesMatchABIType type values
+termination_by values => (sizeOf type, sizeOf values + 1, 1)
+
+/-- Validate a heterogeneous ABI tuple. -/
+def valuesMatchABITypes : List ABIType → List Value → Bool
+  | [], [] => true
+  | type :: types, value :: values =>
+      valueMatchesABIType type value && valuesMatchABITypes types values
+  | _, _ => false
+termination_by types values => (sizeOf types, sizeOf values + 1, 2)
+
+end
+
+def valueMatchesOptionalABIType : Option ABIType → Value → Bool
+  | none, _ => true
+  | some type, value => valueMatchesABIType type value
+
+#guard valueMatchesABIType (.elem (.int (.uint ⟨8, by decide⟩))) (.int 255)
+#guard !valueMatchesABIType (.elem (.int (.uint ⟨8, by decide⟩))) (.int 256)
+#guard valueMatchesABIType (.elem (.int (.sint ⟨8, by decide⟩))) (.int (-128))
+#guard !valueMatchesABIType (.elem (.int (.sint ⟨8, by decide⟩))) (.int 128)
+#guard valueMatchesABIType (.array (.elem .bool) 2) (.array [.bool true, .bool false])
+#guard !valueMatchesABIType (.array (.elem .bool) 2) (.array [.bool true])
+
+@[simp] theorem valueMatchesABIType_uint256_word (word : EVM.Word) :
+    valueMatchesABIType (.elem (.int (.uint ⟨256, by decide⟩)))
+      (.int (Int.ofNat word.toNat)) = true := by
+  simp only [valueMatchesABIType, beq_iff_eq]
+  exact normalizeInt_uint256_word word
+
+theorem valueMatchesABIType_uint_word_of_lt
+    (bits : BitWidth) (word : EVM.Word)
+    (hfit : word.toNat < EVM.twoPow bits.val) :
+    valueMatchesABIType (.elem (.int (.uint bits)))
+      (.int (Int.ofNat word.toNat)) = true := by
+  simp only [valueMatchesABIType, beq_iff_eq]
+  exact normalizeInt_uint_eq_self bits (Int.ofNat word.toNat)
+    (Int.natCast_nonneg _) (Int.ofNat_lt.mpr hfit)
+
+@[simp] theorem valueMatchesABIType_uint_word_of_width_256
+    (bits : BitWidth) (word : EVM.Word) (hwidth : bits.val = 256) :
+    valueMatchesABIType (.elem (.int (.uint bits)))
+      (.int (Int.ofNat word.toNat)) = true := by
+  apply valueMatchesABIType_uint_word_of_lt
+  rw [hwidth]
+  exact word.val.isLt
+
+@[simp] theorem valueMatchesOptionalABIType_uint256_word (word : EVM.Word) :
+    valueMatchesOptionalABIType
+        (some (.elem (.int (.uint ⟨256, by decide⟩))))
+      (.int (Int.ofNat word.toNat)) = true :=
+  valueMatchesABIType_uint256_word word
+
+theorem valueMatchesOptionalABIType_uint_word_of_lt
+    (bits : BitWidth) (word : EVM.Word)
+    (hfit : word.toNat < EVM.twoPow bits.val) :
+    valueMatchesOptionalABIType (some (.elem (.int (.uint bits))))
+      (.int (Int.ofNat word.toNat)) = true :=
+  valueMatchesABIType_uint_word_of_lt bits word hfit
+
+@[simp] theorem valueMatchesOptionalABIType_uint_word_of_width_256
+    (bits : BitWidth) (word : EVM.Word) (hwidth : bits.val = 256) :
+    valueMatchesOptionalABIType (some (.elem (.int (.uint bits))))
+      (.int (Int.ofNat word.toNat)) = true :=
+  valueMatchesABIType_uint_word_of_width_256 bits word hwidth
+
+theorem valueMatchesABIType_uint_of_bounds (bits : BitWidth) (value : Int)
+    (hnonneg : 0 ≤ value) (hfit : value < Int.ofNat (EVM.twoPow bits.val)) :
+    valueMatchesABIType (.elem (.int (.uint bits))) (.int value) = true := by
+  simp only [valueMatchesABIType, beq_iff_eq]
+  exact normalizeInt_uint_eq_self bits value hnonneg hfit
+
+theorem valueMatchesOptionalABIType_uint_of_bounds (bits : BitWidth) (value : Int)
+    (hnonneg : 0 ≤ value) (hfit : value < Int.ofNat (EVM.twoPow bits.val)) :
+    valueMatchesOptionalABIType (some (.elem (.int (.uint bits)))) (.int value) = true := by
+  exact valueMatchesABIType_uint_of_bounds bits value hnonneg hfit
+
+theorem valueMatchesOptionalABIType_sint256_of_bounds (value : Int)
+    (hlo : -Int.ofNat (EVM.twoPow 255) ≤ value)
+    (hhi : value < Int.ofNat (EVM.twoPow 255)) :
+    valueMatchesOptionalABIType (some (.elem (.int (.sint ⟨256, by decide⟩))))
+      (.int value) = true := by
+  simp only [valueMatchesOptionalABIType, valueMatchesABIType, beq_iff_eq]
+  exact normalizeInt_sint256_eq_self value hlo hhi
+
+@[simp] theorem valueMatchesOptionalABIType_string (bytes : ByteArray) :
+    valueMatchesOptionalABIType (some .string) (.bytes bytes) = true := by
+  simp [valueMatchesOptionalABIType, valueMatchesABIType]
+
+@[simp] theorem valueMatchesOptionalABIType_bytes (bytes : ByteArray) :
+    valueMatchesOptionalABIType (some .bytes) (.bytes bytes) = true := by
+  simp [valueMatchesOptionalABIType, valueMatchesABIType]
+
+@[simp] theorem valueMatchesOptionalABIType_bool (value : Bool) :
+    valueMatchesOptionalABIType (some (.elem .bool)) (.bool value) = true := by
+  simp [valueMatchesOptionalABIType, valueMatchesABIType]
+
+@[simp] theorem valueMatchesABIType_address (value : EVM.Address) :
+    valueMatchesABIType (.elem .address) (.address value) = true := by
+  simp [valueMatchesABIType]
+
+@[simp] theorem valueMatchesOptionalABIType_address (value : EVM.Address) :
+    valueMatchesOptionalABIType (some (.elem .address)) (.address value) = true :=
+  valueMatchesABIType_address value
+
+theorem valueMatchesOptionalABIType_fixedBytes (width : Fin 32) (bytes : List UInt8)
+    (hlength : bytes.length = fixedBytesSize width) :
+    valueMatchesOptionalABIType (some (.elem (.bytes width)))
+      (.fixedBytes width bytes) = true := by
+  simp [valueMatchesOptionalABIType, valueMatchesABIType, fixedBytesValid, hlength]
+
+theorem valueMatchesABIType_uint256_ofNat {value : Nat} (hfit : value < EVM.wordModulus) :
+    valueMatchesABIType (.elem (.int (.uint ⟨256, by decide⟩)))
+      (.int (Int.ofNat value)) = true := by
+  simp only [valueMatchesABIType, beq_iff_eq]
+  apply normalizeInt_uint_eq_self
+  · exact Int.natCast_nonneg value
+  · exact Int.ofNat_lt.mpr hfit
+
 theorem castValue_int (intType : IntType) (i : Int) :
     castValue? (.int i) (.elem (.int intType)) =
       some (.int (normalizeInt intType i)) := by
@@ -272,12 +418,12 @@ def evalUnaryOp? (op : UnaryOp) (v : Value) : Option Value :=
   match op, v with
   | .not, .bool b => some (.bool (!b))
   | .neg intType, .int i => some (.int (normalizeInt intType (-i)))
-  | .bitNot, .fixedBytes n bytes =>
+  | .fixedBitNot, .fixedBytes n bytes =>
       if fixedBytesValid n bytes then some (.fixedBytes n (bytes.map (fun b => ~~~b))) else none
-  -- `~x` on an int is the word complement, defined only on `[0, 2^256)`.
-  | .bitNot, .int x =>
-      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) then some (.int (EVM.wordModulus - 1 - x.toNat))
-      else none
+  | .bitNot intType, .int i =>
+      let bits := intType.bitWidth
+      let residue := normalizeInt (.uint bits) i
+      some (.int (normalizeInt intType (Int.ofNat (EVM.twoPow bits.val - 1 - residue.toNat))))
   | _, _ => none
 
 theorem evalUnaryOp_neg_int (intType : IntType) (i : Int) :
@@ -285,20 +431,94 @@ theorem evalUnaryOp_neg_int (intType : IntType) (i : Int) :
       some (.int (normalizeInt intType (-i))) := by
   cases intType <;> rfl
 
-#guard evalUnaryOp? .bitNot (.int 0) = some (.int (EVM.wordModulus - 1))
-#guard evalUnaryOp? .bitNot (.int (EVM.wordModulus - 1)) = some (.int 0)
-#guard evalUnaryOp? .bitNot (.int (-1)) = none
+#guard evalUnaryOp? (.bitNot (.uint ⟨256, by decide⟩)) (.int 0) =
+  some (.int (EVM.wordModulus - 1))
+#guard evalUnaryOp? (.bitNot (.uint ⟨256, by decide⟩)) (.int (EVM.wordModulus - 1)) =
+  some (.int 0)
+#guard evalUnaryOp? (.bitNot (.sint ⟨8, by decide⟩)) (.int (-1)) = some (.int 0)
 #guard evalUnaryOp? (.neg (.sint ⟨8, by decide⟩)) (.int (-128)) = some (.int (-128))
 #guard evalUnaryOp? (.neg (.sint ⟨8, by decide⟩)) (.int 1) = some (.int (-1))
 
+def evalIntArithResult (intType : IntType) (mode : IntArithMode) (result : Int) : EvalResult Value :=
+  match mode, intType with
+  | .wrapping, _ => .ok (.int (normalizeInt intType result))
+  | .checked, .uint bits =>
+      if result < 0 || result >= Int.ofNat (EVM.twoPow bits.val) then .revert else .ok (.int result)
+  | .checked, .sint bits =>
+      let bound := Int.ofNat (EVM.twoPow (bits.val - 1))
+      if result < -bound || result >= bound then .revert else .ok (.int result)
+
+theorem evalIntArithResult_wrapping (intType : IntType) (result : Int) :
+    evalIntArithResult intType .wrapping result = .ok (.int (normalizeInt intType result)) := by
+  cases intType <;> rfl
+
+theorem evalIntArithResult_wrapping_uint_eq_self (bits : BitWidth) (result : Int)
+    (hnonneg : 0 ≤ result) (hfit : result < Int.ofNat (EVM.twoPow bits.val)) :
+    evalIntArithResult (.uint bits) .wrapping result = .ok (.int result) := by
+  simp only [evalIntArithResult, normalizeInt_uint_eq_self bits result hnonneg hfit]
+
+theorem evalIntArithResult_checked_uint_ok (bits : BitWidth) (result : Int)
+    (hnonneg : 0 ≤ result) (hfit : result < Int.ofNat (EVM.twoPow bits.val)) :
+    evalIntArithResult (.uint bits) .checked result = .ok (.int result) := by
+  simp only [evalIntArithResult]
+  rw [if_neg]
+  simp only [Bool.or_eq_true, decide_eq_true_eq, not_or]
+  exact ⟨Int.not_lt.mpr hnonneg, Int.not_le.mpr (by simpa using hfit)⟩
+
+theorem evalIntArithResult_checked_uint_revert_of_neg (bits : BitWidth) (result : Int)
+    (hneg : result < 0) :
+    evalIntArithResult (.uint bits) .checked result = .revert := by
+  simp [evalIntArithResult, hneg]
+
+theorem evalIntArithResult_checked_uint_revert_of_overflow (bits : BitWidth) (result : Int)
+    (hoverflow : Int.ofNat (EVM.twoPow bits.val) ≤ result) :
+    evalIntArithResult (.uint bits) .checked result = .revert := by
+  simp only [evalIntArithResult]
+  rw [if_pos]
+  simp only [Bool.or_eq_true, decide_eq_true_eq]
+  exact Or.inr (by simpa using hoverflow)
+
+theorem evalIntArithResult_checked_sint_ok (bits : BitWidth) (result : Int)
+    (hlower : -Int.ofNat (EVM.twoPow (bits.val - 1)) ≤ result)
+    (hupper : result < Int.ofNat (EVM.twoPow (bits.val - 1))) :
+    evalIntArithResult (.sint bits) .checked result = .ok (.int result) := by
+  simp only [evalIntArithResult]
+  rw [if_neg]
+  simp only [Bool.or_eq_true, decide_eq_true_eq, not_or]
+  exact ⟨Int.not_lt.mpr hlower, Int.not_le.mpr hupper⟩
+
+theorem evalIntArithResult_checked_sint_revert_of_underflow (bits : BitWidth)
+    (result : Int) (hunderflow : result < -Int.ofNat (EVM.twoPow (bits.val - 1))) :
+    evalIntArithResult (.sint bits) .checked result = .revert := by
+  simp only [evalIntArithResult]
+  rw [if_pos]
+  simp only [Bool.or_eq_true, decide_eq_true_eq]
+  exact Or.inl hunderflow
+
+theorem evalIntArithResult_checked_sint_revert_of_overflow (bits : BitWidth)
+    (result : Int) (hoverflow : Int.ofNat (EVM.twoPow (bits.val - 1)) ≤ result) :
+    evalIntArithResult (.sint bits) .checked result = .revert := by
+  simp only [evalIntArithResult]
+  rw [if_pos]
+  simp only [Bool.or_eq_true, decide_eq_true_eq]
+  exact Or.inr hoverflow
+
+private def evalIntBitwise (intType : IntType) (op : Nat -> Nat -> Nat) (x y : Int) : Value :=
+  let bits := intType.bitWidth
+  let x := (normalizeInt (.uint bits) x).toNat
+  let y := (normalizeInt (.uint bits) y).toNat
+  .int (normalizeInt intType (Int.ofNat (op x y)))
+
 def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
   match op, v₁, v₂ with
-  | .add, .int x, .int y => .ok (.int (x + y))
-  | .sub, .int x, .int y => .ok (.int (x - y))
-  | .mul, .int x, .int y => .ok (.int (x * y))
+  | .add intType mode, .int x, .int y => evalIntArithResult intType mode (x + y)
+  | .sub intType mode, .int x, .int y => evalIntArithResult intType mode (x - y)
+  | .mul intType mode, .int x, .int y => evalIntArithResult intType mode (x * y)
   -- division/modulo by zero reverts (Solidity Panic 0x12)
-  | .div, .int x, .int y => if y = 0 then .revert else .ok (.int (x / y))
-  | .mod, .int x, .int y => if y = 0 then .revert else .ok (.int (x % y))
+  | .div intType mode, .int x, .int y =>
+      if y = 0 then .revert else evalIntArithResult intType mode (x.tdiv y)
+  | .mod intType, .int x, .int y =>
+      if y = 0 then .revert else evalIntArithResult intType .checked (x.tmod y)
   | .eq, .storageRef _ _, _ => .error .typeError
   | .eq, _, .storageRef _ _ => .error .typeError
   | .ne, .storageRef _ _, _ => .error .typeError
@@ -314,8 +534,8 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
   | .le, .address a, .address b => .ok (.bool (a.toNat <= b.toNat))
   | .gt, .address a, .address b => .ok (.bool (a.toNat > b.toNat))
   | .ge, .address a, .address b => .ok (.bool (a.toNat >= b.toNat))
-  -- `x ** y`: exact integer power; exponent must be ≥ 0 (spec wraps `% 2^N` by hand, like add/mul).
-  | .exp, .int x, .int y => if y < 0 then .error .typeError else .ok (.int (x ^ y.toNat))
+  | .exp intType mode, .int x, .int y =>
+      if y < 0 then .error .typeError else evalIntArithResult intType mode (x ^ y.toNat)
   | .lt, .fixedBytes n xs, .fixedBytes m ys =>
       if n = m then
         match fixedBytesToNat? n xs, fixedBytesToNat? m ys with
@@ -340,7 +560,7 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
         | some x, some y => .ok (.bool (x >= y))
         | _, _ => .error .typeError
       else .error .typeError
-  | .bitAnd, .fixedBytes n xs, .fixedBytes m ys =>
+  | .fixedBitAnd, .fixedBytes n xs, .fixedBytes m ys =>
       if n = m then
         if fixedBytesValid n xs && fixedBytesValid m ys then
           match fixedBytesBytewise? (· &&& ·) xs ys with
@@ -348,7 +568,7 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
           | none => .error .typeError
         else .error .typeError
       else .error .typeError
-  | .bitOr, .fixedBytes n xs, .fixedBytes m ys =>
+  | .fixedBitOr, .fixedBytes n xs, .fixedBytes m ys =>
       if n = m then
         if fixedBytesValid n xs && fixedBytesValid m ys then
           match fixedBytesBytewise? (· ||| ·) xs ys with
@@ -356,7 +576,7 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
           | none => .error .typeError
         else .error .typeError
       else .error .typeError
-  | .bitXor, .fixedBytes n xs, .fixedBytes m ys =>
+  | .fixedBitXor, .fixedBytes n xs, .fixedBytes m ys =>
       if n = m then
         if fixedBytesValid n xs && fixedBytesValid m ys then
           match fixedBytesBytewise? (· ^^^ ·) xs ys with
@@ -364,7 +584,7 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
           | none => .error .typeError
         else .error .typeError
       else .error .typeError
-  | .shl, .fixedBytes n xs, .int s =>
+  | .fixedShl, .fixedBytes n xs, .int s =>
       if s < 0 then .error .typeError
       else
         match fixedBytesToNat? n xs with
@@ -373,7 +593,7 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
             if s.toNat >= width then .ok (.fixedBytes n (List.replicate (fixedBytesSize n) 0))
             else .ok (fixedBytesFromNat n (x * 2 ^ s.toNat))
         | none => .error .typeError
-  | .shr, .fixedBytes n xs, .int s =>
+  | .fixedShr, .fixedBytes n xs, .int s =>
       if s < 0 then .error .typeError
       else
         match fixedBytesToNat? n xs with
@@ -382,44 +602,40 @@ def evalBinaryOp? (op : BinaryOp) (v₁ v₂ : Value) : EvalResult Value :=
             if s.toNat >= width then .ok (.fixedBytes n (List.replicate (fixedBytesSize n) 0))
             else .ok (fixedBytesFromNat n (x / 2 ^ s.toNat))
         | none => .error .typeError
-  -- Integer bitwise/shift: defined only on operands in `[0, 2^256)`; a negative or oversized
-  -- operand is `.error .typeError`, so specs on signed values must re-encode to a word first.
-  | .bitAnd, .int x, .int y =>
-      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ y ∧ y < (EVM.wordModulus : Int) then
-        .ok (.int (Nat.land x.toNat y.toNat))
-      else .error .typeError
-  | .bitOr, .int x, .int y =>
-      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ y ∧ y < (EVM.wordModulus : Int) then
-        .ok (.int (Nat.lor x.toNat y.toNat))
-      else .error .typeError
-  | .bitXor, .int x, .int y =>
-      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ y ∧ y < (EVM.wordModulus : Int) then
-        .ok (.int (Nat.xor x.toNat y.toNat))
-      else .error .typeError
-  -- `x << s`: the shift `s` must be a non-negative int; `s ≥ 256` gives `0` (EVM `SHL`).
-  | .shl, .int x, .int s =>
-      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ s then
-        if (256 : Int) ≤ s then .ok (.int 0)
-        else .ok (.int ((x.toNat * 2 ^ s.toNat) % EVM.wordModulus))
-      else .error .typeError
-  -- `x >> s`: the shift `s` must be a non-negative int; `s ≥ 256` gives `0` (EVM `SHR`).
-  | .shr, .int x, .int s =>
-      if 0 ≤ x ∧ x < (EVM.wordModulus : Int) ∧ 0 ≤ s then
-        if (256 : Int) ≤ s then .ok (.int 0)
-        else .ok (.int (x.toNat / 2 ^ s.toNat))
-      else .error .typeError
+  | .bitAnd intType, .int x, .int y => .ok (evalIntBitwise intType Nat.land x y)
+  | .bitOr intType, .int x, .int y => .ok (evalIntBitwise intType Nat.lor x y)
+  | .bitXor intType, .int x, .int y => .ok (evalIntBitwise intType Nat.xor x y)
+  | .shl intType, .int x, .int s =>
+      if s < 0 then .error .typeError
+      else if intType.bitWidth.val <= s.toNat then .ok (.int 0)
+      else .ok (.int (normalizeInt intType (x * Int.ofNat (EVM.twoPow s.toNat))))
+  | .shr intType, .int x, .int s =>
+      if s < 0 then .error .typeError
+      else
+        let x := normalizeInt intType x
+        if intType.bitWidth.val <= s.toNat then
+          .ok (.int (if intType.isSigned && x < 0 then -1 else 0))
+        else .ok (.int (x / Int.ofNat (EVM.twoPow s.toNat)))
   | _, _, _ => .error .typeError
 
--- Bitwise mask = mod; single-bit xor flip; `shl` wraps at the top word; `shr` of the max word;
--- and a negative operand is a type error.
-#guard evalBinaryOp? .bitAnd (.int 0xABCDEF) (.int 0xFF) = .ok (.int (0xABCDEF % 256))
-#guard evalBinaryOp? .bitXor (.int 5) (.int 2) = .ok (.int 7)
-#guard evalBinaryOp? .shl (.int (2 ^ 255)) (.int 1) = .ok (.int 0)
-#guard evalBinaryOp? .shr (.int (2 ^ 256 - 1)) (.int 255) = .ok (.int 1)
-#guard evalBinaryOp? .bitAnd (.int (-1)) (.int 0) = .error .typeError
-#guard evalBinaryOp? .exp (.int 2) (.int 10) = .ok (.int 1024)
-#guard evalBinaryOp? .exp (.int 0) (.int 0) = .ok (.int 1)
-#guard evalBinaryOp? .exp (.int 2) (.int (-1)) = .error .typeError
+#guard evalBinaryOp? (.add (.uint ⟨8, by decide⟩) .checked) (.int 255) (.int 1) = .revert
+#guard evalBinaryOp? (.add (.uint ⟨8, by decide⟩) .wrapping) (.int 255) (.int 1) = .ok (.int 0)
+#guard evalBinaryOp? (.div (.sint ⟨8, by decide⟩) .checked) (.int (-128)) (.int (-1)) =
+  .revert
+#guard evalBinaryOp? (.div (.sint ⟨8, by decide⟩) .wrapping) (.int (-128)) (.int (-1)) =
+  .ok (.int (-128))
+#guard evalBinaryOp? (.mod (.sint ⟨8, by decide⟩)) (.int (-5)) (.int 2) =
+  .ok (.int (-1))
+#guard evalBinaryOp? (.bitAnd (.uint ⟨256, by decide⟩)) (.int 0xABCDEF) (.int 0xFF) =
+  .ok (.int (0xABCDEF % 256))
+#guard evalBinaryOp? (.bitXor (.uint ⟨8, by decide⟩)) (.int 255) (.int 2) = .ok (.int 253)
+#guard evalBinaryOp? (.shl (.uint ⟨8, by decide⟩)) (.int 128) (.int 1) = .ok (.int 0)
+#guard evalBinaryOp? (.shr (.sint ⟨8, by decide⟩)) (.int (-2)) (.int 1) = .ok (.int (-1))
+#guard evalBinaryOp? (.exp (.uint ⟨256, by decide⟩) .checked) (.int 2) (.int 10) =
+  .ok (.int 1024)
+#guard evalBinaryOp? (.exp (.uint ⟨256, by decide⟩) .checked) (.int 0) (.int 0) = .ok (.int 1)
+#guard evalBinaryOp? (.exp (.uint ⟨256, by decide⟩) .checked) (.int 2) (.int (-1)) =
+  .error .typeError
 #guard evalBinaryOp? .lt (.address (.ofNat 3)) (.address (.ofNat 5)) = .ok (.bool true)
 #guard evalBinaryOp? .gt (.address (.ofNat 3)) (.address (.ofNat 5)) = .ok (.bool false)
 

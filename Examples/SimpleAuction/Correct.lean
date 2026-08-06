@@ -745,7 +745,7 @@ theorem simpleAuctionCtorAuctionEndExprReverts
         (EVM.word biddingTime.toNat).toNat) :
     evalExpr? simpleAuctionConfig
       { contract := simpleAuctionContract, locals := simpleAuctionCtorLocals biddingTime beneficiaryAddress }
-      evm (u256 (.binary .add now (.var "biddingTime"))) = .revert := by
+      evm (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) now (.var "biddingTime"))) = .revert := by
   have hword : (EVM.word biddingTime.toNat).toNat = biddingTime.toNat := by
     exact ulit_toNat' _ (by
       have hltNat : biddingTime.toNat < EVM.twoPow 256 := by
@@ -780,13 +780,28 @@ theorem simpleAuctionCtorAuctionEndExprReverts
     rw [store_get_ne]
     · rw [store_get_self]
     · decide
-  simp only [u256, evalExpr?, now, envValue, hlookup, EvalResult.ofOption, EvalResult.bind, bind,
-    pure]
-  simp only [evalBinaryOp?, uint256Int]
-  rw [hInt]
-  rw [if_pos (by
-    simp only [Bool.or_eq_true, decide_eq_true_eq]
-    exact Or.inr hge)]
+  let addExpr := Expr.binary (.add (.uint ⟨256, by decide⟩) .checked) now
+    (.var "biddingTime")
+  have hbinaryEval :
+      evalExpr? simpleAuctionConfig
+          { contract := simpleAuctionContract,
+            locals := simpleAuctionCtorLocals biddingTime beneficiaryAddress }
+          evm addExpr = .revert := by
+    rw [show addExpr = .binary (.add (.uint ⟨256, by decide⟩) .checked) now
+      (.var "biddingTime") from rfl]
+    rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+    simp only [now, evalExpr?, envValue, hlookup, EvalResult.ofOption, EvalResult.bind, bind,
+      evalBinaryOp?]
+    rw [hInt]
+    exact evalIntArithResult_checked_uint_revert_of_overflow _ _ (by simpa using hge)
+  change evalExpr? simpleAuctionConfig
+      { contract := simpleAuctionContract,
+        locals := simpleAuctionCtorLocals biddingTime beneficiaryAddress }
+      evm (.inRange uint256Int addExpr) = .revert
+  exact evalExpr_inRange_revert simpleAuctionConfig
+    { contract := simpleAuctionContract,
+      locals := simpleAuctionCtorLocals biddingTime beneficiaryAddress }
+    evm addExpr uint256Int hbinaryEval
 
 theorem simpleAuctionCtorAuctionEndExprOK
     (evm : EVM.State) (biddingTime : Int) (beneficiaryAddress : AccountAddress)
@@ -797,7 +812,7 @@ theorem simpleAuctionCtorAuctionEndExprOK
         (EVM.word biddingTime.toNat).toNat) :
     evalExpr? simpleAuctionConfig
       { contract := simpleAuctionContract, locals := simpleAuctionCtorLocals biddingTime beneficiaryAddress }
-      evm (u256 (.binary .add now (.var "biddingTime"))) =
+      evm (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) now (.var "biddingTime"))) =
         .ok (.int (Int.ofNat
           (EVM.word ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat +
             biddingTime.toNat)).toNat)) := by
@@ -820,21 +835,45 @@ theorem simpleAuctionCtorAuctionEndExprOK
           biddingTime.toNat)).toNat =
         (UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat := by
     exact ulit_toNat' _ hsumlt
-  simp only [u256, evalExpr?, now, envValue,
-    simpleAuctionCtorLocals_get_biddingTime, EvalResult.ofOption, EvalResult.bind, bind,
-    pure]
-  simp only [evalBinaryOp?, uint256Int]
-  rw [hInt]
-  rw [if_neg]
-  · rw [hsumWord]
-  · simp only [Bool.or_eq_true, decide_eq_true_eq, not_or]
-    constructor
-    · exact Int.not_lt_of_ge (Int.natCast_nonneg _)
-    · intro hge
-      have hpow : (2 : Int) ^ 256 = Int.ofNat UInt256.size := by
-        norm_num [UInt256.size]
-      rw [hpow] at hge
-      exact Nat.not_le_of_gt hsumlt (Int.ofNat_le.mp hge)
+  have hsumNonneg :
+      0 ≤ Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime := by
+    rw [hInt]
+    exact Int.natCast_nonneg _
+  have hsumFit :
+      Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hInt, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_lt.mpr hsumlt
+  let addExpr := Expr.binary (.add (.uint ⟨256, by decide⟩) .checked) now
+    (.var "biddingTime")
+  have hbinaryEval :
+      evalExpr? simpleAuctionConfig
+          { contract := simpleAuctionContract,
+            locals := simpleAuctionCtorLocals biddingTime beneficiaryAddress }
+          evm addExpr =
+        .ok (.int
+          (Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime)) := by
+    rw [show addExpr = .binary (.add (.uint ⟨256, by decide⟩) .checked) now
+      (.var "biddingTime") from rfl]
+    rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+    simp only [now, evalExpr?, envValue, simpleAuctionCtorLocals_get_biddingTime,
+      EvalResult.ofOption, EvalResult.bind, bind, evalBinaryOp?]
+    exact evalIntArithResult_checked_uint_ok _ _ hsumNonneg hsumFit
+  change evalExpr? simpleAuctionConfig
+      { contract := simpleAuctionContract,
+        locals := simpleAuctionCtorLocals biddingTime beneficiaryAddress }
+      evm (.inRange uint256Int addExpr) =
+    .ok (.int (Int.ofNat
+      (EVM.word ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat +
+        biddingTime.toNat)).toNat))
+  have hinRange := evalExpr_inRange_uint simpleAuctionConfig
+    { contract := simpleAuctionContract,
+      locals := simpleAuctionCtorLocals biddingTime beneficiaryAddress }
+    evm addExpr ⟨256, by decide⟩
+    (Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime)
+    hbinaryEval hsumNonneg hsumFit
+  rw [hInt] at hinRange
+  simpa [hsumWord] using hinRange
 
 theorem simpleAuctionCtorAssignAuctionEndTime (evm : EVM.State) (biddingTime : Int)
     (beneficiaryAddress : AccountAddress)

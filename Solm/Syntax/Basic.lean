@@ -71,15 +71,26 @@ inductive UnaryOp where
   | not
   /-- Wrapping integer negation at the operand's declared Solidity width. -/
   | neg : IntType -> UnaryOp
-  | bitNot
+  /-- Integer bitwise complement at the operand's declared Solidity width. -/
+  | bitNot : IntType -> UnaryOp
+  /-- Fixed-bytes bitwise complement. -/
+  | fixedBitNot
+  deriving Repr, Inhabited
+
+/-- Overflow behavior for Solidity integer arithmetic. -/
+inductive IntArithMode where
+  /-- Reject an out-of-range mathematical result. -/
+  | checked
+  /-- Normalize an out-of-range result at the declared integer width. -/
+  | wrapping
   deriving Repr, Inhabited
 
 inductive BinaryOp where
-  | add
-  | sub
-  | mul
-  | div
-  | mod
+  | add : IntType -> IntArithMode -> BinaryOp
+  | sub : IntType -> IntArithMode -> BinaryOp
+  | mul : IntType -> IntArithMode -> BinaryOp
+  | div : IntType -> IntArithMode -> BinaryOp
+  | mod : IntType -> BinaryOp
   | eq
   | ne
   | lt
@@ -88,12 +99,17 @@ inductive BinaryOp where
   | ge
   | and
   | or
-  | bitAnd
-  | bitOr
-  | bitXor
-  | shl
-  | shr
-  | exp
+  | bitAnd : IntType -> BinaryOp
+  | bitOr : IntType -> BinaryOp
+  | bitXor : IntType -> BinaryOp
+  | shl : IntType -> BinaryOp
+  | shr : IntType -> BinaryOp
+  | exp : IntType -> IntArithMode -> BinaryOp
+  | fixedBitAnd
+  | fixedBitOr
+  | fixedBitXor
+  | fixedShl
+  | fixedShr
   deriving Repr, Inhabited
 
 /-- Whether a variable path is rooted in a memory **local** or **storage**.

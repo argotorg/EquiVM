@@ -34,7 +34,7 @@ theorem uniswapMintAfterUpdateRuntimeReturns
       ExecBlock config { contract := contract, locals := locals } evm
         ([.ite (.var "feeOn")
           [.assign .storage kLastRef
-            (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref)))] []] ++
+            (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref)))] []] ++
           lockExit ++ [.return [.var "liquidity"]])
         (.returned { contract := contract, locals := locals } evm'
           (some [uniswapUint256Value liquidity])) ∧

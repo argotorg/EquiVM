@@ -112,37 +112,44 @@ def contractSyntax : ContractDecl := solidity% contract Vat {
   function fold(bytes32 i, address u, int256 rate) external {
     require(wards[msg.sender] == 1);
     require(live == 1);
-    uint256 rateNew = (ilks[i].rate + rate) % #(Int.ofNat EVM.wordModulus);
+    uint256 rateNew = ${wordWrap256
+      (.binary (.add uint256Int .wrapping) (.storage (ilksF (.var "i") "rate")) (.var "rate"))};
     require(rate >= 0 || rateNew <= ilks[i].rate);
     require(rate <= 0 || rateNew >= ilks[i].rate);
     ilks[i].rate = rateNew;
     int256 rad = (ilks[i].Art * rate) as int256;
     require(ilks[i].Art <= #maxInt256);
     require(rate == 0 || rad / rate == ilks[i].Art);
-    uint256 daiNew = (dai[u] + rad) % #(Int.ofNat EVM.wordModulus);
+    uint256 daiNew = ${wordWrap256
+      (.binary (.add uint256Int .wrapping) (.storage (daiRef (.var "u"))) (.var "rad"))};
     require(rad >= 0 || daiNew <= dai[u]);
     require(rad <= 0 || daiNew >= dai[u]);
     dai[u] = daiNew;
-    uint256 debtNew = (debt + rad) % #(Int.ofNat EVM.wordModulus);
+    uint256 debtNew = ${wordWrap256
+      (.binary (.add uint256Int .wrapping) (.storage debtRef) (.var "rad"))};
     require(rad >= 0 || debtNew <= debt);
     require(rad <= 0 || debtNew >= debt);
     debt = debtNew;
   }
 
   function fork(bytes32 ilk, address src, address dst, int256 dink, int256 dart) external {
-    uint256 srcInkNew = (urns[ilk][src].ink - dink) % #(Int.ofNat EVM.wordModulus);
+    uint256 srcInkNew = ${wordWrap256 (.binary (.sub uint256Int .wrapping)
+      (.storage (urnsF (.var "ilk") (.var "src") "ink")) (.var "dink"))};
     require(dink <= 0 || srcInkNew <= urns[ilk][src].ink);
     require(dink >= 0 || srcInkNew >= urns[ilk][src].ink);
     urns[ilk][src].ink = srcInkNew;
-    uint256 srcArtNew = (urns[ilk][src].art - dart) % #(Int.ofNat EVM.wordModulus);
+    uint256 srcArtNew = ${wordWrap256 (.binary (.sub uint256Int .wrapping)
+      (.storage (urnsF (.var "ilk") (.var "src") "art")) (.var "dart"))};
     require(dart <= 0 || srcArtNew <= urns[ilk][src].art);
     require(dart >= 0 || srcArtNew >= urns[ilk][src].art);
     urns[ilk][src].art = srcArtNew;
-    uint256 dstInkNew = (urns[ilk][dst].ink + dink) % #(Int.ofNat EVM.wordModulus);
+    uint256 dstInkNew = ${wordWrap256 (.binary (.add uint256Int .wrapping)
+      (.storage (urnsF (.var "ilk") (.var "dst") "ink")) (.var "dink"))};
     require(dink >= 0 || dstInkNew <= urns[ilk][dst].ink);
     require(dink <= 0 || dstInkNew >= urns[ilk][dst].ink);
     urns[ilk][dst].ink = dstInkNew;
-    uint256 dstArtNew = (urns[ilk][dst].art + dart) % #(Int.ofNat EVM.wordModulus);
+    uint256 dstArtNew = ${wordWrap256 (.binary (.add uint256Int .wrapping)
+      (.storage (urnsF (.var "ilk") (.var "dst") "art")) (.var "dart"))};
     require(dart >= 0 || dstArtNew <= urns[ilk][dst].art);
     require(dart <= 0 || dstArtNew >= urns[ilk][dst].art);
     urns[ilk][dst].art = dstArtNew;
@@ -176,13 +183,16 @@ def contractSyntax : ContractDecl := solidity% contract Vat {
     uint256 ilkLine = ilks[i].line;
     uint256 ilkDust = ilks[i].dust;
     require(ilkRate != 0);
-    uint256 urnInkNew = (urnInk + dink) % #(Int.ofNat EVM.wordModulus);
+    uint256 urnInkNew = ${wordWrap256
+      (.binary (.add uint256Int .wrapping) (.var "urnInk") (.var "dink"))};
     require(dink >= 0 || urnInkNew <= urnInk);
     require(dink <= 0 || urnInkNew >= urnInk);
-    uint256 urnArtNew = (urnArt + dart) % #(Int.ofNat EVM.wordModulus);
+    uint256 urnArtNew = ${wordWrap256
+      (.binary (.add uint256Int .wrapping) (.var "urnArt") (.var "dart"))};
     require(dart >= 0 || urnArtNew <= urnArt);
     require(dart <= 0 || urnArtNew >= urnArt);
-    uint256 ilkArtNew = (ilkArt + dart) % #(Int.ofNat EVM.wordModulus);
+    uint256 ilkArtNew = ${wordWrap256
+      (.binary (.add uint256Int .wrapping) (.var "ilkArt") (.var "dart"))};
     require(dart >= 0 || ilkArtNew <= ilkArt);
     require(dart <= 0 || ilkArtNew >= ilkArt);
     int256 dtab = (ilkRate * dart) as int256;
@@ -190,7 +200,8 @@ def contractSyntax : ContractDecl := solidity% contract Vat {
     require(dart == 0 || dtab / dart == ilkRate);
     uint256 tab = (ilkRate * urnArtNew) as uint256;
     require(urnArtNew == 0 || tab / urnArtNew == ilkRate);
-    uint256 debtNew = (debt + dtab) % #(Int.ofNat EVM.wordModulus);
+    uint256 debtNew = ${wordWrap256
+      (.binary (.add uint256Int .wrapping) (.storage debtRef) (.var "dtab"))};
     require(dtab >= 0 || debtNew <= debt);
     require(dtab <= 0 || debtNew >= debt);
     debt = debtNew;
@@ -204,11 +215,13 @@ def contractSyntax : ContractDecl := solidity% contract Vat {
     require(dink <= 0 || (v == msg.sender || can[v][msg.sender] == 1));
     require(dart >= 0 || (w == msg.sender || can[w][msg.sender] == 1));
     require(urnArtNew == 0 || tab >= ilkDust);
-    uint256 gemNew = (gem[i][v] - dink) % #(Int.ofNat EVM.wordModulus);
+    uint256 gemNew = ${wordWrap256 (.binary (.sub uint256Int .wrapping)
+      (.storage (gemRef (.var "i") (.var "v"))) (.var "dink"))};
     require(dink <= 0 || gemNew <= gem[i][v]);
     require(dink >= 0 || gemNew >= gem[i][v]);
     gem[i][v] = gemNew;
-    uint256 daiNew = (dai[w] + dtab) % #(Int.ofNat EVM.wordModulus);
+    uint256 daiNew = ${wordWrap256 (.binary (.add uint256Int .wrapping)
+      (.storage (daiRef (.var "w"))) (.var "dtab"))};
     require(dtab >= 0 || daiNew <= dai[w]);
     require(dtab <= 0 || daiNew >= dai[w]);
     dai[w] = daiNew;
@@ -227,30 +240,36 @@ def contractSyntax : ContractDecl := solidity% contract Vat {
 
   function grab(bytes32 i, address u, address v, address w, int256 dink, int256 dart) external {
     require(wards[msg.sender] == 1);
-    uint256 urnInkNew = (urns[i][u].ink + dink) % #(Int.ofNat EVM.wordModulus);
+    uint256 urnInkNew = ${wordWrap256 (.binary (.add uint256Int .wrapping)
+      (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))};
     require(dink >= 0 || urnInkNew <= urns[i][u].ink);
     require(dink <= 0 || urnInkNew >= urns[i][u].ink);
     urns[i][u].ink = urnInkNew;
-    uint256 urnArtNew = (urns[i][u].art + dart) % #(Int.ofNat EVM.wordModulus);
+    uint256 urnArtNew = ${wordWrap256 (.binary (.add uint256Int .wrapping)
+      (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))};
     require(dart >= 0 || urnArtNew <= urns[i][u].art);
     require(dart <= 0 || urnArtNew >= urns[i][u].art);
     urns[i][u].art = urnArtNew;
-    uint256 ilkArtNew = (ilks[i].Art + dart) % #(Int.ofNat EVM.wordModulus);
+    uint256 ilkArtNew = ${wordWrap256 (.binary (.add uint256Int .wrapping)
+      (.storage (ilksF (.var "i") "Art")) (.var "dart"))};
     require(dart >= 0 || ilkArtNew <= ilks[i].Art);
     require(dart <= 0 || ilkArtNew >= ilks[i].Art);
     ilks[i].Art = ilkArtNew;
     int256 dtab = (ilks[i].rate * dart) as int256;
     require(ilks[i].rate <= #maxInt256);
     require(dart == 0 || dtab / dart == ilks[i].rate);
-    uint256 gemNew = (gem[i][v] - dink) % #(Int.ofNat EVM.wordModulus);
+    uint256 gemNew = ${wordWrap256 (.binary (.sub uint256Int .wrapping)
+      (.storage (gemRef (.var "i") (.var "v"))) (.var "dink"))};
     require(dink <= 0 || gemNew <= gem[i][v]);
     require(dink >= 0 || gemNew >= gem[i][v]);
     gem[i][v] = gemNew;
-    uint256 sinNew = (sin[w] - dtab) % #(Int.ofNat EVM.wordModulus);
+    uint256 sinNew = ${wordWrap256 (.binary (.sub uint256Int .wrapping)
+      (.storage (sinRef (.var "w"))) (.var "dtab"))};
     require(dtab <= 0 || sinNew <= sin[w]);
     require(dtab >= 0 || sinNew >= sin[w]);
     sin[w] = sinNew;
-    uint256 viceNew = (vice - dtab) % #(Int.ofNat EVM.wordModulus);
+    uint256 viceNew = ${wordWrap256
+      (.binary (.sub uint256Int .wrapping) (.storage viceRef) (.var "dtab"))};
     require(dtab <= 0 || viceNew <= vice);
     require(dtab >= 0 || viceNew >= vice);
     vice = viceNew;
@@ -315,7 +334,8 @@ def contractSyntax : ContractDecl := solidity% contract Vat {
 
   function slip(bytes32 ilk, address usr, int256 wad) external {
     require(wards[msg.sender] == 1);
-    uint256 gemNew = (gem[ilk][usr] + wad) % #(Int.ofNat EVM.wordModulus);
+    uint256 gemNew = ${wordWrap256 (.binary (.add uint256Int .wrapping)
+      (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))};
     require(wad >= 0 || gemNew <= gem[ilk][usr]);
     require(wad <= 0 || gemNew >= gem[ilk][usr]);
     gem[ilk][usr] = gemNew;

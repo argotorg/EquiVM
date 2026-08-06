@@ -453,18 +453,12 @@ theorem evalExpr_delegate_tail_delegate_weight_add (evm : EVM.State) (I : Execut
           (delegateSenderWeightCurrent evm I).toNat < UInt256.size) :
     evalExpr? ballotConfig { contract := ballotContract, locals := delegateCurrentWithDelegateStore I w }
       evm
-      (u256 (.binary .add (.storage (aliasF "delegate_" "weight"))
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage (aliasF "delegate_" "weight"))
         (.storage (aliasF "sender" "weight")))) =
         .ok (.int (Int.ofNat (UInt256.add (delegateTailVoterWeightCurrent evm w)
           (delegateSenderWeightCurrent evm I)).toNat)) := by
   have hdel := evalExpr_delegate_tail_delegate_weight evm I w
   have hsender := evalExpr_delegate_tail_sender_weight_afterDelegate evm I w
-  have hlt : ¬ Int.ofNat ((delegateTailVoterWeightCurrent evm w).toNat +
-      (delegateSenderWeightCurrent evm I).toNat) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  have hnonneg : ¬ Int.ofNat ((delegateTailVoterWeightCurrent evm w).toNat +
-      (delegateSenderWeightCurrent evm I).toNat) < 0 := by
-    exact not_lt.mpr (Int.natCast_nonneg _)
   have hadd :
       Int.ofNat (delegateTailVoterWeightCurrent evm w).toNat +
           Int.ofNat (delegateSenderWeightCurrent evm I).toNat =
@@ -479,14 +473,26 @@ theorem evalExpr_delegate_tail_delegate_weight_add (evm : EVM.State) (I : Execut
     change ((delegateTailVoterWeightCurrent evm w) + (delegateSenderWeightCurrent evm I)).toNat = _
     rw [uadd_toNat]
     exact Nat.mod_eq_of_lt hfit
-  simp [u256, evalExpr?, EvalResult.bind, bind, hdel, hsender, evalBinaryOp?, uint256Int,
-    hadd, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact hnonneg hbad
-    · exact hlt hbad
+  have hnonneg :
+      0 ≤ Int.ofNat (delegateTailVoterWeightCurrent evm w).toNat +
+        Int.ofNat (delegateSenderWeightCurrent evm I).toNat :=
+    add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
+  have hfitInt :
+      Int.ofNat (delegateTailVoterWeightCurrent evm w).toNat +
+          Int.ofNat (delegateSenderWeightCurrent evm I).toNat <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hadd]
+    exact Int.ofNat_lt.mpr (by simpa [UInt256.size, EVM.twoPow] using hfit)
+  have hbinary := evalExpr_checked_add_uint_ok
+    (cfg := ballotConfig)
+    (solm := { contract := ballotContract, locals := delegateCurrentWithDelegateStore I w })
+    (evm := evm) ⟨256, by decide⟩ _ _ hdel hsender hnonneg hfitInt
+  have hin := evalExpr_inRange_uint ballotConfig
+    { contract := ballotContract, locals := delegateCurrentWithDelegateStore I w } evm
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage (aliasF "delegate_" "weight"))
+      (.storage (aliasF "sender" "weight")))
+    ⟨256, by decide⟩ _ hbinary hnonneg hfitInt
+  simpa [u256, uint256Int, hadd, hword] using hin
 
 theorem evalExpr_delegate_tail_delegate_weight_add_revert (evm : EVM.State)
     (I : ExecutionEnv) (w : UInt256)
@@ -495,24 +501,31 @@ theorem evalExpr_delegate_tail_delegate_weight_add_revert (evm : EVM.State)
         (delegateSenderWeightCurrent evm I).toNat) :
     evalExpr? ballotConfig { contract := ballotContract, locals := delegateCurrentWithDelegateStore I w }
       evm
-      (u256 (.binary .add (.storage (aliasF "delegate_" "weight"))
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage (aliasF "delegate_" "weight"))
         (.storage (aliasF "sender" "weight")))) = .revert := by
   have hdel := evalExpr_delegate_tail_delegate_weight evm I w
   have hsender := evalExpr_delegate_tail_sender_weight_afterDelegate evm I w
-  have hge : Int.ofNat ((delegateTailVoterWeightCurrent evm w).toNat +
-      (delegateSenderWeightCurrent evm I).toNat) ≥ (2 : Int) ^ 256 := by
-    rw [UInt256.size] at hover
-    exact Int.ofNat_le.mpr hover
   have hadd :
       Int.ofNat (delegateTailVoterWeightCurrent evm w).toNat +
           Int.ofNat (delegateSenderWeightCurrent evm I).toNat =
         Int.ofNat ((delegateTailVoterWeightCurrent evm w).toNat +
           (delegateSenderWeightCurrent evm I).toNat) := by
     exact (Int.natCast_add _ _).symm
-  simp [u256, evalExpr?, EvalResult.bind, bind, hdel, hsender, evalBinaryOp?, uint256Int,
-    hadd]
-  intro _
-  exact_mod_cast hover
+  have hoverInt :
+      Int.ofNat (EVM.twoPow 256) ≤
+        Int.ofNat (delegateTailVoterWeightCurrent evm w).toNat +
+          Int.ofNat (delegateSenderWeightCurrent evm I).toNat := by
+    rw [hadd]
+    exact Int.ofNat_le.mpr (by simpa [UInt256.size, EVM.twoPow] using hover)
+  have hbinary := evalExpr_checked_add_uint_revert_of_overflow
+    (cfg := ballotConfig)
+    (solm := { contract := ballotContract, locals := delegateCurrentWithDelegateStore I w })
+    (evm := evm) ⟨256, by decide⟩ _ _ hdel hsender hoverInt
+  simpa [u256, uint256Int] using evalExpr_inRange_revert ballotConfig
+    { contract := ballotContract, locals := delegateCurrentWithDelegateStore I w } evm
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage (aliasF "delegate_" "weight"))
+      (.storage (aliasF "sender" "weight")))
+    uint256Int hbinary
 
 theorem delegateAssignTailVoterWeight (evm : EVM.State) (I : ExecutionEnv)
     (w : UInt256) :
@@ -703,7 +716,7 @@ theorem evalExpr_delegate_tail_proposal_count_add (evm : EVM.State)
         UInt256.size) :
     evalExpr? ballotConfig { contract := ballotContract, locals := delegateCurrentWithDelegateStore I w }
       (delegateTailAfterSenderState evm I w)
-      (u256 (.binary .add
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
         (.storage (proposalF (.storage (aliasF "delegate_" "vote")) "voteCount"))
         (.storage (aliasF "sender" "weight")))) =
         .ok (.int (Int.ofNat (UInt256.add
@@ -712,15 +725,6 @@ theorem evalExpr_delegate_tail_proposal_count_add (evm : EVM.State)
   have hcount := evalExpr_delegate_tail_proposal_count evm I w hbound
   have hweight :=
     evalExpr_delegate_tail_sender_weight_afterDelegate (delegateTailAfterSenderState evm I w) I w
-  have hlt : ¬ Int.ofNat
-      ((delegateTailProposalCountCurrent evm I w).toNat +
-      (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat) ≥
-        (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  have hnonneg : ¬ Int.ofNat
-      ((delegateTailProposalCountCurrent evm I w).toNat +
-      (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat) < 0 := by
-    exact not_lt.mpr (Int.natCast_nonneg _)
   have hadd :
       Int.ofNat (delegateTailProposalCountCurrent evm I w).toNat +
           Int.ofNat (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat =
@@ -736,14 +740,29 @@ theorem evalExpr_delegate_tail_proposal_count_add (evm : EVM.State)
         (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I)).toNat = _
     rw [uadd_toNat]
     exact Nat.mod_eq_of_lt hfit
-  simp [u256, evalExpr?, EvalResult.bind, bind, hcount, hweight, evalBinaryOp?, uint256Int,
-    hadd, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact hnonneg hbad
-    · exact hlt hbad
+  have hnonneg :
+      0 ≤ Int.ofNat (delegateTailProposalCountCurrent evm I w).toNat +
+        Int.ofNat (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat :=
+    add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
+  have hfitInt :
+      Int.ofNat (delegateTailProposalCountCurrent evm I w).toNat +
+          Int.ofNat (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hadd]
+    exact Int.ofNat_lt.mpr (by simpa [UInt256.size, EVM.twoPow] using hfit)
+  have hbinary := evalExpr_checked_add_uint_ok
+    (cfg := ballotConfig)
+    (solm := { contract := ballotContract, locals := delegateCurrentWithDelegateStore I w })
+    (evm := delegateTailAfterSenderState evm I w)
+    ⟨256, by decide⟩ _ _ hcount hweight hnonneg hfitInt
+  have hin := evalExpr_inRange_uint ballotConfig
+    { contract := ballotContract, locals := delegateCurrentWithDelegateStore I w }
+    (delegateTailAfterSenderState evm I w)
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+      (.storage (proposalF (.storage (aliasF "delegate_" "vote")) "voteCount"))
+      (.storage (aliasF "sender" "weight")))
+    ⟨256, by decide⟩ _ hbinary hnonneg hfitInt
+  simpa [u256, uint256Int, hadd, hword] using hin
 
 theorem evalExpr_delegate_tail_proposal_count_add_revert (evm : EVM.State)
     (I : ExecutionEnv) (w : UInt256)
@@ -755,28 +774,36 @@ theorem evalExpr_delegate_tail_proposal_count_add_revert (evm : EVM.State)
         (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat) :
     evalExpr? ballotConfig { contract := ballotContract, locals := delegateCurrentWithDelegateStore I w }
       (delegateTailAfterSenderState evm I w)
-      (u256 (.binary .add
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
         (.storage (proposalF (.storage (aliasF "delegate_" "vote")) "voteCount"))
         (.storage (aliasF "sender" "weight")))) = .revert := by
   have hcount := evalExpr_delegate_tail_proposal_count evm I w hbound
   have hweight :=
     evalExpr_delegate_tail_sender_weight_afterDelegate (delegateTailAfterSenderState evm I w) I w
-  have hge : Int.ofNat
-      ((delegateTailProposalCountCurrent evm I w).toNat +
-      (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat) ≥
-        (2 : Int) ^ 256 := by
-    rw [UInt256.size] at hover
-    exact Int.ofNat_le.mpr hover
   have hadd :
       Int.ofNat (delegateTailProposalCountCurrent evm I w).toNat +
           Int.ofNat (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat =
         Int.ofNat ((delegateTailProposalCountCurrent evm I w).toNat +
           (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat) := by
     exact (Int.natCast_add _ _).symm
-  simp [u256, evalExpr?, EvalResult.bind, bind, hcount, hweight, evalBinaryOp?, uint256Int,
-    hadd]
-  intro _
-  exact_mod_cast hover
+  have hoverInt :
+      Int.ofNat (EVM.twoPow 256) ≤
+        Int.ofNat (delegateTailProposalCountCurrent evm I w).toNat +
+          Int.ofNat (delegateSenderWeightCurrent (delegateTailAfterSenderState evm I w) I).toNat := by
+    rw [hadd]
+    exact Int.ofNat_le.mpr (by simpa [UInt256.size, EVM.twoPow] using hover)
+  have hbinary := evalExpr_checked_add_uint_revert_of_overflow
+    (cfg := ballotConfig)
+    (solm := { contract := ballotContract, locals := delegateCurrentWithDelegateStore I w })
+    (evm := delegateTailAfterSenderState evm I w)
+    ⟨256, by decide⟩ _ _ hcount hweight hoverInt
+  simpa [u256, uint256Int] using evalExpr_inRange_revert ballotConfig
+    { contract := ballotContract, locals := delegateCurrentWithDelegateStore I w }
+    (delegateTailAfterSenderState evm I w)
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+      (.storage (proposalF (.storage (aliasF "delegate_" "vote")) "voteCount"))
+      (.storage (aliasF "sender" "weight")))
+    uint256Int hbinary
 
 theorem evalExpr_delegate_tail_proposal_count_add_oob_revert (evm : EVM.State)
     (I : ExecutionEnv) (w : UInt256)
@@ -785,7 +812,7 @@ theorem evalExpr_delegate_tail_proposal_count_add_oob_revert (evm : EVM.State)
         (delegateTailProposalsLengthCurrent (delegateTailAfterSenderState evm I w)).toNat) :
     evalExpr? ballotConfig { contract := ballotContract, locals := delegateCurrentWithDelegateStore I w }
       (delegateTailAfterSenderState evm I w)
-      (u256 (.binary .add
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
         (.storage (proposalF (.storage (aliasF "delegate_" "vote")) "voteCount"))
         (.storage (aliasF "sender" "weight")))) = .revert := by
   have hrevert := evalStorageRef_delegate_tail_proposalCount_revert evm I w hbound

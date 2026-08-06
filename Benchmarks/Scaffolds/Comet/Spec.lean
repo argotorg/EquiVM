@@ -85,53 +85,53 @@ def boolToUint8 (e : Expr) : Expr :=
   .ite e (.intLit 1) (.intLit 0)
 
 def shiftedFlag (e : Expr) (offset : Int) : Expr :=
-  .binary .shl (boolToUint8 e) (.intLit offset)
+  .binary (.shl (.uint ⟨8, by decide⟩)) (boolToUint8 e) (.intLit offset)
 
 def pauseFlagsValue
     (supplyPaused transferPaused withdrawPaused absorbPaused buyPaused : Expr) : Expr :=
-  u8 (.binary .bitOr
+  u8 (.binary (.bitOr (.uint ⟨8, by decide⟩))
     (shiftedFlag supplyPaused 0)
-    (.binary .bitOr
+    (.binary (.bitOr (.uint ⟨8, by decide⟩))
       (shiftedFlag transferPaused 1)
-      (.binary .bitOr
+      (.binary (.bitOr (.uint ⟨8, by decide⟩))
         (shiftedFlag withdrawPaused 2)
-        (.binary .bitOr
+        (.binary (.bitOr (.uint ⟨8, by decide⟩))
           (shiftedFlag absorbPaused 3)
           (shiftedFlag buyPaused 4)))))
 
 def pauseFlag (offset : Int) : Expr :=
   .binary .ne
-    (.binary .bitAnd (.storage { base := "pauseFlags" }) (.binary .shl (.intLit 1) (.intLit offset)))
+    (.binary (.bitAnd (.uint ⟨8, by decide⟩)) (.storage { base := "pauseFlags" }) (.binary (.shl (.uint ⟨256, by decide⟩)) (.intLit 1) (.intLit offset)))
     (.intLit 0)
 
 def presentValueSupplyExpr (index principal : Expr) : Expr :=
-  u256 (.binary .div (u256 (.binary .mul principal index)) (.intLit baseIndexScale))
+  u256 (.binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) principal index)) (.intLit baseIndexScale))
 
 def presentValueBorrowExpr (index principal : Expr) : Expr :=
   presentValueSupplyExpr index principal
 
 def mulFactorExpr (n factor : Expr) : Expr :=
-  .binary .div (u256 (.binary .mul n factor)) (.intLit factorScale)
+  .binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) n factor)) (.intLit factorScale)
 
 def borrowRateExpr (utilization : Expr) : Expr :=
   .ite (.binary .le utilization (Immutables.borrowKink v))
-    (u256 (.binary .add (Immutables.borrowPerSecondInterestRateBase v)
+    (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (Immutables.borrowPerSecondInterestRateBase v)
       (mulFactorExpr (Immutables.borrowPerSecondInterestRateSlopeLow v) utilization)))
-    (u256 (.binary .add
-      (u256 (.binary .add (Immutables.borrowPerSecondInterestRateBase v)
+    (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (Immutables.borrowPerSecondInterestRateBase v)
         (mulFactorExpr (Immutables.borrowPerSecondInterestRateSlopeLow v) (Immutables.borrowKink v))))
       (mulFactorExpr (Immutables.borrowPerSecondInterestRateSlopeHigh v)
-        (u256 (.binary .sub utilization (Immutables.borrowKink v))))))
+        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) utilization (Immutables.borrowKink v))))))
 
 def supplyRateExpr (utilization : Expr) : Expr :=
   .ite (.binary .le utilization (Immutables.supplyKink v))
-    (u256 (.binary .add (Immutables.supplyPerSecondInterestRateBase v)
+    (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (Immutables.supplyPerSecondInterestRateBase v)
       (mulFactorExpr (Immutables.supplyPerSecondInterestRateSlopeLow v) utilization)))
-    (u256 (.binary .add
-      (u256 (.binary .add (Immutables.supplyPerSecondInterestRateBase v)
+    (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (Immutables.supplyPerSecondInterestRateBase v)
         (mulFactorExpr (Immutables.supplyPerSecondInterestRateSlopeLow v) (Immutables.supplyKink v))))
       (mulFactorExpr (Immutables.supplyPerSecondInterestRateSlopeHigh v)
-        (u256 (.binary .sub utilization (Immutables.supplyKink v))))))
+        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) utilization (Immutables.supplyKink v))))))
 
 /-! ## Storage references -/
 
@@ -331,16 +331,16 @@ def constructorDecl : ConstructorDecl :=
         .letDecl "imm_targetReserves" none (.tupleGet (.var "config") 19),
         .letDecl "imm_supplyKink" none (.tupleGet (.var "config") 5),
         .letDecl "imm_borrowKink" none (.tupleGet (.var "config") 9),
-        .letDecl "imm_supplyPerSecondInterestRateSlopeLow" none (.binary .div (.tupleGet (.var "config") 6) (.intLit 31536000)),
-        .letDecl "imm_supplyPerSecondInterestRateSlopeHigh" none (.binary .div (.tupleGet (.var "config") 7) (.intLit 31536000)),
-        .letDecl "imm_supplyPerSecondInterestRateBase" none (.binary .div (.tupleGet (.var "config") 8) (.intLit 31536000)),
-        .letDecl "imm_borrowPerSecondInterestRateSlopeLow" none (.binary .div (.tupleGet (.var "config") 10) (.intLit 31536000)),
-        .letDecl "imm_borrowPerSecondInterestRateSlopeHigh" none (.binary .div (.tupleGet (.var "config") 11) (.intLit 31536000)),
-        .letDecl "imm_borrowPerSecondInterestRateBase" none (.binary .div (.tupleGet (.var "config") 12) (.intLit 31536000)),
+        .letDecl "imm_supplyPerSecondInterestRateSlopeLow" none (.binary (.div (.uint ⟨64, by decide⟩) .checked) (.tupleGet (.var "config") 6) (.intLit 31536000)),
+        .letDecl "imm_supplyPerSecondInterestRateSlopeHigh" none (.binary (.div (.uint ⟨64, by decide⟩) .checked) (.tupleGet (.var "config") 7) (.intLit 31536000)),
+        .letDecl "imm_supplyPerSecondInterestRateBase" none (.binary (.div (.uint ⟨64, by decide⟩) .checked) (.tupleGet (.var "config") 8) (.intLit 31536000)),
+        .letDecl "imm_borrowPerSecondInterestRateSlopeLow" none (.binary (.div (.uint ⟨64, by decide⟩) .checked) (.tupleGet (.var "config") 10) (.intLit 31536000)),
+        .letDecl "imm_borrowPerSecondInterestRateSlopeHigh" none (.binary (.div (.uint ⟨64, by decide⟩) .checked) (.tupleGet (.var "config") 11) (.intLit 31536000)),
+        .letDecl "imm_borrowPerSecondInterestRateBase" none (.binary (.div (.uint ⟨64, by decide⟩) .checked) (.tupleGet (.var "config") 12) (.intLit 31536000)),
         -- decimals := baseToken.decimals()  (external call; ABI wiring not faithfully modelled)
         .externalCall (.var "imm_baseToken") "decimals" (.intLit 0) [] "imm_decimals" (perm := false),
-        .letDecl "imm_baseScale" none (.binary .exp (.intLit 10) (.var "imm_decimals")),
-        .letDecl "imm_accrualDescaleFactor" none (.binary .div (.var "imm_baseScale") (.intLit (10 ^ 15))),
+        .letDecl "imm_baseScale" none (.binary (.exp (.uint ⟨256, by decide⟩) .checked) (.intLit 10) (.var "imm_decimals")),
+        .letDecl "imm_accrualDescaleFactor" none (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "imm_baseScale") (.intLit (10 ^ 15))),
         -- numAssets := assetConfigs.length  (NOT modelled — placeholder; see report)
         .letDecl "imm_numAssets" none (.intLit 0),
         -- assetList := AssetListFactory(...).createAssetList(assetConfigs)  (two-hop chain — stubbed)
@@ -538,8 +538,8 @@ def getUtilizationTransition : TransitionDecl :=
         .return
           [ .ite (.binary .eq (.var "totalSupply_") (.intLit 0))
               (.intLit 0)
-              (.binary .div
-                (u256 (.binary .mul (.var "totalBorrow_") (.intLit factorScale)))
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked)
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "totalBorrow_") (.intLit factorScale)))
                 (.var "totalSupply_")) ] ] }
 
 def governorTransition : TransitionDecl :=

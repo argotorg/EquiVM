@@ -820,7 +820,7 @@ theorem evalExpr_tendPayDelta {evm : EVM.State} {locals : Store} {I : ExecutionE
     (hbidLocal : locals.get? "bid" = some (.int (Int.ofNat (tendBid I).toNat)))
     (hbids : locals.get? "bids" = none) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))) =
+      (wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))) =
         .ok (.int (Int.ofNat
           (UInt256.sub (tendBid I)
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
@@ -829,17 +829,28 @@ theorem evalExpr_tendPayDelta {evm : EVM.State} {locals : Store} {I : ExecutionE
     (value := tendBid I) hbidLocal
   have hstored := evalExpr_bidBid_of_get_id_evm (evm := evm) (locals := locals)
     (id := tendId I) hid hbids
-  rw [wrap256]
-  simp only [evalExpr?, hbid, hstored, EvalResult.bind, bind, pure]
-  change (if wordModulus = 0 then EvalResult.revert else
-      .ok (Value.int ((Int.ofNat (tendBid I).toNat -
-        Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-          (bidBaseOfWord (tendId I))).toNat) % wordModulus))) =
-    .ok (Value.int (Int.ofNat
-      (UInt256.sub (tendBid I)
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-          (bidBaseOfWord (tendId I)))).toNat))
-  rw [if_neg (by norm_num [wordModulus]), intModWord_sub_toNat]
+  let stored := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+    (bidBaseOfWord (tendId I))
+  let delta := UInt256.sub (tendBid I) stored
+  have hsub := evalExpr_wrapping_sub_uint256_word_ok hbid hstored (result := delta) rfl
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } evm
+          (.intLit wordModulus) = .ok (.int wordModulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < wordModulus := by norm_num [wordModulus]
+  have hdeltaLt : Int.ofNat delta.toNat < Int.ofNat (EVM.twoPow 256) :=
+    Int.ofNat_lt.mpr delta.val.isLt
+  have hmod : Int.ofNat delta.toNat % wordModulus = Int.ofNat delta.toNat := by
+    apply Int.emod_eq_of_lt (Int.natCast_nonneg _)
+    rw [show wordModulus = Int.ofNat (EVM.twoPow 256) by norm_num [wordModulus, EVM.twoPow]]
+    exact hdeltaLt
+  have hfit : Int.ofNat delta.toNat % wordModulus < Int.ofNat (EVM.twoPow 256) := by
+    rw [hmod]
+    exact hdeltaLt
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩)
+    hsub hmodulus (Int.natCast_nonneg _) hpos hfit
+  rw [hmod] at heval
+  simpa [wrap256, delta, stored] using heval
 
 theorem evalExprs_tendPayMoveArgs_ofLocals {evm : EVM.State} {locals : Store}
     {I : ExecutionEnv}
@@ -848,7 +859,7 @@ theorem evalExprs_tendPayMoveArgs_ofLocals {evm : EVM.State} {locals : Store}
     (hbids : locals.get? "bids" = none) :
     evalExprs? config { contract := contract, locals := locals } evm
       [sender, .storage (bidsF (.var "id") "gal"),
-        wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))] =
+        wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))] =
         .ok (tendPayMoveArgValsOf evm I) := by
   have hgal := evalExpr_bidGal_of_get_id_evm (evm := evm) (locals := locals)
     (id := tendId I) hid hbids
@@ -861,6 +872,18 @@ theorem evalExpr_tendNow48 {evm : EVM.State} {locals : Store} {I : ExecutionEnv}
     (hts : evm.executionEnv.header.timestamp = I.header.timestamp) :
     evalExpr? config { contract := contract, locals := locals } evm now48 =
       .ok (.int (Int.ofNat (tendNow48 I).toNat)) := by
+  have htimestamp :
+      evalExpr? config { contract := contract, locals := locals } evm (.env .timestamp) =
+        .ok (.int (Int.ofNat (tendNow I).toNat)) := by
+    simp [evalExpr?, envValue, pure, hts, tendNow]
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } evm
+          (.intLit uint48Modulus) = .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
+  have hfit : Int.ofNat (tendNow I).toNat % uint48Modulus <
+      Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
   have hmod :
       (Int.ofNat (tendNow I).toNat) % uint48Modulus =
         Int.ofNat (tendNow48 I).toNat := by
@@ -871,15 +894,10 @@ theorem evalExpr_tendNow48 {evm : EVM.State} {locals : Store} {I : ExecutionEnv}
           exact (Int.natCast_mod (tendNow I).toNat (2 ^ 48)).symm
       _ = Int.ofNat (tendNow48 I).toNat := by
           rw [← uint48Mask_toNat_mod (tendNow I)]
-  rw [now48, wrap48]
-  simp only [evalExpr?, envValue, hts, EvalResult.bind, bind, pure]
-  change evalBinaryOp? .mod (Value.int (Int.ofNat (tendNow I).toNat))
-      (Value.int uint48Modulus) =
-    .ok (Value.int (Int.ofNat (tendNow48 I).toNat))
-  change (if uint48Modulus = 0 then EvalResult.revert else
-      .ok (Value.int ((Int.ofNat (tendNow I).toNat) % uint48Modulus))) =
-    .ok (Value.int (Int.ofNat (tendNow48 I).toNat))
-  rw [if_neg (by norm_num [uint48Modulus]), hmod]
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩)
+    htimestamp hmodulus (Int.natCast_nonneg _) hpos hfit
+  rw [hmod] at heval
+  simpa [now48, wrap48] using heval
 
 theorem evalExpr_tendTtl {evm : EVM.State} {locals : Store} {I : ExecutionEnv}
     (httl : locals.get? "ttl" = none)
@@ -904,34 +922,46 @@ theorem evalExpr_tendTicNew {evm : EVM.State} {I : ExecutionEnv}
     (hts : evm.executionEnv.header.timestamp = I.header.timestamp)
     (howner : evm.executionEnv.codeOwner = I.codeOwner) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (wrap48 (.binary .add now48 (.storage ttlRef))) =
+      (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage ttlRef))) =
         .ok (.int (Int.ofNat (tendTicNewWord evm.accountMap I).toNat)) := by
   have hnow := evalExpr_tendNow48 (evm := evm) (locals := locals) (I := I) hts
   have httlEval := evalExpr_tendTtl (evm := evm) (locals := locals) (I := I) httl howner
-  rw [wrap48]
-  simp only [evalExpr?, hnow, httlEval, EvalResult.bind, bind, pure]
-  change (if uint48Modulus = 0 then EvalResult.revert else
-      .ok (Value.int (((Int.ofNat (tendNow48 I).toNat) +
-        Int.ofNat (tendTtlWord evm.accountMap I).toNat) % uint48Modulus))) =
-    .ok (Value.int (Int.ofNat (tendTicNewWord evm.accountMap I).toNat))
+  let sum := tendNow48 I + tendTtlWord evm.accountMap I
+  have hadd := evalExpr_wrapping_add_uint256_word_ok hnow httlEval (result := sum) rfl
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } evm
+          (.intLit uint48Modulus) = .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
+  have hsumNat :
+      sum.toNat = (tendNow48 I).toNat + (tendTtlWord evm.accountMap I).toNat := by
+    change (tendNow48 I + tendTtlWord evm.accountMap I).toNat = _
+    rw [uadd_toNat]
+    have hsum :
+        (tendNow48 I).toNat + (tendTtlWord evm.accountMap I).toNat < UInt256.size := by
+      have hnowBound := tendNow48_bound I
+      have httlBound := tendTtlWord_bound evm.accountMap I
+      calc
+        (tendNow48 I).toNat + (tendTtlWord evm.accountMap I).toNat < 2 ^ 49 := by
+          omega
+        _ < UInt256.size := by norm_num [UInt256.size]
+    exact Nat.mod_eq_of_lt hsum
   have hmod :
-      ((Int.ofNat (tendNow48 I).toNat) + Int.ofNat (tendTtlWord evm.accountMap I).toNat) %
-          uint48Modulus =
+      Int.ofNat sum.toNat % uint48Modulus =
         Int.ofNat (tendTicNewWord evm.accountMap I).toNat := by
     calc
-      ((Int.ofNat (tendNow48 I).toNat) + Int.ofNat (tendTtlWord evm.accountMap I).toNat) %
-          uint48Modulus =
-          Int.ofNat (((tendNow48 I).toNat +
-            (tendTtlWord evm.accountMap I).toNat) % 2 ^ 48) := by
-          rw [show (Int.ofNat (tendNow48 I).toNat +
-              Int.ofNat (tendTtlWord evm.accountMap I).toNat) =
-              Int.ofNat ((tendNow48 I).toNat + (tendTtlWord evm.accountMap I).toNat) by simp]
+      Int.ofNat sum.toNat % uint48Modulus = Int.ofNat (sum.toNat % 2 ^ 48) := by
           rw [uint48Modulus]
-          exact (Int.natCast_mod
-            ((tendNow48 I).toNat + (tendTtlWord evm.accountMap I).toNat) (2 ^ 48)).symm
+          exact (Int.natCast_mod sum.toNat (2 ^ 48)).symm
       _ = Int.ofNat (tendTicNewWord evm.accountMap I).toNat := by
-          rw [← tendTicNewWord_toNat evm.accountMap I]
-  rw [if_neg (by norm_num [uint48Modulus]), hmod]
+          rw [hsumNat, ← tendTicNewWord_toNat evm.accountMap I]
+  have hfitResult : Int.ofNat sum.toNat % uint48Modulus <
+      Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩)
+    hadd hmodulus (Int.natCast_nonneg _) hpos hfitResult
+  rw [hmod] at heval
+  simpa [wrap48] using heval
 
 theorem evalExpr_tendTicNewGeNow_true {evm : EVM.State} {I : ExecutionEnv}
     (hts : evm.executionEnv.header.timestamp = I.header.timestamp)

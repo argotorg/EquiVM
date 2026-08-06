@@ -160,7 +160,7 @@ def constructorDecl : ConstructorDecl :=
         .for
           [ .letDecl "i" (some uint256) (.intLit 0) ]
           (.binary .lt (.var "i") (.arrayLength .localVar { base := "proposalNames" }))
-          [ .assign .localVar { base := "i" } (.binary .add (.var "i") (.intLit 1)) ]
+          [ .assign .localVar { base := "i" } (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
           [ .push proposalsRef
               (some (.structLit "Proposal"
                 [ ("name", .index (.var "proposalNames") (.var "i")), ("voteCount", .intLit 0) ])) ] ] }
@@ -203,12 +203,12 @@ def delegateTransition : TransitionDecl :=
         .ite (.storage (aliasF "delegate_" "voted"))
           -- delegate already voted: `proposals[delegate_.vote].voteCount += sender.weight;`
           [ .assign .storage (proposalF (.storage (aliasF "delegate_" "vote")) "voteCount")
-              (u256 (.binary .add
+              (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
                 (.storage (proposalF (.storage (aliasF "delegate_" "vote")) "voteCount"))
                 (.storage (aliasF "sender" "weight")))) ]
           -- delegate has not voted: `delegate_.weight += sender.weight;`
           [ .assign .storage (aliasF "delegate_" "weight")
-              (u256 (.binary .add
+              (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
                 (.storage (aliasF "delegate_" "weight"))
                 (.storage (aliasF "sender" "weight")))) ] ] }
 
@@ -225,7 +225,7 @@ def voteTransition : TransitionDecl :=
         .assign .storage (aliasF "sender" "voted") (.boolLit true),
         .assign .storage (aliasF "sender" "vote") (.var "proposal"),
         .assign .storage (proposalF (.var "proposal") "voteCount")
-          (u256 (.binary .add
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
             (.storage (proposalF (.var "proposal") "voteCount"))
             (.storage (aliasF "sender" "weight")))) ] }
 
@@ -243,7 +243,7 @@ def winningProposalTransition : TransitionDecl :=
           [ .letDecl "p" (some uint256) (.intLit 0) ]
           (.binary .lt (.var "p") (.arrayLength .storage proposalsRef))
           -- solc emits an *unchecked* `p++` here (the loop bound proves no overflow)
-          [ .assign .localVar { base := "p" } (.binary .add (.var "p") (.intLit 1)) ]
+          [ .assign .localVar { base := "p" } (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "p") (.intLit 1)) ]
           [ .ite (.binary .gt (.storage (proposalF (.var "p") "voteCount")) (.var "winningVoteCount"))
               [ .assign .localVar { base := "winningVoteCount" }
                   (.storage (proposalF (.var "p") "voteCount")),

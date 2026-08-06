@@ -267,26 +267,28 @@ theorem evalExpr_incUncheckedLCount {evm : EVM.State} {locals : Store}
         .ok (.int (Int.ofNat (count + ⟨1⟩).toNat)) := by
   intro count
   have hcount := evalExpr_loadLCountStorage (evm := evm) (locals := locals) hbase
-  have hmodNat : (count.toNat + 1) % UInt256.size = (count + ⟨1⟩).toNat := by
-    rw [uadd_toNat]
-    rfl
-  have hmodInt :
-      (Int.ofNat count.toNat + 1) % wordModulus =
-        Int.ofNat (count + ⟨1⟩).toNat := by
-    have haddCast : Int.ofNat count.toNat + 1 = Int.ofNat (count.toNat + 1) := by
-      norm_num
-    rw [haddCast]
+  have hone :
+      evalExpr? config { contract := contract, locals := locals } evm (.intLit 1) =
+        .ok (.int (Int.ofNat (⟨1⟩ : UInt256).toNat)) := by
+    simp [evalExpr?, pure, show (⟨1⟩ : UInt256).toNat = 1 by native_decide]
+  have hadd := evalExpr_wrapping_add_uint256_word_ok hcount hone
+    (result := count + ⟨1⟩) rfl
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } evm
+          (.intLit wordModulus) = .ok (.int wordModulus) := by
+    simp [evalExpr?, pure]
+  have hnonneg : 0 ≤ Int.ofNat (count + ⟨1⟩).toNat := Int.natCast_nonneg _
+  have hlt : Int.ofNat (count + ⟨1⟩).toNat < wordModulus := by
     rw [wordModulus, show (2 : Int) ^ 256 = Int.ofNat UInt256.size by
       norm_num [UInt256.size]]
-    rw [show Int.ofNat (count.toNat + 1) % Int.ofNat UInt256.size =
-        Int.ofNat ((count.toNat + 1) % UInt256.size) by
-      simpa using (Int.natCast_mod (count.toNat + 1) UInt256.size).symm]
-    rw [hmodNat]
-  simp [incUnchecked, wrap256, evalExpr?, EvalResult.bind, bind, hcount, evalBinaryOp?,
-    wordModulus]
-  change (Int.ofNat count.toNat + 1) % wordModulus =
-    Int.ofNat (count + ⟨1⟩).toNat
-  exact hmodInt
+    exact Int.ofNat_lt.mpr (count + (⟨1⟩ : UInt256)).val.isLt
+  have hmod :
+      Int.ofNat (count + ⟨1⟩).toNat % wordModulus =
+        Int.ofNat (count + ⟨1⟩).toNat := Int.emod_eq_of_lt hnonneg hlt
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩) hadd hmodulus
+    hnonneg (by norm_num [wordModulus]) (by rw [hmod]; exact hlt)
+  rw [hmod] at heval
+  simpa [incUnchecked, wrap256, uint256Int] using heval
 
 theorem assign_loadAmtStorage {evm : EVM.State} {locals : Store} (I : ExecutionEnv)
     (newAmt : UInt256)

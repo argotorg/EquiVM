@@ -41,7 +41,7 @@ def mintFeeOnKLastNonzeroInitialSecondMintTotalSupplyOverflowFromFactoryCaseData
     amount0.toNat * amount1.toNat < UInt256.size ∧
     ∀ rootLiquidity : Int,
       ExecStmt config caller evmFeeS
-          (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+          (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
             "rootLiquidity")
           (.ok (resumeAfterInternalCall caller "rootLiquidity" (some [.int rootLiquidity]))
             evmFeeS) →
@@ -96,7 +96,7 @@ def mintFeeOnKLastNonzeroInitialSecondMintBalanceOverflowFromFactoryCaseData
     amount0.toNat * amount1.toNat < UInt256.size ∧
     ∀ rootLiquidity : Int,
       ExecStmt config caller evmFeeS
-          (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+          (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
             "rootLiquidity")
           (.ok (resumeAfterInternalCall caller "rootLiquidity" (some [.int rootLiquidity]))
             evmFeeS) →
@@ -517,7 +517,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialSecondMintTotalSupplyOverflowFromFact
     rw [store_get_ne _ _ (by decide), hamount1Get]
   have hargs :
       evalExprs? config caller evmFeeS
-        [u256 (.binary .mul (.var "amount0") (.var "amount1"))] =
+        [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))] =
           .ok [sqrtFunctionYValue (mintAmountProductWord amount0 amount1)] := by
     simpa [caller] using
       evalExprs_mint_initialSqrtArg_of_get evmFeeS amount0 amount1 hamount0After
@@ -733,7 +733,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialSecondMintBalanceOverflowFromFactoryC
     rw [store_get_ne _ _ (by decide), hamount1Get]
   have hargs :
       evalExprs? config caller evmFeeS
-        [u256 (.binary .mul (.var "amount0") (.var "amount1"))] =
+        [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))] =
           .ok [sqrtFunctionYValue (mintAmountProductWord amount0 amount1)] := by
     simpa [caller] using
       evalExprs_mint_initialSqrtArg_of_get evmFeeS amount0 amount1 hamount0After

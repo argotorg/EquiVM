@@ -42,13 +42,13 @@ def u256 (e : Expr) : Expr := .inRange uint256Int e
 def addressAsUint256 (e : Expr) : Expr := .cast e uint256St
 
 def add256 (x y : Expr) : Expr :=
-  u256 (.binary .add x y)
+  u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) x y)
 
 def sub256 (x y : Expr) : Expr :=
-  u256 (.binary .sub x y)
+  u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)
 
 def uncheckedAdd256 (x y : Expr) : Expr :=
-  .binary .add x y
+  .binary (.add (.uint ⟨256, by decide⟩) .wrapping) x y
 
 def checkedAdd (x y : Expr) : List Stmt :=
   [ .require (.binary .ge (add256 x y) x) ]

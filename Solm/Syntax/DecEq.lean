@@ -153,6 +153,7 @@ instance : DecidableEq StorageType :=
 
 deriving instance DecidableEq for EnvVar
 deriving instance DecidableEq for UnaryOp
+deriving instance DecidableEq for IntArithMode
 deriving instance DecidableEq for BinaryOp
 deriving instance DecidableEq for VarOrigin
 

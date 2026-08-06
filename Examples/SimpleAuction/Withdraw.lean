@@ -2276,7 +2276,8 @@ theorem simpleAuctionWithdrawBodyReturns_callSuccess
         (.storage (pendingReturnsRef sender)) =
           .ok (.int (Int.ofNat amount.toNat)) := by
     simpa [hamount] using evalExpr_withdraw_pendingReturns evm
-  refine ExecBlock.consNormal (ExecStmt.letDecl hamountEval) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl hamountEval (by
+    simpa [uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word amount)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.iteTrue
       (result := .ok
@@ -2325,7 +2326,8 @@ theorem simpleAuctionWithdrawBodyReturns_callFailure
         (.storage (pendingReturnsRef sender)) =
           .ok (.int (Int.ofNat amount.toNat)) := by
     simpa [hamount] using evalExpr_withdraw_pendingReturns evm
-  refine ExecBlock.consNormal (ExecStmt.letDecl hamountEval) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl hamountEval (by
+    simpa [uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word amount)) ?_
   refine ExecBlock.consReturn
     (ExecStmt.iteTrue
       (result := .returned
@@ -2407,7 +2409,9 @@ theorem simpleAuctionWithdrawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
                 .ok (.int (Int.ofNat (withdrawAmountWord σ_solm I).toNat)) := by
           simpa [evmS, initState, withdrawAmountWord, Solm.EVM.storageLoad, State.lookupAccount]
             using evalExpr_withdraw_pendingReturns evmS
-        refine ExecBlock.consNormal (ExecStmt.letDecl hamount) ?_
+        refine ExecBlock.consNormal (ExecStmt.letDecl hamount (by
+          simpa [uint256, uint256Int] using
+            valueMatchesOptionalABIType_uint256_word (withdrawAmountWord σ_solm I))) ?_
         refine ExecBlock.consNormal
           (ExecStmt.iteFalse
             (evalExpr_withdraw_amount_gt_false evmS (withdrawAmountWord σ_solm I) hzeroS)

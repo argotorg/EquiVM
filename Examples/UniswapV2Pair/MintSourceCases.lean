@@ -1007,7 +1007,7 @@ theorem uniswapMintProportionalFeeOnReturn_kLastNonzeroNoMint
           (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt"
-            [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+            [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
           (mintFeeAfterRootKLastFrame (uniswapReserve0Word (uniswapLockEnteredState evm))
@@ -1189,7 +1189,7 @@ theorem uniswapMintProportionalFeeOnReturn_kLastNonzeroPositiveNoLiquidity
           (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt"
-            [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+            [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
           (mintFeeAfterRootKLastFrame (uniswapReserve0Word (uniswapLockEnteredState evm))
@@ -1379,7 +1379,7 @@ theorem uniswapMintProportionalFeeOnReturn_kLastNonzeroPositiveWithLiquidity
           (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt"
-            [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+            [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
           (mintFeeAfterRootKLastFrame (uniswapReserve0Word (uniswapLockEnteredState evm))

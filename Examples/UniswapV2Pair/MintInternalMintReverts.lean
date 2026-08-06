@@ -14,32 +14,69 @@ theorem evalExpr_mintFunction_totalSupply_add_revert
     (evm : EVM.State) (recipient : AccountAddress) (value : UInt256)
     (hover : UInt256.size ≤ mintFunctionTotalSupplyNewNat evm value) :
     evalExpr? config { contract := contract, locals := mintFunctionCallStore recipient value } evm
-      (u256 (.binary .add (.storage totalSupplyRef) (.var "value"))) = .revert := by
-  have hge : Int.ofNat (mintFunctionTotalSupplyNewNat evm value) ≥ (2 : Int) ^ 256 := by
-    rw [UInt256.size] at hover
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef) (.var "value"))) = .revert := by
+  have hsum :
+      Int.ofNat (mintFunctionTotalSupplyWord evm).toNat + Int.ofNat value.toNat =
+        Int.ofNat (mintFunctionTotalSupplyNewNat evm value) := by
+    unfold mintFunctionTotalSupplyNewNat
+    exact Int.ofNat_add_ofNat _ _
+  have hsumOverflow :
+      Int.ofNat (EVM.twoPow 256) ≤
+        Int.ofNat (mintFunctionTotalSupplyWord evm).toNat + Int.ofNat value.toNat := by
+    rw [hsum, show EVM.twoPow 256 = UInt256.size by rfl]
     exact Int.ofNat_le.mpr hover
-  simp only [u256, evalExpr?, evalExpr_mintFunction_totalSupply evm recipient value,
-    evalExpr_mintFunction_value evm recipient value, EvalResult.bind, bind, pure]
-  simp [evalBinaryOp?, uint256Int]
-  intro _
-  simpa [mintFunctionTotalSupplyNewNat] using hge
+  let addExpr := Expr.binary (.add (.uint ⟨256, by decide⟩) .checked)
+    (.storage totalSupplyRef) (.var "value")
+  have hbinaryEval :
+      evalExpr? config { contract := contract, locals := mintFunctionCallStore recipient value }
+          evm addExpr = .revert := by
+    rw [show addExpr = .binary (.add (.uint ⟨256, by decide⟩) .checked)
+      (.storage totalSupplyRef) (.var "value") from rfl]
+    rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+    simp only [evalExpr_mintFunction_totalSupply evm recipient value,
+      evalExpr_mintFunction_value evm recipient value, EvalResult.bind, bind, evalBinaryOp?]
+    exact evalIntArithResult_checked_uint_revert_of_overflow _ _ hsumOverflow
+  change evalExpr? config { contract := contract, locals := mintFunctionCallStore recipient value }
+      evm (.inRange uint256Int addExpr) = .revert
+  exact evalExpr_inRange_revert config
+    { contract := contract, locals := mintFunctionCallStore recipient value }
+    evm addExpr uint256Int hbinaryEval
 
 theorem evalExpr_mintFunction_to_balance_add_revert
     (evm : EVM.State) (recipient : AccountAddress) (value : UInt256)
     (hover : UInt256.size ≤ mintFunctionToBalanceNewNat evm recipient value) :
     evalExpr? config { contract := contract, locals := mintFunctionCallStore recipient value }
       (mintFunctionAfterTotalSupplyState evm value)
-      (u256 (.binary .add (.storage (balanceOfRef (.var "to"))) (.var "value"))) =
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage (balanceOfRef (.var "to"))) (.var "value"))) =
         .revert := by
-  have hge : Int.ofNat (mintFunctionToBalanceNewNat evm recipient value) ≥ (2 : Int) ^ 256 := by
-    rw [UInt256.size] at hover
+  have hsum :
+      Int.ofNat (mintFunctionToBalanceWord evm recipient value).toNat + Int.ofNat value.toNat =
+        Int.ofNat (mintFunctionToBalanceNewNat evm recipient value) := by
+    unfold mintFunctionToBalanceNewNat
+    exact Int.ofNat_add_ofNat _ _
+  have hsumOverflow :
+      Int.ofNat (EVM.twoPow 256) ≤
+        Int.ofNat (mintFunctionToBalanceWord evm recipient value).toNat +
+          Int.ofNat value.toNat := by
+    rw [hsum, show EVM.twoPow 256 = UInt256.size by rfl]
     exact Int.ofNat_le.mpr hover
-  simp only [u256, evalExpr?, evalExpr_mintFunction_to_balance evm recipient value,
-    evalExpr_mintFunction_value (mintFunctionAfterTotalSupplyState evm value) recipient value,
-    EvalResult.bind, bind, pure]
-  simp [evalBinaryOp?, uint256Int]
-  intro _
-  simpa [mintFunctionToBalanceNewNat] using hge
+  let addExpr := Expr.binary (.add (.uint ⟨256, by decide⟩) .checked)
+    (.storage (balanceOfRef (.var "to"))) (.var "value")
+  have hbinaryEval :
+      evalExpr? config { contract := contract, locals := mintFunctionCallStore recipient value }
+          (mintFunctionAfterTotalSupplyState evm value) addExpr = .revert := by
+    rw [show addExpr = .binary (.add (.uint ⟨256, by decide⟩) .checked)
+      (.storage (balanceOfRef (.var "to"))) (.var "value") from rfl]
+    rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+    simp only [evalExpr_mintFunction_to_balance evm recipient value,
+      evalExpr_mintFunction_value (mintFunctionAfterTotalSupplyState evm value) recipient value,
+      EvalResult.bind, bind, evalBinaryOp?]
+    exact evalIntArithResult_checked_uint_revert_of_overflow _ _ hsumOverflow
+  change evalExpr? config { contract := contract, locals := mintFunctionCallStore recipient value }
+      (mintFunctionAfterTotalSupplyState evm value) (.inRange uint256Int addExpr) = .revert
+  exact evalExpr_inRange_revert config
+    { contract := contract, locals := mintFunctionCallStore recipient value }
+    (mintFunctionAfterTotalSupplyState evm value) addExpr uint256Int hbinaryEval
 
 theorem uniswapMintFunctionBodyReverts_totalSupplyOverflow
     (evm : EVM.State) (recipient : AccountAddress) (value : UInt256)
@@ -50,9 +87,9 @@ theorem uniswapMintFunctionBodyReverts_totalSupplyOverflow
   change ExecBlock config { contract := contract, locals := mintFunctionCallStore recipient value }
     evm
     [ .assign .storage totalSupplyRef
-        (u256 (.binary .add (.storage totalSupplyRef) (.var "value"))),
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef) (.var "value"))),
       .assign .storage (balanceOfRef (.var "to"))
-        (u256 (.binary .add (.storage (balanceOfRef (.var "to"))) (.var "value"))) ]
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage (balanceOfRef (.var "to"))) (.var "value"))) ]
     .reverted
   exact ExecBlock.consRevert
     (ExecStmt.assignExprRevert
@@ -68,9 +105,9 @@ theorem uniswapMintFunctionBodyReverts_balanceOverflow
   change ExecBlock config { contract := contract, locals := mintFunctionCallStore recipient value }
     evm
     [ .assign .storage totalSupplyRef
-        (u256 (.binary .add (.storage totalSupplyRef) (.var "value"))),
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef) (.var "value"))),
       .assign .storage (balanceOfRef (.var "to"))
-        (u256 (.binary .add (.storage (balanceOfRef (.var "to"))) (.var "value"))) ]
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage (balanceOfRef (.var "to"))) (.var "value"))) ]
     .reverted
   refine ExecBlock.consNormal
     (ExecStmt.assign

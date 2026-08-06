@@ -8,6 +8,11 @@ namespace UniswapV2Pair
 
 /-! ## Source body slices -/
 
+theorem skimExcessValueOf_matches_uint256 (reserve balance : UInt256) :
+    valueMatchesOptionalABIType (some uint256) (skimExcessValueOf reserve balance) = true := by
+  simpa [uint256, uint256Int, skimExcessValueOf, uint256Value] using
+    valueMatchesOptionalABIType_uint256_word (skimExcessWord reserve balance)
+
 theorem uniswapSkimLockEnterPrefix (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hunlocked : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩ = ⟨1⟩) :
@@ -66,8 +71,14 @@ theorem uniswapSkimTokenPrefix (evm : EVM.State) (I : ExecutionEnv)
         [ .letDecl "_token0" (some addr) (.storage token0Ref),
           .letDecl "_token1" (some addr) (.storage token1Ref) ]
         (.ok { contract := contract, locals := skimTokenStore evm I } evmL) := by
-    refine ExecBlock.consNormal (ExecStmt.letDecl htoken0) ?_
-    exact ExecBlock.consNormal (ExecStmt.letDecl htoken1) (by
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl htoken0
+        (by simpa only [addr] using
+          (valueMatchesOptionalABIType_address (uniswapAddressAtSlot evmL ⟨6⟩)))) ?_
+    exact ExecBlock.consNormal
+      (ExecStmt.letDecl htoken1
+        (by simpa only [addr] using
+          (valueMatchesOptionalABIType_address (uniswapAddressAtSlot evmL ⟨7⟩)))) (by
       simpa [skimTokenStore, evmL] using (ExecBlock.nil :
         ExecBlock config { contract := contract, locals := skimTokenStore evm I } evmL []
           (.ok { contract := contract, locals := skimTokenStore evm I } evmL)))
@@ -329,7 +340,7 @@ theorem evalExpr_skim_excess0 (evm : EVM.State) (I : ExecutionEnv)
     (balance0 balance1 : UInt256)
     (henough : (uniswapReserve0Word evm).toNat ≤ balance0.toNat) :
     evalExpr? config { contract := contract, locals := skimBalanceStore I balance0 balance1 } evm
-      (.binary .sub (.var "balance0") (.storage reserve0Ref)) =
+      (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.storage reserve0Ref)) =
         .ok (skimExcess0Value evm balance0) := by
   have hsub :
       Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word evm).toNat =
@@ -342,15 +353,30 @@ theorem evalExpr_skim_excess0 (evm : EVM.State) (I : ExecutionEnv)
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _) balance0.val.isLt)
   have hreserve := evalExpr_uniswap_reserve0 evm (skimBalanceStore I balance0 balance1)
     (by simp [skimBalanceStore, uniswapBalanceOfStore, skimStore])
-  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, hreserve]
-  rw [skimBalanceStore_balance0]
-  simpa [skimBalanceValue, evalBinaryOp?, skimExcess0Value, skimExcessValueOf, htoNat] using hsub
+  have hbalance :
+      evalExpr? config { contract := contract, locals := skimBalanceStore I balance0 balance1 }
+        evm (.var "balance0") = .ok (.int (Int.ofNat balance0.toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [skimBalanceStore_balance0]
+  have hnonneg :
+      0 ≤ Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word evm).toNat := by
+    exact sub_nonneg.mpr (Int.ofNat_le.mpr henough)
+  have hfit :
+      Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word evm).toNat <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hsub]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.sub_le _ _) balance0.val.isLt)
+  have hbinary := evalExpr_checked_sub_uint_ok
+    (cfg := config) (solm := { contract := contract, locals := skimBalanceStore I balance0 balance1 })
+    (evm := evm) ⟨256, by decide⟩ _ _ hbalance hreserve hnonneg hfit
+  rw [hsub] at hbinary
+  simpa [skimExcess0Value, skimExcessValueOf, uint256Value, htoNat] using hbinary
 
 theorem evalExpr_skim_first_excess0 (startEvm callEvm : EVM.State) (I : ExecutionEnv)
     (balance0 : UInt256)
     (henough : (uniswapReserve0Word callEvm).toNat ≤ balance0.toNat) :
     evalExpr? config { contract := contract, locals := skimFirstBalanceStore startEvm I balance0 }
-      callEvm (u256 (.binary .sub (.var "balance0") (.storage reserve0Ref))) =
+      callEvm (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.storage reserve0Ref))) =
         .ok (skimExcess0Value callEvm balance0) := by
   have hsub :
       Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word callEvm).toNat =
@@ -364,30 +390,41 @@ theorem evalExpr_skim_first_excess0 (startEvm callEvm : EVM.State) (I : Executio
   have hfit :
       balance0.toNat - (uniswapReserve0Word callEvm).toNat < UInt256.size :=
     lt_of_le_of_lt (Nat.sub_le _ _) balance0.val.isLt
-  have hnotHigh :
-      ¬ Int.ofNat (balance0.toNat - (uniswapReserve0Word callEvm).toNat) ≥
-        (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
   have hreserve := evalExpr_uniswap_reserve0 callEvm
     (skimFirstBalanceStore startEvm I balance0)
     (by simp [skimFirstBalanceStore, skimTokenStore, skimStore])
-  simp only [u256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure, hreserve]
-  rw [skimFirstBalanceStore_balance0]
-  simp [evalBinaryOp?, skimExcess0Value, skimExcessValueOf, uint256Int]
-  rw [if_neg]
-  · simpa [hsub, htoNat]
-  · intro hbad
-    rcases hbad with hlow | hhigh
-    · omega
-    · exact hnotHigh (by
-        rw [← hsub]
-        exact hhigh)
+  have hbalance :
+      evalExpr? config
+        { contract := contract, locals := skimFirstBalanceStore startEvm I balance0 }
+        callEvm (.var "balance0") = .ok (.int (Int.ofNat balance0.toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [skimFirstBalanceStore_balance0]
+  have hnonneg :
+      0 ≤ Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word callEvm).toNat := by
+    exact sub_nonneg.mpr (Int.ofNat_le.mpr henough)
+  have hfitInt :
+      Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word callEvm).toNat <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hsub]
+    exact Int.ofNat_lt.mpr (by simpa [UInt256.size, EVM.twoPow] using hfit)
+  have hbinary := evalExpr_checked_sub_uint_ok
+    (cfg := config)
+    (solm := { contract := contract, locals := skimFirstBalanceStore startEvm I balance0 })
+    (evm := callEvm) ⟨256, by decide⟩ _ _ hbalance hreserve hnonneg hfitInt
+  have hin := evalExpr_inRange_uint config
+    { contract := contract, locals := skimFirstBalanceStore startEvm I balance0 } callEvm
+    (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0")
+      (.storage reserve0Ref))
+    ⟨256, by decide⟩ _ hbinary hnonneg hfitInt
+  rw [hsub] at hin
+  simpa [u256, uint256Int, skimExcess0Value, skimExcessValueOf, uint256Value, htoNat]
+    using hin
 
 theorem evalExpr_skim_first_excess0_underflow (startEvm callEvm : EVM.State)
     (I : ExecutionEnv) (balance0 : UInt256)
     (hlt : balance0.toNat < (uniswapReserve0Word callEvm).toNat) :
     evalExpr? config { contract := contract, locals := skimFirstBalanceStore startEvm I balance0 }
-      callEvm (u256 (.binary .sub (.var "balance0") (.storage reserve0Ref))) = .revert := by
+      callEvm (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.storage reserve0Ref))) = .revert := by
   have hreserve := evalExpr_uniswap_reserve0 callEvm
     (skimFirstBalanceStore startEvm I balance0)
     (by simp [skimFirstBalanceStore, skimTokenStore, skimStore])
@@ -398,29 +435,21 @@ theorem evalExpr_skim_first_excess0_underflow (startEvm callEvm : EVM.State)
       Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word callEvm).toNat < 0 := by
     change (balance0.toNat : Int) - ((uniswapReserve0Word callEvm).toNat : Int) < 0
     omega
-  simp only [u256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure, hreserve]
-  rw [skimFirstBalanceStore_balance0]
-  simp only [evalBinaryOp?, uint256Int]
-  change
-    (if Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word callEvm).toNat < 0 ||
-        Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word callEvm).toNat ≥
-          (2 : Int) ^ 256 then
-       EvalResult.revert
-     else
-      EvalResult.ok
-        (Value.int
-          (Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word callEvm).toNat))) =
-      EvalResult.revert
-  have hcond :
-      (decide
-          (Int.ofNat balance0.toNat -
-              Int.ofNat (uniswapReserve0Word callEvm).toNat < 0) ||
-        decide
-          (Int.ofNat balance0.toNat -
-              Int.ofNat (uniswapReserve0Word callEvm).toNat ≥ (2 : Int) ^ 256)) = true := by
-    simp only [Bool.or_eq_true, decide_eq_true_eq]
-    exact Or.inl hneg
-  rw [if_pos hcond]
+  have hbalance :
+      evalExpr? config
+        { contract := contract, locals := skimFirstBalanceStore startEvm I balance0 }
+        callEvm (.var "balance0") = .ok (.int (Int.ofNat balance0.toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [skimFirstBalanceStore_balance0]
+  have hbinary := evalExpr_checked_sub_uint_revert_of_neg
+    (cfg := config)
+    (solm := { contract := contract, locals := skimFirstBalanceStore startEvm I balance0 })
+    (evm := callEvm) ⟨256, by decide⟩ _ _ hbalance hreserve hneg
+  simpa [u256, uint256Int] using evalExpr_inRange_revert config
+    { contract := contract, locals := skimFirstBalanceStore startEvm I balance0 } callEvm
+    (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0")
+      (.storage reserve0Ref))
+    uint256Int hbinary
 
 theorem evalExprs_skim_safeTransfer0_args (startEvm callEvm : EVM.State)
     (I : ExecutionEnv) (balance0 : UInt256) :
@@ -440,7 +469,7 @@ theorem evalExpr_skim_excess1 (evm : EVM.State) (I : ExecutionEnv)
     (balance0 balance1 : UInt256)
     (henough : (uniswapReserve1Word evm).toNat ≤ balance1.toNat) :
     evalExpr? config { contract := contract, locals := skimExcess0Store evm I balance0 balance1 }
-      evm (.binary .sub (.var "balance1") (.storage reserve1Ref)) =
+      evm (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref)) =
         .ok (skimExcess1Value evm balance1) := by
   have hsub :
       Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word evm).toNat =
@@ -453,9 +482,26 @@ theorem evalExpr_skim_excess1 (evm : EVM.State) (I : ExecutionEnv)
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _) balance1.val.isLt)
   have hreserve := evalExpr_uniswap_reserve1 evm (skimExcess0Store evm I balance0 balance1)
     (by simp [skimExcess0Store, skimBalanceStore, uniswapBalanceOfStore, skimStore])
-  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, hreserve]
-  rw [skimExcess0Store_balance1]
-  simpa [skimBalanceValue, evalBinaryOp?, skimExcess1Value, skimExcessValueOf, htoNat] using hsub
+  have hbalance :
+      evalExpr? config
+        { contract := contract, locals := skimExcess0Store evm I balance0 balance1 } evm
+        (.var "balance1") = .ok (.int (Int.ofNat balance1.toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [skimExcess0Store_balance1]
+  have hnonneg :
+      0 ≤ Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word evm).toNat := by
+    exact sub_nonneg.mpr (Int.ofNat_le.mpr henough)
+  have hfit :
+      Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word evm).toNat <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hsub]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.sub_le _ _) balance1.val.isLt)
+  have hbinary := evalExpr_checked_sub_uint_ok
+    (cfg := config)
+    (solm := { contract := contract, locals := skimExcess0Store evm I balance0 balance1 })
+    (evm := evm) ⟨256, by decide⟩ _ _ hbalance hreserve hnonneg hfit
+  rw [hsub] at hbinary
+  simpa [skimExcess1Value, skimExcessValueOf, uint256Value, htoNat] using hbinary
 
 theorem evalExpr_skim_second_excess1
     (startEvm firstCallEvm secondCallEvm : EVM.State) (I : ExecutionEnv)
@@ -464,7 +510,7 @@ theorem evalExpr_skim_second_excess1
     evalExpr? config
       { contract := contract,
         locals := skimSecondBalanceStore startEvm firstCallEvm I balance0 balance1 }
-      secondCallEvm (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) =
+      secondCallEvm (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref))) =
         .ok (skimExcess1Value secondCallEvm balance1) := by
   have hsub :
       Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word secondCallEvm).toNat =
@@ -478,26 +524,40 @@ theorem evalExpr_skim_second_excess1
   have hfit :
       balance1.toNat - (uniswapReserve1Word secondCallEvm).toNat < UInt256.size :=
     lt_of_le_of_lt (Nat.sub_le _ _) balance1.val.isLt
-  have hnotHigh :
-      ¬ Int.ofNat (balance1.toNat - (uniswapReserve1Word secondCallEvm).toNat) ≥
-        (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
   have hreserve := evalExpr_uniswap_reserve1 secondCallEvm
     (skimSecondBalanceStore startEvm firstCallEvm I balance0 balance1)
     (by
       simp [skimSecondBalanceStore, skimFirstSafeTransferStore, skimFirstExcessStore,
         skimFirstBalanceStore, skimTokenStore, skimStore])
-  simp only [u256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure, hreserve]
-  rw [skimSecondBalanceStore_balance1]
-  simp [evalBinaryOp?, skimExcess1Value, skimExcessValueOf, uint256Int]
-  rw [if_neg]
-  · simpa [hsub, htoNat]
-  · intro hbad
-    rcases hbad with hlow | hhigh
-    · omega
-    · exact hnotHigh (by
-        rw [← hsub]
-        exact hhigh)
+  have hbalance :
+      evalExpr? config
+        { contract := contract,
+          locals := skimSecondBalanceStore startEvm firstCallEvm I balance0 balance1 }
+        secondCallEvm (.var "balance1") = .ok (.int (Int.ofNat balance1.toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [skimSecondBalanceStore_balance1]
+  have hnonneg :
+      0 ≤ Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word secondCallEvm).toNat := by
+    exact sub_nonneg.mpr (Int.ofNat_le.mpr henough)
+  have hfitInt :
+      Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word secondCallEvm).toNat <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hsub]
+    exact Int.ofNat_lt.mpr (by simpa [UInt256.size, EVM.twoPow] using hfit)
+  have hbinary := evalExpr_checked_sub_uint_ok
+    (cfg := config)
+    (solm := { contract := contract, locals := skimSecondBalanceStore startEvm firstCallEvm I balance0 balance1 })
+    (evm := secondCallEvm) ⟨256, by decide⟩ _ _ hbalance hreserve hnonneg hfitInt
+  have hin := evalExpr_inRange_uint config
+    { contract := contract,
+      locals := skimSecondBalanceStore startEvm firstCallEvm I balance0 balance1 }
+    secondCallEvm
+    (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1")
+      (.storage reserve1Ref))
+    ⟨256, by decide⟩ _ hbinary hnonneg hfitInt
+  rw [hsub] at hin
+  simpa [u256, uint256Int, skimExcess1Value, skimExcessValueOf, uint256Value, htoNat]
+    using hin
 
 theorem evalExpr_skim_second_excess1_underflow
     (startEvm firstCallEvm secondCallEvm : EVM.State) (I : ExecutionEnv)
@@ -506,7 +566,7 @@ theorem evalExpr_skim_second_excess1_underflow
     evalExpr? config
       { contract := contract,
         locals := skimSecondBalanceStore startEvm firstCallEvm I balance0 balance1 }
-      secondCallEvm (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) =
+      secondCallEvm (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref))) =
         .revert := by
   have hreserve := evalExpr_uniswap_reserve1 secondCallEvm
     (skimSecondBalanceStore startEvm firstCallEvm I balance0 balance1)
@@ -520,30 +580,24 @@ theorem evalExpr_skim_second_excess1_underflow
       Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word secondCallEvm).toNat < 0 := by
     change (balance1.toNat : Int) - ((uniswapReserve1Word secondCallEvm).toNat : Int) < 0
     omega
-  simp only [u256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure, hreserve]
-  rw [skimSecondBalanceStore_balance1]
-  simp only [evalBinaryOp?, uint256Int]
-  change
-    (if Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word secondCallEvm).toNat < 0 ||
-        Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word secondCallEvm).toNat ≥
-          (2 : Int) ^ 256 then
-       EvalResult.revert
-     else
-      EvalResult.ok
-        (Value.int
-          (Int.ofNat balance1.toNat -
-            Int.ofNat (uniswapReserve1Word secondCallEvm).toNat))) =
-      EvalResult.revert
-  have hcond :
-      (decide
-          (Int.ofNat balance1.toNat -
-              Int.ofNat (uniswapReserve1Word secondCallEvm).toNat < 0) ||
-        decide
-          (Int.ofNat balance1.toNat -
-              Int.ofNat (uniswapReserve1Word secondCallEvm).toNat ≥ (2 : Int) ^ 256)) = true := by
-    simp only [Bool.or_eq_true, decide_eq_true_eq]
-    exact Or.inl hneg
-  rw [if_pos hcond]
+  have hbalance :
+      evalExpr? config
+        { contract := contract,
+          locals := skimSecondBalanceStore startEvm firstCallEvm I balance0 balance1 }
+        secondCallEvm (.var "balance1") = .ok (.int (Int.ofNat balance1.toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [skimSecondBalanceStore_balance1]
+  have hbinary := evalExpr_checked_sub_uint_revert_of_neg
+    (cfg := config)
+    (solm := { contract := contract, locals := skimSecondBalanceStore startEvm firstCallEvm I balance0 balance1 })
+    (evm := secondCallEvm) ⟨256, by decide⟩ _ _ hbalance hreserve hneg
+  simpa [u256, uint256Int] using evalExpr_inRange_revert config
+    { contract := contract,
+      locals := skimSecondBalanceStore startEvm firstCallEvm I balance0 balance1 }
+    secondCallEvm
+    (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1")
+      (.storage reserve1Ref))
+    uint256Int hbinary
 
 theorem evalExprs_skim_safeTransfer1_args
     (startEvm firstCallEvm secondCallEvm : EVM.State)
@@ -563,9 +617,9 @@ theorem evalExprs_skim_safeTransfer1_args
 
 abbrev skimExcessPrefixBody : List Stmt :=
   [ .letDecl "excess0" (some uint256)
-      (.binary .sub (.var "balance0") (.storage reserve0Ref)),
+      (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.storage reserve0Ref)),
     .letDecl "excess1" (some uint256)
-      (.binary .sub (.var "balance1") (.storage reserve1Ref)) ]
+      (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref)) ]
 
 abbrev skimAfterBalanceBody : List Stmt :=
   skimExcessPrefixBody ++
@@ -578,21 +632,21 @@ abbrev skimAfterLockBody : List Stmt :=
     .letDecl "_token1" (some addr) (.storage token1Ref) ] ++
   balanceOfThisStmts (.var "_token0") "balance0" ++
     [ .letDecl "excess0" (some uint256)
-        (u256 (.binary .sub (.var "balance0") (.storage reserve0Ref))) ] ++
+        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.storage reserve0Ref))) ] ++
   safeTransferStmts (.var "_token0") (.var "to") (.var "excess0") "ok0" "_ret0" ++
   balanceOfThisStmts (.var "_token1") "balance1" ++
     [ .letDecl "excess1" (some uint256)
-        (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) ] ++
+        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref))) ] ++
   safeTransferStmts (.var "_token1") (.var "to") (.var "excess1") "ok1" "_ret1" ++
   lockExit
 
 abbrev skimAfterFirstBalanceBody : List Stmt :=
   [ .letDecl "excess0" (some uint256)
-      (u256 (.binary .sub (.var "balance0") (.storage reserve0Ref))) ] ++
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.storage reserve0Ref))) ] ++
   safeTransferStmts (.var "_token0") (.var "to") (.var "excess0") "ok0" "_ret0" ++
   balanceOfThisStmts (.var "_token1") "balance1" ++
   [ .letDecl "excess1" (some uint256)
-      (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) ] ++
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref))) ] ++
   safeTransferStmts (.var "_token1") (.var "to") (.var "excess1") "ok1" "_ret1" ++
   lockExit
 
@@ -600,20 +654,20 @@ abbrev skimAfterFirstExcessBody : List Stmt :=
   safeTransferStmts (.var "_token0") (.var "to") (.var "excess0") "ok0" "_ret0" ++
   balanceOfThisStmts (.var "_token1") "balance1" ++
   [ .letDecl "excess1" (some uint256)
-      (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) ] ++
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref))) ] ++
   safeTransferStmts (.var "_token1") (.var "to") (.var "excess1") "ok1" "_ret1" ++
   lockExit
 
 abbrev skimAfterFirstSafeTransferBody : List Stmt :=
   balanceOfThisStmts (.var "_token1") "balance1" ++
   [ .letDecl "excess1" (some uint256)
-      (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) ] ++
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref))) ] ++
   safeTransferStmts (.var "_token1") (.var "to") (.var "excess1") "ok1" "_ret1" ++
   lockExit
 
 abbrev skimAfterSecondBalanceBody : List Stmt :=
   [ .letDecl "excess1" (some uint256)
-      (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) ] ++
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref))) ] ++
   safeTransferStmts (.var "_token1") (.var "to") (.var "excess1") "ok1" "_ret1" ++
   lockExit
 
@@ -644,7 +698,7 @@ theorem uniswapSkimFirstSafeTransferPrefix (evm evm0 evm1 : EVM.State)
           .letDecl "_token1" (some addr) (.storage token1Ref) ] ++
         balanceOfThisStmts (.var "_token0") "balance0" ++
         [ .letDecl "excess0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.storage reserve0Ref))) ] ++
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.storage reserve0Ref))) ] ++
         safeTransferStmts (.var "_token0") (.var "to") (.var "excess0") "ok0" "_ret0")
       (.ok { contract := contract, locals := skimFirstSafeTransferStore evm evm0 I balance0 }
         evm1) := by
@@ -654,11 +708,12 @@ theorem uniswapSkimFirstSafeTransferPrefix (evm evm0 evm1 : EVM.State)
       ExecBlock config
         { contract := contract, locals := skimFirstBalanceStore evm I balance0 } evm0
         [ .letDecl "excess0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.storage reserve0Ref))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.storage reserve0Ref))) ]
         (.ok { contract := contract, locals := skimFirstExcessStore evm evm0 I balance0 }
           evm0) := by
     exact ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_skim_first_excess0 evm evm0 I balance0 henough0))
+      (ExecStmt.letDecl (evalExpr_skim_first_excess0 evm evm0 I balance0 henough0)
+        (skimExcessValueOf_matches_uint256 (uniswapReserve0Word evm0) balance0))
       ExecBlock.nil
   have hsafe :
       ExecBlock config
@@ -784,7 +839,7 @@ theorem uniswapSkimBodyReverts_firstExcessUnderflow
       ExecBlock config
         { contract := contract, locals := skimFirstBalanceStore evm I balance0 } evm0
         [ .letDecl "excess0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.storage reserve0Ref))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.storage reserve0Ref))) ]
         .reverted := by
     exact ExecBlock.consRevert
       (ExecStmt.letDeclRevert (evalExpr_skim_first_excess0_underflow evm evm0 I balance0 hlt))
@@ -955,11 +1010,12 @@ theorem uniswapSkimBodyReverts_firstSafeTransferFailure
       ExecBlock config
         { contract := contract, locals := skimFirstBalanceStore evm I balance0 } evm0
         [ .letDecl "excess0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.storage reserve0Ref))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.storage reserve0Ref))) ]
         (.ok { contract := contract, locals := skimFirstExcessStore evm evm0 I balance0 }
           evm0) := by
     exact ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_skim_first_excess0 evm evm0 I balance0 henough0))
+      (ExecStmt.letDecl (evalExpr_skim_first_excess0 evm evm0 I balance0 henough0)
+        (skimExcessValueOf_matches_uint256 (uniswapReserve0Word evm0) balance0))
       ExecBlock.nil
   have hsafeStmt :
       ExecStmt config
@@ -1054,14 +1110,15 @@ theorem uniswapSkimBodyReverts_secondSafeTransferFailure
         { contract := contract,
           locals := skimSecondBalanceStore evm evm0 I balance0 balance1 } evm2
         [ .letDecl "excess1" (some uint256)
-            (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref))) ]
         (.ok
           { contract := contract,
             locals := skimSecondExcessStore evm evm0 evm2 I balance0 balance1 }
           evm2) := by
     exact ExecBlock.consNormal
       (ExecStmt.letDecl
-        (evalExpr_skim_second_excess1 evm evm0 evm2 I balance0 balance1 henough1))
+        (evalExpr_skim_second_excess1 evm evm0 evm2 I balance0 balance1 henough1)
+        (skimExcessValueOf_matches_uint256 (uniswapReserve1Word evm2) balance1))
       ExecBlock.nil
   have hsafeStmt :
       ExecStmt config
@@ -1162,14 +1219,15 @@ theorem uniswapSkimBodyReverts_secondSafeTransferStmt
         { contract := contract,
           locals := skimSecondBalanceStore evm evm0 I balance0 balance1 } evm2
         [ .letDecl "excess1" (some uint256)
-            (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref))) ]
         (.ok
           { contract := contract,
             locals := skimSecondExcessStore evm evm0 evm2 I balance0 balance1 }
           evm2) := by
     exact ExecBlock.consNormal
       (ExecStmt.letDecl
-        (evalExpr_skim_second_excess1 evm evm0 evm2 I balance0 balance1 henough1))
+        (evalExpr_skim_second_excess1 evm evm0 evm2 I balance0 balance1 henough1)
+        (skimExcessValueOf_matches_uint256 (uniswapReserve1Word evm2) balance1))
       ExecBlock.nil
   have hsafe :
       ExecBlock config
@@ -1330,11 +1388,12 @@ theorem uniswapSkimBodyReverts_firstSafeTransferStmt
       ExecBlock config
         { contract := contract, locals := skimFirstBalanceStore evm I balance0 } evm0
         [ .letDecl "excess0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.storage reserve0Ref))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.storage reserve0Ref))) ]
         (.ok { contract := contract, locals := skimFirstExcessStore evm evm0 I balance0 }
           evm0) := by
     exact ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_skim_first_excess0 evm evm0 I balance0 henough0))
+      (ExecStmt.letDecl (evalExpr_skim_first_excess0 evm evm0 I balance0 henough0)
+        (skimExcessValueOf_matches_uint256 (uniswapReserve0Word evm0) balance0))
       ExecBlock.nil
   have hsafe :
       ExecBlock config
@@ -1488,7 +1547,7 @@ theorem uniswapSkimBodyReverts_secondExcessUnderflow
         { contract := contract,
           locals := skimSecondBalanceStore evm evm0 I balance0 balance1 } evm2
         [ .letDecl "excess1" (some uint256)
-            (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref))) ]
         .reverted := by
     exact ExecBlock.consRevert
       (ExecStmt.letDeclRevert
@@ -1567,14 +1626,15 @@ theorem uniswapSkimBodyReturns (evm evm0 evm1 evm2 evm3 : EVM.State)
           { contract := contract,
             locals := skimSecondBalanceStore evm evm0 I balance0 balance1 } evm2
           [ .letDecl "excess1" (some uint256)
-              (u256 (.binary .sub (.var "balance1") (.storage reserve1Ref))) ]
+              (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.storage reserve1Ref))) ]
           (.ok
             { contract := contract,
               locals := skimSecondExcessStore evm evm0 evm2 I balance0 balance1 }
             evm2) := by
       exact ExecBlock.consNormal
         (ExecStmt.letDecl
-          (evalExpr_skim_second_excess1 evm evm0 evm2 I balance0 balance1 henough1))
+          (evalExpr_skim_second_excess1 evm evm0 evm2 I balance0 balance1 henough1)
+          (skimExcessValueOf_matches_uint256 (uniswapReserve1Word evm2) balance1))
         ExecBlock.nil
     have hsafe :
         ExecBlock config

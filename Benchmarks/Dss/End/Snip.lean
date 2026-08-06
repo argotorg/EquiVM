@@ -6383,6 +6383,7 @@ theorem endSnipStmtClip (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
       (.ok { contract := contract, locals := endSnipStoreClip I out } evm) := by
   simpa [endSnipStoreClip] using
     ExecStmt.letDecl (evalExpr_endSnip_dogIlk_clip evm I out)
+      (valueMatchesOptionalABIType_address (endSnipDogIlkClipAddr out))
 
 theorem endSnipBodyReverts_dogIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
@@ -6426,7 +6427,7 @@ theorem endSnipBodyReverts_dogIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
         checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
           [vowAddr, vowAddr, .var "tab"] "_suck" ++
         checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -6451,7 +6452,7 @@ theorem endSnipBodyReverts_dogIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
         checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
           [vowAddr, vowAddr, .var "tab"] "_suck" ++
         checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -6802,6 +6803,7 @@ theorem endSnipStmtRate (evm : EVM.State) (I : ExecutionEnv)
       (.ok { contract := contract, locals := endSnipStoreRate I dogOut vatOut } evm) := by
   simpa [endSnipStoreRate] using
     ExecStmt.letDecl (evalExpr_endSnip_vatIlk_rate evm I dogOut vatOut)
+      (valueMatchesOptionalABIType_uint256_word (endFlowVatIlkRateWord vatOut))
 
 theorem endSnipPrefixRateSuccess {I} {dogOut vatOut : ByteArray}
     {evm0 evmDog evmVat : EVM.State}
@@ -6870,7 +6872,7 @@ theorem endSnipBodyReverts_afterClipVatIlksBlock {I} {dogOut : ByteArray}
     checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
       [vowAddr, vowAddr, .var "tab"] "_suck" ++
     checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-    [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+    [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
       .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
       .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
       .require
@@ -7191,6 +7193,7 @@ theorem endSnipStmtTab (evm : EVM.State) (I : ExecutionEnv)
       (.ok { contract := contract, locals := endSnipStoreTab I dogOut vatOut saleOut } evm) := by
   simpa [endSnipStoreTab] using
     ExecStmt.letDecl (evalExpr_endSnip_clipSale_tab evm I dogOut vatOut saleOut)
+      (valueMatchesOptionalABIType_uint256_word (endSnipSaleTabWord saleOut))
 
 theorem endSnipStmtLot (evm : EVM.State) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) :
@@ -7199,6 +7202,7 @@ theorem endSnipStmtLot (evm : EVM.State) (I : ExecutionEnv)
       (.ok { contract := contract, locals := endSnipStoreLot I dogOut vatOut saleOut } evm) := by
   simpa [endSnipStoreLot] using
     ExecStmt.letDecl (evalExpr_endSnip_clipSale_lot evm I dogOut vatOut saleOut)
+      (valueMatchesOptionalABIType_uint256_word (endSnipSaleLotWord saleOut))
 
 theorem endSnipStmtUsr (evm : EVM.State) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) :
@@ -7207,6 +7211,7 @@ theorem endSnipStmtUsr (evm : EVM.State) (I : ExecutionEnv)
       (.ok { contract := contract, locals := endSnipStoreUsr I dogOut vatOut saleOut } evm) := by
   simpa [endSnipStoreUsr] using
     ExecStmt.letDecl (evalExpr_endSnip_clipSale_usr evm I dogOut vatOut saleOut)
+      (valueMatchesOptionalABIType_address (endSnipSaleUsrAddr saleOut))
 
 theorem endSnipPrefixUsrSuccess {I} {dogOut vatOut saleOut : ByteArray}
     {evm0 evmVat evmSales : EVM.State}
@@ -7620,22 +7625,24 @@ theorem endSnipStmtArt (evm : EVM.State) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray)
     (hrate : endFlowVatIlkRateWord vatOut ≠ ⟨0⟩) :
     ExecStmt config { contract := contract, locals := endSnipStoreYank I dogOut vatOut saleOut }
-      evm (.letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")))
+      evm (.letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")))
       (.ok { contract := contract, locals := endSnipStoreArt I dogOut vatOut saleOut } evm) := by
   have htab := evalExpr_endSnip_tab_afterYank evm I dogOut vatOut saleOut
   have hrateExpr := evalExpr_endSnip_rate_afterYank evm I dogOut vatOut saleOut
   have hdiv :
       evalExpr? config { contract := contract, locals := endSnipStoreYank I dogOut vatOut saleOut }
-        evm (.binary .div (.var "tab") (.var "rate")) =
+        evm (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")) =
           .ok (.int (Int.ofNat (endSnipArtWord vatOut saleOut).toNat)) :=
     endEvalExpr_div_uint256_ok htab hrateExpr hrate rfl
-  simpa [endSnipStoreArt] using ExecStmt.letDecl hdiv
+  simpa [endSnipStoreArt] using
+    ExecStmt.letDecl hdiv
+      (valueMatchesOptionalABIType_uint256_word (endSnipArtWord vatOut saleOut))
 
 theorem endSnipStmtArtReverts (evm : EVM.State) (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray)
     (hrate : endFlowVatIlkRateWord vatOut = ⟨0⟩) :
     ExecStmt config { contract := contract, locals := endSnipStoreYank I dogOut vatOut saleOut }
-      evm (.letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")))
+      evm (.letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")))
       .reverted := by
   have htab := evalExpr_endSnip_tab_afterYank evm I dogOut vatOut saleOut
   have hrateExpr := evalExpr_endSnip_rate_afterYank evm I dogOut vatOut saleOut
@@ -8352,7 +8359,7 @@ theorem endSnipTailAfterUsrReturns {I σLoc}
       (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
           [vowAddr, vowAddr, .var "tab"] "_suck" ++
         checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -8364,7 +8371,7 @@ theorem endSnipTailAfterUsrReturns {I σLoc}
   have hartBlock :
       ExecBlock config { contract := contract, locals := endSnipStoreYank I dogOut vatOut saleOut }
         evmYank
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -8401,7 +8408,7 @@ theorem endSnipTailReverts_suck {I} {dogOut vatOut saleOut : ByteArray}
       (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
           [vowAddr, vowAddr, .var "tab"] "_suck" ++
         checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -8431,7 +8438,7 @@ theorem endSnipTailReverts_yank {I} {dogOut vatOut saleOut : ByteArray}
       (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
           [vowAddr, vowAddr, .var "tab"] "_suck" ++
         checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -8443,7 +8450,7 @@ theorem endSnipTailReverts_yank {I} {dogOut vatOut saleOut : ByteArray}
       ExecBlock config { contract := contract, locals := endSnipStoreSuck I dogOut vatOut saleOut }
         evmSuck
         (checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -8476,7 +8483,7 @@ theorem endSnipTailReverts_artDivZero {I} {dogOut vatOut saleOut : ByteArray}
       (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
           [vowAddr, vowAddr, .var "tab"] "_suck" ++
         checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -8487,7 +8494,7 @@ theorem endSnipTailReverts_artDivZero {I} {dogOut vatOut saleOut : ByteArray}
   have hartRevert :
       ExecBlock config { contract := contract, locals := endSnipStoreYank I dogOut vatOut saleOut }
         evmYank
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -8528,7 +8535,7 @@ theorem endSnipTailReverts_artAddOverflow {I σLoc}
       (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
           [vowAddr, vowAddr, .var "tab"] "_suck" ++
         checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -8539,7 +8546,7 @@ theorem endSnipTailReverts_artAddOverflow {I σLoc}
   have hartBlock :
       ExecBlock config { contract := contract, locals := endSnipStoreYank I dogOut vatOut saleOut }
         evmYank
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -8583,7 +8590,7 @@ theorem endSnipTailReverts_intGuardLot {I σLoc}
       (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
           [vowAddr, vowAddr, .var "tab"] "_suck" ++
         checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -8594,7 +8601,7 @@ theorem endSnipTailReverts_intGuardLot {I σLoc}
   have hartBlock :
       ExecBlock config { contract := contract, locals := endSnipStoreYank I dogOut vatOut saleOut }
         evmYank
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -8646,7 +8653,7 @@ theorem endSnipTailReverts_intGuardArt {I σLoc}
       (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
           [vowAddr, vowAddr, .var "tab"] "_suck" ++
         checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -8657,7 +8664,7 @@ theorem endSnipTailReverts_intGuardArt {I σLoc}
   have hartBlock :
       ExecBlock config { contract := contract, locals := endSnipStoreYank I dogOut vatOut saleOut }
         evmYank
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -8704,7 +8711,7 @@ theorem endSnipBodyReverts_afterUsrTailReverted {I} {dogOut vatOut saleOut : Byt
         (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
             [vowAddr, vowAddr, .var "tab"] "_suck" ++
           checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-          [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+          [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
             .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
             .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
             .require
@@ -8723,7 +8730,7 @@ theorem endSnipBodyReverts_afterUsrTailReverted {I} {dogOut vatOut saleOut : Byt
         (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
             [vowAddr, vowAddr, .var "tab"] "_suck" ++
           checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-          [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+          [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
             .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
             .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
             .require
@@ -8764,7 +8771,7 @@ theorem endSnipBodyReverts_afterUsrTailGrabReverted {I σLoc}
         (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
             [vowAddr, vowAddr, .var "tab"] "_suck" ++
           checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-          [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+          [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
             .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
             .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
             .require
@@ -8792,7 +8799,7 @@ theorem endSnipBodyReverts_afterUsrTailGrabReverted {I σLoc}
         (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
             [vowAddr, vowAddr, .var "tab"] "_suck" ++
           checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-          [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+          [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
             .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
             .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
             .require
@@ -8833,7 +8840,7 @@ theorem endSnipBodyReturns_afterUsrTailGrabSuccess {I σLoc}
         (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
             [vowAddr, vowAddr, .var "tab"] "_suck" ++
           checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-          [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+          [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
             .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
             .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
             .require
@@ -8864,7 +8871,7 @@ theorem endSnipBodyReturns_afterUsrTailGrabSuccess {I σLoc}
         (checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
             [vowAddr, vowAddr, .var "tab"] "_suck" ++
           checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-          [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+          [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
             .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
             .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
             .require
@@ -8909,7 +8916,7 @@ theorem endSnipBodyReverts_afterRateSalesBlock {I} {dogOut vatOut : ByteArray}
     checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
       [vowAddr, vowAddr, .var "tab"] "_suck" ++
     checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-    [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+    [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
       .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
       .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
       .require
@@ -8969,7 +8976,7 @@ theorem endSnipBodyReverts_tagZero {cA gh bl σ σ₀ A I} {g : UInt256}
         checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
           [vowAddr, vowAddr, .var "tab"] "_suck" ++
         checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require

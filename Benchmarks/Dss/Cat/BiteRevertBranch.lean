@@ -6400,7 +6400,7 @@ theorem catBiteRevertLitterAdd {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       (biteVatGuard_true (bsDink_get_vat I eUrnS iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
     refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabSolm hGrabDec) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I eUrnS iArt iRate iSpot iLine iDust ink art))
+      (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I eUrnS iArt iRate iSpot iLine iDust ink art))
         (evalExpr_varUInt256 (btGrab_get_rate I eUrnS iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue
       (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btDartRate_get_dart I eUrnS iArt iRate iSpot iLine iDust ink art))
@@ -6410,14 +6410,14 @@ theorem catBiteRevertLitterAdd {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       (biteVowGuard_true (btDartRate_get_vow I eUrnS iArt iRate iSpot iLine iDust ink art) hvowCode)) ?_
     refine ExecBlock.consNormal (biteFessSuccessStmt hFessSolm hFessDec) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btFess_get_dartRate I eUrnS iArt iRate iSpot iLine iDust ink art))
+      (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (btFess_get_dartRate I eUrnS iArt iRate iSpot iLine iDust ink art))
         (evalExpr_varUInt256 (btFess_get_milkChop I eUrnS iArt iRate iSpot iLine iDust ink art)) rfl hfitTabBase)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue
       (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btTabBase_get_dartRate I eUrnS iArt iRate iSpot iLine iDust ink art))
         (evalExpr_varUInt256 (btTabBase_get_milkChop I eUrnS iArt iRate iSpot iLine iDust ink art))
         (btTabBase_get_tabBase I eUrnS iArt iRate iSpot iLine iDust ink art) rfl hfitTabBase hmilkChopPos)) ?_
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_div256_ok (evalExpr_varUInt256 (btTabBase_get_tabBase I eUrnS iArt iRate iSpot iLine iDust ink art))
+      (ExecStmt.letDecl_uint256_word (evalExpr_div256_ok (evalExpr_varUInt256 (btTabBase_get_tabBase I eUrnS iArt iRate iSpot iLine iDust ink art))
         evalExpr_wad wadU_pos)) ?_
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert
       (evalExpr_add256_revert

@@ -648,7 +648,7 @@ theorem clearCurrentBodyReturnsZero {evm evm' : EVM.State}
     simp [solm1, evalExpr?, readLocalPath?, EvalResult.bind, bind, pure]
   exact ExecFuncBody.execBlockRet <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
-      ExecBlock.consNormal (ExecStmt.letDecl hread) <|
+      ExecBlock.consNormal (ExecStmt.letDecl hread (by simp [stringTy])) <|
         ExecBlock.consNormal (ExecStmt.delete (by simpa [solm1] using hdel)) <|
           ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hret))
 
@@ -676,7 +676,7 @@ theorem clearCurrentBodyReturnsBytes {evm evm' : EVM.State} {copy : ByteArray}
     simp [solm1, evalExpr?, readLocalPath?, EvalResult.bind, bind, pure]
   exact ExecFuncBody.execBlockRet <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
-      ExecBlock.consNormal (ExecStmt.letDecl hread) <|
+      ExecBlock.consNormal (ExecStmt.letDecl hread (by simp [stringTy])) <|
         ExecBlock.consNormal (ExecStmt.delete (by simpa [solm1] using hdel)) <|
           ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hret))
 
@@ -710,7 +710,7 @@ theorem setBodyReturns {evm evmCurrent : EVM.State} {value : ByteArray}
     simp [solm1, locals1, locals0, evalExpr?, readLocalPath?, EvalResult.bind, bind, pure]
   exact ExecFuncBody.execBlockRet <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
-      ExecBlock.consNormal (ExecStmt.letDecl hvalue) <|
+      ExecBlock.consNormal (ExecStmt.letDecl hvalue (by simp [stringTy])) <|
         ExecBlock.consNormal (ExecStmt.assign hcopy (by simpa [solm1, locals1, locals0] using hassignCurrent)) <|
           ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hret))
 
@@ -835,7 +835,7 @@ theorem setBodyRevertsOfWrite {evm : EVM.State} {value : ByteArray}
     simp [assignStorageRef?, hresolve, hwrite, EvalResult.bind, bind, pure]
   exact ExecFuncBody.execBlockRevert <|
     ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) <|
-      ExecBlock.consNormal (ExecStmt.letDecl hvalue) <|
+      ExecBlock.consNormal (ExecStmt.letDecl hvalue (by simp [stringTy])) <|
         ExecBlock.consRevert (ExecStmt.assignStoreRevert hcopy hassign)
 
 /-! ## Solidity string length decoding helpers -/

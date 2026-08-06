@@ -691,17 +691,21 @@ theorem evalLt {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.Sta
 
 /-- `r * 2` evaluates from the locals. -/
 theorem evalMul2 {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {a : Int}
-    (hr : L.get? "r" = some (.int a)) :
-    evalExpr? cfg { contract := C, locals := L } evm (.binary .mul (.var "r") (.intLit 2))
+    (hr : L.get? "r" = some (.int a)) (hnonneg : 0 ≤ a * 2)
+    (hfit : a * 2 < Int.ofNat EVM.wordModulus) :
+    evalExpr? cfg { contract := C, locals := L } evm (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "r") (.intLit 2))
       = .ok (.int (a * 2)) := by
   simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hr]
+  exact evalIntArithResult_checked_uint_ok _ _ hnonneg (by simpa using hfit)
 
 /-- `i + 1` evaluates from the locals. -/
 theorem evalAdd1 {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {a : Int}
-    (hi : L.get? "i" = some (.int a)) :
-    evalExpr? cfg { contract := C, locals := L } evm (.binary .add (.var "i") (.intLit 1))
+    (hi : L.get? "i" = some (.int a)) (hnonneg : 0 ≤ a + 1)
+    (hfit : a + 1 < Int.ofNat EVM.wordModulus) :
+    evalExpr? cfg { contract := C, locals := L } evm (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1))
       = .ok (.int (a + 1)) := by
   simp only [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, EvalResult.ofOption, hi]
+  exact evalIntArithResult_checked_uint_ok _ _ hnonneg (by simpa using hfit)
 
 /-- Reading a plain variable from the locals. -/
 theorem evalVar {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.State} {name : Ident}
@@ -713,8 +717,8 @@ theorem evalVar {cfg : Config} {C : ContractDecl} {L : Solm.Store} {evm : EVM.St
 
 /-- The loop body of `pow2`. -/
 def powLoopBody : List Stmt :=
-  [ .letDecl "r" (some Pow.uint256) (.binary .mul (.var "r") (.intLit 2)),
-    .letDecl "i" (some Pow.uint256) (.binary .add (.var "i") (.intLit 1)) ]
+  [ .letDecl "r" (some Pow.uint256) (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "r") (.intLit 2)),
+    .letDecl "i" (some Pow.uint256) (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
 
 /-- The loop condition of `pow2`. -/
 def powLoopCond : Expr := .binary .lt (.var "i") (.var "n")
@@ -722,7 +726,8 @@ def powLoopCond : Expr := .binary .lt (.var "i") (.var "n")
 /-- **Solm-side loop core.**  With locals `i ↦ i`, `r ↦ 2^i`, `n ↦ N` and `i ≤ N`, the `while` runs
     (in unbounded `Int`) to an `.ok` state whose locals read `r ↦ 2^N`.  A direct instance of the
     generic `execWhile_var` Hoare rule (variant `N − i`, coupling invariant on the locals). -/
-theorem powLoopActCore {cfg : Config} {C : ContractDecl} {evm : EVM.State} (N : ℕ) :
+theorem powLoopActCore {cfg : Config} {C : ContractDecl} {evm : EVM.State} (N : ℕ)
+    (hN : N < 256) :
     ∀ (var i : ℕ) (L : Solm.Store),
       N - i = var → i ≤ N →
       L.get? "i" = some (.int (Int.ofNat i)) →
@@ -753,6 +758,13 @@ theorem powLoopActCore {cfg : Config} {C : ContractDecl} {evm : EVM.State} (N : 
       simp only [Int.ofNat_eq_natCast]; push_cast; ring
     have e2 : (Int.ofNat (2 ^ i) * 2 : Int) = Int.ofNat (2 ^ (i + 1)) := by
       simp only [Int.ofNat_eq_natCast]; push_cast [pow_succ]; ring
+    have hiNext : i + 1 < 256 := by omega
+    have hiFit : i + 1 < EVM.wordModulus := by
+      change i + 1 < 2 ^ 256
+      omega
+    have hpowFit : 2 ^ (i + 1) < EVM.wordModulus := by
+      change 2 ^ (i + 1) < 2 ^ 256
+      exact Nat.pow_lt_pow_right (by norm_num) hiNext
     set L1 := L.insert "r" (.int (Int.ofNat (2 ^ i) * 2)) with hL1
     set L2 := L1.insert "i" (.int (Int.ofNat i + 1)) with hL2
     have hL2i : L2.get? "i" = some (.int (Int.ofNat (i + 1))) := by rw [hL2, store_get_self, e1]
@@ -761,12 +773,22 @@ theorem powLoopActCore {cfg : Config} {C : ContractDecl} {evm : EVM.State} (N : 
     have hL2n : L2.get? "n" = some (.int (Int.ofNat N)) := by
       rw [hL2, store_get_ne _ _ (by decide), hL1, store_get_ne _ _ (by decide), hn]
     refine ⟨L2, ?_, i + 1, by omega, by omega, hL2i, hL2r, hL2n⟩
-    refine ExecBlock.consNormal (ExecStmt.letDecl ?_) (ExecBlock.consNormal (ExecStmt.letDecl ?_)
+    refine ExecBlock.consNormal (ExecStmt.letDecl ?_ ?_)
+      (ExecBlock.consNormal (ExecStmt.letDecl ?_ ?_)
               ExecBlock.nil)
-    · rw [evalMul2 hr]
-    · show evalExpr? cfg { contract := C, locals := L1 } evm (.binary .add (.var "i") (.intLit 1))
+    · rw [evalMul2 hr
+        (mul_nonneg (Int.natCast_nonneg _) (by norm_num))
+        (by rw [e2]; exact Int.ofNat_lt.mpr hpowFit)]
+    · rw [e2]
+      exact valueMatchesABIType_uint256_ofNat hpowFit
+    · show evalExpr? cfg { contract := C, locals := L1 } evm (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1))
           = .ok (.int (Int.ofNat i + 1))
-      rw [evalAdd1 (by rw [hL1, store_get_ne _ _ (by decide), hi])]
+      rw [evalAdd1 (a := Int.ofNat i)
+        (by rw [hL1, store_get_ne _ _ (by decide), hi])
+        (add_nonneg (Int.natCast_nonneg _) (by norm_num))
+        (by rw [e1]; exact Int.ofNat_lt.mpr hiFit)]
+    · rw [e1]
+      exact valueMatchesABIType_uint256_ofNat hiFit
   intro var i L hvar hile hi hr hn
   obtain ⟨L', hwhile, j, hj, hjN, _, hjr, _⟩ :=
     execWhile_var P hfalse htrue hstep var L ⟨i, hvar, hile, hi, hr, hn⟩
@@ -801,14 +823,20 @@ theorem powBodyReturns (evm : EVM.State) (locals : Solm.Store) {N : ℕ}
   -- run the loop
   obtain ⟨L', hwhile, hL'r⟩ :=
     powLoopActCore (cfg := powConfig) (C := Pow.powContract) (evm := evm) N
-      N 0 Lri (by omega) (by omega) hLri_i hLri_r hLri_n
+      hN N 0 Lri (by omega) (by omega) hLri_i hLri_r hLri_n
   -- the body reads forward: require · require · let r:=1 · let i:=0 · while · return r
   exact ⟨L', ExecFuncBody.execBlockRet <|
     ABlock.start
       |>.requireStep (evalCallvalueEq_true hwv)
       |>.requireStep (evalReqN hn hN)
-      |>.letStep (value := .int 1) (by simp only [evalExpr?]; rfl)
-      |>.letStep (value := .int 0) (by simp only [evalExpr?]; rfl)
+      |>.letStep (value := .int 1) (by simp only [evalExpr?]; rfl) (by
+        simpa [valueMatchesOptionalABIType, Pow.uint256] using
+          (valueMatchesABIType_uint256_ofNat (value := 1)
+            (by norm_num [EVM.wordModulus, EVM.twoPow])))
+      |>.letStep (value := .int 0) (by simp only [evalExpr?]; rfl) (by
+        simpa [valueMatchesOptionalABIType, Pow.uint256] using
+          (valueMatchesABIType_uint256_ofNat (value := 0)
+            (by norm_num [EVM.wordModulus, EVM.twoPow])))
       |>.whileStep hwhile
       |>.returns (evalVar hL'r)⟩
 

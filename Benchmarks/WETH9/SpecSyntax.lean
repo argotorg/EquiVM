@@ -50,16 +50,20 @@ def contractSyntax : ContractDecl := solidity% contract WETH9 {
     require(balanceOf[src] >= wad);
     if (src != msg.sender && allowance[src][msg.sender] != type(uint256).max) {
       require(allowance[src][msg.sender] >= wad);
-      allowance[src][msg.sender] = allowance[src][msg.sender] - wad;
+      allowance[src][msg.sender] = ${Expr.binary (.sub uint256Int .wrapping)
+        (.storage (allowanceRef (.var "src") sender)) (.var "wad")};
     }
-    balanceOf[src] = balanceOf[src] - wad;
-    balanceOf[dst] = balanceOf[dst] + wad;
+    balanceOf[src] = ${Expr.binary (.sub uint256Int .wrapping)
+      (.storage (balanceOfRef (.var "src"))) (.var "wad")};
+    balanceOf[dst] = ${Expr.binary (.add uint256Int .wrapping)
+      (.storage (balanceOfRef (.var "dst"))) (.var "wad")};
     return true;
   }
 
   function withdraw(uint256 wad) external {
     require(balanceOf[msg.sender] >= wad);
-    balanceOf[msg.sender] = balanceOf[msg.sender] - wad;
+    balanceOf[msg.sender] = ${Expr.binary (.sub uint256Int .wrapping)
+      (.storage (balanceOfRef sender)) (.var "wad")};
     (bool success, bytes memory _data) = msg.sender.call{value: wad}(new bytes(0));
     require(success);
   }
@@ -82,7 +86,8 @@ def contractSyntax : ContractDecl := solidity% contract WETH9 {
   }
 
   function deposit() external payable {
-    balanceOf[msg.sender] = balanceOf[msg.sender] + msg.value;
+    balanceOf[msg.sender] = ${Expr.binary (.add uint256Int .wrapping)
+      (.storage (balanceOfRef sender)) (.env .callvalue)};
   }
 
   function allowance(address owner, address guy) external returns (uint256) {
@@ -90,7 +95,8 @@ def contractSyntax : ContractDecl := solidity% contract WETH9 {
   }
 
   fallback() external payable {
-    balanceOf[msg.sender] = balanceOf[msg.sender] + msg.value;
+    balanceOf[msg.sender] = ${Expr.binary (.add uint256Int .wrapping)
+      (.storage (balanceOfRef sender)) (.env .callvalue)};
   }
 }
 

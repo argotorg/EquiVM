@@ -142,7 +142,8 @@ theorem dogCtorBodySuccess
   simp only [constructorDecl, nonpayable, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
-  refine ExecBlock.consNormal (ExecStmt.letDecl (value := .address vat) ?_) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (value := .address vat) ?_ (by
+    simpa [addr] using valueMatchesOptionalABIType_address vat)) ?_
   · simpa [locals] using evalExpr_dogCtorLocalVat (v := v) (evm := evm0) vat
   refine ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassignLive) ?_
   exact ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hassignWards)

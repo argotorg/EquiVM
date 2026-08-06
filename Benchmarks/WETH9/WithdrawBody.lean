@@ -181,23 +181,25 @@ theorem evalWithdrawGe_false (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.ex
     EvalResult.ok.injEq, Value.bool.injEq, decide_eq_false_iff_not]
   exact fun h => absurd (Int.ofNat_le.mp h) (by omega)
 
-/-- `balanceOf[caller] - wad` (as an unbounded `Int`). -/
+/-- `balanceOf[caller] - wad` with the wrapping semantics of solc 0.5. -/
 theorem evalWithdrawSub (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.executionEnv = I) :
     evalExpr? config { contract := contract, locals := withdrawStore I } evm
-      (.binary .sub (.storage (balanceOfRef sender)) (.var "wad")) =
-      .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-        (callerBalSlot I)).toNat - Int.ofNat (withdrawWadWord I).toNat)) := by
-  simp only [evalExpr?, evalCallerBal evm I (withdrawStore I) hsrc (withdrawStore_balanceOf_get I),
-    withdrawStore_wad_get, EvalResult.bind, EvalResult.ofOption, bind, pure, evalBinaryOp?]
+      (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping)
+        (.storage (balanceOfRef sender)) (.var "wad")) =
+      .ok (.int (Int.ofNat (UInt256.sub
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (callerBalSlot I))
+        (withdrawWadWord I)).toNat)) := by
+  exact evalExpr_wrapping_sub_uint256_word_ok
+    (evalCallerBal evm I (withdrawStore I) hsrc (withdrawStore_balanceOf_get I))
+    (evalWithdrawWadVar evm I) rfl
 
-/-- The `balanceOf[caller] -= wad` assignment, given no underflow (`wad ≤ bal`). -/
-theorem withdrawAssign (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.executionEnv = I)
-    (hle : (withdrawWadWord I).toNat ≤
-      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (callerBalSlot I)).toNat) :
+/-- The wrapping `balanceOf[caller] -= wad` assignment. -/
+theorem withdrawAssign (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.executionEnv = I) :
     assignStorageRef? config { contract := contract, locals := withdrawStore I } evm
       .storage (balanceOfRef sender)
-      (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-        (callerBalSlot I)).toNat - Int.ofNat (withdrawWadWord I).toNat)) =
+      (.int (Int.ofNat (UInt256.sub
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (callerBalSlot I))
+        (withdrawWadWord I)).toNat)) =
       .ok ({ contract := contract, locals := withdrawStore I }, withdrawStoreState evm I) := by
   refine assignStorageRef_storage_scalar_value
     (er := callerBalRef I) (ty := uint256St) (loc := wordLoc (callerBalSlot I))
@@ -207,7 +209,7 @@ theorem withdrawAssign (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.executio
   · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
   · unfold withdrawStoreState
     rw [show wordLoc (callerBalSlot I) = uint256Loc (callerBalSlot I) from rfl,
-      storageLocStore_uint256_int, wordOfInt_sub_words _ _ hle]
+      storageLocStore_uint256_int, wordOfInt_ofNat_toNat]
 
 /-- Body execution, `bal < wad` branch: `require(balanceOf[caller] ≥ wad)` reverts. -/
 theorem weth9WithdrawBodyReverts_geFalse (evm : EVM.State) (I : ExecutionEnv)
@@ -235,7 +237,7 @@ theorem weth9WithdrawBodyReturns_success (evm evm' : EVM.State) (I : ExecutionEn
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalWithdrawGe_true evm I hsrc hle)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (evalWithdrawSub evm I hsrc) (withdrawAssign evm I hsrc hle)) ?_
+    (ExecStmt.assign (evalWithdrawSub evm I hsrc) (withdrawAssign evm I hsrc)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.lowLevelCallSuccess
       (evalWithdrawSender (withdrawStoreState evm I) (withdrawStore I))
@@ -258,7 +260,7 @@ theorem weth9WithdrawBodyReverts_callFailure (evm evm' : EVM.State) (I : Executi
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalWithdrawGe_true evm I hsrc hle)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.assign (evalWithdrawSub evm I hsrc) (withdrawAssign evm I hsrc hle)) ?_
+    (ExecStmt.assign (evalWithdrawSub evm I hsrc) (withdrawAssign evm I hsrc)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.lowLevelCallFailure
       (evalWithdrawSender (withdrawStoreState evm I) (withdrawStore I))

@@ -40,7 +40,7 @@ def fTransition : TransitionDecl :=
       [ -- non-payable guard (mirrors solc's global `CALLVALUE; ISZERO; …` prologue)
         .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .return [(.inRange uint256Int
-          (.binary .add (.binary .mul (.var "v") (.intLit 2)) (.intLit 1)))] ] }
+          (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "v") (.intLit 2)) (.intLit 1)))] ] }
 
 /-- `g(uint256 v) external { s = f(v); }` — invokes `f` as an **internal call**, then stores. -/
 def gTransition : TransitionDecl :=

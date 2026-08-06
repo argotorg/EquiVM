@@ -756,19 +756,34 @@ abbrev syncUpdateCumulativePackedReserveStateWith
 
 theorem evalExpr_sync_update_price0Cumulative_with
     (storageEvm updateEvm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
-    (hreserve0 : Int.ofNat reserve0.toNat ≠ 0) :
+    (hreserve0 : Int.ofNat reserve0.toNat ≠ 0)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112) :
     evalExpr? config
       { contract := contract,
         locals := syncUpdateTimeElapsedStoreWith updateEvm balance0 balance1 reserve0
           reserve1 }
       storageEvm
-      (wrapU256 (.binary .add (.storage price0CumulativeLastRef)
-        (.binary .mul (uq112Price (.var "_reserve1") (.var "_reserve0"))
+      (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price0CumulativeLastRef)
+        (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve1") (.var "_reserve0"))
           (.var "timeElapsed")))) =
         .ok (syncPrice0CumulativeValueAtWith storageEvm updateEvm reserve0 reserve1) := by
-  have hreserve0Nat : reserve0.toNat ≠ 0 := by
-    intro hzero
-    exact hreserve0 (by simp [hzero])
+  have hencodeFitNat : reserve1.toNat * 2 ^ 112 < 2 ^ 256 := by
+    calc
+      reserve1.toNat * 2 ^ 112 < 2 ^ 112 * 2 ^ 112 :=
+        (Nat.mul_lt_mul_right (by positivity)).mpr hreserve1Bound
+      _ < 2 ^ 256 := by norm_num
+  have hencodeNonneg : 0 ≤ Int.ofNat reserve1.toNat * q112 :=
+    Int.mul_nonneg (Int.natCast_nonneg _) (by norm_num [q112])
+  have hencodeFit :
+      Int.ofNat reserve1.toNat * q112 < Int.ofNat (EVM.twoPow 256) := by
+    simpa [q112, Nat.cast_mul] using Int.ofNat_lt.mpr hencodeFitNat
+  have hquotNonneg :
+      0 ≤ (Int.ofNat reserve1.toNat * q112) / Int.ofNat reserve0.toNat :=
+    Int.ediv_nonneg hencodeNonneg (Int.natCast_nonneg _)
+  have hquotFit :
+      (Int.ofNat reserve1.toNat * q112) / Int.ofNat reserve0.toNat <
+        Int.ofNat (EVM.twoPow 256) :=
+    lt_of_le_of_lt (Int.ediv_le_self _ hencodeNonneg) hencodeFit
   unfold wrapU256 uq112Price syncPrice0CumulativeValueAtWith
     syncPrice0CumulativeIntAtWith
   simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind,
@@ -779,23 +794,43 @@ theorem evalExpr_sync_update_price0Cumulative_with
     syncUpdateTimeElapsedStoreWith_reserve1, syncUpdateTimeElapsedStoreWith_reserve0,
     syncUpdateTimeElapsedStoreWith_timeElapsed]
   unfold syncTimeElapsedValue
-  simp [evalBinaryOp?, hreserve0Nat, twoPow256]
+  simpa only [twoPow256, EVM.twoPow, EvalResult.bind, bind] using
+    evalSyncCumulativeArithmetic
+      (Int.ofNat
+        (Solm.EVM.storageLoad storageEvm storageEvm.executionEnv.codeOwner ⟨9⟩).toNat)
+      (Int.ofNat reserve1.toNat) (Int.ofNat reserve0.toNat)
+      (syncTimeElapsedInt updateEvm) hreserve0 hencodeNonneg hencodeFit hquotNonneg hquotFit
 
 theorem evalExpr_sync_update_price1Cumulative_with
     (storageEvm updateEvm : EVM.State) (balance0 balance1 reserve0 reserve1 : UInt256)
-    (hreserve1 : Int.ofNat reserve1.toNat ≠ 0) :
+    (hreserve1 : Int.ofNat reserve1.toNat ≠ 0)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112) :
     evalExpr? config
       { contract := contract,
         locals := syncUpdateTimeElapsedStoreWith updateEvm balance0 balance1 reserve0
           reserve1 }
       storageEvm
-      (wrapU256 (.binary .add (.storage price1CumulativeLastRef)
-        (.binary .mul (uq112Price (.var "_reserve0") (.var "_reserve1"))
+      (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price1CumulativeLastRef)
+        (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve0") (.var "_reserve1"))
           (.var "timeElapsed")))) =
         .ok (syncPrice1CumulativeValueAtWith storageEvm updateEvm reserve0 reserve1) := by
-  have hreserve1Nat : reserve1.toNat ≠ 0 := by
-    intro hzero
-    exact hreserve1 (by simp [hzero])
+  have hencodeFitNat : reserve0.toNat * 2 ^ 112 < 2 ^ 256 := by
+    calc
+      reserve0.toNat * 2 ^ 112 < 2 ^ 112 * 2 ^ 112 :=
+        (Nat.mul_lt_mul_right (by positivity)).mpr hreserve0Bound
+      _ < 2 ^ 256 := by norm_num
+  have hencodeNonneg : 0 ≤ Int.ofNat reserve0.toNat * q112 :=
+    Int.mul_nonneg (Int.natCast_nonneg _) (by norm_num [q112])
+  have hencodeFit :
+      Int.ofNat reserve0.toNat * q112 < Int.ofNat (EVM.twoPow 256) := by
+    simpa [q112, Nat.cast_mul] using Int.ofNat_lt.mpr hencodeFitNat
+  have hquotNonneg :
+      0 ≤ (Int.ofNat reserve0.toNat * q112) / Int.ofNat reserve1.toNat :=
+    Int.ediv_nonneg hencodeNonneg (Int.natCast_nonneg _)
+  have hquotFit :
+      (Int.ofNat reserve0.toNat * q112) / Int.ofNat reserve1.toNat <
+        Int.ofNat (EVM.twoPow 256) :=
+    lt_of_le_of_lt (Int.ediv_le_self _ hencodeNonneg) hencodeFit
   unfold wrapU256 uq112Price syncPrice1CumulativeValueAtWith
     syncPrice1CumulativeIntAtWith
   simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind,
@@ -806,7 +841,12 @@ theorem evalExpr_sync_update_price1Cumulative_with
     syncUpdateTimeElapsedStoreWith_reserve0, syncUpdateTimeElapsedStoreWith_reserve1,
     syncUpdateTimeElapsedStoreWith_timeElapsed]
   unfold syncTimeElapsedValue
-  simp [evalBinaryOp?, hreserve1Nat, twoPow256]
+  simpa only [twoPow256, EVM.twoPow, EvalResult.bind, bind] using
+    evalSyncCumulativeArithmetic
+      (Int.ofNat
+        (Solm.EVM.storageLoad storageEvm storageEvm.executionEnv.codeOwner ⟨10⟩).toNat)
+      (Int.ofNat reserve0.toNat) (Int.ofNat reserve1.toNat)
+      (syncTimeElapsedInt updateEvm) hreserve1 hencodeNonneg hencodeFit hquotNonneg hquotFit
 
 set_option maxHeartbeats 1000000 in
 theorem uniswapUpdateFunctionReturns_conditionTrue_packed
@@ -865,11 +905,11 @@ theorem uniswapUpdateFunctionReturns_conditionTrue_packed
     [ .require (.binary .and
         (.binary .le (.var "balance0") (.intLit maxUint112))
         (.binary .le (.var "balance1") (.intLit maxUint112))),
-      .letDecl "blockTimestamp" (some uint32) (u32 (.binary .mod now (.intLit twoPow32))),
+      .letDecl "blockTimestamp" (some uint32) (u32 (.binary (.mod (.uint ⟨32, by decide⟩)) now (.intLit twoPow32))),
       .letDecl "timeElapsed" (some uint32)
-        (u32 (.binary .mod
-          (.binary .add
-            (.binary .sub (.var "blockTimestamp") (.storage blockTimestampLastRef))
+        (u32 (.binary (.mod (.uint ⟨32, by decide⟩))
+          (.binary (.add (.uint ⟨32, by decide⟩) .wrapping)
+            (.binary (.sub (.uint ⟨32, by decide⟩) .wrapping) (.var "blockTimestamp") (.storage blockTimestampLastRef))
             (.intLit twoPow32))
           (.intLit twoPow32))),
       .ite (.binary .and
@@ -878,12 +918,12 @@ theorem uniswapUpdateFunctionReturns_conditionTrue_packed
             (.binary .ne (.var "_reserve0") (.intLit 0))
             (.binary .ne (.var "_reserve1") (.intLit 0))))
         [ .assign .storage price0CumulativeLastRef
-            (wrapU256 (.binary .add (.storage price0CumulativeLastRef)
-              (.binary .mul (uq112Price (.var "_reserve1") (.var "_reserve0"))
+            (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price0CumulativeLastRef)
+              (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve1") (.var "_reserve0"))
                 (.var "timeElapsed")))),
           .assign .storage price1CumulativeLastRef
-            (wrapU256 (.binary .add (.storage price1CumulativeLastRef)
-              (.binary .mul (uq112Price (.var "_reserve0") (.var "_reserve1"))
+            (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price1CumulativeLastRef)
+              (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve0") (.var "_reserve1"))
                 (.var "timeElapsed")))) ]
         [],
       .assign .storage reserve0Ref (u112 (.var "balance0")),
@@ -895,19 +935,21 @@ theorem uniswapUpdateFunctionReturns_conditionTrue_packed
     (ExecStmt.requireTrue
       (evalExpr_sync_update_bounds_true evm balance0 balance1 hbound0 hbound1)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_sync_update_blockTimestamp evm balance0 balance1)) ?_
+    (ExecStmt.letDecl (evalExpr_sync_update_blockTimestamp evm balance0 balance1)
+      (syncBlockTimestampValue_matches evm)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_sync_update_timeElapsed evm balance0 balance1)) ?_
+    (ExecStmt.letDecl (evalExpr_sync_update_timeElapsed evm balance0 balance1)
+      (syncTimeElapsedValue_matches evm)) ?_
   have hpriceBlock :
       ExecBlock config
         { contract := contract, locals := syncUpdateTimeElapsedStore evm balance0 balance1 } evm
         [ .assign .storage price0CumulativeLastRef
-            (wrapU256 (.binary .add (.storage price0CumulativeLastRef)
-              (.binary .mul (uq112Price (.var "_reserve1") (.var "_reserve0"))
+            (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price0CumulativeLastRef)
+              (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve1") (.var "_reserve0"))
                 (.var "timeElapsed")))),
           .assign .storage price1CumulativeLastRef
-            (wrapU256 (.binary .add (.storage price1CumulativeLastRef)
-              (.binary .mul (uq112Price (.var "_reserve0") (.var "_reserve1"))
+            (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price1CumulativeLastRef)
+              (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve0") (.var "_reserve1"))
                 (.var "timeElapsed")))) ]
         (.ok { contract := contract, locals := syncUpdateTimeElapsedStore evm balance0 balance1 }
           evmP1) := by
@@ -965,6 +1007,8 @@ theorem uniswapUpdateFunctionReturns_conditionTrue_packed_with
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
     (helapsed : 0 < syncTimeElapsedInt evm)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (hreserve0 : Int.ofNat reserve0.toNat ≠ 0)
     (hreserve1 : Int.ofNat reserve1.toNat ≠ 0) :
     ExecFuncBody config (syncUpdateCallFrameWith balance0 balance1 reserve0 reserve1) evm
@@ -1023,11 +1067,11 @@ theorem uniswapUpdateFunctionReturns_conditionTrue_packed_with
     [ .require (.binary .and
         (.binary .le (.var "balance0") (.intLit maxUint112))
         (.binary .le (.var "balance1") (.intLit maxUint112))),
-      .letDecl "blockTimestamp" (some uint32) (u32 (.binary .mod now (.intLit twoPow32))),
+      .letDecl "blockTimestamp" (some uint32) (u32 (.binary (.mod (.uint ⟨32, by decide⟩)) now (.intLit twoPow32))),
       .letDecl "timeElapsed" (some uint32)
-        (u32 (.binary .mod
-          (.binary .add
-            (.binary .sub (.var "blockTimestamp") (.storage blockTimestampLastRef))
+        (u32 (.binary (.mod (.uint ⟨32, by decide⟩))
+          (.binary (.add (.uint ⟨32, by decide⟩) .wrapping)
+            (.binary (.sub (.uint ⟨32, by decide⟩) .wrapping) (.var "blockTimestamp") (.storage blockTimestampLastRef))
             (.intLit twoPow32))
           (.intLit twoPow32))),
       .ite (.binary .and
@@ -1036,12 +1080,12 @@ theorem uniswapUpdateFunctionReturns_conditionTrue_packed_with
             (.binary .ne (.var "_reserve0") (.intLit 0))
             (.binary .ne (.var "_reserve1") (.intLit 0))))
         [ .assign .storage price0CumulativeLastRef
-            (wrapU256 (.binary .add (.storage price0CumulativeLastRef)
-              (.binary .mul (uq112Price (.var "_reserve1") (.var "_reserve0"))
+            (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price0CumulativeLastRef)
+              (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve1") (.var "_reserve0"))
                 (.var "timeElapsed")))),
           .assign .storage price1CumulativeLastRef
-            (wrapU256 (.binary .add (.storage price1CumulativeLastRef)
-              (.binary .mul (uq112Price (.var "_reserve0") (.var "_reserve1"))
+            (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price1CumulativeLastRef)
+              (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve0") (.var "_reserve1"))
                 (.var "timeElapsed")))) ]
         [],
       .assign .storage reserve0Ref (u112 (.var "balance0")),
@@ -1057,22 +1101,24 @@ theorem uniswapUpdateFunctionReturns_conditionTrue_packed_with
         hbound0 hbound1)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.letDecl
-      (evalExpr_sync_update_blockTimestamp_with evm balance0 balance1 reserve0 reserve1)) ?_
+      (evalExpr_sync_update_blockTimestamp_with evm balance0 balance1 reserve0 reserve1)
+      (syncBlockTimestampValue_matches evm)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.letDecl
-      (evalExpr_sync_update_timeElapsed_with evm balance0 balance1 reserve0 reserve1)) ?_
+      (evalExpr_sync_update_timeElapsed_with evm balance0 balance1 reserve0 reserve1)
+      (syncTimeElapsedValue_matches evm)) ?_
   have hpriceBlock :
       ExecBlock config
         { contract := contract,
           locals := syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1 }
         evm
         [ .assign .storage price0CumulativeLastRef
-            (wrapU256 (.binary .add (.storage price0CumulativeLastRef)
-              (.binary .mul (uq112Price (.var "_reserve1") (.var "_reserve0"))
+            (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price0CumulativeLastRef)
+              (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve1") (.var "_reserve0"))
                 (.var "timeElapsed")))),
           .assign .storage price1CumulativeLastRef
-            (wrapU256 (.binary .add (.storage price1CumulativeLastRef)
-              (.binary .mul (uq112Price (.var "_reserve0") (.var "_reserve1"))
+            (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price1CumulativeLastRef)
+              (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve0") (.var "_reserve1"))
                 (.var "timeElapsed")))) ]
         (.ok
           { contract := contract,
@@ -1081,7 +1127,7 @@ theorem uniswapUpdateFunctionReturns_conditionTrue_packed_with
     refine ExecBlock.consNormal
       (ExecStmt.assign
         (evalExpr_sync_update_price0Cumulative_with evm evm balance0 balance1 reserve0
-          reserve1 hreserve0)
+          reserve1 hreserve0 hreserve1Bound)
         (uniswapAssignPrice0CumulativeLastOfStore evm evmP0
           (syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1)
           (syncPrice0CumulativeValueAtWith evm evm reserve0 reserve1)
@@ -1092,7 +1138,7 @@ theorem uniswapUpdateFunctionReturns_conditionTrue_packed_with
     exact ExecBlock.consNormal
       (ExecStmt.assign
         (evalExpr_sync_update_price1Cumulative_with evmP0 evm balance0 balance1 reserve0
-          reserve1 hreserve1)
+          reserve1 hreserve1 hreserve0Bound)
         (uniswapAssignPrice1CumulativeLastOfStore evmP0 evmP1
           (syncUpdateTimeElapsedStoreWith evm balance0 balance1 reserve0 reserve1)
           (syncPrice1CumulativeValueAtWith evmP0 evm reserve0 reserve1)

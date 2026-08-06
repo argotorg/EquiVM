@@ -200,59 +200,59 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     int256 log_2 = (msb - 128) * #(2 ^ 64);
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 63);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 63)))};
     r = r >> f;
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 62);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 62)))};
     r = r >> f;
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 61);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 61)))};
     r = r >> f;
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 60);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 60)))};
     r = r >> f;
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 59);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 59)))};
     r = r >> f;
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 58);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 58)))};
     r = r >> f;
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 57);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 57)))};
     r = r >> f;
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 56);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 56)))};
     r = r >> f;
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 55);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 55)))};
     r = r >> f;
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 54);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 54)))};
     r = r >> f;
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 53);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 53)))};
     r = r >> f;
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 52);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 52)))};
     r = r >> f;
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 51);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 51)))};
     r = r >> f;
     r = r * r >> 127;
     uint256 f = r >> 128;
-    log_2 = log_2 + f * #(2 ^ 50);
+    log_2 = ${addE (.var "log_2") (mulE (.var "f") (.intLit (2 ^ 50)))};
     int256 log_sqrt10001 = log_2 * 255738958999603826347141;
     int24 tickLow = (log_sqrt10001 - 3402992956809132418596140100660247210) / #(2 ^ 128);
     int24 tickHi = (log_sqrt10001 + 291339464771989622907027621153398088495) / #(2 ^ 128);
@@ -398,11 +398,11 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
 
   function liquidityAddDelta(uint128 x, int128 y) internal returns (uint128) {
     if (y < 0) {
-      uint128 z = (x - (0 - y)) % #(2 ^ 128);
+      uint128 z = ${uint128Wrap (subE (.var "x") (subE (.intLit 0) (.var "y")))};
       require(z < x);
       return z;
     } else {
-      uint128 z = (x + y) % #(2 ^ 128);
+      uint128 z = ${uint128Wrap (addE (.var "x") (.var "y"))};
       require(z >= x);
       return z;
     }
@@ -939,8 +939,9 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     uint256 feeAmount = 0;
     if (exactIn) {
       require(1000000 > 0);
-      uint256 amountRemainingLessFee =
-        amountRemaining % #(2 ^ 256) * (1000000 - feePips) / 1000000;
+      uint256 amountRemainingLessFee = ${divE
+        (mulE (uint256Wrap (.var "amountRemaining")) (subE feeDenominator (.var "feePips")))
+        feeDenominator};
       require(amountRemainingLessFee <= type(uint256).max);
       if (zeroForOne) {
         var amountInToTarget = getAmount0DeltaUnsigned(sqrtRatioTargetX96,
@@ -966,11 +967,11 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
           sqrtRatioTargetX96, liquidity, false);
       }
       amountOut = amountOutToTarget;
-      if ((0 - amountRemaining) % #(2 ^ 256) >= amountOut) {
+      if (${uint256Wrap (subE (.intLit 0) (.var "amountRemaining"))} >= amountOut) {
         sqrtRatioNextX96 = sqrtRatioTargetX96;
       } else {
         var nextSqrtOutput = getNextSqrtPriceFromOutput(sqrtRatioCurrentX96, liquidity,
-          (0 - amountRemaining) % #(2 ^ 256), zeroForOne);
+          ${uint256Wrap (subE (.intLit 0) (.var "amountRemaining"))}, zeroForOne);
         sqrtRatioNextX96 = nextSqrtOutput;
       }
     }
@@ -998,11 +999,11 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
         amountOut = amountOutRecomputed;
       }
     }
-    if (!exactIn && amountOut > (0 - amountRemaining) % #(2 ^ 256)) {
-      amountOut = (0 - amountRemaining) % #(2 ^ 256);
+    if (!exactIn && amountOut > ${uint256Wrap (subE (.intLit 0) (.var "amountRemaining"))}) {
+      amountOut = ${uint256Wrap (subE (.intLit 0) (.var "amountRemaining"))};
     }
     if (exactIn && sqrtRatioNextX96 != sqrtRatioTargetX96) {
-      feeAmount = amountRemaining % #(2 ^ 256) - amountIn;
+      feeAmount = ${uint256Wrap (.var "amountRemaining")} - amountIn;
     } else {
       require(1000000 - feePips > 0);
       uint256 feeAmountComputed = amountIn * feePips / (1000000 - feePips);
@@ -1505,6 +1506,11 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     return ${addrLit v.token1};
   }
 }
+
+example (v : PoolImmutables) :
+    (contractSyntax v).functions = (Benchmarks.UniswapV3Pool.contract v).functions := by rfl
+example (v : PoolImmutables) :
+    (contractSyntax v).transitions = (Benchmarks.UniswapV3Pool.contract v).transitions := by rfl
 
 theorem contractSyntax_eq (v : PoolImmutables) :
     contractSyntax v = contract v := by rfl

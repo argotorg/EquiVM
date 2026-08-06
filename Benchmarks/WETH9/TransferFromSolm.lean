@@ -26,33 +26,6 @@ abbrev tfBalSrcWord (I : ExecutionEnv) (σ : AccountMap) : UInt256 :=
 
 /-! ## Infrastructure: store lookups, wrapping arithmetic, reads, assigns, post-state maps -/
 
-/-- Wrapping `sub` on store, valid even on underflow (solc 0.5 `unchecked`). -/
-theorem tf_wordOfInt_sub (a b : UInt256) :
-    EVM.wordOfInt (Int.ofNat a.toNat - Int.ofNat b.toNat) = UInt256.sub a b := by
-  by_cases h : b.toNat ≤ a.toNat
-  · exact wordOfInt_sub_words h
-  · have h' : a.toNat < b.toNat := Nat.lt_of_not_le h
-    have hsub : Int.ofNat (b.toNat - a.toNat) = Int.ofNat b.toNat - Int.ofNat a.toNat :=
-      Int.ofNat_sub (le_of_lt h')
-    have hcast : (Int.ofNat a.toNat - Int.ofNat b.toNat) = -(Int.ofNat (b.toNat - a.toNat)) := by
-      rw [hsub]; ring
-    have hd : b.toNat - a.toNat ≠ 0 := Nat.sub_ne_zero_of_lt h'
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    have hwm : EVM.wordModulus = UInt256.size := rfl
-    have hlt' : b.toNat - a.toNat < EVM.wordModulus := by rw [hwm]; omega
-    have hneg : Int.ofNat a.toNat - Int.ofNat b.toNat < 0 := by
-      have hlt : Int.ofNat a.toNat < Int.ofNat b.toNat := Int.ofNat_lt.mpr h'
-      linarith
-    apply u256_inj
-    rw [usub_toNat_underflow h', EVM.wordOfInt, if_pos hneg, hcast]
-    simp only [Int.natAbs_neg, Int.natAbs_ofNat', Nat.mod_eq_of_lt hlt', if_neg hd]
-    show (EVM.uintN 256 (EVM.wordModulus - (b.toNat - a.toNat))).val
-      = UInt256.size + a.toNat - b.toNat
-    show (EVM.wordModulus - (b.toNat - a.toNat)) % EVM.twoPow 256
-      = UInt256.size + a.toNat - b.toNat
-    rw [hwm, show EVM.twoPow 256 = UInt256.size from rfl, Nat.mod_eq_of_lt (by omega)]
-    omega
-
 /-! ### Store lookups -/
 
 theorem tfStore_get_balanceOf (I : ExecutionEnv) : (tfStore I).get? "balanceOf" = none := by
@@ -409,36 +382,40 @@ theorem tfEvalAllowGeWad_false (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.
 
 theorem tfEvalSrcSubRaw (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := tfStore I } evm
-      (.binary .sub (.storage (balanceOfRef (.var "src"))) (.var "wad")) =
-      .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-        (wtfBalSlot (tfSrcMasked I))).toNat - Int.ofNat (tfWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [tfEvalSrcBal, tfEvalWad]
-  simp [EvalResult.bind, bind, evalBinaryOp?]
+      (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping)
+        (.storage (balanceOfRef (.var "src"))) (.var "wad")) =
+      .ok (.int (Int.ofNat (UInt256.sub
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+          (wtfBalSlot (tfSrcMasked I))) (tfWadWord I)).toNat)) := by
+  exact evalExpr_wrapping_sub_uint256_word_ok (tfEvalSrcBal evm I)
+    (by simpa [tfWadVal] using tfEvalWad evm I) rfl
 
 theorem tfEvalDstAddRaw (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := tfStore I } evm
-      (.binary .add (.storage (balanceOfRef (.var "dst"))) (.var "wad")) =
-      .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-        (wtfBalSlot (tfDstMasked I))).toNat + Int.ofNat (tfWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [tfEvalDstBal, tfEvalWad]
-  simp [EvalResult.bind, bind, evalBinaryOp?]
+      (.binary (.add (.uint ⟨256, by decide⟩) .wrapping)
+        (.storage (balanceOfRef (.var "dst"))) (.var "wad")) =
+      .ok (.int (Int.ofNat (UInt256.add
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+          (wtfBalSlot (tfDstMasked I))) (tfWadWord I)).toNat)) := by
+  exact evalExpr_wrapping_add_uint256_word_ok (tfEvalDstBal evm I)
+    (by simpa [tfWadVal] using tfEvalWad evm I) rfl
 
 theorem tfEvalAllowSubRaw (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.executionEnv = I) :
     evalExpr? config { contract := contract, locals := tfStore I } evm
-      (.binary .sub (.storage (allowanceRef (.var "src") sender)) (.var "wad")) =
-      .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-        (wtfAllowSlot I (tfSrcMasked I))).toNat - Int.ofNat (tfWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [tfEvalAllow evm I hsrc, tfEvalWad]
-  simp [EvalResult.bind, bind, evalBinaryOp?]
+      (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping)
+        (.storage (allowanceRef (.var "src") sender)) (.var "wad")) =
+      .ok (.int (Int.ofNat (UInt256.sub
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+          (wtfAllowSlot I (tfSrcMasked I))) (tfWadWord I)).toNat)) := by
+  exact evalExpr_wrapping_sub_uint256_word_ok (tfEvalAllow evm I hsrc)
+    (by simpa [tfWadVal] using tfEvalWad evm I) rfl
 
 theorem tfAssignSrc (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := tfStore I } evm
       .storage (balanceOfRef (.var "src"))
-      (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-        (wtfBalSlot (tfSrcMasked I))).toNat - Int.ofNat (tfWadWord I).toNat)) =
+      (.int (Int.ofNat (UInt256.sub
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+          (wtfBalSlot (tfSrcMasked I))) (tfWadWord I)).toNat)) =
       .ok ({ contract := contract, locals := tfStore I }, tfSrcSt evm I) := by
   refine assignStorageRef_storage_scalar_value
     (er := { base := "balanceOf",
@@ -452,13 +429,14 @@ theorem tfAssignSrc (evm : EVM.State) (I : ExecutionEnv) :
   · unfold tfSrcSt
     rw [show wordLoc (balanceOfSlot (.address (AccountAddress.ofNat (tfSrcWord I).toNat)))
         = uint256Loc (balanceOfSlot (.address (AccountAddress.ofNat (tfSrcWord I).toNat))) from rfl,
-      storageLocStore_uint256_int, tfBalSrcSlot_eq, tf_wordOfInt_sub]
+      storageLocStore_uint256_int, tfBalSrcSlot_eq, wordOfInt_ofNat_toNat]
 
 theorem tfAssignDst (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := tfStore I } evm
       .storage (balanceOfRef (.var "dst"))
-      (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-        (wtfBalSlot (tfDstMasked I))).toNat + Int.ofNat (tfWadWord I).toNat)) =
+      (.int (Int.ofNat (UInt256.add
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+          (wtfBalSlot (tfDstMasked I))) (tfWadWord I)).toNat)) =
       .ok ({ contract := contract, locals := tfStore I }, tfDstSt evm I) := by
   refine assignStorageRef_storage_scalar_value
     (er := { base := "balanceOf",
@@ -472,13 +450,14 @@ theorem tfAssignDst (evm : EVM.State) (I : ExecutionEnv) :
   · unfold tfDstSt
     rw [show wordLoc (balanceOfSlot (.address (AccountAddress.ofNat (tfDstWord I).toNat)))
         = uint256Loc (balanceOfSlot (.address (AccountAddress.ofNat (tfDstWord I).toNat))) from rfl,
-      storageLocStore_uint256_int, tfBalDstSlot_eq, wordOfInt_add_words]
+      storageLocStore_uint256_int, tfBalDstSlot_eq, wordOfInt_ofNat_toNat]
 
 theorem tfAssignAllow (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.executionEnv = I) :
     assignStorageRef? config { contract := contract, locals := tfStore I } evm
       .storage (allowanceRef (.var "src") sender)
-      (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-        (wtfAllowSlot I (tfSrcMasked I))).toNat - Int.ofNat (tfWadWord I).toNat)) =
+      (.int (Int.ofNat (UInt256.sub
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
+          (wtfAllowSlot I (tfSrcMasked I))) (tfWadWord I)).toNat)) =
       .ok ({ contract := contract, locals := tfStore I }, tfAllowSt evm I) := by
   refine assignStorageRef_storage_scalar_value
     (er := { base := "allowance",
@@ -496,7 +475,7 @@ theorem tfAssignAllow (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.execution
           (.address I.source))
         = uint256Loc (allowanceSlot (.address (AccountAddress.ofNat (tfSrcWord I).toNat))
           (.address I.source)) from rfl,
-      storageLocStore_uint256_int, tfAllowSlot_eq, tf_wordOfInt_sub]
+      storageLocStore_uint256_int, tfAllowSlot_eq, wordOfInt_ofNat_toNat]
 
 /-- Body, case `src == msg.sender`: the `&&` short-circuits, no allowance spend. -/
 theorem weth9TFSolmSkipSender {cA gh bl σ σ₀ A I} {g : Sat256}

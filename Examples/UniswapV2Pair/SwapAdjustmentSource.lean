@@ -6,8 +6,8 @@ namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
 abbrev swapAdjustedExpr (balanceVar inputVar : Ident) : Expr :=
-  u256 (.binary .sub (u256 (.binary .mul (.var balanceVar) (.intLit 1000)))
-    (u256 (.binary .mul (.var inputVar) (.intLit 3))))
+  u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var balanceVar) (.intLit 1000)))
+    (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var inputVar) (.intLit 3))))
 
 theorem evalExpr_swap_adjusted {caller : Frame} (evm : EVM.State)
     (balanceVar inputVar : Ident) (balance amountIn : UInt256)
@@ -26,7 +26,7 @@ theorem evalExpr_swap_adjusted_overflow {caller : Frame} (evm : EVM.State)
     (hb : caller.locals.get? balanceVar = some (uniswapUint256Value balance))
     (hover : UInt256.size ≤ balance.toNat * 1000) :
     evalExpr? config caller evm (swapAdjustedExpr balanceVar inputVar) = .revert := by
-  have hm : evalExpr? config caller evm (u256 (.binary .mul (.var balanceVar) (.intLit 1000))) = .revert :=
+  have hm : evalExpr? config caller evm (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var balanceVar) (.intLit 1000))) = .revert :=
     evalExpr_uint256_mul_overflow (a := balance) (b := ⟨1000⟩) (by simp only [evalExpr?, EvalResult.ofOption, hb]) (by norm_num [evalExpr?, pure, uint256Value, UInt256.toNat, UInt256.size]) hover
   dsimp only [u256] at hm
   simp only [swapAdjustedExpr, u256, evalExpr?, hm, EvalResult.bind, bind]

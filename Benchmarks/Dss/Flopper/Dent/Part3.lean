@@ -47,11 +47,11 @@ theorem flopperDentBodyReverts_insufficientDecrease (evm : EVM.State) (I : Execu
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lotOne_mul_guard_true evm I hlotOneFit)) <|
       ExecBlock.consRevert
@@ -182,11 +182,11 @@ theorem flopperDentBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lotOne_mul_guard_true evm I hlotOneFit)) <|
       ExecBlock.consNormal
@@ -327,11 +327,11 @@ theorem flopperDentBodyReverts_moveCallFailure
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lotOne_mul_guard_true evm I hlotOneFit)) <|
       ExecBlock.consNormal
@@ -546,11 +546,11 @@ theorem flopperDentBodyReverts_ashNoCode_moveCallerNe_ticZero
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lotOne_mul_guard_true evm I hlotOneFit)) <|
       ExecBlock.consNormal
@@ -771,11 +771,11 @@ theorem flopperDentBodyReverts_ashCallFailure_moveCallerNe_ticZero
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lotOne_mul_guard_true evm I hlotOneFit)) <|
       ExecBlock.consNormal
@@ -998,11 +998,11 @@ theorem flopperDentBodyReverts_ashDecodeShort_moveCallerNe_ticZero
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lotOne_mul_guard_true evm I hlotOneFit)) <|
       ExecBlock.consNormal
@@ -1225,11 +1225,11 @@ theorem flopperDentBodyReverts_afterAshRevert_moveCallerNe_ticZero
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_lotOne_ok evm I hlotOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lotOne_mul_guard_true evm I hlotOneFit)) <|
       ExecBlock.consNormal

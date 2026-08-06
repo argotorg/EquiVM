@@ -505,12 +505,14 @@ private theorem biteUrnsRevert_afterIlks
         (.ok { contract := contract, locals := Lrate } evmIlk) :=
     biteTupleLet "vatIlk" "rate" (some uint256) 1
       (by rw [hLilk, store_get_self]) (by rfl)
+      (valueMatchesOptionalABIType_uint256_word _)
   have hSpotStmt :
       ExecStmt config { contract := contract, locals := Lrate } evmIlk
         (.letDecl "spot" (some uint256) (.tupleGet (.var "vatIlk") 2))
         (.ok { contract := contract, locals := Lspot } evmIlk) :=
     biteTupleLet "vatIlk" "spot" (some uint256) 2
       (by rw [hLrate, store_get_ne _ _ (by decide), hLilk, store_get_self]) (by rfl)
+      (valueMatchesOptionalABIType_uint256_word _)
   have hDustStmt :
       ExecStmt config { contract := contract, locals := Lspot } evmIlk
         (.letDecl "dust" (some uint256) (.tupleGet (.var "vatIlk") 4))
@@ -518,6 +520,7 @@ private theorem biteUrnsRevert_afterIlks
     biteTupleLet "vatIlk" "dust" (some uint256) 4
       (by rw [hLspot, store_get_ne _ _ (by decide), hLrate, store_get_ne _ _ (by decide),
         hLilk, store_get_self]) (by rfl)
+      (valueMatchesOptionalABIType_uint256_word _)
   have hDustVat : Ldust.get? "vat" = none := by
     rw [hLdust, store_get_ne _ _ (by decide), hLspot, store_get_ne _ _ (by decide),
       hLrate, store_get_ne _ _ (by decide), hLilk, store_get_ne _ _ (by decide)]

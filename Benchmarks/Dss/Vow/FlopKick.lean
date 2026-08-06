@@ -112,7 +112,7 @@ theorem flopPrefixToDaiSuccess
       bindParams? subFunction.params
           [.int (Int.ofNat vatSin.toNat), .int (Int.ofNat SinVal.toNat)] =
         some (uintBinaryLocals vatSin SinVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    exact bindParams_subFunction vatSin SinVal
   have hfreeStmt :
       ExecStmt config { contract := contract, locals := locals1 } evmSin
         (.internalCall "sub" [.var "vatSin", .storage SinRef] "freeSin")
@@ -151,7 +151,7 @@ theorem flopPrefixToDaiSuccess
       bindParams? subFunction.params
           [.int (Int.ofNat freeSin.toNat), .int (Int.ofNat AshVal.toNat)] =
         some (uintBinaryLocals freeSin AshVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    exact bindParams_subFunction freeSin AshVal
   have hdebtStmt :
       ExecStmt config { contract := contract, locals := locals2 } evmSin
         (.internalCall "sub" [.var "freeSin", .storage AshRef] "flopDebt")

@@ -101,18 +101,10 @@ theorem evalExpr_mul256_ok {evm : EVM.State} {locals : Store}
     (hfit : a.toNat * b.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm (mul256 x y) =
       .ok (.int (Int.ofNat prod.toNat)) := by
-  have hlt : ¬ Int.ofNat (a.toNat * b.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
   have hword : prod.toNat = a.toNat * b.toNat := by
     rw [hprod, u256_mul_toNat, Nat.mod_eq_of_lt hfit]
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  simpa [mul256, u256, uint256Int] using
+    evalExpr_checked_mul_uint256_word_ok hx hy hword hfit
 
 -- LIBRARY CANDIDATE: Solm uint256 multiplication range check reverts when the product overflows.
 theorem evalExpr_mul256_revert {evm : EVM.State} {locals : Store}
@@ -124,9 +116,8 @@ theorem evalExpr_mul256_revert {evm : EVM.State} {locals : Store}
     (hover : UInt256.size ≤ a.toNat * b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (mul256 x y) =
       .revert := by
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  simpa [mul256, u256, uint256Int] using
+    evalExpr_checked_mul_uint256_word_revert_of_overflow hx hy hover
 
 -- LIBRARY CANDIDATE: Solm uint256 division expression for nonzero uint256 divisors.
 theorem evalExpr_div_uint256_ok {evm : EVM.State} {locals : Store}
@@ -137,14 +128,11 @@ theorem evalExpr_div_uint256_ok {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hb : b ≠ ⟨0⟩)
     (hq : q = UInt256.div a b) :
-    evalExpr? config { contract := contract, locals := locals } evm (.binary .div x y) =
+    evalExpr? config { contract := contract, locals := locals } evm (.binary (.div (.uint ⟨256, by decide⟩) .checked) x y) =
       .ok (.int (Int.ofNat q.toNat)) := by
-  have hbNat : ¬ b.toNat = 0 := by
-    intro hzero
-    exact hb (uint256_toNat_eq_zero hzero)
   have hqNat : q.toNat = a.toNat / b.toNat := by
     rw [hq, udiv_toNat]
-  simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hbNat, hqNat]
+  exact evalExpr_checked_div_uint256_word_ok hx hy hb hqNat
 
 -- LIBRARY CANDIDATE: typed integer equality expression success.
 theorem evalExpr_eq_int_true {evm : EVM.State} {locals : Store}
@@ -253,7 +241,7 @@ theorem evalExpr_checkedMulRequire_ok {evm : EVM.State} {locals : Store}
     evalExpr? config { contract := contract, locals := locals } evm
       (.binary .or
         (.binary .eq y (.intLit 0))
-        (.binary .eq (.binary .div (.var name) y) x)) =
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x)) =
         .ok (.bool true) := by
   have hzeroLit :
       evalExpr? config { contract := contract, locals := locals } evm (.intLit 0) =
@@ -277,14 +265,14 @@ theorem evalExpr_checkedMulRequire_ok {evm : EVM.State} {locals : Store}
       exact flipper_u256_mul_div_right_eq_of_noOverflow a b hb hfit
     have hdiv :
         evalExpr? config { contract := contract, locals := locals } evm
-          (.binary .div (.var name) y) = .ok (.int (Int.ofNat a.toNat)) := by
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) = .ok (.int (Int.ofNat a.toNat)) := by
       have h := evalExpr_div_uint256_ok (evm := evm) (locals := locals)
         (x := .var name) (y := y) (a := prod) (b := b)
         (q := UInt256.div prod b) hz hy hb rfl
       simpa [hdivWord] using h
     have hright :
         evalExpr? config { contract := contract, locals := locals } evm
-          (.binary .eq (.binary .div (.var name) y) x) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x) =
             .ok (.bool true) :=
       evalExpr_eq_int_true hdiv hx rfl
     exact evalExpr_or_false_right hleft hright

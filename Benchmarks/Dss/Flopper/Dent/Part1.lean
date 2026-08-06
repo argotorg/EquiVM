@@ -1353,7 +1353,8 @@ theorem dentMin_bindParams (x y : UInt256) :
     bindParams? minFunction.params
         [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] =
       some (dentMinLocals x y) := by
-  simp [minFunction, dentMinLocals, uint256, bindParams?]
+  simpa [minFunction, dentMinLocals] using
+    bindParams_uint256_pair "x" "y" x y
 
 theorem evalExpr_dent_min_gt_false (evm : EVM.State) (x y : UInt256)
     (hle : x.toNat ≤ y.toNat) :

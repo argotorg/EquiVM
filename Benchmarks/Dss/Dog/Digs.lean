@@ -181,25 +181,9 @@ theorem evalExpr_dogSub256_ok {v : DogImmutables} {evm : EVM.State} {locals : St
     (hle : b.toNat ≤ a.toNat) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm (sub256 x y) =
       .ok (.int (Int.ofNat diff.toNat)) := by
-  have hdiffNat : diff.toNat = a.toNat - b.toNat := by
-    rw [hdiff, usub_toNat hle]
-  have hsubInt : (a.toNat : Int) - (b.toNat : Int) = ((a.toNat - b.toNat : Nat) : Int) :=
-    (Int.ofNat_sub hle).symm
-  have hltNat : a.toNat - b.toNat < UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    omega
-  have hlt : ¬ ((a.toNat - b.toNat : Nat) : Int) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hltNat))
-  simp [sub256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int]
-  rw [if_neg]
-  · rw [hsubInt, ← hdiffNat]
-    rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_le.mpr hbad) hle
-    · rw [hsubInt] at hbad
-      exact hlt hbad
+  apply evalExpr_checked_sub_uint256_word_ok hx hy
+  · rw [hdiff, usub_toNat hle]
+  · exact hle
 
 theorem evalExpr_dogSub256_revert {v : DogImmutables} {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -210,10 +194,7 @@ theorem evalExpr_dogSub256_revert {v : DogImmutables} {evm : EVM.State} {locals 
     (hlt : a.toNat < b.toNat) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm (sub256 x y) =
       .revert := by
-  have hneg : (a.toNat : Int) - (b.toNat : Int) < 0 := by
-    omega
-  simp [sub256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hneg]
+  exact evalExpr_checked_sub_uint256_word_revert_of_underflow hx hy hlt
 
 theorem execSubFunctionReturn {v : DogImmutables} (evm : EVM.State)
     {x y diff : UInt256}
@@ -269,7 +250,11 @@ theorem execSubFunctionReturn {v : DogImmutables} (evm : EVM.State)
         subFunction.body
         (.returned { contract := contract v, locals := localsZ } evm
           (some [.int (Int.ofNat diff.toNat)])) := by
-    refine ExecBlock.consNormal (ExecStmt.letDecl hzExpr) ?_
+    have hzType :
+        valueMatchesOptionalABIType (some uint256)
+          (.int (Int.ofNat diff.toNat)) = true := by
+      simpa [uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word diff
+    refine ExecBlock.consNormal (ExecStmt.letDecl hzExpr hzType) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
     exact ExecBlock.consReturn (ExecStmt.return hret)
   simpa [ExecFuncBody, locals, localsZ] using ExecFuncBody.execBlockRet hblock
@@ -466,7 +451,8 @@ theorem digsSuccessSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I} {g : U
       bindParams? subFunction.params
           [.int (Int.ofNat dirt0.toNat), .int (Int.ofNat (digsRad I).toNat)] =
         some (uintBinaryLocals dirt0 (digsRad I)) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uint256, uint256Int, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" dirt0 (digsRad I)
   have hcall1 :
       ExecStmt (config v) { contract := contract v, locals := locals } evm0
         (.internalCall "sub" [.storage DirtRef, .var "rad"] "DirtNew")
@@ -531,7 +517,8 @@ theorem digsSuccessSourceBody {v : DogImmutables} {cA gh bl σ σ₀ A I} {g : U
       bindParams? subFunction.params
           [.int (Int.ofNat ilkDirt0.toNat), .int (Int.ofNat (digsRad I).toNat)] =
         some (uintBinaryLocals ilkDirt0 (digsRad I)) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uint256, uint256Int, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" ilkDirt0 (digsRad I)
   have hIlkLe' : (digsRad I).toNat ≤ ilkDirt0.toNat := by
     have hmap : evm1.accountMap = sstoreAccountMap I.codeOwner σ ⟨5⟩ dirtNew := by
       simpa [evm1, evm0, initState] using
@@ -651,7 +638,8 @@ theorem digsFirstSubUnderflowSourceBody {v : DogImmutables}
       bindParams? subFunction.params
           [.int (Int.ofNat dirt0.toNat), .int (Int.ofNat (digsRad I).toNat)] =
         some (uintBinaryLocals dirt0 (digsRad I)) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uint256, uint256Int, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" dirt0 (digsRad I)
   have hcall :
       ExecStmt (config v) { contract := contract v, locals := locals } evm0
         (.internalCall "sub" [.storage DirtRef, .var "rad"] "DirtNew") .reverted := by
@@ -726,7 +714,8 @@ theorem digsSecondSubUnderflowSourceBody {v : DogImmutables}
       bindParams? subFunction.params
           [.int (Int.ofNat dirt0.toNat), .int (Int.ofNat (digsRad I).toNat)] =
         some (uintBinaryLocals dirt0 (digsRad I)) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uint256, uint256Int, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" dirt0 (digsRad I)
   have hcall1 :
       ExecStmt (config v) { contract := contract v, locals := locals } evm0
         (.internalCall "sub" [.storage DirtRef, .var "rad"] "DirtNew")
@@ -791,7 +780,8 @@ theorem digsSecondSubUnderflowSourceBody {v : DogImmutables}
       bindParams? subFunction.params
           [.int (Int.ofNat ilkDirt0.toNat), .int (Int.ofNat (digsRad I).toNat)] =
         some (uintBinaryLocals ilkDirt0 (digsRad I)) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uint256, uint256Int, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" ilkDirt0 (digsRad I)
   have hIlkLt' : ilkDirt0.toNat < (digsRad I).toNat := by
     have hmap : evm1.accountMap = sstoreAccountMap I.codeOwner σ ⟨5⟩ dirtNew := by
       simpa [evm1, evm0, initState] using

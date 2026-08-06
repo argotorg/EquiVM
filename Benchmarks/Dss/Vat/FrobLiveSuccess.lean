@@ -2091,7 +2091,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
                 "ilkArtNew" (.int (Int.ofNat (frobDartWord I + ilkArt).toNat))).insert
                 "dtab" (.int dtab) } evm0
           (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-            (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+            (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
               (.var "ilkRate"))) =
           .ok (.bool true) →
         let localsLoaded :=
@@ -2200,7 +2200,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           { contract := contract, locals := localsIlk.insert "dtab" (.int dtab) }
           evm0
           (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-            (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+            (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
               (.var "ilkRate"))) =
           .ok (.bool true) := by
       intro hRateMax
@@ -2269,7 +2269,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
             { contract := contract, locals := localsIlk.insert "dtab" (.int dtab) }
             evm0
             (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-              (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+              (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
                 (.var "ilkRate"))) =
           .ok (.bool true) := by
         by_cases hwordZero : frobDartWord I = ⟨0⟩
@@ -2279,15 +2279,15 @@ theorem vatFrobBodyCoreLiveSuccessGuards
               (frobDartInt_zero_of_word_zero I hwordZero)
         · have hdartNe : frobDartInt I ≠ 0 :=
             frobDartInt_ne_zero_of_word_ne I hwordZero
-          have hdiv : dtab / frobDartInt I = Int.ofNat ilkRate.toNat := by
+          have hdiv : dtab.tdiv (frobDartInt I) = Int.ofNat ilkRate.toNat := by
             change
-              (Int.ofNat ilkRate.toNat * frobDartInt I) / frobDartInt I =
+              (Int.ofNat ilkRate.toNat * frobDartInt I).tdiv (frobDartInt I) =
                 Int.ofNat ilkRate.toNat
-            exact Int.mul_ediv_cancel (Int.ofNat ilkRate.toNat) hdartNe
+            exact Int.mul_tdiv_cancel (Int.ofNat ilkRate.toNat) hdartNe
           exact
             evalExpr_frob_dtab_mul_guard_exact_true
               (evm := evm0) (locals := localsIlk) (rate := ilkRate) I hdartGet
-              hrateGet hdartNe hdiv
+              hrateGet hdartNe (u256_toNat_lt_sign_of_slt_zero hRateMaxS) hdiv
       exact ⟨hguardMax, hguardMul⟩
     have hDtabRangeOfGuards :
         UInt256.slt (solcSlotWord σ_evm I (frobIlkRateSlot I)) ⟨0⟩ = ⟨0⟩ →

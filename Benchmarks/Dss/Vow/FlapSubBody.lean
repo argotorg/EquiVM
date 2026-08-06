@@ -108,7 +108,8 @@ theorem flapTailFreeSinUnderflow
       bindParams? subFunction.params
           [.int (Int.ofNat vatSin1.toNat), .int (Int.ofNat SinVal.toNat)] =
         some (uintBinaryLocals vatSin1 SinVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      (bindParams_uint256_pair "x" "y" vatSin1 SinVal)
   have hsubStmt :
       ExecStmt config { contract := contract, locals := locals5 } evmSin
         (.internalCall "sub" [.var "vatSin1", .storage SinRef] "freeSin") .reverted := by
@@ -339,7 +340,8 @@ theorem flapTailDebtUnderflow
       bindParams? subFunction.params
           [.int (Int.ofNat vatSin1.toNat), .int (Int.ofNat SinVal.toNat)] =
         some (uintBinaryLocals vatSin1 SinVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      (bindParams_uint256_pair "x" "y" vatSin1 SinVal)
   have hfreeStmt :
       ExecStmt config { contract := contract, locals := locals5 } evmSin
         (.internalCall "sub" [.var "vatSin1", .storage SinRef] "freeSin")
@@ -384,7 +386,8 @@ theorem flapTailDebtUnderflow
       bindParams? subFunction.params
           [.int (Int.ofNat freeSin.toNat), .int (Int.ofNat AshVal.toNat)] =
         some (uintBinaryLocals freeSin AshVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      (bindParams_uint256_pair "x" "y" freeSin AshVal)
   have hdebtStmt :
       ExecStmt config { contract := contract, locals := locals6 } evmSin
         (.internalCall "sub" [.var "freeSin", .storage AshRef] "debt") .reverted := by
@@ -627,7 +630,8 @@ theorem flapTailDebtNotZero
       bindParams? subFunction.params
           [.int (Int.ofNat vatSin1.toNat), .int (Int.ofNat SinVal.toNat)] =
         some (uintBinaryLocals vatSin1 SinVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      (bindParams_uint256_pair "x" "y" vatSin1 SinVal)
   have hfreeStmt :
       ExecStmt config { contract := contract, locals := locals5 } evmSin
         (.internalCall "sub" [.var "vatSin1", .storage SinRef] "freeSin")
@@ -672,7 +676,8 @@ theorem flapTailDebtNotZero
       bindParams? subFunction.params
           [.int (Int.ofNat freeSin.toNat), .int (Int.ofNat AshVal.toNat)] =
         some (uintBinaryLocals freeSin AshVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      (bindParams_uint256_pair "x" "y" freeSin AshVal)
   have hdebtStmt :
       ExecStmt config { contract := contract, locals := locals6 } evmSin
         (.internalCall "sub" [.var "freeSin", .storage AshRef] "debt")

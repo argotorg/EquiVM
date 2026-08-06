@@ -269,7 +269,7 @@ def addFunction : FunctionDecl :=
     params := [{ name := "x", ty := uint256 }, { name := "y", ty := uint256 }]
     returnType := [uint256]
     body :=
-      [ .letDecl "z" (some uint256) (u256 (.binary .add (.var "x") (.var "y"))),
+      [ .letDecl "z" (some uint256) (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "x") (.var "y"))),
         .require (.binary .ge (.var "z") (.var "x")),
         .return [.var "z"] ] }
 
@@ -278,7 +278,7 @@ def subFunction : FunctionDecl :=
     params := [{ name := "x", ty := uint256 }, { name := "y", ty := uint256 }]
     returnType := [uint256]
     body :=
-      [ .letDecl "z" (some uint256) (u256 (.binary .sub (.var "x") (.var "y"))),
+      [ .letDecl "z" (some uint256) (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "x") (.var "y"))),
         .require (.binary .le (.var "z") (.var "x")),
         .return [.var "z"] ] }
 
@@ -287,11 +287,11 @@ def mulFunction : FunctionDecl :=
     params := [{ name := "x", ty := uint256 }, { name := "y", ty := uint256 }]
     returnType := [uint256]
     body :=
-      [ .letDecl "z" (some uint256) (u256 (.binary .mul (.var "x") (.var "y"))),
+      [ .letDecl "z" (some uint256) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "x") (.var "y"))),
         .require
           (.binary .or
             (.binary .eq (.var "y") (.intLit 0))
-            (.binary .eq (.binary .div (.var "z") (.var "y")) (.var "x"))),
+            (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "z") (.var "y")) (.var "x"))),
         .return [.var "z"] ] }
 
 def minFunction : FunctionDecl :=
@@ -307,7 +307,7 @@ def rmulFunction : FunctionDecl :=
     returnType := [uint256]
     body :=
       [ .internalCall "mul" [.var "x", .var "y"] "m",
-        .return [.binary .div (.var "m") (.intLit RAY)] ] }
+        .return [.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "m") (.intLit RAY)] ] }
 
 def wdivFunction : FunctionDecl :=
   { name := "wdiv"
@@ -315,7 +315,7 @@ def wdivFunction : FunctionDecl :=
     returnType := [uint256]
     body :=
       [ .internalCall "mul" [.var "x", .intLit WAD] "m",
-        .return [.binary .div (.var "m") (.var "y")] ] }
+        .return [.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "m") (.var "y")] ] }
 
 def functions : List FunctionDecl :=
   [addFunction, subFunction, mulFunction, minFunction, rmulFunction, wdivFunction]
@@ -492,7 +492,7 @@ def snipTransition : TransitionDecl :=
       checkedExternalCallStmts (.storage vatRef) "suck" (.intLit 0)
         [vowAddr, vowAddr, .var "tab"] "_suck" ++
       checkedExternalCallStmts (.var "clip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-      [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+      [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
         .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
         .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
         -- int256(lot) >= 0 && int256(art) >= 0  ⟺  lot < 2^255 && art < 2^255
@@ -527,7 +527,7 @@ def skipTransition : TransitionDecl :=
         [vowAddr, thisAddr, .var "bid"] "_suck2" ++
       checkedExternalCallStmts (.storage vatRef) "hope" (.intLit 0) [.var "flip"] "_hope" ++
       checkedExternalCallStmts (.var "flip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-      [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+      [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
         .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
         .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
         -- int256(lot) >= 0 && int256(art) >= 0  ⟺  lot < 2^255 && art < 2^255
@@ -616,8 +616,8 @@ def flowTransition : TransitionDecl :=
         .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
         .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
         .internalCall "mul" [.var "num0", .intLit RAY] "num",
-        .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-        .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+        .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+        .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
         .assign .storage (fixRef (.var "ilk")) (.var "fixV") ] }
 
 def packTransition : TransitionDecl :=

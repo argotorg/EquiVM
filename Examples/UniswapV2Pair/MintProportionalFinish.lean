@@ -801,7 +801,7 @@ theorem uniswapMintFeeOnKLastNonzeroNoMintCase
               (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
           feeTo true (mintFeeKLastWord evmFeeS))
         evmFeeS
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
@@ -1105,7 +1105,7 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveNoLiquidityCase
               (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
           feeTo true (mintFeeKLastWord evmFeeS))
         evmFeeS
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
@@ -1435,7 +1435,7 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveWithLiquidityCase
               (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
           feeTo true (mintFeeKLastWord evmFeeS))
         evmFeeS
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
@@ -1899,7 +1899,7 @@ theorem uniswapMintFeeOnKLastNonzeroSmallNoMintCase
           (mintFeeKLastWord evmFeeS))
         evmFeeS
         [ .internalCall "sqrt"
-            [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+            [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
           (mintFeeAfterRootKLastFrame (uniswapReserve0Word (uniswapLockEnteredState evmS))

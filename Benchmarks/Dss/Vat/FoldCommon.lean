@@ -1177,7 +1177,7 @@ theorem evalExpr_fold_mul_guard_rad_zero_art_zero_true
         (.storage (ilksF (.var "i") "Art")) = .ok (.int 0)) :
     evalExpr? config { contract := contract, locals := foldStoreRad I rateNew 0 } evm
       (eitherExpr (.binary .eq (.var "rate") (.intLit 0))
-        (.binary .eq (.binary .div (.var "rad") (.var "rate"))
+        (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "rad") (.var "rate"))
           (.storage (ilksF (.var "i") "Art")))) =
       .ok (.bool true) := by
   have hrate :
@@ -1194,10 +1194,12 @@ theorem evalExpr_fold_mul_guard_rad_zero_art_zero_true
     simp [evalExpr?, EvalResult.bind, bind, hrate, evalBinaryOp?, hrateNe]
   have hright :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew 0 } evm
-        (.binary .eq (.binary .div (.var "rad") (.var "rate"))
+        (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "rad") (.var "rate"))
           (.storage (ilksF (.var "i") "Art"))) =
       .ok (.bool true) := by
-    simp [evalExpr?, EvalResult.bind, bind, hrad, hrate, hart, evalBinaryOp?, hrateNe]
+    have hdivEval := evalExpr_checked_div_sint_ok ⟨256, by decide⟩ 0 (foldRateInt I)
+      hrad hrate hrateNe (by norm_num [EVM.twoPow]) (by norm_num [EVM.twoPow])
+    simp [evalExpr?, EvalResult.bind, bind, hdivEval, hart, evalBinaryOp?]
   exact vatEvalExpr_or_false_right hleft hright
 
 theorem evalExpr_fold_mul_guard_rate_zero_true
@@ -1205,7 +1207,7 @@ theorem evalExpr_fold_mul_guard_rate_zero_true
     (hrateZero : foldRateInt I = 0) :
     evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad } evm
       (eitherExpr (.binary .eq (.var "rate") (.intLit 0))
-        (.binary .eq (.binary .div (.var "rad") (.var "rate"))
+        (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "rad") (.var "rate"))
           (.storage (ilksF (.var "i") "Art")))) =
       .ok (.bool true) := by
   have hrate0 :
@@ -1223,13 +1225,14 @@ theorem evalExpr_fold_mul_guard_exact_true
     (evm : EVM.State) (I : ExecutionEnv) (rateNew : UInt256) (rad : Int)
     {art : Int}
     (hrateNe : foldRateInt I ≠ 0)
-    (hdiv : rad / foldRateInt I = art)
+    (hdiv : rad.tdiv (foldRateInt I) = art)
+    (hlower : -((2 : Int) ^ 255) ≤ art) (hupper : art < (2 : Int) ^ 255)
     (hart :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad } evm
         (.storage (ilksF (.var "i") "Art")) = .ok (.int art)) :
     evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad } evm
       (eitherExpr (.binary .eq (.var "rate") (.intLit 0))
-        (.binary .eq (.binary .div (.var "rad") (.var "rate"))
+        (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "rad") (.var "rate"))
           (.storage (ilksF (.var "i") "Art")))) =
       .ok (.bool true) := by
   have hrate :
@@ -1246,24 +1249,29 @@ theorem evalExpr_fold_mul_guard_exact_true
     simp [evalExpr?, EvalResult.bind, bind, hrate, evalBinaryOp?, hrateNe]
   have hright :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad } evm
-        (.binary .eq (.binary .div (.var "rad") (.var "rate"))
+        (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "rad") (.var "rate"))
           (.storage (ilksF (.var "i") "Art"))) =
       .ok (.bool true) := by
-    simp [evalExpr?, EvalResult.bind, bind, hrad, hrate, hart, evalBinaryOp?,
-      hrateNe, hdiv]
+    have hdivEval := evalExpr_checked_div_sint_ok ⟨256, by decide⟩ rad (foldRateInt I)
+      hrad hrate hrateNe (by simpa [EVM.twoPow, hdiv] using hlower)
+      (by simpa [EVM.twoPow, hdiv] using hupper)
+    rw [hdiv] at hdivEval
+    simp [evalExpr?, EvalResult.bind, bind, hdivEval, hart, evalBinaryOp?]
   exact vatEvalExpr_or_false_right hleft hright
 
 theorem evalExpr_fold_mul_guard_false
     (evm : EVM.State) (I : ExecutionEnv) (rateNew : UInt256) (rad : Int)
     {art : Int}
     (hrateNe : foldRateInt I ≠ 0)
-    (hdivNe : rad / foldRateInt I ≠ art)
+    (hdivNe : rad.tdiv (foldRateInt I) ≠ art)
+    (hlower : -((2 : Int) ^ 255) ≤ rad.tdiv (foldRateInt I))
+    (hupper : rad.tdiv (foldRateInt I) < (2 : Int) ^ 255)
     (hart :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad } evm
         (.storage (ilksF (.var "i") "Art")) = .ok (.int art)) :
     evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad } evm
       (eitherExpr (.binary .eq (.var "rate") (.intLit 0))
-        (.binary .eq (.binary .div (.var "rad") (.var "rate"))
+        (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "rad") (.var "rate"))
           (.storage (ilksF (.var "i") "Art")))) =
       .ok (.bool false) := by
   have hrate :
@@ -1280,11 +1288,13 @@ theorem evalExpr_fold_mul_guard_false
     simp [evalExpr?, EvalResult.bind, bind, hrate, evalBinaryOp?, hrateNe]
   have hright :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad } evm
-        (.binary .eq (.binary .div (.var "rad") (.var "rate"))
+        (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "rad") (.var "rate"))
           (.storage (ilksF (.var "i") "Art"))) =
       .ok (.bool false) := by
-    simp [evalExpr?, EvalResult.bind, bind, hrad, hrate, hart, evalBinaryOp?,
-      hrateNe, hdivNe]
+    have hdivEval := evalExpr_checked_div_sint_ok ⟨256, by decide⟩ rad (foldRateInt I)
+      hrad hrate hrateNe (by simpa [EVM.twoPow] using hlower)
+      (by simpa [EVM.twoPow] using hupper)
+    simp [evalExpr?, EvalResult.bind, bind, hdivEval, hart, evalBinaryOp?, hdivNe]
   exact vatEvalExpr_or_false_right hleft hright
 
 theorem fold_rad_mod_word (I : ExecutionEnv) (art : UInt256) :
@@ -1448,7 +1458,7 @@ theorem vatFoldRadMulRevertGuardFalse (evm : EVM.State) (I : ExecutionEnv)
     (hguardMul :
       evalExpr? config { contract := contract, locals := foldStoreRad I rateNew rad } evm
         (eitherExpr (.binary .eq (.var "rate") (.intLit 0))
-          (.binary .eq (.binary .div (.var "rad") (.var "rate"))
+          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "rad") (.var "rate"))
             (.storage (ilksF (.var "i") "Art")))) =
         .ok (.bool false)) :
     ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evm
@@ -1467,24 +1477,25 @@ theorem vatFoldRadMulRevertGuardFalse (evm : EVM.State) (I : ExecutionEnv)
     vatEvalExpr_varInt (foldStoreRateNew_get_rate I rateNew)
   have hmul :
       evalExpr? config { contract := contract, locals := foldStoreRateNew I rateNew } evm
-        (.binary .mul (.storage (ilksF (.var "i") "Art")) (.var "rate")) =
+        (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "Art")) (.var "rate")) =
         .ok (.int rad) :=
-    evalExpr_fold_mul_int_ok hart hrate hrad
+    evalExpr_fold_mul_int_ok hart hrate hrad hradLo hradHi
   have hlet :
       evalExpr? config { contract := contract, locals := foldStoreRateNew I rateNew } evm
-        (s256 (.binary .mul (.storage (ilksF (.var "i") "Art")) (.var "rate"))) =
+        (s256 (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "Art")) (.var "rate"))) =
         .ok (.int rad) :=
     evalExpr_fold_s256_ok hmul hradLo hradHi
   change ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evm
     [ .letDecl "rad" (some int256)
-        (s256 (.binary .mul (.storage (ilksF (.var "i") "Art")) (.var "rate"))),
+        (s256 (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "Art")) (.var "rate"))),
       .require (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit maxInt256)),
       .require
         (eitherExpr (.binary .eq (.var "rate") (.intLit 0))
-          (.binary .eq (.binary .div (.var "rad") (.var "rate"))
+          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "rad") (.var "rate"))
             (.storage (ilksF (.var "i") "Art")))) ]
     .reverted
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_sint256 hlet
+    (by simpa [EVM.twoPow] using hradLo) (by simpa [EVM.twoPow] using hradHi)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardMax) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguardMul)
 
@@ -1498,7 +1509,6 @@ theorem vatFoldRadMulRevertRange (evm : EVM.State) (I : ExecutionEnv)
     ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evm
       (checkedMulSignedInto "rad" (.storage (ilksF (.var "i") "Art")) (.var "rate"))
       .reverted := by
-  let prod := Int.ofNat artOld.toNat * foldRateInt I
   have hart :
       evalExpr? config { contract := contract, locals := foldStoreRateNew I rateNew } evm
           (.storage (ilksF (.var "i") "Art")) =
@@ -1512,22 +1522,20 @@ theorem vatFoldRadMulRevertRange (evm : EVM.State) (I : ExecutionEnv)
     vatEvalExpr_varInt (foldStoreRateNew_get_rate I rateNew)
   have hmul :
       evalExpr? config { contract := contract, locals := foldStoreRateNew I rateNew } evm
-        (.binary .mul (.storage (ilksF (.var "i") "Art")) (.var "rate")) =
-        .ok (.int prod) :=
-    evalExpr_fold_mul_int_ok hart hrate rfl
+        (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "Art")) (.var "rate")) =
+        .revert :=
+    evalExpr_fold_mul_int_revert hart hrate hbad
   change ExecBlock config { contract := contract, locals := foldStoreRateNew I rateNew } evm
     [ .letDecl "rad" (some int256)
-        (s256 (.binary .mul (.storage (ilksF (.var "i") "Art")) (.var "rate"))),
+        (s256 (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "Art")) (.var "rate"))),
       .require (.binary .le (.storage (ilksF (.var "i") "Art")) (.intLit maxInt256)),
       .require
         (eitherExpr (.binary .eq (.var "rate") (.intLit 0))
-          (.binary .eq (.binary .div (.var "rad") (.var "rate"))
+          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "rad") (.var "rate"))
             (.storage (ilksF (.var "i") "Art")))) ]
     .reverted
-  have hbadProd : prod < -((2 : Int) ^ 255) ∨ prod ≥ (2 : Int) ^ 255 := by
-    exact hbad
   exact ExecBlock.consRevert
-    (ExecStmt.letDeclRevert (evalExpr_s256_revert hmul hbadProd))
+    (ExecStmt.letDeclRevert (evalExpr_inRange_revert _ _ _ _ _ hmul))
 
 theorem foldStoreDaiNew_get_u (I : ExecutionEnv) (rateNew : UInt256) (rad : Int)
     (daiNew : UInt256) :

@@ -49,7 +49,8 @@ theorem execPokeTrueArithmeticReturns (evm : EVM.State) (I : ExecutionEnv) (out 
         (.letDecl "valScaled" (some uint256)
           (mul256 (.cast (.var "val") uint256St) (.intLit billion)))
         (.ok { contract := contract, locals := localsV } evm) := by
-    simpa [locals0, localsV, pokeValScaledLocals] using ExecStmt.letDecl hMul
+    simpa [locals0, localsV, pokeValScaledLocals] using
+      ExecStmt.letDecl_uint256_word hMul
   have hValScaledVar :
       evalExpr? config { contract := contract, locals := localsV } evm (.var "valScaled") =
         .ok (.int (Int.ofNat valScaled.toNat)) := by
@@ -71,7 +72,7 @@ theorem execPokeTrueArithmeticReturns (evm : EVM.State) (I : ExecutionEnv) (out 
     norm_num [pokeBillion_toNat]
   have hDivCheck :
       evalExpr? config { contract := contract, locals := localsV } evm
-        (.binary .div (.var "valScaled") (.intLit billion)) =
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "valScaled") (.intLit billion)) =
           .ok (.int (Int.ofNat (pokePeekValWord out).toNat)) := by
     have hdivWord : UInt256.div valScaled pokeBillion = pokePeekValWord out := by
       apply u256_inj
@@ -92,7 +93,7 @@ theorem execPokeTrueArithmeticReturns (evm : EVM.State) (I : ExecutionEnv) (out 
   have hRightCheck :
       evalExpr? config { contract := contract, locals := localsV } evm
         (.binary .eq
-          (.binary .div (.var "valScaled") (.intLit billion))
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "valScaled") (.intLit billion))
           (.cast (.var "val") uint256St)) = .ok (.bool true) := by
     have hvalCastV :
         evalExpr? config { contract := contract, locals := localsV } evm
@@ -106,7 +107,7 @@ theorem execPokeTrueArithmeticReturns (evm : EVM.State) (I : ExecutionEnv) (out 
       evalExpr? config { contract := contract, locals := localsV } evm
         (.binary .or
           (.binary .eq (.intLit billion) (.intLit 0))
-          (.binary .eq (.binary .div (.var "valScaled") (.intLit billion))
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "valScaled") (.intLit billion))
             (.cast (.var "val") uint256St))) = .ok (.bool true) :=
     evalExpr_spot_or_false_right hBillionEqZero hRightCheck
   have hPar :
@@ -126,7 +127,8 @@ theorem execPokeTrueArithmeticReturns (evm : EVM.State) (I : ExecutionEnv) (out 
       bindParams? rdivFunction.params
           [.int (Int.ofNat valScaled.toNat), .int (Int.ofNat par.toNat)] =
         some (spotUintBinaryLocals valScaled par) := by
-    simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
+    simpa [rdivFunction, spotUintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" valScaled par
   have hRdiv1Stmt :
       ExecStmt config { contract := contract, locals := localsV } evm
         (.internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1")
@@ -168,7 +170,8 @@ theorem execPokeTrueArithmeticReturns (evm : EVM.State) (I : ExecutionEnv) (out 
       bindParams? rdivFunction.params
           [.int (Int.ofNat spot1.toNat), .int (Int.ofNat mat.toNat)] =
         some (spotUintBinaryLocals spot1 mat) := by
-    simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
+    simpa [rdivFunction, spotUintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" spot1 mat
   have hRdiv2Stmt :
       ExecStmt config { contract := contract, locals := locals1 } evm
         (.internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]
@@ -271,11 +274,11 @@ theorem execPokeTrueRdivParMulOverflowReverts
           (mul256 (.cast (.var "val") uint256St) (.intLit billion)))
         (.ok { contract := contract, locals := localsV } evm) := by
     simpa [locals0, localsV, pokeValScaledLocals] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config) (solm := { contract := contract, locals := locals0 })
-        (evm := evm) (name := "valScaled") (ty := some uint256)
+        (evm := evm) (name := "valScaled")
         (expr := mul256 (.cast (.var "val") uint256St) (.intLit billion))
-        (value := .int (Int.ofNat valScaled.toNat)) hMul)
+        (word := valScaled) hMul)
   have hValScaledVar :
       evalExpr? config { contract := contract, locals := localsV } evm (.var "valScaled") =
         .ok (.int (Int.ofNat valScaled.toNat)) := by
@@ -297,7 +300,7 @@ theorem execPokeTrueRdivParMulOverflowReverts
     norm_num [pokeBillion_toNat]
   have hDivCheck :
       evalExpr? config { contract := contract, locals := localsV } evm
-        (.binary .div (.var "valScaled") (.intLit billion)) =
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "valScaled") (.intLit billion)) =
           .ok (.int (Int.ofNat (pokePeekValWord out).toNat)) := by
     have hdivWord : UInt256.div valScaled pokeBillion = pokePeekValWord out := by
       apply u256_inj
@@ -318,7 +321,7 @@ theorem execPokeTrueRdivParMulOverflowReverts
   have hRightCheck :
       evalExpr? config { contract := contract, locals := localsV } evm
         (.binary .eq
-          (.binary .div (.var "valScaled") (.intLit billion))
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "valScaled") (.intLit billion))
           (.cast (.var "val") uint256St)) = .ok (.bool true) := by
     have hvalCastV :
         evalExpr? config { contract := contract, locals := localsV } evm
@@ -332,7 +335,7 @@ theorem execPokeTrueRdivParMulOverflowReverts
       evalExpr? config { contract := contract, locals := localsV } evm
         (.binary .or
           (.binary .eq (.intLit billion) (.intLit 0))
-          (.binary .eq (.binary .div (.var "valScaled") (.intLit billion))
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "valScaled") (.intLit billion))
             (.cast (.var "val") uint256St))) = .ok (.bool true) :=
     evalExpr_spot_or_false_right hBillionEqZero hRightCheck
   have hPar :
@@ -352,7 +355,8 @@ theorem execPokeTrueRdivParMulOverflowReverts
       bindParams? rdivFunction.params
           [.int (Int.ofNat valScaled.toNat), .int (Int.ofNat par.toNat)] =
         some (spotUintBinaryLocals valScaled par) := by
-    simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
+    simpa [rdivFunction, spotUintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" valScaled par
   have hRdiv1Stmt :
       ExecStmt config { contract := contract, locals := localsV } evm
         (.internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1") .reverted :=
@@ -407,11 +411,11 @@ theorem execPokeTrueRdivParDivZeroReverts
           (mul256 (.cast (.var "val") uint256St) (.intLit billion)))
         (.ok { contract := contract, locals := localsV } evm) := by
     simpa [locals0, localsV, pokeValScaledLocals] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config) (solm := { contract := contract, locals := locals0 })
-        (evm := evm) (name := "valScaled") (ty := some uint256)
+        (evm := evm) (name := "valScaled")
         (expr := mul256 (.cast (.var "val") uint256St) (.intLit billion))
-        (value := .int (Int.ofNat valScaled.toNat)) hMul)
+        (word := valScaled) hMul)
   have hValScaledVar :
       evalExpr? config { contract := contract, locals := localsV } evm (.var "valScaled") =
         .ok (.int (Int.ofNat valScaled.toNat)) := by
@@ -433,7 +437,7 @@ theorem execPokeTrueRdivParDivZeroReverts
     norm_num [pokeBillion_toNat]
   have hDivCheck :
       evalExpr? config { contract := contract, locals := localsV } evm
-        (.binary .div (.var "valScaled") (.intLit billion)) =
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "valScaled") (.intLit billion)) =
           .ok (.int (Int.ofNat (pokePeekValWord out).toNat)) := by
     have hdivWord : UInt256.div valScaled pokeBillion = pokePeekValWord out := by
       apply u256_inj
@@ -454,7 +458,7 @@ theorem execPokeTrueRdivParDivZeroReverts
   have hRightCheck :
       evalExpr? config { contract := contract, locals := localsV } evm
         (.binary .eq
-          (.binary .div (.var "valScaled") (.intLit billion))
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "valScaled") (.intLit billion))
           (.cast (.var "val") uint256St)) = .ok (.bool true) := by
     have hvalCastV :
         evalExpr? config { contract := contract, locals := localsV } evm
@@ -468,7 +472,7 @@ theorem execPokeTrueRdivParDivZeroReverts
       evalExpr? config { contract := contract, locals := localsV } evm
         (.binary .or
           (.binary .eq (.intLit billion) (.intLit 0))
-          (.binary .eq (.binary .div (.var "valScaled") (.intLit billion))
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "valScaled") (.intLit billion))
             (.cast (.var "val") uint256St))) = .ok (.bool true) :=
     evalExpr_spot_or_false_right hBillionEqZero hRightCheck
   have hPar :
@@ -488,7 +492,8 @@ theorem execPokeTrueRdivParDivZeroReverts
       bindParams? rdivFunction.params
           [.int (Int.ofNat valScaled.toNat), .int (Int.ofNat par.toNat)] =
         some (spotUintBinaryLocals valScaled par) := by
-    simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
+    simpa [rdivFunction, spotUintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" valScaled par
   have hRdiv1Stmt :
       ExecStmt config { contract := contract, locals := localsV } evm
         (.internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1") .reverted :=
@@ -553,11 +558,11 @@ theorem execPokeTrueAfterRdivParThenRdivMatReverts
           (mul256 (.cast (.var "val") uint256St) (.intLit billion)))
         (.ok { contract := contract, locals := localsV } evm) := by
     simpa [locals0, localsV, pokeValScaledLocals] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config) (solm := { contract := contract, locals := locals0 })
-        (evm := evm) (name := "valScaled") (ty := some uint256)
+        (evm := evm) (name := "valScaled")
         (expr := mul256 (.cast (.var "val") uint256St) (.intLit billion))
-        (value := .int (Int.ofNat valScaled.toNat)) hMul)
+        (word := valScaled) hMul)
   have hValScaledVar :
       evalExpr? config { contract := contract, locals := localsV } evm (.var "valScaled") =
         .ok (.int (Int.ofNat valScaled.toNat)) := by
@@ -579,7 +584,7 @@ theorem execPokeTrueAfterRdivParThenRdivMatReverts
     norm_num [pokeBillion_toNat]
   have hDivCheck :
       evalExpr? config { contract := contract, locals := localsV } evm
-        (.binary .div (.var "valScaled") (.intLit billion)) =
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "valScaled") (.intLit billion)) =
           .ok (.int (Int.ofNat (pokePeekValWord out).toNat)) := by
     have hdivWord : UInt256.div valScaled pokeBillion = pokePeekValWord out := by
       apply u256_inj
@@ -600,7 +605,7 @@ theorem execPokeTrueAfterRdivParThenRdivMatReverts
   have hRightCheck :
       evalExpr? config { contract := contract, locals := localsV } evm
         (.binary .eq
-          (.binary .div (.var "valScaled") (.intLit billion))
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "valScaled") (.intLit billion))
           (.cast (.var "val") uint256St)) = .ok (.bool true) := by
     have hvalCastV :
         evalExpr? config { contract := contract, locals := localsV } evm
@@ -614,7 +619,7 @@ theorem execPokeTrueAfterRdivParThenRdivMatReverts
       evalExpr? config { contract := contract, locals := localsV } evm
         (.binary .or
           (.binary .eq (.intLit billion) (.intLit 0))
-          (.binary .eq (.binary .div (.var "valScaled") (.intLit billion))
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "valScaled") (.intLit billion))
             (.cast (.var "val") uint256St))) = .ok (.bool true) :=
     evalExpr_spot_or_false_right hBillionEqZero hRightCheck
   have hPar :
@@ -634,7 +639,8 @@ theorem execPokeTrueAfterRdivParThenRdivMatReverts
       bindParams? rdivFunction.params
           [.int (Int.ofNat valScaled.toNat), .int (Int.ofNat par.toNat)] =
         some (spotUintBinaryLocals valScaled par) := by
-    simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
+    simpa [rdivFunction, spotUintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" valScaled par
   have hRdiv1Stmt :
       ExecStmt config { contract := contract, locals := localsV } evm
         (.internalCall "rdiv" [.var "valScaled", .storage parRef] "spot1")
@@ -703,7 +709,8 @@ theorem execPokeTrueRdivMatMulOverflowReverts
       bindParams? rdivFunction.params
           [.int (Int.ofNat spot1.toNat), .int (Int.ofNat mat.toNat)] =
         some (spotUintBinaryLocals spot1 mat) := by
-    simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
+    simpa [rdivFunction, spotUintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" spot1 mat
   have hRdiv2Stmt :
       ExecStmt config { contract := contract, locals := locals1 } evm
         (.internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]
@@ -768,7 +775,8 @@ theorem execPokeTrueRdivMatDivZeroReverts
       bindParams? rdivFunction.params
           [.int (Int.ofNat spot1.toNat), .int (Int.ofNat mat.toNat)] =
         some (spotUintBinaryLocals spot1 mat) := by
-    simp [rdivFunction, uint256, bindParams?, spotUintBinaryLocals]
+    simpa [rdivFunction, spotUintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" spot1 mat
   have hRdiv2Stmt :
       ExecStmt config { contract := contract, locals := locals1 } evm
         (.internalCall "rdiv" [.var "spot1", .storage (ilksF (.var "ilk") "mat")]

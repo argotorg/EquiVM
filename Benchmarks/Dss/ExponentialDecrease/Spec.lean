@@ -28,9 +28,9 @@ def sender : Expr := .env .caller
 def RAY : Int := 1000000000000000000000000000
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
-def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
-def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
+def add256 (x y : Expr) : Expr := u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) x y)
+def sub256 (x y : Expr) : Expr := u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)
+def mul256 (x y : Expr) : Expr := u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) x y)
 
 def zeroPad29 : List UInt8 := List.replicate 29 0
 def zeroPad28 : List UInt8 := List.replicate 28 0
@@ -91,7 +91,7 @@ def checkedMulUintInto (name : Ident) (x y : Expr) : List Stmt :=
     .require
       (.binary .or
         (.binary .eq y (.intLit 0))
-        (.binary .eq (.binary .div (.var name) y) x)) ]
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x)) ]
 
 /-! ## Constructor -/
 
@@ -107,20 +107,20 @@ def rmulFunction : FunctionDecl :=
     returnType := [uint256]
     body :=
       checkedMulUintInto "z" (.var "x") (.var "y") ++
-      [ .assign .localVar { base := "z" } (.binary .div (.var "z") (.intLit RAY)),
+      [ .assign .localVar { base := "z" } (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "z") (.intLit RAY)),
         .return [.var "z"] ] }
 
 def rpowLoopBody : List Stmt :=
   checkedMulUintInto "xx" (.var "x") (.var "x") ++
   checkedAddUintInto "xxRound" (.var "xx") (.var "half") ++
-  [ .assign .localVar { base := "x" } (.binary .div (.var "xxRound") (.var "b")),
+  [ .assign .localVar { base := "x" } (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xxRound") (.var "b")),
     .ite
-      (.binary .ne (.binary .mod (.var "n") (.intLit 2)) (.intLit 0))
+      (.binary .ne (.binary (.mod (.uint ⟨256, by decide⟩)) (.var "n") (.intLit 2)) (.intLit 0))
       (checkedMulUintInto "zx" (.var "z") (.var "x") ++
         checkedAddUintInto "zxRound" (.var "zx") (.var "half") ++
-        [ .assign .localVar { base := "z" } (.binary .div (.var "zxRound") (.var "b")) ])
+        [ .assign .localVar { base := "z" } (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "zxRound") (.var "b")) ])
       [],
-    .assign .localVar { base := "n" } (.binary .div (.var "n") (.intLit 2)) ]
+    .assign .localVar { base := "n" } (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "n") (.intLit 2)) ]
 
 def rpowFunction : FunctionDecl :=
   { name := "rpow"
@@ -137,11 +137,11 @@ def rpowFunction : FunctionDecl :=
               [ .return [.intLit 0] ]
               [ .letDecl "z" (some uint256)
                   (.ite
-                    (.binary .eq (.binary .mod (.var "n") (.intLit 2)) (.intLit 0))
+                    (.binary .eq (.binary (.mod (.uint ⟨256, by decide⟩)) (.var "n") (.intLit 2)) (.intLit 0))
                     (.var "b")
                     (.var "x")),
-                .letDecl "half" (some uint256) (.binary .div (.var "b") (.intLit 2)),
-                .assign .localVar { base := "n" } (.binary .div (.var "n") (.intLit 2)),
+                .letDecl "half" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "b") (.intLit 2)),
+                .assign .localVar { base := "n" } (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "n") (.intLit 2)),
                 .while (.binary .ne (.var "n") (.intLit 0)) rpowLoopBody,
                 .return [.var "z"] ] ] ] }
 

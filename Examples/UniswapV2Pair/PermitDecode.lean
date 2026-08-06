@@ -42,8 +42,7 @@ theorem permitDecodeABIValue_bytes32_ok_core {bytes : List UInt8} {start : Nat}
     (hlen : ((bytes.drop start).take 32).length = 32) :
     decodeABIValue? bytes32 bytes start DecodeMode.legacySolc05 =
       some (.fixedBytes bytes32Width ((bytes.drop start).take 32), start + 32) := by
-  simp only [bytes32, bytes32Width, decodeABIValue?, readBytes?, zeroPadding?, bind,
-    Option.bind]
+  simp only [bytes32, bytes32Width, decodeABIValue?, readBytes?, bind, Option.bind]
   rw [if_pos hlen]
   simp
 

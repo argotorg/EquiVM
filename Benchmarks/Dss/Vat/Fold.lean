@@ -374,7 +374,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
           rw [hloadRateS]
         have hrateLet :
             evalExpr? config { contract := contract, locals := foldStore I } evm0
-              (wordWrap256 (.binary .add (.storage (ilksF (.var "i") "rate"))
+              (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (ilksF (.var "i") "rate"))
                 (.var "rate"))) = .ok (.int (Int.ofNat rateNewS.toNat)) :=
           evalExpr_fold_wordWrapAdd_ok hrateOldBase
             (vatEvalExpr_varInt (foldStore_get_rate I)) (foldRateInt_mod_word I) (by rfl)
@@ -701,7 +701,7 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                         (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                           (foldRateSlot I) rateNewS)
                         (eitherExpr (.binary .eq (.var "rate") (.intLit 0))
-                          (.binary .eq (.binary .div (.var "rad") (.var "rate"))
+                          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "rad") (.var "rate"))
                             (.storage (ilksF (.var "i") "Art")))) =
                         .ok (.bool true) := by
                     simpa [evmRate] using
@@ -898,17 +898,17 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                       vatEvalExpr_le_int_true hart hmaxLit
                         (uintWordLeMaxInt256_of_slt_zero hArtMaxS)
                   have hmulDiv :
-                      rad / foldRateInt I = Int.ofNat artOldS.toNat := by
+                      rad.tdiv (foldRateInt I) = Int.ofNat artOldS.toNat := by
                     dsimp [rad]
                     rw [mul_comm]
-                    exact Int.mul_ediv_cancel_left (Int.ofNat artOldS.toNat) hRateIntNe
+                    exact Int.mul_tdiv_cancel_left (Int.ofNat artOldS.toNat) hRateIntNe
                   have hmulGuard :
                       evalExpr? config
                         { contract := contract, locals := foldStoreRad I rateNewS rad }
                         (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
                           (foldRateSlot I) rateNewS)
                         (eitherExpr (.binary .eq (.var "rate") (.intLit 0))
-                          (.binary .eq (.binary .div (.var "rad") (.var "rate"))
+                          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "rad") (.var "rate"))
                             (.storage (ilksF (.var "i") "Art")))) =
                         .ok (.bool true) := by
                     have hart :
@@ -922,7 +922,8 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                         (foldStoreRad_ilks I rateNewS rad)]
                     simpa [evmRate] using
                       evalExpr_fold_mul_guard_exact_true evmRate I rateNewS rad
-                        hRateIntNe hmulDiv hart
+                        hRateIntNe hmulDiv (Int.natCast_nonneg _)
+                        (Int.ofNat_lt.mpr hArtLowS) hart
                   have hradWord :
                       rad % (Int.ofNat EVM.wordModulus) =
                         Int.ofNat radWord.toNat := by
@@ -1828,14 +1829,14 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                     (.var "rate")) .reverted := by
               change ExecBlock config { contract := contract, locals := foldStore I } evm0
                 [ .letDecl "rateNew" (some uint256)
-                    (wordWrap256 (.binary .add
+                    (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping)
                       (.storage (ilksF (.var "i") "rate")) (.var "rate"))),
                   .require (eitherExpr (.binary .ge (.var "rate") (.intLit 0))
                     (.binary .le (.var "rateNew") (.storage (ilksF (.var "i") "rate")))),
                   .require (eitherExpr (.binary .le (.var "rate") (.intLit 0))
                     (.binary .ge (.var "rateNew") (.storage (ilksF (.var "i") "rate")))) ]
                 .reverted
-              refine ExecBlock.consNormal (ExecStmt.letDecl hrateLet) ?_
+              refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hrateLet) ?_
               refine ExecBlock.consNormal (ExecStmt.requireTrue hRateGuardNeg) ?_
               exact ExecBlock.consRevert (ExecStmt.requireFalse hRateGuardPosFalse)
             have hbody := vatFoldSourceRevertAfterRateBlock evm0 I hwv
@@ -1882,14 +1883,14 @@ theorem vatFoldBodyCore : VatBodyTheorem 9 := by
                   (.var "rate")) .reverted := by
             change ExecBlock config { contract := contract, locals := foldStore I } evm0
               [ .letDecl "rateNew" (some uint256)
-                  (wordWrap256 (.binary .add
+                  (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping)
                     (.storage (ilksF (.var "i") "rate")) (.var "rate"))),
                 .require (eitherExpr (.binary .ge (.var "rate") (.intLit 0))
                   (.binary .le (.var "rateNew") (.storage (ilksF (.var "i") "rate")))),
                 .require (eitherExpr (.binary .le (.var "rate") (.intLit 0))
                   (.binary .ge (.var "rateNew") (.storage (ilksF (.var "i") "rate")))) ]
               .reverted
-            refine ExecBlock.consNormal (ExecStmt.letDecl hrateLet) ?_
+            refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hrateLet) ?_
             exact ExecBlock.consRevert (ExecStmt.requireFalse hRateGuardNegFalse)
           have hbody := vatFoldSourceRevertAfterRateBlock evm0 I hwv
             hguardAuth hguardLive hrateRevert

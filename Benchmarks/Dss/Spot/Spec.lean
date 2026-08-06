@@ -32,7 +32,7 @@ def one : Int := 1000000000000000000000000000
 def billion : Int := 1000000000
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
+def mul256 (x y : Expr) : Expr := u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) x y)
 
 def pipParamLit : Expr :=
   .fixedBytesLit bytes32Width
@@ -159,7 +159,7 @@ def checkedMulUintInto (name : Ident) (x y : Expr) : List Stmt :=
     .require
       (.binary .or
         (.binary .eq y (.intLit 0))
-        (.binary .eq (.binary .div (.var name) y) x)) ]
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x)) ]
 
 /-! ## Constructor -/
 
@@ -186,7 +186,7 @@ def rdivFunction : FunctionDecl :=
     returnType := [uint256]
     body :=
       [ .internalCall "mul" [.var "x", .intLit one] "z",
-        .assign .localVar { base := "z" } (.binary .div (.var "z") (.var "y")),
+        .assign .localVar { base := "z" } (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "z") (.var "y")),
         .return [.var "z"] ] }
 
 def functions : List FunctionDecl :=

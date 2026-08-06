@@ -49,9 +49,9 @@ def thisAddr : Expr := .env .this
 def maxUint256 : Int := (2 : Int) ^ 256 - 1
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
-def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
-def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
+def add256 (x y : Expr) : Expr := u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) x y)
+def sub256 (x y : Expr) : Expr := u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)
+def mul256 (x y : Expr) : Expr := u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) x y)
 
 def localRef (name : Ident) : StorageRef := { base := name }
 def localIndex (name : Ident) (idx : Expr) : StorageRef :=
@@ -197,7 +197,7 @@ def checkedMulInto (name : Ident) (x y : Expr) : List Stmt :=
       (.binary .eq y (.intLit 0))
       [ .letDecl name (some uint256) (.intLit 0) ]
       [ .letDecl name (some uint256) (mul256 x y),
-        .require (.binary .eq (.binary .div (.var name) y) x) ] ]
+        .require (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x) ] ]
 
 def requireDecodedBoolIfPresent (data : Ident) : List Stmt :=
   [ .ite
@@ -273,7 +273,7 @@ def quoteFunction : FunctionDecl :=
             (.binary .gt (.var "reserveA") (.intLit 0))
             (.binary .gt (.var "reserveB") (.intLit 0))),
         .internalCall "safeMul" [.var "amountA", .var "reserveB"] "num",
-        .return [.binary .div (.var "num") (.var "reserveA")] ] }
+        .return [.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "reserveA")] ] }
 
 def getAmountOutFunction : FunctionDecl :=
   { name := "getAmountOutBody"
@@ -291,7 +291,7 @@ def getAmountOutFunction : FunctionDecl :=
         .internalCall "safeMul" [.var "amountInWithFee", .var "reserveOut"] "numerator",
         .internalCall "safeMul" [.var "reserveIn", (.intLit 1000)] "reserveTimes",
         .internalCall "safeAdd" [.var "reserveTimes", .var "amountInWithFee"] "denominator",
-        .return [.binary .div (.var "numerator") (.var "denominator")] ] }
+        .return [.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")] ] }
 
 def getAmountInFunction : FunctionDecl :=
   { name := "getAmountInBody"
@@ -309,7 +309,7 @@ def getAmountInFunction : FunctionDecl :=
         .internalCall "safeMul" [.var "a", (.intLit 1000)] "numerator",
         .internalCall "safeSub" [.var "reserveOut", .var "amountOut"] "reserveMinus",
         .internalCall "safeMul" [.var "reserveMinus", (.intLit 997)] "denominator",
-        .internalCall "safeAdd" [.binary .div (.var "numerator") (.var "denominator"), (.intLit 1)]
+        .internalCall "safeAdd" [.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator"), (.intLit 1)]
           "amountIn",
         .return [.var "amountIn"] ] }
 
@@ -342,15 +342,15 @@ def getAmountsOutFunction : FunctionDecl :=
         arrSet "amounts" (.intLit 0) (.var "amountIn"),
         .for
           [ .letDecl "i" (some uint256) (.intLit 0) ]
-          (.binary .lt (.var "i") (.binary .sub (lenLocal "path") (.intLit 1)))
-          [ .assign .localVar (localRef "i") (.binary .add (.var "i") (.intLit 1)) ]
+          (.binary .lt (.var "i") (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (lenLocal "path") (.intLit 1)))
+          [ .assign .localVar (localRef "i") (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
           [ .internalCall "getReservesBody"
               [.var "factory_", arrGet "path" (.var "i"),
-                arrGet "path" (.binary .add (.var "i") (.intLit 1))] "reserves",
+                arrGet "path" (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1))] "reserves",
             .internalCall "getAmountOutBody"
               [arrGet "amounts" (.var "i"), tuple0 (.var "reserves"), tuple1 (.var "reserves")]
               "amountOut",
-            arrSet "amounts" (.binary .add (.var "i") (.intLit 1)) (.var "amountOut") ],
+            arrSet "amounts" (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) (.var "amountOut") ],
         .return [.var "amounts"] ] }
 
 def getAmountsInFunction : FunctionDecl :=
@@ -362,18 +362,18 @@ def getAmountsInFunction : FunctionDecl :=
     body :=
       [ .require (.binary .ge (lenLocal "path") (.intLit 2)),
         .letDecl "amounts" (some uintArray) (.newArray uint256St (lenLocal "path")),
-        arrSet "amounts" (.binary .sub (lenLocal "path") (.intLit 1)) (.var "amountOut"),
+        arrSet "amounts" (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (lenLocal "path") (.intLit 1)) (.var "amountOut"),
         .for
-          [ .letDecl "i" (some uint256) (.binary .sub (lenLocal "path") (.intLit 1)) ]
+          [ .letDecl "i" (some uint256) (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (lenLocal "path") (.intLit 1)) ]
           (.binary .gt (.var "i") (.intLit 0))
-          [ .assign .localVar (localRef "i") (.binary .sub (.var "i") (.intLit 1)) ]
+          [ .assign .localVar (localRef "i") (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
           [ .internalCall "getReservesBody"
-              [.var "factory_", arrGet "path" (.binary .sub (.var "i") (.intLit 1)),
+              [.var "factory_", arrGet "path" (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)),
                 arrGet "path" (.var "i")] "reserves",
             .internalCall "getAmountInBody"
               [arrGet "amounts" (.var "i"), tuple0 (.var "reserves"), tuple1 (.var "reserves")]
               "amountIn",
-            arrSet "amounts" (.binary .sub (.var "i") (.intLit 1)) (.var "amountIn") ],
+            arrSet "amounts" (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) (.var "amountIn") ],
         .return [.var "amounts"] ] }
 
 def safeTransferFunction : FunctionDecl :=
@@ -515,9 +515,9 @@ def removeLiquidityETHSupportingFeeBodyFunction : FunctionDecl :=
 def swapLoopToBody : List Stmt :=
   [ .letDecl "nextTo" (some addr) (.var "_to"),
     .ite
-      (.binary .lt (.var "i") (.binary .sub (lenLocal "path") (.intLit 2)))
+      (.binary .lt (.var "i") (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (lenLocal "path") (.intLit 2)))
       [ .internalCall "pairFor"
-          [.var "factory_", .var "output", arrGet "path" (.binary .add (.var "i") (.intLit 2))]
+          [.var "factory_", .var "output", arrGet "path" (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 2))]
           "nextPair",
         .assign .localVar (localRef "nextTo") (.var "nextPair") ]
       [] ]
@@ -531,13 +531,13 @@ def swapFunction : FunctionDecl :=
     body :=
       [ .for
           [ .letDecl "i" (some uint256) (.intLit 0) ]
-          (.binary .lt (.var "i") (.binary .sub (lenLocal "path") (.intLit 1)))
-          [ .assign .localVar (localRef "i") (.binary .add (.var "i") (.intLit 1)) ]
+          (.binary .lt (.var "i") (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (lenLocal "path") (.intLit 1)))
+          [ .assign .localVar (localRef "i") (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
           ([ .letDecl "input" (some addr) (arrGet "path" (.var "i")),
-             .letDecl "output" (some addr) (arrGet "path" (.binary .add (.var "i") (.intLit 1))),
+             .letDecl "output" (some addr) (arrGet "path" (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1))),
              .internalCall "sortTokens" [.var "input", .var "output"] "tokens",
              .letDecl "amountOut" (some uint256)
-               (arrGet "amounts" (.binary .add (.var "i") (.intLit 1))),
+               (arrGet "amounts" (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1))),
              .letDecl "amount0Out" (some uint256)
                (.ite (.binary .eq (.var "input") (tuple0 (.var "tokens")))
                  (.intLit 0) (.var "amountOut")),
@@ -559,10 +559,10 @@ def swapSupportingFeeFunction : FunctionDecl :=
     body :=
       [ .for
           [ .letDecl "i" (some uint256) (.intLit 0) ]
-          (.binary .lt (.var "i") (.binary .sub (lenLocal "path") (.intLit 1)))
-          [ .assign .localVar (localRef "i") (.binary .add (.var "i") (.intLit 1)) ]
+          (.binary .lt (.var "i") (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (lenLocal "path") (.intLit 1)))
+          [ .assign .localVar (localRef "i") (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
           ([ .letDecl "input" (some addr) (arrGet "path" (.var "i")),
-             .letDecl "output" (some addr) (arrGet "path" (.binary .add (.var "i") (.intLit 1))),
+             .letDecl "output" (some addr) (arrGet "path" (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1))),
              .internalCall "sortTokens" [.var "input", .var "output"] "tokens",
              .internalCall "pairFor" [.var "factory_", .var "input", .var "output"] "pair",
              .externalCall (.var "pair") "getReserves" (.intLit 0) [] "reserves" false,
@@ -791,7 +791,7 @@ def removeLiquidityETHWithPermitSupportingFeeTransition (v : RouterImmutables) :
         .return [.var "amountETH"] ] }
 
 def lastIndex (arrayName : Ident) : Expr :=
-  .binary .sub (lenLocal arrayName) (.intLit 1)
+  .binary (.sub (.uint ⟨256, by decide⟩) .checked) (lenLocal arrayName) (.intLit 1)
 
 def firstPairForPath (v : RouterImmutables) : List Stmt :=
   [ .internalCall "pairFor" [factory v, arrGet "path" (.intLit 0), arrGet "path" (.intLit 1)]

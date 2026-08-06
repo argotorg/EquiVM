@@ -68,11 +68,11 @@ def geE (x y : Expr) : Expr := .binary .ge x y
 def andE (x y : Expr) : Expr := .binary .and x y
 def orE (x y : Expr) : Expr := .binary .or x y
 def notE (x : Expr) : Expr := .unary .not x
-def addE (x y : Expr) : Expr := .binary .add x y
-def subE (x y : Expr) : Expr := .binary .sub x y
-def mulE (x y : Expr) : Expr := .binary .mul x y
-def divE (x y : Expr) : Expr := .binary .div x y
-def shlE (x y : Expr) : Expr := .binary .shl x y
+def addE (x y : Expr) : Expr := .binary (.add (.uint ⟨256, by decide⟩) .checked) x y
+def subE (x y : Expr) : Expr := .binary (.sub (.uint ⟨256, by decide⟩) .checked) x y
+def mulE (x y : Expr) : Expr := .binary (.mul (.uint ⟨256, by decide⟩) .checked) x y
+def divE (x y : Expr) : Expr := .binary (.div (.uint ⟨256, by decide⟩) .checked) x y
+def shlE (x y : Expr) : Expr := .binary (.shl (.uint ⟨256, by decide⟩)) x y
 def minE (x y : Expr) : Expr := .ite (ltE x y) x y
 def maxE (x y : Expr) : Expr := .ite (gtE x y) x y
 def u8 (x : Expr) : Expr := .inRange uint8Int x
@@ -699,7 +699,9 @@ def checkNSignaturesImplFunction : FunctionDecl :=
                                 (.abiEncodePacked
                                   [(bytesTy, ethSignPrefix), (bytes32, .var "dataHash")])),
                             .internalCall "ecrecoverAddress"
-                              [.var "ethSignedHash", u8 (subE (.var "v") (.intLit 4)),
+                              [.var "ethSignedHash",
+                                u8 (.binary (.sub (.uint ⟨8, by decide⟩) .checked)
+                                  (.var "v") (.intLit 4)),
                                 .var "r", .var "s"] "recoveredOwner",
                             .assign .localVar (varRef "currentOwner") (.var "recoveredOwner") ]
                           [ .internalCall "ecrecoverAddress"

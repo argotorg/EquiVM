@@ -92,7 +92,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowRevertsNOne
   have hbindAdd :
       bindParams? addFunction.params [.int (Int.ofNat base.toNat), .int (Int.ofNat duty.toNat)] =
         some (uintBinaryLocals base duty) := by
-    simp [addFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_addFunction _ _
   have hfitAdd : base.toNat + duty.toNat < UInt256.size := by
     exact Nat.lt_of_not_ge haddNo
   have haddReturn :
@@ -126,7 +126,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowRevertsNOne
           [.int (Int.ofNat fee.toNat), .int (Int.ofNat (⟨1⟩ : UInt256).toNat),
             .int (Int.ofNat jugRay.toNat)] =
         some (uintTernaryLocals fee ⟨1⟩ jugRay) := by
-    simp [rpowFunction, uintTernaryLocals, bindParams?, jugUInt256One_toNat]
+    exact bindParams_rpowFunction _ _ _
   have hrpowBody :
       ExecFuncBody config { contract := contract, locals := uintTernaryLocals fee ⟨1⟩ jugRay }
         evmVat rpowFunction.body
@@ -172,7 +172,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowRevertsNOne
           [.int (Int.ofNat fee.toNat),
             .int (Int.ofNat (dripVatIlksPrevWord out).toNat)] =
         some (uintBinaryLocals fee (dripVatIlksPrevWord out)) := by
-    simp [rmulFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_rmulFunction _ _
   have hrmulRevert :
       ExecStmt config { contract := contract, locals := dripPowLocals I out fee fee } evmVat
         (.internalCall "_rmul" [.var "pow", .var "prev"] "rate") .reverted := by
@@ -200,7 +200,7 @@ theorem jugDripSourceBodyVatIlksRmulOverflowRevertsNOne
         (ty := some uint256)
         (expr := .tupleGet (.var "vatIlk") 1)
         (value := .int (Int.ofNat (dripVatIlksPrevWord out).toNat))
-        hprev)
+        hprev (valueMatchesOptionalABIType_jug_uint256_word _))
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 dripTransition.body
         .reverted := by
@@ -324,7 +324,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsNOne
   have hbindAdd :
       bindParams? addFunction.params [.int (Int.ofNat base.toNat), .int (Int.ofNat duty.toNat)] =
         some (uintBinaryLocals base duty) := by
-    simp [addFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_addFunction _ _
   have hfitAdd : base.toNat + duty.toNat < UInt256.size := by
     exact Nat.lt_of_not_ge haddNo
   have haddReturn :
@@ -358,7 +358,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsNOne
           [.int (Int.ofNat fee.toNat), .int (Int.ofNat (⟨1⟩ : UInt256).toNat),
             .int (Int.ofNat jugRay.toNat)] =
         some (uintTernaryLocals fee ⟨1⟩ jugRay) := by
-    simp [rpowFunction, uintTernaryLocals, bindParams?, jugUInt256One_toNat]
+    exact bindParams_rpowFunction _ _ _
   have hrpowBody :
       ExecFuncBody config { contract := contract, locals := uintTernaryLocals fee ⟨1⟩ jugRay }
         evmVat rpowFunction.body
@@ -401,7 +401,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsNOne
   have hbindRmul :
       bindParams? rmulFunction.params [.int (Int.ofNat fee.toNat), .int (Int.ofNat prev.toNat)] =
         some (uintBinaryLocals fee prev) := by
-    simp [rmulFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_rmulFunction _ _
   have hprodComm : prev * fee = fee * prev := by
     simpa using u256_mul_comm prev fee
   have hq : rate = UInt256.div (fee * prev) jugRay := by
@@ -431,7 +431,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsNOne
   have hbindDiff :
       bindParams? diffFunction.params [.int (Int.ofNat rate.toNat), .int (Int.ofNat prev.toNat)] =
         some (uintBinaryLocals rate prev) := by
-    simp [diffFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_diffFunction _ _
   have hdiffRevert :
       ExecStmt config { contract := contract, locals := dripRateLocals I out fee fee rate }
         evmVat (.internalCall "_diff" [.var "rate", .var "prev"] "delta") .reverted := by
@@ -445,7 +445,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsNOne
           (argVals := [.int (Int.ofNat rate.toNat), .int (Int.ofNat prev.toNat)])
           (callee := diffFunction) (locals := uintBinaryLocals rate prev)
           hdiffArgs hlookupDiff hbindDiff
-          (execDiffFunctionRevertXBound evmVat (x := rate) (y := prev) hlo hhi hrateGt)
+          (execDiffFunctionRevertXBound evmVat (x := rate) (y := prev) hrateGt)
       · have hbad :
             (rate.toNat : Int) - (prev.toNat : Int) < -((2 : Int) ^ 255) ∨
               (rate.toNat : Int) - (prev.toNat : Int) ≥ (2 : Int) ^ 255 := by
@@ -459,7 +459,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsNOne
           (argVals := [.int (Int.ofNat rate.toNat), .int (Int.ofNat prev.toNat)])
           (callee := diffFunction) (locals := uintBinaryLocals rate prev)
           hdiffArgs hlookupDiff hbindDiff
-          (execDiffFunctionRevertCast evmVat (x := rate) (y := prev) hbad)
+          (execDiffFunctionRevertOperandBound evmVat (x := rate) (y := prev) hbad)
     · have hbad :
           (rate.toNat : Int) - (prev.toNat : Int) < -((2 : Int) ^ 255) ∨
             (rate.toNat : Int) - (prev.toNat : Int) ≥ (2 : Int) ^ 255 := by
@@ -472,7 +472,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsNOne
         (argVals := [.int (Int.ofNat rate.toNat), .int (Int.ofNat prev.toNat)])
         (callee := diffFunction) (locals := uintBinaryLocals rate prev)
         hdiffArgs hlookupDiff hbindDiff
-        (execDiffFunctionRevertCast evmVat (x := rate) (y := prev) hbad)
+        (execDiffFunctionRevertOperandBound evmVat (x := rate) (y := prev) hbad)
   have hprevStmt :
       ExecStmt config { contract := contract, locals := dripVatIlksLocals I out } evmVat
         (.letDecl "prev" (some uint256) (.tupleGet (.var "vatIlk") 1))
@@ -486,7 +486,7 @@ theorem jugDripSourceBodyVatIlksDiffXBoundRevertsNOne
         (ty := some uint256)
         (expr := .tupleGet (.var "vatIlk") 1)
         (value := .int (Int.ofNat prev.toNat))
-        hprev)
+        hprev (valueMatchesOptionalABIType_jug_uint256_word _))
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 dripTransition.body
         .reverted := by
@@ -612,7 +612,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsNOne
   have hbindAdd :
       bindParams? addFunction.params [.int (Int.ofNat base.toNat), .int (Int.ofNat duty.toNat)] =
         some (uintBinaryLocals base duty) := by
-    simp [addFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_addFunction _ _
   have hfitAdd : base.toNat + duty.toNat < UInt256.size := by
     exact Nat.lt_of_not_ge haddNo
   have haddReturn :
@@ -646,7 +646,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsNOne
           [.int (Int.ofNat fee.toNat), .int (Int.ofNat (⟨1⟩ : UInt256).toNat),
             .int (Int.ofNat jugRay.toNat)] =
         some (uintTernaryLocals fee ⟨1⟩ jugRay) := by
-    simp [rpowFunction, uintTernaryLocals, bindParams?, jugUInt256One_toNat]
+    exact bindParams_rpowFunction _ _ _
   have hrpowBody :
       ExecFuncBody config { contract := contract, locals := uintTernaryLocals fee ⟨1⟩ jugRay }
         evmVat rpowFunction.body
@@ -689,7 +689,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsNOne
   have hbindRmul :
       bindParams? rmulFunction.params [.int (Int.ofNat fee.toNat), .int (Int.ofNat prev.toNat)] =
         some (uintBinaryLocals fee prev) := by
-    simp [rmulFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_rmulFunction _ _
   have hprodComm : prev * fee = fee * prev := by
     simpa using u256_mul_comm prev fee
   have hq : rate = UInt256.div (fee * prev) jugRay := by
@@ -719,7 +719,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsNOne
   have hbindDiff :
       bindParams? diffFunction.params [.int (Int.ofNat rate.toNat), .int (Int.ofNat prev.toNat)] =
         some (uintBinaryLocals rate prev) := by
-    simp [diffFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_diffFunction _ _
   have hprevGt : maxInt256 < (prev.toNat : Int) := by
     exact lt_of_not_ge (by simpa [prev] using hprevMaxNot)
   have hdiffRevert :
@@ -741,7 +741,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsNOne
         (callee := diffFunction) (locals := uintBinaryLocals rate prev)
         hdiffArgs hlookupDiff hbindDiff
         (execDiffFunctionRevertYBound evmVat (x := rate) (y := prev)
-          hlo hhi hrateMaxLocal hprevGt)
+          hrateMaxLocal hprevGt)
     · have hbad :
           (rate.toNat : Int) - (prev.toNat : Int) < -((2 : Int) ^ 255) ∨
             (rate.toNat : Int) - (prev.toNat : Int) ≥ (2 : Int) ^ 255 := by
@@ -754,7 +754,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsNOne
         (argVals := [.int (Int.ofNat rate.toNat), .int (Int.ofNat prev.toNat)])
         (callee := diffFunction) (locals := uintBinaryLocals rate prev)
         hdiffArgs hlookupDiff hbindDiff
-        (execDiffFunctionRevertCast evmVat (x := rate) (y := prev) hbad)
+        (execDiffFunctionRevertOperandBound evmVat (x := rate) (y := prev) hbad)
   have hprevStmt :
       ExecStmt config { contract := contract, locals := dripVatIlksLocals I out } evmVat
         (.letDecl "prev" (some uint256) (.tupleGet (.var "vatIlk") 1))
@@ -768,7 +768,7 @@ theorem jugDripSourceBodyVatIlksDiffYBoundRevertsNOne
         (ty := some uint256)
         (expr := .tupleGet (.var "vatIlk") 1)
         (value := .int (Int.ofNat prev.toNat))
-        hprev)
+        hprev (valueMatchesOptionalABIType_jug_uint256_word _))
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 dripTransition.body
         .reverted := by
@@ -901,7 +901,7 @@ theorem jugDripSourceBodyVatFoldNoCodeRevertsNOne
   have hbindAdd :
       bindParams? addFunction.params [.int (Int.ofNat base.toNat), .int (Int.ofNat duty.toNat)] =
         some (uintBinaryLocals base duty) := by
-    simp [addFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_addFunction _ _
   have hfitAdd : base.toNat + duty.toNat < UInt256.size := by
     exact Nat.lt_of_not_ge haddNo
   have haddReturn :
@@ -935,7 +935,7 @@ theorem jugDripSourceBodyVatFoldNoCodeRevertsNOne
           [.int (Int.ofNat fee.toNat), .int (Int.ofNat (⟨1⟩ : UInt256).toNat),
             .int (Int.ofNat jugRay.toNat)] =
         some (uintTernaryLocals fee ⟨1⟩ jugRay) := by
-    simp [rpowFunction, uintTernaryLocals, bindParams?, jugUInt256One_toNat]
+    exact bindParams_rpowFunction _ _ _
   have hrpowBody :
       ExecFuncBody config { contract := contract, locals := uintTernaryLocals fee ⟨1⟩ jugRay }
         evmVat rpowFunction.body
@@ -978,7 +978,7 @@ theorem jugDripSourceBodyVatFoldNoCodeRevertsNOne
   have hbindRmul :
       bindParams? rmulFunction.params [.int (Int.ofNat fee.toNat), .int (Int.ofNat prev.toNat)] =
         some (uintBinaryLocals fee prev) := by
-    simp [rmulFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_rmulFunction _ _
   have hprodComm : prev * fee = fee * prev := by
     simpa using u256_mul_comm prev fee
   have hq : rate = UInt256.div (fee * prev) jugRay := by
@@ -1008,7 +1008,7 @@ theorem jugDripSourceBodyVatFoldNoCodeRevertsNOne
   have hbindDiff :
       bindParams? diffFunction.params [.int (Int.ofNat rate.toNat), .int (Int.ofNat prev.toNat)] =
         some (uintBinaryLocals rate prev) := by
-    simp [diffFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_diffFunction _ _
   have hdiffReturn :
       ExecStmt config { contract := contract, locals := dripRateLocals I out fee fee rate }
         evmVat (.internalCall "_diff" [.var "rate", .var "prev"] "delta")
@@ -1050,7 +1050,7 @@ theorem jugDripSourceBodyVatFoldNoCodeRevertsNOne
         (ty := some uint256)
         (expr := .tupleGet (.var "vatIlk") 1)
         (value := .int (Int.ofNat prev.toNat))
-        hprev)
+        hprev (valueMatchesOptionalABIType_jug_uint256_word _))
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 dripTransition.body
         .reverted := by
@@ -1201,7 +1201,7 @@ theorem jugDripSourceBodyVatFoldCallFailedRevertsNOne
   have hbindAdd :
       bindParams? addFunction.params [.int (Int.ofNat base.toNat), .int (Int.ofNat duty.toNat)] =
         some (uintBinaryLocals base duty) := by
-    simp [addFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_addFunction _ _
   have hfitAdd : base.toNat + duty.toNat < UInt256.size := by
     exact Nat.lt_of_not_ge haddNo
   have haddReturn :
@@ -1235,7 +1235,7 @@ theorem jugDripSourceBodyVatFoldCallFailedRevertsNOne
           [.int (Int.ofNat fee.toNat), .int (Int.ofNat (⟨1⟩ : UInt256).toNat),
             .int (Int.ofNat jugRay.toNat)] =
         some (uintTernaryLocals fee ⟨1⟩ jugRay) := by
-    simp [rpowFunction, uintTernaryLocals, bindParams?, jugUInt256One_toNat]
+    exact bindParams_rpowFunction _ _ _
   have hrpowBody :
       ExecFuncBody config { contract := contract, locals := uintTernaryLocals fee ⟨1⟩ jugRay }
         evmVat rpowFunction.body
@@ -1278,7 +1278,7 @@ theorem jugDripSourceBodyVatFoldCallFailedRevertsNOne
   have hbindRmul :
       bindParams? rmulFunction.params [.int (Int.ofNat fee.toNat), .int (Int.ofNat prev.toNat)] =
         some (uintBinaryLocals fee prev) := by
-    simp [rmulFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_rmulFunction _ _
   have hprodComm : prev * fee = fee * prev := by
     simpa using u256_mul_comm prev fee
   have hq : rate = UInt256.div (fee * prev) jugRay := by
@@ -1308,7 +1308,7 @@ theorem jugDripSourceBodyVatFoldCallFailedRevertsNOne
   have hbindDiff :
       bindParams? diffFunction.params [.int (Int.ofNat rate.toNat), .int (Int.ofNat prev.toNat)] =
         some (uintBinaryLocals rate prev) := by
-    simp [diffFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_diffFunction _ _
   have hdiffReturn :
       ExecStmt config { contract := contract, locals := dripRateLocals I out fee fee rate }
         evmVat (.internalCall "_diff" [.var "rate", .var "prev"] "delta")
@@ -1359,7 +1359,7 @@ theorem jugDripSourceBodyVatFoldCallFailedRevertsNOne
         (ty := some uint256)
         (expr := .tupleGet (.var "vatIlk") 1)
         (value := .int (Int.ofNat prev.toNat))
-        hprev)
+        hprev (valueMatchesOptionalABIType_jug_uint256_word _))
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 dripTransition.body
         .reverted := by
@@ -1516,7 +1516,7 @@ theorem jugDripSourceBodyVatFoldCallSucceededReturnsNOne
   have hbindAdd :
       bindParams? addFunction.params [.int (Int.ofNat base.toNat), .int (Int.ofNat duty.toNat)] =
         some (uintBinaryLocals base duty) := by
-    simp [addFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_addFunction _ _
   have hfitAdd : base.toNat + duty.toNat < UInt256.size := by
     exact Nat.lt_of_not_ge haddNo
   have haddReturn :
@@ -1550,7 +1550,7 @@ theorem jugDripSourceBodyVatFoldCallSucceededReturnsNOne
           [.int (Int.ofNat fee.toNat), .int (Int.ofNat (⟨1⟩ : UInt256).toNat),
             .int (Int.ofNat jugRay.toNat)] =
         some (uintTernaryLocals fee ⟨1⟩ jugRay) := by
-    simp [rpowFunction, uintTernaryLocals, bindParams?, jugUInt256One_toNat]
+    exact bindParams_rpowFunction _ _ _
   have hrpowBody :
       ExecFuncBody config { contract := contract, locals := uintTernaryLocals fee ⟨1⟩ jugRay }
         evmVat rpowFunction.body
@@ -1593,7 +1593,7 @@ theorem jugDripSourceBodyVatFoldCallSucceededReturnsNOne
   have hbindRmul :
       bindParams? rmulFunction.params [.int (Int.ofNat fee.toNat), .int (Int.ofNat prev.toNat)] =
         some (uintBinaryLocals fee prev) := by
-    simp [rmulFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_rmulFunction _ _
   have hprodComm : prev * fee = fee * prev := by
     simpa using u256_mul_comm prev fee
   have hq : rate = UInt256.div (fee * prev) jugRay := by
@@ -1623,7 +1623,7 @@ theorem jugDripSourceBodyVatFoldCallSucceededReturnsNOne
   have hbindDiff :
       bindParams? diffFunction.params [.int (Int.ofNat rate.toNat), .int (Int.ofNat prev.toNat)] =
         some (uintBinaryLocals rate prev) := by
-    simp [diffFunction, uintBinaryLocals, bindParams?]
+    exact bindParams_diffFunction _ _
   have hdiffReturn :
       ExecStmt config { contract := contract, locals := dripRateLocals I out fee fee rate }
         evmVat (.internalCall "_diff" [.var "rate", .var "prev"] "delta")
@@ -1743,7 +1743,7 @@ theorem jugDripSourceBodyVatFoldCallSucceededReturnsNOne
         (ty := some uint256)
         (expr := .tupleGet (.var "vatIlk") 1)
         (value := .int (Int.ofNat prev.toNat))
-        hprev)
+        hprev (valueMatchesOptionalABIType_jug_uint256_word _))
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 dripTransition.body
         (.returned { contract := contract, locals := foldLocals } evmRho

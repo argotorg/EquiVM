@@ -48,7 +48,7 @@ def mintFeeOnKLastNonzeroInitialReturnFromFactoryCaseData
     amount0.toNat * amount1.toNat < UInt256.size ∧
     ∀ rootLiquidity : Int,
       ExecStmt config caller evmFeeS
-          (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+          (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
             "rootLiquidity")
           (.ok (resumeAfterInternalCall caller "rootLiquidity" (some [.int rootLiquidity]))
             evmFeeS) →
@@ -209,7 +209,7 @@ def mintFeeOnKLastNonzeroInitialZeroFromFactoryCaseData
     amount0.toNat * amount1.toNat < UInt256.size ∧
     ∀ rootLiquidity : Int,
       ExecStmt config caller evmFeeS
-          (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+          (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
             "rootLiquidity")
           (.ok (resumeAfterInternalCall caller "rootLiquidity" (some [.int rootLiquidity]))
             evmFeeS) →
@@ -256,7 +256,7 @@ def mintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCaseData
     amount0.toNat * amount1.toNat < UInt256.size ∧
     ∀ rootLiquidity : Int,
       ExecStmt config caller evmFeeS
-          (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+          (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
             "rootLiquidity")
           (.ok (resumeAfterInternalCall caller "rootLiquidity" (some [.int rootLiquidity]))
             evmFeeS) →
@@ -395,7 +395,7 @@ theorem uniswapMintFeeOnKLastNonzeroNoFeeLiquidityPrefixFromFactory
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true
             (mintFeeKLastSlotWord σFee I))
           evmFeeS
-          [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+          [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
               "rootK",
             .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
           (.ok
@@ -533,7 +533,7 @@ theorem uniswapMintFeeOnKLastNonzeroNoFeeLiquidityPrefixFromFactory
           (uniswapReserve0Word evmL) (uniswapReserve1Word evmL)
           feeTo true (mintFeeKLastWord evmFeeS))
         evmFeeS
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
@@ -701,7 +701,7 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
             nextFrame.locals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
         evmAfter
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall
@@ -947,6 +947,8 @@ theorem uniswapMintInitialFeeOnReturnFromAfterFeeWitnessCase
           have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound1
           norm_num [maxUint112]
           exact_mod_cast hnat)
+        (by simpa [evmL, evmS] using uniswapReserve0Word_lt evmL)
+        (by simpa [evmL, evmS] using uniswapReserve1Word_lt evmL)
         helapsedSource hfitKLastSource)
   have hrecipient :
       AccountAddress.ofNat (mintToWord I).toNat =
@@ -1145,7 +1147,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialReturnFromFactoryCase
     rw [store_get_ne _ _ (by decide), hamount1Get]
   have hargs :
       evalExprs? config caller evmFeeS
-        [u256 (.binary .mul (.var "amount0") (.var "amount1"))] =
+        [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))] =
           .ok [sqrtFunctionYValue (mintAmountProductWord amount0 amount1)] := by
     simpa [caller] using
       evalExprs_mint_initialSqrtArg_of_get evmFeeS amount0 amount1 hamount0After
@@ -1360,7 +1362,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialZeroFromFactoryCase
     rw [store_get_ne _ _ (by decide), hamount1Get]
   have hargs :
       evalExprs? config caller evmFeeS
-        [u256 (.binary .mul (.var "amount0") (.var "amount1"))] =
+        [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))] =
           .ok [sqrtFunctionYValue (mintAmountProductWord amount0 amount1)] := by
     simpa [caller] using
       evalExprs_mint_initialSqrtArg_of_get evmFeeS amount0 amount1 hamount0After
@@ -1730,7 +1732,7 @@ theorem uniswapMintFeeOnKLastNonzeroInitialRootUnderflowFromFactoryCase
     rw [store_get_ne _ _ (by decide), hamount1Get]
   have hargs :
       evalExprs? config caller evmFeeS
-        [u256 (.binary .mul (.var "amount0") (.var "amount1"))] =
+        [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))] =
           .ok [sqrtFunctionYValue (mintAmountProductWord amount0 amount1)] := by
     simpa [caller] using
       evalExprs_mint_initialSqrtArg_of_get evmFeeS amount0 amount1 hamount0After

@@ -31,8 +31,8 @@ def sender : Expr := .env .caller
 def thisAddr : Expr := .env .this
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
-def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
+def add256 (x y : Expr) : Expr := u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) x y)
+def sub256 (x y : Expr) : Expr := u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)
 
 def waitParamLit : Expr :=
   .fixedBytesLit bytes32Width

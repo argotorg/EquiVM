@@ -372,22 +372,7 @@ theorem dropEvalExpr_sub256_ok {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat diff.toNat)) := by
   have hdiffNat : diff.toNat = a.toNat - b.toNat := by
     rw [hdiff, usub_toNat hle]
-  have hsubInt : (a.toNat : Int) - (b.toNat : Int) = ((a.toNat - b.toNat : Nat) : Int) :=
-    (Int.ofNat_sub hle).symm
-  have hltNat : a.toNat - b.toNat < UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    omega
-  have hlt : ¬ ((a.toNat - b.toNat : Nat) : Int) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hltNat))
-  simp [sub256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  rw [if_neg]
-  · rw [hsubInt, ← hdiffNat]
-    rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_le.mpr hbad) hle
-    · rw [hsubInt] at hbad
-      exact hlt hbad
+  simpa [sub256] using evalExpr_checked_sub_uint256_word_ok hx hy hdiffNat hle
 
 theorem evalExpr_dropPosStorage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dropLocals I } evm
@@ -836,7 +821,7 @@ theorem cureDropSourceBodyPosZeroRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hposExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hposExpr) ?_
     exact ExecBlock.consRevert (ExecStmt.requireFalse hguardPos)
   simpa [ExecTransitionBody, dropTransition, nonpayable, auth, live, evm0] using
     ExecFuncBody.execBlockRevert hblock
@@ -961,9 +946,9 @@ theorem cureDropSourceBodyOkNoSwap {cA gh bl σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hposExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hposExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hlenExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlenExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.iteFalse hnoSwapExpr ExecBlock.nil) ?_
     refine ExecBlock.consNormal (ExecStmt.pop hpop) ?_
     refine ExecBlock.consNormal (ExecStmt.delete hdelPos) ?_
@@ -1063,9 +1048,9 @@ theorem cureDropSourceBodyNoSwapPopZeroRevert {cA gh bl σ σ₀ A I} {g : UInt2
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hposExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hposExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hlenExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlenExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.iteFalse hnoSwapExpr ExecBlock.nil) ?_
     exact ExecBlock.consRevert (ExecStmt.popRevert hpop)
   simpa [ExecTransitionBody, dropTransition, nonpayable, auth, live, evm0, posWord, lenWord,
@@ -1309,9 +1294,9 @@ theorem cureDropSourceBodyOkSwap {cA gh bl σ σ₀ A I} {g : UInt256}
           .assign .storage (srcElemRef (.var "dstIndex")) (.var "move"),
           .assign .storage (posRef (.var "move")) (.var "pos_") ]
         (.ok { contract := contract, locals := localsDst } evmMovePos) := by
-    refine ExecBlock.consNormal (ExecStmt.letDecl hlastIndexExpr) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hmoveExpr) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hdstIndexExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlastIndexExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_address hmoveExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hdstIndexExpr) ?_
     refine ExecBlock.consNormal
       (ExecStmt.assign
         (by simpa [localsLastIndex, localsMove, localsDst] using hmoveVar)
@@ -1344,9 +1329,9 @@ theorem cureDropSourceBodyOkSwap {cA gh bl σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hposExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hposExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hlenExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlenExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.iteTrue hswapExpr hswapBlock) ?_
     refine ExecBlock.consNormal (ExecStmt.pop hpop) ?_
     refine ExecBlock.consNormal (ExecStmt.delete hdelPos) ?_
@@ -1569,9 +1554,9 @@ theorem cureDropSourceBodySwapPopZeroRevert {cA gh bl σ σ₀ A I} {g : UInt256
           .assign .storage (srcElemRef (.var "dstIndex")) (.var "move"),
           .assign .storage (posRef (.var "move")) (.var "pos_") ]
         (.ok { contract := contract, locals := localsDst } evmMovePos) := by
-    refine ExecBlock.consNormal (ExecStmt.letDecl hlastIndexExpr) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hmoveExpr) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hdstIndexExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlastIndexExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_address hmoveExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hdstIndexExpr) ?_
     refine ExecBlock.consNormal
       (ExecStmt.assign
         (by simpa [localsLastIndex, localsMove, localsDst] using hmoveVar)
@@ -1604,9 +1589,9 @@ theorem cureDropSourceBodySwapPopZeroRevert {cA gh bl σ σ₀ A I} {g : UInt256
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hposExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hposExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hlenExpr) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlenExpr) ?_
     refine ExecBlock.consNormal (ExecStmt.iteTrue hswapExpr hswapBlock) ?_
     exact ExecBlock.consRevert (ExecStmt.popRevert hpop)
   simpa [ExecTransitionBody, dropTransition, nonpayable, auth, live, evm0, posWord, lenWord,

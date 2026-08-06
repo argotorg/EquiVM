@@ -44,15 +44,20 @@ theorem evalExpr_fold_wordWrapAdd_ok {evm : EVM.State} {locals : Store}
     (haddend : addendInt % (Int.ofNat EVM.wordModulus) = Int.ofNat addend.toNat)
     (hsum : sum = addend + old) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (wordWrap256 (.binary .add x y)) =
+      (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) x y)) =
         .ok (.int (Int.ofNat sum.toNat)) := by
   have hwrap :
       (Int.ofNat old.toNat + addendInt) % (Int.ofNat EVM.wordModulus) =
         Int.ofNat sum.toNat := by
     simpa [hsum] using slipSignedAddWrap old addend addendInt haddend
-  have hmodNe : ¬ EVM.wordModulus = 0 := by decide
-  simp [wordWrap256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hmodNe]
-  simpa using hwrap
+  have hinner := evalExpr_wrapping_add_int (.uint ⟨256, by decide⟩)
+    (Int.ofNat old.toNat) addendInt hx hy
+  have hnormalized :
+      normalizeInt (.uint ⟨256, by decide⟩) (Int.ofNat old.toNat + addendInt) =
+        Int.ofNat sum.toNat := by
+    simpa [normalizeInt] using hwrap
+  rw [hnormalized] at hinner
+  exact evalExpr_wordWrap256_uint256_word_ok hinner
 
 theorem evalExpr_fold_wordWrapSub_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {old diff : UInt256} {subtrahendInt : Int}
@@ -64,11 +69,16 @@ theorem evalExpr_fold_wordWrapSub_ok {evm : EVM.State} {locals : Store}
       (Int.ofNat old.toNat - subtrahendInt) % (Int.ofNat EVM.wordModulus) =
         Int.ofNat diff.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (wordWrap256 (.binary .sub x y)) =
+      (wordWrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) x y)) =
         .ok (.int (Int.ofNat diff.toNat)) := by
-  have hmodNe : ¬ EVM.wordModulus = 0 := by decide
-  simp [wordWrap256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hmodNe]
-  simpa using hwrap
+  have hinner := evalExpr_wrapping_sub_int (.uint ⟨256, by decide⟩)
+    (Int.ofNat old.toNat) subtrahendInt hx hy
+  have hnormalized :
+      normalizeInt (.uint ⟨256, by decide⟩) (Int.ofNat old.toNat - subtrahendInt) =
+        Int.ofNat diff.toNat := by
+    simpa [normalizeInt] using hwrap
+  rw [hnormalized] at hinner
+  exact evalExpr_wordWrap256_uint256_word_ok hinner
 
 theorem signedSubWrap (old sub : UInt256) (subInt : Int)
     (hsub : subInt % (Int.ofNat EVM.wordModulus) = Int.ofNat sub.toNat) :
@@ -164,11 +174,27 @@ theorem evalExpr_fold_mul_int_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b prod : Int}
     (hx : evalExpr? config { contract := contract, locals := locals } evm x = .ok (.int a))
     (hy : evalExpr? config { contract := contract, locals := locals } evm y = .ok (.int b))
-    (hprod : prod = a * b) :
-    evalExpr? config { contract := contract, locals := locals } evm (.binary .mul x y) =
+    (hprod : prod = a * b)
+    (hlower : -((2 : Int) ^ 255) ≤ prod) (hupper : prod < (2 : Int) ^ 255) :
+    evalExpr? config { contract := contract, locals := locals } evm
+      (.binary (.mul (.sint ⟨256, by decide⟩) .checked) x y) =
       .ok (.int prod) := by
   subst prod
-  simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?]
+  exact evalExpr_checked_mul_sint_ok ⟨256, by decide⟩ a b hx hy
+    (by simpa [EVM.twoPow] using hlower) (by simpa [EVM.twoPow] using hupper)
+
+theorem evalExpr_fold_mul_int_revert {evm : EVM.State} {locals : Store}
+    {x y : Expr} {a b : Int}
+    (hx : evalExpr? config { contract := contract, locals := locals } evm x = .ok (.int a))
+    (hy : evalExpr? config { contract := contract, locals := locals } evm y = .ok (.int b))
+    (hbad : a * b < -((2 : Int) ^ 255) ∨ a * b ≥ (2 : Int) ^ 255) :
+    evalExpr? config { contract := contract, locals := locals } evm
+      (.binary (.mul (.sint ⟨256, by decide⟩) .checked) x y) = .revert := by
+  rcases hbad with hunderflow | hoverflow
+  · exact evalExpr_checked_mul_sint_revert_of_underflow ⟨256, by decide⟩ a b hx hy
+      (by simpa [EVM.twoPow] using hunderflow)
+  · exact evalExpr_checked_mul_sint_revert_of_overflow ⟨256, by decide⟩ a b hx hy
+      (by simpa [EVM.twoPow] using hoverflow)
 
 theorem evalExpr_fold_s256_ok {evm : EVM.State} {locals : Store} {e : Expr} {i : Int}
     (he : evalExpr? config { contract := contract, locals := locals } evm e = .ok (.int i))

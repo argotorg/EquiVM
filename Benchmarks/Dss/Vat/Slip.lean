@@ -260,7 +260,7 @@ theorem evalExpr_slip_gemNew {evm : EVM.State} {I : ExecutionEnv} {old gemNew : 
       (Int.ofNat old.toNat + slipWadInt I) % (Int.ofNat EVM.wordModulus) =
         Int.ofNat gemNew.toNat) :
     evalExpr? config { contract := contract, locals := slipStore I } evm
-      (wordWrap256 (.binary .add (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))) =
+      (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))) =
       .ok (.int (Int.ofNat gemNew.toNat)) := by
   have hgem := evalExpr_slip_gem_old (evm := evm) (I := I) hsz100
   have hwad :
@@ -271,10 +271,15 @@ theorem evalExpr_slip_gemNew {evm : EVM.State} {I : ExecutionEnv} {old gemNew : 
       .ok (.int (slipWadInt I))
     rw [slipStore_get_wad]
     rfl
-  have hmodNe : ¬ EVM.wordModulus = 0 := by decide
-  simp [wordWrap256, evalExpr?, EvalResult.bind, bind, hgem, hwad, hload, evalBinaryOp?,
-    hmodNe]
-  simpa using hwrap
+  have hadd :
+      evalBinaryOp? (.add (.uint ⟨256, by decide⟩) .wrapping)
+          (.int (Int.ofNat old.toNat)) (.int (slipWadInt I)) =
+        .ok (.int (Int.ofNat gemNew.toNat)) := by
+    simp only [evalBinaryOp?, evalIntArithResult, normalizeInt]
+    exact congrArg (fun value : Int => EvalResult.ok (Value.int value)) (by
+      simpa [EVM.wordModulus] using hwrap)
+  apply evalExpr_wordWrap256_uint256_word_ok
+  simp only [evalExpr?, EvalResult.bind, bind, hgem, hwad, hload, hadd]
 
 theorem assignStorageRef_slip_gemNew {evm evm' : EVM.State} {I : ExecutionEnv}
     {gemNew : UInt256}
@@ -1610,7 +1615,7 @@ theorem vatSlipSourceOk
       simpa [vatCallerWardsSlot, vatSlotWord] using hauthSolm)
   have hlet :
       evalExpr? config { contract := contract, locals := slipStore I } evm0
-        (wordWrap256 (.binary .add (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))) =
+        (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))) =
         .ok (.int (Int.ofNat gemNew.toNat)) :=
     evalExpr_slip_gemNew (evm := evm0) (I := I) (old := old) (gemNew := gemNew)
       hsz100 hload hwrap
@@ -1633,7 +1638,7 @@ theorem vatSlipSourceOk
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
         .letDecl "gemNew" (some uint256)
-          (wordWrap256 (.binary .add (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))),
+          (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))),
         .require
           (eitherExpr (.binary .ge (.var "wad") (.intLit 0))
             (.binary .le (.var "gemNew") (.storage (gemRef (.var "ilk") (.var "usr"))))),
@@ -1645,7 +1650,7 @@ theorem vatSlipSourceOk
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNeg) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
     have hgemNewVar :
@@ -1689,7 +1694,7 @@ theorem vatSlipSourceRevertGuardNeg
       simpa [vatCallerWardsSlot, vatSlotWord] using hauthSolm)
   have hlet :
       evalExpr? config { contract := contract, locals := slipStore I } evm0
-        (wordWrap256 (.binary .add (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))) =
+        (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))) =
         .ok (.int (Int.ofNat gemNew.toNat)) :=
     evalExpr_slip_gemNew (evm := evm0) (I := I) (old := old) (gemNew := gemNew)
       hsz100 hload hwrap
@@ -1704,7 +1709,7 @@ theorem vatSlipSourceRevertGuardNeg
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
         .letDecl "gemNew" (some uint256)
-          (wordWrap256 (.binary .add (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))),
+          (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))),
         .require
           (eitherExpr (.binary .ge (.var "wad") (.intLit 0))
             (.binary .le (.var "gemNew") (.storage (gemRef (.var "ilk") (.var "usr"))))),
@@ -1716,7 +1721,7 @@ theorem vatSlipSourceRevertGuardNeg
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
     exact ExecBlock.consRevert (ExecStmt.requireFalse hguardNeg)
   simpa [ExecTransitionBody, slipTransition, evm0, nonpayable, auth] using
     ExecFuncBody.execBlockRevert hblock
@@ -1753,7 +1758,7 @@ theorem vatSlipSourceRevertGuardPos
       simpa [vatCallerWardsSlot, vatSlotWord] using hauthSolm)
   have hlet :
       evalExpr? config { contract := contract, locals := slipStore I } evm0
-        (wordWrap256 (.binary .add (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))) =
+        (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))) =
         .ok (.int (Int.ofNat gemNew.toNat)) :=
     evalExpr_slip_gemNew (evm := evm0) (I := I) (old := old) (gemNew := gemNew)
       hsz100 hload hwrap
@@ -1768,7 +1773,7 @@ theorem vatSlipSourceRevertGuardPos
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .require (.binary .eq (.storage (wardsRef sender)) (.intLit 1)),
         .letDecl "gemNew" (some uint256)
-          (wordWrap256 (.binary .add (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))),
+          (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (gemRef (.var "ilk") (.var "usr"))) (.var "wad"))),
         .require
           (eitherExpr (.binary .ge (.var "wad") (.intLit 0))
             (.binary .le (.var "gemNew") (.storage (gemRef (.var "ilk") (.var "usr"))))),
@@ -1780,7 +1785,7 @@ theorem vatSlipSourceRevertGuardPos
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardAuth) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNeg) ?_
     exact ExecBlock.consRevert (ExecStmt.requireFalse hguardPos)
   simpa [ExecTransitionBody, slipTransition, evm0, nonpayable, auth] using

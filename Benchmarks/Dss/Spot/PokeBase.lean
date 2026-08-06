@@ -522,6 +522,26 @@ theorem pokePeekDecode_none_short {out : ByteArray} (hshort : out.size < 64) :
   simpa [config, spotExternalABI, bytes32, bytes32Width, boolTy, abiBytes32, abiBytes32Width,
     abiBool] using h
 
+theorem pokePeekDecode_size {out : ByteArray}
+    (hdec : config.externalABI.decode? "peek" out = some (pokePeekReturnValues out)) :
+    64 ≤ out.size := by
+  by_contra hsize
+  have hnone := pokePeekDecode_none_short (out := out) (by omega)
+  rw [hnone] at hdec
+  contradiction
+
+theorem pokePeekVal_value_matches {out : ByteArray}
+    (hdec : config.externalABI.decode? "peek" out = some (pokePeekReturnValues out)) :
+    valueMatchesOptionalABIType (some bytes32)
+      (.fixedBytes bytes32Width (pokePeekValBytes out)) = true := by
+  apply valueMatchesOptionalABIType_fixedBytes
+  have hsize := pokePeekDecode_size hdec
+  have hlen : out.toList.length = out.size := by
+    rw [byteArray_toList_eq, Array.length_toList]
+    rfl
+  simp [pokePeekValBytes, List.length_take, hlen, fixedBytesSize, bytes32Width]
+  omega
+
 theorem pokePeekDecodeABIValues_legacy_ok {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)
     (hlen32 : ((bytes.drop 32).take 32).length = 32) :

@@ -5429,18 +5429,9 @@ theorem evalExpr_bark_mul256_ok {v : DogImmutables} {evm : EVM.State} {locals : 
     (hfit : a.toNat * b.toNat < UInt256.size) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm (mul256 x y) =
       .ok (.int (Int.ofNat prod.toNat)) := by
-  have hlt : ¬ Int.ofNat (a.toNat * b.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  have hword : prod.toNat = a.toNat * b.toNat := by
-    rw [hprod, umul_toNat a b hfit]
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  apply evalExpr_checked_mul_uint256_word_ok hx hy
+  · rw [hprod, umul_toNat a b hfit]
+  · exact hfit
 
 theorem evalExpr_bark_mul256_revert {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {x y : Expr} {a b : UInt256}
@@ -5451,9 +5442,7 @@ theorem evalExpr_bark_mul256_revert {v : DogImmutables} {evm : EVM.State}
     (hover : UInt256.size ≤ a.toNat * b.toNat) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm (mul256 x y) =
       .revert := by
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  exact evalExpr_checked_mul_uint256_word_revert_of_overflow hx hy hover
 
 theorem evalExpr_bark_sub256_ok {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {x y : Expr} {a b diff : UInt256}
@@ -5464,25 +5453,9 @@ theorem evalExpr_bark_sub256_ok {v : DogImmutables} {evm : EVM.State}
     (hdiff : diff = UInt256.sub a b) (hle : b.toNat ≤ a.toNat) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm (sub256 x y) =
       .ok (.int (Int.ofNat diff.toNat)) := by
-  have hdiffNat : diff.toNat = a.toNat - b.toNat := by
-    rw [hdiff, usub_toNat hle]
-  have hsubInt : (a.toNat : Int) - (b.toNat : Int) = ((a.toNat - b.toNat : Nat) : Int) :=
-    (Int.ofNat_sub hle).symm
-  have hltNat : a.toNat - b.toNat < UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    omega
-  have hlt : ¬ ((a.toNat - b.toNat : Nat) : Int) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hltNat))
-  simp [sub256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int]
-  rw [if_neg]
-  · rw [hsubInt, ← hdiffNat]
-    rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_le.mpr hbad) hle
-    · rw [hsubInt] at hbad
-      exact hlt hbad
+  apply evalExpr_checked_sub_uint256_word_ok hx hy
+  · rw [hdiff, usub_toNat hle]
+  · exact hle
 
 theorem evalExpr_bark_add256_ok {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {x y : Expr} {a b sum : UInt256}
@@ -5493,21 +5466,9 @@ theorem evalExpr_bark_add256_ok {v : DogImmutables} {evm : EVM.State}
     (hsum : sum = a + b) (hfit : a.toNat + b.toNat < UInt256.size) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm (add256 x y) =
       .ok (.int (Int.ofNat sum.toNat)) := by
-  have hsumNat : sum.toNat = a.toNat + b.toNat := by
-    rw [hsum, uadd_toNat, Nat.mod_eq_of_lt hfit]
-  have hlt : ¬ ((a.toNat + b.toNat : Nat) : Int) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int]
-  rw [if_neg]
-  · have hsumInt : (↑a.toNat + ↑b.toNat : Int) = ↑sum.toNat := by
-      exact_mod_cast hsumNat.symm
-    rw [hsumInt]
-    rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  apply evalExpr_checked_add_uint256_word_ok hx hy
+  · rw [hsum, uadd_toNat, Nat.mod_eq_of_lt hfit]
+  · exact hfit
 
 theorem evalExpr_bark_add256_revert {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {x y : Expr} {a b : UInt256}
@@ -5518,9 +5479,7 @@ theorem evalExpr_bark_add256_revert {v : DogImmutables} {evm : EVM.State}
     (hover : UInt256.size ≤ a.toNat + b.toNat) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm (add256 x y) =
       .revert := by
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  exact evalExpr_checked_add_uint256_word_revert_of_overflow hx hy hover
 
 theorem evalExpr_bark_div_uint256_ok {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {x y : Expr} {a b q : UInt256}
@@ -5530,14 +5489,10 @@ theorem evalExpr_bark_div_uint256_ok {v : DogImmutables} {evm : EVM.State}
       .ok (.int (Int.ofNat b.toNat)))
     (hb : b ≠ ⟨0⟩)
     (hq : q = UInt256.div a b) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (.binary .div x y) =
+    evalExpr? (config v) { contract := contract v, locals := locals } evm (.binary (.div (.uint ⟨256, by decide⟩) .checked) x y) =
       .ok (.int (Int.ofNat q.toNat)) := by
-  have hbNat : ¬ b.toNat = 0 := by
-    intro hzero
-    exact hb (uint256_toNat_eq_zero hzero)
-  have hqNat : q.toNat = a.toNat / b.toNat := by
-    rw [hq, udiv_toNat]
-  simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hbNat, hqNat]
+  apply evalExpr_checked_div_uint256_word_ok hx hy hb
+  rw [hq, udiv_toNat]
 
 theorem evalExpr_bark_div_uint256_revert {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {x y : Expr} {a b : UInt256}
@@ -5546,11 +5501,9 @@ theorem evalExpr_bark_div_uint256_revert {v : DogImmutables} {evm : EVM.State}
     (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
       .ok (.int (Int.ofNat b.toNat)))
     (hb : b = ⟨0⟩) :
-    evalExpr? (config v) { contract := contract v, locals := locals } evm (.binary .div x y) =
+    evalExpr? (config v) { contract := contract v, locals := locals } evm (.binary (.div (.uint ⟨256, by decide⟩) .checked) x y) =
       .revert := by
-  have hbNat : b.toNat = 0 := by
-    simp [hb]
-  simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hbNat]
+  exact evalExpr_checked_div_uint256_word_revert_of_zero hx hy hb
 
 theorem evalExpr_bark_eq_int_true {v : DogImmutables} {evm : EVM.State}
     {locals : Store} {lhs rhs : Expr} {a b : Int}
@@ -6195,11 +6148,11 @@ theorem dogBarkDueCheckedMulOkSource {v : DogImmutables} (evm : EVM.State)
         (.letDecl "due" (some uint256) (mul256 (.var "dart") (.var "rate")))
         (.ok { contract := contract v, locals := locals1 } evm) := by
     simpa [locals1, due, barkLocalsDue] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config v) (solm := { contract := contract v, locals := locals })
-        (evm := evm) (name := "due") (ty := some uint256)
+        (evm := evm) (name := "due")
         (expr := mul256 (.var "dart") (.var "rate"))
-        (value := .int (Int.ofNat due.toNat)) hmul)
+        (word := due) hmul)
   have hdueAfter :
       evalExpr? (config v) { contract := contract v, locals := locals1 } evm (.var "due") =
         .ok (.int (Int.ofNat due.toNat)) := by
@@ -6224,7 +6177,7 @@ theorem dogBarkDueCheckedMulOkSource {v : DogImmutables} (evm : EVM.State)
       evalExpr? (config v) { contract := contract v, locals := locals1 } evm
         (.binary .or
           (.binary .eq (.var "rate") (.intLit 0))
-          (.binary .eq (.binary .div (.var "due") (.var "rate")) (.var "dart"))) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "due") (.var "rate")) (.var "dart"))) =
         .ok (.bool true) := by
     by_cases hrateZero : rate = ⟨0⟩
     · have hleft :
@@ -6251,7 +6204,7 @@ theorem dogBarkDueCheckedMulOkSource {v : DogImmutables} (evm : EVM.State)
           (Nat.pos_of_ne_zero (fun hzeroNat => hrateZero (uint256_toNat_eq_zero hzeroNat)))
       have hdiv :
           evalExpr? (config v) { contract := contract v, locals := locals1 } evm
-            (.binary .div (.var "due") (.var "rate")) =
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "due") (.var "rate")) =
               .ok (.int (Int.ofNat dart.toNat)) := by
         have hraw := evalExpr_bark_div_uint256_ok
           (v := v) (evm := evm) (locals := locals1)
@@ -6261,7 +6214,7 @@ theorem dogBarkDueCheckedMulOkSource {v : DogImmutables} (evm : EVM.State)
         simpa [hdivWord] using hraw
       have hright :
           evalExpr? (config v) { contract := contract v, locals := locals1 } evm
-            (.binary .eq (.binary .div (.var "due") (.var "rate")) (.var "dart")) =
+            (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "due") (.var "rate")) (.var "dart")) =
               .ok (.bool true) :=
         evalExpr_bark_eq_int_true hdiv hdartAfter rfl
       exact evalExpr_bark_or_false_right hleft hright
@@ -7081,7 +7034,7 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
       ExecStmt (config v) { contract := contract v, locals := barkLocalsVatUrn I out }
         evmCall (.letDecl "ink" (some uint256) (.tupleGet (.var "vatUrn") 0))
         (.ok { contract := contract v, locals := barkLocalsInk I out } evmCall) := by
-    simpa [barkLocalsInk] using (ExecStmt.letDecl (cfg := config v) hinkExpr)
+    simpa [barkLocalsInk] using (ExecStmt.letDecl_uint256_word (cfg := config v) hinkExpr)
   have hartExpr :
       evalExpr? (config v) { contract := contract v, locals := barkLocalsInk I out }
         evmCall (.tupleGet (.var "vatUrn") 1) =
@@ -7093,7 +7046,7 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
       ExecStmt (config v) { contract := contract v, locals := barkLocalsInk I out }
         evmCall (.letDecl "art" (some uint256) (.tupleGet (.var "vatUrn") 1))
         (.ok { contract := contract v, locals := barkLocalsArt I out } evmCall) := by
-    simpa [barkLocalsArt] using (ExecStmt.letDecl (cfg := config v) hartExpr)
+    simpa [barkLocalsArt] using (ExecStmt.letDecl_uint256_word (cfg := config v) hartExpr)
   have hclipExpr :
       evalExpr? (config v) { contract := contract v, locals := barkLocalsArt I out }
         evmCall (.storage (ilksF (.var "ilk") "clip")) =
@@ -7108,7 +7061,7 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
         evmCall (.letDecl "milkClip" (some addr) (.storage (ilksF (.var "ilk") "clip")))
         (.ok { contract := contract v, locals := barkLocalsMilkClip evmCall I out }
           evmCall) := by
-    simpa [barkLocalsMilkClip] using (ExecStmt.letDecl (cfg := config v) hclipExpr)
+    simpa [barkLocalsMilkClip] using (ExecStmt.letDecl_address (cfg := config v) hclipExpr)
   have hchopExpr :
       evalExpr? (config v)
         { contract := contract v, locals := barkLocalsMilkClip evmCall I out } evmCall
@@ -7126,7 +7079,8 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
         (.letDecl "milkChop" (some uint256) (.storage (ilksF (.var "ilk") "chop")))
         (.ok { contract := contract v, locals := barkLocalsMilkChop evmCall I out }
           evmCall) := by
-    simpa [barkLocalsMilkChop] using (ExecStmt.letDecl (cfg := config v) hchopExpr)
+    simpa [barkLocalsMilkChop] using
+      (ExecStmt.letDecl_uint256_word (cfg := config v) hchopExpr)
   have hholeExpr :
       evalExpr? (config v)
         { contract := contract v, locals := barkLocalsMilkChop evmCall I out } evmCall
@@ -7144,7 +7098,8 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
         (.letDecl "milkHole" (some uint256) (.storage (ilksF (.var "ilk") "hole")))
         (.ok { contract := contract v, locals := barkLocalsMilkHole evmCall I out }
           evmCall) := by
-    simpa [barkLocalsMilkHole] using (ExecStmt.letDecl (cfg := config v) hholeExpr)
+    simpa [barkLocalsMilkHole] using
+      (ExecStmt.letDecl_uint256_word (cfg := config v) hholeExpr)
   have hdirtExpr :
       evalExpr? (config v)
         { contract := contract v, locals := barkLocalsMilkHole evmCall I out } evmCall
@@ -7162,7 +7117,8 @@ theorem dogBarkVatUrnsSuccessIlksPrefix {v : DogImmutables}
         (.letDecl "milkDirt" (some uint256) (.storage (ilksF (.var "ilk") "dirt")))
         (.ok { contract := contract v, locals := barkLocalsMilkDirt evmCall I out }
           evmCall) := by
-    simpa [barkLocalsMilkDirt] using (ExecStmt.letDecl (cfg := config v) hdirtExpr)
+    simpa [barkLocalsMilkDirt] using
+      (ExecStmt.letDecl_uint256_word (cfg := config v) hdirtExpr)
   have hcallvalue :
       evalExpr? (config v) { contract := contract v, locals := locals } evm0
         (.binary .eq (.env .callvalue) (.intLit 0)) = .ok (.bool true) :=
@@ -7560,7 +7516,8 @@ theorem dogBarkVatIlksSuccessDustPrefix {v : DogImmutables}
         evmIlks (.letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1))
         (.ok { contract := contract v, locals := barkLocalsRate evmUrns I out outIlks }
           evmIlks) := by
-    simpa [barkLocalsRate] using (ExecStmt.letDecl (cfg := config v) hrateExpr)
+    simpa [barkLocalsRate] using
+      (ExecStmt.letDecl_uint256_word (cfg := config v) hrateExpr)
   have hspotExpr :
       evalExpr? (config v)
         { contract := contract v, locals := barkLocalsRate evmUrns I out outIlks }
@@ -7575,7 +7532,8 @@ theorem dogBarkVatIlksSuccessDustPrefix {v : DogImmutables}
         evmIlks (.letDecl "spot" (some uint256) (.tupleGet (.var "vatIlk") 2))
         (.ok { contract := contract v, locals := barkLocalsSpot evmUrns I out outIlks }
           evmIlks) := by
-    simpa [barkLocalsSpot] using (ExecStmt.letDecl (cfg := config v) hspotExpr)
+    simpa [barkLocalsSpot] using
+      (ExecStmt.letDecl_uint256_word (cfg := config v) hspotExpr)
   have hdustExpr :
       evalExpr? (config v)
         { contract := contract v, locals := barkLocalsSpot evmUrns I out outIlks }
@@ -7590,7 +7548,8 @@ theorem dogBarkVatIlksSuccessDustPrefix {v : DogImmutables}
         evmIlks (.letDecl "dust" (some uint256) (.tupleGet (.var "vatIlk") 4))
         (.ok { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
           evmIlks) := by
-    simpa [barkLocalsDust] using (ExecStmt.letDecl (cfg := config v) hdustExpr)
+    simpa [barkLocalsDust] using
+      (ExecStmt.letDecl_uint256_word (cfg := config v) hdustExpr)
   have hsecond :
       ExecBlock (config v)
         { contract := contract v, locals := barkLocalsMilkDirt evmUrns I out } evmUrns
@@ -7704,7 +7663,8 @@ theorem dogBarkVatIlksInkSpotOverflowSourceBody {v : DogImmutables}
         evmIlks (.letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1))
         (.ok { contract := contract v, locals := barkLocalsRate evmUrns I out outIlks }
           evmIlks) := by
-    simpa [barkLocalsRate] using (ExecStmt.letDecl (cfg := config v) hrateExpr)
+    simpa [barkLocalsRate] using
+      (ExecStmt.letDecl_uint256_word (cfg := config v) hrateExpr)
   have hspotExpr :
       evalExpr? (config v)
         { contract := contract v, locals := barkLocalsRate evmUrns I out outIlks }
@@ -7719,7 +7679,8 @@ theorem dogBarkVatIlksInkSpotOverflowSourceBody {v : DogImmutables}
         evmIlks (.letDecl "spot" (some uint256) (.tupleGet (.var "vatIlk") 2))
         (.ok { contract := contract v, locals := barkLocalsSpot evmUrns I out outIlks }
           evmIlks) := by
-    simpa [barkLocalsSpot] using (ExecStmt.letDecl (cfg := config v) hspotExpr)
+    simpa [barkLocalsSpot] using
+      (ExecStmt.letDecl_uint256_word (cfg := config v) hspotExpr)
   have hdustExpr :
       evalExpr? (config v)
         { contract := contract v, locals := barkLocalsSpot evmUrns I out outIlks }
@@ -7734,7 +7695,8 @@ theorem dogBarkVatIlksInkSpotOverflowSourceBody {v : DogImmutables}
         evmIlks (.letDecl "dust" (some uint256) (.tupleGet (.var "vatIlk") 4))
         (.ok { contract := contract v, locals := barkLocalsDust evmUrns I out outIlks }
           evmIlks) := by
-    simpa [barkLocalsDust] using (ExecStmt.letDecl (cfg := config v) hdustExpr)
+    simpa [barkLocalsDust] using
+      (ExecStmt.letDecl_uint256_word (cfg := config v) hdustExpr)
   let localsDust := barkLocalsDust evmUrns I out outIlks
   have hink :
       evalExpr? (config v) { contract := contract v, locals := localsDust } evmIlks
@@ -7780,9 +7742,9 @@ theorem dogBarkVatIlksInkSpotOverflowSourceBody {v : DogImmutables}
           [ .internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room" ] ++
           checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
           [ .letDecl "dartByRate" (some uint256)
-              (.binary .div (.var "roomWad") (.var "rate")),
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")),
             .letDecl "dartCandidate" (some uint256)
-              (.binary .div (.var "dartByRate") (.var "milkChop")),
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")),
             .internalCall "min" [.var "art", .var "dartCandidate"] "dart",
             .ite
               (.binary .gt (.var "art") (.var "dart"))
@@ -7795,7 +7757,7 @@ theorem dogBarkVatIlksInkSpotOverflowSourceBody {v : DogImmutables}
                       [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
               [] ] ++
           checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-          [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+          [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
             .require (.binary .gt (.var "dink") (.intLit 0)),
             .require
               (.binary .and
@@ -7808,7 +7770,7 @@ theorem dogBarkVatIlksInkSpotOverflowSourceBody {v : DogImmutables}
           checkedMulUintInto "due" (.var "dart") (.var "rate") ++
           checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
           checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
-          [ .letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+          [ .letDecl "tab" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ] ++
           checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
           [ .assign .storage DirtRef (.var "DirtNew") ] ++
           checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++
@@ -7875,11 +7837,11 @@ theorem dogBarkInkSpotCheckedMulOk {v : DogImmutables}
         (.letDecl "inkSpot" (some uint256) (mul256 (.var "ink") (.var "spot")))
         (.ok { contract := contract v, locals := locals1 } evm) := by
     simpa [locals0, locals1, inkSpot, barkLocalsInkSpot] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config v) (solm := { contract := contract v, locals := locals0 })
-        (evm := evm) (name := "inkSpot") (ty := some uint256)
+        (evm := evm) (name := "inkSpot")
         (expr := mul256 (.var "ink") (.var "spot"))
-        (value := .int (Int.ofNat inkSpot.toNat)) hmul)
+        (word := inkSpot) hmul)
   have hspot1 :
       evalExpr? (config v) { contract := contract v, locals := locals1 } evm (.var "spot") =
         .ok (.int (Int.ofNat spot.toNat)) := by
@@ -7910,7 +7872,7 @@ theorem dogBarkInkSpotCheckedMulOk {v : DogImmutables}
       evalExpr? (config v) { contract := contract v, locals := locals1 } evm
         (.binary .or
           (.binary .eq (.var "spot") (.intLit 0))
-          (.binary .eq (.binary .div (.var "inkSpot") (.var "spot")) (.var "ink"))) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkSpot") (.var "spot")) (.var "ink"))) =
         .ok (.bool true) := by
     by_cases hspotZero : spot = ⟨0⟩
     · have heqZero :
@@ -7944,7 +7906,7 @@ theorem dogBarkInkSpotCheckedMulOk {v : DogImmutables}
           (Nat.pos_of_ne_zero hspotNatNe)
       have hdiv :
           evalExpr? (config v) { contract := contract v, locals := locals1 } evm
-            (.binary .div (.var "inkSpot") (.var "spot")) =
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkSpot") (.var "spot")) =
               .ok (.int (Int.ofNat ink.toNat)) := by
         have h := evalExpr_bark_div_uint256_ok (v := v) (evm := evm) (locals := locals1)
           (x := .var "inkSpot") (y := .var "spot")
@@ -7953,7 +7915,7 @@ theorem dogBarkInkSpotCheckedMulOk {v : DogImmutables}
         simpa [hdivWord] using h
       have hright :
           evalExpr? (config v) { contract := contract v, locals := locals1 } evm
-            (.binary .eq (.binary .div (.var "inkSpot") (.var "spot")) (.var "ink")) =
+            (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkSpot") (.var "spot")) (.var "ink")) =
               .ok (.bool true) :=
         evalExpr_bark_eq_int_true hdiv hink1 rfl
       exact evalExpr_bark_or_false_right heqZero hright
@@ -8032,11 +7994,11 @@ theorem dogBarkArtRateUnsafeCheckedMulOk {v : DogImmutables}
         (.letDecl "artRateUnsafe" (some uint256) (mul256 (.var "art") (.var "rate")))
         (.ok { contract := contract v, locals := locals1 } evm) := by
     simpa [locals0, locals1, artRate, barkLocalsArtRateUnsafe] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config v) (solm := { contract := contract v, locals := locals0 })
-        (evm := evm) (name := "artRateUnsafe") (ty := some uint256)
+        (evm := evm) (name := "artRateUnsafe")
         (expr := mul256 (.var "art") (.var "rate"))
-        (value := .int (Int.ofNat artRate.toNat)) hmul)
+        (word := artRate) hmul)
   have hrate1 :
       evalExpr? (config v) { contract := contract v, locals := locals1 } evm (.var "rate") =
         .ok (.int (Int.ofNat rate.toNat)) := by
@@ -8067,7 +8029,7 @@ theorem dogBarkArtRateUnsafeCheckedMulOk {v : DogImmutables}
       evalExpr? (config v) { contract := contract v, locals := locals1 } evm
         (.binary .or
           (.binary .eq (.var "rate") (.intLit 0))
-          (.binary .eq (.binary .div (.var "artRateUnsafe") (.var "rate")) (.var "art"))) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "artRateUnsafe") (.var "rate")) (.var "art"))) =
         .ok (.bool true) := by
     by_cases hrateZero : rate = ⟨0⟩
     · have heqZero :
@@ -8101,7 +8063,7 @@ theorem dogBarkArtRateUnsafeCheckedMulOk {v : DogImmutables}
           (Nat.pos_of_ne_zero hrateNatNe)
       have hdiv :
           evalExpr? (config v) { contract := contract v, locals := locals1 } evm
-            (.binary .div (.var "artRateUnsafe") (.var "rate")) =
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "artRateUnsafe") (.var "rate")) =
               .ok (.int (Int.ofNat art.toNat)) := by
         have h := evalExpr_bark_div_uint256_ok (v := v) (evm := evm) (locals := locals1)
           (x := .var "artRateUnsafe") (y := .var "rate")
@@ -8110,7 +8072,7 @@ theorem dogBarkArtRateUnsafeCheckedMulOk {v : DogImmutables}
         simpa [hdivWord] using h
       have hright :
           evalExpr? (config v) { contract := contract v, locals := locals1 } evm
-            (.binary .eq (.binary .div (.var "artRateUnsafe") (.var "rate")) (.var "art")) =
+            (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "artRateUnsafe") (.var "rate")) (.var "art")) =
               .ok (.bool true) :=
         evalExpr_bark_eq_int_true hdiv hart1 rfl
       exact evalExpr_bark_or_false_right heqZero hright
@@ -8195,9 +8157,9 @@ theorem dogBarkVatIlksArtRateOverflowSourceBody {v : DogImmutables}
     [ .internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room" ] ++
     checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
     [ .letDecl "dartByRate" (some uint256)
-        (.binary .div (.var "roomWad") (.var "rate")),
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")),
       .letDecl "dartCandidate" (some uint256)
-        (.binary .div (.var "dartByRate") (.var "milkChop")),
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")),
       .internalCall "min" [.var "art", .var "dartCandidate"] "dart",
       .ite
         (.binary .gt (.var "art") (.var "dart"))
@@ -8210,7 +8172,7 @@ theorem dogBarkVatIlksArtRateOverflowSourceBody {v : DogImmutables}
                 [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
         [] ] ++
     checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-    [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+    [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
       .require (.binary .gt (.var "dink") (.intLit 0)),
       .require
         (.binary .and
@@ -8223,7 +8185,7 @@ theorem dogBarkVatIlksArtRateOverflowSourceBody {v : DogImmutables}
     checkedMulUintInto "due" (.var "dart") (.var "rate") ++
     checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
     checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
-    [ .letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+    [ .letDecl "tab" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ] ++
     checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
     [ .assign .storage DirtRef (.var "DirtNew") ] ++
     checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++
@@ -8409,9 +8371,9 @@ theorem dogBarkVatIlksNotUnsafeSourceBody {v : DogImmutables}
     [ .internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room" ] ++
     checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
     [ .letDecl "dartByRate" (some uint256)
-        (.binary .div (.var "roomWad") (.var "rate")),
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")),
       .letDecl "dartCandidate" (some uint256)
-        (.binary .div (.var "dartByRate") (.var "milkChop")),
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")),
       .internalCall "min" [.var "art", .var "dartCandidate"] "dart",
       .ite
         (.binary .gt (.var "art") (.var "dart"))
@@ -8424,7 +8386,7 @@ theorem dogBarkVatIlksNotUnsafeSourceBody {v : DogImmutables}
                 [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
         [] ] ++
     checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-    [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+    [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
       .require (.binary .gt (.var "dink") (.intLit 0)),
       .require
         (.binary .and
@@ -8437,7 +8399,7 @@ theorem dogBarkVatIlksNotUnsafeSourceBody {v : DogImmutables}
     checkedMulUintInto "due" (.var "dart") (.var "rate") ++
     checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
     checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
-    [ .letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+    [ .letDecl "tab" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ] ++
     checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
     [ .assign .storage DirtRef (.var "DirtNew") ] ++
     checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++
@@ -8706,9 +8668,9 @@ theorem dogBarkVatIlksLiquidationLimitHitSourceBody {v : DogImmutables}
     [ .internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room" ] ++
     checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
     [ .letDecl "dartByRate" (some uint256)
-        (.binary .div (.var "roomWad") (.var "rate")),
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")),
       .letDecl "dartCandidate" (some uint256)
-        (.binary .div (.var "dartByRate") (.var "milkChop")),
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")),
       .internalCall "min" [.var "art", .var "dartCandidate"] "dart",
       .ite
         (.binary .gt (.var "art") (.var "dart"))
@@ -8721,7 +8683,7 @@ theorem dogBarkVatIlksLiquidationLimitHitSourceBody {v : DogImmutables}
                 [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
         [] ] ++
     checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-    [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+    [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
       .require (.binary .gt (.var "dink") (.intLit 0)),
       .require
         (.binary .and
@@ -8734,7 +8696,7 @@ theorem dogBarkVatIlksLiquidationLimitHitSourceBody {v : DogImmutables}
     checkedMulUintInto "due" (.var "dart") (.var "rate") ++
     checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
     checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
-    [ .letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+    [ .letDecl "tab" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ] ++
     checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
     [ .assign .storage DirtRef (.var "DirtNew") ] ++
     checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++
@@ -8800,11 +8762,11 @@ theorem dogBarkGlobalRoomCheckedSubOk {v : DogImmutables}
         (.letDecl "globalRoom" (some uint256) (sub256 (.storage HoleRef) (.storage DirtRef)))
         (.ok { contract := contract v, locals := locals1 } evmIlks) := by
     simpa [locals0, locals1, globalRoom, barkLocalsGlobalRoom] using
-      (ExecStmt.letDecl (cfg := config v)
+      (ExecStmt.letDecl_uint256_word (cfg := config v)
         (solm := { contract := contract v, locals := locals0 }) (evm := evmIlks)
-        (name := "globalRoom") (ty := some uint256)
+        (name := "globalRoom")
         (expr := sub256 (.storage HoleRef) (.storage DirtRef))
-        (value := .int (Int.ofNat globalRoom.toNat)) hsub)
+        (word := globalRoom) hsub)
   have hglobalExpr :
       evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
         (.var "globalRoom") = .ok (.int (Int.ofNat globalRoom.toNat)) := by
@@ -8878,11 +8840,11 @@ theorem dogBarkIlkRoomCheckedSubOk {v : DogImmutables}
         (.letDecl "ilkRoom" (some uint256) (sub256 (.var "milkHole") (.var "milkDirt")))
         (.ok { contract := contract v, locals := locals1 } evmIlks) := by
     simpa [locals0, locals1, ilkRoom, barkLocalsIlkRoom] using
-      (ExecStmt.letDecl (cfg := config v)
+      (ExecStmt.letDecl_uint256_word (cfg := config v)
         (solm := { contract := contract v, locals := locals0 }) (evm := evmIlks)
-        (name := "ilkRoom") (ty := some uint256)
+        (name := "ilkRoom")
         (expr := sub256 (.var "milkHole") (.var "milkDirt"))
-        (value := .int (Int.ofNat ilkRoom.toNat)) hsub)
+        (word := ilkRoom) hsub)
   have hilkExpr :
       evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
         (.var "ilkRoom") = .ok (.int (Int.ofNat ilkRoom.toNat)) := by
@@ -8946,7 +8908,8 @@ theorem dogBarkRoomMinCallOk {v : DogImmutables}
       bindParams? minFunction.params
           [.int (Int.ofNat globalRoom.toNat), .int (Int.ofNat ilkRoom.toNat)] =
         some (barkBinaryLocals globalRoom ilkRoom) := by
-    simp [minFunction, uint256, bindParams?, barkBinaryLocals]
+    simpa [minFunction, barkBinaryLocals] using
+      bindParams_uint256_pair "x" "y" globalRoom ilkRoom
   have hbody :
       ExecFuncBody (config v)
         { contract := contract v, locals := barkBinaryLocals globalRoom ilkRoom } evmIlks
@@ -9272,11 +9235,11 @@ theorem dogBarkRoomWadCheckedMulOk {v : DogImmutables}
         (.letDecl "roomWad" (some uint256) (mul256 (.var "room") (.intLit WAD)))
         (.ok { contract := contract v, locals := locals1 } evmIlks) := by
     simpa [locals0, locals1, roomWad, barkLocalsRoomWad] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config v) (solm := { contract := contract v, locals := locals0 })
-        (evm := evmIlks) (name := "roomWad") (ty := some uint256)
+        (evm := evmIlks) (name := "roomWad")
         (expr := mul256 (.var "room") (.intLit WAD))
-        (value := .int (Int.ofNat roomWad.toNat)) hmul)
+        (word := roomWad) hmul)
   have hroom1 :
       evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
         (.var "room") = .ok (.int (Int.ofNat room.toNat)) := by
@@ -9309,7 +9272,7 @@ theorem dogBarkRoomWadCheckedMulOk {v : DogImmutables}
       evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
         (.binary .or
           (.binary .eq (.intLit WAD) (.intLit 0))
-          (.binary .eq (.binary .div (.var "roomWad") (.intLit WAD)) (.var "room"))) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.intLit WAD)) (.var "room"))) =
         .ok (.bool true) := by
     have hleft :
         evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
@@ -9331,7 +9294,7 @@ theorem dogBarkRoomWadCheckedMulOk {v : DogImmutables}
       exact Nat.mul_div_right room.toNat hWadPos
     have hdiv :
         evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
-          (.binary .div (.var "roomWad") (.intLit WAD)) =
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.intLit WAD)) =
             .ok (.int (Int.ofNat room.toNat)) := by
       have h := evalExpr_bark_div_uint256_ok (v := v) (evm := evmIlks)
         (locals := locals1) (x := .var "roomWad") (y := .intLit WAD)
@@ -9340,7 +9303,7 @@ theorem dogBarkRoomWadCheckedMulOk {v : DogImmutables}
       simpa [hdivWord] using h
     have hright :
         evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
-          (.binary .eq (.binary .div (.var "roomWad") (.intLit WAD)) (.var "room")) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.intLit WAD)) (.var "room")) =
             .ok (.bool true) :=
       evalExpr_bark_eq_int_true hdiv hroom1 rfl
     exact evalExpr_bark_or_false_right hleft hright
@@ -9354,7 +9317,7 @@ theorem dogBarkDartByRateLetOk {v : DogImmutables}
     ExecBlock (config v)
       { contract := contract v, locals := barkLocalsRoomWad evmUrns evmIlks I out outIlks }
       evmIlks
-      [ .letDecl "dartByRate" (some uint256) (.binary .div (.var "roomWad") (.var "rate")) ]
+      [ .letDecl "dartByRate" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")) ]
       (.ok
         { contract := contract v, locals := barkLocalsDartByRate evmUrns evmIlks I out outIlks }
         evmIlks) := by
@@ -9379,20 +9342,20 @@ theorem dogBarkDartByRateLetOk {v : DogImmutables}
         (barkLocalsRoomWad_get_rate evmUrns evmIlks I out outIlks)
   have hdiv :
       evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
-        (.binary .div (.var "roomWad") (.var "rate")) =
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")) =
           .ok (.int (Int.ofNat dartByRate.toNat)) := by
     exact evalExpr_bark_div_uint256_ok hroomWad hrate (by simpa [rate] using hrateNe)
       (by simp [dartByRate, roomWad, rate, barkSourceDartByRateWord])
   have hlet :
       ExecStmt (config v) { contract := contract v, locals := locals0 } evmIlks
-        (.letDecl "dartByRate" (some uint256) (.binary .div (.var "roomWad") (.var "rate")))
+        (.letDecl "dartByRate" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")))
         (.ok { contract := contract v, locals := locals1 } evmIlks) := by
     simpa [locals0, locals1, dartByRate, barkLocalsDartByRate] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config v) (solm := { contract := contract v, locals := locals0 })
-        (evm := evmIlks) (name := "dartByRate") (ty := some uint256)
-        (expr := .binary .div (.var "roomWad") (.var "rate"))
-        (value := .int (Int.ofNat dartByRate.toNat)) hdiv)
+        (evm := evmIlks) (name := "dartByRate")
+        (expr := .binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate"))
+        (word := dartByRate) hdiv)
   exact ExecBlock.consNormal hlet ExecBlock.nil
 
 theorem dogBarkDartCandidateLetOk {v : DogImmutables}
@@ -9402,7 +9365,7 @@ theorem dogBarkDartCandidateLetOk {v : DogImmutables}
       { contract := contract v, locals := barkLocalsDartByRate evmUrns evmIlks I out outIlks }
       evmIlks
       [ .letDecl "dartCandidate" (some uint256)
-          (.binary .div (.var "dartByRate") (.var "milkChop")) ]
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")) ]
       (.ok
         { contract := contract v,
           locals := barkLocalsDartCandidate evmUrns evmIlks I out outIlks }
@@ -9428,7 +9391,7 @@ theorem dogBarkDartCandidateLetOk {v : DogImmutables}
         (barkLocalsDartByRate_get_milkChop evmUrns evmIlks I out outIlks)
   have hdiv :
       evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
-        (.binary .div (.var "dartByRate") (.var "milkChop")) =
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")) =
           .ok (.int (Int.ofNat dartCandidate.toNat)) := by
     exact evalExpr_bark_div_uint256_ok hdartByRate hchop
       (by simpa [chop] using hchopNe)
@@ -9436,14 +9399,14 @@ theorem dogBarkDartCandidateLetOk {v : DogImmutables}
   have hlet :
       ExecStmt (config v) { contract := contract v, locals := locals0 } evmIlks
         (.letDecl "dartCandidate" (some uint256)
-          (.binary .div (.var "dartByRate") (.var "milkChop")))
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")))
         (.ok { contract := contract v, locals := locals1 } evmIlks) := by
     simpa [locals0, locals1, dartCandidate, barkLocalsDartCandidate] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config v) (solm := { contract := contract v, locals := locals0 })
-        (evm := evmIlks) (name := "dartCandidate") (ty := some uint256)
-        (expr := .binary .div (.var "dartByRate") (.var "milkChop"))
-        (value := .int (Int.ofNat dartCandidate.toNat)) hdiv)
+        (evm := evmIlks) (name := "dartCandidate")
+        (expr := .binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop"))
+        (word := dartCandidate) hdiv)
   exact ExecBlock.consNormal hlet ExecBlock.nil
 
 theorem dogBarkDartMinCallOk {v : DogImmutables}
@@ -9480,7 +9443,8 @@ theorem dogBarkDartMinCallOk {v : DogImmutables}
       bindParams? minFunction.params
           [.int (Int.ofNat art.toNat), .int (Int.ofNat dartCandidate.toNat)] =
         some (barkBinaryLocals art dartCandidate) := by
-    simp [minFunction, uint256, bindParams?, barkBinaryLocals]
+    simpa [minFunction, barkBinaryLocals] using
+      bindParams_uint256_pair "x" "y" art dartCandidate
   have hbody :
       ExecFuncBody (config v)
         { contract := contract v, locals := barkBinaryLocals art dartCandidate } evmIlks
@@ -9546,9 +9510,9 @@ theorem dogBarkVatIlksDustToDartOk {v : DogImmutables}
         [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
         checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
         [ .letDecl "dartByRate" (some uint256)
-            (.binary .div (.var "roomWad") (.var "rate")) ] ++
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")) ] ++
         [ .letDecl "dartCandidate" (some uint256)
-            (.binary .div (.var "dartByRate") (.var "milkChop")) ] ++
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")) ] ++
         [.internalCall "min" [.var "art", .var "dartCandidate"] "dart"])
       (.ok { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
         evmIlks) := by
@@ -9601,7 +9565,7 @@ theorem dogBarkVatIlksDustToDartOk {v : DogImmutables}
           [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
           checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
           [ .letDecl "dartByRate" (some uint256)
-              (.binary .div (.var "roomWad") (.var "rate")) ])
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")) ])
         (.ok
           { contract := contract v,
             locals := barkLocalsDartByRate evmUrns evmIlks I out outIlks }
@@ -9628,9 +9592,9 @@ theorem dogBarkVatIlksDustToDartOk {v : DogImmutables}
           [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
           checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
           [ .letDecl "dartByRate" (some uint256)
-              (.binary .div (.var "roomWad") (.var "rate")) ] ++
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")) ] ++
           [ .letDecl "dartCandidate" (some uint256)
-              (.binary .div (.var "dartByRate") (.var "milkChop")) ])
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")) ])
         (.ok
           { contract := contract v,
             locals := barkLocalsDartCandidate evmUrns evmIlks I out outIlks }
@@ -9726,11 +9690,11 @@ theorem dogBarkInkDartCheckedMulOk {v : DogImmutables} (evm : EVM.State)
         (.letDecl "inkDart" (some uint256) (mul256 (.var "ink") (.var "dart")))
         (.ok { contract := contract v, locals := locals1 } evm) := by
     simpa [locals1, inkDart, barkLocalsInkDart] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config v) (solm := { contract := contract v, locals := locals })
-        (evm := evm) (name := "inkDart") (ty := some uint256)
+        (evm := evm) (name := "inkDart")
         (expr := mul256 (.var "ink") (.var "dart"))
-        (value := .int (Int.ofNat inkDart.toNat)) hmul)
+        (word := inkDart) hmul)
   have hink1 :
       evalExpr? (config v) { contract := contract v, locals := locals1 } evm (.var "ink") =
         .ok (.int (Int.ofNat ink.toNat)) := by
@@ -9760,7 +9724,7 @@ theorem dogBarkInkDartCheckedMulOk {v : DogImmutables} (evm : EVM.State)
       evalExpr? (config v) { contract := contract v, locals := locals1 } evm
         (.binary .or
           (.binary .eq (.var "dart") (.intLit 0))
-          (.binary .eq (.binary .div (.var "inkDart") (.var "dart")) (.var "ink"))) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "dart")) (.var "ink"))) =
         .ok (.bool true) := by
     by_cases hdartZero : dart = ⟨0⟩
     · have hleft :
@@ -9788,7 +9752,7 @@ theorem dogBarkInkDartCheckedMulOk {v : DogImmutables} (evm : EVM.State)
           (Nat.pos_of_ne_zero (fun hzeroNat => hdartZero (uint256_toNat_eq_zero hzeroNat)))
       have hdiv :
           evalExpr? (config v) { contract := contract v, locals := locals1 } evm
-            (.binary .div (.var "inkDart") (.var "dart")) =
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "dart")) =
               .ok (.int (Int.ofNat ink.toNat)) := by
         have hraw := evalExpr_bark_div_uint256_ok
           (v := v) (evm := evm) (locals := locals1)
@@ -9798,7 +9762,7 @@ theorem dogBarkInkDartCheckedMulOk {v : DogImmutables} (evm : EVM.State)
         simpa [hdivWord] using hraw
       have hright :
           evalExpr? (config v) { contract := contract v, locals := locals1 } evm
-            (.binary .eq (.binary .div (.var "inkDart") (.var "dart")) (.var "ink")) =
+            (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "dart")) (.var "ink")) =
               .ok (.bool true) :=
         evalExpr_bark_eq_int_true hdiv hink1 rfl
       exact evalExpr_bark_or_false_right hleft hright
@@ -9858,10 +9822,9 @@ theorem dogBarkCheckedSubOk {v : DogImmutables} (evm : EVM.State)
         (.letDecl name (some uint256) (sub256 x y))
         (.ok { contract := contract v, locals := locals1 } evm) := by
     simpa [locals1, diff] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config v) (solm := { contract := contract v, locals := locals })
-        (evm := evm) (name := name) (ty := some uint256) (expr := sub256 x y)
-        (value := .int (Int.ofNat diff.toNat)) hsub)
+        (evm := evm) (name := name) (expr := sub256 x y) (word := diff) hsub)
   have hname :
       evalExpr? (config v) { contract := contract v, locals := locals1 } evm
         (.var name) = .ok (.int (Int.ofNat diff.toNat)) := by
@@ -9908,10 +9871,9 @@ theorem dogBarkCheckedAddOk {v : DogImmutables} (evm : EVM.State)
         (.letDecl name (some uint256) (add256 x y))
         (.ok { contract := contract v, locals := locals1 } evm) := by
     simpa [locals1, sum] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config v) (solm := { contract := contract v, locals := locals })
-        (evm := evm) (name := name) (ty := some uint256) (expr := add256 x y)
-        (value := .int (Int.ofNat sum.toNat)) hadd)
+        (evm := evm) (name := name) (expr := add256 x y) (word := sum) hadd)
   have hname :
       evalExpr? (config v) { contract := contract v, locals := locals1 } evm
         (.var name) = .ok (.int (Int.ofNat sum.toNat)) := by
@@ -9963,10 +9925,9 @@ theorem dogBarkCheckedMulOk {v : DogImmutables} (evm : EVM.State)
         (.letDecl name (some uint256) (mul256 x y))
         (.ok { contract := contract v, locals := locals1 } evm) := by
     simpa [locals1, prod] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config v) (solm := { contract := contract v, locals := locals })
-        (evm := evm) (name := name) (ty := some uint256) (expr := mul256 x y)
-        (value := .int (Int.ofNat prod.toNat)) hmul)
+        (evm := evm) (name := name) (expr := mul256 x y) (word := prod) hmul)
   have hname :
       evalExpr? (config v) { contract := contract v, locals := locals1 } evm
         (.var name) = .ok (.int (Int.ofNat prod.toNat)) := by
@@ -9981,7 +9942,7 @@ theorem dogBarkCheckedMulOk {v : DogImmutables} (evm : EVM.State)
       evalExpr? (config v) { contract := contract v, locals := locals1 } evm
         (.binary .or
           (.binary .eq y (.intLit 0))
-          (.binary .eq (.binary .div (.var name) y) x)) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x)) =
         .ok (.bool true) := by
     by_cases hbZero : b = ⟨0⟩
     · have hleft :
@@ -10009,7 +9970,7 @@ theorem dogBarkCheckedMulOk {v : DogImmutables} (evm : EVM.State)
           (Nat.pos_of_ne_zero (fun hzeroNat => hbZero (uint256_toNat_eq_zero hzeroNat)))
       have hdiv :
           evalExpr? (config v) { contract := contract v, locals := locals1 } evm
-            (.binary .div (.var name) y) =
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) =
               .ok (.int (Int.ofNat a.toNat)) := by
         have hraw := evalExpr_bark_div_uint256_ok
           (v := v) (evm := evm) (locals := locals1)
@@ -10019,7 +9980,7 @@ theorem dogBarkCheckedMulOk {v : DogImmutables} (evm : EVM.State)
         simpa [hdivWord] using hraw
       have hright :
           evalExpr? (config v) { contract := contract v, locals := locals1 } evm
-            (.binary .eq (.binary .div (.var name) y) x) =
+            (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x) =
               .ok (.bool true) :=
         evalExpr_bark_eq_int_true hdiv hxAfter rfl
       exact evalExpr_bark_or_false_right hleft hright
@@ -10127,7 +10088,7 @@ theorem dogBarkTabLetOk {v : DogImmutables} (evm : EVM.State)
     {locals : Store} {tabBase : UInt256}
     (htabBase : locals.get? "tabBase" = some (.int (Int.ofNat tabBase.toNat))) :
     ExecBlock (config v) { contract := contract v, locals := locals } evm
-      [ .letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)) ]
+      [ .letDecl "tab" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ]
       (.ok { contract := contract v, locals := barkLocalsTab locals (barkTabWord tabBase) }
         evm) := by
   let tab := barkTabWord tabBase
@@ -10144,21 +10105,21 @@ theorem dogBarkTabLetOk {v : DogImmutables} (evm : EVM.State)
     simp [evalExpr?, pure, WAD, hWadNat]
   have hdiv :
       evalExpr? (config v) { contract := contract v, locals := locals } evm
-        (.binary .div (.var "tabBase") (.intLit WAD)) =
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) =
           .ok (.int (Int.ofNat tab.toNat)) := by
     exact evalExpr_bark_div_uint256_ok htabBaseExpr hWad
       (by native_decide : dogWadWord ≠ ⟨0⟩)
       (by simp [tab, barkTabWord])
   have hlet :
       ExecStmt (config v) { contract := contract v, locals := locals } evm
-        (.letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)))
+        (.letDecl "tab" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)))
         (.ok { contract := contract v, locals := barkLocalsTab locals tab } evm) := by
     simpa [tab, barkLocalsTab] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config v) (solm := { contract := contract v, locals := locals })
-        (evm := evm) (name := "tab") (ty := some uint256)
-        (expr := .binary .div (.var "tabBase") (.intLit WAD))
-        (value := .int (Int.ofNat tab.toNat)) hdiv)
+        (evm := evm) (name := "tab")
+        (expr := .binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD))
+        (word := tab) hdiv)
   exact ExecBlock.consNormal hlet ExecBlock.nil
 
 theorem dogBarkDirtAddOkSource {v : DogImmutables} (evm : EVM.State)
@@ -11203,7 +11164,7 @@ theorem dogBarkDinkLetOk {v : DogImmutables} (evm : EVM.State)
     (hartNe : art ≠ ⟨0⟩) :
     ExecBlock (config v)
       { contract := contract v, locals := barkLocalsInkDart locals inkDart } evm
-      [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")) ]
+      [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")) ]
       (.ok
         { contract := contract v,
           locals := barkLocalsDink (barkLocalsInkDart locals inkDart)
@@ -11227,19 +11188,19 @@ theorem dogBarkDinkLetOk {v : DogImmutables} (evm : EVM.State)
         (barkLocalsInkDart_get_preserved (by decide) hart)
   have hdiv :
       evalExpr? (config v) { contract := contract v, locals := locals0 } evm
-        (.binary .div (.var "inkDart") (.var "art")) =
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")) =
           .ok (.int (Int.ofNat dink.toNat)) := by
     exact evalExpr_bark_div_uint256_ok hinkDart hart0 hartNe (by simp [dink])
   have hlet :
       ExecStmt (config v) { contract := contract v, locals := locals0 } evm
-        (.letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")))
+        (.letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")))
         (.ok { contract := contract v, locals := barkLocalsDink locals0 dink } evm) := by
     simpa [locals0, dink, barkLocalsDink] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config v) (solm := { contract := contract v, locals := locals0 })
-        (evm := evm) (name := "dink") (ty := some uint256)
-        (expr := .binary .div (.var "inkDart") (.var "art"))
-        (value := .int (Int.ofNat dink.toNat)) hdiv)
+        (evm := evm) (name := "dink")
+        (expr := .binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art"))
+        (word := dink) hdiv)
   exact ExecBlock.consNormal hlet ExecBlock.nil
 
 theorem dogBarkDinkGuardOkSource {v : DogImmutables} (evm : EVM.State)
@@ -11422,7 +11383,7 @@ theorem dogBarkDartCandidateDivZero {v : DogImmutables}
       { contract := contract v, locals := barkLocalsDartByRate evmUrns evmIlks I out outIlks }
       evmIlks
       [ .letDecl "dartCandidate" (some uint256)
-          (.binary .div (.var "dartByRate") (.var "milkChop")) ]
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")) ]
       .reverted := by
   let locals0 := barkLocalsDartByRate evmUrns evmIlks I out outIlks
   let dartByRate := barkSourceDartByRateWord evmUrns evmIlks I outIlks
@@ -11443,7 +11404,7 @@ theorem dogBarkDartCandidateDivZero {v : DogImmutables}
         (barkLocalsDartByRate_get_milkChop evmUrns evmIlks I out outIlks)
   have hdiv :
       evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
-        (.binary .div (.var "dartByRate") (.var "milkChop")) = .revert :=
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")) = .revert :=
     evalExpr_bark_div_uint256_revert hdartByRate hchop (by simpa [chop] using hchopZero)
   exact ExecBlock.consRevert (ExecStmt.letDeclRevert hdiv)
 
@@ -11726,9 +11687,9 @@ theorem dogBarkVatIlksRoomWadOverflowSourceBody {v : DogImmutables}
     simpa [List.append_assoc] using execBlock_append htoRoom hroomWadBlock
   let afterRoomWad : List Stmt :=
     [ .letDecl "dartByRate" (some uint256)
-        (.binary .div (.var "roomWad") (.var "rate")),
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")),
       .letDecl "dartCandidate" (some uint256)
-        (.binary .div (.var "dartByRate") (.var "milkChop")),
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")),
       .internalCall "min" [.var "art", .var "dartCandidate"] "dart",
       .ite
         (.binary .gt (.var "art") (.var "dart"))
@@ -11741,7 +11702,7 @@ theorem dogBarkVatIlksRoomWadOverflowSourceBody {v : DogImmutables}
                 [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
         [] ] ++
     checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-    [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+    [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
       .require (.binary .gt (.var "dink") (.intLit 0)),
       .require
         (.binary .and
@@ -11754,7 +11715,7 @@ theorem dogBarkVatIlksRoomWadOverflowSourceBody {v : DogImmutables}
     checkedMulUintInto "due" (.var "dart") (.var "rate") ++
     checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
     checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
-    [ .letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+    [ .letDecl "tab" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ] ++
     checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
     [ .assign .storage DirtRef (.var "DirtNew") ] ++
     checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++
@@ -11916,7 +11877,7 @@ theorem dogBarkVatIlksMilkChopZeroSourceBody {v : DogImmutables}
           [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
           checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
           [ .letDecl "dartByRate" (some uint256)
-              (.binary .div (.var "roomWad") (.var "rate")) ])
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")) ])
         (.ok
           { contract := contract v, locals := barkLocalsDartByRate evmUrns evmIlks I out outIlks }
           evmIlks) := by
@@ -11941,9 +11902,9 @@ theorem dogBarkVatIlksMilkChopZeroSourceBody {v : DogImmutables}
           [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
           checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
           [ .letDecl "dartByRate" (some uint256)
-              (.binary .div (.var "roomWad") (.var "rate")) ] ++
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")) ] ++
           [ .letDecl "dartCandidate" (some uint256)
-              (.binary .div (.var "dartByRate") (.var "milkChop")) ])
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")) ])
         .reverted := by
     simpa [List.append_assoc] using execBlock_append htoDartByRate hdartCandidateBlock
   let afterDartCandidate : List Stmt :=
@@ -11959,7 +11920,7 @@ theorem dogBarkVatIlksMilkChopZeroSourceBody {v : DogImmutables}
                 [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
         [] ] ++
     checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-    [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+    [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
       .require (.binary .gt (.var "dink") (.intLit 0)),
       .require
         (.binary .and
@@ -11972,7 +11933,7 @@ theorem dogBarkVatIlksMilkChopZeroSourceBody {v : DogImmutables}
     checkedMulUintInto "due" (.var "dart") (.var "rate") ++
     checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
     checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
-    [ .letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+    [ .letDecl "tab" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ] ++
     checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
     [ .assign .storage DirtRef (.var "DirtNew") ] ++
     checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++
@@ -11998,9 +11959,9 @@ theorem dogBarkVatIlksMilkChopZeroSourceBody {v : DogImmutables}
           [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
           checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
           [ .letDecl "dartByRate" (some uint256)
-              (.binary .div (.var "roomWad") (.var "rate")) ] ++
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")) ] ++
           [ .letDecl "dartCandidate" (some uint256)
-              (.binary .div (.var "dartByRate") (.var "milkChop")) ] ++
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")) ] ++
           afterDartCandidate)
         .reverted := by
     simpa [List.append_assoc] using
@@ -12080,7 +12041,7 @@ theorem dogBarkVatIlksDartTailSourceBlock {v : DogImmutables}
                     [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
             [] ] ++
           checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-          [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+          [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
             .require (.binary .gt (.var "dink") (.intLit 0)),
             .require
               (.binary .and
@@ -12094,7 +12055,7 @@ theorem dogBarkVatIlksDartTailSourceBlock {v : DogImmutables}
           checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
           checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
           [ .letDecl "tab" (some uint256)
-              (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ] ++
           checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
           [ .assign .storage DirtRef (.var "DirtNew") ] ++
           checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++
@@ -12140,9 +12101,9 @@ theorem dogBarkVatIlksDartTailSourceBlock {v : DogImmutables}
           [.internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room"] ++
           checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
           [ .letDecl "dartByRate" (some uint256)
-              (.binary .div (.var "roomWad") (.var "rate")) ] ++
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")) ] ++
           [ .letDecl "dartCandidate" (some uint256)
-              (.binary .div (.var "dartByRate") (.var "milkChop")) ] ++
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")) ] ++
           [.internalCall "min" [.var "art", .var "dartCandidate"] "dart"])
         (.ok { contract := contract v, locals := barkLocalsDart evmUrns evmIlks I out outIlks }
           evmIlks) := by
@@ -12172,7 +12133,7 @@ theorem dogBarkDartTailFromLeftoverBlock {v : DogImmutables}
     (htail :
       ExecBlock (config v) { contract := contract v, locals := localsAfter } evmIlks
         (checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-          [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+          [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
             .require (.binary .gt (.var "dink") (.intLit 0)),
             .require
               (.binary .and
@@ -12186,7 +12147,7 @@ theorem dogBarkDartTailFromLeftoverBlock {v : DogImmutables}
           checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
           checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
           [ .letDecl "tab" (some uint256)
-              (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+              (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ] ++
           checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
           [ .assign .storage DirtRef (.var "DirtNew") ] ++
           checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++
@@ -12209,7 +12170,7 @@ theorem dogBarkDartTailFromLeftoverBlock {v : DogImmutables}
                   [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
           [] ] ++
         checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-        [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+        [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
           .require (.binary .gt (.var "dink") (.intLit 0)),
           .require
             (.binary .and
@@ -12223,7 +12184,7 @@ theorem dogBarkDartTailFromLeftoverBlock {v : DogImmutables}
         checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
         checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
         [ .letDecl "tab" (some uint256)
-            (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ] ++
         checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
         [ .assign .storage DirtRef (.var "DirtNew") ] ++
         checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++
@@ -12246,7 +12207,7 @@ theorem dogBarkPostLeftoverIntGuardOkSource {v : DogImmutables}
     (hdinkBound : (barkDinkWord ink dart art).toNat ≤ dogInt256LimitWord.toNat) :
     ExecBlock (config v) { contract := contract v, locals := locals } evm
       (checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-        [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+        [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
           .require (.binary .gt (.var "dink") (.intLit 0)),
           .require
             (.binary .and
@@ -12264,7 +12225,7 @@ theorem dogBarkPostLeftoverIntGuardOkSource {v : DogImmutables}
       ExecBlock (config v)
         { contract := contract v, locals := barkLocalsInkDart locals (barkInkDartWord ink dart) }
         evm
-        [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")) ]
+        [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")) ]
         (.ok
           { contract := contract v,
             locals :=
@@ -12277,7 +12238,7 @@ theorem dogBarkPostLeftoverIntGuardOkSource {v : DogImmutables}
   have htoDink :
       ExecBlock (config v) { contract := contract v, locals := locals } evm
         (checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-          [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")) ])
+          [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")) ])
         (.ok
           { contract := contract v,
             locals :=
@@ -12336,7 +12297,7 @@ theorem dogBarkPostLeftoverDinkLetOkSource {v : DogImmutables}
     (hartNe : art ≠ ⟨0⟩) :
     ExecBlock (config v) { contract := contract v, locals := locals } evm
       (checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-        [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")) ])
+        [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")) ])
       (.ok
         { contract := contract v,
           locals :=
@@ -12349,7 +12310,7 @@ theorem dogBarkPostLeftoverDinkLetOkSource {v : DogImmutables}
       ExecBlock (config v)
         { contract := contract v, locals := barkLocalsInkDart locals (barkInkDartWord ink dart) }
         evm
-        [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")) ]
+        [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")) ]
         (.ok
           { contract := contract v,
             locals :=
@@ -12371,7 +12332,7 @@ theorem dogBarkPostLeftoverDinkGuardOkSource {v : DogImmutables}
     (hdinkPos : 0 < (barkDinkWord ink dart art).toNat) :
     ExecBlock (config v) { contract := contract v, locals := locals } evm
       (checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-        [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+        [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
           .require (.binary .gt (.var "dink") (.intLit 0)) ])
       (.ok
         { contract := contract v,
@@ -25734,7 +25695,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                             checkedMulUintInto "inkDart" (.var "ink")
                                               (.var "dart") ++
                                             [ .letDecl "dink" (some uint256)
-                                                (.binary .div (.var "inkDart") (.var "art")),
+                                                (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
                                               .require (.binary .gt (.var "dink") (.intLit 0)),
                                               .require
                                                 (.binary .and
@@ -25756,7 +25717,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                             checkedMulUintInto "tabBase" (.var "due")
                                               (.var "milkChop") ++
                                             [ .letDecl "tab" (some uint256)
-                                                (.binary .div (.var "tabBase")
+                                                (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase")
                                                   (.intLit WAD)) ] ++
                                             checkedAddUintInto "DirtNew" (.storage DirtRef)
                                               (.var "tab") ++
@@ -25814,7 +25775,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                             checkedMulUintInto "inkDart" (.var "ink")
                                               (.var "dart") ++
                                             [ .letDecl "dink" (some uint256)
-                                                (.binary .div (.var "inkDart") (.var "art")),
+                                                (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
                                               .require (.binary .gt (.var "dink") (.intLit 0)),
                                               .require
                                                 (.binary .and
@@ -25836,7 +25797,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                             checkedMulUintInto "tabBase" (.var "due")
                                               (.var "milkChop") ++
                                             [ .letDecl "tab" (some uint256)
-                                                (.binary .div (.var "tabBase")
+                                                (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase")
                                                   (.intLit WAD)) ] ++
                                             checkedAddUintInto "DirtNew" (.storage DirtRef)
                                               (.var "tab") ++
@@ -25980,7 +25941,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                       checkedMulUintInto "tabBase" (.var "due")
                                         (.var "milkChop") ++
                                       [ .letDecl "tab" (some uint256)
-                                          (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+                                          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ] ++
                                       checkedAddUintInto "DirtNew" (.storage DirtRef)
                                         (.var "tab") ++
                                       [ .assign .storage DirtRef (.var "DirtNew") ] ++
@@ -26001,7 +25962,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                       afterIntGuard
                                     let afterInkDart : List Stmt :=
                                       [ .letDecl "dink" (some uint256)
-                                          (.binary .div (.var "inkDart") (.var "art")),
+                                          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
                                         .require (.binary .gt (.var "dink") (.intLit 0)),
                                         .require
                                           (.binary .and
@@ -26154,7 +26115,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                               checkedMulUintInto "tabBase" (.var "due")
                                                 (.var "milkChop") ++
                                               [ .letDecl "tab" (some uint256)
-                                                  (.binary .div (.var "tabBase")
+                                                  (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase")
                                                     (.intLit WAD)) ] ++
                                               checkedAddUintInto "DirtNew" (.storage DirtRef)
                                                 (.var "tab") ++
@@ -26555,7 +26516,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                   checkedMulUintInto "tabBase" (.var "due")
                                                     (.var "milkChop") ++
                                                   [ .letDecl "tab" (some uint256)
-                                                      (.binary .div (.var "tabBase")
+                                                      (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase")
                                                         (.intLit WAD)) ] ++
                                                   checkedAddUintInto "DirtNew"
                                                     (.storage DirtRef) (.var "tab") ++
@@ -26990,7 +26951,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                         hmload288FessDue
                                                     let afterTabBase : List Stmt :=
                                                       [ .letDecl "tab" (some uint256)
-                                                          (.binary .div (.var "tabBase")
+                                                          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase")
                                                             (.intLit WAD)) ] ++
                                                       checkedAddUintInto "DirtNew"
                                                         (.storage DirtRef) (.var "tab") ++
@@ -28641,7 +28602,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                   (checkedMulUintInto "inkDart" (.var "ink")
                                                       (.var "dart") ++
                                                     [ .letDecl "dink" (some uint256)
-                                                        (.binary .div (.var "inkDart")
+                                                        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart")
                                                           (.var "art")),
                                                       .require
                                                         (.binary .gt (.var "dink")
@@ -28693,7 +28654,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                 (checkedMulUintInto "inkDart" (.var "ink")
                                                     (.var "dart") ++
                                                   [ .letDecl "dink" (some uint256)
-                                                      (.binary .div (.var "inkDart")
+                                                      (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart")
                                                         (.var "art")),
                                                     .require
                                                       (.binary .gt (.var "dink") (.intLit 0)),
@@ -28739,7 +28700,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                               (checkedMulUintInto "inkDart" (.var "ink")
                                                   (.var "dart") ++
                                                 [ .letDecl "dink" (some uint256)
-                                                    (.binary .div (.var "inkDart")
+                                                    (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart")
                                                       (.var "art")),
                                                   .require
                                                     (.binary .gt (.var "dink") (.intLit 0)) ])
@@ -29209,7 +29170,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                             checkedMulUintInto "inkDart" (.var "ink")
                                               (.var "dart") ++
                                             [ .letDecl "dink" (some uint256)
-                                                (.binary .div (.var "inkDart")
+                                                (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart")
                                                   (.var "art")),
                                               .require (.binary .gt (.var "dink")
                                                 (.intLit 0)),
@@ -29233,7 +29194,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                             checkedMulUintInto "tabBase" (.var "due")
                                               (.var "milkChop") ++
                                             [ .letDecl "tab" (some uint256)
-                                                (.binary .div (.var "tabBase")
+                                                (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase")
                                                   (.intLit WAD)) ] ++
                                             checkedAddUintInto "DirtNew" (.storage DirtRef)
                                               (.var "tab") ++

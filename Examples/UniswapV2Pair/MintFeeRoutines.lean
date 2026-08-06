@@ -13,7 +13,7 @@ theorem mintFeeSqrtPrefix
     (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size) :
     ∃ rootK rootKLast,
       ExecBlock config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
@@ -22,7 +22,7 @@ theorem mintFeeSqrtPrefix
     uniswapSqrtFunctionCallSuccessInt
       (caller := mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast)
       (evm := evm) (y := mintFeeReserveProductWord reserve0 reserve1)
-      (args := [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))])
+      (args := [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))])
       (retVar := "rootK") rfl
       (evalExprs_mintFee_reserveProductArg evm reserve0 reserve1 feeTo true kLast hfit)
   obtain ⟨rootKLast, hrootKLast⟩ :=
@@ -32,7 +32,7 @@ theorem mintFeeSqrtPrefix
       (evalExprs_mintFee_kLastArg evm reserve0 reserve1 feeTo true kLast rootK)
   have hrootK' :
       ExecStmt config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
           "rootK")
         (.ok (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm) := by
     simpa [mintFeeAfterRootKFrame, mintFeeAfterRootKStore, resumeAfterInternalCall] using
@@ -53,7 +53,7 @@ theorem mintFeeSqrtPrefixBounded
     (hfit : mintFeeReserveProductNat reserve0 reserve1 < UInt256.size) :
     ∃ rootK rootKLast,
       ExecBlock config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast)
@@ -64,7 +64,7 @@ theorem mintFeeSqrtPrefixBounded
     uniswapSqrtFunctionCallSuccessIntBounded
       (caller := mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast)
       (evm := evm) (y := mintFeeReserveProductWord reserve0 reserve1)
-      (args := [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))])
+      (args := [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))])
       (retVar := "rootK") rfl
       (evalExprs_mintFee_reserveProductArg evm reserve0 reserve1 feeTo true kLast hfit)
   obtain ⟨rootKLast, hrootKLast, hrootKLastNonneg, hrootKLastSize⟩ :=
@@ -74,7 +74,7 @@ theorem mintFeeSqrtPrefixBounded
       (evalExprs_mintFee_kLastArg evm reserve0 reserve1 feeTo true kLast rootK)
   have hrootK' :
       ExecStmt config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
           "rootK")
         (.ok (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm) := by
     simpa [mintFeeAfterRootKFrame, mintFeeAfterRootKStore, resumeAfterInternalCall] using
@@ -295,19 +295,19 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlock
       ExecBlock config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast",
           .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
             [ .letDecl "numerator" (some uint256)
-                (u256 (.binary .mul (.storage totalSupplyRef)
-                  (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
               .letDecl "denominator" (some uint256)
-                (u256 (.binary .add
-                  (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                  (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                   (.var "rootKLast"))),
               .letDecl "liquidity" (some uint256)
-                (.binary .div (.var "numerator") (.var "denominator")),
+                (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
               .ite (.binary .gt (.var "liquidity") (.intLit 0))
                 [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                 [] ]
@@ -325,18 +325,18 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlock
           .ite (.var "feeOn")
             [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
                 [ .internalCall "sqrt"
-                    [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                    [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                   .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                   .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                     [ .letDecl "numerator" (some uint256)
-                        (u256 (.binary .mul (.storage totalSupplyRef)
-                          (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                          (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                       .letDecl "denominator" (some uint256)
-                        (u256 (.binary .add
-                          (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                           (.var "rootKLast"))),
                       .letDecl "liquidity" (some uint256)
-                        (.binary .div (.var "numerator") (.var "denominator")),
+                        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                       .ite (.binary .gt (.var "liquidity") (.intLit 0))
                         [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                         [] ]
@@ -348,10 +348,12 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlock
           .return [(.var "feeOn")] ]
         (.returned finalFrame finalEvm (some [.bool true])) := by
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mintFee_feeOn_true evmFee reserve0 reserve1 feeTo hfeeTo))
+      (ExecStmt.letDecl (evalExpr_mintFee_feeOn_true evmFee reserve0 reserve1 feeTo hfeeTo)
+        (by simp [boolTy]))
       ?_
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo true))
+      (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo true)
+        (valueMatchesOptionalABIType_uint256_word (mintFeeKLastWord evmFee)))
       ?_
     have htrueBranch :
         ExecBlock config
@@ -359,18 +361,18 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlock
           evmFee
           [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
               [ .internalCall "sqrt"
-                  [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                  [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                 .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                 .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                   [ .letDecl "numerator" (some uint256)
-                      (u256 (.binary .mul (.storage totalSupplyRef)
-                        (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                      (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                     .letDecl "denominator" (some uint256)
-                      (u256 (.binary .add
-                        (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                         (.var "rootKLast"))),
                     .letDecl "liquidity" (some uint256)
-                      (.binary .div (.var "numerator") (.var "denominator")),
+                      (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                     .ite (.binary .gt (.var "liquidity") (.intLit 0))
                       [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                       [] ]
@@ -390,18 +392,18 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlock
           (.ite (.var "feeOn")
             [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
                 [ .internalCall "sqrt"
-                    [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                    [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                   .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                   .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                     [ .letDecl "numerator" (some uint256)
-                        (u256 (.binary .mul (.storage totalSupplyRef)
-                          (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                          (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                       .letDecl "denominator" (some uint256)
-                        (u256 (.binary .add
-                          (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                           (.var "rootKLast"))),
                       .letDecl "liquidity" (some uint256)
-                        (.binary .div (.var "numerator") (.var "denominator")),
+                        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                       .ite (.binary .gt (.var "liquidity") (.intLit 0))
                         [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                         [] ]
@@ -436,7 +438,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_positiveNoLiquidity
       ExecBlock config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
@@ -459,19 +461,19 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_positiveNoLiquidity
       ExecBlock config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast",
           .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
             [ .letDecl "numerator" (some uint256)
-                (u256 (.binary .mul (.storage totalSupplyRef)
-                  (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
               .letDecl "denominator" (some uint256)
-                (u256 (.binary .add
-                  (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                  (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                   (.var "rootKLast"))),
               .letDecl "liquidity" (some uint256)
-                (.binary .div (.var "numerator") (.var "denominator")),
+                (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
               .ite (.binary .gt (.var "liquidity") (.intLit 0))
                 [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                 [] ]
@@ -508,7 +510,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_positiveWithLiquidity
       ExecBlock config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
@@ -539,19 +541,19 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_positiveWithLiquidity
       ExecBlock config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast",
           .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
             [ .letDecl "numerator" (some uint256)
-                (u256 (.binary .mul (.storage totalSupplyRef)
-                  (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
               .letDecl "denominator" (some uint256)
-                (u256 (.binary .add
-                  (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                  (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                   (.var "rootKLast"))),
               .letDecl "liquidity" (some uint256)
-                (.binary .div (.var "numerator") (.var "denominator")),
+                (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
               .ite (.binary .gt (.var "liquidity") (.intLit 0))
                 [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                 [] ]
@@ -591,7 +593,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
       ExecBlock config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
@@ -610,19 +612,19 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
       ExecBlock config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast",
           .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
             [ .letDecl "numerator" (some uint256)
-                (u256 (.binary .mul (.storage totalSupplyRef)
-                  (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
               .letDecl "denominator" (some uint256)
-                (u256 (.binary .add
-                  (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                  (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                   (.var "rootKLast"))),
               .letDecl "liquidity" (some uint256)
-                (.binary .div (.var "numerator") (.var "denominator")),
+                (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
               .ite (.binary .gt (.var "liquidity") (.intLit 0))
                 [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                 [] ]
@@ -642,18 +644,18 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
           .ite (.var "feeOn")
             [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
                 [ .internalCall "sqrt"
-                    [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                    [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                   .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                   .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                     [ .letDecl "numerator" (some uint256)
-                        (u256 (.binary .mul (.storage totalSupplyRef)
-                          (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                          (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                       .letDecl "denominator" (some uint256)
-                        (u256 (.binary .add
-                          (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                           (.var "rootKLast"))),
                       .letDecl "liquidity" (some uint256)
-                        (.binary .div (.var "numerator") (.var "denominator")),
+                        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                       .ite (.binary .gt (.var "liquidity") (.intLit 0))
                         [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                         [] ]
@@ -668,10 +670,12 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
             (mintFeeKLastWord evmFee) rootK rootKLast)
           evmFee (some [.bool true])) := by
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mintFee_feeOn_true evmFee reserve0 reserve1 feeTo hfeeTo))
+      (ExecStmt.letDecl (evalExpr_mintFee_feeOn_true evmFee reserve0 reserve1 feeTo hfeeTo)
+        (by simp [boolTy]))
       ?_
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo true))
+      (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo true)
+        (valueMatchesOptionalABIType_uint256_word (mintFeeKLastWord evmFee)))
       ?_
     have htrueBranch :
         ExecBlock config
@@ -679,18 +683,18 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
           evmFee
           [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
               [ .internalCall "sqrt"
-                  [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                  [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                 .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                 .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                   [ .letDecl "numerator" (some uint256)
-                      (u256 (.binary .mul (.storage totalSupplyRef)
-                        (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                      (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                     .letDecl "denominator" (some uint256)
-                      (u256 (.binary .add
-                        (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                         (.var "rootKLast"))),
                     .letDecl "liquidity" (some uint256)
-                      (.binary .div (.var "numerator") (.var "denominator")),
+                      (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                     .ite (.binary .gt (.var "liquidity") (.intLit 0))
                       [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                       [] ]
@@ -713,18 +717,18 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint
           (.ite (.var "feeOn")
             [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
                 [ .internalCall "sqrt"
-                    [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                    [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                   .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                   .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                     [ .letDecl "numerator" (some uint256)
-                        (u256 (.binary .mul (.storage totalSupplyRef)
-                          (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                          (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                       .letDecl "denominator" (some uint256)
-                        (u256 (.binary .add
-                          (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                           (.var "rootKLast"))),
                       .letDecl "liquidity" (some uint256)
-                        (.binary .div (.var "numerator") (.var "denominator")),
+                        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                       .ite (.binary .gt (.var "liquidity") (.intLit 0))
                         [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                         [] ]
@@ -792,18 +796,18 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastZero
           .ite (.var "feeOn")
             [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
                 [ .internalCall "sqrt"
-                    [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                    [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                   .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                   .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                     [ .letDecl "numerator" (some uint256)
-                        (u256 (.binary .mul (.storage totalSupplyRef)
-                          (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                          (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                       .letDecl "denominator" (some uint256)
-                        (u256 (.binary .add
-                          (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                           (.var "rootKLast"))),
                       .letDecl "liquidity" (some uint256)
-                        (.binary .div (.var "numerator") (.var "denominator")),
+                        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                       .ite (.binary .gt (.var "liquidity") (.intLit 0))
                         [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                         [] ]
@@ -817,10 +821,12 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastZero
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo false (mintFeeKLastWord evmFee))
           evmFee (some [.bool false])) := by
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mintFee_feeOn_false evmFee reserve0 reserve1 feeTo hfeeTo))
+      (ExecStmt.letDecl (evalExpr_mintFee_feeOn_false evmFee reserve0 reserve1 feeTo hfeeTo)
+        (by simp [boolTy]))
       ?_
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo false))
+      (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo false)
+        (valueMatchesOptionalABIType_uint256_word (mintFeeKLastWord evmFee)))
       ?_
     have hfalseBranch :
         ExecBlock config
@@ -845,18 +851,18 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastZero
           (.ite (.var "feeOn")
             [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
                 [ .internalCall "sqrt"
-                    [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                    [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                   .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                   .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                     [ .letDecl "numerator" (some uint256)
-                        (u256 (.binary .mul (.storage totalSupplyRef)
-                          (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                          (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                       .letDecl "denominator" (some uint256)
-                        (u256 (.binary .add
-                          (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                           (.var "rootKLast"))),
                       .letDecl "liquidity" (some uint256)
-                        (.binary .div (.var "numerator") (.var "denominator")),
+                        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                       .ite (.binary .gt (.var "liquidity") (.intLit 0))
                         [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                         [] ]
@@ -906,18 +912,18 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastZero
           .ite (.var "feeOn")
             [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
                 [ .internalCall "sqrt"
-                    [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                    [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                   .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                   .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                     [ .letDecl "numerator" (some uint256)
-                        (u256 (.binary .mul (.storage totalSupplyRef)
-                          (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                          (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                       .letDecl "denominator" (some uint256)
-                        (u256 (.binary .add
-                          (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                           (.var "rootKLast"))),
                       .letDecl "liquidity" (some uint256)
-                        (.binary .div (.var "numerator") (.var "denominator")),
+                        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                       .ite (.binary .gt (.var "liquidity") (.intLit 0))
                         [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                         [] ]
@@ -931,10 +937,12 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastZero
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
           evmFee (some [.bool true])) := by
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mintFee_feeOn_true evmFee reserve0 reserve1 feeTo hfeeTo))
+      (ExecStmt.letDecl (evalExpr_mintFee_feeOn_true evmFee reserve0 reserve1 feeTo hfeeTo)
+        (by simp [boolTy]))
       ?_
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo true))
+      (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo true)
+        (valueMatchesOptionalABIType_uint256_word (mintFeeKLastWord evmFee)))
       ?_
     have htrueBranch :
         ExecBlock config
@@ -942,18 +950,18 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastZero
           evmFee
           [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
               [ .internalCall "sqrt"
-                  [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                  [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                 .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                 .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                   [ .letDecl "numerator" (some uint256)
-                      (u256 (.binary .mul (.storage totalSupplyRef)
-                        (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                      (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                     .letDecl "denominator" (some uint256)
-                      (u256 (.binary .add
-                        (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                         (.var "rootKLast"))),
                     .letDecl "liquidity" (some uint256)
-                      (.binary .div (.var "numerator") (.var "denominator")),
+                      (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                     .ite (.binary .gt (.var "liquidity") (.intLit 0))
                       [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                       [] ]
@@ -975,18 +983,18 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastZero
           (.ite (.var "feeOn")
             [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
                 [ .internalCall "sqrt"
-                    [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                    [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                   .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                   .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                     [ .letDecl "numerator" (some uint256)
-                        (u256 (.binary .mul (.storage totalSupplyRef)
-                          (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                          (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                       .letDecl "denominator" (some uint256)
-                        (u256 (.binary .add
-                          (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                           (.var "rootKLast"))),
                       .letDecl "liquidity" (some uint256)
-                        (.binary .div (.var "numerator") (.var "denominator")),
+                        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                       .ite (.binary .gt (.var "liquidity") (.intLit 0))
                         [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                         [] ]
@@ -1036,18 +1044,18 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastNonzero
           .ite (.var "feeOn")
             [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
                 [ .internalCall "sqrt"
-                    [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                    [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                   .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                   .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                     [ .letDecl "numerator" (some uint256)
-                        (u256 (.binary .mul (.storage totalSupplyRef)
-                          (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                          (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                       .letDecl "denominator" (some uint256)
-                        (u256 (.binary .add
-                          (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                           (.var "rootKLast"))),
                       .letDecl "liquidity" (some uint256)
-                        (.binary .div (.var "numerator") (.var "denominator")),
+                        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                       .ite (.binary .gt (.var "liquidity") (.intLit 0))
                         [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                         [] ]
@@ -1061,10 +1069,12 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastNonzero
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo false (mintFeeKLastWord evmFee))
           (mintFeeKLastClearedState evmFee) (some [.bool false])) := by
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mintFee_feeOn_false evmFee reserve0 reserve1 feeTo hfeeTo))
+      (ExecStmt.letDecl (evalExpr_mintFee_feeOn_false evmFee reserve0 reserve1 feeTo hfeeTo)
+        (by simp [boolTy]))
       ?_
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo false))
+      (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo false)
+        (valueMatchesOptionalABIType_uint256_word (mintFeeKLastWord evmFee)))
       ?_
     have hassign :
         ExecBlock config
@@ -1102,18 +1112,18 @@ theorem uniswapMintFeeFunctionBody_feeOff_kLastNonzero
           (.ite (.var "feeOn")
             [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
                 [ .internalCall "sqrt"
-                    [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                    [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                   .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                   .ite (.binary .gt (.var "rootK") (.var "rootKLast"))
                     [ .letDecl "numerator" (some uint256)
-                        (u256 (.binary .mul (.storage totalSupplyRef)
-                          (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))),
+                        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+                          (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))),
                       .letDecl "denominator" (some uint256)
-                        (u256 (.binary .add
-                          (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+                        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+                          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
                           (.var "rootKLast"))),
                       .letDecl "liquidity" (some uint256)
-                        (.binary .div (.var "numerator") (.var "denominator")),
+                        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")),
                       .ite (.binary .gt (.var "liquidity") (.intLit 0))
                         [ .internalCall "_mint" [.var "feeTo", .var "liquidity"] "_feeMint" ]
                         [] ]

@@ -77,18 +77,10 @@ theorem evalExpr_add256_tab_ok {evm : EVM.State} {locals : Store}
     (hfit : old.toNat + tab.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm (add256 x (.var "tab")) =
       .ok (.int (Int.ofNat sum.toNat)) := by
-  have hlt : ¬ Int.ofNat (old.toNat + tab.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
   have hword : sum.toNat = old.toNat + tab.toNat := by
     rw [hsum, uadd_toNat, Nat.mod_eq_of_lt hfit]
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, htab, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  simpa [add256, u256, uint256Int] using
+    evalExpr_checked_add_uint256_word_ok hx htab hword hfit
 
 theorem evalExpr_add256_tab_revert {evm : EVM.State} {locals : Store}
     {x : Expr} {old tab : UInt256}
@@ -99,9 +91,8 @@ theorem evalExpr_add256_tab_revert {evm : EVM.State} {locals : Store}
     (hover : UInt256.size ≤ old.toNat + tab.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (add256 x (.var "tab")) =
       .revert := by
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, htab, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  simpa [add256, u256, uint256Int] using
+    evalExpr_checked_add_uint256_word_revert_of_overflow hx htab hover
 
 theorem evalExpr_ge_uint256_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {new old : UInt256}
@@ -955,10 +946,14 @@ theorem vowFessBodyCore
             refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
             · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
             refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-            refine ExecBlock.consNormal (ExecStmt.letDecl hfirstAdd) ?_
+            refine ExecBlock.consNormal
+              (ExecStmt.letDecl hfirstAdd
+                (valueMatchesOptionalABIType_uint256_word sinNew)) ?_
             refine ExecBlock.consNormal (ExecStmt.requireTrue hfirstRequire) ?_
             refine ExecBlock.consNormal (ExecStmt.assign hsinNewVar hassignSin) ?_
-            refine ExecBlock.consNormal (ExecStmt.letDecl hsecondAdd) ?_
+            refine ExecBlock.consNormal
+              (ExecStmt.letDecl hsecondAdd
+                (valueMatchesOptionalABIType_uint256_word SinNew)) ?_
             refine ExecBlock.consNormal (ExecStmt.requireTrue hsecondRequire) ?_
             exact ExecBlock.consNormal (ExecStmt.assign hSinNewVar hassignSinCapital)
               ExecBlock.nil
@@ -1049,7 +1044,9 @@ theorem vowFessBodyCore
             refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
             · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
             refine ExecBlock.consNormal (ExecStmt.requireTrue hguard) ?_
-            refine ExecBlock.consNormal (ExecStmt.letDecl hfirstAdd) ?_
+            refine ExecBlock.consNormal
+              (ExecStmt.letDecl hfirstAdd
+                (valueMatchesOptionalABIType_uint256_word sinNew)) ?_
             refine ExecBlock.consNormal (ExecStmt.requireTrue hfirstRequire) ?_
             refine ExecBlock.consNormal (ExecStmt.assign hsinNewVar hassignSin) ?_
             exact ExecBlock.consRevert (ExecStmt.letDeclRevert hsecondAddRev)

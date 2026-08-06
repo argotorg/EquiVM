@@ -4594,6 +4594,7 @@ theorem endCageIlkStmtPip (evm : EVM.State) (I : ExecutionEnv)
       (.ok { contract := contract, locals := endCageIlkStorePip I vatOut spotOut } evm) := by
   simpa [endCageIlkStorePip] using
     ExecStmt.letDecl (evalExpr_endCageIlk_spotIlk_pip evm I vatOut spotOut)
+      (valueMatchesOptionalABIType_address (endCageIlkSpotIlkPipAddr spotOut))
 
 theorem evalExpr_endCageIlk_parV (evm : EVM.State) (I : ExecutionEnv)
     (vatOut spotOut parOut readOut : ByteArray) :
@@ -4665,13 +4666,9 @@ theorem endCageIlkStmtWdivReturns (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endCageIlkReturnWord parOut).toNat),
             .int (Int.ofNat (endCageIlkReturnWord readOut).toNat)] := by
     simp [evalExprs?, hpar, hread, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? wdivFunction.params
-          [.int (Int.ofNat (endCageIlkReturnWord parOut).toNat),
-            .int (Int.ofNat (endCageIlkReturnWord readOut).toNat)] =
-        some (endUintBinaryLocals (endCageIlkReturnWord parOut)
-          (endCageIlkReturnWord readOut)) := by
-    simp [wdivFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_wdivFunction (endCageIlkReturnWord parOut)
+      (endCageIlkReturnWord readOut)
   have hbody :=
     endExecWdivFunctionReturn (evm := evm)
       (x := endCageIlkReturnWord parOut) (y := endCageIlkReturnWord readOut)
@@ -4705,13 +4702,9 @@ theorem endCageIlkStmtWdivRevertMul (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endCageIlkReturnWord parOut).toNat),
             .int (Int.ofNat (endCageIlkReturnWord readOut).toNat)] := by
     simp [evalExprs?, hpar, hread, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? wdivFunction.params
-          [.int (Int.ofNat (endCageIlkReturnWord parOut).toNat),
-            .int (Int.ofNat (endCageIlkReturnWord readOut).toNat)] =
-        some (endUintBinaryLocals (endCageIlkReturnWord parOut)
-          (endCageIlkReturnWord readOut)) := by
-    simp [wdivFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_wdivFunction (endCageIlkReturnWord parOut)
+      (endCageIlkReturnWord readOut)
   have hbody :=
     endExecWdivFunctionRevertMul (evm := evm)
       (x := endCageIlkReturnWord parOut) (y := endCageIlkReturnWord readOut) hover
@@ -4743,13 +4736,9 @@ theorem endCageIlkStmtWdivRevertDivZero (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endCageIlkReturnWord parOut).toNat),
             .int (Int.ofNat (endCageIlkReturnWord readOut).toNat)] := by
     simp [evalExprs?, hpar, hread, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? wdivFunction.params
-          [.int (Int.ofNat (endCageIlkReturnWord parOut).toNat),
-            .int (Int.ofNat (endCageIlkReturnWord readOut).toNat)] =
-        some (endUintBinaryLocals (endCageIlkReturnWord parOut)
-          (endCageIlkReturnWord readOut)) := by
-    simp [wdivFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_wdivFunction (endCageIlkReturnWord parOut)
+      (endCageIlkReturnWord readOut)
   have hbody :=
     endExecWdivFunctionRevertDivZero (evm := evm)
       (x := endCageIlkReturnWord parOut) (y := endCageIlkReturnWord readOut)

@@ -192,7 +192,7 @@ theorem evalExpr_dentBegLotRequire_ok {cA gh bl σ σ₀ A I} {g : Sat256}
       (initState cA gh bl σ σ₀ g A I)
       (.binary .or
         (.binary .eq (.var "lot") (.intLit 0))
-        (.binary .eq (.binary .div (.var "begLot") (.var "lot")) (.storage begRef))) =
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "begLot") (.var "lot")) (.storage begRef))) =
         .ok (.bool true) := by
   have hbeg := evalExpr_flipperBeg_of_get (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
@@ -237,7 +237,7 @@ theorem evalExpr_dentLotOneRequire_ok {cA gh bl σ σ₀ A I} {g : Sat256}
       (initState cA gh bl σ σ₀ g A I)
       (.binary .or
         (.binary .eq (.intLit ONE) (.intLit 0))
-        (.binary .eq (.binary .div (.var "lotOne") (.intLit ONE))
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "lotOne") (.intLit ONE))
           (.storage (bidsF (.var "id") "lot")))) =
         .ok (.bool true) := by
   have hlot := evalExpr_bidLot_of_get_id (cA := cA) (gh := gh) (bl := bl)
@@ -320,7 +320,7 @@ theorem flipperDentSourceBodyBegLotOverflow {cA gh bl σ σ₀ A I} {g : UInt256
       evalExpr? config { contract := contract, locals := dentLocalsLotOne σ I } evm0
         (.binary .or
           (.binary .eq (.intLit ONE) (.intLit 0))
-          (.binary .eq (.binary .div (.var "lotOne") (.intLit ONE))
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "lotOne") (.intLit ONE))
             (.storage (bidsF (.var "id") "lot")))) =
           .ok (.bool true) := by
     simpa [evm0] using
@@ -343,7 +343,9 @@ theorem flipperDentSourceBodyBegLotOverflow {cA gh bl σ σ₀ A I} {g : UInt256
     refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hbidGuard)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using htabGuard)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hlotGuard)) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hmulLot) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hmulLot (by
+      simpa [uint256, uint256Int] using
+        valueMatchesOptionalABIType_uint256_word (dentLotOneWord σ I))) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqLot) ?_
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert hmulRev)
   simpa [ExecTransitionBody, dentTransition, nonpayable, checkedMulUintInto,
@@ -471,7 +473,7 @@ theorem flipperDentSourceBodyInsufficientDecrease {cA gh bl σ σ₀ A I} {g : U
       evalExpr? config { contract := contract, locals := dentLocalsLotOneBegLot σ I } evm0
         (.binary .or
           (.binary .eq (.var "lot") (.intLit 0))
-          (.binary .eq (.binary .div (.var "begLot") (.var "lot")) (.storage begRef))) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "begLot") (.var "lot")) (.storage begRef))) =
           .ok (.bool true) := by
     simpa [evm0] using
       evalExpr_dentBegLotRequire_ok (cA := cA) (gh := gh) (bl := bl)
@@ -487,7 +489,7 @@ theorem flipperDentSourceBodyInsufficientDecrease {cA gh bl σ σ₀ A I} {g : U
       evalExpr? config { contract := contract, locals := dentLocalsLotOne σ I } evm0
         (.binary .or
           (.binary .eq (.intLit ONE) (.intLit 0))
-          (.binary .eq (.binary .div (.var "lotOne") (.intLit ONE))
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "lotOne") (.intLit ONE))
             (.storage (bidsF (.var "id") "lot")))) =
           .ok (.bool true) := by
     simpa [evm0] using
@@ -510,9 +512,13 @@ theorem flipperDentSourceBodyInsufficientDecrease {cA gh bl σ σ₀ A I} {g : U
     refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hbidGuard)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using htabGuard)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hlotGuard)) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hmulLot) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hmulLot (by
+      simpa [uint256, uint256Int] using
+        valueMatchesOptionalABIType_uint256_word (dentLotOneWord σ I))) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqLot) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hmulBeg) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hmulBeg (by
+      simpa [uint256, uint256Int] using
+        valueMatchesOptionalABIType_uint256_word (dentBegLotWord σ I))) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqBeg) ?_
     exact ExecBlock.consRevert (ExecStmt.requireFalse hdec)
   simpa [ExecTransitionBody, dentTransition, nonpayable, checkedMulUintInto,

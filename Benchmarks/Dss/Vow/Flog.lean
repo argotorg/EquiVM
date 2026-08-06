@@ -152,7 +152,8 @@ theorem flogInternalAddReturn (I : ExecutionEnv) (evm : EVM.State)
       bindParams? addFunction.params
           [.int (Int.ofNat (flogEra I).toNat), .int (Int.ofNat wait.toNat)] =
         some (uintBinaryLocals (flogEra I) wait) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uint256, uint256Int, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" (flogEra I) wait
   have hbody := execAddFunctionReturn (evm := evm) (x := flogEra I) (y := wait)
     (sum := doneAt) hdoneAt hfit
   simpa [flogLocalsDoneAt, resumeAfterInternalCall] using
@@ -190,7 +191,8 @@ theorem flogInternalAddRevert (I : ExecutionEnv) (evm : EVM.State)
       bindParams? addFunction.params
           [.int (Int.ofNat (flogEra I).toNat), .int (Int.ofNat wait.toNat)] =
         some (uintBinaryLocals (flogEra I) wait) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uint256, uint256Int, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" (flogEra I) wait
   have hbody := execAddFunctionRevert (evm := evm) (x := flogEra I) (y := wait) hover
   exact internalCallFunctionRevert
     (cfg := config) (caller := { contract := contract, locals := flogLocals I })
@@ -231,7 +233,8 @@ theorem flogInternalSubReturn (I : ExecutionEnv) (evm : EVM.State)
       bindParams? subFunction.params [.int (Int.ofNat SinVal.toNat),
           .int (Int.ofNat sinVal.toNat)] =
         some (uintBinaryLocals SinVal sinVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uint256, uint256Int, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" SinVal sinVal
   have hbody := execSubFunctionReturn (evm := evm) (x := SinVal) (y := sinVal)
     (diff := SinNew) hdiff hle
   simpa [flogLocalsDoneAtSinNew, resumeAfterInternalCall] using
@@ -274,7 +277,8 @@ theorem flogInternalSubRevert (I : ExecutionEnv) (evm : EVM.State)
       bindParams? subFunction.params [.int (Int.ofNat SinVal.toNat),
           .int (Int.ofNat sinVal.toNat)] =
         some (uintBinaryLocals SinVal sinVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uint256, uint256Int, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" SinVal sinVal
   have hbody := execSubFunctionRevert (evm := evm) (x := SinVal) (y := sinVal) hlt
   exact internalCallFunctionRevert
     (cfg := config) (caller := { contract := contract, locals := flogLocalsDoneAt I doneAt })

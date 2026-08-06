@@ -16,27 +16,46 @@ theorem evalExpr_mintFee_numerator_overflow
     (hover : UInt256.size ≤ mintFeeNumeratorNat evm rootK rootKLast) :
     evalExpr? config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo feeOn kLast rootK rootKLast) evm
-      (u256 (.binary .mul (.storage totalSupplyRef)
-        (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))) = .revert := by
-  have hge :
-      Int.ofNat ((mintFunctionTotalSupplyWord evm).toNat *
-          (mintFeeRootDiffWord rootK rootKLast).toNat) ≥ (2 : Int) ^ 256 := by
-    rw [UInt256.size] at hover
-    exact Int.ofNat_le.mpr (by simpa [mintFeeNumeratorNat] using hover)
+      (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))) = .revert := by
   have hdiffEval :=
     evalExpr_mintFee_rootDiff evm reserve0 reserve1 feeTo feeOn kLast rootK rootKLast
       hroot hrootKNonneg hrootKSize hrootKLastNonneg
+  have htotalSupplyEval :
+      evalExpr? config
+        (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo feeOn kLast rootK rootKLast) evm
+        (.storage totalSupplyRef) =
+          .ok (.int (Int.ofNat (mintFunctionTotalSupplyWord evm).toNat)) := by
+    simpa [uniswapUint256Value, uint256Value] using
+      evalExpr_mintFee_afterRootKLast_totalSupply evm reserve0 reserve1 feeTo feeOn kLast
+        rootK rootKLast
   have hdiffEval' :
       evalExpr? config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo feeOn kLast rootK rootKLast) evm
-        (.inRange uint256Int (.binary .sub (.var "rootK") (.var "rootKLast"))) =
-          .ok (mintFeeRootDiffValue rootK rootKLast) := by
-    simpa [u256] using hdiffEval
-  simp only [u256, evalExpr?, evalExpr_mintFee_afterRootKLast_totalSupply evm reserve0
-    reserve1 feeTo feeOn kLast rootK rootKLast, hdiffEval', EvalResult.bind, bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
-  rw [if_pos]
-  simpa [Bool.or_eq_true, decide_eq_true_eq, ge_iff_le, Nat.cast_mul] using Or.inr hge
+        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK")
+          (.var "rootKLast"))) =
+          .ok (.int (Int.ofNat (mintFeeRootDiffWord rootK rootKLast).toNat)) := by
+    simpa [mintFeeRootDiffValue, uniswapUint256Value, uint256Value] using hdiffEval
+  have hoverCast :
+      Int.ofNat UInt256.size ≤ Int.ofNat (mintFeeNumeratorNat evm rootK rootKLast) :=
+    Int.ofNat_le.mpr hover
+  have hoverInt :
+      Int.ofNat (EVM.twoPow 256) ≤
+        Int.ofNat (mintFunctionTotalSupplyWord evm).toNat *
+          Int.ofNat (mintFeeRootDiffWord rootK rootKLast).toNat := by
+    simpa [UInt256.size, EVM.twoPow, mintFeeNumeratorNat, Nat.cast_mul] using hoverCast
+  have hmul := evalExpr_checked_mul_uint_revert_of_overflow
+    (cfg := config)
+    (solm := mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo feeOn kLast rootK rootKLast)
+    (evm := evm) ⟨256, by decide⟩
+    (Int.ofNat (mintFunctionTotalSupplyWord evm).toNat)
+    (Int.ofNat (mintFeeRootDiffWord rootK rootKLast).toNat)
+    htotalSupplyEval hdiffEval' hoverInt
+  simpa [u256] using evalExpr_inRange_revert config
+    (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo feeOn kLast rootK rootKLast) evm
+    (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK")
+        (.var "rootKLast")))) uint256Int hmul
 
 theorem evalExpr_mintFee_rootTimesFive_overflow
     (evm : EVM.State) (reserve0 reserve1 : UInt256) (feeTo : AccountAddress)
@@ -45,17 +64,29 @@ theorem evalExpr_mintFee_rootTimesFive_overflow
     (hover : UInt256.size ≤ mintFeeRootTimesFiveNat rootK) :
     evalExpr? config
       (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo feeOn kLast rootK rootKLast) evm
-      (u256 (.binary .mul (.var "rootK") (.intLit 5))) = .revert := by
+      (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5))) = .revert := by
   have hge : rootK * 5 ≥ (2 : Int) ^ 256 := by
     rw [UInt256.size] at hover
     have hcast : Int.ofNat (rootK.toNat * 5) ≥ (2 : Int) ^ 256 :=
       Int.ofNat_le.mpr (by simpa [mintFeeRootTimesFiveNat] using hover)
     simpa [Nat.cast_mul, Int.toNat_of_nonneg hrootKNonneg] using hcast
-  simp only [u256, evalExpr?, evalExpr_mintFee_afterNumerator_rootK evm reserve0 reserve1
-    feeTo feeOn kLast rootK rootKLast, EvalResult.bind, bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
-  rw [if_pos]
-  simpa [Bool.or_eq_true, decide_eq_true_eq] using Or.inr hge
+  have hfive :
+      evalExpr? config
+        (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo feeOn kLast rootK rootKLast)
+        evm (.intLit 5) = .ok (.int 5) := by
+    simp [evalExpr?, pure]
+  have hmul := evalExpr_checked_mul_uint_revert_of_overflow
+    (cfg := config)
+    (solm := mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo feeOn kLast rootK
+      rootKLast)
+    (evm := evm) ⟨256, by decide⟩ rootK 5
+    (evalExpr_mintFee_afterNumerator_rootK evm reserve0 reserve1 feeTo feeOn kLast rootK
+      rootKLast)
+    hfive (by simpa [EVM.twoPow] using hge)
+  simpa [u256] using evalExpr_inRange_revert config
+    (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo feeOn kLast rootK rootKLast) evm
+    (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5))
+    uint256Int hmul
 
 theorem evalExpr_mintFee_denominator_rootTimesFive_overflow
     (evm : EVM.State) (reserve0 reserve1 : UInt256) (feeTo : AccountAddress)
@@ -64,7 +95,7 @@ theorem evalExpr_mintFee_denominator_rootTimesFive_overflow
     (hover : UInt256.size ≤ mintFeeRootTimesFiveNat rootK) :
     evalExpr? config
       (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo feeOn kLast rootK rootKLast) evm
-      (u256 (.binary .add (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
         (.var "rootKLast"))) = .revert := by
   have hrootFive :=
     evalExpr_mintFee_rootTimesFive_overflow evm reserve0 reserve1 feeTo feeOn kLast
@@ -72,7 +103,7 @@ theorem evalExpr_mintFee_denominator_rootTimesFive_overflow
   have hrootFive' :
       evalExpr? config
         (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo feeOn kLast rootK rootKLast) evm
-        (.inRange uint256Int (.binary .mul (.var "rootK") (.intLit 5))) = .revert := by
+        (.inRange uint256Int (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5))) = .revert := by
     simpa [u256] using hrootFive
   simp only [u256, evalExpr?, hrootFive', EvalResult.bind, bind]
 
@@ -84,7 +115,7 @@ theorem evalExpr_mintFee_denominator_add_overflow
     (hover : UInt256.size ≤ mintFeeDenominatorNat rootK rootKLast) :
     evalExpr? config
       (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo feeOn kLast rootK rootKLast) evm
-      (u256 (.binary .add (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
         (.var "rootKLast"))) = .revert := by
   have hrootFiveEval :=
     evalExpr_mintFee_rootTimesFive evm reserve0 reserve1 feeTo feeOn kLast rootK rootKLast
@@ -92,9 +123,9 @@ theorem evalExpr_mintFee_denominator_add_overflow
   have hrootFiveEval' :
       evalExpr? config
         (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo feeOn kLast rootK rootKLast) evm
-        (.inRange uint256Int (.binary .mul (.var "rootK") (.intLit 5))) =
-          .ok (mintFeeRootTimesFiveValue rootK) := by
-    simpa [u256] using hrootFiveEval
+        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5))) =
+          .ok (.int (Int.ofNat (mintFeeRootTimesFiveWord rootK).toNat)) := by
+    simpa [mintFeeRootTimesFiveValue, uniswapUint256Value, uint256Value] using hrootFiveEval
   have hge :
       Int.ofNat (mintFeeRootTimesFiveWord rootK).toNat + rootKLast ≥ (2 : Int) ^ 256 := by
     rw [UInt256.size] at hover
@@ -103,12 +134,20 @@ theorem evalExpr_mintFee_denominator_add_overflow
           (2 : Int) ^ 256 := by
       exact Int.ofNat_le.mpr (by simpa [mintFeeDenominatorNat] using hover)
     simpa [Nat.cast_add, Int.toNat_of_nonneg hrootKLastNonneg] using hcast
-  simp only [u256, evalExpr?, hrootFiveEval',
-    evalExpr_mintFee_afterNumerator_rootKLast evm reserve0 reserve1 feeTo feeOn kLast rootK
-      rootKLast, EvalResult.bind, bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
-  rw [if_pos]
-  simpa [Bool.or_eq_true, decide_eq_true_eq] using Or.inr hge
+  have hadd := evalExpr_checked_add_uint_revert_of_overflow
+    (cfg := config)
+    (solm := mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo feeOn kLast rootK
+      rootKLast)
+    (evm := evm) ⟨256, by decide⟩
+    (Int.ofNat (mintFeeRootTimesFiveWord rootK).toNat) rootKLast hrootFiveEval'
+    (evalExpr_mintFee_afterNumerator_rootKLast evm reserve0 reserve1 feeTo feeOn kLast rootK
+      rootKLast)
+    (by simpa [EVM.twoPow] using hge)
+  simpa [u256] using evalExpr_inRange_revert config
+    (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo feeOn kLast rootK rootKLast) evm
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+      (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
+      (.var "rootKLast")) uint256Int hadd
 
 theorem uniswapMintFeePositiveRootBranch_numeratorOverflow
     (evm : EVM.State) (reserve0 reserve1 : UInt256) (feeTo : AccountAddress)
@@ -123,8 +162,8 @@ theorem uniswapMintFeePositiveRootBranch_numeratorOverflow
       ExecStmt config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
         (.letDecl "numerator" (some uint256)
-          (u256 (.binary .mul (.storage totalSupplyRef)
-            (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))))
+          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))))
         .reverted :=
     ExecStmt.letDeclRevert
       (evalExpr_mintFee_numerator_overflow evm reserve0 reserve1 feeTo true kLast
@@ -145,20 +184,22 @@ theorem uniswapMintFeePositiveRootBranch_rootTimesFiveOverflow
       ExecStmt config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
         (.letDecl "numerator" (some uint256)
-          (u256 (.binary .mul (.storage totalSupplyRef)
-            (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))))
+          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))))
         (.ok (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast)
           evm) := by
     simpa [mintFeeAfterNumeratorFrame, mintFeeAfterNumeratorStore] using
       ExecStmt.letDecl
         (evalExpr_mintFee_numerator evm reserve0 reserve1 feeTo true kLast rootK rootKLast
           hroot hrootKNonneg hrootKSize hrootKLastNonneg hnumFit)
+        (valueMatchesOptionalABIType_uint256_word
+          (mintFeeNumeratorWord evm rootK rootKLast))
   have hdenStmt :
       ExecStmt config
         (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evm
         (.letDecl "denominator" (some uint256)
-          (u256 (.binary .add (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
             (.var "rootKLast"))))
         .reverted :=
     ExecStmt.letDeclRevert
@@ -182,20 +223,22 @@ theorem uniswapMintFeePositiveRootBranch_denominatorOverflow
       ExecStmt config
         (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
         (.letDecl "numerator" (some uint256)
-          (u256 (.binary .mul (.storage totalSupplyRef)
-            (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))))
+          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))))
         (.ok (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast)
           evm) := by
     simpa [mintFeeAfterNumeratorFrame, mintFeeAfterNumeratorStore] using
       ExecStmt.letDecl
         (evalExpr_mintFee_numerator evm reserve0 reserve1 feeTo true kLast rootK rootKLast
           hroot hrootKNonneg hrootKSize hrootKLastNonneg hnumFit)
+        (valueMatchesOptionalABIType_uint256_word
+          (mintFeeNumeratorWord evm rootK rootKLast))
   have hdenStmt :
       ExecStmt config
         (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evm
         (.letDecl "denominator" (some uint256)
-          (u256 (.binary .add (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
             (.var "rootKLast"))))
         .reverted :=
     ExecStmt.letDeclRevert
@@ -271,7 +314,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert
       ExecBlock config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastWord evmFee))
         evmFee
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast",
           mintFeeRootComparisonStmt ]
@@ -287,7 +330,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert
           .ite (.var "feeOn")
             [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
                 [ .internalCall "sqrt"
-                    [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                    [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                   .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                   mintFeeRootComparisonStmt ]
                 [] ]
@@ -297,10 +340,12 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert
           .return [(.var "feeOn")] ]
         .reverted := by
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mintFee_feeOn_true evmFee reserve0 reserve1 feeTo hfeeTo))
+      (ExecStmt.letDecl (evalExpr_mintFee_feeOn_true evmFee reserve0 reserve1 feeTo hfeeTo)
+        (by simp [boolTy]))
       ?_
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo true))
+      (ExecStmt.letDecl (evalExpr_mintFee_afterFeeOn_kLast evmFee reserve0 reserve1 feeTo true)
+        (valueMatchesOptionalABIType_uint256_word (mintFeeKLastWord evmFee)))
       ?_
     have htrueBranch :
         ExecBlock config
@@ -308,7 +353,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert
           evmFee
           [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
               [ .internalCall "sqrt"
-                  [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                  [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                 .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                 mintFeeRootComparisonStmt ]
               [] ]
@@ -325,7 +370,7 @@ theorem uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert
           (.ite (.var "feeOn")
             [ .ite (.binary .ne (.var "_kLast") (.intLit 0))
                 [ .internalCall "sqrt"
-                    [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+                    [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
                   .internalCall "sqrt" [.var "_kLast"] "rootKLast",
                   mintFeeRootComparisonStmt ]
                 [] ]
@@ -361,7 +406,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_fromRootBlockRevert
         (mintFeeAfterKLastFrame (uniswapReserve0Word reserveEvm)
           (uniswapReserve1Word reserveEvm) feeTo true (mintFeeKLastWord evmFee))
         evmFee
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast",
           mintFeeRootComparisonStmt ]
@@ -385,7 +430,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_fromRootBlockRevert
     (by simpa [reserve0, reserve1] using
       evalExprs_mint_mintFeeArgs reserveEvm callEvm I balance0 balance1)
     (by simpa using uniswapLookupMintFeeFunction)
-    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call reserve0 reserve1)
+    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call_reserves reserveEvm)
     (by
       simpa [reserve0, reserve1] using
         uniswapMintFeeFunctionBody_feeOn_kLastNonzero_fromRootBlockRevert callEvm evmFee
@@ -445,9 +490,9 @@ theorem uniswapMintAfterMintFeeReverts_of_call
             .letDecl "_reserve1" (some uint112) (.storage reserve1Ref) ] ++
           pairBalanceOfThisStmts "balance0" "balance1" ++
           [ .letDecl "amount0" (some uint256)
-              (u256 (.binary .sub (.var "balance0") (.var "_reserve0"))),
+              (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.var "_reserve0"))),
             .letDecl "amount1" (some uint256)
-              (u256 (.binary .sub (.var "balance1") (.var "_reserve1"))),
+              (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.var "_reserve1"))),
             .internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn" ])
         .reverted := by
     simpa [evmL, List.append_assoc] using execBlock_append hprefix hfeeBlock
@@ -731,7 +776,7 @@ theorem uniswapMintFeeOnKLastNonzeroRootArithmeticOverflowFromFactoryCase
         ExecBlock config
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastSlotWord σFee I))
           evmFeeS
-          [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+          [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
               "rootK",
             .internalCall "sqrt" [.var "_kLast"] "rootKLast",
             mintFeeRootComparisonStmt ]

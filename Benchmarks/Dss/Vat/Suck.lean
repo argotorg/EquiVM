@@ -418,18 +418,9 @@ theorem suckEvalExpr_add256_ok {evm : EVM.State} {locals : Store}
     (hfit : a.toNat + b.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
       .ok (.int (Int.ofNat sum.toNat)) := by
-  have hlt : ¬ Int.ofNat (a.toNat + b.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
   have hword : sum.toNat = a.toNat + b.toNat := by
     rw [hsum, uadd_toNat, Nat.mod_eq_of_lt hfit]
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  simpa [add256] using evalExpr_checked_add_uint256_word_ok hx hy hword hfit
 
 theorem suckEvalExpr_add256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -440,9 +431,8 @@ theorem suckEvalExpr_add256_revert {evm : EVM.State} {locals : Store}
     (hover : UInt256.size ≤ a.toNat + b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
       .revert := by
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  simpa [add256] using
+    evalExpr_checked_add_uint256_word_revert_of_overflow hx hy hover
 
 theorem suckEvalExpr_ge_uint256_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : UInt256}
@@ -568,7 +558,7 @@ theorem vatSuckSinAddBlockOk (evm : EVM.State) (I : ExecutionEnv)
           (.binary .ge (.var "sinNew") (.storage (sinRef (.var "u")))) =
         .ok (.bool true) :=
     suckEvalExpr_ge_uint256_true hsinNewEval hsinAgain (by rw [hsinNewNat]; omega)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hadd) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
   exact ExecBlock.nil
 
@@ -640,7 +630,7 @@ theorem vatSuckDaiAddBlockOk (evm : EVM.State) (I : ExecutionEnv)
           evm (.binary .ge (.var "daiNew") (.storage (daiRef (.var "v")))) =
         .ok (.bool true) :=
     suckEvalExpr_ge_uint256_true hdaiNewEval hdaiAgain (by rw [hdaiNewNat]; omega)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hadd) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
   exact ExecBlock.nil
 
@@ -743,7 +733,7 @@ theorem vatSuckViceAddBlockOk (evm : EVM.State) (I : ExecutionEnv)
           (.binary .ge (.var "viceNew") (.storage viceRef)) =
         .ok (.bool true) :=
     suckEvalExpr_ge_uint256_true hviceNewEval hviceAgain (by rw [hviceNewNat]; omega)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hadd) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
   exact ExecBlock.nil
 
@@ -856,7 +846,7 @@ theorem vatSuckDebtAddBlockOk (evm : EVM.State) (I : ExecutionEnv)
           evm (.binary .ge (.var "debtNew") (.storage debtRef)) =
         .ok (.bool true) :=
     suckEvalExpr_ge_uint256_true hdebtNewEval hdebtAgain (by rw [hdebtNewNat]; omega)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hadd) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
   exact ExecBlock.nil
 

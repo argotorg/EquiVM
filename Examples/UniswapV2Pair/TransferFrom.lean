@@ -598,7 +598,7 @@ theorem evalExpr_transferFrom_allowance_debit (evm : EVM.State) (I : ExecutionEn
       (transferFromCurrentAllowanceWord evm I).toNat) :
     evalExpr? config
       { contract := contract, locals := transferFromStoreCurrentAllowance evm I } evm
-      (.binary .sub (.var "currentAllowance") (.var "value")) =
+      (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "currentAllowance") (.var "value")) =
         .ok (.int (Int.ofNat (transferFromAllowanceDebitWord evm I).toNat)) := by
   have hsub :
       Int.ofNat (transferFromCurrentAllowanceWord evm I).toNat -
@@ -611,14 +611,32 @@ theorem evalExpr_transferFrom_allowance_debit (evm : EVM.State) (I : ExecutionEn
     unfold transferFromAllowanceDebitWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (transferFromCurrentAllowanceWord evm I).val.isLt)
-  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
-  rw [transferFromStoreCurrentAllowance_currentAllowance,
-    transferFromStoreCurrentAllowance_value]
-  change EvalResult.ok (Value.int
-      (Int.ofNat (transferFromCurrentAllowanceWord evm I).toNat -
-        Int.ofNat (transferFromValueWord I).toNat)) =
-    EvalResult.ok (Value.int (Int.ofNat (transferFromAllowanceDebitWord evm I).toNat))
-  rw [hsub, htoNat]
+  have hdiffNonneg :
+      0 ≤ Int.ofNat (transferFromCurrentAllowanceWord evm I).toNat -
+        Int.ofNat (transferFromValueWord I).toNat := by
+    rw [hsub]
+    exact Int.natCast_nonneg _
+  have hdiffFit :
+      Int.ofNat (transferFromCurrentAllowanceWord evm I).toNat -
+          Int.ofNat (transferFromValueWord I).toNat <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hsub, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.sub_le _ _)
+      (transferFromCurrentAllowanceWord evm I).val.isLt)
+  have heval := evalExpr_checked_sub_uint_ok
+    (cfg := config)
+    (solm := { contract := contract, locals := transferFromStoreCurrentAllowance evm I })
+    (evm := evm)
+    (lhs := .var "currentAllowance") (rhs := .var "value") ⟨256, by decide⟩
+    (Int.ofNat (transferFromCurrentAllowanceWord evm I).toNat)
+    (Int.ofNat (transferFromValueWord I).toNat)
+    (by simp only [evalExpr?, transferFromStoreCurrentAllowance_currentAllowance,
+      EvalResult.ofOption])
+    (by simp only [evalExpr?, transferFromStoreCurrentAllowance_value,
+      EvalResult.ofOption])
+    hdiffNonneg hdiffFit
+  rw [hsub, ← htoNat] at heval
+  exact heval
 
 theorem transferFromAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config
@@ -1368,7 +1386,7 @@ theorem evalExpr_transferFrom_balance_debit (evm : EVM.State) (I : ExecutionEnv)
       (transferFromFromBalanceWord (transferFromAfterAllowanceState evm I) I).toNat) :
     evalExpr? config { contract := contract, locals := transferFromStoreFromBalance evm I }
       (transferFromAfterAllowanceState evm I)
-      (.binary .sub (.var "fromBalance") (.var "value")) =
+      (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")) =
         .ok (.int (Int.ofNat (transferFromBalanceDebitWord evm I).toNat)) := by
   have hsub :
       Int.ofNat
@@ -1384,19 +1402,39 @@ theorem evalExpr_transferFrom_balance_debit (evm : EVM.State) (I : ExecutionEnv)
     unfold transferFromBalanceDebitWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (transferFromFromBalanceWord (transferFromAfterAllowanceState evm I) I).val.isLt)
-  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
-  rw [transferFromStoreFromBalance_fromBalance, transferFromStoreFromBalance_value]
-  change EvalResult.ok (Value.int
-      (Int.ofNat
+  have hdiffNonneg :
+      0 ≤ Int.ofNat
           (transferFromFromBalanceWord (transferFromAfterAllowanceState evm I) I).toNat -
-        Int.ofNat (transferFromValueWord I).toNat)) =
-    EvalResult.ok (Value.int (Int.ofNat (transferFromBalanceDebitWord evm I).toNat))
-  rw [hsub, htoNat]
+        Int.ofNat (transferFromValueWord I).toNat := by
+    rw [hsub]
+    exact Int.natCast_nonneg _
+  have hdiffFit :
+      Int.ofNat
+          (transferFromFromBalanceWord (transferFromAfterAllowanceState evm I) I).toNat -
+          Int.ofNat (transferFromValueWord I).toNat <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hsub, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.sub_le _ _)
+      (transferFromFromBalanceWord (transferFromAfterAllowanceState evm I) I).val.isLt)
+  have heval := evalExpr_checked_sub_uint_ok
+    (cfg := config)
+    (solm := { contract := contract, locals := transferFromStoreFromBalance evm I })
+    (evm := transferFromAfterAllowanceState evm I)
+    (lhs := .var "fromBalance") (rhs := .var "value") ⟨256, by decide⟩
+    (Int.ofNat
+      (transferFromFromBalanceWord (transferFromAfterAllowanceState evm I) I).toNat)
+    (Int.ofNat (transferFromValueWord I).toNat)
+    (by simp only [evalExpr?, transferFromStoreFromBalance_fromBalance,
+      EvalResult.ofOption])
+    (by simp only [evalExpr?, transferFromStoreFromBalance_value, EvalResult.ofOption])
+    hdiffNonneg hdiffFit
+  rw [hsub, ← htoNat] at heval
+  exact heval
 
 theorem evalExpr_transferFrom_balance_debit_max (evm : EVM.State) (I : ExecutionEnv)
     (henough : (transferFromValueWord I).toNat ≤ (transferFromFromBalanceWord evm I).toNat) :
     evalExpr? config { contract := contract, locals := transferFromStoreFromBalanceMax evm I } evm
-      (.binary .sub (.var "fromBalance") (.var "value")) =
+      (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")) =
         .ok (.int (Int.ofNat (transferFromBalanceDebitWordMax evm I).toNat)) := by
   have hsub :
       Int.ofNat (transferFromFromBalanceWord evm I).toNat -
@@ -1409,13 +1447,31 @@ theorem evalExpr_transferFrom_balance_debit_max (evm : EVM.State) (I : Execution
     unfold transferFromBalanceDebitWordMax
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (transferFromFromBalanceWord evm I).val.isLt)
-  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
-  rw [transferFromStoreFromBalanceMax_fromBalance, transferFromStoreFromBalanceMax_value]
-  change EvalResult.ok (Value.int
-      (Int.ofNat (transferFromFromBalanceWord evm I).toNat -
-        Int.ofNat (transferFromValueWord I).toNat)) =
-    EvalResult.ok (Value.int (Int.ofNat (transferFromBalanceDebitWordMax evm I).toNat))
-  rw [hsub, htoNat]
+  have hdiffNonneg :
+      0 ≤ Int.ofNat (transferFromFromBalanceWord evm I).toNat -
+        Int.ofNat (transferFromValueWord I).toNat := by
+    rw [hsub]
+    exact Int.natCast_nonneg _
+  have hdiffFit :
+      Int.ofNat (transferFromFromBalanceWord evm I).toNat -
+          Int.ofNat (transferFromValueWord I).toNat <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hsub, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.sub_le _ _)
+      (transferFromFromBalanceWord evm I).val.isLt)
+  have heval := evalExpr_checked_sub_uint_ok
+    (cfg := config)
+    (solm := { contract := contract, locals := transferFromStoreFromBalanceMax evm I })
+    (evm := evm)
+    (lhs := .var "fromBalance") (rhs := .var "value") ⟨256, by decide⟩
+    (Int.ofNat (transferFromFromBalanceWord evm I).toNat)
+    (Int.ofNat (transferFromValueWord I).toNat)
+    (by simp only [evalExpr?, transferFromStoreFromBalanceMax_fromBalance,
+      EvalResult.ofOption])
+    (by simp only [evalExpr?, transferFromStoreFromBalanceMax_value, EvalResult.ofOption])
+    hdiffNonneg hdiffFit
+  rw [hsub, ← htoNat] at heval
+  exact heval
 
 theorem transferFromAssignFrom (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := transferFromStoreFromBalance evm I }
@@ -1542,73 +1598,122 @@ theorem evalExpr_transferFrom_to_balance_max (evm : EVM.State) (I : ExecutionEnv
   simp [transferFromToSlot, transferFromToBalanceWordMax, uniswapStorageLocLoad_uint256,
     transferFromAfterBalanceMax_codeOwner]
 
+theorem evalExpr_transferFrom_checked_add_u256_ok (evm : EVM.State) (locals : Store)
+    (toBalance value : UInt256) (sum : Nat)
+    (htoBalance : locals.get? "toBalance" = some (.int (Int.ofNat toBalance.toNat)))
+    (hvalue : locals.get? "value" = some (.int (Int.ofNat value.toNat)))
+    (hsum : sum = toBalance.toNat + value.toNat)
+    (hfit : sum < UInt256.size) :
+    evalExpr? config { contract := contract, locals } evm
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+        (.var "toBalance") (.var "value"))) = .ok (.int (Int.ofNat sum)) := by
+  have hsumInt : Int.ofNat toBalance.toNat + Int.ofNat value.toNat = Int.ofNat sum := by
+    rw [hsum]
+    exact Int.ofNat_add_ofNat _ _
+  have hsumNonneg : 0 ≤ Int.ofNat toBalance.toNat + Int.ofNat value.toNat :=
+    Int.add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
+  have hsumFit :
+      Int.ofNat toBalance.toNat + Int.ofNat value.toNat < Int.ofNat (EVM.twoPow 256) := by
+    rw [hsumInt, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_lt.mpr hfit
+  let addExpr := Expr.binary (.add (.uint ⟨256, by decide⟩) .checked)
+    (.var "toBalance") (.var "value")
+  have hbinaryEval :
+      evalExpr? config { contract := contract, locals } evm addExpr =
+        .ok (.int (Int.ofNat toBalance.toNat + Int.ofNat value.toNat)) := by
+    rw [show addExpr = .binary (.add (.uint ⟨256, by decide⟩) .checked)
+      (.var "toBalance") (.var "value") from rfl]
+    rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+    simp only [evalExpr?, EvalResult.ofOption, htoBalance, hvalue, EvalResult.bind, bind,
+      evalBinaryOp?]
+    exact evalIntArithResult_checked_uint_ok _ _ hsumNonneg hsumFit
+  change evalExpr? config { contract := contract, locals } evm
+      (.inRange uint256Int addExpr) = .ok (.int (Int.ofNat sum))
+  have hinRange := evalExpr_inRange_uint config { contract := contract, locals } evm addExpr
+    ⟨256, by decide⟩ (Int.ofNat toBalance.toNat + Int.ofNat value.toNat)
+    hbinaryEval hsumNonneg hsumFit
+  rw [hsumInt] at hinRange
+  exact hinRange
+
+theorem evalExpr_transferFrom_checked_add_u256_revert (evm : EVM.State) (locals : Store)
+    (toBalance value : UInt256) (sum : Nat)
+    (htoBalance : locals.get? "toBalance" = some (.int (Int.ofNat toBalance.toNat)))
+    (hvalue : locals.get? "value" = some (.int (Int.ofNat value.toNat)))
+    (hsum : sum = toBalance.toNat + value.toNat)
+    (hover : UInt256.size ≤ sum) :
+    evalExpr? config { contract := contract, locals } evm
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+        (.var "toBalance") (.var "value"))) = .revert := by
+  have hsumInt : Int.ofNat toBalance.toNat + Int.ofNat value.toNat = Int.ofNat sum := by
+    rw [hsum]
+    exact Int.ofNat_add_ofNat _ _
+  have hsumOverflow :
+      Int.ofNat (EVM.twoPow 256) ≤ Int.ofNat toBalance.toNat + Int.ofNat value.toNat := by
+    rw [hsumInt, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_le.mpr hover
+  let addExpr := Expr.binary (.add (.uint ⟨256, by decide⟩) .checked)
+    (.var "toBalance") (.var "value")
+  have hbinaryEval :
+      evalExpr? config { contract := contract, locals } evm addExpr = .revert := by
+    rw [show addExpr = .binary (.add (.uint ⟨256, by decide⟩) .checked)
+      (.var "toBalance") (.var "value") from rfl]
+    rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+    simp only [evalExpr?, EvalResult.ofOption, htoBalance, hvalue, EvalResult.bind, bind,
+      evalBinaryOp?]
+    exact evalIntArithResult_checked_uint_revert_of_overflow _ _ hsumOverflow
+  change evalExpr? config { contract := contract, locals } evm
+      (.inRange uint256Int addExpr) = .revert
+  exact evalExpr_inRange_revert config { contract := contract, locals } evm addExpr uint256Int
+    hbinaryEval
+
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_transferFrom_newToBalance (evm : EVM.State) (I : ExecutionEnv)
     (hfit : transferFromNewToNat evm I < UInt256.size) :
     evalExpr? config { contract := contract, locals := transferFromStoreToBalance evm I }
-      (transferFromAfterBalanceState evm I) (u256 (.binary .add (.var "toBalance") (.var "value"))) =
+      (transferFromAfterBalanceState evm I) (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))) =
         .ok (transferFromNewToValue evm I) := by
-  have hlt : ¬ Int.ofNat (transferFromNewToNat evm I) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  simp only [u256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [transferFromStoreToBalance_toBalance, transferFromStoreToBalance_value]
-  simp [evalBinaryOp?, transferFromNewToValue, transferFromNewToNat, uint256Int]
-  constructor
-  · omega
-  · have hfitNat :
-        (transferFromToBalanceWord evm I).toNat + (transferFromValueWord I).toNat < 2 ^ 256 := by
-      simpa [transferFromNewToNat, UInt256.size] using hfit
-    omega
+  exact evalExpr_transferFrom_checked_add_u256_ok
+    (transferFromAfterBalanceState evm I) (transferFromStoreToBalance evm I)
+    (transferFromToBalanceWord evm I) (transferFromValueWord I)
+    (transferFromNewToNat evm I) (transferFromStoreToBalance_toBalance evm I)
+    (transferFromStoreToBalance_value evm I) rfl hfit
 
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_transferFrom_newToBalance_revert (evm : EVM.State) (I : ExecutionEnv)
     (hover : UInt256.size ≤ transferFromNewToNat evm I) :
     evalExpr? config { contract := contract, locals := transferFromStoreToBalance evm I }
       (transferFromAfterBalanceState evm I)
-      (u256 (.binary .add (.var "toBalance") (.var "value"))) = .revert := by
-  have hge : Int.ofNat (transferFromNewToNat evm I) ≥ (2 : Int) ^ 256 := by
-    rw [UInt256.size] at hover
-    exact Int.ofNat_le.mpr hover
-  simp only [u256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [transferFromStoreToBalance_toBalance, transferFromStoreToBalance_value]
-  simp [evalBinaryOp?, uint256Int]
-  intro _
-  simpa [transferFromNewToNat] using hge
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))) = .revert := by
+  exact evalExpr_transferFrom_checked_add_u256_revert
+    (transferFromAfterBalanceState evm I) (transferFromStoreToBalance evm I)
+    (transferFromToBalanceWord evm I) (transferFromValueWord I)
+    (transferFromNewToNat evm I) (transferFromStoreToBalance_toBalance evm I)
+    (transferFromStoreToBalance_value evm I) rfl hover
 
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_transferFrom_newToBalanceMax (evm : EVM.State) (I : ExecutionEnv)
     (hfit : transferFromNewToNatMax evm I < UInt256.size) :
     evalExpr? config { contract := contract, locals := transferFromStoreToBalanceMax evm I }
       (transferFromAfterBalanceStateMax evm I)
-      (u256 (.binary .add (.var "toBalance") (.var "value"))) =
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))) =
         .ok (transferFromNewToValueMax evm I) := by
-  have hlt : ¬ Int.ofNat (transferFromNewToNatMax evm I) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  simp only [u256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [transferFromStoreToBalanceMax_toBalance, transferFromStoreToBalanceMax_value]
-  simp [evalBinaryOp?, transferFromNewToValueMax, transferFromNewToNatMax, uint256Int]
-  constructor
-  · omega
-  · have hfitNat :
-        (transferFromToBalanceWordMax evm I).toNat + (transferFromValueWord I).toNat <
-          2 ^ 256 := by
-      simpa [transferFromNewToNatMax, UInt256.size] using hfit
-    omega
+  exact evalExpr_transferFrom_checked_add_u256_ok
+    (transferFromAfterBalanceStateMax evm I) (transferFromStoreToBalanceMax evm I)
+    (transferFromToBalanceWordMax evm I) (transferFromValueWord I)
+    (transferFromNewToNatMax evm I) (transferFromStoreToBalanceMax_toBalance evm I)
+    (transferFromStoreToBalanceMax_value evm I) rfl hfit
 
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_transferFrom_newToBalanceMax_revert (evm : EVM.State) (I : ExecutionEnv)
     (hover : UInt256.size ≤ transferFromNewToNatMax evm I) :
     evalExpr? config { contract := contract, locals := transferFromStoreToBalanceMax evm I }
       (transferFromAfterBalanceStateMax evm I)
-      (u256 (.binary .add (.var "toBalance") (.var "value"))) = .revert := by
-  have hge : Int.ofNat (transferFromNewToNatMax evm I) ≥ (2 : Int) ^ 256 := by
-    rw [UInt256.size] at hover
-    exact Int.ofNat_le.mpr hover
-  simp only [u256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [transferFromStoreToBalanceMax_toBalance, transferFromStoreToBalanceMax_value]
-  simp [evalBinaryOp?, uint256Int]
-  intro _
-  simpa [transferFromNewToNatMax] using hge
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))) = .revert := by
+  exact evalExpr_transferFrom_checked_add_u256_revert
+    (transferFromAfterBalanceStateMax evm I) (transferFromStoreToBalanceMax evm I)
+    (transferFromToBalanceWordMax evm I) (transferFromValueWord I)
+    (transferFromNewToNatMax evm I) (transferFromStoreToBalanceMax_toBalance evm I)
+    (transferFromStoreToBalanceMax_value evm I) rfl hover
 
 theorem transferFromAssignTo (evm : EVM.State) (I : ExecutionEnv)
     (hfit : transferFromNewToNat evm I < UInt256.size) :
@@ -1654,7 +1759,7 @@ abbrev transferFromAllowancePrefixBody : List Stmt :=
       .ite (.binary .ne (.var "currentAllowance") (.intLit maxUint256))
         [ .require (.binary .ge (.var "currentAllowance") (.var "value")),
           .assign .storage (allowanceRef (.var "from") sender)
-            (.binary .sub (.var "currentAllowance") (.var "value")) ]
+            (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "currentAllowance") (.var "value")) ]
         [] ]
 
 theorem uniswapTransferFromAllowanceFinitePrefix (evm : EVM.State) (I : ExecutionEnv)
@@ -1672,12 +1777,13 @@ theorem uniswapTransferFromAllowanceFinitePrefix (evm : EVM.State) (I : Executio
       .ite (.binary .ne (.var "currentAllowance") (.intLit maxUint256))
         [ .require (.binary .ge (.var "currentAllowance") (.var "value")),
           .assign .storage (allowanceRef (.var "from") sender)
-            (.binary .sub (.var "currentAllowance") (.var "value")) ]
+            (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "currentAllowance") (.var "value")) ]
         [] ]
     (.ok { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
       (transferFromAfterAllowanceState evm I))
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
   refine ExecBlock.consNormal ?_ ExecBlock.nil
   refine ExecStmt.iteTrue
     (evalExpr_transferFrom_currentAllowance_ne_max_true evm I hnotMax) ?_
@@ -1699,11 +1805,12 @@ theorem uniswapTransferFromAllowanceMaxPrefix (evm : EVM.State) (I : ExecutionEn
       .ite (.binary .ne (.var "currentAllowance") (.intLit maxUint256))
         [ .require (.binary .ge (.var "currentAllowance") (.var "value")),
           .assign .storage (allowanceRef (.var "from") sender)
-            (.binary .sub (.var "currentAllowance") (.var "value")) ]
+            (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "currentAllowance") (.var "value")) ]
         [] ]
     (.ok { contract := contract, locals := transferFromStoreCurrentAllowance evm I } evm)
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
   exact ExecBlock.consNormal
     (ExecStmt.iteFalse
       (evalExpr_transferFrom_currentAllowance_ne_max_false evm I hmax) ExecBlock.nil)
@@ -1726,11 +1833,12 @@ theorem uniswapTransferFromAllowanceFailurePrefix (evm : EVM.State) (I : Executi
       .ite (.binary .ne (.var "currentAllowance") (.intLit maxUint256))
         [ .require (.binary .ge (.var "currentAllowance") (.var "value")),
           .assign .storage (allowanceRef (.var "from") sender)
-            (.binary .sub (.var "currentAllowance") (.var "value")) ]
+            (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "currentAllowance") (.var "value")) ]
         [] ]
     .reverted
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.iteTrue
       (evalExpr_transferFrom_currentAllowance_ne_max_true evm I hnotMax)
@@ -1747,10 +1855,10 @@ theorem uniswapTransferFromBodyReverts_nonpayable (evm : EVM.State) (I : Executi
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
         .assign .storage (balanceOfRef (.var "from"))
-          (.binary .sub (.var "fromBalance") (.var "value")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
-          (u256 (.binary .add (.var "toBalance") (.var "value"))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
         .return [(.boolLit true)] ])
     .reverted
   change ExecBlock config { contract := contract, locals := transferFromStore I } evm
@@ -1759,15 +1867,15 @@ theorem uniswapTransferFromBodyReverts_nonpayable (evm : EVM.State) (I : Executi
       .ite (.binary .ne (.var "currentAllowance") (.intLit maxUint256))
         [ .require (.binary .ge (.var "currentAllowance") (.var "value")),
           .assign .storage (allowanceRef (.var "from") sender)
-            (.binary .sub (.var "currentAllowance") (.var "value")) ]
+            (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "currentAllowance") (.var "value")) ]
         [],
       .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
       .require (.binary .ge (.var "fromBalance") (.var "value")),
       .assign .storage (balanceOfRef (.var "from"))
-        (.binary .sub (.var "fromBalance") (.var "value")),
+        (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
       .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
       .assign .storage (balanceOfRef (.var "to"))
-        (u256 (.binary .add (.var "toBalance") (.var "value"))),
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
       .return [(.boolLit true)] ]
     .reverted
   exact ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false hwv))
@@ -1789,22 +1897,25 @@ theorem uniswapTransferFromBodyReturns_finiteAllowance (evm : EVM.State) (I : Ex
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
         .assign .storage (balanceOfRef (.var "from"))
-          (.binary .sub (.var "fromBalance") (.var "value")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
-          (u256 (.binary .add (.var "toBalance") (.var "value"))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
         .return [(.boolLit true)] ])
     (.returned { contract := contract, locals := transferFromStoreToBalance evm I }
       (transferFromPostState evm I) (some [(.bool true)]))
   refine execBlock_append
     (uniswapTransferFromAllowanceFinitePrefix evm I hwv hnotMax hallowance) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)
+    (valueMatchesOptionalABIType_uint256_word
+      (transferFromFromBalanceWord (transferFromAfterAllowanceState evm I) I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_transferFrom_require_from_true evm I hbalance)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_balance_debit evm I hbalance)
       (transferFromAssignFrom evm I)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_to_balance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_to_balance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromToBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_newToBalance evm I hfit)
       (transferFromAssignTo evm I hfit)) ?_
@@ -1824,21 +1935,23 @@ theorem uniswapTransferFromBodyReturns_maxAllowance (evm : EVM.State) (I : Execu
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
         .assign .storage (balanceOfRef (.var "from"))
-          (.binary .sub (.var "fromBalance") (.var "value")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
-          (u256 (.binary .add (.var "toBalance") (.var "value"))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
         .return [(.boolLit true)] ])
     (.returned { contract := contract, locals := transferFromStoreToBalanceMax evm I }
       (transferFromPostStateMax evm I) (some [(.bool true)]))
   refine execBlock_append (uniswapTransferFromAllowanceMaxPrefix evm I hwv hmax) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance_max evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance_max evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromFromBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_transferFrom_require_from_true_max evm I hbalance)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_balance_debit_max evm I hbalance)
       (transferFromAssignFromMax evm I)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_to_balance_max evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_to_balance_max evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromToBalanceWordMax evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_newToBalanceMax evm I hfit)
       (transferFromAssignToMax evm I hfit)) ?_
@@ -1856,10 +1969,10 @@ theorem uniswapTransferFromBodyReverts_allowance (evm : EVM.State) (I : Executio
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
         .assign .storage (balanceOfRef (.var "from"))
-          (.binary .sub (.var "fromBalance") (.var "value")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
-          (u256 (.binary .add (.var "toBalance") (.var "value"))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
         .return [(.boolLit true)] ])
     .reverted
   exact execBlock_append_term
@@ -1867,10 +1980,10 @@ theorem uniswapTransferFromBodyReverts_allowance (evm : EVM.State) (I : Executio
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
         .assign .storage (balanceOfRef (.var "from"))
-          (.binary .sub (.var "fromBalance") (.var "value")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
-          (u256 (.binary .add (.var "toBalance") (.var "value"))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
         .return [(.boolLit true)] ])
     (uniswapTransferFromAllowanceFailurePrefix evm I hwv hlt) (by intro f e h; cases h)
 
@@ -1890,15 +2003,17 @@ theorem uniswapTransferFromBodyReverts_balance_finiteAllowance
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
         .assign .storage (balanceOfRef (.var "from"))
-          (.binary .sub (.var "fromBalance") (.var "value")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
-          (u256 (.binary .add (.var "toBalance") (.var "value"))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
         .return [(.boolLit true)] ])
     .reverted
   refine execBlock_append
     (uniswapTransferFromAllowanceFinitePrefix evm I hwv hnotMax hallowance) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)
+    (valueMatchesOptionalABIType_uint256_word
+      (transferFromFromBalanceWord (transferFromAfterAllowanceState evm I) I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (evalExpr_transferFrom_require_from_false evm I hlt))
 
@@ -1915,14 +2030,15 @@ theorem uniswapTransferFromBodyReverts_balance_maxAllowance
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
         .assign .storage (balanceOfRef (.var "from"))
-          (.binary .sub (.var "fromBalance") (.var "value")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
-          (u256 (.binary .add (.var "toBalance") (.var "value"))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
         .return [(.boolLit true)] ])
     .reverted
   refine execBlock_append (uniswapTransferFromAllowanceMaxPrefix evm I hwv hmax) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance_max evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance_max evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromFromBalanceWord evm I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (evalExpr_transferFrom_require_from_false_max evm I hlt))
 
@@ -1943,21 +2059,24 @@ theorem uniswapTransferFromBodyReverts_overflow_finiteAllowance
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
         .assign .storage (balanceOfRef (.var "from"))
-          (.binary .sub (.var "fromBalance") (.var "value")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
-          (u256 (.binary .add (.var "toBalance") (.var "value"))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
         .return [(.boolLit true)] ])
     .reverted
   refine execBlock_append
     (uniswapTransferFromAllowanceFinitePrefix evm I hwv hnotMax hallowance) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)
+    (valueMatchesOptionalABIType_uint256_word
+      (transferFromFromBalanceWord (transferFromAfterAllowanceState evm I) I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_transferFrom_require_from_true evm I hbalance)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_balance_debit evm I hbalance)
       (transferFromAssignFrom evm I)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_to_balance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_to_balance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromToBalanceWord evm I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.assignExprRevert (evalExpr_transferFrom_newToBalance_revert evm I hover))
 
@@ -1975,20 +2094,22 @@ theorem uniswapTransferFromBodyReverts_overflow_maxAllowance
       [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
         .assign .storage (balanceOfRef (.var "from"))
-          (.binary .sub (.var "fromBalance") (.var "value")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .assign .storage (balanceOfRef (.var "to"))
-          (u256 (.binary .add (.var "toBalance") (.var "value"))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
         .return [(.boolLit true)] ])
     .reverted
   refine execBlock_append (uniswapTransferFromAllowanceMaxPrefix evm I hwv hmax) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance_max evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance_max evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromFromBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_transferFrom_require_from_true_max evm I hbalance)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_balance_debit_max evm I hbalance)
       (transferFromAssignFromMax evm I)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_to_balance_max evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_to_balance_max evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromToBalanceWordMax evm I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.assignExprRevert (evalExpr_transferFrom_newToBalanceMax_revert evm I hover))
 

@@ -52,7 +52,8 @@ theorem daiJoinExitBodyMulReverts (evm : EVM.State) (I : ExecutionEnv)
       bindParams? mulFunction.params
           [.int (Int.ofNat daiJoinONEWord.toNat), exitWadValue I] =
         some (daiJoinUintBinaryLocals daiJoinONEWord (exitWadWord I)) := by
-    simp [mulFunction, uint256, bindParams?, daiJoinUintBinaryLocals, exitWadValue]
+    simpa [mulFunction, daiJoinUintBinaryLocals, exitWadValue] using
+      bindParams_uint256_pair "x" "y" daiJoinONEWord (exitWadWord I)
   have hover :
       UInt256.size ≤ daiJoinONEWord.toNat * (exitWadWord I).toNat :=
     daiJoinMulOverflow_of_guard_fail (x := daiJoinONEWord) (y := exitWadWord I) hwad hguard

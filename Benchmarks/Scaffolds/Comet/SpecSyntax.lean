@@ -400,6 +400,11 @@ def contractSyntax (v : CometImmutables) : ContractDecl :=
     function withdrawTo(address «to», address asset, uint256 amount) external { }
   }
 
+example (v : CometImmutables) : (contractSyntax v).ctor = (Benchmarks.CompoundIII.Comet.contract v).ctor := by rfl
+example (v : CometImmutables) :
+    (contractSyntax v).functions = (Benchmarks.CompoundIII.Comet.contract v).functions := by rfl
+example (v : CometImmutables) :
+    (contractSyntax v).transitions = (Benchmarks.CompoundIII.Comet.contract v).transitions := by rfl
 theorem contractSyntax_eq (v : CometImmutables) :
     contractSyntax v = Benchmarks.CompoundIII.Comet.contract v := by rfl
 

@@ -14,24 +14,25 @@ theorem evalExpr_mint_initialLiquidity_sub_ok
     (hfit : rootLiquidity - minimumLiquidity < (2 : Int) ^ 256)
     (hliquidity : liquidity = UInt256.ofNat (rootLiquidity - minimumLiquidity).toNat) :
     evalExpr? config solm evm
-      (u256 (.binary .sub (.var "rootLiquidity") (.intLit minimumLiquidity))) =
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootLiquidity") (.intLit minimumLiquidity))) =
         .ok (uniswapUint256Value liquidity) := by
   have hnonneg : 0 ≤ rootLiquidity - minimumLiquidity := by omega
-  simp only [u256, evalExpr?, EvalResult.ofOption, hroot, EvalResult.bind, bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
-  change
-    (if rootLiquidity - minimumLiquidity < 0 ||
-        rootLiquidity - minimumLiquidity ≥ (2 : Int) ^ 256 then
-       EvalResult.revert
-     else EvalResult.ok (Value.int (rootLiquidity - minimumLiquidity))) =
-      EvalResult.ok (uniswapUint256Value liquidity)
-  have hltFalse : decide (rootLiquidity - minimumLiquidity < 0) = false := by
-    rw [decide_eq_false_iff_not]
-    omega
-  have hhighFalse :
-      decide (rootLiquidity - minimumLiquidity ≥ (2 : Int) ^ 256) = false := by
-    rw [decide_eq_false_iff_not]
-    omega
+  have hfit' :
+      rootLiquidity - minimumLiquidity < Int.ofNat (EVM.twoPow 256) := by
+    simpa [EVM.twoPow] using hfit
+  let subExpr := Expr.binary (.sub (.uint ⟨256, by decide⟩) .checked)
+    (.var "rootLiquidity") (.intLit minimumLiquidity)
+  have hsubEval :
+      evalExpr? config solm evm subExpr =
+        .ok (.int (rootLiquidity - minimumLiquidity)) := by
+    apply evalExpr_checked_sub_uint_ok
+      (cfg := config) (solm := solm) (evm := evm)
+      (lhs := .var "rootLiquidity") (rhs := .intLit minimumLiquidity)
+      ⟨256, by decide⟩ rootLiquidity minimumLiquidity
+    · simp only [evalExpr?, hroot, EvalResult.ofOption]
+    · simp [evalExpr?, pure]
+    · exact hnonneg
+    · exact hfit'
   have hnatFit : (rootLiquidity - minimumLiquidity).toNat < UInt256.size := by
     have h' : (rootLiquidity - minimumLiquidity).toNat < 2 ^ 256 := by
       exact_mod_cast (by simpa [Int.toNat_of_nonneg hnonneg] using hfit)
@@ -40,9 +41,15 @@ theorem evalExpr_mint_initialLiquidity_sub_ok
       (UInt256.ofNat (rootLiquidity - minimumLiquidity).toNat).toNat =
         (rootLiquidity - minimumLiquidity).toNat :=
     ulit_toNat' _ hnatFit
-  rw [hltFalse, hhighFalse]
-  simp [uniswapUint256Value, uint256Value, hliquidity, htoNat,
-    Int.toNat_of_nonneg hnonneg]
+  have hvalue :
+      uniswapUint256Value liquidity = .int (rootLiquidity - minimumLiquidity) := by
+    simp [uniswapUint256Value, uint256Value, hliquidity, htoNat,
+      Int.toNat_of_nonneg hnonneg]
+  change evalExpr? config solm evm (.inRange uint256Int subExpr) =
+    .ok (uniswapUint256Value liquidity)
+  rw [hvalue]
+  exact evalExpr_inRange_uint config solm evm subExpr ⟨256, by decide⟩
+    (rootLiquidity - minimumLiquidity) hsubEval hnonneg hfit'
 
 theorem evalExprs_mint_minimumMintArgs (evm : EVM.State) (caller : Frame) :
     evalExprs? config caller evm [zeroAddr, .intLit minimumLiquidity] =
@@ -58,7 +65,7 @@ theorem uniswapMintInitialLiquidityBranchPrefix
     {locals : Store} (evm : EVM.State) (rootLiquidity : Int) (liquidity : UInt256)
     (hsqrt :
       ExecStmt config { contract := contract, locals := locals } evm
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall { contract := contract, locals := locals }
@@ -87,11 +94,12 @@ theorem uniswapMintInitialLiquidityBranchPrefix
     simp [afterRoot, caller, resumeAfterInternalCall, collapseReturns]
   have hliqEval :
       evalExpr? config afterRoot evm
-        (u256 (.binary .sub (.var "rootLiquidity") (.intLit minimumLiquidity))) =
+        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootLiquidity") (.intLit minimumLiquidity))) =
           .ok (uniswapUint256Value liquidity) :=
     evalExpr_mint_initialLiquidity_sub_ok evm rootLiquidity liquidity hroot hge hfit
       hliquidity
-  refine ExecBlock.consNormal (ExecStmt.letDecl hliqEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hliqEval (by simp [valueMatchesOptionalABIType])) ?_
   have hmint :
       ExecStmt config afterLiquidity evm
         (.internalCall "_mint" [zeroAddr, .intLit minimumLiquidity] "_minimumMint")
@@ -108,7 +116,7 @@ theorem uniswapMintInitialLiquidityBranchStmtPrefix
     (htotal : locals.get? "_totalSupply" = some (uniswapUint256Value (⟨0⟩ : UInt256)))
     (hsqrt :
       ExecStmt config { contract := contract, locals := locals } evm
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall { contract := contract, locals := locals }
@@ -141,7 +149,7 @@ theorem uniswapMintInitialLiquidityBranchStmtUnderflowReverts
     (htotal : locals.get? "_totalSupply" = some (uniswapUint256Value (⟨0⟩ : UInt256)))
     (hsqrt :
       ExecStmt config { contract := contract, locals := locals } evm
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall { contract := contract, locals := locals }
@@ -180,7 +188,7 @@ theorem uniswapMintInitialLiquidityUpdateElapsedZeroFeeOffReturn
     (hunlockedBase : locals.get? "unlocked" = none)
     (hsqrt :
       ExecStmt config { contract := contract, locals := locals } evm
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall { contract := contract, locals := locals }
@@ -207,6 +215,8 @@ theorem uniswapMintInitialLiquidityUpdateElapsedZeroFeeOffReturn
         UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       syncTimeElapsedInt
           (mintFunctionPostState
@@ -313,7 +323,8 @@ theorem uniswapMintInitialLiquidityUpdateElapsedZeroFeeOffReturn
         (locals := afterMinimum.locals) evmMinimum recipient balance0 balance1 reserve0 reserve1
         liquidity htoAfter hliqAfter hbalance0After hbalance1After hfeeOnAfter
         hreserve0After hreserve1After hreserve0BaseAfter hreserve1BaseAfter hunlockedBaseAfter
-        hliqNonzero hfitSupply hfitBalance hbound0 hbound1 helapsed
+        hliqNonzero hfitSupply hfitBalance hbound0 hbound1 hreserve0Bound hreserve1Bound
+        helapsed
   simpa [List.append_assoc] using execBlock_append hbranch htail
 
 set_option maxHeartbeats 1000000 in
@@ -333,7 +344,7 @@ theorem uniswapMintInitialLiquidityUpdateElapsedZeroFeeOnReturn
     (hunlockedBase : locals.get? "unlocked" = none)
     (hsqrt :
       ExecStmt config { contract := contract, locals := locals } evm
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall { contract := contract, locals := locals }
@@ -360,6 +371,8 @@ theorem uniswapMintInitialLiquidityUpdateElapsedZeroFeeOnReturn
         UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       syncTimeElapsedInt
           (mintFunctionPostState
@@ -489,8 +502,8 @@ theorem uniswapMintInitialLiquidityUpdateElapsedZeroFeeOnReturn
         (locals := afterMinimum.locals) evmMinimum recipient balance0 balance1 reserve0 reserve1
         liquidity htoAfter hliqAfter hbalance0After hbalance1After hfeeOnAfter
         hreserve0After hreserve1After hreserve0BaseAfter hreserve1BaseAfter hkLastBaseAfter
-        hunlockedBaseAfter hliqNonzero hfitSupply hfitBalance hbound0 hbound1 helapsed
-        hfitKLast
+        hunlockedBaseAfter hliqNonzero hfitSupply hfitBalance hbound0 hbound1 hreserve0Bound
+        hreserve1Bound helapsed hfitKLast
   simpa [List.append_assoc] using execBlock_append hbranch htail
 
 set_option maxHeartbeats 1000000 in
@@ -529,7 +542,7 @@ theorem mintInitialLiquiditySqrtPrefixRuntimeBounded
     (hcontract : caller.contract = contract)
     (hargs :
       evalExprs? config caller evm
-        [u256 (.binary .mul (.var "amount0") (.var "amount1"))] =
+        [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))] =
           .ok [sqrtFunctionYValue (mintAmountProductWord amount0 amount1)])
     (rd3701 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3701⟩
@@ -540,7 +553,7 @@ theorem mintInitialLiquiditySqrtPrefixRuntimeBounded
     (hfit : mintAmountProductNat amount0 amount1 < UInt256.size) :
     ∃ root k' C',
       ExecStmt config caller evm
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok (resumeAfterInternalCall caller "rootLiquidity" (some [.int root])) evm) ∧
       0 ≤ root ∧ root.toNat < UInt256.size ∧

@@ -440,7 +440,8 @@ theorem jugDripSourceBodyVatIlksAddOverflowReverts {cA gh bl σ σ₀ A I} {g : 
       bindParams? addFunction.params
         [.int (Int.ofNat base.toNat), .int (Int.ofNat duty.toNat)] =
           some (uintBinaryLocals base duty) := by
-    simp [addFunction, uintBinaryLocals, bindParams?]
+    simpa [addFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" base duty
   have haddRevert :
       ExecStmt config { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat
         (.internalCall "_add"
@@ -460,14 +461,13 @@ theorem jugDripSourceBodyVatIlksAddOverflowReverts {cA gh bl σ σ₀ A I} {g : 
         (.letDecl "prev" (some uint256) (.tupleGet (.var "vatIlk") 1))
         (.ok { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat) := by
     simpa [dripVatIlksPrevLocals] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config)
         (solm := { contract := contract, locals := dripVatIlksLocals I out })
         (evm := evmVat)
         (name := "prev")
-        (ty := some uint256)
         (expr := .tupleGet (.var "vatIlk") 1)
-        (value := .int (Int.ofNat (dripVatIlksPrevWord out).toNat))
+        (word := dripVatIlksPrevWord out)
         hprev)
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 dripTransition.body
@@ -563,7 +563,8 @@ theorem jugDripSourceBodyVatIlksRmulOverflowReverts {cA gh bl σ σ₀ A I} {g :
   have hbindAdd :
       bindParams? addFunction.params [.int (Int.ofNat base.toNat), .int (Int.ofNat duty.toNat)] =
         some (uintBinaryLocals base duty) := by
-    simp [addFunction, uintBinaryLocals, bindParams?]
+    simpa [addFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" base duty
   have hfitAdd : base.toNat + duty.toNat < UInt256.size := by
     exact Nat.lt_of_not_ge haddNo
   have haddReturn :
@@ -593,7 +594,8 @@ theorem jugDripSourceBodyVatIlksRmulOverflowReverts {cA gh bl σ σ₀ A I} {g :
       bindParams? rpowFunction.params
           [.int (Int.ofNat fee.toNat), .int 0, .int (Int.ofNat jugRay.toNat)] =
         some (uintTernaryLocals fee ⟨0⟩ jugRay) := by
-    simp [rpowFunction, uintTernaryLocals, bindParams?, jugUInt256Zero_toNat]
+    simpa [rpowFunction, uintTernaryLocals] using
+      bindParams_uint256_triple "x" "n" "b" fee (⟨0⟩ : UInt256) jugRay
   have hrpowBody :
       ∃ doneLocals,
         ExecFuncBody config { contract := contract, locals := uintTernaryLocals fee ⟨0⟩ jugRay }
@@ -638,7 +640,8 @@ theorem jugDripSourceBodyVatIlksRmulOverflowReverts {cA gh bl σ σ₀ A I} {g :
       bindParams? rmulFunction.params
           [.int (Int.ofNat jugRay.toNat), .int (Int.ofNat (dripVatIlksPrevWord out).toNat)] =
         some (uintBinaryLocals jugRay (dripVatIlksPrevWord out)) := by
-    simp [rmulFunction, uintBinaryLocals, bindParams?]
+    simpa [rmulFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" jugRay (dripVatIlksPrevWord out)
   have hrmulRevert :
       ExecStmt config { contract := contract, locals := dripPowLocals I out fee jugRay } evmVat
         (.internalCall "_rmul" [.var "pow", .var "prev"] "rate") .reverted := by
@@ -658,14 +661,13 @@ theorem jugDripSourceBodyVatIlksRmulOverflowReverts {cA gh bl σ σ₀ A I} {g :
         (.letDecl "prev" (some uint256) (.tupleGet (.var "vatIlk") 1))
         (.ok { contract := contract, locals := dripVatIlksPrevLocals I out } evmVat) := by
     simpa [dripVatIlksPrevLocals] using
-      (ExecStmt.letDecl
+      (ExecStmt.letDecl_uint256_word
         (cfg := config)
         (solm := { contract := contract, locals := dripVatIlksLocals I out })
         (evm := evmVat)
         (name := "prev")
-        (ty := some uint256)
         (expr := .tupleGet (.var "vatIlk") 1)
-        (value := .int (Int.ofNat (dripVatIlksPrevWord out).toNat))
+        (word := dripVatIlksPrevWord out)
         hprev)
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 dripTransition.body

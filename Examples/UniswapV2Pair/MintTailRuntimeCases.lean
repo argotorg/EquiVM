@@ -75,7 +75,7 @@ theorem uniswapMintTailRuntimeCases
       execBlock_append hprefix (ExecBlock.consRevert (stmts :=
         [.ite (.var "feeOn")
           [.assign .storage kLastRef
-            (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref)))] []] ++
+            (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref)))] []] ++
           lockExit ++ [.return [.var "liquidity"]]) hupdate)
   · obtain ⟨evmRet, σRet, hreturn, hRetAccounts, hcreatedRet, rdRet⟩ :=
       uniswapMintAfterUpdateRuntimeReturns

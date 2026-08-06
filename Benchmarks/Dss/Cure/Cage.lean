@@ -47,18 +47,10 @@ theorem evalExpr_add256_ok {evm : EVM.State} {locals : Store}
     (hfit : a.toNat + b.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
       .ok (.int (Int.ofNat sum.toNat)) := by
-  have hlt : ¬ Int.ofNat (a.toNat + b.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
   have hword : sum.toNat = a.toNat + b.toNat := by
     rw [hsum, uadd_toNat, Nat.mod_eq_of_lt hfit]
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  simpa [add256, u256, uint256Int] using
+    evalExpr_checked_add_uint256_word_ok hx hy hword hfit
 
 theorem evalExpr_add256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -69,9 +61,8 @@ theorem evalExpr_add256_revert {evm : EVM.State} {locals : Store}
     (hover : UInt256.size ≤ a.toNat + b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
       .revert := by
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  simpa [add256, u256, uint256Int] using
+    evalExpr_checked_add_uint256_word_revert_of_overflow hx hy hover
 
 theorem evalExpr_sub256_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b diff : UInt256}
@@ -85,22 +76,8 @@ theorem evalExpr_sub256_ok {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat diff.toNat)) := by
   have hdiffNat : diff.toNat = a.toNat - b.toNat := by
     rw [hdiff, usub_toNat hle]
-  have hsubInt : (a.toNat : Int) - (b.toNat : Int) = ((a.toNat - b.toNat : Nat) : Int) :=
-    (Int.ofNat_sub hle).symm
-  have hltNat : a.toNat - b.toNat < UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    omega
-  have hlt : ¬ ((a.toNat - b.toNat : Nat) : Int) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hltNat))
-  simp [sub256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  rw [if_neg]
-  · rw [hsubInt, ← hdiffNat]
-    rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_le.mpr hbad) hle
-    · rw [hsubInt] at hbad
-      exact hlt hbad
+  simpa [sub256, u256, uint256Int] using
+    evalExpr_checked_sub_uint256_word_ok hx hy hdiffNat hle
 
 theorem evalExpr_sub256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -111,9 +88,8 @@ theorem evalExpr_sub256_revert {evm : EVM.State} {locals : Store}
     (hlt : a.toNat < b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (sub256 x y) =
       .revert := by
-  simp [sub256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro hle
-  exact False.elim (not_le.mpr hlt hle)
+  simpa [sub256, u256, uint256Int] using
+    evalExpr_checked_sub_uint256_word_revert_of_underflow hx hy hlt
 
 theorem evalExpr_ge_uint256_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : UInt256}
@@ -207,7 +183,8 @@ theorem execAddFunctionReturn (evm : EVM.State) {x y sum : UInt256}
           .return [.var "z"] ]
         (.returned { contract := contract, locals := localsZ } evm
           (some [.int (Int.ofNat sum.toNat)])) := by
-    refine ExecBlock.consNormal (ExecStmt.letDecl hAdd) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl hAdd (valueMatchesOptionalABIType_uint256_word sum)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hReq) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hz))
   simpa [addFunction, checkedAddUintInto, locals, localsZ] using ExecFuncBody.execBlockRet hblock
@@ -285,7 +262,8 @@ theorem execSubFunctionReturn (evm : EVM.State) {x y diff : UInt256}
           .return [.var "z"] ]
         (.returned { contract := contract, locals := localsZ } evm
           (some [.int (Int.ofNat diff.toNat)])) := by
-    refine ExecBlock.consNormal (ExecStmt.letDecl hSub) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl hSub (valueMatchesOptionalABIType_uint256_word diff)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hReq) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hz))
   simpa [subFunction, checkedSubUintInto, locals, localsZ] using ExecFuncBody.execBlockRet hblock
@@ -522,7 +500,8 @@ theorem cureCageSourceBodyOk {cA gh bl σ σ₀ A I} {g : UInt256}
           [.int (Int.ofNat (cageTimestampWord I).toNat),
             .int (Int.ofNat (cageWaitWord σ I).toNat)] =
         some (uintBinaryLocals (cageTimestampWord I) (cageWaitWord σ I)) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uint256, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" (cageTimestampWord I) (cageWaitWord σ I)
   have hcall :
       ExecStmt config { contract := contract, locals := locals } evmLive
         (.internalCall "_add" [.env .timestamp, .storage waitRef] "when_")
@@ -610,7 +589,8 @@ theorem cureCageSourceBodyReverts_add {cA gh bl σ σ₀ A I} {g : UInt256}
           [.int (Int.ofNat (cageTimestampWord I).toNat),
             .int (Int.ofNat (cageWaitWord σ I).toNat)] =
         some (uintBinaryLocals (cageTimestampWord I) (cageWaitWord σ I)) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uint256, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" (cageTimestampWord I) (cageWaitWord σ I)
   have hcall :
       ExecStmt config { contract := contract, locals := locals } evmLive
         (.internalCall "_add" [.env .timestamp, .storage waitRef] "when_") .reverted := by

@@ -24,7 +24,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_fromRootBlockReturn
         (mintFeeAfterKLastFrame (uniswapReserve0Word reserveEvm)
           (uniswapReserve1Word reserveEvm) feeTo true (mintFeeKLastWord evmFee))
         evmFee
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast",
           mintFeeRootComparisonStmt ]

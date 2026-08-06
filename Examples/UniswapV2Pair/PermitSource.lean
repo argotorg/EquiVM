@@ -1261,15 +1261,18 @@ theorem evalExpr_permit_afterDomain_nonce_storage (evm : EVM.State) (I : Executi
 theorem evalExpr_permit_nonce_next (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config
       { contract := contract, locals := permitAfterNonceLoadStore evm I } evm
-      (wrapU256 (.binary .add (.var "nonce") (.intLit 1))) =
+      (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.var "nonce") (.intLit 1)) =
         .ok (permitNonceNextLoadedValue evm I) := by
   have hone : (⟨1⟩ : UInt256).toNat = 1 := by native_decide
-  unfold wrapU256 permitNonceNextLoadedValue permitNonceNextLoadedWord permitNonceLoadedWord
+  unfold permitNonceNextLoadedValue permitNonceNextLoadedWord permitNonceLoadedWord
   simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
   rw [permitAfterNonceLoadStore_nonce]
   simp only [evalBinaryOp?]
   rw [uadd_toNat, hone]
-  simp [twoPow256, UInt256.size]
+  rw [evalIntArithResult_wrapping]
+  simp only [normalizeInt]
+  rw [show EVM.twoPow 256 = UInt256.size by rfl]
+  rfl
 
 theorem permitAssignNonce (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config
@@ -1365,7 +1368,7 @@ abbrev permitAfterDeadlineBody : List Stmt :=
   [ .letDecl "domainSeparator" (some bytes32) (.storage domainSeparatorRef),
     .letDecl "nonce" (some uint256) (.storage (noncesRef (.var "owner"))),
     .assign .storage (noncesRef (.var "owner"))
-      (wrapU256 (.binary .add (.var "nonce") (.intLit 1))),
+      (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.var "nonce") (.intLit 1)),
     .letDecl "structHash" (some bytes32) permitStructHashExpr,
     .letDecl "digest" (some bytes32) permitDigestExpr,
     .externalCall (.cast (.intLit 1) addrSt) "ecrecover" (.intLit 0)
@@ -1380,7 +1383,7 @@ abbrev permitNonceStorePrefixBody : List Stmt :=
   [ .letDecl "domainSeparator" (some bytes32) (.storage domainSeparatorRef),
     .letDecl "nonce" (some uint256) (.storage (noncesRef (.var "owner"))),
     .assign .storage (noncesRef (.var "owner"))
-      (wrapU256 (.binary .add (.var "nonce") (.intLit 1))) ]
+      (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.var "nonce") (.intLit 1)) ]
 
 abbrev permitAfterNonceBody : List Stmt :=
   [ .letDecl "structHash" (some bytes32) permitStructHashExpr,

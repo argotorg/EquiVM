@@ -756,22 +756,7 @@ theorem dealEvalExpr_sub256_ok {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat diff.toNat)) := by
   have hdiffNat : diff.toNat = a.toNat - b.toNat := by
     rw [hdiff, usub_toNat hle]
-  have hsubInt : (a.toNat : Int) - (b.toNat : Int) = ((a.toNat - b.toNat : Nat) : Int) :=
-    (Int.ofNat_sub hle).symm
-  have hltNat : a.toNat - b.toNat < UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    omega
-  have hlt : ¬ ((a.toNat - b.toNat : Nat) : Int) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hltNat))
-  simp [sub256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  rw [if_neg]
-  · rw [hsubInt, ← hdiffNat]
-    rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_le.mpr hbad) hle
-    · rw [hsubInt] at hbad
-      exact hlt hbad
+  exact evalExpr_checked_sub_uint256_word_ok hx hy hdiffNat hle
 
 theorem dealEvalExpr_sub256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -781,9 +766,7 @@ theorem dealEvalExpr_sub256_revert {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hlt : a.toNat < b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (sub256 x y) = .revert := by
-  simp [sub256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro hle
-  exact False.elim (not_le.mpr hlt hle)
+  exact evalExpr_checked_sub_uint256_word_revert_of_underflow hx hy hlt
 
 theorem dealEvalExpr_le_uint256_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : UInt256}
@@ -844,7 +827,7 @@ theorem dealSubFunctionReturn (evm : EVM.State) {x y diff : UInt256}
           .return [.var "z"] ]
         (.returned { contract := contract, locals := localsZ } evm
           (some [.int (Int.ofNat diff.toNat)])) := by
-    refine ExecBlock.consNormal (ExecStmt.letDecl hSub) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hSub) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hReq) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hz))
   simpa [subFunction, checkedSubUintInto, locals, localsZ] using ExecFuncBody.execBlockRet hblock
@@ -1466,7 +1449,7 @@ theorem flapperDealBodyReverts_moveNoCode (evm : EVM.State) (I : ExecutionEnv)
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_deal_finished_true evm I htic hfinished)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_deal_lot_storage evm I)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_deal_lot_storage evm I)) <|
       htail)
 
 theorem flapperDealBodyReverts_moveCallFailure
@@ -1541,7 +1524,7 @@ theorem flapperDealBodyReverts_moveCallFailure
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_deal_finished_true evm I htic hfinished)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_deal_lot_storage evm I)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_deal_lot_storage evm I)) <|
       htail)
 
 theorem flapperDealBodyReverts_burnNoCode
@@ -1645,7 +1628,7 @@ theorem flapperDealBodyReverts_burnNoCode
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_deal_finished_true evm I htic hfinished)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_deal_lot_storage evm I)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_deal_lot_storage evm I)) <|
       htail)
 
 theorem flapperDealBodyReverts_burnCallFailure
@@ -1758,7 +1741,7 @@ theorem flapperDealBodyReverts_burnCallFailure
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_deal_finished_true evm I htic hfinished)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_deal_lot_storage evm I)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_deal_lot_storage evm I)) <|
       htail)
 
 theorem flapperDealBodyBurnSuccessPrefix
@@ -1890,7 +1873,8 @@ theorem flapperDealBodyReverts_fillSubUnderflow
           [.int (Int.ofNat (dealFillWord evmDelete).toNat),
             .int (Int.ofNat (dealLotWord evm I).toNat)] =
         some (dealUintBinaryLocals (dealFillWord evmDelete) (dealLotWord evm I)) := by
-    simp [subFunction, dealUintBinaryLocals, bindParams?]
+    simpa [subFunction, dealUintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" (dealFillWord evmDelete) (dealLotWord evm I)
   have hsubStmt :
       ExecStmt config { contract := contract, locals := dealBurnLocals evm I } evmDelete
         (.internalCall "sub" [.storage fillRef, .var "lot"] "fillNew") .reverted :=
@@ -1936,7 +1920,7 @@ theorem flapperDealBodyReverts_fillSubUnderflow
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_deal_finished_true evm I htic hfinished)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_deal_lot_storage evm I)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_deal_lot_storage evm I)) <|
       htail)
 
 theorem flapperDealBodyReturns_success
@@ -1995,7 +1979,8 @@ theorem flapperDealBodyReturns_success
           [.int (Int.ofNat (dealFillWord evmDelete).toNat),
             .int (Int.ofNat (dealLotWord evm I).toNat)] =
         some (dealUintBinaryLocals (dealFillWord evmDelete) (dealLotWord evm I)) := by
-    simp [subFunction, dealUintBinaryLocals, bindParams?]
+    simpa [subFunction, dealUintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" (dealFillWord evmDelete) (dealLotWord evm I)
   have hsubStmt :
       ExecStmt config { contract := contract, locals := dealBurnLocals evm I } evmDelete
         (.internalCall "sub" [.storage fillRef, .var "lot"] "fillNew")
@@ -2057,7 +2042,7 @@ theorem flapperDealBodyReturns_success
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_deal_finished_true evm I htic hfinished)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_deal_lot_storage evm I)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_deal_lot_storage evm I)) <|
       htail)
 
 theorem flapperDecode_deal_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :

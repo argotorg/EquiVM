@@ -4715,6 +4715,7 @@ theorem endSkimStmtRate (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
       (.ok { contract := contract, locals := endSkimStoreRate I out } evm) := by
   simpa [endSkimStoreRate] using
     ExecStmt.letDecl (evalExpr_endSkim_vatIlk_rate evm I out)
+      (valueMatchesOptionalABIType_uint256_word (endFlowVatIlkRateWord out))
 
 theorem evalExprs_endSkim_urnsArgs (evm : EVM.State) (I : ExecutionEnv)
     (vatOut : ByteArray) :
@@ -4944,6 +4945,7 @@ theorem endSkimStmtInk (evm : EVM.State) (I : ExecutionEnv) (vatOut urnOut : Byt
       (.ok { contract := contract, locals := endSkimStoreInk I vatOut urnOut } evm) := by
   simpa [endSkimStoreInk] using
     ExecStmt.letDecl (evalExpr_endSkim_vatUrn_ink evm I vatOut urnOut)
+      (valueMatchesOptionalABIType_uint256_word (endFreeUrnInkWord urnOut))
 
 theorem endSkimStmtArt (evm : EVM.State) (I : ExecutionEnv) (vatOut urnOut : ByteArray) :
     ExecStmt config { contract := contract, locals := endSkimStoreInk I vatOut urnOut } evm
@@ -4951,6 +4953,7 @@ theorem endSkimStmtArt (evm : EVM.State) (I : ExecutionEnv) (vatOut urnOut : Byt
       (.ok { contract := contract, locals := endSkimStoreArt I vatOut urnOut } evm) := by
   simpa [endSkimStoreArt] using
     ExecStmt.letDecl (evalExpr_endSkim_vatUrn_art_afterInk evm I vatOut urnOut)
+      (valueMatchesOptionalABIType_uint256_word (endFreeUrnArtWord urnOut))
 
 theorem endExecMinFunctionReturn (evm : EVM.State) {x y z : UInt256}
     (hz : z = if x.toNat ≤ y.toNat then x else y) :
@@ -5051,13 +5054,9 @@ theorem endSkimStmtOwe0RmulReturns (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endFreeUrnArtWord urnOut).toNat),
             .int (Int.ofNat (endFlowVatIlkRateWord vatOut).toNat)] := by
     simp [evalExprs?, hart, hrate, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? rmulFunction.params
-          [.int (Int.ofNat (endFreeUrnArtWord urnOut).toNat),
-            .int (Int.ofNat (endFlowVatIlkRateWord vatOut).toNat)] =
-        some (endUintBinaryLocals (endFreeUrnArtWord urnOut)
-          (endFlowVatIlkRateWord vatOut)) := by
-    simp [rmulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_rmulFunction (endFreeUrnArtWord urnOut)
+      (endFlowVatIlkRateWord vatOut)
   have hbody :=
     endExecRmulFunctionReturn (evm := evm)
       (x := endFreeUrnArtWord urnOut) (y := endFlowVatIlkRateWord vatOut)
@@ -5110,13 +5109,9 @@ theorem endSkimStmtOwe0RmulReverts (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endFreeUrnArtWord urnOut).toNat),
             .int (Int.ofNat (endFlowVatIlkRateWord vatOut).toNat)] := by
     simp [evalExprs?, hart, hrate, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? rmulFunction.params
-          [.int (Int.ofNat (endFreeUrnArtWord urnOut).toNat),
-            .int (Int.ofNat (endFlowVatIlkRateWord vatOut).toNat)] =
-        some (endUintBinaryLocals (endFreeUrnArtWord urnOut)
-          (endFlowVatIlkRateWord vatOut)) := by
-    simp [rmulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_rmulFunction (endFreeUrnArtWord urnOut)
+      (endFlowVatIlkRateWord vatOut)
   have hbody :=
     endExecRmulFunctionRevertMul (evm := evm)
       (x := endFreeUrnArtWord urnOut) (y := endFlowVatIlkRateWord vatOut) hover
@@ -5185,13 +5180,8 @@ theorem endSkimStmtOweRmulReturns (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endSkimOwe0Word vatOut urnOut).toNat),
             .int (Int.ofNat (endSkimTagWord σ I).toNat)] := by
     simp [evalExprs?, howe0, htag, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? rmulFunction.params
-          [.int (Int.ofNat (endSkimOwe0Word vatOut urnOut).toNat),
-            .int (Int.ofNat (endSkimTagWord σ I).toNat)] =
-        some (endUintBinaryLocals (endSkimOwe0Word vatOut urnOut)
-          (endSkimTagWord σ I)) := by
-    simp [rmulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_rmulFunction (endSkimOwe0Word vatOut urnOut) (endSkimTagWord σ I)
   have hbody :=
     endExecRmulFunctionReturn (evm := evm)
       (x := endSkimOwe0Word vatOut urnOut) (y := endSkimTagWord σ I)
@@ -5264,13 +5254,8 @@ theorem endSkimStmtOweRmulReverts (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endSkimOwe0Word vatOut urnOut).toNat),
             .int (Int.ofNat (endSkimTagWord σ I).toNat)] := by
     simp [evalExprs?, howe0, htag, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? rmulFunction.params
-          [.int (Int.ofNat (endSkimOwe0Word vatOut urnOut).toNat),
-            .int (Int.ofNat (endSkimTagWord σ I).toNat)] =
-        some (endUintBinaryLocals (endSkimOwe0Word vatOut urnOut)
-          (endSkimTagWord σ I)) := by
-    simp [rmulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_rmulFunction (endSkimOwe0Word vatOut urnOut) (endSkimTagWord σ I)
   have hbody :=
     endExecRmulFunctionRevertMul (evm := evm)
       (x := endSkimOwe0Word vatOut urnOut) (y := endSkimTagWord σ I) hover
@@ -5320,13 +5305,9 @@ theorem endSkimStmtWadMinReturns (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endFreeUrnInkWord urnOut).toNat),
             .int (Int.ofNat (endSkimOweWord σ I vatOut urnOut).toNat)] := by
     simp [evalExprs?, hink, howe, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? minFunction.params
-          [.int (Int.ofNat (endFreeUrnInkWord urnOut).toNat),
-            .int (Int.ofNat (endSkimOweWord σ I vatOut urnOut).toNat)] =
-        some (endUintBinaryLocals (endFreeUrnInkWord urnOut)
-          (endSkimOweWord σ I vatOut urnOut)) := by
-    simp [minFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_minFunction (endFreeUrnInkWord urnOut)
+      (endSkimOweWord σ I vatOut urnOut)
   have hbody :=
     endExecMinFunctionReturn (evm := evm)
       (x := endFreeUrnInkWord urnOut) (y := endSkimOweWord σ I vatOut urnOut)
@@ -5387,13 +5368,9 @@ theorem endSkimStmtDiffSubReturns (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endSkimOweWord σ I vatOut urnOut).toNat),
             .int (Int.ofNat (endSkimWadWord σ I vatOut urnOut).toNat)] := by
     simp [evalExprs?, howe, hwad, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? subFunction.params
-          [.int (Int.ofNat (endSkimOweWord σ I vatOut urnOut).toNat),
-            .int (Int.ofNat (endSkimWadWord σ I vatOut urnOut).toNat)] =
-        some (endUintBinaryLocals (endSkimOweWord σ I vatOut urnOut)
-          (endSkimWadWord σ I vatOut urnOut)) := by
-    simp [subFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_subFunction (endSkimOweWord σ I vatOut urnOut)
+      (endSkimWadWord σ I vatOut urnOut)
   have hbody :=
     endExecSubFunctionReturn (evm := evm)
       (x := endSkimOweWord σ I vatOut urnOut)
@@ -5474,13 +5451,9 @@ theorem endSkimStmtGapNewAddReturns (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endSkimGapWord σ I).toNat),
             .int (Int.ofNat (endSkimDiffWord σ I vatOut urnOut).toNat)] := by
     simp [evalExprs?, hgap, hdiff, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? addFunction.params
-          [.int (Int.ofNat (endSkimGapWord σ I).toNat),
-            .int (Int.ofNat (endSkimDiffWord σ I vatOut urnOut).toNat)] =
-        some (endUintBinaryLocals (endSkimGapWord σ I)
-          (endSkimDiffWord σ I vatOut urnOut)) := by
-    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_addFunction (endSkimGapWord σ I)
+      (endSkimDiffWord σ I vatOut urnOut)
   have hbody :=
     endExecAddFunctionReturn (evm := evm)
       (x := endSkimGapWord σ I) (y := endSkimDiffWord σ I vatOut urnOut)
@@ -5559,13 +5532,9 @@ theorem endSkimStmtGapNewAddReverts (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endSkimGapWord σ I).toNat),
             .int (Int.ofNat (endSkimDiffWord σ I vatOut urnOut).toNat)] := by
     simp [evalExprs?, hgap, hdiff, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? addFunction.params
-          [.int (Int.ofNat (endSkimGapWord σ I).toNat),
-            .int (Int.ofNat (endSkimDiffWord σ I vatOut urnOut).toNat)] =
-        some (endUintBinaryLocals (endSkimGapWord σ I)
-          (endSkimDiffWord σ I vatOut urnOut)) := by
-    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_addFunction (endSkimGapWord σ I)
+      (endSkimDiffWord σ I vatOut urnOut)
   have hbody :=
     endExecAddFunctionRevert (evm := evm)
       (x := endSkimGapWord σ I) (y := endSkimDiffWord σ I vatOut urnOut) hover

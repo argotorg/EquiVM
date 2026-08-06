@@ -1357,7 +1357,7 @@ theorem evalFrobDtabSourceGuardsTrue {evm : EVM.State} {I : ExecutionEnv}
       { contract := contract, locals := locals.insert "dtab" (.int dtab) }
       evm
       (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-        (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+        (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
           (.var "ilkRate"))) =
       .ok (.bool true) := by
   have hrateEval :
@@ -1384,7 +1384,7 @@ theorem evalFrobDtabSourceGuardsTrue {evm : EVM.State} {I : ExecutionEnv}
         { contract := contract, locals := locals.insert "dtab" (.int dtab) }
         evm
         (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-          (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
             (.var "ilkRate"))) =
         .ok (.bool true) := by
     by_cases hwordZero : frobDartWord I = ⟨0⟩
@@ -1393,12 +1393,12 @@ theorem evalFrobDtabSourceGuardsTrue {evm : EVM.State} {I : ExecutionEnv}
         (frobDartInt_zero_of_word_zero I hwordZero)
     · have hdartNe : frobDartInt I ≠ 0 :=
         frobDartInt_ne_zero_of_word_ne I hwordZero
-      have hdiv : dtab / frobDartInt I = Int.ofNat ilkRate.toNat := by
+      have hdiv : dtab.tdiv (frobDartInt I) = Int.ofNat ilkRate.toNat := by
         rw [hdtab]
-        exact Int.mul_ediv_cancel (Int.ofNat ilkRate.toNat) hdartNe
+        exact Int.mul_tdiv_cancel (Int.ofNat ilkRate.toNat) hdartNe
       exact evalExpr_frob_dtab_mul_guard_exact_true
         (evm := evm) (locals := locals) (rate := ilkRate) I hdart hrate
-        hdartNe hdiv
+        hdartNe (u256_toNat_lt_sign_of_slt_zero hRateMax) hdiv
   exact ⟨hguardMax, hguardMul⟩
 
 theorem execFrobLoadedPrefixDtabMulRevertRange {evm : EVM.State}

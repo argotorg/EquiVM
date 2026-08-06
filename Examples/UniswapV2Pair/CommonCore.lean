@@ -70,6 +70,23 @@ theorem uniswapStorageLocLoad_uint256 (evm : EVM.State) (slot : UInt256) :
 abbrev uniswapUint256Value (w : UInt256) : Value :=
   uint256Value w
 
+@[simp] theorem uniswapUint256Value_matches_uint256 (w : UInt256) :
+    valueMatchesABIType uint256 (uniswapUint256Value w) = true := by
+  simpa [uint256, uint256Int, uniswapUint256Value, uint256Value] using
+    valueMatchesABIType_uint256_word w
+
+theorem uniswapUint256Value_matches_uint112_of_lt (w : UInt256)
+    (hbound : w.toNat < 2 ^ 112) :
+    valueMatchesABIType uint112 (uniswapUint256Value w) = true := by
+  apply valueMatchesABIType_uint_of_bounds
+  · exact Int.natCast_nonneg _
+  · simpa [uint112, uint112Int, uniswapUint256Value, uint256Value, EVM.twoPow] using
+      Int.ofNat_lt.mpr hbound
+
+@[simp] theorem uniswapAddressValue_matches_addr (address : AccountAddress) :
+    valueMatchesABIType addr (.address address) = true := by
+  simp [addr, valueMatchesABIType]
+
 theorem uniswapStorageLocStore_uint256 (evm : EVM.State) (slot val : UInt256) :
     storageLocStore evm (wordLoc slot) (.int (Int.ofNat val.toNat)) =
       some (Solm.EVM.storageStore evm evm.executionEnv.codeOwner slot val) := by
@@ -369,6 +386,19 @@ theorem uniswapUint112Masked_lt (w : UInt256) :
     exact lt_of_le_of_lt hle (by norm_num [UInt256.size])
   rw [Nat.mod_eq_of_lt hltSize]
   exact lt_of_le_of_lt hle (by norm_num)
+
+theorem uniswapReserve0Word_lt (evm : EVM.State) :
+    (uniswapReserve0Word evm).toNat < 2 ^ 112 := by
+  simpa [uniswapReserve0Word] using
+    uniswapUint112Masked_lt
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
+
+theorem uniswapReserve1Word_lt (evm : EVM.State) :
+    (uniswapReserve1Word evm).toNat < 2 ^ 112 := by
+  simpa [uniswapReserve1Word] using
+    uniswapUint112Masked_lt
+      (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨8⟩)
+        reserve112Shift)
 
 theorem uniswapUint32Masked_lt (w : UInt256) :
     (UInt256.land w reserve32Mask).toNat < 2 ^ 32 := by

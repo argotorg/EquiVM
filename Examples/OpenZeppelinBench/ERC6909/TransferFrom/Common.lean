@@ -520,7 +520,7 @@ theorem evalExpr_transferFrom_allowance_debit (evm : EVM.State) (I : ExecutionEn
       (transferFromCurrentAllowanceWord evm I).toNat) :
     evalExpr? config
       { contract := contract, locals := transferFromStoreCurrentAllowance evm I } evm
-      (.binary .sub (.var "currentAllowance") (.var "amount")) =
+      (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "currentAllowance") (.var "amount")) =
         .ok (.int (Int.ofNat (transferFromAllowanceDebitWord evm I).toNat)) := by
   have hsub :
       Int.ofNat (transferFromCurrentAllowanceWord evm I).toNat -
@@ -534,11 +534,30 @@ theorem evalExpr_transferFrom_allowance_debit (evm : EVM.State) (I : ExecutionEn
     exact ulit_toNat' _ (lt_of_le_of_lt
       (Nat.sub_le (transferFromCurrentAllowanceWord evm I).toNat (transferFromAmountWord I).toNat)
       (transferFromCurrentAllowanceWord evm I).val.isLt)
-  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
-  rw [transferFromStoreCurrentAllowance_currentAllowance,
-    transferFromStoreCurrentAllowance_amount]
-  simp [evalBinaryOp?, htoNat]
-  exact hsub
+  have hallowance :
+      evalExpr? config { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+        evm (.var "currentAllowance") =
+          .ok (.int (Int.ofNat (transferFromCurrentAllowanceWord evm I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromStoreCurrentAllowance_currentAllowance]
+  have hamount :
+      evalExpr? config { contract := contract, locals := transferFromStoreCurrentAllowance evm I }
+        evm (.var "amount") = .ok (.int (Int.ofNat (transferFromAmountWord I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromStoreCurrentAllowance_amount]
+  have hnonneg := sub_nonneg.mpr (Int.ofNat_le.mpr henough)
+  have hfit :
+      Int.ofNat (transferFromCurrentAllowanceWord evm I).toNat -
+          Int.ofNat (transferFromAmountWord I).toNat < Int.ofNat (EVM.twoPow 256) := by
+    rw [hsub]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.sub_le _ _)
+      (transferFromCurrentAllowanceWord evm I).val.isLt)
+  have hbinary := evalExpr_checked_sub_uint_ok
+    (cfg := config)
+    (solm := { contract := contract, locals := transferFromStoreCurrentAllowance evm I })
+    (evm := evm) ⟨256, by decide⟩ _ _ hallowance hamount hnonneg hfit
+  rw [hsub, ← htoNat] at hbinary
+  exact hbinary
 
 theorem evalStorageRef_transferFrom_sender_balance_fromBalance
     (evm evm' : EVM.State) (I : ExecutionEnv) :
@@ -633,7 +652,7 @@ theorem evalExpr_transferFrom_sender_debit (evm : EVM.State) (I : ExecutionEnv)
     evalExpr? config
       { contract := contract, locals := transferFromStoreFromBalance evm I }
       (transferFromAfterAllowanceState evm I)
-      (.binary .sub (.var "fromBalance") (.var "amount")) =
+      (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "amount")) =
         .ok (.int (Int.ofNat (transferFromSenderDebitWord evm I).toNat)) := by
   have hsub :
       Int.ofNat (transferFromSenderBalanceWord (transferFromAfterAllowanceState evm I) I).toNat -
@@ -651,10 +670,33 @@ theorem evalExpr_transferFrom_sender_debit (evm : EVM.State) (I : ExecutionEnv)
         (transferFromSenderBalanceWord (transferFromAfterAllowanceState evm I) I).toNat
         (transferFromAmountWord I).toNat)
       (transferFromSenderBalanceWord (transferFromAfterAllowanceState evm I) I).val.isLt)
-  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
-  rw [transferFromStoreFromBalance_fromBalance, transferFromStoreFromBalance_amount]
-  simp [evalBinaryOp?, htoNat]
-  exact hsub
+  have hbalance :
+      evalExpr? config { contract := contract, locals := transferFromStoreFromBalance evm I }
+        (transferFromAfterAllowanceState evm I) (.var "fromBalance") =
+          .ok (.int (Int.ofNat
+            (transferFromSenderBalanceWord (transferFromAfterAllowanceState evm I) I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromStoreFromBalance_fromBalance]
+  have hamount :
+      evalExpr? config { contract := contract, locals := transferFromStoreFromBalance evm I }
+        (transferFromAfterAllowanceState evm I) (.var "amount") =
+          .ok (.int (Int.ofNat (transferFromAmountWord I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromStoreFromBalance_amount]
+  have hnonneg := sub_nonneg.mpr (Int.ofNat_le.mpr henough)
+  have hfit :
+      Int.ofNat
+          (transferFromSenderBalanceWord (transferFromAfterAllowanceState evm I) I).toNat -
+          Int.ofNat (transferFromAmountWord I).toNat < Int.ofNat (EVM.twoPow 256) := by
+    rw [hsub]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.sub_le _ _)
+      (transferFromSenderBalanceWord (transferFromAfterAllowanceState evm I) I).val.isLt)
+  have hbinary := evalExpr_checked_sub_uint_ok
+    (cfg := config) (solm := { contract := contract, locals := transferFromStoreFromBalance evm I })
+    (evm := transferFromAfterAllowanceState evm I) ⟨256, by decide⟩ _ _
+    hbalance hamount hnonneg hfit
+  rw [hsub, ← htoNat] at hbinary
+  exact hbinary
 
 theorem evalStorageRef_transferFrom_receiver_balance_fromBalance
     (evm evm' : EVM.State) (I : ExecutionEnv) :
@@ -692,36 +734,86 @@ theorem evalExpr_transferFrom_receiver_credit (evm : EVM.State) (I : ExecutionEn
     evalExpr? config
       { contract := contract, locals := transferFromStoreToBalance evm I }
       (transferFromAfterSenderBalanceState evm I)
-      (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))) =
+      (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))) =
         .ok (transferFromReceiverCreditValue evm I) := by
-  have hlt : ¬ Int.ofNat (transferFromReceiverCreditNat evm I) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  simp only [valueInUInt256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [transferFromStoreToBalance_toBalance, transferFromStoreToBalance_amount]
-  simp [evalBinaryOp?, transferFromReceiverCreditValue, transferFromReceiverCreditNat, uint256Int]
-  constructor
-  · omega
-  · have hfitNat :
-        (transferFromReceiverBalanceWord evm I).toNat + (transferFromAmountWord I).toNat <
-          2 ^ 256 := by
-      simpa [transferFromReceiverCreditNat, UInt256.size] using hfit
-    omega
+  have hbalance :
+      evalExpr? config { contract := contract, locals := transferFromStoreToBalance evm I }
+        (transferFromAfterSenderBalanceState evm I) (.var "toBalance") =
+          .ok (.int (Int.ofNat (transferFromReceiverBalanceWord evm I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromStoreToBalance_toBalance]
+  have hamount :
+      evalExpr? config { contract := contract, locals := transferFromStoreToBalance evm I }
+        (transferFromAfterSenderBalanceState evm I) (.var "amount") =
+          .ok (.int (Int.ofNat (transferFromAmountWord I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromStoreToBalance_amount]
+  have hsum :
+      Int.ofNat (transferFromReceiverBalanceWord evm I).toNat +
+          Int.ofNat (transferFromAmountWord I).toNat =
+        Int.ofNat (transferFromReceiverCreditNat evm I) := by
+    unfold transferFromReceiverCreditNat
+    exact Int.ofNat_add_ofNat _ _
+  have hnonneg :
+      0 ≤ Int.ofNat (transferFromReceiverBalanceWord evm I).toNat +
+        Int.ofNat (transferFromAmountWord I).toNat :=
+    add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
+  have hfitInt :
+      Int.ofNat (transferFromReceiverBalanceWord evm I).toNat +
+          Int.ofNat (transferFromAmountWord I).toNat < Int.ofNat (EVM.twoPow 256) := by
+    rw [hsum, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_lt.mpr hfit
+  have hbinary := evalExpr_checked_add_uint_ok
+    (cfg := config) (solm := { contract := contract, locals := transferFromStoreToBalance evm I })
+    (evm := transferFromAfterSenderBalanceState evm I) ⟨256, by decide⟩ _ _
+    hbalance hamount hnonneg hfitInt
+  have hin := evalExpr_inRange_uint config
+    { contract := contract, locals := transferFromStoreToBalance evm I }
+    (transferFromAfterSenderBalanceState evm I)
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))
+    ⟨256, by decide⟩ _ hbinary hnonneg hfitInt
+  rw [hsum] at hin
+  simpa [valueInUInt256, uint256Int, transferFromReceiverCreditValue] using hin
 
 theorem evalExpr_transferFrom_receiver_credit_revert (evm : EVM.State) (I : ExecutionEnv)
     (hover : UInt256.size ≤ transferFromReceiverCreditNat evm I) :
     evalExpr? config
       { contract := contract, locals := transferFromStoreToBalance evm I }
       (transferFromAfterSenderBalanceState evm I)
-      (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))) = .revert := by
-  have hge : Int.ofNat (transferFromReceiverCreditNat evm I) ≥ (2 : Int) ^ 256 := by
-    rw [UInt256.size] at hover
+      (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))) = .revert := by
+  have hbalance :
+      evalExpr? config { contract := contract, locals := transferFromStoreToBalance evm I }
+        (transferFromAfterSenderBalanceState evm I) (.var "toBalance") =
+          .ok (.int (Int.ofNat (transferFromReceiverBalanceWord evm I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromStoreToBalance_toBalance]
+  have hamount :
+      evalExpr? config { contract := contract, locals := transferFromStoreToBalance evm I }
+        (transferFromAfterSenderBalanceState evm I) (.var "amount") =
+          .ok (.int (Int.ofNat (transferFromAmountWord I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromStoreToBalance_amount]
+  have hsum :
+      Int.ofNat (transferFromReceiverBalanceWord evm I).toNat +
+          Int.ofNat (transferFromAmountWord I).toNat =
+        Int.ofNat (transferFromReceiverCreditNat evm I) := by
+    unfold transferFromReceiverCreditNat
+    exact Int.ofNat_add_ofNat _ _
+  have hoverInt :
+      Int.ofNat (EVM.twoPow 256) ≤
+        Int.ofNat (transferFromReceiverBalanceWord evm I).toNat +
+          Int.ofNat (transferFromAmountWord I).toNat := by
+    rw [hsum, show EVM.twoPow 256 = UInt256.size by rfl]
     exact Int.ofNat_le.mpr hover
-  simp only [valueInUInt256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [transferFromStoreToBalance_toBalance, transferFromStoreToBalance_amount]
-  simp [evalBinaryOp?, transferFromReceiverBalanceValue, transferFromAmountValue,
-    transferFromReceiverCreditValue, transferFromReceiverCreditNat, uint256Int]
-  intro _
-  simpa [transferFromReceiverCreditNat] using hge
+  have hbinary := evalExpr_checked_add_uint_revert_of_overflow
+    (cfg := config) (solm := { contract := contract, locals := transferFromStoreToBalance evm I })
+    (evm := transferFromAfterSenderBalanceState evm I) ⟨256, by decide⟩ _ _
+    hbalance hamount hoverInt
+  simpa [valueInUInt256, uint256Int] using evalExpr_inRange_revert config
+    { contract := contract, locals := transferFromStoreToBalance evm I }
+    (transferFromAfterSenderBalanceState evm I)
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))
+    uint256Int hbinary
 
 theorem evalStorageRef_transferFrom_receiver_balance_toBalance
     (evm evm' : EVM.State) (I : ExecutionEnv) :
@@ -954,11 +1046,13 @@ theorem evalExpr_transferFrom_tail_sender_balance_ge_false_of_get (locals : Stor
   simp [evalBinaryOp?]
   omega
 
-theorem evalExpr_transferFrom_tail_sender_debit (evm : EVM.State) (I : ExecutionEnv)
+theorem evalExpr_transferFrom_tail_sender_debit_core (locals : Store)
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hamount : locals.get? "amount" = some (transferFromAmountValue I))
     (henough : (transferFromAmountWord I).toNat ≤ (transferFromSenderBalanceWord evm I).toNat) :
     evalExpr? config
-      { contract := contract, locals := transferFromTailStoreFromBalance (transferFromStore I) evm I }
-      evm (.binary .sub (.var "fromBalance") (.var "amount")) =
+      { contract := contract, locals := transferFromTailStoreFromBalance locals evm I }
+      evm (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "amount")) =
         .ok (.int (Int.ofNat (transferFromTailSenderDebitWord evm I).toNat)) := by
   have hsub :
       Int.ofNat (transferFromSenderBalanceWord evm I).toNat -
@@ -972,16 +1066,40 @@ theorem evalExpr_transferFrom_tail_sender_debit (evm : EVM.State) (I : Execution
     exact ulit_toNat' _ (lt_of_le_of_lt
       (Nat.sub_le (transferFromSenderBalanceWord evm I).toNat (transferFromAmountWord I).toNat)
       (transferFromSenderBalanceWord evm I).val.isLt)
-  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
-  rw [show (transferFromTailStoreFromBalance (transferFromStore I) evm I).get?
-        "fromBalance" = some (transferFromSenderBalanceValue evm I) by
-      rw [transferFromTailStoreFromBalance, store_get_self]]
-  rw [show (transferFromTailStoreFromBalance (transferFromStore I) evm I).get?
-        "amount" = some (transferFromAmountValue I) by
-      rw [transferFromTailStoreFromBalance, store_get_ne _ _ (by decide),
-        transferFromStore_amount]]
-  simp [evalBinaryOp?, htoNat]
-  exact hsub
+  have hbalance :
+      evalExpr? config { contract := contract, locals := transferFromTailStoreFromBalance locals evm I }
+        evm (.var "fromBalance") =
+          .ok (.int (Int.ofNat (transferFromSenderBalanceWord evm I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromTailStoreFromBalance, store_get_self]
+  have hamountEval :
+      evalExpr? config { contract := contract, locals := transferFromTailStoreFromBalance locals evm I }
+        evm (.var "amount") =
+          .ok (.int (Int.ofNat (transferFromAmountWord I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromTailStoreFromBalance, store_get_ne _ _ (by decide), hamount]
+  have hnonneg := sub_nonneg.mpr (Int.ofNat_le.mpr henough)
+  have hfit :
+      Int.ofNat (transferFromSenderBalanceWord evm I).toNat -
+          Int.ofNat (transferFromAmountWord I).toNat < Int.ofNat (EVM.twoPow 256) := by
+    rw [hsub]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.sub_le _ _)
+      (transferFromSenderBalanceWord evm I).val.isLt)
+  have hbinary := evalExpr_checked_sub_uint_ok
+    (cfg := config)
+    (solm := { contract := contract, locals := transferFromTailStoreFromBalance locals evm I })
+    (evm := evm) ⟨256, by decide⟩ _ _ hbalance hamountEval hnonneg hfit
+  rw [hsub, ← htoNat] at hbinary
+  exact hbinary
+
+theorem evalExpr_transferFrom_tail_sender_debit (evm : EVM.State) (I : ExecutionEnv)
+    (henough : (transferFromAmountWord I).toNat ≤ (transferFromSenderBalanceWord evm I).toNat) :
+    evalExpr? config
+      { contract := contract, locals := transferFromTailStoreFromBalance (transferFromStore I) evm I }
+      evm (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "amount")) =
+        .ok (.int (Int.ofNat (transferFromTailSenderDebitWord evm I).toNat)) := by
+  exact evalExpr_transferFrom_tail_sender_debit_core (transferFromStore I) evm I
+    (transferFromStore_amount I) henough
 
 theorem evalExpr_transferFrom_tail_sender_debit_of_get (locals : Store)
     (evm : EVM.State) (I : ExecutionEnv)
@@ -989,29 +1107,9 @@ theorem evalExpr_transferFrom_tail_sender_debit_of_get (locals : Store)
     (henough : (transferFromAmountWord I).toNat ≤ (transferFromSenderBalanceWord evm I).toNat) :
     evalExpr? config
       { contract := contract, locals := transferFromTailStoreFromBalance locals evm I }
-      evm (.binary .sub (.var "fromBalance") (.var "amount")) =
+      evm (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "amount")) =
         .ok (.int (Int.ofNat (transferFromTailSenderDebitWord evm I).toNat)) := by
-  have hsub :
-      Int.ofNat (transferFromSenderBalanceWord evm I).toNat -
-          Int.ofNat (transferFromAmountWord I).toNat =
-        Int.ofNat ((transferFromSenderBalanceWord evm I).toNat -
-          (transferFromAmountWord I).toNat) := by
-    exact (Int.ofNat_sub henough).symm
-  have htoNat : (transferFromTailSenderDebitWord evm I).toNat =
-      (transferFromSenderBalanceWord evm I).toNat - (transferFromAmountWord I).toNat := by
-    unfold transferFromTailSenderDebitWord
-    exact ulit_toNat' _ (lt_of_le_of_lt
-      (Nat.sub_le (transferFromSenderBalanceWord evm I).toNat (transferFromAmountWord I).toNat)
-      (transferFromSenderBalanceWord evm I).val.isLt)
-  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
-  rw [show (transferFromTailStoreFromBalance locals evm I).get?
-        "fromBalance" = some (transferFromSenderBalanceValue evm I) by
-      rw [transferFromTailStoreFromBalance, store_get_self]]
-  rw [show (transferFromTailStoreFromBalance locals evm I).get?
-        "amount" = some (transferFromAmountValue I) by
-      rw [transferFromTailStoreFromBalance, store_get_ne _ _ (by decide), hamount]]
-  simp [evalBinaryOp?, htoNat]
-  exact hsub
+  exact evalExpr_transferFrom_tail_sender_debit_core locals evm I hamount henough
 
 theorem evalStorageRef_transferFrom_tail_receiver_balance_fromBalance
     (evm evm' : EVM.State) (I : ExecutionEnv) :
@@ -1083,33 +1181,65 @@ theorem evalExpr_transferFrom_tail_receiver_balance_of_get (locals : Store)
   simp [transferFromTailReceiverBalanceValue, transferFromTailReceiverBalanceWord,
     erc6909StorageLocLoad_uint256, transferFromTailAfterSenderBalance_codeOwner]
 
+theorem evalExpr_transferFrom_tail_receiver_credit_core (locals : Store)
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hamount : locals.get? "amount" = some (transferFromAmountValue I))
+    (hfit : transferFromTailReceiverCreditNat evm I < UInt256.size) :
+    evalExpr? config
+      { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
+      (transferFromTailAfterSenderBalanceState evm I)
+      (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))) =
+        .ok (transferFromTailReceiverCreditValue evm I) := by
+  have hbalance :
+      evalExpr? config { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
+        (transferFromTailAfterSenderBalanceState evm I) (.var "toBalance") =
+          .ok (.int (Int.ofNat (transferFromTailReceiverBalanceWord evm I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromTailStoreToBalance, store_get_self]
+  have hamountEval :
+      evalExpr? config { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
+        (transferFromTailAfterSenderBalanceState evm I) (.var "amount") =
+          .ok (.int (Int.ofNat (transferFromAmountWord I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromTailStoreToBalance, store_get_ne _ _ (by decide),
+      transferFromTailStoreFromBalance, store_get_ne _ _ (by decide), hamount]
+  have hsum :
+      Int.ofNat (transferFromTailReceiverBalanceWord evm I).toNat +
+          Int.ofNat (transferFromAmountWord I).toNat =
+        Int.ofNat (transferFromTailReceiverCreditNat evm I) := by
+    unfold transferFromTailReceiverCreditNat
+    exact Int.ofNat_add_ofNat _ _
+  have hnonneg :
+      0 ≤ Int.ofNat (transferFromTailReceiverBalanceWord evm I).toNat +
+        Int.ofNat (transferFromAmountWord I).toNat :=
+    add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
+  have hfitInt :
+      Int.ofNat (transferFromTailReceiverBalanceWord evm I).toNat +
+          Int.ofNat (transferFromAmountWord I).toNat < Int.ofNat (EVM.twoPow 256) := by
+    rw [hsum, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_lt.mpr hfit
+  have hbinary := evalExpr_checked_add_uint_ok
+    (cfg := config)
+    (solm := { contract := contract, locals := transferFromTailStoreToBalance locals evm I })
+    (evm := transferFromTailAfterSenderBalanceState evm I) ⟨256, by decide⟩ _ _
+    hbalance hamountEval hnonneg hfitInt
+  have hin := evalExpr_inRange_uint config
+    { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
+    (transferFromTailAfterSenderBalanceState evm I)
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))
+    ⟨256, by decide⟩ _ hbinary hnonneg hfitInt
+  rw [hsum] at hin
+  simpa [valueInUInt256, uint256Int, transferFromTailReceiverCreditValue] using hin
+
 theorem evalExpr_transferFrom_tail_receiver_credit (evm : EVM.State) (I : ExecutionEnv)
     (hfit : transferFromTailReceiverCreditNat evm I < UInt256.size) :
     evalExpr? config
       { contract := contract, locals := transferFromTailStoreToBalance (transferFromStore I) evm I }
       (transferFromTailAfterSenderBalanceState evm I)
-      (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))) =
+      (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))) =
         .ok (transferFromTailReceiverCreditValue evm I) := by
-  have hlt : ¬ Int.ofNat (transferFromTailReceiverCreditNat evm I) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  simp only [valueInUInt256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [show (transferFromTailStoreToBalance (transferFromStore I) evm I).get?
-        "toBalance" = some (transferFromTailReceiverBalanceValue evm I) by
-      rw [transferFromTailStoreToBalance, store_get_self]]
-  rw [show (transferFromTailStoreToBalance (transferFromStore I) evm I).get?
-        "amount" = some (transferFromAmountValue I) by
-      rw [transferFromTailStoreToBalance, store_get_ne _ _ (by decide),
-        transferFromTailStoreFromBalance, store_get_ne _ _ (by decide),
-        transferFromStore_amount]]
-  simp [evalBinaryOp?, transferFromTailReceiverCreditValue,
-    transferFromTailReceiverCreditNat, uint256Int]
-  constructor
-  · omega
-  · have hfitNat :
-        (transferFromTailReceiverBalanceWord evm I).toNat +
-            (transferFromAmountWord I).toNat < 2 ^ 256 := by
-      simpa [transferFromTailReceiverCreditNat, UInt256.size] using hfit
-    omega
+  exact evalExpr_transferFrom_tail_receiver_credit_core (transferFromStore I) evm I
+    (transferFromStore_amount I) hfit
 
 theorem evalExpr_transferFrom_tail_receiver_credit_of_get (locals : Store)
     (evm : EVM.State) (I : ExecutionEnv)
@@ -1118,50 +1248,62 @@ theorem evalExpr_transferFrom_tail_receiver_credit_of_get (locals : Store)
     evalExpr? config
       { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
       (transferFromTailAfterSenderBalanceState evm I)
-      (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))) =
+      (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))) =
         .ok (transferFromTailReceiverCreditValue evm I) := by
-  have hlt : ¬ Int.ofNat (transferFromTailReceiverCreditNat evm I) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  simp only [valueInUInt256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [show (transferFromTailStoreToBalance locals evm I).get?
-        "toBalance" = some (transferFromTailReceiverBalanceValue evm I) by
-      rw [transferFromTailStoreToBalance, store_get_self]]
-  rw [show (transferFromTailStoreToBalance locals evm I).get?
-        "amount" = some (transferFromAmountValue I) by
-      rw [transferFromTailStoreToBalance, store_get_ne _ _ (by decide),
-        transferFromTailStoreFromBalance, store_get_ne _ _ (by decide), hamount]]
-  simp [evalBinaryOp?, transferFromTailReceiverCreditValue,
-    transferFromTailReceiverCreditNat, uint256Int]
-  constructor
-  · omega
-  · have hfitNat :
-        (transferFromTailReceiverBalanceWord evm I).toNat +
-            (transferFromAmountWord I).toNat < 2 ^ 256 := by
-      simpa [transferFromTailReceiverCreditNat, UInt256.size] using hfit
-    omega
+  exact evalExpr_transferFrom_tail_receiver_credit_core locals evm I hamount hfit
+
+theorem evalExpr_transferFrom_tail_receiver_credit_revert_core (locals : Store)
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hamount : locals.get? "amount" = some (transferFromAmountValue I))
+    (hover : UInt256.size ≤ transferFromTailReceiverCreditNat evm I) :
+    evalExpr? config
+      { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
+      (transferFromTailAfterSenderBalanceState evm I)
+      (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))) = .revert := by
+  have hbalance :
+      evalExpr? config { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
+        (transferFromTailAfterSenderBalanceState evm I) (.var "toBalance") =
+          .ok (.int (Int.ofNat (transferFromTailReceiverBalanceWord evm I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromTailStoreToBalance, store_get_self]
+  have hamountEval :
+      evalExpr? config { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
+        (transferFromTailAfterSenderBalanceState evm I) (.var "amount") =
+          .ok (.int (Int.ofNat (transferFromAmountWord I).toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption]
+    rw [transferFromTailStoreToBalance, store_get_ne _ _ (by decide),
+      transferFromTailStoreFromBalance, store_get_ne _ _ (by decide), hamount]
+  have hsum :
+      Int.ofNat (transferFromTailReceiverBalanceWord evm I).toNat +
+          Int.ofNat (transferFromAmountWord I).toNat =
+        Int.ofNat (transferFromTailReceiverCreditNat evm I) := by
+    unfold transferFromTailReceiverCreditNat
+    exact Int.ofNat_add_ofNat _ _
+  have hoverInt :
+      Int.ofNat (EVM.twoPow 256) ≤
+        Int.ofNat (transferFromTailReceiverBalanceWord evm I).toNat +
+          Int.ofNat (transferFromAmountWord I).toNat := by
+    rw [hsum, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_le.mpr hover
+  have hbinary := evalExpr_checked_add_uint_revert_of_overflow
+    (cfg := config)
+    (solm := { contract := contract, locals := transferFromTailStoreToBalance locals evm I })
+    (evm := transferFromTailAfterSenderBalanceState evm I) ⟨256, by decide⟩ _ _
+    hbalance hamountEval hoverInt
+  simpa [valueInUInt256, uint256Int] using evalExpr_inRange_revert config
+    { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
+    (transferFromTailAfterSenderBalanceState evm I)
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))
+    uint256Int hbinary
 
 theorem evalExpr_transferFrom_tail_receiver_credit_revert (evm : EVM.State)
     (I : ExecutionEnv) (hover : UInt256.size ≤ transferFromTailReceiverCreditNat evm I) :
     evalExpr? config
       { contract := contract, locals := transferFromTailStoreToBalance (transferFromStore I) evm I }
       (transferFromTailAfterSenderBalanceState evm I)
-      (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))) = .revert := by
-  have hge : Int.ofNat (transferFromTailReceiverCreditNat evm I) ≥ (2 : Int) ^ 256 := by
-    rw [UInt256.size] at hover
-    exact Int.ofNat_le.mpr hover
-  simp only [valueInUInt256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [show (transferFromTailStoreToBalance (transferFromStore I) evm I).get?
-        "toBalance" = some (transferFromTailReceiverBalanceValue evm I) by
-      rw [transferFromTailStoreToBalance, store_get_self]]
-  rw [show (transferFromTailStoreToBalance (transferFromStore I) evm I).get?
-        "amount" = some (transferFromAmountValue I) by
-      rw [transferFromTailStoreToBalance, store_get_ne _ _ (by decide),
-        transferFromTailStoreFromBalance, store_get_ne _ _ (by decide),
-        transferFromStore_amount]]
-  simp [evalBinaryOp?, transferFromTailReceiverBalanceValue, transferFromAmountValue,
-    transferFromTailReceiverCreditValue, transferFromTailReceiverCreditNat, uint256Int]
-  intro _
-  simpa [transferFromTailReceiverCreditNat] using hge
+      (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))) = .revert := by
+  exact evalExpr_transferFrom_tail_receiver_credit_revert_core (transferFromStore I) evm I
+    (transferFromStore_amount I) hover
 
 theorem evalExpr_transferFrom_tail_receiver_credit_revert_of_get (locals : Store)
     (evm : EVM.State) (I : ExecutionEnv)
@@ -1170,22 +1312,8 @@ theorem evalExpr_transferFrom_tail_receiver_credit_revert_of_get (locals : Store
     evalExpr? config
       { contract := contract, locals := transferFromTailStoreToBalance locals evm I }
       (transferFromTailAfterSenderBalanceState evm I)
-      (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))) = .revert := by
-  have hge : Int.ofNat (transferFromTailReceiverCreditNat evm I) ≥ (2 : Int) ^ 256 := by
-    rw [UInt256.size] at hover
-    exact Int.ofNat_le.mpr hover
-  simp only [valueInUInt256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [show (transferFromTailStoreToBalance locals evm I).get?
-        "toBalance" = some (transferFromTailReceiverBalanceValue evm I) by
-      rw [transferFromTailStoreToBalance, store_get_self]]
-  rw [show (transferFromTailStoreToBalance locals evm I).get?
-        "amount" = some (transferFromAmountValue I) by
-      rw [transferFromTailStoreToBalance, store_get_ne _ _ (by decide),
-        transferFromTailStoreFromBalance, store_get_ne _ _ (by decide), hamount]]
-  simp [evalBinaryOp?, transferFromTailReceiverBalanceValue, transferFromAmountValue,
-    transferFromTailReceiverCreditValue, transferFromTailReceiverCreditNat, uint256Int]
-  intro _
-  simpa [transferFromTailReceiverCreditNat] using hge
+      (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))) = .revert := by
+  exact evalExpr_transferFrom_tail_receiver_credit_revert_core locals evm I hamount hover
 
 theorem evalStorageRef_transferFrom_tail_receiver_balance_toBalance
     (evm evm' : EVM.State) (I : ExecutionEnv) :

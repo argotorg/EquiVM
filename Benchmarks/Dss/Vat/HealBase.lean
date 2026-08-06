@@ -122,22 +122,7 @@ theorem vatEvalExpr_sub256_ok {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat diff.toNat)) := by
   have hdiffNat : diff.toNat = a.toNat - b.toNat := by
     rw [hdiff, usub_toNat hle]
-  have hsubInt : (a.toNat : Int) - (b.toNat : Int) = ((a.toNat - b.toNat : Nat) : Int) :=
-    (Int.ofNat_sub hle).symm
-  have hltNat : a.toNat - b.toNat < UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    omega
-  have hlt : ¬ ((a.toNat - b.toNat : Nat) : Int) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hltNat))
-  simp [sub256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  rw [if_neg]
-  · rw [hsubInt, ← hdiffNat]
-    rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_le.mpr hbad) hle
-    · rw [hsubInt] at hbad
-      exact hlt hbad
+  simpa [sub256] using evalExpr_checked_sub_uint256_word_ok hx hy hdiffNat hle
 
 theorem vatEvalExpr_sub256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -147,9 +132,7 @@ theorem vatEvalExpr_sub256_revert {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hlt : a.toNat < b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (sub256 x y) = .revert := by
-  simp [sub256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro hle
-  exact False.elim (not_le.mpr hlt hle)
+  simpa [sub256] using evalExpr_checked_sub_uint256_word_revert_of_underflow hx hy hlt
 
 theorem vatEvalExpr_le_uint256_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : UInt256}
@@ -466,7 +449,7 @@ theorem vatHealSinSubBlockOk (evm : EVM.State) (I : ExecutionEnv)
     have hsinNewNat : sinNew.toNat = sinVal.toNat - (healRad I).toNat := by
       rw [hsinNew, usub_toNat hsinEnough]
     exact vatEvalExpr_le_uint256_true hsinNewEval hsinAgain (by rw [hsinNewNat]; omega)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hsub) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
   exact ExecBlock.nil
 
@@ -518,7 +501,7 @@ theorem vatHealDaiSubBlockOk (evm : EVM.State) (I : ExecutionEnv)
     have hdaiNewNat : daiNew.toNat = daiVal.toNat - (healRad I).toNat := by
       rw [hdaiNew, usub_toNat hdaiEnough]
     exact vatEvalExpr_le_uint256_true hdaiNewEval hdaiAgain (by rw [hdaiNewNat]; omega)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hsub) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
   exact ExecBlock.nil
 
@@ -573,7 +556,7 @@ theorem vatHealViceSubBlockOk (evm : EVM.State) (I : ExecutionEnv)
     have hviceNewNat : viceNew.toNat = viceVal.toNat - (healRad I).toNat := by
       rw [hviceNew, usub_toNat hviceEnough]
     exact vatEvalExpr_le_uint256_true hviceNewEval hviceAgain (by rw [hviceNewNat]; omega)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hsub) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
   exact ExecBlock.nil
 
@@ -635,7 +618,7 @@ theorem vatHealDebtSubBlockOk (evm : EVM.State) (I : ExecutionEnv)
     have hdebtNewNat : debtNew.toNat = debtVal.toNat - (healRad I).toNat := by
       rw [hdebtNew, usub_toNat hdebtEnough]
     exact vatEvalExpr_le_uint256_true hdebtNewEval hdebtAgain (by rw [hdebtNewNat]; omega)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hsub) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreq) ?_
   exact ExecBlock.nil
 

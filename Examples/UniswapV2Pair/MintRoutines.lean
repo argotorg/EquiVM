@@ -125,7 +125,7 @@ theorem evalExpr_mintFunction_totalSupply_add
     (evm : EVM.State) (recipient : AccountAddress) (value : UInt256)
     (hfit : mintFunctionTotalSupplyNewNat evm value < UInt256.size) :
     evalExpr? config { contract := contract, locals := mintFunctionCallStore recipient value } evm
-      (u256 (.binary .add (.storage totalSupplyRef) (.var "value"))) =
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef) (.var "value"))) =
         .ok (mintFunctionTotalSupplyNewValue evm value) := by
   have hlt : ¬ Int.ofNat (mintFunctionTotalSupplyNewNat evm value) ≥ (2 : Int) ^ 256 := by
     exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
@@ -144,6 +144,14 @@ theorem evalExpr_mintFunction_totalSupply_add
           (mintFunctionTotalSupplyWord evm).toNat + value.toNat < 2 ^ 256 := by
         simpa [mintFunctionTotalSupplyNewNat, UInt256.size] using hfit
       simpa [Nat.cast_add] using Int.ofNat_lt.mpr hfitNat
+  have hnonneg : 0 ≤ Int.ofNat (mintFunctionTotalSupplyWord evm).toNat +
+      Int.ofNat value.toNat := Int.add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
+  have hfitInt : Int.ofNat (mintFunctionTotalSupplyWord evm).toNat +
+      Int.ofNat value.toNat < Int.ofNat EVM.wordModulus := by
+    have hfitNat : (mintFunctionTotalSupplyWord evm).toNat + value.toNat <
+        EVM.wordModulus := by
+      simpa [mintFunctionTotalSupplyNewNat, UInt256.size, EVM.wordModulus] using hfit
+    simpa using Int.ofNat_lt.mpr hfitNat
   simp only [u256, evalExpr?, evalExpr_mintFunction_totalSupply evm recipient value,
     evalExpr_mintFunction_value evm recipient value, EvalResult.bind, bind, pure]
   simp only [evalBinaryOp?, uint256Int]
@@ -153,6 +161,8 @@ theorem evalExpr_mintFunction_totalSupply_add
         decide (Int.ofNat (mintFunctionTotalSupplyWord evm).toNat +
           Int.ofNat value.toNat ≥ (2 : Int) ^ 256)) = true) := by
     simpa [Bool.or_eq_true, ge_iff_le] using hguard
+  rw [evalIntArithResult_checked_uint_ok _ _ hnonneg (by simpa using hfitInt)]
+  simp only [EvalResult.bind, bind]
   rw [if_neg hguardBool]
   have htoNat' :
       (UInt256.ofNat ((mintFunctionTotalSupplyWord evm).toNat + value.toNat)).toNat =
@@ -213,7 +223,7 @@ theorem evalExpr_mintFunction_to_balance_add
     (hfit : mintFunctionToBalanceNewNat evm recipient value < UInt256.size) :
     evalExpr? config { contract := contract, locals := mintFunctionCallStore recipient value }
       (mintFunctionAfterTotalSupplyState evm value)
-      (u256 (.binary .add (.storage (balanceOfRef (.var "to"))) (.var "value"))) =
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage (balanceOfRef (.var "to"))) (.var "value"))) =
         .ok (mintFunctionToBalanceNewValue evm recipient value) := by
   have hlt :
       ¬ Int.ofNat (mintFunctionToBalanceNewNat evm recipient value) ≥ (2 : Int) ^ 256 := by
@@ -235,6 +245,14 @@ theorem evalExpr_mintFunction_to_balance_add
           (mintFunctionToBalanceWord evm recipient value).toNat + value.toNat < 2 ^ 256 := by
         simpa [mintFunctionToBalanceNewNat, UInt256.size] using hfit
       simpa [Nat.cast_add] using Int.ofNat_lt.mpr hfitNat
+  have hnonneg : 0 ≤ Int.ofNat (mintFunctionToBalanceWord evm recipient value).toNat +
+      Int.ofNat value.toNat := Int.add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
+  have hfitInt : Int.ofNat (mintFunctionToBalanceWord evm recipient value).toNat +
+      Int.ofNat value.toNat < Int.ofNat EVM.wordModulus := by
+    have hfitNat : (mintFunctionToBalanceWord evm recipient value).toNat + value.toNat <
+        EVM.wordModulus := by
+      simpa [mintFunctionToBalanceNewNat, UInt256.size, EVM.wordModulus] using hfit
+    simpa using Int.ofNat_lt.mpr hfitNat
   simp only [u256, evalExpr?, evalExpr_mintFunction_to_balance evm recipient value,
     evalExpr_mintFunction_value (mintFunctionAfterTotalSupplyState evm value) recipient value,
     EvalResult.bind, bind, pure]
@@ -245,6 +263,8 @@ theorem evalExpr_mintFunction_to_balance_add
         decide (Int.ofNat (mintFunctionToBalanceWord evm recipient value).toNat +
           Int.ofNat value.toNat ≥ (2 : Int) ^ 256)) = true) := by
     simpa [Bool.or_eq_true, ge_iff_le] using hguard
+  rw [evalIntArithResult_checked_uint_ok _ _ hnonneg (by simpa using hfitInt)]
+  simp only [EvalResult.bind, bind]
   rw [if_neg hguardBool]
   have htoNat' :
       (UInt256.ofNat
@@ -297,9 +317,9 @@ theorem uniswapMintFunctionBody
   refine ExecFuncBody.execBlockOK ?_
   change ExecBlock config { contract := contract, locals := mintFunctionCallStore recipient value } evm
     [ .assign .storage totalSupplyRef
-        (u256 (.binary .add (.storage totalSupplyRef) (.var "value"))),
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef) (.var "value"))),
       .assign .storage (balanceOfRef (.var "to"))
-        (u256 (.binary .add (.storage (balanceOfRef (.var "to"))) (.var "value"))) ]
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage (balanceOfRef (.var "to"))) (.var "value"))) ]
     (.ok { contract := contract, locals := mintFunctionCallStore recipient value }
       (mintFunctionPostState evm recipient value))
   refine ExecBlock.consNormal

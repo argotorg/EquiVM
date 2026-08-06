@@ -131,7 +131,7 @@ theorem uniswapMintInitialMinimumMintBalanceOverflowFromAfterFeeCase
     exact hamount1Get
   have hargs :
       evalExprs? config caller evmAfter
-        [u256 (.binary .mul (.var "amount0") (.var "amount1"))] =
+        [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))] =
           .ok [sqrtFunctionYValue (mintAmountProductWord amount0 amount1)] := by
     simpa [caller] using
       evalExprs_mint_initialSqrtArg_of_get evmAfter amount0 amount1 hamount0After
@@ -388,7 +388,7 @@ theorem uniswapMintInitialFeeOffKLastZeroMinimumMintBalanceOverflowFromFactoryCa
       mintAfterMintFeeCallStore_amount1 evmL I balance0 balance1 false
   have hargs :
       evalExprs? config caller evmFeeS
-        [u256 (.binary .mul (.var "amount0") (.var "amount1"))] =
+        [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))] =
           .ok [sqrtFunctionYValue (mintAmountProductWord amount0 amount1)] := by
     simpa [caller] using
       evalExprs_mint_initialSqrtArg_of_get evmFeeS amount0 amount1 hamount0Get

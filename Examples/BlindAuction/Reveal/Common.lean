@@ -1988,7 +1988,9 @@ theorem blindAuctionRevealBodyReturns_empty_callSuccess
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := revealEmptyStore }
         evm (.arrayLength .storage (bidsRef sender)) = .ok (.int 0) := by
     exact evalExpr_reveal_bids_length_zero evm revealEmptyStore revealEmptyStore_bids_none hlen
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval (by
+    simpa [uint256, uint256Int] using
+      valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
   change ExecBlock blindAuctionConfig
     { contract := blindAuctionContract, locals := revealLengthStore } evm
     [ .require (.binary .eq (.arrayLength .localVar { base := "values" }) (.var "length")),
@@ -1997,7 +1999,7 @@ theorem blindAuctionRevealBodyReturns_empty_callSuccess
       .letDecl "refund" (some uint256) (.intLit 0),
       .for [ .letDecl "i" (some uint256) (.intLit 0) ]
         (.binary .lt (.var "i") (.var "length"))
-        [ .assign .localVar { base := "i" } (.binary .add (.var "i") (.intLit 1)) ]
+        [ .assign .localVar { base := "i" } (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
         [ .letStorage "bidToCheck" (bidElemRef sender (.var "i")),
           .letDecl "value" (some uint256) (.index (.var "values") (.var "i")),
           .letDecl "fake" (some boolTy) (.index (.var "fakes") (.var "i")),
@@ -2008,14 +2010,14 @@ theorem blindAuctionRevealBodyReturns_empty_callSuccess
                 [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
             [.continue] [],
           .assign .localVar { base := "refund" }
-            (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+            (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
           .ite
             (.binary .and (.unary .not (.var "fake"))
               (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
             [ .internalCall "placeBid" [sender, .var "value"] "ok",
               .ite (.var "ok")
                 [ .assign .localVar { base := "refund" }
-                    (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                    (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
           .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ],
       .lowLevelCall sender (.var "refund") (.newBytes (.intLit 0)) "success" "_data",
       .require (.var "success") ]
@@ -2034,12 +2036,14 @@ theorem blindAuctionRevealBodyReturns_empty_callSuccess
       (evalExpr_reveal_local_empty_length_eq_zero_var evm revealLengthStore "secrets"
         (by native_decide) (by native_decide))) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+    (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+      simpa [uint256, uint256Int] using
+        valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
   change ExecBlock blindAuctionConfig
     { contract := blindAuctionContract, locals := revealRefundStore ⟨0⟩ } evm
     [ .for [ .letDecl "i" (some uint256) (.intLit 0) ]
         (.binary .lt (.var "i") (.var "length"))
-        [ .assign .localVar { base := "i" } (.binary .add (.var "i") (.intLit 1)) ]
+        [ .assign .localVar { base := "i" } (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
         [ .letStorage "bidToCheck" (bidElemRef sender (.var "i")),
           .letDecl "value" (some uint256) (.index (.var "values") (.var "i")),
           .letDecl "fake" (some boolTy) (.index (.var "fakes") (.var "i")),
@@ -2050,14 +2054,14 @@ theorem blindAuctionRevealBodyReturns_empty_callSuccess
                 [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
             [.continue] [],
           .assign .localVar { base := "refund" }
-            (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+            (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
           .ite
             (.binary .and (.unary .not (.var "fake"))
               (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
             [ .internalCall "placeBid" [sender, .var "value"] "ok",
               .ite (.var "ok")
                 [ .assign .localVar { base := "refund" }
-                    (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                    (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
           .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ],
       .lowLevelCall sender (.var "refund") (.newBytes (.intLit 0)) "success" "_data",
       .require (.var "success") ]
@@ -2068,7 +2072,7 @@ theorem blindAuctionRevealBodyReturns_empty_callSuccess
         { contract := blindAuctionContract, locals := revealRefundStore ⟨0⟩ } evm
         (.for [ .letDecl "i" (some uint256) (.intLit 0) ]
           (.binary .lt (.var "i") (.var "length"))
-          [ .assign .localVar { base := "i" } (.binary .add (.var "i") (.intLit 1)) ]
+          [ .assign .localVar { base := "i" } (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
           [ .letStorage "bidToCheck" (bidElemRef sender (.var "i")),
             .letDecl "value" (some uint256) (.index (.var "values") (.var "i")),
             .letDecl "fake" (some boolTy) (.index (.var "fakes") (.var "i")),
@@ -2079,14 +2083,14 @@ theorem blindAuctionRevealBodyReturns_empty_callSuccess
                   [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
               [.continue] [],
             .assign .localVar { base := "refund" }
-              (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+              (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
             .ite
               (.binary .and (.unary .not (.var "fake"))
                 (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
               [ .internalCall "placeBid" [sender, .var "value"] "ok",
                 .ite (.var "ok")
                   [ .assign .localVar { base := "refund" }
-                      (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
             .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ])
         (.ok { contract := blindAuctionContract, locals := revealLoopStore ⟨0⟩ ⟨0⟩ } evm) := by
     have hinit :
@@ -2095,13 +2099,15 @@ theorem blindAuctionRevealBodyReturns_empty_callSuccess
           [ .letDecl "i" (some uint256) (.intLit 0) ]
           (.ok { contract := blindAuctionContract, locals := revealLoopStore ⟨0⟩ ⟨0⟩ } evm) := by
       refine ExecBlock.consNormal
-        (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+        (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+          simpa [uint256, uint256Int] using
+            valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
       exact ExecBlock.nil
     have hloop :
         ExecForLoop blindAuctionConfig
           { contract := blindAuctionContract, locals := revealLoopStore ⟨0⟩ ⟨0⟩ } evm
           (.binary .lt (.var "i") (.var "length"))
-          [ .assign .localVar { base := "i" } (.binary .add (.var "i") (.intLit 1)) ]
+          [ .assign .localVar { base := "i" } (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
           [ .letStorage "bidToCheck" (bidElemRef sender (.var "i")),
             .letDecl "value" (some uint256) (.index (.var "values") (.var "i")),
             .letDecl "fake" (some boolTy) (.index (.var "fakes") (.var "i")),
@@ -2112,14 +2118,14 @@ theorem blindAuctionRevealBodyReturns_empty_callSuccess
                   [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
               [.continue] [],
             .assign .localVar { base := "refund" }
-              (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+              (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
             .ite
               (.binary .and (.unary .not (.var "fake"))
                 (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
               [ .internalCall "placeBid" [sender, .var "value"] "ok",
                 .ite (.var "ok")
                   [ .assign .localVar { base := "refund" }
-                      (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
             .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
           (.ok { contract := blindAuctionContract, locals := revealLoopStore ⟨0⟩ ⟨0⟩ } evm) := by
       exact ExecForLoop.falseDone
@@ -2167,7 +2173,9 @@ theorem blindAuctionRevealBodyReverts_empty_callFailure
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := revealEmptyStore }
         evm (.arrayLength .storage (bidsRef sender)) = .ok (.int 0) := by
     exact evalExpr_reveal_bids_length_zero evm revealEmptyStore revealEmptyStore_bids_none hlen
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval (by
+    simpa [uint256, uint256Int] using
+      valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
   change ExecBlock blindAuctionConfig
     { contract := blindAuctionContract, locals := revealLengthStore } evm
     (List.drop 4 revealTransition.body) .reverted
@@ -2184,7 +2192,9 @@ theorem blindAuctionRevealBodyReverts_empty_callFailure
       (evalExpr_reveal_local_empty_length_eq_zero_var evm revealLengthStore "secrets"
         (by native_decide) (by native_decide))) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+    (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+      simpa [uint256, uint256Int] using
+        valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
   change ExecBlock blindAuctionConfig
     { contract := blindAuctionContract, locals := revealRefundStore ⟨0⟩ } evm
     (List.drop 8 revealTransition.body) .reverted
@@ -2193,7 +2203,7 @@ theorem blindAuctionRevealBodyReverts_empty_callFailure
         { contract := blindAuctionContract, locals := revealRefundStore ⟨0⟩ } evm
         (.for [ .letDecl "i" (some uint256) (.intLit 0) ]
           (.binary .lt (.var "i") (.var "length"))
-          [ .assign .localVar { base := "i" } (.binary .add (.var "i") (.intLit 1)) ]
+          [ .assign .localVar { base := "i" } (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
           [ .letStorage "bidToCheck" (bidElemRef sender (.var "i")),
             .letDecl "value" (some uint256) (.index (.var "values") (.var "i")),
             .letDecl "fake" (some boolTy) (.index (.var "fakes") (.var "i")),
@@ -2204,14 +2214,14 @@ theorem blindAuctionRevealBodyReverts_empty_callFailure
                   [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
               [.continue] [],
             .assign .localVar { base := "refund" }
-              (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+              (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
             .ite
               (.binary .and (.unary .not (.var "fake"))
                 (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
               [ .internalCall "placeBid" [sender, .var "value"] "ok",
                 .ite (.var "ok")
                   [ .assign .localVar { base := "refund" }
-                      (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
             .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ])
         (.ok { contract := blindAuctionContract, locals := revealLoopStore ⟨0⟩ ⟨0⟩ } evm) := by
     have hinit :
@@ -2220,13 +2230,15 @@ theorem blindAuctionRevealBodyReverts_empty_callFailure
           [ .letDecl "i" (some uint256) (.intLit 0) ]
           (.ok { contract := blindAuctionContract, locals := revealLoopStore ⟨0⟩ ⟨0⟩ } evm) := by
       refine ExecBlock.consNormal
-        (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+        (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+          simpa [uint256, uint256Int] using
+            valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
       exact ExecBlock.nil
     have hloop :
         ExecForLoop blindAuctionConfig
           { contract := blindAuctionContract, locals := revealLoopStore ⟨0⟩ ⟨0⟩ } evm
           (.binary .lt (.var "i") (.var "length"))
-          [ .assign .localVar { base := "i" } (.binary .add (.var "i") (.intLit 1)) ]
+          [ .assign .localVar { base := "i" } (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
           [ .letStorage "bidToCheck" (bidElemRef sender (.var "i")),
             .letDecl "value" (some uint256) (.index (.var "values") (.var "i")),
             .letDecl "fake" (some boolTy) (.index (.var "fakes") (.var "i")),
@@ -2237,14 +2249,14 @@ theorem blindAuctionRevealBodyReverts_empty_callFailure
                   [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
               [.continue] [],
             .assign .localVar { base := "refund" }
-              (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+              (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
             .ite
               (.binary .and (.unary .not (.var "fake"))
                 (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
               [ .internalCall "placeBid" [sender, .var "value"] "ok",
                 .ite (.var "ok")
                   [ .assign .localVar { base := "refund" }
-                      (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
             .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
           (.ok { contract := blindAuctionContract, locals := revealLoopStore ⟨0⟩ ⟨0⟩ } evm) := by
       exact ExecForLoop.falseDone
@@ -2293,7 +2305,8 @@ theorem blindAuctionRevealBodyReverts_valuesLengthMismatch (evm : EVM.State)
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := callargs }
         evm (.arrayLength .storage (bidsRef sender)) = .ok (.int (Int.ofNat len.toNat)) := by
     exact evalExpr_reveal_bids_length_any evm callargs len hbids hlen
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hlengthEval (valueMatchesOptionalABIType_uint256_word len)) ?_
   change ExecBlock blindAuctionConfig
     { contract := blindAuctionContract,
       locals := callargs.insert "length" (.int (Int.ofNat len.toNat)) } evm
@@ -2341,7 +2354,8 @@ theorem blindAuctionRevealBodyReverts_fakesLengthMismatch (evm : EVM.State)
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := callargs } evm
         (.arrayLength .storage (bidsRef sender)) = .ok (.int (Int.ofNat len.toNat)) := by
     exact evalExpr_reveal_bids_length_any evm callargs len hbids hlen
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hlengthEval (valueMatchesOptionalABIType_uint256_word len)) ?_
   change ExecBlock blindAuctionConfig
     { contract := blindAuctionContract,
       locals := callargs.insert "length" (.int (Int.ofNat len.toNat)) } evm
@@ -2400,7 +2414,8 @@ theorem blindAuctionRevealBodyReverts_secretsLengthMismatch (evm : EVM.State)
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := callargs } evm
         (.arrayLength .storage (bidsRef sender)) = .ok (.int (Int.ofNat len.toNat)) := by
     exact evalExpr_reveal_bids_length_any evm callargs len hbids hlen
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hlengthEval (valueMatchesOptionalABIType_uint256_word len)) ?_
   change ExecBlock blindAuctionConfig
     { contract := blindAuctionContract,
       locals := callargs.insert "length" (.int (Int.ofNat len.toNat)) } evm

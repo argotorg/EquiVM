@@ -34,7 +34,7 @@ def nonpayable : List Stmt :=
 def sender : Expr := .env .caller
 
 def wrap256 (e : Expr) : Expr :=
-  .binary .mod e (.intLit (Int.ofNat EVM.wordModulus))
+  .binary (.mod (.uint ⟨256, by decide⟩)) e (.intLit (Int.ofNat EVM.wordModulus))
 
 /-! ## Constructor and immutable-backed public surface -/
 
@@ -69,7 +69,7 @@ def quoteTransition (v : TinyImmutables) : TransitionDecl :=
     body :=
       nonpayable ++
       [ .require (.binary .eq sender (owner v)),
-        .return [wrap256 (.binary .mul (.var "amount") (scale v))] ] }
+        .return [wrap256 (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (.var "amount") (scale v))] ] }
 
 def transitions (v : TinyImmutables) : List TransitionDecl :=
   [ ownerTransition v,

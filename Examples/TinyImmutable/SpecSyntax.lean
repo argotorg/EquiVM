@@ -38,6 +38,12 @@ def contractSyntax (v : TinyImmutables) : ContractDecl := solidity% contract Tin
   }
 }
 
+example (v : TinyImmutables) : (contractSyntax v).ctor = (TinyImmutable.contract v).ctor := by rfl
+example (v : TinyImmutables) :
+    (contractSyntax v).functions = (TinyImmutable.contract v).functions := by rfl
+example (v : TinyImmutables) :
+    (contractSyntax v).transitions = (TinyImmutable.contract v).transitions := by rfl
+
 theorem contractSyntax_eq (v : TinyImmutables) :
     contractSyntax v = TinyImmutable.contract v := by rfl
 

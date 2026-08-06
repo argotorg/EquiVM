@@ -82,12 +82,12 @@ theorem uniswapSqrtFunctionBody_le3 (evm : EVM.State) (y : UInt256)
     [ .ite (.binary .gt (.var "y") (.intLit 3))
         [ .letDecl "z" (some uint256) (.var "y"),
           .letDecl "x" (some uint256)
-            (.binary .add (.binary .div (.var "y") (.intLit 2)) (.intLit 1)),
+            (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.binary (.div (.uint ⟨256, by decide⟩) .wrapping) (.var "y") (.intLit 2)) (.intLit 1)),
           .while (.binary .lt (.var "x") (.var "z"))
             [ .assign .localVar { base := "z" } (.var "x"),
               .assign .localVar { base := "x" }
-                (.binary .div
-                  (.binary .add (.binary .div (.var "y") (.var "x")) (.var "x"))
+                (.binary (.div (.uint ⟨256, by decide⟩) .wrapping)
+                  (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.binary (.div (.uint ⟨256, by decide⟩) .wrapping) (.var "y") (.var "x")) (.var "x"))
                   (.intLit 2)) ],
           .return [(.var "z")] ]
         [ .ite (.binary .ne (.var "y") (.intLit 0))
@@ -130,8 +130,8 @@ abbrev sqrtLoopCond : Expr :=
   .binary .lt (.var "x") (.var "z")
 
 abbrev sqrtLoopNextXExpr : Expr :=
-  .binary .div
-    (.binary .add (.binary .div (.var "y") (.var "x")) (.var "x"))
+  .binary (.div (.uint ⟨256, by decide⟩) .wrapping)
+    (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.binary (.div (.uint ⟨256, by decide⟩) .wrapping) (.var "y") (.var "x")) (.var "x"))
     (.intLit 2)
 
 abbrev sqrtLoopBody : List Stmt :=
@@ -159,6 +159,43 @@ abbrev sqrtFunctionAfterZStore (y : UInt256) : Store :=
 abbrev sqrtFunctionAfterInitStore (y : UInt256) : Store :=
   (sqrtFunctionAfterZStore y).insert "x" (.int (sqrtFunctionInitialX y))
 
+theorem sqrtFunctionInitialX_toNat (y : UInt256) :
+    (sqrtFunctionInitialX y).toNat = y.toNat / 2 + 1 := by
+  unfold sqrtFunctionInitialX sqrtFunctionYInt
+  have hnonneg : 0 ≤ (Int.ofNat y.toNat / 2 + 1 : Int) := by
+    have hdiv : 0 ≤ (Int.ofNat y.toNat : Int) / 2 :=
+      Int.ediv_nonneg (Int.natCast_nonneg _) (by omega)
+    omega
+  have hcast : ((y.toNat / 2 + 1 : Nat) : Int) = Int.ofNat y.toNat / 2 + 1 := by
+    rw [Nat.cast_add, Int.natCast_ediv]
+    · norm_num
+  apply Nat.cast_injective (R := Int)
+  rw [Int.toNat_of_nonneg hnonneg]
+  exact hcast
+
+theorem sqrtFunctionInitialX_size (y : UInt256) :
+    (sqrtFunctionInitialX y).toNat < UInt256.size := by
+  rw [sqrtFunctionInitialX_toNat]
+  have hyLe : y.toNat ≤ UInt256.size - 1 := Nat.le_pred_of_lt y.val.isLt
+  have hdivLe : y.toNat / 2 ≤ (UInt256.size - 1) / 2 := Nat.div_le_div_right hyLe
+  have hbound : (UInt256.size - 1) / 2 + 1 < UInt256.size := by
+    norm_num [UInt256.size]
+  omega
+
+theorem sqrtFunctionInitialX_matches (y : UInt256) :
+    valueMatchesOptionalABIType (some uint256) (.int (sqrtFunctionInitialX y)) = true := by
+  have hnonneg : 0 ≤ sqrtFunctionInitialX y := by
+    unfold sqrtFunctionInitialX sqrtFunctionYInt
+    exact add_nonneg (Int.ediv_nonneg (Int.natCast_nonneg _) (by omega)) (by omega)
+  simp only [valueMatchesOptionalABIType, uint256, uint256Int, valueMatchesABIType,
+    beq_iff_eq]
+  apply normalizeInt_uint_eq_self
+  · exact hnonneg
+  · rw [← Int.toNat_of_nonneg hnonneg]
+    apply Int.ofNat_lt.mpr
+    change (sqrtFunctionInitialX y).toNat < UInt256.size
+    exact sqrtFunctionInitialX_size y
+
 theorem evalExpr_sqrtFunction_outer_true (evm : EVM.State) (y : UInt256)
     (hlarge : 3 < y.toNat) :
     evalExpr? config { contract := contract, locals := sqrtFunctionCallStore y } evm
@@ -169,12 +206,48 @@ theorem evalExpr_sqrtFunction_outer_true (evm : EVM.State) (y : UInt256)
 
 theorem evalExpr_sqrtFunction_initX (evm : EVM.State) (y : UInt256) :
     evalExpr? config { contract := contract, locals := sqrtFunctionAfterZStore y } evm
-      (.binary .add (.binary .div (.var "y") (.intLit 2)) (.intLit 1)) =
+      (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.binary (.div (.uint ⟨256, by decide⟩) .wrapping) (.var "y") (.intLit 2)) (.intLit 1)) =
         .ok (.int (sqrtFunctionInitialX y)) := by
-  simp only [sqrtFunctionAfterZStore, sqrtFunctionInitialX, sqrtFunctionYInt, evalExpr?,
+  have hdivNonneg : 0 ≤ sqrtFunctionYInt y / 2 :=
+    Int.ediv_nonneg (Int.natCast_nonneg _) (by omega)
+  have hdivFit : sqrtFunctionYInt y / 2 < Int.ofNat EVM.wordModulus := by
+    have hcast : Int.ofNat (y.toNat / 2) = sqrtFunctionYInt y / 2 := by
+      unfold sqrtFunctionYInt
+      simp only [Int.ofNat_eq_natCast]
+      rw [Int.natCast_ediv]
+      norm_num
+    rw [← hcast]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.div_le_self _ _) y.val.isLt)
+  have haddNonneg : 0 ≤ sqrtFunctionInitialX y := by
+    unfold sqrtFunctionInitialX
+    exact add_nonneg hdivNonneg (by norm_num)
+  have haddFit : sqrtFunctionInitialX y < Int.ofNat EVM.wordModulus := by
+    rw [← Int.toNat_of_nonneg haddNonneg]
+    apply Int.ofNat_lt.mpr
+    change (sqrtFunctionInitialX y).toNat < UInt256.size
+    exact sqrtFunctionInitialX_size y
+  have hdivEval :
+      evalBinaryOp? (.div (.uint ⟨256, by decide⟩) .wrapping)
+        (.int (sqrtFunctionYInt y)) (.int 2) =
+          .ok (.int (sqrtFunctionYInt y / 2)) := by
+    simp only [evalBinaryOp?]
+    rw [if_neg (by norm_num)]
+    exact evalIntArithResult_wrapping_uint_eq_self _ _ hdivNonneg hdivFit
+  have haddEval :
+      evalBinaryOp? (.add (.uint ⟨256, by decide⟩) .wrapping)
+        (.int (sqrtFunctionYInt y / 2)) (.int 1) =
+          .ok (.int (sqrtFunctionInitialX y)) := by
+    simpa only [evalBinaryOp?, sqrtFunctionInitialX] using
+      evalIntArithResult_wrapping_uint_eq_self
+        (⟨256, by decide⟩ : BitWidth) (sqrtFunctionInitialX y) haddNonneg haddFit
+  simp only [sqrtFunctionAfterZStore, evalExpr?,
     EvalResult.ofOption, EvalResult.bind, bind]
   rw [store_get_ne _ _ (by decide), sqrtFunctionCallStore_y]
-  simp [evalBinaryOp?]
+  simp only [sqrtFunctionYValue, uniswapUint256Value, uint256Value, EvalResult.ofOption,
+    EvalResult.bind, bind]
+  rw [hdivEval]
+  simp only [EvalResult.bind, bind]
+  exact haddEval
 
 theorem sqrtFunctionAfterInitStore_y (y : UInt256) :
     (sqrtFunctionAfterInitStore y).get? "y" = some (.int (sqrtFunctionYInt y)) := by
@@ -228,6 +301,126 @@ theorem sqrtLoopNextX_pos (y x : Int) (hy : 0 < y) (hx : 0 < x) :
       omega
   omega
 
+theorem sqrtLoopNextX_nonneg (y x : Int) (hyNonneg : 0 ≤ y) (hxPos : 0 < x) :
+    0 ≤ sqrtLoopNextX y x := by
+  unfold sqrtLoopNextX
+  have hdivNonneg : 0 ≤ y / x := Int.ediv_nonneg hyNonneg (by omega)
+  exact Int.ediv_nonneg (by omega) (by omega)
+
+theorem sqrtLoopNextX_toNat (y x : Int) (hyNonneg : 0 ≤ y) (hxPos : 0 < x) :
+    (sqrtLoopNextX y x).toNat = (y.toNat / x.toNat + x.toNat) / 2 := by
+  have hnextNonneg := sqrtLoopNextX_nonneg y x hyNonneg hxPos
+  have hcastDiv : ((y.toNat / x.toNat : Nat) : Int) = y / x := by
+    rw [Int.natCast_ediv]
+    · simp [Int.toNat_of_nonneg hyNonneg, Int.toNat_of_nonneg (le_of_lt hxPos)]
+  have hcastSum :
+      ((y.toNat / x.toNat + x.toNat : Nat) : Int) = y / x + x := by
+    rw [Nat.cast_add, hcastDiv]
+    simp [Int.toNat_of_nonneg (le_of_lt hxPos)]
+  have hcastDiv2 :
+      (((y.toNat / x.toNat + x.toNat) / 2 : Nat) : Int) =
+        (y / x + x) / 2 := by
+    rw [Int.natCast_ediv]
+    · rw [hcastSum]
+      norm_num
+  calc
+    (sqrtLoopNextX y x).toNat = ((y / x + x) / 2).toNat := by rfl
+    _ = (((y.toNat / x.toNat + x.toNat) / 2 : Nat) : Int).toNat :=
+      (congrArg Int.toNat hcastDiv2).symm
+    _ = (y.toNat / x.toNat + x.toNat) / 2 := by rw [Int.toNat_natCast]
+
+theorem sqrtLoopNextX_size_of_add_fit
+    (y x : Int)
+    (hyNonneg : 0 ≤ y)
+    (hxPos : 0 < x)
+    (haddFit : y.toNat / x.toNat + x.toNat < UInt256.size) :
+    (sqrtLoopNextX y x).toNat < UInt256.size := by
+  rw [sqrtLoopNextX_toNat y x hyNonneg hxPos]
+  exact lt_of_le_of_lt (Nat.div_le_self _ _) haddFit
+
+theorem sqrtLoop_step_add_le_y_of_bounds
+    (y x : Nat)
+    (hy : 3 < y)
+    (hxLow : 2 ≤ x)
+    (hxHigh : x ≤ y / 2 + 1) :
+    y / x + x ≤ y := by
+  by_cases hx2 : x = 2
+  · subst x
+    omega
+  · have hx3 : 3 ≤ x := by omega
+    have hdiv3 : y / x ≤ y / 3 := Nat.div_le_div_left (a := y) hx3 (by norm_num)
+    omega
+
+theorem sqrtLoop_step_next_low_of_bounds
+    (y x : Nat)
+    (hy : 3 < y)
+    (hxLow : 2 ≤ x)
+    (hxHigh : x ≤ y / 2 + 1) :
+    2 ≤ (y / x + x) / 2 := by
+  by_cases hx2 : x = 2
+  · subst x
+    omega
+  · have hx3 : 3 ≤ x := by omega
+    have hxLeY : x ≤ y := by omega
+    have hdivPos : 0 < y / x := Nat.div_pos hxLeY (by omega)
+    omega
+
+theorem sqrtLoop_step_next_high_of_bounds
+    (y x : Nat)
+    (hy : 3 < y)
+    (hxLow : 2 ≤ x)
+    (hxHigh : x ≤ y / 2 + 1) :
+    (y / x + x) / 2 ≤ y / 2 + 1 := by
+  have hsum := sqrtLoop_step_add_le_y_of_bounds y x hy hxLow hxHigh
+  have hdiv : (y / x + x) / 2 ≤ y / 2 := Nat.div_le_div_right hsum
+  omega
+
+abbrev sqrtLoopRuntimeInv (y x : Int) : Prop :=
+  2 ≤ x.toNat ∧ x.toNat ≤ y.toNat / 2 + 1
+
+theorem sqrtLoopRuntimeInv_step_fit
+    (y x : Int)
+    (hy : 3 < y.toNat)
+    (hySize : y.toNat < UInt256.size)
+    (hP : sqrtLoopRuntimeInv y x) :
+    y.toNat / x.toNat + x.toNat < UInt256.size := by
+  exact lt_of_le_of_lt (sqrtLoop_step_add_le_y_of_bounds y.toNat x.toNat hy hP.1 hP.2)
+    hySize
+
+theorem sqrtLoopRuntimeInv_step
+    (y x : Int)
+    (hy : 3 < y.toNat)
+    (hP : sqrtLoopRuntimeInv y x)
+    (hxPos : 0 < x) :
+    sqrtLoopRuntimeInv y (sqrtLoopNextX y x) := by
+  change 2 ≤ (sqrtLoopNextX y x).toNat ∧
+    (sqrtLoopNextX y x).toNat ≤ y.toNat / 2 + 1
+  rw [sqrtLoopNextX_toNat y x (by omega) hxPos]
+  constructor
+  · exact sqrtLoop_step_next_low_of_bounds y.toNat x.toNat hy hP.1 hP.2
+  · exact sqrtLoop_step_next_high_of_bounds y.toNat x.toNat hy hP.1 hP.2
+
+theorem sqrtFunctionInitialX_word_eq (y : UInt256) :
+    UInt256.div y (⟨2⟩ : UInt256) + ⟨1⟩ =
+      UInt256.ofNat (sqrtFunctionInitialX y).toNat := by
+  apply u256_inj
+  rw [uadd_toNat, udiv_toNat, show (⟨2⟩ : UInt256).toNat = 2 from by decide,
+    show (⟨1⟩ : UInt256).toNat = 1 from by decide, sqrtFunctionInitialX_toNat]
+  rw [ulit_toNat' _ (by
+    simpa [sqrtFunctionInitialX_toNat] using sqrtFunctionInitialX_size y)]
+  rw [Nat.mod_eq_of_lt (by
+    simpa [sqrtFunctionInitialX_toNat] using sqrtFunctionInitialX_size y)]
+
+theorem sqrtFunctionInitialX_runtime_inv (y : UInt256) (hlarge : 3 < y.toNat) :
+    sqrtLoopRuntimeInv (sqrtFunctionYInt y) (sqrtFunctionInitialX y) := by
+  change 2 ≤ (sqrtFunctionInitialX y).toNat ∧
+    (sqrtFunctionInitialX y).toNat ≤ (sqrtFunctionYInt y).toNat / 2 + 1
+  rw [sqrtFunctionInitialX_toNat]
+  constructor
+  · omega
+  · unfold sqrtFunctionYInt
+    rw [show (Int.ofNat y.toNat).toNat = y.toNat by simp]
+
 theorem assign_sqrtLoop_z (evm : EVM.State) (locals : Store) (x z : Int)
     (hz : locals.get? "z" = some (.int z)) :
     assignStorageRef? config ({ contract := contract, locals := locals } : Frame) evm
@@ -276,7 +469,8 @@ theorem assign_sqrtLoop_x (evm : EVM.State) (locals : Store) (y x : Int)
 
 theorem execBlock_sqrtLoopBody (evm : EVM.State) (locals : Store) (y x z : Int)
     (hy : locals.get? "y" = some (.int y)) (hx : locals.get? "x" = some (.int x))
-    (hz : locals.get? "z" = some (.int z)) (hx0 : x ≠ 0) :
+    (hz : locals.get? "z" = some (.int z)) (hyNonneg : 0 ≤ y) (hxPos : 0 < x)
+    (haddFit : y.toNat / x.toNat + x.toNat < UInt256.size) :
     ExecBlock config ({ contract := contract, locals := locals } : Frame) evm sqrtLoopBody
       (.ok (show Frame from
         { contract := contract, locals := sqrtLoopAfterBodyStore locals y x }) evm) := by
@@ -286,21 +480,71 @@ theorem execBlock_sqrtLoopBody (evm : EVM.State) (locals : Store) (y x z : Int)
     simp only [evalExpr?, EvalResult.ofOption]
     rw [hx]
   have hAssignZ := assign_sqrtLoop_z evm locals x z hz
+  have hdivCast : Int.ofNat (y.toNat / x.toNat) = y / x := by
+    simp only [Int.ofNat_eq_natCast]
+    rw [Int.natCast_ediv]
+    simp [Int.toNat_of_nonneg hyNonneg, Int.toNat_of_nonneg (le_of_lt hxPos)]
+  have hsumCast : Int.ofNat (y.toNat / x.toNat + x.toNat) = y / x + x := by
+    have hxCast : Int.ofNat x.toNat = x := by
+      change (x.toNat : Int) = x
+      exact Int.toNat_of_nonneg (le_of_lt hxPos)
+    simp only [Int.ofNat_eq_natCast]
+    rw [Nat.cast_add]
+    change Int.ofNat (y.toNat / x.toNat) + Int.ofNat x.toNat = y / x + x
+    rw [hdivCast, hxCast]
+  have hdivNonneg : 0 ≤ y / x := Int.ediv_nonneg hyNonneg (le_of_lt hxPos)
+  have hsumNonneg : 0 ≤ y / x + x := by omega
+  have hsumFit : y / x + x < Int.ofNat EVM.wordModulus := by
+    rw [← hsumCast]
+    exact Int.ofNat_lt.mpr (by simpa [UInt256.size] using haddFit)
+  have hdivFit : y / x < Int.ofNat EVM.wordModulus := by omega
+  have hnextNonneg : 0 ≤ sqrtLoopNextX y x :=
+    Int.ediv_nonneg hsumNonneg (by norm_num)
+  have hnextFit : sqrtLoopNextX y x < Int.ofNat EVM.wordModulus := by
+    unfold sqrtLoopNextX
+    omega
+  have hdivEval :
+      evalBinaryOp? (.div (.uint ⟨256, by decide⟩) .wrapping) (.int y) (.int x) =
+        .ok (.int (y / x)) := by
+    simp only [evalBinaryOp?]
+    rw [if_neg (ne_of_gt hxPos)]
+    rw [Int.tdiv_eq_ediv_of_nonneg hyNonneg]
+    exact evalIntArithResult_wrapping_uint_eq_self
+      (⟨256, by decide⟩ : BitWidth) _ hdivNonneg hdivFit
+  have haddEval :
+      evalBinaryOp? (.add (.uint ⟨256, by decide⟩) .wrapping) (.int (y / x)) (.int x) =
+        .ok (.int (y / x + x)) := by
+    exact evalIntArithResult_wrapping_uint_eq_self _ _ hsumNonneg hsumFit
+  have hhalfEval :
+      evalBinaryOp? (.div (.uint ⟨256, by decide⟩) .wrapping)
+          (.int (y / x + x)) (.int 2) = .ok (.int (sqrtLoopNextX y x)) := by
+    simp only [evalBinaryOp?]
+    rw [if_neg (by norm_num)]
+    rw [Int.tdiv_eq_ediv_of_nonneg hsumNonneg]
+    simpa only [sqrtLoopNextX] using
+      evalIntArithResult_wrapping_uint_eq_self
+        (⟨256, by decide⟩ : BitWidth) _ hnextNonneg hnextFit
   have hEvalNext :
       evalExpr? config
         ({ contract := contract, locals := sqrtLoopAfterZStore locals x } : Frame) evm
         sqrtLoopNextXExpr = .ok (.int (sqrtLoopNextX y x)) := by
     simp only [sqrtLoopNextXExpr, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
     rw [sqrtLoopAfterZStore_y locals y x hy, sqrtLoopAfterZStore_x locals x hx]
-    simp [evalBinaryOp?, sqrtLoopNextX, hx0]
+    simp only [EvalResult.ofOption, EvalResult.bind, bind]
+    rw [hdivEval]
+    simp only [EvalResult.bind, bind]
+    rw [haddEval]
+    simp only [EvalResult.bind, bind]
+    exact hhalfEval
   have hAssignX := assign_sqrtLoop_x evm locals y x hx
   refine ExecBlock.consNormal (ExecStmt.assign hEvalX hAssignZ) ?_
   exact ExecBlock.consNormal (ExecStmt.assign hEvalNext hAssignX) ExecBlock.nil
 
 set_option maxHeartbeats 1000000 in
-theorem execStmt_sqrtLoopTerminates (evm : EVM.State) (y : Int) (hypos : 0 < y) :
+theorem execStmt_sqrtLoopTerminates (evm : EVM.State) (y : Int) (hypos : 0 < y)
+    (hySize : y.toNat < UInt256.size) (hyLarge : 3 < y.toNat) :
     ∀ fuel, ∀ locals x z,
-      z.toNat = fuel → 0 < x → 0 ≤ z →
+      z.toNat = fuel → 0 < x → 0 ≤ z → sqrtLoopRuntimeInv y x →
       locals.get? "y" = some (.int y) → locals.get? "x" = some (.int x) →
       locals.get? "z" = some (.int z) →
       ∃ locals' result,
@@ -311,10 +555,12 @@ theorem execStmt_sqrtLoopTerminates (evm : EVM.State) (y : Int) (hypos : 0 < y) 
   intro fuel
   induction fuel using Nat.strong_induction_on with
   | h fuel ih =>
-      intro locals x z hzFuel hxpos hznonneg hy hx hz
+      intro locals x z hzFuel hxpos hznonneg hP hy hx hz
       by_cases hlt : x < z
       · have hcond := evalExpr_sqrtLoopCond_true evm locals x z hx hz hlt
-        have hbody := execBlock_sqrtLoopBody evm locals y x z hy hx hz (ne_of_gt hxpos)
+        have haddFit := sqrtLoopRuntimeInv_step_fit y x hyLarge hySize hP
+        have hbody := execBlock_sqrtLoopBody evm locals y x z hy hx hz
+          (le_of_lt hypos) hxpos haddFit
         have hzpos : 0 < z := by omega
         have hmeasure : x.toNat < fuel := by
           rw [← hzFuel]
@@ -322,6 +568,7 @@ theorem execStmt_sqrtLoopTerminates (evm : EVM.State) (y : Int) (hypos : 0 < y) 
         obtain ⟨locals', result, hwhile, hzFinal⟩ := ih x.toNat hmeasure
           (sqrtLoopAfterBodyStore locals y x) (sqrtLoopNextX y x) x rfl
           (sqrtLoopNextX_pos y x hypos hxpos) (by omega)
+          (sqrtLoopRuntimeInv_step y x hyLarge hP hxpos)
           (sqrtLoopAfterBodyStore_y locals y x hy) (sqrtLoopAfterBodyStore_x locals y x)
           (sqrtLoopAfterBodyStore_z locals y x)
         exact ⟨locals', result, ExecStmt.whileTrue hcond hbody hwhile, hzFinal⟩
@@ -329,9 +576,10 @@ theorem execStmt_sqrtLoopTerminates (evm : EVM.State) (y : Int) (hypos : 0 < y) 
         exact ⟨locals, z, ExecStmt.whileFalse hcond, hz⟩
 
 set_option maxHeartbeats 1000000 in
-theorem execStmt_sqrtLoopTerminates_bound (evm : EVM.State) (y : Int) (hypos : 0 < y) :
+theorem execStmt_sqrtLoopTerminates_bound (evm : EVM.State) (y : Int) (hypos : 0 < y)
+    (hySize : y.toNat < UInt256.size) (hyLarge : 3 < y.toNat) :
     ∀ fuel, ∀ locals x z,
-      z.toNat = fuel → 0 < x → 0 ≤ z →
+      z.toNat = fuel → 0 < x → 0 ≤ z → sqrtLoopRuntimeInv y x →
       locals.get? "y" = some (.int y) → locals.get? "x" = some (.int x) →
       locals.get? "z" = some (.int z) →
       ∃ locals' result,
@@ -343,10 +591,12 @@ theorem execStmt_sqrtLoopTerminates_bound (evm : EVM.State) (y : Int) (hypos : 0
   intro fuel
   induction fuel using Nat.strong_induction_on with
   | h fuel ih =>
-      intro locals x z hzFuel hxpos hznonneg hy hx hz
+      intro locals x z hzFuel hxpos hznonneg hP hy hx hz
       by_cases hlt : x < z
       · have hcond := evalExpr_sqrtLoopCond_true evm locals x z hx hz hlt
-        have hbody := execBlock_sqrtLoopBody evm locals y x z hy hx hz (ne_of_gt hxpos)
+        have haddFit := sqrtLoopRuntimeInv_step_fit y x hyLarge hySize hP
+        have hbody := execBlock_sqrtLoopBody evm locals y x z hy hx hz
+          (le_of_lt hypos) hxpos haddFit
         have hzpos : 0 < z := by omega
         have hmeasure : x.toNat < fuel := by
           rw [← hzFuel]
@@ -355,6 +605,7 @@ theorem execStmt_sqrtLoopTerminates_bound (evm : EVM.State) (y : Int) (hypos : 0
           ih x.toNat hmeasure
             (sqrtLoopAfterBodyStore locals y x) (sqrtLoopNextX y x) x rfl
             (sqrtLoopNextX_pos y x hypos hxpos) (by omega)
+            (sqrtLoopRuntimeInv_step y x hyLarge hP hxpos)
             (sqrtLoopAfterBodyStore_y locals y x hy) (sqrtLoopAfterBodyStore_x locals y x)
             (sqrtLoopAfterBodyStore_z locals y x)
         exact ⟨locals', result, ExecStmt.whileTrue hcond hbody hwhile, hzFinal,
@@ -373,11 +624,17 @@ theorem uniswapSqrtFunctionBody_gt3 (evm : EVM.State) (y : UInt256)
     unfold sqrtFunctionYInt
     have hyNat : 0 < y.toNat := by omega
     exact Int.ofNat_lt.mpr hyNat
+  have hySize : (sqrtFunctionYInt y).toNat < UInt256.size := by
+    change y.toNat < UInt256.size
+    exact y.val.isLt
+  have hyLarge : 3 < (sqrtFunctionYInt y).toNat := by
+    simpa [sqrtFunctionYInt] using hlarge
   obtain ⟨locals', result, hwhile, hzFinal⟩ :=
-    execStmt_sqrtLoopTerminates evm (sqrtFunctionYInt y) hypos y.toNat
+    execStmt_sqrtLoopTerminates evm (sqrtFunctionYInt y) hypos hySize hyLarge y.toNat
       (sqrtFunctionAfterInitStore y) (sqrtFunctionInitialX y) (sqrtFunctionYInt y)
       (by simp [sqrtFunctionYInt])
       (sqrtFunctionInitialX_pos y) (by simp [sqrtFunctionYInt])
+      (sqrtFunctionInitialX_runtime_inv y hlarge)
       (sqrtFunctionAfterInitStore_y y) (sqrtFunctionAfterInitStore_x y)
       (sqrtFunctionAfterInitStore_z y)
   refine ⟨locals', result, ExecFuncBody.execBlockRet ?_⟩
@@ -385,12 +642,12 @@ theorem uniswapSqrtFunctionBody_gt3 (evm : EVM.State) (y : UInt256)
     [ .ite (.binary .gt (.var "y") (.intLit 3))
         [ .letDecl "z" (some uint256) (.var "y"),
           .letDecl "x" (some uint256)
-            (.binary .add (.binary .div (.var "y") (.intLit 2)) (.intLit 1)),
+            (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.binary (.div (.uint ⟨256, by decide⟩) .wrapping) (.var "y") (.intLit 2)) (.intLit 1)),
           .while (.binary .lt (.var "x") (.var "z"))
             [ .assign .localVar { base := "z" } (.var "x"),
               .assign .localVar { base := "x" }
-                (.binary .div
-                  (.binary .add (.binary .div (.var "y") (.var "x")) (.var "x"))
+                (.binary (.div (.uint ⟨256, by decide⟩) .wrapping)
+                  (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.binary (.div (.uint ⟨256, by decide⟩) .wrapping) (.var "y") (.var "x")) (.var "x"))
                   (.intLit 2)) ],
           .return [(.var "z")] ]
         [ .ite (.binary .ne (.var "y") (.intLit 0))
@@ -399,8 +656,10 @@ theorem uniswapSqrtFunctionBody_gt3 (evm : EVM.State) (y : UInt256)
     (.returned { contract := contract, locals := locals' } evm (some [.int result]))
   refine ExecBlock.consReturn (ExecStmt.iteTrue
     (evalExpr_sqrtFunction_outer_true evm y hlarge) ?_)
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_sqrtFunction_y evm y)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_sqrtFunction_initX evm y)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_sqrtFunction_y evm y)
+    (valueMatchesOptionalABIType_uint256_word y)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_sqrtFunction_initX evm y)
+    (sqrtFunctionInitialX_matches y)) ?_
   have hwhile' :
       ExecStmt config ({ contract := contract, locals := sqrtFunctionAfterInitStore y } : Frame)
         evm (.while sqrtLoopCond sqrtLoopBody)
@@ -428,11 +687,17 @@ theorem uniswapSqrtFunctionBody_gt3_bound (evm : EVM.State) (y : UInt256)
     unfold sqrtFunctionYInt
     have hyNat : 0 < y.toNat := by omega
     exact Int.ofNat_lt.mpr hyNat
+  have hySize : (sqrtFunctionYInt y).toNat < UInt256.size := by
+    change y.toNat < UInt256.size
+    exact y.val.isLt
+  have hyLarge : 3 < (sqrtFunctionYInt y).toNat := by
+    simpa [sqrtFunctionYInt] using hlarge
   obtain ⟨locals', result, hwhile, hzFinal, hresultNonneg, hresultFuel⟩ :=
-    execStmt_sqrtLoopTerminates_bound evm (sqrtFunctionYInt y) hypos y.toNat
+    execStmt_sqrtLoopTerminates_bound evm (sqrtFunctionYInt y) hypos hySize hyLarge y.toNat
       (sqrtFunctionAfterInitStore y) (sqrtFunctionInitialX y) (sqrtFunctionYInt y)
       (by simp [sqrtFunctionYInt])
       (sqrtFunctionInitialX_pos y) (by simp [sqrtFunctionYInt])
+      (sqrtFunctionInitialX_runtime_inv y hlarge)
       (sqrtFunctionAfterInitStore_y y) (sqrtFunctionAfterInitStore_x y)
       (sqrtFunctionAfterInitStore_z y)
   have hresultSize : result.toNat < UInt256.size :=
@@ -443,12 +708,12 @@ theorem uniswapSqrtFunctionBody_gt3_bound (evm : EVM.State) (y : UInt256)
     [ .ite (.binary .gt (.var "y") (.intLit 3))
         [ .letDecl "z" (some uint256) (.var "y"),
           .letDecl "x" (some uint256)
-            (.binary .add (.binary .div (.var "y") (.intLit 2)) (.intLit 1)),
+            (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.binary (.div (.uint ⟨256, by decide⟩) .wrapping) (.var "y") (.intLit 2)) (.intLit 1)),
           .while (.binary .lt (.var "x") (.var "z"))
             [ .assign .localVar { base := "z" } (.var "x"),
               .assign .localVar { base := "x" }
-                (.binary .div
-                  (.binary .add (.binary .div (.var "y") (.var "x")) (.var "x"))
+                (.binary (.div (.uint ⟨256, by decide⟩) .wrapping)
+                  (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.binary (.div (.uint ⟨256, by decide⟩) .wrapping) (.var "y") (.var "x")) (.var "x"))
                   (.intLit 2)) ],
           .return [(.var "z")] ]
         [ .ite (.binary .ne (.var "y") (.intLit 0))
@@ -457,8 +722,10 @@ theorem uniswapSqrtFunctionBody_gt3_bound (evm : EVM.State) (y : UInt256)
     (.returned { contract := contract, locals := locals' } evm (some [.int result]))
   refine ExecBlock.consReturn (ExecStmt.iteTrue
     (evalExpr_sqrtFunction_outer_true evm y hlarge) ?_)
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_sqrtFunction_y evm y)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_sqrtFunction_initX evm y)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_sqrtFunction_y evm y)
+    (valueMatchesOptionalABIType_uint256_word y)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_sqrtFunction_initX evm y)
+    (sqrtFunctionInitialX_matches y)) ?_
   have hwhile' :
       ExecStmt config ({ contract := contract, locals := sqrtFunctionAfterInitStore y } : Frame)
         evm (.while sqrtLoopCond sqrtLoopBody)

@@ -45,6 +45,13 @@ def revokeRoleAdminWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
 def revokeRoleAdminValue (evm : EVM.State) (I : ExecutionEnv) : Value :=
   .fixedBytes bytes32Width (EVM.Word.toBytesBE (revokeRoleAdminWord evm I))
 
+theorem revokeRoleAdminValue_matches (evm : EVM.State) (I : ExecutionEnv) :
+    valueMatchesOptionalABIType (some bytes32) (revokeRoleAdminValue evm I) = true := by
+  have hlen : (EVM.Word.toBytesBE (revokeRoleAdminWord evm I)).length = 32 := by
+    simpa using word_toBytesBE_toByteArray_size (revokeRoleAdminWord evm I)
+  simp [valueMatchesOptionalABIType, valueMatchesABIType, bytes32, revokeRoleAdminValue,
+    fixedBytesValid, fixedBytesSize, bytes32Width, hlen]
+
 def revokeRoleAdminKey (evm : EVM.State) (I : ExecutionEnv) : KeyValue :=
   .fixedBytes bytes32Width (EVM.Word.toBytesBE (revokeRoleAdminWord evm I))
 
@@ -300,7 +307,8 @@ theorem accessControlRevokeRoleBodyReturns_write (evm : EVM.State) (I : Executio
         (revokeRolePostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_revokeRole_admin evm I hsz68)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_revokeRole_admin evm I hsz68)
+    (revokeRoleAdminValue_matches evm I)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_revokeRole_adminHasRole_true evm I hadmin)) ?_
   refine ExecBlock.consNormal
@@ -326,7 +334,8 @@ theorem accessControlRevokeRoleBodyReturns_noop (evm : EVM.State) (I : Execution
       (.returned { contract := contract, locals := revokeRoleStoreWithAdmin evm I } evm none) := by
   refine ExecFuncBody.execBlockOK ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_revokeRole_admin evm I hsz68)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_revokeRole_admin evm I hsz68)
+    (revokeRoleAdminValue_matches evm I)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_revokeRole_adminHasRole_true evm I hadmin)) ?_
   refine ExecBlock.consNormal
@@ -345,7 +354,8 @@ theorem accessControlRevokeRoleBodyReverts_admin (evm : EVM.State) (I : Executio
     ExecTransitionBody config contract evm (revokeRoleStore I) revokeRoleTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_revokeRole_admin evm I hsz68)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_revokeRole_admin evm I hsz68)
+    (revokeRoleAdminValue_matches evm I)) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (evalExpr_revokeRole_adminHasRole_false evm I hadmin))
 

@@ -47,6 +47,12 @@ def grantRoleAdminWord (evm : EVM.State) (I : ExecutionEnv) : UInt256 :=
 def grantRoleAdminValue (evm : EVM.State) (I : ExecutionEnv) : Value :=
   .fixedBytes bytes32Width (EVM.Word.toBytesBE (grantRoleAdminWord evm I))
 
+theorem grantRoleAdminValue_matches (evm : EVM.State) (I : ExecutionEnv) :
+    valueMatchesOptionalABIType (some bytes32) (grantRoleAdminValue evm I) = true := by
+  apply valueMatchesOptionalABIType_fixedBytes
+  simpa [fixedBytesSize, bytes32Width] using
+    word_toBytesBE_toByteArray_size (grantRoleAdminWord evm I)
+
 def grantRoleAdminKey (evm : EVM.State) (I : ExecutionEnv) : KeyValue :=
   .fixedBytes bytes32Width (EVM.Word.toBytesBE (grantRoleAdminWord evm I))
 
@@ -323,7 +329,9 @@ theorem accessControlGrantRoleBodyReturns_write (evm : EVM.State) (I : Execution
         (grantRolePostState evm I) none) := by
   refine ExecFuncBody.execBlockOK ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_grantRole_admin evm I hsz68)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_grantRole_admin evm I hsz68)
+      (grantRoleAdminValue_matches evm I)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_grantRole_adminHasRole_true evm I hadmin)) ?_
   refine ExecBlock.consNormal
@@ -349,7 +357,9 @@ theorem accessControlGrantRoleBodyReturns_noop (evm : EVM.State) (I : ExecutionE
       (.returned { contract := contract, locals := grantRoleStoreWithAdmin evm I } evm none) := by
   refine ExecFuncBody.execBlockOK ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_grantRole_admin evm I hsz68)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_grantRole_admin evm I hsz68)
+      (grantRoleAdminValue_matches evm I)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_grantRole_adminHasRole_true evm I hadmin)) ?_
   refine ExecBlock.consNormal
@@ -368,7 +378,9 @@ theorem accessControlGrantRoleBodyReverts_admin (evm : EVM.State) (I : Execution
     ExecTransitionBody config contract evm (grantRoleStore I) grantRoleTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_grantRole_admin evm I hsz68)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_grantRole_admin evm I hsz68)
+      (grantRoleAdminValue_matches evm I)) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (evalExpr_grantRole_adminHasRole_false evm I hadmin))
 

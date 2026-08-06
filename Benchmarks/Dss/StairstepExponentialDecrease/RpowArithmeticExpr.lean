@@ -124,18 +124,10 @@ theorem evalExpr_add256_ok {evm : EVM.State} {locals : Store}
     (hfit : a.toNat + b.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
       .ok (.int (Int.ofNat sum.toNat)) := by
-  have hlt : ¬ Int.ofNat (a.toNat + b.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
   have hword : sum.toNat = a.toNat + b.toNat := by
     rw [hsum, uadd_toNat, Nat.mod_eq_of_lt hfit]
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  simpa [add256, u256, uint256Int] using
+    evalExpr_checked_add_uint256_word_ok hx hy hword hfit
 
 theorem evalExpr_add256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -146,9 +138,8 @@ theorem evalExpr_add256_revert {evm : EVM.State} {locals : Store}
     (hover : UInt256.size ≤ a.toNat + b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
       .revert := by
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  simpa [add256, u256, uint256Int] using
+    evalExpr_checked_add_uint256_word_revert_of_overflow hx hy hover
 
 theorem evalExpr_mul256_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b prod : UInt256}
@@ -160,18 +151,10 @@ theorem evalExpr_mul256_ok {evm : EVM.State} {locals : Store}
     (hfit : a.toNat * b.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm (mul256 x y) =
       .ok (.int (Int.ofNat prod.toNat)) := by
-  have hlt : ¬ Int.ofNat (a.toNat * b.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
   have hword : prod.toNat = a.toNat * b.toNat := by
     rw [hprod, umul_toNat a b hfit]
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  simpa [mul256, u256, uint256Int] using
+    evalExpr_checked_mul_uint256_word_ok hx hy hword hfit
 
 theorem evalExpr_mul256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -182,9 +165,8 @@ theorem evalExpr_mul256_revert {evm : EVM.State} {locals : Store}
     (hover : UInt256.size ≤ a.toNat * b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (mul256 x y) =
       .revert := by
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  simpa [mul256, u256, uint256Int] using
+    evalExpr_checked_mul_uint256_word_revert_of_overflow hx hy hover
 
 theorem evalExpr_div_uint256_ok {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b q : UInt256}
@@ -194,24 +176,23 @@ theorem evalExpr_div_uint256_ok {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hb : b ≠ ⟨0⟩)
     (hq : q = UInt256.div a b) :
-    evalExpr? config { contract := contract, locals := locals } evm (.binary .div x y) =
+    evalExpr? config { contract := contract, locals := locals } evm (.binary (.div (.uint ⟨256, by decide⟩) .checked) x y) =
       .ok (.int (Int.ofNat q.toNat)) := by
-  have hbNat : ¬ b.toNat = 0 := by
-    intro hzero
-    exact hb (uint256_toNat_eq_zero hzero)
   have hqNat : q.toNat = a.toNat / b.toNat := by
     rw [hq, udiv_toNat]
-  simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, hbNat, hqNat]
+  exact evalExpr_checked_div_uint256_word_ok hx hy hb hqNat
 
 theorem evalExpr_mod_int_ok {evm : EVM.State} {locals : Store}
-    {lhs rhs : Expr} {a b r : Int}
-    (hlhs : evalExpr? config { contract := contract, locals := locals } evm lhs = .ok (.int a))
-    (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs = .ok (.int b))
-    (hb : b ≠ 0) (hr : r = a % b) :
-    evalExpr? config { contract := contract, locals := locals } evm (.binary .mod lhs rhs) =
+    {lhs rhs : Expr} {a b : UInt256} {r : Int}
+    (hlhs : evalExpr? config { contract := contract, locals := locals } evm lhs =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? config { contract := contract, locals := locals } evm rhs =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hb : b ≠ ⟨0⟩) (hr : r = Int.ofNat a.toNat % Int.ofNat b.toNat) :
+    evalExpr? config { contract := contract, locals := locals } evm (.binary (.mod (.uint ⟨256, by decide⟩)) lhs rhs) =
       .ok (.int r) := by
   subst r
-  simp [evalExpr?, EvalResult.bind, bind, hlhs, hrhs, evalBinaryOp?, hb]
+  simpa only [Int.natCast_emod] using evalExpr_mod_uint256_words_ok hlhs hrhs hb
 
 theorem evalExpr_le_uint256_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : UInt256}

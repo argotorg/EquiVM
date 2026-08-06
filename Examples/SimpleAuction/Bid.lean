@@ -1152,7 +1152,7 @@ theorem evalExpr_bid_pending_add_ok (evm : EVM.State)
     (hfit :
       (bidPendingReturnsWordState evm).toNat + (bidHighestBidWordState evm).toNat < UInt256.size) :
     evalExpr? simpleAuctionConfig { contract := simpleAuctionContract, locals := ∅ } evm
-      (u256 (.binary .add
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
         (.storage (pendingReturnsRef (.storage highestBidderRef)))
         (.storage highestBidRef))) =
         .ok (.int
@@ -1168,27 +1168,35 @@ theorem evalExpr_bid_pending_add_ok (evm : EVM.State)
       (bidPendingReturnsWordState evm).toNat +
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat < 2 ^ 256 := by
     simpa [UInt256.size, bidHighestBidWordState] using hfit
+  have hIntRaw :
+      Int.ofNat (bidPendingReturnsWordState evm).toNat +
+          Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat =
+        Int.ofNat ((bidPendingReturnsWordState evm).toNat +
+          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat) := by
+    norm_num
   simp only [u256, evalExpr?, evalExpr_bid_pendingReturns_current, evalExpr_bid_highestBid,
     EvalResult.bind, bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
+  simp only [evalBinaryOp?, evalIntArithResult, uint256Int]
   rw [if_neg]
-  · simp only [bidHighestBidWordState]
-    have hInt :
-        Int.ofNat (bidPendingReturnsWordState evm).toNat +
-            Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat =
-          Int.ofNat ((bidPendingReturnsWordState evm).toNat +
-            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨3⟩).toNat) := by
-      norm_num
-    rw [hInt, ← hsumWordRaw]
-  · simp
-    omega
+  · simp only
+    rw [if_neg]
+    · simp only [bidHighestBidWordState]
+      rw [hIntRaw, ← hsumWordRaw]
+    · rw [hIntRaw]
+      simp only [Bool.or_eq_true, decide_eq_true_eq, not_or]
+      exact ⟨Int.not_lt.mpr (Int.natCast_nonneg _),
+        Int.not_le.mpr (Int.ofNat_lt.mpr hfitNatRaw)⟩
+  · rw [hIntRaw]
+    simp only [Bool.or_eq_true, decide_eq_true_eq, not_or]
+    exact ⟨Int.not_lt.mpr (Int.natCast_nonneg _),
+      Int.not_le.mpr (Int.ofNat_lt.mpr hfitNatRaw)⟩
 
 theorem evalExpr_bid_pending_add_revert (evm : EVM.State)
     (hover :
       UInt256.size ≤
         (bidPendingReturnsWordState evm).toNat + (bidHighestBidWordState evm).toNat) :
     evalExpr? simpleAuctionConfig { contract := simpleAuctionContract, locals := ∅ } evm
-      (u256 (.binary .add
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
         (.storage (pendingReturnsRef (.storage highestBidderRef)))
         (.storage highestBidRef))) = .revert := by
   have hge :
@@ -1198,9 +1206,11 @@ theorem evalExpr_bid_pending_add_revert (evm : EVM.State)
     exact Int.ofNat_le.mpr hover
   simp only [u256, evalExpr?, evalExpr_bid_pendingReturns_current, evalExpr_bid_highestBid,
     EvalResult.bind, bind, pure]
-  simp [evalBinaryOp?, uint256Int]
-  intro _
-  simpa using hge
+  simp only [evalBinaryOp?, evalIntArithResult, uint256Int]
+  rw [if_pos]
+  simp only [Bool.or_eq_true, decide_eq_true_eq]
+  right
+  simpa [bidHighestBidWordState] using hge
 
 theorem bidAssignPending (evm : EVM.State) :
     assignStorageRef? simpleAuctionConfig { contract := simpleAuctionContract, locals := ∅ } evm

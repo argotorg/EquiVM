@@ -149,7 +149,8 @@ theorem vowHealSourceHealNoCode
       bindParams? subFunction.params
           [.int (Int.ofNat vatSin.toNat), .int (Int.ofNat SinVal.toNat)] =
         some (uintBinaryLocals vatSin SinVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" vatSin SinVal
   have hfreeStmt :
       ExecStmt config { contract := contract, locals := locals2 } evmSin
         (.internalCall "sub" [.var "vatSin", .storage SinRef] "freeSin")
@@ -189,7 +190,8 @@ theorem vowHealSourceHealNoCode
       bindParams? subFunction.params
           [.int (Int.ofNat freeSin.toNat), .int (Int.ofNat AshVal.toNat)] =
         some (uintBinaryLocals freeSin AshVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" freeSin AshVal
   have hdebtStmt :
       ExecStmt config { contract := contract, locals := locals3 } evmSin
         (.internalCall "sub" [.var "freeSin", .storage AshRef] "healDebt")
@@ -465,7 +467,8 @@ theorem vowHealSourceHealCallFailure
       bindParams? subFunction.params
           [.int (Int.ofNat vatSin.toNat), .int (Int.ofNat SinVal.toNat)] =
         some (uintBinaryLocals vatSin SinVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" vatSin SinVal
   have hfreeStmt :
       ExecStmt config { contract := contract, locals := locals2 } evmSin
         (.internalCall "sub" [.var "vatSin", .storage SinRef] "freeSin")
@@ -505,7 +508,8 @@ theorem vowHealSourceHealCallFailure
       bindParams? subFunction.params
           [.int (Int.ofNat freeSin.toNat), .int (Int.ofNat AshVal.toNat)] =
         some (uintBinaryLocals freeSin AshVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" freeSin AshVal
   have hdebtStmt :
       ExecStmt config { contract := contract, locals := locals3 } evmSin
         (.internalCall "sub" [.var "freeSin", .storage AshRef] "healDebt")
@@ -726,7 +730,8 @@ theorem vowHealSourceSuccess
       bindParams? subFunction.params
           [.int (Int.ofNat vatSin.toNat), .int (Int.ofNat SinVal.toNat)] =
         some (uintBinaryLocals vatSin SinVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" vatSin SinVal
   have hfreeStmt :
       ExecStmt config { contract := contract, locals := locals2 } evmSin
         (.internalCall "sub" [.var "vatSin", .storage SinRef] "freeSin")
@@ -766,7 +771,8 @@ theorem vowHealSourceSuccess
       bindParams? subFunction.params
           [.int (Int.ofNat freeSin.toNat), .int (Int.ofNat AshVal.toNat)] =
         some (uintBinaryLocals freeSin AshVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" freeSin AshVal
   have hdebtStmt :
       ExecStmt config { contract := contract, locals := locals3 } evmSin
         (.internalCall "sub" [.var "freeSin", .storage AshRef] "healDebt")

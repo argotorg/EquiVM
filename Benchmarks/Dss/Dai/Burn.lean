@@ -2163,174 +2163,51 @@ theorem evalExpr_burn_allowanceNeedsSpend_false_max (evm : EVM.State) (I : Execu
   simp only [EvalResult.bind, bind]
   rw [evalExpr_burn_allowance_ne_max_false evm I hmax]
 
-theorem evalExpr_burn_allowance_sub_raw (evm : EVM.State) (I : ExecutionEnv) :
-    evalExpr? config { contract := contract, locals := burnStore I } evm
-      (.binary .sub (.storage (allowanceRef (.var "usr") sender)) (.var "wad")) =
-        .ok (.int (Int.ofNat (burnAllowanceWord evm I).toNat -
-          Int.ofNat (burnWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [evalExpr_burn_allowance, evalExpr_burn_wad]
-  simp [EvalResult.bind, bind, evalBinaryOp?]
-
-theorem evalExpr_burn_usr_sub_raw (evm : EVM.State) (I : ExecutionEnv) :
-    evalExpr? config { contract := contract, locals := burnStore I } evm
-      (.binary .sub (.storage (balanceOfRef (.var "usr"))) (.var "wad")) =
-        .ok (.int (Int.ofNat (burnUsrBalanceWord evm I).toNat -
-          Int.ofNat (burnWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [evalExpr_burn_usr_balance, evalExpr_burn_wad]
-  simp [EvalResult.bind, bind, evalBinaryOp?]
-
-theorem evalExpr_burn_supply_sub_raw (evm : EVM.State) (I : ExecutionEnv) :
-    evalExpr? config { contract := contract, locals := burnStore I } evm
-      (.binary .sub (.storage totalSupplyRef) (.var "wad")) =
-        .ok (.int (Int.ofNat (burnTotalSupplyWord evm).toNat -
-          Int.ofNat (burnWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [evalExpr_burn_totalSupply, evalExpr_burn_wad]
-  simp [EvalResult.bind, bind, evalBinaryOp?]
-
-set_option maxHeartbeats 1000000 in
 theorem evalExpr_burn_allowance_debit (evm : EVM.State) (I : ExecutionEnv)
     (henough : (burnWadWord I).toNat ≤ (burnAllowanceWord evm I).toNat) :
     evalExpr? config { contract := contract, locals := burnStore I } evm
       (sub256 (.storage (allowanceRef (.var "usr") sender)) (.var "wad")) =
         .ok (burnAllowanceDebitValue evm I) := by
-  have hsub :
-      Int.ofNat (burnAllowanceWord evm I).toNat - Int.ofNat (burnWadWord I).toNat =
-        Int.ofNat ((burnAllowanceWord evm I).toNat - (burnWadWord I).toNat) := by
-    exact (Int.ofNat_sub henough).symm
   have htoNat : (burnAllowanceDebitWord evm I).toNat =
       (burnAllowanceWord evm I).toNat - (burnWadWord I).toNat := by
     unfold burnAllowanceDebitWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (burnAllowanceWord evm I).val.isLt)
-  have hltNat :
-      (burnAllowanceWord evm I).toNat - (burnWadWord I).toNat < 2 ^ 256 :=
-    lt_of_le_of_lt (Nat.sub_le _ _) (by
-      simpa [UInt256.toNat, UInt256.size] using (burnAllowanceWord evm I).val.isLt)
-  have hlt : ¬ Int.ofNat
-        ((burnAllowanceWord evm I).toNat - (burnWadWord I).toNat) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr hltNat)
-  have hnotNeg :
-      ¬ (Int.ofNat ((burnAllowanceWord evm I).toNat - (burnWadWord I).toNat) < 0) := by
-    exact not_lt_of_ge (Int.natCast_nonneg _)
-  have hnotBound :
-      ¬ 115792089237316195423570985008687907853269984665640564039457584007913129639936 ≤
-        (burnAllowanceWord evm I).toNat - (burnWadWord I).toNat := by
-    exact Nat.not_le_of_lt (by simpa using hltNat)
-  conv_lhs =>
-    unfold sub256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_burn_allowance_sub_raw, hsub]
-  simp [EvalResult.bind, bind, pure, uint256Int, hlt, hnotNeg, hnotBound]
-  by_cases hnegGuard :
-      (↑((burnAllowanceWord evm I).toNat - (burnWadWord I).toNat) : Int) < 0
-  · exact False.elim (hnotNeg hnegGuard)
-  · rw [if_neg hnegGuard]
-    simp [burnAllowanceDebitValue, htoNat]
+  exact evalExpr_checked_sub_uint256_word_ok
+    (evalExpr_burn_allowance evm I) (evalExpr_burn_wad evm I) htoNat henough
 
-set_option maxHeartbeats 1000000 in
 theorem evalExpr_burn_usr_debit (evm : EVM.State) (I : ExecutionEnv)
     (henough : (burnWadWord I).toNat ≤ (burnUsrBalanceWord evm I).toNat) :
     evalExpr? config { contract := contract, locals := burnStore I } evm
       (sub256 (.storage (balanceOfRef (.var "usr"))) (.var "wad")) =
         .ok (burnUsrDebitValue evm I) := by
-  have hsub :
-      Int.ofNat (burnUsrBalanceWord evm I).toNat - Int.ofNat (burnWadWord I).toNat =
-        Int.ofNat ((burnUsrBalanceWord evm I).toNat - (burnWadWord I).toNat) := by
-    exact (Int.ofNat_sub henough).symm
   have htoNat : (burnUsrDebitWord evm I).toNat =
       (burnUsrBalanceWord evm I).toNat - (burnWadWord I).toNat := by
     unfold burnUsrDebitWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (burnUsrBalanceWord evm I).val.isLt)
-  have hltNat :
-      (burnUsrBalanceWord evm I).toNat - (burnWadWord I).toNat < 2 ^ 256 :=
-    lt_of_le_of_lt (Nat.sub_le _ _) (by
-      simpa [UInt256.toNat, UInt256.size] using (burnUsrBalanceWord evm I).val.isLt)
-  have hlt : ¬ Int.ofNat
-        ((burnUsrBalanceWord evm I).toNat - (burnWadWord I).toNat) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr hltNat)
-  have hnotNeg :
-      ¬ (Int.ofNat ((burnUsrBalanceWord evm I).toNat - (burnWadWord I).toNat) < 0) := by
-    exact not_lt_of_ge (Int.natCast_nonneg _)
-  have hnotBound :
-      ¬ 115792089237316195423570985008687907853269984665640564039457584007913129639936 ≤
-        (burnUsrBalanceWord evm I).toNat - (burnWadWord I).toNat := by
-    exact Nat.not_le_of_lt (by simpa using hltNat)
-  conv_lhs =>
-    unfold sub256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_burn_usr_sub_raw, hsub]
-  simp [EvalResult.bind, bind, pure, uint256Int, hlt, hnotNeg, hnotBound]
-  by_cases hnegGuard :
-      (↑((burnUsrBalanceWord evm I).toNat - (burnWadWord I).toNat) : Int) < 0
-  · exact False.elim (hnotNeg hnegGuard)
-  · rw [if_neg hnegGuard]
-    simp [burnUsrDebitValue, htoNat]
+  exact evalExpr_checked_sub_uint256_word_ok
+    (evalExpr_burn_usr_balance evm I) (evalExpr_burn_wad evm I) htoNat henough
 
-set_option maxHeartbeats 1000000 in
 theorem evalExpr_burn_supply_debit (evm : EVM.State) (I : ExecutionEnv)
     (henough : (burnWadWord I).toNat ≤ (burnTotalSupplyWord evm).toNat) :
     evalExpr? config { contract := contract, locals := burnStore I } evm
       (sub256 (.storage totalSupplyRef) (.var "wad")) =
         .ok (burnSupplyDebitValue evm I) := by
-  have hsub :
-      Int.ofNat (burnTotalSupplyWord evm).toNat - Int.ofNat (burnWadWord I).toNat =
-        Int.ofNat ((burnTotalSupplyWord evm).toNat - (burnWadWord I).toNat) := by
-    exact (Int.ofNat_sub henough).symm
   have htoNat : (burnSupplyDebitWord evm I).toNat =
       (burnTotalSupplyWord evm).toNat - (burnWadWord I).toNat := by
     unfold burnSupplyDebitWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (burnTotalSupplyWord evm).val.isLt)
-  have hltNat :
-      (burnTotalSupplyWord evm).toNat - (burnWadWord I).toNat < 2 ^ 256 :=
-    lt_of_le_of_lt (Nat.sub_le _ _) (by
-      simpa [UInt256.toNat, UInt256.size] using (burnTotalSupplyWord evm).val.isLt)
-  have hlt : ¬ Int.ofNat
-        ((burnTotalSupplyWord evm).toNat - (burnWadWord I).toNat) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr hltNat)
-  have hnotNeg :
-      ¬ (Int.ofNat ((burnTotalSupplyWord evm).toNat - (burnWadWord I).toNat) < 0) := by
-    exact not_lt_of_ge (Int.natCast_nonneg _)
-  have hnotBound :
-      ¬ 115792089237316195423570985008687907853269984665640564039457584007913129639936 ≤
-        (burnTotalSupplyWord evm).toNat - (burnWadWord I).toNat := by
-    exact Nat.not_le_of_lt (by simpa using hltNat)
-  conv_lhs =>
-    unfold sub256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_burn_supply_sub_raw, hsub]
-  simp [EvalResult.bind, bind, pure, uint256Int, hlt, hnotNeg, hnotBound]
-  by_cases hnegGuard :
-      (↑((burnTotalSupplyWord evm).toNat - (burnWadWord I).toNat) : Int) < 0
-  · exact False.elim (hnotNeg hnegGuard)
-  · rw [if_neg hnegGuard]
-    simp [burnSupplyDebitValue, htoNat]
+  exact evalExpr_checked_sub_uint256_word_ok
+    (evalExpr_burn_totalSupply evm I) (evalExpr_burn_wad evm I) htoNat henough
 
 theorem evalExpr_burn_supply_debit_revert (evm : EVM.State) (I : ExecutionEnv)
     (hlt : (burnTotalSupplyWord evm).toNat < (burnWadWord I).toNat) :
     evalExpr? config { contract := contract, locals := burnStore I } evm
       (sub256 (.storage totalSupplyRef) (.var "wad")) = .revert := by
-  have hneg :
-      Int.ofNat (burnTotalSupplyWord evm).toNat - Int.ofNat (burnWadWord I).toNat < 0 := by
-    have hltInt :
-        Int.ofNat (burnTotalSupplyWord evm).toNat < Int.ofNat (burnWadWord I).toNat :=
-      Int.ofNat_lt.mpr hlt
-    omega
-  have hnotEnough : ¬ (burnWadWord I).toNat ≤ (burnTotalSupplyWord evm).toNat :=
-    Nat.not_le_of_lt hlt
-  conv_lhs =>
-    unfold sub256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_burn_supply_sub_raw]
-  simp [EvalResult.bind, bind, pure, uint256Int, hneg, hnotEnough]
+  exact evalExpr_checked_sub_uint256_word_revert_of_underflow
+    (evalExpr_burn_totalSupply evm I) (evalExpr_burn_wad evm I) hlt
 
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_burn_allowance_checkedSub_true (evm : EVM.State) (I : ExecutionEnv)

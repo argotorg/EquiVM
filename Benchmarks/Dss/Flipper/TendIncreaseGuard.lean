@@ -110,7 +110,7 @@ theorem evalExpr_tendBidOneRequire_ok {cA gh bl σ σ₀ A I} {g : Sat256}
       (initState cA gh bl σ σ₀ g A I)
       (.binary .or
         (.binary .eq (.intLit ONE) (.intLit 0))
-        (.binary .eq (.binary .div (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
         .ok (.bool true) := by
   have hbid :=
     evalExpr_varUInt256 (evm := initState cA gh bl σ σ₀ g A I)
@@ -161,7 +161,7 @@ theorem evalExpr_tendBegBidRequire_ok {cA gh bl σ σ₀ A I} {g : Sat256}
       (initState cA gh bl σ σ₀ g A I)
       (.binary .or
         (.binary .eq (.storage (bidsF (.var "id") "bid")) (.intLit 0))
-        (.binary .eq (.binary .div (.var "begBid")
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "begBid")
           (.storage (bidsF (.var "id") "bid"))) (.storage begRef))) =
         .ok (.bool true) := by
   have hbeg := evalExpr_flipperBeg_of_get (cA := cA) (gh := gh) (bl := bl)
@@ -338,7 +338,7 @@ theorem flipperTendSourceBodyBegBidOverflow {cA gh bl σ σ₀ A I} {g : UInt256
       evalExpr? config { contract := contract, locals := tendLocalsBidOne I } evm0
         (.binary .or
           (.binary .eq (.intLit ONE) (.intLit 0))
-          (.binary .eq (.binary .div (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
           .ok (.bool true) := by
     simpa [evm0] using
       evalExpr_tendBidOneRequire_ok (cA := cA) (gh := gh) (bl := bl)
@@ -360,7 +360,9 @@ theorem flipperTendSourceBodyBegBidOverflow {cA gh bl σ σ₀ A I} {g : UInt256
     refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hlotGuard)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using htabGuard)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hbidGuard)) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hmulBid) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hmulBid (by
+      simpa [uint256, uint256Int] using
+        valueMatchesOptionalABIType_uint256_word (tendBidOneWord I))) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqBid) ?_
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert hmulBegRev)
   simpa [ExecTransitionBody, tendTransition, nonpayable, checkedMulUintInto,
@@ -425,7 +427,7 @@ theorem flipperTendSourceBodyInsufficientIncrease {cA gh bl σ σ₀ A I} {g : U
       evalExpr? config { contract := contract, locals := tendLocalsBidOne I } evm0
         (.binary .or
           (.binary .eq (.intLit ONE) (.intLit 0))
-          (.binary .eq (.binary .div (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
           .ok (.bool true) := by
     simpa [evm0] using
       evalExpr_tendBidOneRequire_ok (cA := cA) (gh := gh) (bl := bl)
@@ -441,7 +443,7 @@ theorem flipperTendSourceBodyInsufficientIncrease {cA gh bl σ σ₀ A I} {g : U
       evalExpr? config { contract := contract, locals := tendLocalsBidOneBegBid σ I } evm0
         (.binary .or
           (.binary .eq (.storage (bidsF (.var "id") "bid")) (.intLit 0))
-          (.binary .eq (.binary .div (.var "begBid")
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "begBid")
             (.storage (bidsF (.var "id") "bid"))) (.storage begRef))) =
           .ok (.bool true) := by
     simpa [evm0] using
@@ -467,9 +469,13 @@ theorem flipperTendSourceBodyInsufficientIncrease {cA gh bl σ σ₀ A I} {g : U
     refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hlotGuard)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using htabGuard)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals, evm0] using hbidGuard)) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hmulBid) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hmulBid (by
+      simpa [uint256, uint256Int] using
+        valueMatchesOptionalABIType_uint256_word (tendBidOneWord I))) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqBid) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hmulBeg) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hmulBeg (by
+      simpa [uint256, uint256Int] using
+        valueMatchesOptionalABIType_uint256_word (tendBegBidWord σ I))) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqBeg) ?_
     exact ExecBlock.consRevert (ExecStmt.requireFalse hinc)
   simpa [ExecTransitionBody, tendTransition, nonpayable, checkedMulUintInto,

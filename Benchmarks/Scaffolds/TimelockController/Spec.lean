@@ -238,7 +238,7 @@ def scheduleOperation (id delay : Expr) : List Stmt :=
   [ .require (.unary .not (isOperationExpr id)),
     .letDecl "minDelay" (some uint256) (.storage minDelayRef),
     .require (.binary .ge delay (.var "minDelay")),
-    .assign .storage (timestampRef id) (u256 (.binary .add (.env .timestamp) delay)) ]
+    .assign .storage (timestampRef id) (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.env .timestamp) delay)) ]
 
 def beforeCall (id predecessor : Expr) : List Stmt :=
   [ .require (isOperationReadyExpr id),
@@ -494,7 +494,7 @@ def executeBatchTransition : TransitionDecl :=
       [ .for
           [ .letDecl "i" (some uint256) (.intLit 0) ]
           (.binary .lt (.var "i") (lenLocal "targets"))
-          [ .assign .localVar { base := "i" } (u256 (.binary .add (.var "i") (.intLit 1))) ]
+          [ .assign .localVar { base := "i" } (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1))) ]
           (rawExecute
             (.index (.var "targets") (.var "i"))
             (.index (.var "values") (.var "i"))

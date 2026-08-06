@@ -346,23 +346,12 @@ theorem evalExpr_dent_begLot_ok (evm : EVM.State) (I : ExecutionEnv)
         (mul256 (.storage begRef) (.var "lot")) =
       .ok (.int (Int.ofNat (dentBegLotWord evm I).toNat)) := by
   have hbeg := evalExpr_dent_beg_storage evm I
-  have hlot := evalExpr_dent_lot_var evm I
+  have hlot :
+      evalExpr? config { contract := contract, locals := dentLocals I } evm (.var "lot") =
+        .ok (.int (Int.ofNat (dentLotWord I).toNat)) := by
+    simpa [dentLotValue] using evalExpr_dent_lot_var evm I
   have hprod := dentBegLotWord_toNat_of_fit evm I hfit
-  unfold mul256 u256
-  simp only [evalExpr?, hbeg, hlot, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hfitNat :
-      (dentBegWord evm).toNat * (dentLotWord I).toNat < 2 ^ 256 := by
-    simpa [UInt256.size] using hfit
-  have hltInt :
-      Int.ofNat ((dentBegWord evm).toNat * (dentLotWord I).toNat) <
-        (2 : Int) ^ (256 : Nat) := by
-    change Int.ofNat ((dentBegWord evm).toNat * (dentLotWord I).toNat) <
-      Int.ofNat (2 ^ 256)
-    exact Int.ofNat_lt.mpr hfitNat
-  simp [uint256Int, hprod]
-  constructor
-  · exact Int.natCast_nonneg _
-  · exact hltInt
+  exact evalExpr_checked_mul_uint256_word_ok hbeg hlot hprod hfit
 
 theorem evalExpr_dent_begLot_overflow (evm : EVM.State) (I : ExecutionEnv)
     (hoverflow : UInt256.size ≤ (dentBegWord evm).toNat * (dentLotWord I).toNat) :
@@ -370,21 +359,11 @@ theorem evalExpr_dent_begLot_overflow (evm : EVM.State) (I : ExecutionEnv)
         (mul256 (.storage begRef) (.var "lot")) =
       .revert := by
   have hbeg := evalExpr_dent_beg_storage evm I
-  have hlot := evalExpr_dent_lot_var evm I
-  unfold mul256 u256
-  simp only [evalExpr?, hbeg, hlot, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hoverflowNat :
-      2 ^ 256 ≤ (dentBegWord evm).toNat * (dentLotWord I).toNat := by
-    simpa [UInt256.size] using hoverflow
-  have hgeInt :
-      (2 : Int) ^ (256 : Nat) ≤
-        Int.ofNat ((dentBegWord evm).toNat * (dentLotWord I).toNat) := by
-    change Int.ofNat (2 ^ 256) ≤
-      Int.ofNat ((dentBegWord evm).toNat * (dentLotWord I).toNat)
-    exact Int.ofNat_le.mpr hoverflowNat
-  simp [uint256Int]
-  intro _hnonneg
-  exact hgeInt
+  have hlot :
+      evalExpr? config { contract := contract, locals := dentLocals I } evm (.var "lot") =
+        .ok (.int (Int.ofNat (dentLotWord I).toNat)) := by
+    simpa [dentLotValue] using evalExpr_dent_lot_var evm I
+  exact evalExpr_checked_mul_uint256_word_revert_of_overflow hbeg hlot hoverflow
 
 theorem evalExpr_dent_lotOne_ok (evm : EVM.State) (I : ExecutionEnv)
     (hfit : (dentLotStoredWord evm I).toNat * dentOneWord.toNat < UInt256.size) :
@@ -393,44 +372,12 @@ theorem evalExpr_dent_lotOne_ok (evm : EVM.State) (I : ExecutionEnv)
       .ok (.int (Int.ofNat (dentLotOneWord evm I).toNat)) := by
   have hlot := evalExpr_dent_lot_storage_begLotLocals evm I
   have hprod := dentLotOneWord_toNat_of_fit evm I hfit
-  unfold mul256 u256
-  simp only [evalExpr?, hlot, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hone : dentOneWord.toNat = 1000000000000000000 := by native_decide
-  have hfitNat :
-      (dentLotStoredWord evm I).toNat * 1000000000000000000 < 2 ^ 256 := by
-    simpa [UInt256.size, hone] using hfit
-  have hltInt :
-      Int.ofNat ((dentLotStoredWord evm I).toNat * 1000000000000000000) <
-        (2 : Int) ^ (256 : Nat) := by
-    change Int.ofNat ((dentLotStoredWord evm I).toNat * 1000000000000000000) <
-      Int.ofNat (2 ^ 256)
-    exact Int.ofNat_lt.mpr hfitNat
-  have hmulCast :
-      Int.ofNat ((dentLotStoredWord evm I).toNat * 1000000000000000000) =
-        Int.ofNat (dentLotStoredWord evm I).toNat * 1000000000000000000 := by
-    norm_num
-  have hltIntMul :
-      Int.ofNat (dentLotStoredWord evm I).toNat * 1000000000000000000 <
-        (2 : Int) ^ (256 : Nat) := by
-    rw [← hmulCast]
-    exact hltInt
-  have hnonneg :
-      ¬ Int.ofNat (dentLotStoredWord evm I).toNat *
-          (1000000000000000000 : Int) < 0 := by
-    rw [← hmulCast]
-    exact not_lt_of_ge (Int.natCast_nonneg _)
-  have hnotge :
-      ¬ 115792089237316195423570985008687907853269984665640564039457584007913129639936 ≤
-          Int.ofNat (dentLotStoredWord evm I).toNat * 1000000000000000000 := by
-    simpa using not_le_of_gt hltIntMul
-  simp [uint256Int, ONE, hprod, dentOneWord]
-  rw [if_neg]
-  · simp [show ({ val := 1000000000000000000 } : UInt256).toNat =
-        1000000000000000000 from by native_decide]
-  · intro hbad
-    cases hbad with
-    | inl hlt => exact hnonneg hlt
-    | inr hge => exact hnotge hge
+  have hone :
+      evalExpr? config { contract := contract, locals := dentBegLotLocals evm I } evm
+          (.intLit ONE) = .ok (.int (Int.ofNat dentOneWord.toNat)) := by
+    norm_num [evalExpr?, pure, ONE,
+      show dentOneWord.toNat = 1000000000000000000 from by native_decide]
+  exact evalExpr_checked_mul_uint256_word_ok hlot hone hprod hfit
 
 theorem evalExpr_dent_lotOne_overflow (evm : EVM.State) (I : ExecutionEnv)
     (hoverflow : UInt256.size ≤ (dentLotStoredWord evm I).toNat * dentOneWord.toNat) :
@@ -438,20 +385,12 @@ theorem evalExpr_dent_lotOne_overflow (evm : EVM.State) (I : ExecutionEnv)
         (mul256 (.storage (bidsF (.var "id") "lot")) (.intLit ONE)) =
       .revert := by
   have hlot := evalExpr_dent_lot_storage_begLotLocals evm I
-  unfold mul256 u256
-  simp only [evalExpr?, hlot, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hone : dentOneWord.toNat = 1000000000000000000 := by native_decide
-  have hoverflowNat :
-      2 ^ 256 ≤ (dentLotStoredWord evm I).toNat * 1000000000000000000 := by
-    simpa [UInt256.size, hone] using hoverflow
-  have hgeInt :
-      (2 : Int) ^ (256 : Nat) ≤
-        Int.ofNat ((dentLotStoredWord evm I).toNat * 1000000000000000000) := by
-    change Int.ofNat (2 ^ 256) ≤
-      Int.ofNat ((dentLotStoredWord evm I).toNat * 1000000000000000000)
-    exact Int.ofNat_le.mpr hoverflowNat
-  simp [uint256Int, ONE]
-  exact hgeInt
+  have hone :
+      evalExpr? config { contract := contract, locals := dentBegLotLocals evm I } evm
+          (.intLit ONE) = .ok (.int (Int.ofNat dentOneWord.toNat)) := by
+    norm_num [evalExpr?, pure, ONE,
+      show dentOneWord.toNat = 1000000000000000000 from by native_decide]
+  exact evalExpr_checked_mul_uint256_word_revert_of_overflow hlot hone hoverflow
 
 theorem evalExpr_dent_lot_eq_zero_true_begLotLocals (evm : EVM.State) (I : ExecutionEnv)
     (hlot : dentLotWord I = ⟨0⟩) :
@@ -483,10 +422,13 @@ theorem evalExpr_dent_begLot_div_lot_eq_beg (evm : EVM.State) (I : ExecutionEnv)
     (hfit : (dentBegWord evm).toNat * (dentLotWord I).toNat < UInt256.size)
     (hlot : dentLotWord I ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := dentBegLotLocals evm I } evm
-      (.binary .eq (.binary .div (.var "begLot") (.var "lot")) (.storage begRef)) =
+      (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "begLot") (.var "lot")) (.storage begRef)) =
         .ok (.bool true) := by
   have hbase := evalExpr_dent_begLot_var evm I
-  have hlotEval := evalExpr_dent_lot_var_begLotLocals evm I
+  have hlotEval :
+      evalExpr? config { contract := contract, locals := dentBegLotLocals evm I } evm
+          (.var "lot") = .ok (.int (Int.ofNat (dentLotWord I).toNat)) := by
+    simpa [dentLotValue] using evalExpr_dent_lot_var_begLotLocals evm I
   have hbegEval := evalExpr_dent_beg_storage_begLotLocals evm I
   have hbaseNat := dentBegLotWord_toNat_of_fit evm I hfit
   have hlotPos : 0 < (dentLotWord I).toNat := by
@@ -499,21 +441,19 @@ theorem evalExpr_dent_begLot_div_lot_eq_beg (evm : EVM.State) (I : ExecutionEnv)
     rw [hbaseNat]
     rw [Nat.mul_comm]
     exact Nat.mul_div_right _ hlotPos
-  have hdivInt :
-      Int.ofNat (dentBegLotWord evm I).toNat / Int.ofNat (dentLotWord I).toNat =
-        Int.ofNat (dentBegWord evm).toNat := by
-    simpa [Int.natCast_ediv] using
-      (congrArg (fun n : Nat => (n : Int)) hdivNat)
-  simp only [evalExpr?, hbase, hlotEval, hbegEval, EvalResult.bind, bind]
-  simp [dentLotValue, evalBinaryOp?, hlotPos.ne']
-  exact hdivInt
+  have hdiv := evalExpr_checked_div_uint256_word_ok hbase hlotEval hlot
+    (result := dentBegWord evm) hdivNat.symm
+  rw [evalExpr_binary .eq _ _ (by decide) (by decide), hdiv, hbegEval]
+  simp [EvalResult.bind, bind, evalBinaryOp?,
+    show BinaryOp.eq ≠ BinaryOp.and by decide,
+    show BinaryOp.eq ≠ BinaryOp.or by decide]
 
 theorem evalExpr_dent_begLot_mul_guard_true (evm : EVM.State) (I : ExecutionEnv)
     (hfit : (dentBegWord evm).toNat * (dentLotWord I).toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := dentBegLotLocals evm I } evm
       (.binary .or
         (.binary .eq (.var "lot") (.intLit 0))
-        (.binary .eq (.binary .div (.var "begLot") (.var "lot")) (.storage begRef))) =
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "begLot") (.var "lot")) (.storage begRef))) =
       .ok (.bool true) := by
   by_cases hlotZero : dentLotWord I = ⟨0⟩
   · simp only [evalExpr?, evalExpr_dent_lot_eq_zero_true_begLotLocals evm I hlotZero,
@@ -531,7 +471,7 @@ theorem evalExpr_dent_lotOne_div_one_eq_lot (evm : EVM.State) (I : ExecutionEnv)
     (hfit : (dentLotStoredWord evm I).toNat * dentOneWord.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := dentLotOneLocals evm I } evm
       (.binary .eq
-        (.binary .div (.var "lotOne") (.intLit ONE))
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "lotOne") (.intLit ONE))
         (.storage (bidsF (.var "id") "lot"))) = .ok (.bool true) := by
   have hbase := evalExpr_dent_lotOne_var evm I
   have hlotEval := evalExpr_dent_lot_storage_lotOneLocals evm I
@@ -546,14 +486,15 @@ theorem evalExpr_dent_lotOne_div_one_eq_lot (evm : EVM.State) (I : ExecutionEnv)
     rw [hbaseNat]
     rw [Nat.mul_comm]
     exact Nat.mul_div_right _ honePos
-  have hdivInt :
-      Int.ofNat (dentLotOneWord evm I).toNat / ONE =
-        Int.ofNat (dentLotStoredWord evm I).toNat := by
-    have hcast := congrArg (fun n : Nat => (n : Int)) hdivNat
-    simpa [ONE, honeNat, Int.natCast_ediv] using hcast
-  simp only [evalExpr?, hbase, hlotEval, EvalResult.bind, bind]
-  simp [evalBinaryOp?, ONE]
-  exact hdivInt
+  have honeEval :
+      evalExpr? config { contract := contract, locals := dentLotOneLocals evm I } evm
+          (.intLit ONE) = .ok (.int (Int.ofNat dentOneWord.toNat)) := by
+    norm_num [evalExpr?, pure, ONE,
+      show dentOneWord.toNat = 1000000000000000000 from by native_decide]
+  have hdiv := evalExpr_checked_div_uint256_word_ok hbase honeEval
+    (by native_decide : dentOneWord ≠ ⟨0⟩) (result := dentLotStoredWord evm I) hdivNat.symm
+  simp only [evalExpr?, hdiv, hlotEval, EvalResult.bind, bind, evalBinaryOp?,
+    beq_self_eq_true]
 
 theorem evalExpr_dent_lotOne_mul_guard_true (evm : EVM.State) (I : ExecutionEnv)
     (hfit : (dentLotStoredWord evm I).toNat * dentOneWord.toNat < UInt256.size) :
@@ -561,7 +502,7 @@ theorem evalExpr_dent_lotOne_mul_guard_true (evm : EVM.State) (I : ExecutionEnv)
       (.binary .or
         (.binary .eq (.intLit ONE) (.intLit 0))
         (.binary .eq
-          (.binary .div (.var "lotOne") (.intLit ONE))
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "lotOne") (.intLit ONE))
           (.storage (bidsF (.var "id") "lot")))) =
       .ok (.bool true) := by
   simp only [evalExpr?, evalExpr_dent_one_eq_zero_false_lotOneLocals evm I,
@@ -802,24 +743,40 @@ theorem dentTicPostWord_toNat (evm : EVM.State) (I : ExecutionEnv)
   unfold dentTicPostWord
   exact UInt256.toNat_ofNat_of_lt (lt_trans hfit (by norm_num [UInt256.size]))
 
+theorem evalExpr_dent_now48_afterLot_of_locals
+    (evm : EVM.State) (I : ExecutionEnv) (locals : Store) :
+    evalExpr? config { contract := contract, locals }
+        (dentAfterLotStore evm I) now48 =
+      .ok (.int (Int.ofNat (dentNow48Word evm).toNat)) := by
+  have htimestamp :
+      evalExpr? config { contract := contract, locals } (dentAfterLotStore evm I)
+          (.env .timestamp) = .ok (.int (Int.ofNat (dentTimestampWord evm).toNat)) := by
+    simp [evalExpr?, envValue, pure, dentTimestampWord, dentAfterLotStore_executionEnv]
+  have hmodulus :
+      evalExpr? config { contract := contract, locals } (dentAfterLotStore evm I)
+          (.intLit uint48Modulus) = .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
+  have hfit :
+      Int.ofNat (dentTimestampWord evm).toNat % uint48Modulus <
+        Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
+  have hmod :
+      Int.ofNat (dentTimestampWord evm).toNat % uint48Modulus =
+        Int.ofNat (dentNow48Word evm).toNat := by
+    have hnow := dentNow48Word_toNat evm
+    rw [hnow]
+    norm_num [uint48Modulus, Int.natCast_mod]
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩)
+    htimestamp hmodulus (Int.natCast_nonneg _) hpos hfit
+  rw [hmod] at heval
+  simpa [now48, wrap48] using heval
+
 theorem evalExpr_dent_now48_lotOneLocals (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentLotOneLocals evm I }
         (dentAfterLotStore evm I) now48 =
-      .ok (.int (Int.ofNat (dentNow48Word evm).toNat)) := by
-  unfold now48 wrap48
-  simp only [evalExpr?, envValue, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hmod :
-      Int.ofNat (UInt256.ofNat (dentAfterLotStore evm I).executionEnv.header.timestamp).toNat %
-          uint48Modulus =
-        Int.ofNat (dentNow48Word evm).toNat := by
-    have hnow := dentNow48Word_toNat evm
-    have henv :
-        (UInt256.ofNat (dentAfterLotStore evm I).executionEnv.header.timestamp).toNat =
-          (dentTimestampWord evm).toNat := by
-      simp [dentTimestampWord, dentAfterLotStore_executionEnv]
-    rw [henv, hnow]
-    norm_num [uint48Modulus, Int.natCast_mod]
-  simpa [uint48Modulus] using hmod
+      .ok (.int (Int.ofNat (dentNow48Word evm).toNat)) :=
+  evalExpr_dent_now48_afterLot_of_locals evm I (dentLotOneLocals evm I)
 
 theorem evalExpr_dent_ttl_storage_lotOneLocals (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentLotOneLocals evm I }
@@ -843,64 +800,117 @@ theorem evalExpr_dent_ttl_storage_lotOneLocals (evm : EVM.State) (I : ExecutionE
     (by rfl)
     hload
 
+theorem evalExpr_dent_ticAdd_ok_of_evals {locals : Store}
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hnow :
+      evalExpr? config { contract := contract, locals } (dentAfterLotStore evm I) now48 =
+        .ok (.int (Int.ofNat (dentNow48Word evm).toNat)))
+    (httl :
+      evalExpr? config { contract := contract, locals } (dentAfterLotStore evm I)
+          (.storage ttlRef) =
+        .ok (.int (Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat)))
+    (hfit :
+      (dentNow48Word evm).toNat + (dentTtlWord (dentAfterLotStore evm I)).toNat <
+        2 ^ 48) :
+    evalExpr? config { contract := contract, locals } (dentAfterLotStore evm I)
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage ttlRef))) =
+      .ok (.int (Int.ofNat (dentTicPostWord evm I).toNat)) := by
+  have hticNat := dentTicPostWord_toNat evm I hfit
+  let sum := dentNow48Word evm + dentTtlWord (dentAfterLotStore evm I)
+  have hadd := evalExpr_wrapping_add_uint256_word_ok hnow httl (result := sum) rfl
+  have hsumNat :
+      sum.toNat =
+        (dentNow48Word evm).toNat + (dentTtlWord (dentAfterLotStore evm I)).toNat := by
+    change (dentNow48Word evm + dentTtlWord (dentAfterLotStore evm I)).toNat = _
+    rw [uadd_toNat, Nat.mod_eq_of_lt (lt_trans hfit (by norm_num [UInt256.size]))]
+  have hmodulus :
+      evalExpr? config { contract := contract, locals } (dentAfterLotStore evm I)
+          (.intLit uint48Modulus) = .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
+  have hmod : Int.ofNat sum.toNat % uint48Modulus =
+      Int.ofNat (dentTicPostWord evm I).toNat := by
+    rw [hsumNat, hticNat]
+    exact Int.emod_eq_of_lt (Int.natCast_nonneg _) (Int.ofNat_lt.mpr hfit)
+  have hfitResult :
+      Int.ofNat sum.toNat % uint48Modulus < Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩)
+    hadd hmodulus (Int.natCast_nonneg _) hpos hfitResult
+  rw [hmod] at heval
+  simpa [wrap48] using heval
+
+theorem evalExpr_dent_ticAdd_wrapped_of_evals {locals : Store}
+    (evm : EVM.State) (I : ExecutionEnv)
+    (hnow :
+      evalExpr? config { contract := contract, locals } (dentAfterLotStore evm I) now48 =
+        .ok (.int (Int.ofNat (dentNow48Word evm).toNat)))
+    (httl :
+      evalExpr? config { contract := contract, locals } (dentAfterLotStore evm I)
+          (.storage ttlRef) =
+        .ok (.int (Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat))) :
+    evalExpr? config { contract := contract, locals } (dentAfterLotStore evm I)
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage ttlRef))) =
+      .ok (.int (Int.ofNat (dentTicWrappedNat evm I))) := by
+  let sum := dentNow48Word evm + dentTtlWord (dentAfterLotStore evm I)
+  have hadd := evalExpr_wrapping_add_uint256_word_ok hnow httl (result := sum) rfl
+  have hnowLt : (dentNow48Word evm).toNat < 2 ^ 48 := by
+    rw [dentNow48Word_toNat]
+    exact Nat.mod_lt _ (by norm_num)
+  have httlLt : (dentTtlWord (dentAfterLotStore evm I)).toNat < 2 ^ 48 := by
+    simpa [dentTtlWord, flopperUint48Offset0Word, EVM.twoPow] using
+      flopperUint48Masked_lt
+        (flopperSlotWord ⟨6⟩ (dentAfterLotStore evm I).accountMap
+          (dentAfterLotStore evm I).executionEnv)
+  have hsumLt :
+      (dentNow48Word evm).toNat + (dentTtlWord (dentAfterLotStore evm I)).toNat <
+        UInt256.size := by
+    have :
+        (dentNow48Word evm).toNat + (dentTtlWord (dentAfterLotStore evm I)).toNat <
+          2 ^ 49 := by omega
+    exact lt_trans this (by norm_num [UInt256.size])
+  have hsumNat :
+      sum.toNat =
+        (dentNow48Word evm).toNat + (dentTtlWord (dentAfterLotStore evm I)).toNat := by
+    change (dentNow48Word evm + dentTtlWord (dentAfterLotStore evm I)).toNat = _
+    rw [uadd_toNat, Nat.mod_eq_of_lt hsumLt]
+  have hmodulus :
+      evalExpr? config { contract := contract, locals } (dentAfterLotStore evm I)
+          (.intLit uint48Modulus) = .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
+  have hmod : Int.ofNat sum.toNat % uint48Modulus =
+      Int.ofNat (dentTicWrappedNat evm I) := by
+    rw [hsumNat]
+    norm_num [dentTicWrappedNat, uint48Modulus, Int.natCast_mod]
+  have hfitResult :
+      Int.ofNat sum.toNat % uint48Modulus < Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩)
+    hadd hmodulus (Int.natCast_nonneg _) hpos hfitResult
+  rw [hmod] at heval
+  simpa [wrap48] using heval
+
 theorem evalExpr_dent_ticAdd_ok (evm : EVM.State) (I : ExecutionEnv)
     (hfit :
       (dentNow48Word evm).toNat + (dentTtlWord (dentAfterLotStore evm I)).toNat <
         2 ^ 48) :
     evalExpr? config { contract := contract, locals := dentLotOneLocals evm I }
         (dentAfterLotStore evm I)
-        (wrap48 (.binary .add now48 (.storage ttlRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage ttlRef))) =
       .ok (.int (Int.ofNat (dentTicPostWord evm I).toNat)) := by
   have hnow := evalExpr_dent_now48_lotOneLocals evm I
   have httl := evalExpr_dent_ttl_storage_lotOneLocals evm I
-  have hticNat := dentTicPostWord_toNat evm I hfit
-  unfold wrap48
-  simp only [evalExpr?, hnow, httl, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hsumMod :
-      (Int.ofNat (dentNow48Word evm).toNat +
-          Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat) %
-          uint48Modulus =
-        Int.ofNat (dentTicPostWord evm I).toNat := by
-    rw [hticNat]
-    have hsumCast :
-        Int.ofNat ((dentNow48Word evm).toNat +
-            (dentTtlWord (dentAfterLotStore evm I)).toNat) =
-          Int.ofNat (dentNow48Word evm).toNat +
-            Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat := by
-      norm_num
-    rw [← hsumCast]
-    have hfitInt :
-        Int.ofNat ((dentNow48Word evm).toNat +
-            (dentTtlWord (dentAfterLotStore evm I)).toNat) < uint48Modulus := by
-      change Int.ofNat ((dentNow48Word evm).toNat +
-          (dentTtlWord (dentAfterLotStore evm I)).toNat) < Int.ofNat (2 ^ 48)
-      exact Int.ofNat_lt.mpr hfit
-    exact Int.emod_eq_of_lt (Int.natCast_nonneg _) hfitInt
-  simpa [uint48Modulus] using hsumMod
+  exact evalExpr_dent_ticAdd_ok_of_evals evm I hnow httl hfit
 
 theorem evalExpr_dent_ticAdd_wrapped (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentLotOneLocals evm I }
         (dentAfterLotStore evm I)
-        (wrap48 (.binary .add now48 (.storage ttlRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage ttlRef))) =
       .ok (.int (Int.ofNat (dentTicWrappedNat evm I))) := by
   have hnow := evalExpr_dent_now48_lotOneLocals evm I
   have httl := evalExpr_dent_ttl_storage_lotOneLocals evm I
-  unfold wrap48
-  simp only [evalExpr?, hnow, httl, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hsumMod :
-      (Int.ofNat (dentNow48Word evm).toNat +
-          Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat) %
-          uint48Modulus =
-        Int.ofNat (dentTicWrappedNat evm I) := by
-    have hsumCast :
-        Int.ofNat ((dentNow48Word evm).toNat +
-            (dentTtlWord (dentAfterLotStore evm I)).toNat) =
-          Int.ofNat (dentNow48Word evm).toNat +
-            Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat := by
-      norm_num
-    rw [← hsumCast]
-    norm_num [dentTicWrappedNat, uint48Modulus, Int.natCast_mod]
-  simpa [uint48Modulus] using hsumMod
+  exact evalExpr_dent_ticAdd_wrapped_of_evals evm I hnow httl
 
 theorem evalExpr_dent_tic_guard_true (evm : EVM.State) (I : ExecutionEnv)
     (hfit :
@@ -918,24 +928,7 @@ theorem evalExpr_dent_tic_guard_true (evm : EVM.State) (I : ExecutionEnv)
       .ok (.int (Int.ofNat (dentTicPostWord evm I).toNat))
     rw [dentTicLocals_get_tic]
     rfl
-  have hnow :
-      evalExpr? config { contract := contract, locals := dentTicLocals evm I }
-          (dentAfterLotStore evm I) now48 =
-        .ok (.int (Int.ofNat (dentNow48Word evm).toNat)) := by
-    unfold now48 wrap48
-    simp only [evalExpr?, envValue, EvalResult.bind, bind, pure, evalBinaryOp?]
-    have hmod :
-        Int.ofNat (UInt256.ofNat (dentAfterLotStore evm I).executionEnv.header.timestamp).toNat %
-            uint48Modulus =
-          Int.ofNat (dentNow48Word evm).toNat := by
-      have hnowNat := dentNow48Word_toNat evm
-      have henv :
-          (UInt256.ofNat (dentAfterLotStore evm I).executionEnv.header.timestamp).toNat =
-            (dentTimestampWord evm).toNat := by
-        simp [dentTimestampWord, dentAfterLotStore_executionEnv]
-      rw [henv, hnowNat]
-      norm_num [uint48Modulus, Int.natCast_mod]
-    simpa [uint48Modulus] using hmod
+  have hnow := evalExpr_dent_now48_afterLot_of_locals evm I (dentTicLocals evm I)
   have hticNat := dentTicPostWord_toNat evm I hfit
   have hge :
       Int.ofNat (dentNow48Word evm).toNat ≤
@@ -965,24 +958,8 @@ theorem evalExpr_dent_tic_guard_false_wrapped (evm : EVM.State) (I : ExecutionEn
       .ok (.int (Int.ofNat (dentTicWrappedNat evm I)))
     rw [dentTicWrappedLocals_get_tic]
     rfl
-  have hnow :
-      evalExpr? config { contract := contract, locals := dentTicWrappedLocals evm I }
-          (dentAfterLotStore evm I) now48 =
-        .ok (.int (Int.ofNat (dentNow48Word evm).toNat)) := by
-    unfold now48 wrap48
-    simp only [evalExpr?, envValue, EvalResult.bind, bind, pure, evalBinaryOp?]
-    have hmod :
-        Int.ofNat (UInt256.ofNat (dentAfterLotStore evm I).executionEnv.header.timestamp).toNat %
-            uint48Modulus =
-          Int.ofNat (dentNow48Word evm).toNat := by
-      have hnowNat := dentNow48Word_toNat evm
-      have henv :
-          (UInt256.ofNat (dentAfterLotStore evm I).executionEnv.header.timestamp).toNat =
-            (dentTimestampWord evm).toNat := by
-        simp [dentTimestampWord, dentAfterLotStore_executionEnv]
-      rw [henv, hnowNat]
-      norm_num [uint48Modulus, Int.natCast_mod]
-    simpa [uint48Modulus] using hmod
+  have hnow :=
+    evalExpr_dent_now48_afterLot_of_locals evm I (dentTicWrappedLocals evm I)
   have hnowLt : (dentNow48Word evm).toNat < 2 ^ 48 := by
     have h := dentNow48Word_toNat evm
     rw [h]
@@ -1095,26 +1072,6 @@ theorem evalExpr_dent_lot_var_moveLocals
       .ok (dentLotValue I) := by
   exact evalExpr_dent_var_of_get evm (dentMoveLocals_get_lot startEvm I)
 
-theorem evalExpr_dent_now48_afterLot_of_locals
-    (evm : EVM.State) (I : ExecutionEnv) (locals : Store) :
-    evalExpr? config { contract := contract, locals := locals }
-        (dentAfterLotStore evm I) now48 =
-      .ok (.int (Int.ofNat (dentNow48Word evm).toNat)) := by
-  unfold now48 wrap48
-  simp only [evalExpr?, envValue, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hmod :
-      Int.ofNat (UInt256.ofNat (dentAfterLotStore evm I).executionEnv.header.timestamp).toNat %
-          uint48Modulus =
-        Int.ofNat (dentNow48Word evm).toNat := by
-    have hnow := dentNow48Word_toNat evm
-    have henv :
-        (UInt256.ofNat (dentAfterLotStore evm I).executionEnv.header.timestamp).toNat =
-          (dentTimestampWord evm).toNat := by
-      simp [dentTimestampWord, dentAfterLotStore_executionEnv]
-    rw [henv, hnow]
-    norm_num [uint48Modulus, Int.natCast_mod]
-  simpa [uint48Modulus] using hmod
-
 theorem evalExpr_dent_ttl_storage_afterLot_of_locals
     (evm : EVM.State) (I : ExecutionEnv) {locals : Store}
     (httl : locals.get? "ttl" = none) :
@@ -1146,42 +1103,19 @@ theorem evalExpr_dent_ticAdd_ok_moveLocals
         2 ^ 48) :
     evalExpr? config { contract := contract, locals := dentMoveLocals startEvm I }
         (dentAfterLotStore evm I)
-        (wrap48 (.binary .add now48 (.storage ttlRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage ttlRef))) =
       .ok (.int (Int.ofNat (dentTicPostWord evm I).toNat)) := by
   have hnow := evalExpr_dent_now48_afterLot_of_locals evm I (dentMoveLocals startEvm I)
   have httl := evalExpr_dent_ttl_storage_afterLot_of_locals evm I
     (locals := dentMoveLocals startEvm I)
     (by simp [dentMoveLocals, dentLotOneLocals, dentBegLotLocals, dentLocals])
-  have hticNat := dentTicPostWord_toNat evm I hfit
-  unfold wrap48
-  simp only [evalExpr?, hnow, httl, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hsumMod :
-      (Int.ofNat (dentNow48Word evm).toNat +
-          Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat) %
-          uint48Modulus =
-        Int.ofNat (dentTicPostWord evm I).toNat := by
-    rw [hticNat]
-    have hsumCast :
-        Int.ofNat ((dentNow48Word evm).toNat +
-            (dentTtlWord (dentAfterLotStore evm I)).toNat) =
-          Int.ofNat (dentNow48Word evm).toNat +
-            Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat := by
-      norm_num
-    rw [← hsumCast]
-    have hfitInt :
-        Int.ofNat ((dentNow48Word evm).toNat +
-            (dentTtlWord (dentAfterLotStore evm I)).toNat) < uint48Modulus := by
-      change Int.ofNat ((dentNow48Word evm).toNat +
-          (dentTtlWord (dentAfterLotStore evm I)).toNat) < Int.ofNat (2 ^ 48)
-      exact Int.ofNat_lt.mpr hfit
-    exact Int.emod_eq_of_lt (Int.natCast_nonneg _) hfitInt
-  simpa [uint48Modulus] using hsumMod
+  exact evalExpr_dent_ticAdd_ok_of_evals evm I hnow httl hfit
 
 theorem evalExpr_dent_ticAdd_wrapped_moveLocals
     (startEvm evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := dentMoveLocals startEvm I }
         (dentAfterLotStore evm I)
-        (wrap48 (.binary .add now48 (.storage ttlRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage ttlRef))) =
       .ok (.int (Int.ofNat
         (((dentNow48Word evm).toNat + (dentTtlWord (dentAfterLotStore evm I)).toNat) %
           2 ^ 48))) := by
@@ -1189,23 +1123,8 @@ theorem evalExpr_dent_ticAdd_wrapped_moveLocals
   have httl := evalExpr_dent_ttl_storage_afterLot_of_locals evm I
     (locals := dentMoveLocals startEvm I)
     (by simp [dentMoveLocals, dentLotOneLocals, dentBegLotLocals, dentLocals])
-  unfold wrap48
-  simp only [evalExpr?, hnow, httl, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hsumMod :
-      (Int.ofNat (dentNow48Word evm).toNat +
-          Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat) %
-          uint48Modulus =
-        Int.ofNat (((dentNow48Word evm).toNat +
-          (dentTtlWord (dentAfterLotStore evm I)).toNat) % 2 ^ 48) := by
-    have hsumCast :
-        Int.ofNat ((dentNow48Word evm).toNat +
-            (dentTtlWord (dentAfterLotStore evm I)).toNat) =
-          Int.ofNat (dentNow48Word evm).toNat +
-            Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat := by
-      norm_num
-    rw [← hsumCast]
-    norm_num [uint48Modulus, Int.natCast_mod]
-  simpa [uint48Modulus] using hsumMod
+  simpa [dentTicWrappedNat] using
+    evalExpr_dent_ticAdd_wrapped_of_evals evm I hnow httl
 
 theorem evalExpr_dent_tic_guard_true_moveLocals
     (startEvm evm : EVM.State) (I : ExecutionEnv)
@@ -1375,65 +1294,27 @@ theorem evalExpr_dent_ticAdd_ok_kissRetLocals
         2 ^ 48) :
     evalExpr? config { contract := contract, locals := dentKissRetLocals startEvm I out }
         (dentAfterLotStore evm I)
-        (wrap48 (.binary .add now48 (.storage ttlRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage ttlRef))) =
       .ok (.int (Int.ofNat (dentTicPostWord evm I).toNat)) := by
   have hnow := evalExpr_dent_now48_afterLot_of_locals evm I
     (dentKissRetLocals startEvm I out)
   have httl := evalExpr_dent_ttl_storage_afterLot_of_locals evm I
     (locals := dentKissRetLocals startEvm I out)
     (dentKissRetLocals_get_ttl startEvm I out)
-  have hticNat := dentTicPostWord_toNat evm I hfit
-  unfold wrap48
-  simp only [evalExpr?, hnow, httl, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hsumMod :
-      (Int.ofNat (dentNow48Word evm).toNat +
-          Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat) %
-          uint48Modulus =
-        Int.ofNat (dentTicPostWord evm I).toNat := by
-    rw [hticNat]
-    have hsumCast :
-        Int.ofNat ((dentNow48Word evm).toNat +
-            (dentTtlWord (dentAfterLotStore evm I)).toNat) =
-          Int.ofNat (dentNow48Word evm).toNat +
-            Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat := by
-      norm_num
-    rw [← hsumCast]
-    have hfitInt :
-        Int.ofNat ((dentNow48Word evm).toNat +
-            (dentTtlWord (dentAfterLotStore evm I)).toNat) < uint48Modulus := by
-      change Int.ofNat ((dentNow48Word evm).toNat +
-          (dentTtlWord (dentAfterLotStore evm I)).toNat) < Int.ofNat (2 ^ 48)
-      exact Int.ofNat_lt.mpr hfit
-    exact Int.emod_eq_of_lt (Int.natCast_nonneg _) hfitInt
-  simpa [uint48Modulus] using hsumMod
+  exact evalExpr_dent_ticAdd_ok_of_evals evm I hnow httl hfit
 
 theorem evalExpr_dent_ticAdd_wrapped_kissRetLocals
     (startEvm evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
     evalExpr? config { contract := contract, locals := dentKissRetLocals startEvm I out }
         (dentAfterLotStore evm I)
-        (wrap48 (.binary .add now48 (.storage ttlRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage ttlRef))) =
       .ok (.int (Int.ofNat (dentTicWrappedNat evm I))) := by
   have hnow := evalExpr_dent_now48_afterLot_of_locals evm I
     (dentKissRetLocals startEvm I out)
   have httl := evalExpr_dent_ttl_storage_afterLot_of_locals evm I
     (locals := dentKissRetLocals startEvm I out)
     (dentKissRetLocals_get_ttl startEvm I out)
-  unfold wrap48
-  simp only [evalExpr?, hnow, httl, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hsumMod :
-      (Int.ofNat (dentNow48Word evm).toNat +
-          Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat) %
-          uint48Modulus =
-        Int.ofNat (dentTicWrappedNat evm I) := by
-    have hsumCast :
-        Int.ofNat ((dentNow48Word evm).toNat +
-            (dentTtlWord (dentAfterLotStore evm I)).toNat) =
-          Int.ofNat (dentNow48Word evm).toNat +
-            Int.ofNat (dentTtlWord (dentAfterLotStore evm I)).toNat := by
-      norm_num
-    rw [← hsumCast]
-    norm_num [dentTicWrappedNat, uint48Modulus, Int.natCast_mod]
-  simpa [uint48Modulus] using hsumMod
+  exact evalExpr_dent_ticAdd_wrapped_of_evals evm I hnow httl
 
 theorem evalExpr_dent_tic_guard_true_kissRetLocals
     (startEvm evm : EVM.State) (I : ExecutionEnv) (out : ByteArray)
@@ -1747,7 +1628,7 @@ theorem flopperDentBodyReverts_lotOneOverflow (evm : EVM.State) (I : ExecutionEn
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_lot_lt_true evm I hlotLt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_dent_begLot_ok evm I hbegFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_dent_begLot_ok evm I hbegFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_dent_begLot_mul_guard_true evm I hbegFit)) <|
       ExecBlock.consRevert

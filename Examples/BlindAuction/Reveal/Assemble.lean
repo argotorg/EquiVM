@@ -791,7 +791,7 @@ theorem scratch_blindAuctionPlaceBidBodyReverts_true_nonzero_pendingOverflow
         [ .return [(.boolLit false)] ] [],
       .ite (.binary .ne (.storage highestBidderRef) zeroAddr)
         [ .assign .storage (pendingReturnsRef (.storage highestBidderRef))
-            (u256 (.binary .add
+            (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
               (.storage (pendingReturnsRef (.storage highestBidderRef)))
               (.storage highestBidRef))) ] [],
       .assign .storage highestBidRef (.var "value"),
@@ -879,7 +879,7 @@ theorem scratch_revealLoopBody_revert_placeBid_pendingOverflow_of_get (evm : EVM
       scratch_revealSecretStoreOf_refund_get locals evm i refund value secret false hrefund
   have hadd :
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
           .ok (.int (Int.ofNat (refund.toNat + deposit.toNat))) :=
     scratch_evalExpr_reveal_refund_add_deposit evm L4 i refund deposit hbidL4 hrefundL4
       hdeposit hfit
@@ -935,7 +935,7 @@ theorem scratch_revealLoopBody_revert_placeBid_pendingOverflow_of_get (evm : EVM
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
-                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ]
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ]
         .reverted :=
     ExecBlock.consRevert hcall
   have hplaceIte :
@@ -946,7 +946,7 @@ theorem scratch_revealLoopBody_revert_placeBid_pendingOverflow_of_get (evm : EVM
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [])
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [])
         .reverted :=
     ExecStmt.iteTrue hcondTrue hplaceThen
   have htail :
@@ -961,14 +961,14 @@ theorem scratch_revealLoopBody_revert_placeBid_pendingOverflow_of_get (evm : EVM
               [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
           [.continue] [],
         .assign .localVar { base := "refund" }
-          (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
         .ite
           (.binary .and (.unary .not (.var "fake"))
             (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
         .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
       .reverted
     refine ExecBlock.consNormal (ExecStmt.iteFalse hguard ExecBlock.nil) ?_

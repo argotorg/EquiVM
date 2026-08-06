@@ -74,10 +74,13 @@ private structure Env where
   structs : List (String × List (String × STy)) := []
   /-- internal function names -/
   fns : List String := []
-  /-- params, lets, call binders, and storage aliases in scope -/
-  locals : List String := []
+  /-- Params, lets, and call binders in scope. `none` means a call result whose
+      type is not available to the surface elaborator. -/
+  locals : List (String × Option STy) := []
 
-private def Env.isLocal (env : Env) (s : String) : Bool := env.locals.contains s
+private def Env.isLocal (env : Env) (s : String) : Bool := env.locals.any (·.1 == s)
+private def Env.localTy? (env : Env) (s : String) : Option STy :=
+  (env.locals.find? (·.1 == s)).bind (·.2)
 private def Env.storageTy? (env : Env) (s : String) : Option STy :=
   if env.isLocal s then none else env.storage.lookup s
 
@@ -307,6 +310,115 @@ private partial def flattenPath (stx : TSyntax `solExpr) :
       some (h, cs, steps ++ [.tup n.getNat])
   | _ => none
 
+private def STy.intTypeName? : STy -> Option String
+  | .named name =>
+      if (widthOf? name "uint").isSome || (widthOf? name "int").isSome then some name else none
+  | _ => none
+
+private def STy.isFixedBytes : STy -> Bool
+  | .named name => (widthOf? name "bytes").isSome
+  | _ => false
+
+/-- The surface specs use `% 2^N` (and named equivalents) to spell an explicit EVM-width wrap.
+    Ordinary Solidity modulo must not make arithmetic in its left operand wrapping. -/
+private def isExplicitWidthWrap (rhs : TSyntax `solExpr) : Bool :=
+  let rendered := (rhs.raw.reprint.getD "").replace " " ""
+  rendered.contains "2^" || rendered.contains "twoPow" ||
+    (rendered.contains "uint" && rendered.contains "Modulus") ||
+    rendered.contains "wordModulus"
+
+private partial def walkSurfaceType? (env : Env) : STy -> List PStep -> Option STy
+  | ty, [] => some ty
+  | .array _ _, [.field "length"] => some (.named "uint256")
+  | .named "bytes", [.field "length"] => some (.named "uint256")
+  | .named "string", [.field "length"] => some (.named "uint256")
+  | .named name, .field field :: steps => do
+      let fields ← env.structs.lookup name
+      let ty ← fields.lookup field
+      walkSurfaceType? env ty steps
+  | .mapping _ value, .index _ :: steps => walkSurfaceType? env value steps
+  | .array elem _, .index _ :: steps => walkSurfaceType? env elem steps
+  | .tuple elems, .tup index :: steps => do
+      let ty ← elems[index]?
+      walkSurfaceType? env ty steps
+  | .named "bytes", .index _ :: steps => walkSurfaceType? env (.named "uint8") steps
+  | .named "bytes", .slice _ _ :: steps => walkSurfaceType? env (.named "bytes") steps
+  | _, _ => none
+
+private def pathSurfaceType? (env : Env) (stx : TSyntax `solExpr) : Option STy := do
+  let (_, comps, steps) ← flattenPath stx
+  if steps.isEmpty && (comps == ["msg", "sender"] || comps == ["tx", "origin"] ||
+      comps == ["block", "coinbase"]) then some (.named "address")
+  else if steps.isEmpty && comps == ["msg", "sig"] then some (.named "bytes4")
+  else if steps.isEmpty && comps == ["msg", "data"] then some (.named "bytes")
+  else if steps.isEmpty && (comps == ["msg", "value"] || comps == ["tx", "gasprice"] ||
+      comps == ["block", "timestamp"] || comps == ["block", "chainid"] ||
+      comps == ["block", "number"] || comps == ["block", "gaslimit"] ||
+      comps == ["block", "prevrandao"] || comps == ["block", "basefee"]) then
+    some (.named "uint256")
+  else
+    let base ← comps.head?
+    let ty ← env.localTy? base <|> env.storageTy? base
+    walkSurfaceType? env ty (comps.tail.map PStep.field ++ steps)
+
+private def mergeSurfaceTypes (stx : Syntax) (lhs rhs : Option STy) : MacroM (Option STy) := do
+  match lhs, rhs with
+  | some lhs, some rhs =>
+      if lhs == rhs then return some lhs
+      else
+        match lhs.intTypeName?, rhs.intTypeName? with
+        | some lhsName, some rhsName =>
+            let lhsSigned := lhsName.startsWith "int"
+            let rhsSigned := rhsName.startsWith "int"
+            if lhsSigned != rhsSigned then
+              Macro.throwErrorAt stx
+                s!"solm: binary operands mix signed and unsigned types '{lhsName}' and '{rhsName}'"
+            let some lhsWidth := widthOf? lhsName (if lhsSigned then "int" else "uint")
+              | Macro.throwErrorAt stx s!"solm: invalid integer type '{lhsName}'"
+            let some rhsWidth := widthOf? rhsName (if rhsSigned then "int" else "uint")
+              | Macro.throwErrorAt stx s!"solm: invalid integer type '{rhsName}'"
+            return some (.named s!"{if lhsSigned then "int" else "uint"}{max lhsWidth rhsWidth}")
+        | _, _ =>
+            Macro.throwErrorAt stx
+              s!"solm: binary operands have different types '{repr lhs}' and '{repr rhs}'"
+  | some ty, none | none, some ty => return some ty
+  | none, none => return none
+
+private partial def exprSurfaceType? (env : Env) (stx : TSyntax `solExpr) : MacroM (Option STy) := do
+  if let some ty := pathSurfaceType? env stx then return some ty
+  match stx with
+  | `(solExpr| ($expr:solExpr)) => exprSurfaceType? env expr
+  | `(solExpr| $_:solExpr as $type:ident) => return some (.named type.getId.toString)
+  | `(solExpr| $type:ident ($_:solExpr,*)) =>
+      if (← elemTypeTerm? type.getId.toString).isSome then return some (.named type.getId.toString)
+      else return none
+  | `(solExpr| - $expr) | `(solExpr| ~ $expr) => exprSurfaceType? env expr
+  | `(solExpr| $lhs ** $rhs) | `(solExpr| $lhs * $rhs) | `(solExpr| $lhs / $rhs)
+  | `(solExpr| $lhs % $rhs) | `(solExpr| $lhs + $rhs) | `(solExpr| $lhs - $rhs)
+  | `(solExpr| $lhs & $rhs) | `(solExpr| $lhs ^ $rhs) | `(solExpr| $lhs | $rhs) =>
+      mergeSurfaceTypes stx (← exprSurfaceType? env lhs) (← exprSurfaceType? env rhs)
+  | `(solExpr| $lhs << $_) | `(solExpr| $lhs >> $_) => exprSurfaceType? env lhs
+  | `(solExpr| $_ < $_) | `(solExpr| $_ <= $_) | `(solExpr| $_ > $_) | `(solExpr| $_ >= $_)
+  | `(solExpr| $_ == $_) | `(solExpr| $_ != $_) | `(solExpr| $_ && $_) | `(solExpr| $_ || $_)
+  | `(solExpr| ! $_) => return some (.named "bool")
+  | `(solExpr| $_ ? $thenExpr : $elseExpr) =>
+      mergeSurfaceTypes stx (← exprSurfaceType? env thenExpr) (← exprSurfaceType? env elseExpr)
+  | `(solExpr| this) => return some (.named "address")
+  | _ => return none
+
+private def inferredIntTypeTerm (env : Env) (stx : Syntax) (lhs rhs : TSyntax `solExpr)
+    (expected : Option STy) (forceExpected : Bool) : MacroM Term := do
+  let operands ←
+    if forceExpected && expected.isSome then pure none
+    else mergeSurfaceTypes stx (← exprSurfaceType? env lhs) (← exprSurfaceType? env rhs)
+  let inferred := if forceExpected then expected <|> operands else operands <|> expected
+  -- Literal-only expressions and expressions involving `var` locals whose external/internal-call
+  -- result type is unavailable use Solidity's default word-sized integer type.
+  let ty := inferred.getD (.named "uint256")
+  let some name := ty.intTypeName?
+    | Macro.throwErrorAt stx s!"solm: '{repr ty}' is not an integer type"
+  intTypeTerm stx name
+
 /-- Environment variables reachable as (dotted) identifiers. -/
 private def envVarOf? : List String → Option Name
   | ["msg", "sender"] => some `caller
@@ -387,7 +499,9 @@ private partial def resolveRef (env : Env) (stx : Syntax) (comps : List String)
         | .field f => out := out.push (← `(Solm.StorageRefStep.field $(quote f)))
         | .index e => out := out.push (← `(Solm.StorageRefStep.aindex $(← elabExpr env e)))
         | _ => exprOnly := true  -- tuple projection / slice: expression-fold handles these
-      return some { origin := .localVar, base := c0, steps := out, ty := none,
+      let ty := if isLen then some (.named "uint256")
+        else (env.localTy? c0).bind (walkSurfaceType? env · steps)
+      return some { origin := .localVar, base := c0, steps := out, ty,
                     isLength := isLen, exprOnly := exprOnly }
     else if let some ty0 := env.storageTy? c0 then
       let mut out : Array Term := #[]
@@ -523,7 +637,11 @@ private partial def elabExpr (env : Env) (stx : TSyntax `solExpr) : MacroM Term 
   | `(solExpr| $a:solExpr [ $i:solExpr : $j:solExpr ]) => do
       `(Solm.Expr.bytesSlice $(← elabExpr env a) $(← elabExpr env i) $(← elabExpr env j))
   | `(solExpr| ! $a) => do `(Solm.Expr.unary Solm.UnaryOp.not $(← elabExpr env a))
-  | `(solExpr| ~ $a) => do `(Solm.Expr.unary Solm.UnaryOp.bitNot $(← elabExpr env a))
+  | `(solExpr| ~ $a) => do
+      let ty := (← exprSurfaceType? env a).getD (.named "uint256")
+      let op ← if ty.isFixedBytes then `(Solm.UnaryOp.fixedBitNot)
+        else `(Solm.UnaryOp.bitNot $(← inferredIntTypeTerm env a a a (some ty) false))
+      `(Solm.Expr.unary $op $(← elabExpr env a))
   | `(solExpr| - $a) => do
       `(Solm.Expr.unary (Solm.UnaryOp.neg $(← negIntTypeTerm a)) $(← elabExpr env a))
   | `(solExpr| $a ** $b) => mkBin env `exp a b
@@ -546,7 +664,9 @@ private partial def elabExpr (env : Env) (stx : TSyntax `solExpr) : MacroM Term 
   | `(solExpr| $a && $b) => mkBin env `and a b
   | `(solExpr| $a || $b) => mkBin env `or a b
   | `(solExpr| $e as $t:ident) => do
-      `(Solm.Expr.inRange $(← intTypeTerm t.raw t.getId.toString) $(← elabExpr env e))
+      let ty := STy.named t.getId.toString
+      `(Solm.Expr.inRange $(← intTypeTerm t.raw t.getId.toString)
+          $(← elabExprAtIntType env e ty .checked true))
   | `(solExpr| $c ? $a : $b) => do
       `(Solm.Expr.ite $(← elabExpr env c) $(← elabExpr env a) $(← elabExpr env b))
   | _ => Macro.throwErrorAt stx "solm: unrecognized expression"
@@ -562,8 +682,86 @@ private partial def isThisAddr (stx : TSyntax `solExpr) : Bool :=
          | _ => false)
   | _ => false
 
-private partial def mkBin (env : Env) (op : Name) (a b : TSyntax `solExpr) : MacroM Term := do
-  `(Solm.Expr.binary $(mkIdent (`Solm.BinaryOp ++ op)) $(← elabExpr env a) $(← elabExpr env b))
+private partial def elabExprAtIntType (env : Env) (stx : TSyntax `solExpr) (ty : STy)
+    (mode : IntArithMode := .checked) (forceType : Bool := false) : MacroM Term := do
+  match stx with
+  | `(solExpr| ($expr:solExpr)) => elabExprAtIntType env expr ty mode forceType
+  | `(solExpr| $a ** $b) => mkBin env `exp a b (some ty) mode forceType
+  | `(solExpr| $a * $b) => mkBin env `mul a b (some ty) mode forceType
+  | `(solExpr| $a / $b) => mkBin env `div a b (some ty) mode forceType
+  | `(solExpr| $a % $b) => mkBin env `mod a b (some ty) mode forceType
+  | `(solExpr| $a + $b) => mkBin env `add a b (some ty) mode forceType
+  | `(solExpr| $a - $b) => mkBin env `sub a b (some ty) mode forceType
+  | `(solExpr| $a << $b) => mkBin env `shl a b (some ty) mode forceType
+  | `(solExpr| $a >> $b) => mkBin env `shr a b (some ty) mode forceType
+  | `(solExpr| $a & $b) => mkBin env `bitAnd a b (some ty) mode forceType
+  | `(solExpr| $a ^ $b) => mkBin env `bitXor a b (some ty) mode forceType
+  | `(solExpr| $a | $b) => mkBin env `bitOr a b (some ty) mode forceType
+  | _ => elabExpr env stx
+
+private partial def mkBin (env : Env) (op : Name) (a b : TSyntax `solExpr)
+    (expected : Option STy := none) (mode : IntArithMode := .checked)
+    (forceExpected : Bool := false) : MacroM Term := do
+  let modeTerm ← match mode with
+    | .checked => `(Solm.IntArithMode.checked)
+    | .wrapping => `(Solm.IntArithMode.wrapping)
+  let opTerm ← match op with
+    | `add => `(Solm.BinaryOp.add $(← inferredIntTypeTerm env a a b expected forceExpected) $modeTerm)
+    | `sub => `(Solm.BinaryOp.sub $(← inferredIntTypeTerm env a a b expected forceExpected) $modeTerm)
+    | `mul => `(Solm.BinaryOp.mul $(← inferredIntTypeTerm env a a b expected forceExpected) $modeTerm)
+    | `div => `(Solm.BinaryOp.div $(← inferredIntTypeTerm env a a b expected forceExpected) $modeTerm)
+    | `mod => `(Solm.BinaryOp.mod $(← inferredIntTypeTerm env a a b expected forceExpected))
+    | `exp => `(Solm.BinaryOp.exp $(← inferredIntTypeTerm env a a b expected forceExpected) $modeTerm)
+    | `bitAnd => do
+        let inferred ← mergeSurfaceTypes a (← exprSurfaceType? env a) (← exprSurfaceType? env b)
+        let ty := (if forceExpected then expected <|> inferred else inferred <|> expected).getD
+          (.named "uint256")
+        if ty.isFixedBytes then `(Solm.BinaryOp.fixedBitAnd)
+        else `(Solm.BinaryOp.bitAnd $(← inferredIntTypeTerm env a a b (some ty) forceExpected))
+    | `bitOr => do
+        let inferred ← mergeSurfaceTypes a (← exprSurfaceType? env a) (← exprSurfaceType? env b)
+        let ty := (if forceExpected then expected <|> inferred else inferred <|> expected).getD
+          (.named "uint256")
+        if ty.isFixedBytes then `(Solm.BinaryOp.fixedBitOr)
+        else `(Solm.BinaryOp.bitOr $(← inferredIntTypeTerm env a a b (some ty) forceExpected))
+    | `bitXor => do
+        let inferred ← mergeSurfaceTypes a (← exprSurfaceType? env a) (← exprSurfaceType? env b)
+        let ty := (if forceExpected then expected <|> inferred else inferred <|> expected).getD
+          (.named "uint256")
+        if ty.isFixedBytes then `(Solm.BinaryOp.fixedBitXor)
+        else `(Solm.BinaryOp.bitXor $(← inferredIntTypeTerm env a a b (some ty) forceExpected))
+    | `shl => do
+        let lhs ← exprSurfaceType? env a
+        let ty := (if forceExpected then expected <|> lhs else lhs <|> expected).getD
+          (.named "uint256")
+        if ty.isFixedBytes then `(Solm.BinaryOp.fixedShl)
+        else `(Solm.BinaryOp.shl $(← inferredIntTypeTerm env a a b (some ty) forceExpected))
+    | `shr => do
+        let lhs ← exprSurfaceType? env a
+        let ty := (if forceExpected then expected <|> lhs else lhs <|> expected).getD
+          (.named "uint256")
+        if ty.isFixedBytes then `(Solm.BinaryOp.fixedShr)
+        else `(Solm.BinaryOp.shr $(← inferredIntTypeTerm env a a b (some ty) forceExpected))
+    | _ => pure (mkIdent (`Solm.BinaryOp ++ op))
+  let wrapsLhs ←
+    if op == `mod then pure (isExplicitWidthWrap b)
+    else
+      pure false
+  let lhs ← match expected with
+    | some ty =>
+        elabExprAtIntType env a ty (if wrapsLhs then .wrapping else mode) forceExpected
+    | none =>
+        if wrapsLhs then
+          let inferred ← mergeSurfaceTypes a (← exprSurfaceType? env a) (← exprSurfaceType? env b)
+          elabExprAtIntType env a (inferred.getD (.named "uint256")) .wrapping false
+        else
+          elabExpr env a
+  let rhs ← match expected with
+    | some ty =>
+        if op == `shl || op == `shr then elabExpr env b
+        else elabExprAtIntType env b ty mode forceExpected
+    | none => elabExpr env b
+  `(Solm.Expr.binary $opTerm $lhs $rhs)
 
 /-- Translate a call-form expression (`f(args)` with `f` possibly dotted). -/
 private partial def elabCall (env : Env) (stx : Syntax) (f : LIdent)
@@ -705,14 +903,16 @@ private def splitMethodCall (env : Env) (stx : TSyntax `solExpr) :
 
 /-- Names/aliases `finish` has beyond `start` — used to let branch-declared binders stay
     visible after the branch (spec bodies bind in both `if` arms and read afterwards). -/
-private def Env.additionsFrom (start finish : Env) : List String × List (String × STy) :=
-  (finish.locals.filter (fun n => !start.locals.contains n),
+private def Env.additionsFrom (start finish : Env) :
+    List (String × Option STy) × List (String × STy) :=
+  (finish.locals.filter (fun p => !start.isLocal p.1),
    finish.storage.filter (fun p => (start.storage.lookup p.1).isNone))
 
-private def Env.withAdditions (base : Env) (adds : List (List String × List (String × STy))) : Env :=
-  let ls := (adds.flatMap (·.1)).eraseDups
+private def Env.withAdditions (base : Env)
+    (adds : List (List (String × Option STy) × List (String × STy))) : Env :=
+  let ls := adds.flatMap (·.1)
   let ss := adds.flatMap (·.2)
-  { base with locals := ls.filter (fun n => !base.locals.contains n) ++ base.locals
+  { base with locals := ls.filter (fun p => !base.isLocal p.1) ++ base.locals
               storage := ss.filter (fun p => (base.storage.lookup p.1).isNone) ++ base.storage }
 
 mutual
@@ -772,16 +972,16 @@ private partial def elabStmt (env : Env) (stx : TSyntax `solStmt) : MacroM (Term
       elabPushPop env stx comps steps.dropLast m args.getElems
   -- tuple-binding low-level calls --------------------------------------------
   | `(solStmt| ($binds:solBind,*) = $rhs:solExpr ;) => do
-      let names ← binds.getElems.mapM fun b => do
+      let namesAndTypes ← binds.getElems.mapM fun b => do
         match b with
-        | `(solBind| $_:solTy $x:ident) => pure x.getId.toString
-        | `(solBind| $_:solTy $_:ident $x:ident) => pure x.getId.toString
+        | `(solBind| $t:solTy $x:ident) => pure (x.getId.toString, some (← parseTy t))
+        | `(solBind| $t:solTy $_:ident $x:ident) => pure (x.getId.toString, some (← parseTy t))
         | _ => Macro.throwErrorAt b "solm: malformed binder"
-      unless names.size == 2 do Macro.throwErrorAt stx "solm: expected two binders"
-      let ok := names[0]!
-      let dat := names[1]!
+      unless namesAndTypes.size == 2 do Macro.throwErrorAt stx "solm: expected two binders"
+      let ok := namesAndTypes[0]!.1
+      let dat := namesAndTypes[1]!.1
       let (target, method, valueOpt, _, callArgs) ← splitMethodCall env rhs
-      let env' := { env with locals := dat :: ok :: env.locals }
+      let env' := { env with locals := namesAndTypes.toList.reverse ++ env.locals }
       unless callArgs.size == 1 do
         Macro.throwErrorAt rhs "solm: low-level call expects one bytes argument"
       let payload ← elabExpr env callArgs[0]!
@@ -843,8 +1043,8 @@ private partial def elabStmt (env : Env) (stx : TSyntax `solStmt) : MacroM (Term
       let (target, method, valueOpt, _, callArgs) ← splitMethodCall env call
       let eth := valueOpt.getD (← `(Solm.Expr.intLit 0))
       let argTs ← callArgs.mapM (elabExpr env)
-      let envOk := { env with locals := ret.getId.toString :: env.locals }
-      let envErr := { env with locals := err.getId.toString :: env.locals }
+      let envOk := { env with locals := (ret.getId.toString, none) :: env.locals }
+      let envErr := { env with locals := (err.getId.toString, none) :: env.locals }
       let (okT, okEnv) ← elabStmts envOk onOk.toList
       let (errT, errEnv) ← elabStmts envErr onErr.toList
       let t ← `(Solm.Stmt.checkedCall $target $(quote method) $eth [$argTs,*]
@@ -880,7 +1080,9 @@ private partial def elabPushPop (env : Env) (stx : Syntax) (comps : List String)
 private partial def elabDecl (env : Env) (t : TSyntax `solTy)
     (loc : Option LIdent) (x : LIdent) (rhs : TSyntax `solExpr) : MacroM (Term × Env) := do
   let name := x.getId.toString
-  let env' := { env with locals := name :: env.locals }
+  let tySTy ← parseTy t
+  let localTy := if tySTy == .named "var" then none else some tySTy
+  let env' := { env with locals := (name, localTy) :: env.locals }
   -- `T storage x = path;` — the alias behaves like a storage variable of the remaining type.
   if let some l := loc then
     let ls := l.getId.toString
@@ -892,7 +1094,7 @@ private partial def elabDecl (env : Env) (t : TSyntax `solTy)
         | Macro.throwErrorAt rhs "solm: cannot type the storage alias"
       let envA := { env with
         storage := (name, aliasTy) :: env.storage
-        locals := env.locals.filter (· != name) }
+        locals := env.locals.filter (·.1 != name) }
       return (← `(Solm.Stmt.letStorage $(quote name) $(← refTerm r)), envA)
     else unless isDataLocation ls do
       Macro.throwErrorAt l.raw s!"solm: unknown data location '{ls}'"
@@ -930,8 +1132,7 @@ private partial def elabDecl (env : Env) (t : TSyntax `solTy)
           $(quote name)), env')
   | _ => pure ()
   -- Plain let declaration.
-  let tySTy ← parseTy t
-  let e ← elabExpr env rhs
+  let e ← if tySTy.intTypeName?.isSome then elabExprAtIntType env rhs tySTy else elabExpr env rhs
   if tySTy == .named "var" then
     return (← `(Solm.Stmt.letDecl $(quote name) none $e), env')
   else
@@ -941,10 +1142,11 @@ private partial def elabAssign (env : Env) (lhs rhs : TSyntax `solExpr) (op : Op
     MacroM (Term × Env) := do
   let r ← resolveRefOrThrow env lhs
   let rhsT ← match op with
-    | none => elabExpr env rhs
-    | some o => do
-        `(Solm.Expr.binary $(mkIdent (`Solm.BinaryOp ++ o)) $(← elabExpr env lhs)
-          $(← elabExpr env rhs))
+    | none =>
+        if let some ty := r.ty then
+          if ty.intTypeName?.isSome then elabExprAtIntType env rhs ty else elabExpr env rhs
+        else elabExpr env rhs
+    | some o => mkBin env o lhs rhs
   return (← `(Solm.Stmt.assign $(← originTerm r.origin) $(← refTerm r) $rhsT), env)
 
 private partial def elabForPost (env : Env) (stx : TSyntax `solForPost) : MacroM Term := do
@@ -965,22 +1167,31 @@ end
 
 /-! ## Declarations and the contract macro -/
 
-private def parseParam (env : Env) (stx : TSyntax `solParam) : MacroM (String × Term) := do
+private structure ParamInfo where
+  name : String
+  surfaceType : STy
+  abiType : Term
+
+private def parseParam (env : Env) (stx : TSyntax `solParam) : MacroM ParamInfo := do
   match stx with
   | `(solParam| $t:solTy $x:ident) => do
-      pure (x.getId.toString, ← abiTypeTerm env t (← parseTy t))
+      let surfaceType ← parseTy t
+      pure { name := x.getId.toString, surfaceType,
+             abiType := ← abiTypeTerm env t surfaceType }
   | `(solParam| $t:solTy $l:ident $x:ident) => do
       unless isDataLocation l.getId.toString do
         Macro.throwErrorAt l.raw s!"solm: unknown data location '{l.getId.toString}'"
-      pure (x.getId.toString, ← abiTypeTerm env t (← parseTy t))
+      let surfaceType ← parseTy t
+      pure { name := x.getId.toString, surfaceType,
+             abiType := ← abiTypeTerm env t surfaceType }
   | _ => Macro.throwErrorAt stx "solm: malformed parameter"
 
-private def paramTerm (p : String × Term) : MacroM Term := do
-  `(({ name := $(quote p.1), ty := $(p.2) } : Solm.Param))
+private def paramTerm (p : ParamInfo) : MacroM Term := do
+  `(({ name := $(quote p.name), ty := $(p.abiType) } : Solm.Param))
 
 private structure FnInfo where
   name : String
-  params : Array (String × Term)
+  params : Array ParamInfo
   returns : Array Term
   bodyStx : Array (TSyntax `solStmt)
   /-- external/public ⇒ transition, internal/private ⇒ function -/
@@ -989,7 +1200,8 @@ private structure FnInfo where
   kind : String  -- "function" | "constructor" | "receive" | "fallback"
 
 private def fnBodyTerm (env : Env) (fn : FnInfo) : MacroM Term := do
-  let env := { env with locals := fn.params.toList.map (·.1) ++ env.locals }
+  let params := fn.params.toList.map fun p => (p.name, some p.surfaceType)
+  let env := { env with locals := params ++ env.locals }
   let body ← elabStmts' env fn.bodyStx.toList
   -- Non-payable entry points get solc's callvalue guard; internal functions and receive don't.
   let needsGuard :=

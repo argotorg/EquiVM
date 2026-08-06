@@ -362,16 +362,34 @@ def ltE (lhs rhs : Expr) : Expr := .binary .lt lhs rhs
 def leE (lhs rhs : Expr) : Expr := .binary .le lhs rhs
 def gtE (lhs rhs : Expr) : Expr := .binary .gt lhs rhs
 def geE (lhs rhs : Expr) : Expr := .binary .ge lhs rhs
-def addE (lhs rhs : Expr) : Expr := .binary .add lhs rhs
-def subE (lhs rhs : Expr) : Expr := .binary .sub lhs rhs
-def mulE (lhs rhs : Expr) : Expr := .binary .mul lhs rhs
-def divE (lhs rhs : Expr) : Expr := .binary .div lhs rhs
-def modE (lhs rhs : Expr) : Expr := .binary .mod lhs rhs
-def shlE (lhs rhs : Expr) : Expr := .binary .shl lhs rhs
-def shrE (lhs rhs : Expr) : Expr := .binary .shr lhs rhs
-def bitAndE (lhs rhs : Expr) : Expr := .binary .bitAnd lhs rhs
-def bitXorE (lhs rhs : Expr) : Expr := .binary .bitXor lhs rhs
+def addE (lhs rhs : Expr) : Expr := .binary (.add (.uint ⟨256, by decide⟩) .checked) lhs rhs
+def subE (lhs rhs : Expr) : Expr := .binary (.sub (.uint ⟨256, by decide⟩) .checked) lhs rhs
+def mulE (lhs rhs : Expr) : Expr := .binary (.mul (.uint ⟨256, by decide⟩) .checked) lhs rhs
+def divE (lhs rhs : Expr) : Expr := .binary (.div (.uint ⟨256, by decide⟩) .checked) lhs rhs
+def modE (lhs rhs : Expr) : Expr := .binary (.mod (.uint ⟨256, by decide⟩)) lhs rhs
+def shlE (lhs rhs : Expr) : Expr := .binary (.shl (.uint ⟨256, by decide⟩)) lhs rhs
+def shrE (lhs rhs : Expr) : Expr := .binary (.shr (.uint ⟨256, by decide⟩)) lhs rhs
+def bitAndE (lhs rhs : Expr) : Expr := .binary (.bitAnd (.uint ⟨256, by decide⟩)) lhs rhs
+def bitXorE (lhs rhs : Expr) : Expr := .binary (.bitXor (.uint ⟨256, by decide⟩)) lhs rhs
 def notE (e : Expr) : Expr := .unary .not e
+
+def addAt (ty : IntType) (lhs rhs : Expr) (mode := IntArithMode.checked) : Expr :=
+  .binary (.add ty mode) lhs rhs
+
+def subAt (ty : IntType) (lhs rhs : Expr) (mode := IntArithMode.checked) : Expr :=
+  .binary (.sub ty mode) lhs rhs
+
+def mulAt (ty : IntType) (lhs rhs : Expr) (mode := IntArithMode.checked) : Expr :=
+  .binary (.mul ty mode) lhs rhs
+
+def divAt (ty : IntType) (lhs rhs : Expr) (mode := IntArithMode.checked) : Expr :=
+  .binary (.div ty mode) lhs rhs
+
+def modAt (ty : IntType) (lhs rhs : Expr) : Expr :=
+  .binary (.mod ty) lhs rhs
+
+def shlAt (ty : IntType) (lhs rhs : Expr) : Expr :=
+  .binary (.shl ty) lhs rhs
 
 def sdivTowardZeroE (lhs rhs : Expr) : Expr :=
   .ite (ltE lhs (.intLit 0))
@@ -452,13 +470,13 @@ def positionKey (owner tickLower tickUpper : Expr) : Expr :=
   .keccak256 (.abiEncodePacked [(addr, owner), (int24, tickLower), (int24, tickUpper)])
 
 def wordAdd (lhs rhs : Expr) : Expr :=
-  modE (addE lhs rhs) uint256Modulus
+  modE (addAt uint256Int lhs rhs .wrapping) uint256Modulus
 
 def wordSub (lhs rhs : Expr) : Expr :=
-  modE (subE lhs rhs) uint256Modulus
+  modE (subAt uint256Int lhs rhs .wrapping) uint256Modulus
 
 def wordMul (lhs rhs : Expr) : Expr :=
-  modE (mulE lhs rhs) uint256Modulus
+  modE (mulAt uint256Int lhs rhs .wrapping) uint256Modulus
 
 def checkedWordAddLe (lhs rhs upper : Expr) : List Stmt :=
   [ .require (geE (wordAdd lhs rhs) lhs),
@@ -475,6 +493,11 @@ def balanceOfInto (token : Expr) (out tag : Ident) : List Stmt :=
 def mulDivLet (out : Ident) (a b denominator : Expr) : List Stmt :=
   [ .require (gtE denominator (.intLit 0)),
     .letDecl out (some uint256) (divE (mulE a b) denominator),
+    .require (leE (.var out) uint256MaxExpr) ]
+
+def mulDivAtLet (ty : IntType) (out : Ident) (a b denominator : Expr) : List Stmt :=
+  [ .require (gtE denominator (.intLit 0)),
+    .letDecl out (some uint256) (divAt ty (mulAt ty a b) denominator),
     .require (leE (.var out) uint256MaxExpr) ]
 
 def mulDivRoundingUpLet (out : Ident) (a b denominator : Expr) : List Stmt :=
@@ -531,7 +554,7 @@ def getSqrtRatioAtTickFunction : FunctionDecl :=
     body :=
       [ .letDecl "absTick" (some uint256)
           (.ite (ltE (.var "tick") (.intLit 0))
-            (subE (.intLit 0) (.var "tick"))
+            (subAt int24Int (.intLit 0) (.var "tick"))
             (.var "tick")),
         .require (leE (.var "absTick") maxTick),
         .letDecl "ratio" (some uint256)
@@ -573,7 +596,7 @@ def getTickAtSqrtRatioFunction : FunctionDecl :=
     body :=
       [ .require (andE (geE (.var "sqrtPriceX96") minSqrtRatio)
           (ltE (.var "sqrtPriceX96") maxSqrtRatio)),
-        .letDecl "ratio" (some uint256) (shlE (.var "sqrtPriceX96") shift32),
+        .letDecl "ratio" (some uint256) (shlAt uint160Int (.var "sqrtPriceX96") shift32),
         .letDecl "r" (some uint256) (.var "ratio"),
         .letDecl "msb" (some uint256) (.intLit 0) ] ++
       msbStep 7 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF ++
@@ -608,14 +631,14 @@ def getTickAtSqrtRatioFunction : FunctionDecl :=
       logStep 51 true ++
       logStep 50 false ++
       [ .letDecl "log_sqrt10001" (some int256)
-          (mulE (.var "log_2") (.intLit 255738958999603826347141)),
+          (mulAt int256Int (.var "log_2") (.intLit 255738958999603826347141)),
         .letDecl "tickLow" (some int24)
-          (divE
-            (subE (.var "log_sqrt10001") (.intLit 3402992956809132418596140100660247210))
+          (divAt int256Int
+            (subAt int256Int (.var "log_sqrt10001") (.intLit 3402992956809132418596140100660247210))
             fixedPoint128Q128),
         .letDecl "tickHi" (some int24)
-          (divE
-            (addE (.var "log_sqrt10001") (.intLit 291339464771989622907027621153398088495))
+          (divAt int256Int
+            (addAt int256Int (.var "log_sqrt10001") (.intLit 291339464771989622907027621153398088495))
             fixedPoint128Q128),
         .internalCall "getSqrtRatioAtTick" [.var "tickHi"] "sqrtRatioAtTickHi",
         .return
@@ -638,11 +661,11 @@ def oracleLteFunction : FunctionDecl :=
         .letDecl "aAdjusted" (some uint256)
           (.ite (gtE (.var "a") (.var "time"))
             (.var "a")
-            (addE (.var "a") uint32Modulus)),
+            (addAt uint32Int (.var "a") uint32Modulus)),
         .letDecl "bAdjusted" (some uint256)
           (.ite (gtE (.var "b") (.var "time"))
             (.var "b")
-            (addE (.var "b") uint32Modulus)),
+            (addAt uint32Int (.var "b") uint32Modulus)),
         .return [leE (.var "aAdjusted") (.var "bAdjusted")] ] }
 
 def oracleTransformFunction : FunctionDecl :=
@@ -656,16 +679,21 @@ def oracleTransformFunction : FunctionDecl :=
     returnType := [uint32, int56, uint160, boolTy]
     body :=
       [ .letDecl "delta" (some uint32)
-          (uint32Wrap (subE (.var "blockTimestamp") (.var "lastBlockTimestamp"))),
+          (modAt uint32Int
+            (subAt uint32Int (.var "blockTimestamp") (.var "lastBlockTimestamp") .wrapping)
+            uint32Modulus),
         .letDecl "liquidityDenominator" (some uint128)
           (.ite (gtE (.var "liquidity") (.intLit 0)) (.var "liquidity") (.intLit 1)),
         .letDecl "tickCumulative" (some int56)
           (int56Wrap
             (addE (.var "lastTickCumulative") (mulE (.var "tick") (.var "delta")))),
         .letDecl "secondsPerLiquidityCumulativeX128" (some uint160)
-          (uint160Wrap
-            (addE (.var "lastSecondsPerLiquidityCumulativeX128")
-              (divE (shlE (.var "delta") shift128) (.var "liquidityDenominator")))),
+          (modAt uint160Int
+            (addAt uint160Int (.var "lastSecondsPerLiquidityCumulativeX128")
+              (divAt uint128Int (shlAt uint32Int (.var "delta") shift128)
+                (.var "liquidityDenominator") .wrapping)
+              .wrapping)
+            uint160Modulus),
         .return
           [ .var "blockTimestamp", .var "tickCumulative",
             .var "secondsPerLiquidityCumulativeX128", .boolLit true ] ] }
@@ -712,7 +740,8 @@ def getSurroundingObservationsFunction : FunctionDecl :=
                 tuple2 (.var "transformed"), tuple3 (.var "transformed") ] ]
           [],
         .letDecl "oldestIndex" (some uint256)
-          (modE (addE (.var "index") (.intLit 1)) (.var "cardinality")),
+          (modAt uint16Int (addAt uint16Int (.var "index") (.intLit 1))
+            (.var "cardinality")),
         .letStorage "oldest" (observationsRef (.var "oldestIndex")),
         Stmt.ite (.unary .not (.field (.var "oldest") "initialized"))
           [ .letStorage "oldest" (observationsRef (.intLit 0)) ]
@@ -722,7 +751,8 @@ def getSurroundingObservationsFunction : FunctionDecl :=
           "targetAtOrAfterOldest",
         .require (.var "targetAtOrAfterOldest"),
         .letDecl "l" (some uint256) (.var "oldestIndex"),
-        .letDecl "r" (some uint256) (addE (.var "l") (subE (.var "cardinality") (.intLit 1))),
+        .letDecl "r" (some uint256)
+          (addE (.var "l") (subAt uint16Int (.var "cardinality") (.intLit 1))),
         .while (.boolLit true)
           [ .letDecl "i" (some uint256) (divE (addE (.var "l") (.var "r")) (.intLit 2)),
             .letStorage "beforeOrAt" (observationsRef (modE (.var "i") (.var "cardinality"))),
@@ -731,7 +761,9 @@ def getSurroundingObservationsFunction : FunctionDecl :=
                 .continue ]
               [],
             .letStorage "atOrAfter"
-              (observationsRef (modE (addE (.var "i") (.intLit 1)) (.var "cardinality"))),
+              (observationsRef
+                (modE (addAt uint256Int (.var "i") (.intLit 1))
+                  (.var "cardinality"))),
             .internalCall "oracleLte"
               [.var "time", .field (.var "beforeOrAt") "blockTimestamp", .var "target"]
               "targetAtOrAfter",
@@ -785,7 +817,9 @@ def observeSingleFunction : FunctionDecl :=
                       .storage (observationsRawF (.var "index")
                         "secondsPerLiquidityCumulativeX128") ] ] ]
             [],
-        .letDecl "target" (some uint32) (uint32Wrap (subE (.var "time") (.var "secondsAgo"))),
+        .letDecl "target" (some uint32)
+          (modAt uint32Int (subAt uint32Int (.var "time") (.var "secondsAgo") .wrapping)
+            uint32Modulus),
         .internalCall "getSurroundingObservations"
           [.var "time", .var "target", .var "tick", .var "index", .var "liquidity",
             .var "cardinality"]
@@ -797,9 +831,14 @@ def observeSingleFunction : FunctionDecl :=
           [ .return [tuple5 (.var "surrounding"), tuple6 (.var "surrounding")] ]
           [],
         .letDecl "observationTimeDelta" (some uint32)
-          (uint32Wrap (subE (tuple4 (.var "surrounding")) (tuple0 (.var "surrounding")))),
+          (modAt uint32Int
+            (subAt uint32Int (tuple4 (.var "surrounding")) (tuple0 (.var "surrounding"))
+              .wrapping)
+            uint32Modulus),
         .letDecl "targetDelta" (some uint32)
-          (uint32Wrap (subE (.var "target") (tuple0 (.var "surrounding")))),
+          (modAt uint32Int
+            (subAt uint32Int (.var "target") (tuple0 (.var "surrounding")) .wrapping)
+            uint32Modulus),
         .return
           [ int56Wrap
               (addE (tuple1 (.var "surrounding"))
@@ -808,12 +847,16 @@ def observeSingleFunction : FunctionDecl :=
                     (subE (tuple5 (.var "surrounding")) (tuple1 (.var "surrounding")))
                     (.var "observationTimeDelta"))
                   (.var "targetDelta"))),
-            uint160Wrap
-              (addE (tuple2 (.var "surrounding"))
-                (divE
-                  (mulE (subE (tuple6 (.var "surrounding")) (tuple2 (.var "surrounding")))
-                    (.var "targetDelta"))
-                  (.var "observationTimeDelta"))) ] ] }
+            modAt uint32Int
+              (addAt uint32Int (tuple2 (.var "surrounding"))
+                (divAt uint32Int
+                  (mulAt uint32Int
+                    (subAt uint32Int (tuple6 (.var "surrounding"))
+                      (tuple2 (.var "surrounding")) .wrapping)
+                    (.var "targetDelta") .wrapping)
+                  (.var "observationTimeDelta") .wrapping)
+                .wrapping)
+              uint160Modulus ] ] }
 
 def observeBodyFunction : FunctionDecl :=
   { name := "observeBody"
@@ -869,11 +912,12 @@ def oracleWriteFunction : FunctionDecl :=
           [],
         .letDecl "cardinalityUpdated" (some uint16)
           (.ite (andE (gtE (.var "cardinalityNext") (.var "cardinality"))
-              (eqE (.var "index") (subE (.var "cardinality") (.intLit 1))))
+              (eqE (.var "index") (subAt uint16Int (.var "cardinality") (.intLit 1))))
             (.var "cardinalityNext")
             (.var "cardinality")),
         .letDecl "indexUpdated" (some uint16)
-          (modE (addE (.var "index") (.intLit 1)) (.var "cardinalityUpdated")),
+          (modAt uint16Int (addAt uint16Int (.var "index") (.intLit 1))
+            (.var "cardinalityUpdated")),
         .internalCall "oracleTransform"
           [ .field (.var "last") "blockTimestamp",
             .field (.var "last") "tickCumulative",
@@ -964,8 +1008,9 @@ def tickUpdateFunction : FunctionDecl :=
         .assign .storage { base := "info", steps := [.field "liquidityNet"] }
           (.inRange int128Int
             (.ite (.var "upper")
-              (subE (.field (.var "info") "liquidityNet") (.var "liquidityDelta"))
-              (addE (.field (.var "info") "liquidityNet") (.var "liquidityDelta")))),
+              (subAt int128Int (.field (.var "info") "liquidityNet") (.var "liquidityDelta"))
+              (addAt int128Int (.field (.var "info") "liquidityNet")
+                (.var "liquidityDelta")))),
         .return [.var "flipped"] ] }
 
 def tickClearFunction : FunctionDecl :=
@@ -979,11 +1024,11 @@ def tickBitmapFlipFunction : FunctionDecl :=
     params := [{ name := "tick", ty := int24 }, { name := "tickSpacing", ty := int24 }]
     returnType := []
     body :=
-      [ .require (eqE (modE (.var "tick") (.var "tickSpacing")) (.intLit 0)),
-        .letDecl "compressed" (some int24) (divE (.var "tick") (.var "tickSpacing")),
-        .letDecl "wordPos" (some int16) (divE (.var "compressed") (.intLit 256)),
-        .letDecl "bitPos" (some uint8) (modE (.var "compressed") (.intLit 256)),
-        .letDecl "mask" (some uint256) (shlE (.intLit 1) (.var "bitPos")),
+      [ .require (eqE (modAt int24Int (.var "tick") (.var "tickSpacing")) (.intLit 0)),
+        .letDecl "compressed" (some int24) (divAt int24Int (.var "tick") (.var "tickSpacing")),
+        .letDecl "wordPos" (some int16) (divAt int24Int (.var "compressed") (.intLit 256)),
+        .letDecl "bitPos" (some uint8) (modAt int24Int (.var "compressed") (.intLit 256)),
+        .letDecl "mask" (some uint256) (shlAt uint8Int (.intLit 1) (.var "bitPos")),
         .assign .storage (tickBitmapRef (.var "wordPos"))
           (bitXorE (.storage (tickBitmapRef (.var "wordPos"))) (.var "mask")) ] }
 
@@ -1005,20 +1050,20 @@ def positionUpdateFunction : FunctionDecl :=
               "liquidityNext" ],
         .letDecl "tokensOwed0" (some uint128)
           (uint128Wrap
-            (divE
-              (mulE
+            (divAt uint256Int
+              (mulAt uint256Int
                 (wordSub (.var "feeGrowthInside0X128")
                   (.field (.var "position") "feeGrowthInside0LastX128"))
-                (.field (.var "position") "liquidity"))
-              fixedPoint128Q128)),
+                (.field (.var "position") "liquidity") .wrapping)
+              fixedPoint128Q128 .wrapping)),
         .letDecl "tokensOwed1" (some uint128)
           (uint128Wrap
-            (divE
-              (mulE
+            (divAt uint256Int
+              (mulAt uint256Int
                 (wordSub (.var "feeGrowthInside1X128")
                   (.field (.var "position") "feeGrowthInside1LastX128"))
-                (.field (.var "position") "liquidity"))
-              fixedPoint128Q128)),
+                (.field (.var "position") "liquidity") .wrapping)
+              fixedPoint128Q128 .wrapping)),
         Stmt.ite (neE (.var "liquidityDelta") (.intLit 0))
           [ .assign .storage { base := "position", steps := [.field "liquidity"] }
               (.var "liquidityNext") ]
@@ -1030,9 +1075,11 @@ def positionUpdateFunction : FunctionDecl :=
         Stmt.ite (orE (gtE (.var "tokensOwed0") (.intLit 0))
             (gtE (.var "tokensOwed1") (.intLit 0)))
           [ .assign .storage { base := "position", steps := [.field "tokensOwed0"] }
-              (addE (.field (.var "position") "tokensOwed0") (.var "tokensOwed0")),
+              (addAt uint128Int (.field (.var "position") "tokensOwed0")
+                (.var "tokensOwed0")),
             .assign .storage { base := "position", steps := [.field "tokensOwed1"] }
-              (addE (.field (.var "position") "tokensOwed1") (.var "tokensOwed1")) ]
+              (addAt uint128Int (.field (.var "position") "tokensOwed1")
+                (.var "tokensOwed1")) ]
           [] ] }
 
 def getAmount0DeltaUnsignedFunction : FunctionDecl :=
@@ -1049,9 +1096,9 @@ def getAmount0DeltaUnsignedFunction : FunctionDecl :=
           [ .assign .localVar (varRef "sqrtRatioA") (.var "sqrtRatioBX96"),
             .assign .localVar (varRef "sqrtRatioB") (.var "sqrtRatioAX96") ]
           [],
-        .letDecl "numerator1" (some uint256) (shlE (.var "liquidity") shift96),
+        .letDecl "numerator1" (some uint256) (shlAt uint128Int (.var "liquidity") shift96),
         .letDecl "numerator2" (some uint256)
-          (subE (.var "sqrtRatioB") (.var "sqrtRatioA")),
+          (subAt uint160Int (.var "sqrtRatioB") (.var "sqrtRatioA")),
         .require (gtE (.var "sqrtRatioA") (.intLit 0)),
         Stmt.ite (.var "roundUp")
           (mulDivRoundingUpLet "product" (.var "numerator1") (.var "numerator2")
@@ -1077,11 +1124,25 @@ def getAmount1DeltaUnsignedFunction : FunctionDecl :=
             .assign .localVar (varRef "sqrtRatioB") (.var "sqrtRatioAX96") ]
           [],
         Stmt.ite (.var "roundUp")
-          (mulDivRoundingUpLet "amount1" (.var "liquidity")
-              (subE (.var "sqrtRatioB") (.var "sqrtRatioA")) (.intLit (2 ^ 96)) ++
+          (mulDivAtLet uint160Int "amount1" (.var "liquidity")
+              (subAt uint160Int (.var "sqrtRatioB") (.var "sqrtRatioA"))
+              (.intLit (2 ^ 96)) ++
+            [ Stmt.ite
+                (gtE
+                  (modAt uint160Int
+                    (mulAt uint160Int (.var "liquidity")
+                      (subAt uint160Int (.var "sqrtRatioB") (.var "sqrtRatioA") .wrapping)
+                      .wrapping)
+                    (.intLit (2 ^ 96)))
+                  (.intLit 0))
+                [ .require (ltE (.var "amount1") uint256MaxExpr),
+                  .assign .localVar (varRef "amount1")
+                    (addE (.var "amount1") (.intLit 1)) ]
+                [] ] ++
             [ .return [.var "amount1"] ])
-          (mulDivLet "amount1" (.var "liquidity")
-              (subE (.var "sqrtRatioB") (.var "sqrtRatioA")) (.intLit (2 ^ 96)) ++
+          (mulDivAtLet uint160Int "amount1" (.var "liquidity")
+              (subAt uint160Int (.var "sqrtRatioB") (.var "sqrtRatioA"))
+              (.intLit (2 ^ 96)) ++
             [ .return [.var "amount1"] ]) ] }
 
 def getAmount0DeltaSignedFunction : FunctionDecl :=
@@ -1094,11 +1155,15 @@ def getAmount0DeltaSignedFunction : FunctionDecl :=
       [ Stmt.ite (ltE (.var "liquidity") (.intLit 0))
           [ .internalCall "getAmount0DeltaUnsigned"
               [ .var "sqrtRatioAX96", .var "sqrtRatioBX96",
-                uint128Wrap (subE (.intLit 0) (.var "liquidity")), .boolLit false ]
+                modAt int128Int
+                  (subAt int128Int (.intLit 0) (.var "liquidity") .wrapping)
+                  uint128Modulus,
+                .boolLit false ]
               "amount0Unsigned",
             .return [subE (.intLit 0) (.var "amount0Unsigned")] ]
           [ .internalCall "getAmount0DeltaUnsigned"
-              [ .var "sqrtRatioAX96", .var "sqrtRatioBX96", uint128Wrap (.var "liquidity"),
+              [ .var "sqrtRatioAX96", .var "sqrtRatioBX96",
+                modAt int128Int (.var "liquidity") uint128Modulus,
                 .boolLit true ]
               "amount0Unsigned",
             .return [.var "amount0Unsigned"] ] ] }
@@ -1113,11 +1178,15 @@ def getAmount1DeltaSignedFunction : FunctionDecl :=
       [ Stmt.ite (ltE (.var "liquidity") (.intLit 0))
           [ .internalCall "getAmount1DeltaUnsigned"
               [ .var "sqrtRatioAX96", .var "sqrtRatioBX96",
-                uint128Wrap (subE (.intLit 0) (.var "liquidity")), .boolLit false ]
+                modAt int128Int
+                  (subAt int128Int (.intLit 0) (.var "liquidity") .wrapping)
+                  uint128Modulus,
+                .boolLit false ]
               "amount1Unsigned",
             .return [subE (.intLit 0) (.var "amount1Unsigned")] ]
           [ .internalCall "getAmount1DeltaUnsigned"
-              [ .var "sqrtRatioAX96", .var "sqrtRatioBX96", uint128Wrap (.var "liquidity"),
+              [ .var "sqrtRatioAX96", .var "sqrtRatioBX96",
+                modAt int128Int (.var "liquidity") uint128Modulus,
                 .boolLit true ]
               "amount1Unsigned",
             .return [.var "amount1Unsigned"] ] ] }
@@ -1243,7 +1312,7 @@ def modifyPositionFunction (v : PoolImmutables) : FunctionDecl :=
 def mostSignificantBitStep (threshold : Int) (shift : Int) : List Stmt :=
   [ Stmt.ite (geE (.var "x") (.intLit threshold))
       [ .assign .localVar (varRef "x") (shrE (.var "x") (.intLit shift)),
-        .assign .localVar (varRef "r") (addE (.var "r") (.intLit shift)) ]
+        .assign .localVar (varRef "r") (addAt uint8Int (.var "r") (.intLit shift)) ]
       [] ]
 
 def mostSignificantBitFunction : FunctionDecl :=
@@ -1261,13 +1330,13 @@ def mostSignificantBitFunction : FunctionDecl :=
       mostSignificantBitStep (2 ^ 4) 4 ++
       mostSignificantBitStep (2 ^ 2) 2 ++
       [ Stmt.ite (geE (.var "x") (.intLit 2))
-          [ .assign .localVar (varRef "r") (addE (.var "r") (.intLit 1)) ]
+          [ .assign .localVar (varRef "r") (addAt uint8Int (.var "r") (.intLit 1)) ]
           [],
         .return [.var "r"] ] }
 
 def leastSignificantBitStep (mask shift : Int) : List Stmt :=
   [ Stmt.ite (gtE (bitAndE (.var "x") (.intLit mask)) (.intLit 0))
-      [ .assign .localVar (varRef "r") (subE (.var "r") (.intLit shift)) ]
+      [ .assign .localVar (varRef "r") (subAt uint8Int (.var "r") (.intLit shift)) ]
       [ .assign .localVar (varRef "x") (shrE (.var "x") (.intLit shift)) ] ]
 
 def leastSignificantBitFunction : FunctionDecl :=
@@ -1285,7 +1354,7 @@ def leastSignificantBitFunction : FunctionDecl :=
       leastSignificantBitStep 0xf 4 ++
       leastSignificantBitStep 0x3 2 ++
       [ Stmt.ite (gtE (bitAndE (.var "x") (.intLit 0x1)) (.intLit 0))
-          [ .assign .localVar (varRef "r") (subE (.var "r") (.intLit 1)) ]
+          [ .assign .localVar (varRef "r") (subAt uint8Int (.var "r") (.intLit 1)) ]
           [],
         .return [.var "r"] ] }
 
@@ -1296,11 +1365,15 @@ def tickBitmapNextInitializedTickWithinOneWordFunction : FunctionDecl :=
         { name := "lte", ty := boolTy } ]
     returnType := [int24, boolTy]
     body :=
-      [ .letDecl "compressed" (some int24) (divE (.var "tick") (.var "tickSpacing")),
+      [ .letDecl "compressed" (some int24)
+          (divAt int24Int (.var "tick") (.var "tickSpacing")),
         Stmt.ite (.var "lte")
-          [ .letDecl "wordPos" (some int16) (divE (.var "compressed") (.intLit 256)),
-            .letDecl "bitPos" (some uint8) (modE (.var "compressed") (.intLit 256)),
-            .letDecl "oneAtBit" (some uint256) (shlE (.intLit 1) (.var "bitPos")),
+          [ .letDecl "wordPos" (some int16)
+              (divAt int24Int (.var "compressed") (.intLit 256)),
+            .letDecl "bitPos" (some uint8)
+              (modAt int24Int (.var "compressed") (.intLit 256)),
+            .letDecl "oneAtBit" (some uint256)
+              (shlAt uint8Int (.intLit 1) (.var "bitPos")),
             .letDecl "mask" (some uint256)
               (addE (subE (.var "oneAtBit") (.intLit 1)) (.var "oneAtBit")),
             .letDecl "masked" (some uint256)
@@ -1310,18 +1383,25 @@ def tickBitmapNextInitializedTickWithinOneWordFunction : FunctionDecl :=
               [ .internalCall "mostSignificantBit" [.var "masked"] "msb",
                 .return
                   [ .inRange int24Int
-                      (mulE (subE (.var "compressed") (subE (.var "bitPos") (.var "msb")))
+                      (mulAt int24Int
+                        (subAt int24Int (.var "compressed")
+                          (subAt int24Int (.var "bitPos") (.var "msb")))
                         (.var "tickSpacing")),
                     .var "initialized" ] ]
               [ .return
                   [ .inRange int24Int
-                      (mulE (subE (.var "compressed") (.var "bitPos")) (.var "tickSpacing")),
+                      (mulAt int24Int (subAt int24Int (.var "compressed") (.var "bitPos"))
+                        (.var "tickSpacing")),
                     .var "initialized" ] ] ]
-          [ .letDecl "compressedPlusOne" (some int24) (addE (.var "compressed") (.intLit 1)),
-            .letDecl "wordPos" (some int16) (divE (.var "compressedPlusOne") (.intLit 256)),
-            .letDecl "bitPos" (some uint8) (modE (.var "compressedPlusOne") (.intLit 256)),
+          [ .letDecl "compressedPlusOne" (some int24)
+              (addAt int24Int (.var "compressed") (.intLit 1)),
+            .letDecl "wordPos" (some int16)
+              (divAt int24Int (.var "compressedPlusOne") (.intLit 256)),
+            .letDecl "bitPos" (some uint8)
+              (modAt int24Int (.var "compressedPlusOne") (.intLit 256)),
             .letDecl "mask" (some uint256)
-              (.unary .bitNot (subE (shlE (.intLit 1) (.var "bitPos")) (.intLit 1))),
+              (.unary (.bitNot (.uint ⟨256, by decide⟩))
+                (subE (shlAt uint8Int (.intLit 1) (.var "bitPos")) (.intLit 1))),
             .letDecl "masked" (some uint256)
               (bitAndE (.storage (tickBitmapRef (.var "wordPos"))) (.var "mask")),
             .letDecl "initialized" (some boolTy) (neE (.var "masked") (.intLit 0)),
@@ -1329,14 +1409,16 @@ def tickBitmapNextInitializedTickWithinOneWordFunction : FunctionDecl :=
               [ .internalCall "leastSignificantBit" [.var "masked"] "lsb",
                 .return
                   [ .inRange int24Int
-                      (mulE
-                        (addE (.var "compressedPlusOne") (subE (.var "lsb") (.var "bitPos")))
+                      (mulAt int24Int
+                        (addAt int24Int (.var "compressedPlusOne")
+                          (subAt int24Int (.var "lsb") (.var "bitPos")))
                         (.var "tickSpacing")),
                     .var "initialized" ] ]
               [ .return
                   [ .inRange int24Int
-                      (mulE
-                        (addE (.var "compressedPlusOne") (subE (.intLit 255) (.var "bitPos")))
+                      (mulAt int24Int
+                        (addAt int24Int (.var "compressedPlusOne")
+                          (subAt int24Int (.intLit 255) (.var "bitPos")))
                         (.var "tickSpacing")),
                     .var "initialized" ] ] ] ] }
 
@@ -1357,14 +1439,18 @@ def tickCrossFunction : FunctionDecl :=
           (wordSub (.var "feeGrowthGlobal1X128")
             (.field (.var "info") "feeGrowthOutside1X128")),
         .assign .storage { base := "info", steps := [.field "secondsPerLiquidityOutsideX128"] }
-          (uint160Wrap
-            (subE (.var "secondsPerLiquidityCumulativeX128")
-              (.field (.var "info") "secondsPerLiquidityOutsideX128"))),
+          (modAt uint160Int
+            (subAt uint160Int (.var "secondsPerLiquidityCumulativeX128")
+              (.field (.var "info") "secondsPerLiquidityOutsideX128") .wrapping)
+            uint160Modulus),
         .assign .storage { base := "info", steps := [.field "tickCumulativeOutside"] }
           (int56Wrap
             (subE (.var "tickCumulative") (.field (.var "info") "tickCumulativeOutside"))),
         .assign .storage { base := "info", steps := [.field "secondsOutside"] }
-          (uint32Wrap (subE (.var "time") (.field (.var "info") "secondsOutside"))),
+          (modAt uint32Int
+            (subAt uint32Int (.var "time") (.field (.var "info") "secondsOutside")
+              .wrapping)
+            uint32Modulus),
         .return [.field (.var "info") "liquidityNet"] ] }
 
 def getNextSqrtPriceFromAmount0RoundingUpFunction : FunctionDecl :=
@@ -1377,7 +1463,7 @@ def getNextSqrtPriceFromAmount0RoundingUpFunction : FunctionDecl :=
       [ Stmt.ite (eqE (.var "amount") (.intLit 0))
           [ .return [.var "sqrtPX96"] ]
           [],
-        .letDecl "numerator1" (some uint256) (shlE (.var "liquidity") shift96),
+        .letDecl "numerator1" (some uint256) (shlAt uint128Int (.var "liquidity") shift96),
         Stmt.ite (.var "add")
           ([ .letDecl "product" (some uint256) (wordMul (.var "amount") (.var "sqrtPX96")),
              Stmt.ite (eqE (divE (.var "product") (.var "amount")) (.var "sqrtPX96"))
@@ -1561,7 +1647,7 @@ def computeSwapStepFunction : FunctionDecl :=
           [ .assign .localVar (varRef "feeAmount")
               (subE (uint256Wrap (.var "amountRemaining")) (.var "amountIn")) ]
           (mulDivRoundingUpLet "feeAmountComputed" (.var "amountIn") (.var "feePips")
-              (subE feeDenominator (.var "feePips")) ++
+              (subAt uint24Int feeDenominator (.var "feePips")) ++
             [ .assign .localVar (varRef "feeAmount") (.var "feeAmountComputed") ]),
         .return [.var "sqrtRatioNextX96", .var "amountIn", .var "amountOut", .var "feeAmount"] ] }
 
@@ -1614,9 +1700,9 @@ def constructorDecl : ConstructorDecl :=
         .letDecl "imm_tickSpacing" none (.tupleGet (.var "r") 4),
         .letDecl "imm_original" none (.env .this),
         .letDecl "imm_maxLiquidityPerTick" none
-          (.binary .div (.intLit (2 ^ 128 - 1))
-            (.binary .add
-              (.binary .mul (.intLit 2) (.binary .div (.intLit 887272) (.var "imm_tickSpacing")))
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.intLit (2 ^ 128 - 1))
+            (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+              (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.intLit 2) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.intLit 887272) (.var "imm_tickSpacing")))
               (.intLit 1))) ] }
 
 /-! ## Public ABI surface -/
@@ -1629,13 +1715,15 @@ def burnTransition : TransitionDecl :=
     returnType := [uint256, uint256]
     body := nonpayable ++ lockPrefix ++
       [ .letDecl "liquidityDelta" (some int128)
-          (subE (.intLit 0) (.inRange int128Int (.var "amount"))),
+          (subAt int128Int (.intLit 0) (.inRange int128Int (.var "amount"))),
         .internalCall "modifyPosition"
           [.env .caller, .var "tickLower", .var "tickUpper", .var "liquidityDelta"]
           "modified",
         .letStorage "position" (positionsRef (tuple0 (.var "modified"))),
-        .letDecl "amount0" (some uint256) (uint256Wrap (subE (.intLit 0) (tuple1 (.var "modified")))),
-        .letDecl "amount1" (some uint256) (uint256Wrap (subE (.intLit 0) (tuple2 (.var "modified")))),
+        .letDecl "amount0" (some uint256)
+          (uint256Wrap (subAt uint256Int (.intLit 0) (tuple1 (.var "modified")) .wrapping)),
+        .letDecl "amount1" (some uint256)
+          (uint256Wrap (subAt uint256Int (.intLit 0) (tuple2 (.var "modified")) .wrapping)),
         Stmt.ite (orE (gtE (.var "amount0") (.intLit 0)) (gtE (.var "amount1") (.intLit 0)))
           [ .assign .storage { base := "position", steps := [.field "tokensOwed0"] }
               (addE (.field (.var "position") "tokensOwed0") (uint128Wrap (.var "amount0"))),
@@ -1664,12 +1752,14 @@ def collectTransition (v : PoolImmutables) : TransitionDecl :=
             (.var "amount1Requested")),
         Stmt.ite (gtE (.var "amount0") (.intLit 0))
           ([ .assign .storage (positionsF (.var "positionKey") "tokensOwed0")
-              (subE (.storage (positionsF (.var "positionKey") "tokensOwed0")) (.var "amount0")) ] ++
+              (subAt uint128Int (.storage (positionsF (.var "positionKey") "tokensOwed0"))
+                (.var "amount0")) ] ++
             safeTransfer (addrLit v.token0) (.var "recipient") (.var "amount0") "collect0")
           [],
         Stmt.ite (gtE (.var "amount1") (.intLit 0))
           ([ .assign .storage (positionsF (.var "positionKey") "tokensOwed1")
-              (subE (.storage (positionsF (.var "positionKey") "tokensOwed1")) (.var "amount1")) ] ++
+              (subAt uint128Int (.storage (positionsF (.var "positionKey") "tokensOwed1"))
+                (.var "amount1")) ] ++
             safeTransfer (addrLit v.token1) (.var "recipient") (.var "amount1") "collect1")
           [] ] ++
       lockSuffix ++
@@ -1690,18 +1780,20 @@ def collectprotocolTransition (v : PoolImmutables) : TransitionDecl :=
             (.var "amount1Requested")),
         Stmt.ite (gtE (.var "amount0") (.intLit 0))
           ([ Stmt.ite (eqE (.var "amount0") (.storage (protocolFeesF "token0")))
-              [ .assign .localVar (varRef "amount0") (subE (.var "amount0") (.intLit 1)) ]
+              [ .assign .localVar (varRef "amount0")
+                  (subAt uint128Int (.var "amount0") (.intLit 1)) ]
               [],
             .assign .storage (protocolFeesF "token0")
-              (subE (.storage (protocolFeesF "token0")) (.var "amount0")) ] ++
+              (subAt uint128Int (.storage (protocolFeesF "token0")) (.var "amount0")) ] ++
             safeTransfer (addrLit v.token0) (.var "recipient") (.var "amount0") "collectProtocol0")
           [],
         Stmt.ite (gtE (.var "amount1") (.intLit 0))
           ([ Stmt.ite (eqE (.var "amount1") (.storage (protocolFeesF "token1")))
-              [ .assign .localVar (varRef "amount1") (subE (.var "amount1") (.intLit 1)) ]
+              [ .assign .localVar (varRef "amount1")
+                  (subAt uint128Int (.var "amount1") (.intLit 1)) ]
               [],
             .assign .storage (protocolFeesF "token1")
-              (subE (.storage (protocolFeesF "token1")) (.var "amount1")) ] ++
+              (subAt uint128Int (.storage (protocolFeesF "token1")) (.var "amount1")) ] ++
             safeTransfer (addrLit v.token1) (.var "recipient") (.var "amount1") "collectProtocol1")
           [] ] ++
       lockSuffix ++
@@ -1760,13 +1852,13 @@ def flashTransition (v : PoolImmutables) : TransitionDecl :=
           (subE (.var "balance1After") (.var "balance1Before")),
         Stmt.ite (gtE (.var "paid0") (.intLit 0))
           ([ .letDecl "feeProtocol0" (some uint8)
-                (modE (.storage (slot0F "feeProtocol")) (.intLit 16)),
+                (modAt uint8Int (.storage (slot0F "feeProtocol")) (.intLit 16)),
              .letDecl "fees0" (some uint256)
                 (.ite (eqE (.var "feeProtocol0") (.intLit 0))
                   (.intLit 0)
                   (divE (.var "paid0") (.var "feeProtocol0"))),
              Stmt.ite (gtE (uint128Wrap (.var "fees0")) (.intLit 0))
-                [ .assign .storage (protocolFeesF "token0")
+              [ .assign .storage (protocolFeesF "token0")
                     (addE (.storage (protocolFeesF "token0")) (uint128Wrap (.var "fees0"))) ]
                 [] ] ++
             mulDivLet "feeGrowth0Delta" (subE (.var "paid0") (.var "fees0"))
@@ -1776,15 +1868,15 @@ def flashTransition (v : PoolImmutables) : TransitionDecl :=
           [],
         Stmt.ite (gtE (.var "paid1") (.intLit 0))
           ([ .letDecl "feeProtocol1" (some uint8)
-                (shlE (.intLit 0) (.intLit 0)),
+                (shlAt uint8Int (.intLit 0) (.intLit 0)),
              .assign .localVar (varRef "feeProtocol1")
-                (.binary .shr (.storage (slot0F "feeProtocol")) (.intLit 4)),
+                (.binary (.shr uint8Int) (.storage (slot0F "feeProtocol")) (.intLit 4)),
              .letDecl "fees1" (some uint256)
                 (.ite (eqE (.var "feeProtocol1") (.intLit 0))
                   (.intLit 0)
                   (divE (.var "paid1") (.var "feeProtocol1"))),
              Stmt.ite (gtE (uint128Wrap (.var "fees1")) (.intLit 0))
-                [ .assign .storage (protocolFeesF "token1")
+              [ .assign .storage (protocolFeesF "token1")
                     (addE (.storage (protocolFeesF "token1")) (uint128Wrap (.var "fees1"))) ]
                 [] ] ++
             mulDivLet "feeGrowth1Delta" (subE (.var "paid1") (.var "fees1"))
@@ -1811,7 +1903,7 @@ def increaseobservationcardinalitynextTransition (v : PoolImmutables) : Transiti
           [ .letDecl "i" (some uint16) (.var "observationCardinalityNextOld"),
             .while (ltE (.var "i") (.var "observationCardinalityNextNew"))
               [ .assign .storage (observationsRawF (.var "i") "blockTimestamp") (.intLit 1),
-                .assign .localVar (varRef "i") (addE (.var "i") (.intLit 1)) ] ],
+                .assign .localVar (varRef "i") (addAt uint16Int (.var "i") (.intLit 1)) ] ],
         .assign .storage (slot0F "observationCardinalityNext")
           (.var "observationCardinalityNextNew") ] ++
       lockSuffix }
@@ -1928,7 +2020,8 @@ def setfeeprotocolTransition (v : PoolImmutables) : TransitionDecl :=
             (feeProtocolEnabled (.var "feeProtocol1"))),
         .letDecl "feeProtocolOld" (some uint8) (.storage (slot0F "feeProtocol")),
         .assign .storage (slot0F "feeProtocol")
-          (addE (.var "feeProtocol0") (shlE (.var "feeProtocol1") (.intLit 4))) ] ++
+          (addAt uint8Int (.var "feeProtocol0")
+            (shlAt uint8Int (.var "feeProtocol1") (.intLit 4))) ] ++
       lockSuffix }
 
 def slot0Transition : TransitionDecl :=
@@ -1953,11 +2046,14 @@ def snapshotcumulativesinsideTransition (v : PoolImmutables) : TransitionDecl :=
                   (subE (.field (.var "lower") "tickCumulativeOutside")
                     (.field (.var "upper") "tickCumulativeOutside")),
                 uint160Wrap
-                  (subE (.field (.var "lower") "secondsPerLiquidityOutsideX128")
-                    (.field (.var "upper") "secondsPerLiquidityOutsideX128")),
+                  (subAt uint256Int
+                    (.field (.var "lower") "secondsPerLiquidityOutsideX128")
+                    (.field (.var "upper") "secondsPerLiquidityOutsideX128") .wrapping)
+                ,
                 uint32Wrap
-                  (subE (.field (.var "lower") "secondsOutside")
-                    (.field (.var "upper") "secondsOutside")) ] ]
+                  (subAt uint256Int (.field (.var "lower") "secondsOutside")
+                    (.field (.var "upper") "secondsOutside") .wrapping)
+                ] ]
           [],
         Stmt.ite (ltE (.storage (slot0F "tick")) (.var "tickUpper"))
           [ .letDecl "time" (some uint32) blockTimestamp32,
@@ -1972,22 +2068,31 @@ def snapshotcumulativesinsideTransition (v : PoolImmutables) : TransitionDecl :=
                       (.field (.var "lower") "tickCumulativeOutside"))
                     (.field (.var "upper") "tickCumulativeOutside")),
                 uint160Wrap
-                  (subE (subE (tuple1 (.var "currentObservation"))
-                      (.field (.var "lower") "secondsPerLiquidityOutsideX128"))
-                    (.field (.var "upper") "secondsPerLiquidityOutsideX128")),
-                uint32Wrap
-                  (subE (subE (.var "time") (.field (.var "lower") "secondsOutside"))
-                    (.field (.var "upper") "secondsOutside")) ] ]
+                  (subAt uint256Int
+                    (subAt uint256Int (tuple1 (.var "currentObservation"))
+                      (.field (.var "lower") "secondsPerLiquidityOutsideX128") .wrapping)
+                    (.field (.var "upper") "secondsPerLiquidityOutsideX128") .wrapping)
+                ,
+                modAt uint32Int
+                  (subAt uint32Int
+                    (subAt uint32Int (.var "time")
+                      (.field (.var "lower") "secondsOutside") .wrapping)
+                    (.field (.var "upper") "secondsOutside") .wrapping)
+                  uint32Modulus
+                ] ]
           [ .return
               [ int56Wrap
                   (subE (.field (.var "upper") "tickCumulativeOutside")
                     (.field (.var "lower") "tickCumulativeOutside")),
                 uint160Wrap
-                  (subE (.field (.var "upper") "secondsPerLiquidityOutsideX128")
-                    (.field (.var "lower") "secondsPerLiquidityOutsideX128")),
+                  (subAt uint256Int
+                    (.field (.var "upper") "secondsPerLiquidityOutsideX128")
+                    (.field (.var "lower") "secondsPerLiquidityOutsideX128") .wrapping)
+                ,
                 uint32Wrap
-                  (subE (.field (.var "upper") "secondsOutside")
-                    (.field (.var "lower") "secondsOutside")) ] ] ] }
+                  (subAt uint256Int (.field (.var "upper") "secondsOutside")
+                    (.field (.var "lower") "secondsOutside") .wrapping)
+                ] ] ] }
 
 def swapTransition (v : PoolImmutables) : TransitionDecl :=
   { name := "swap"
@@ -2020,8 +2125,8 @@ def swapTransition (v : PoolImmutables) : TransitionDecl :=
         .letDecl "cacheBlockTimestamp" (some uint32) blockTimestamp32,
         .letDecl "cacheFeeProtocol" (some uint8)
           (.ite (.var "zeroForOne")
-            (modE (.var "slot0StartFeeProtocol") (.intLit 16))
-            (shrE (.var "slot0StartFeeProtocol") (.intLit 4))),
+            (modAt uint8Int (.var "slot0StartFeeProtocol") (.intLit 16))
+            (.binary (.shr uint8Int) (.var "slot0StartFeeProtocol") (.intLit 4))),
         .letDecl "cacheSecondsPerLiquidityCumulativeX128" (some uint160) (.intLit 0),
         .letDecl "cacheTickCumulative" (some int56) (.intLit 0),
         .letDecl "cacheComputedLatestObservation" (some boolTy) (.boolLit false),
@@ -2070,20 +2175,22 @@ def swapTransition (v : PoolImmutables) : TransitionDecl :=
             Stmt.ite (.var "exactInput")
               [ .assign .localVar (varRef "stateAmountSpecifiedRemaining")
                   (.inRange int256Int
-                    (subE (.var "stateAmountSpecifiedRemaining")
-                      (.inRange int256Int (addE (.var "stepAmountIn") (.var "stepFeeAmount"))))),
+                    (subAt int256Int (.var "stateAmountSpecifiedRemaining")
+                      (.inRange int256Int
+                        (addAt int256Int (.var "stepAmountIn") (.var "stepFeeAmount"))))),
                 .assign .localVar (varRef "stateAmountCalculated")
                   (.inRange int256Int
-                    (subE (.var "stateAmountCalculated")
+                    (subAt int256Int (.var "stateAmountCalculated")
                       (.inRange int256Int (.var "stepAmountOut")))) ]
               [ .assign .localVar (varRef "stateAmountSpecifiedRemaining")
                   (.inRange int256Int
-                    (addE (.var "stateAmountSpecifiedRemaining")
+                    (addAt int256Int (.var "stateAmountSpecifiedRemaining")
                       (.inRange int256Int (.var "stepAmountOut")))),
                 .assign .localVar (varRef "stateAmountCalculated")
                   (.inRange int256Int
-                    (addE (.var "stateAmountCalculated")
-                      (.inRange int256Int (addE (.var "stepAmountIn") (.var "stepFeeAmount"))))) ],
+                    (addAt int256Int (.var "stateAmountCalculated")
+                      (.inRange int256Int
+                        (addAt int256Int (.var "stepAmountIn") (.var "stepFeeAmount"))))) ],
             Stmt.ite (gtE (.var "cacheFeeProtocol") (.intLit 0))
               [ .letDecl "protocolDelta" (some uint256)
                   (divE (.var "stepFeeAmount") (.var "cacheFeeProtocol")),
@@ -2091,7 +2198,8 @@ def swapTransition (v : PoolImmutables) : TransitionDecl :=
                   (subE (.var "stepFeeAmount") (.var "protocolDelta")),
                 .assign .localVar (varRef "stateProtocolFee")
                   (uint128Wrap
-                    (addE (.var "stateProtocolFee") (uint128Wrap (.var "protocolDelta")))) ]
+                    (addAt uint256Int (.var "stateProtocolFee")
+                      (uint128Wrap (.var "protocolDelta")) .wrapping)) ]
               [],
             Stmt.ite (gtE (.var "stateLiquidity") (.intLit 0))
               (mulDivLet "feeGrowthGlobalDelta" (.var "stepFeeAmount") fixedPoint128Q128
@@ -2126,7 +2234,8 @@ def swapTransition (v : PoolImmutables) : TransitionDecl :=
                     .letDecl "liquidityNet" (some int128) (.var "liquidityNetCross"),
                     Stmt.ite (.var "zeroForOne")
                       [ .assign .localVar (varRef "liquidityNet")
-                          (.inRange int128Int (subE (.intLit 0) (.var "liquidityNet"))) ]
+                          (.inRange int128Int
+                            (subAt int128Int (.intLit 0) (.var "liquidityNet"))) ]
                       [],
                     .internalCall "liquidityAddDelta"
                       [.var "stateLiquidity", .var "liquidityNet"]
@@ -2135,7 +2244,8 @@ def swapTransition (v : PoolImmutables) : TransitionDecl :=
                       (.var "stateLiquidityAfterCross") ]
                   [],
                 .assign .localVar (varRef "stateTick")
-                  (.ite (.var "zeroForOne") (subE (.var "stepTickNext") (.intLit 1))
+                  (.ite (.var "zeroForOne")
+                    (subAt int24Int (.var "stepTickNext") (.intLit 1))
                     (.var "stepTickNext")) ]
               [ Stmt.ite (neE (.var "stateSqrtPriceX96") (.var "stepSqrtPriceStartX96"))
                   [ .internalCall "getTickAtSqrtRatio" [.var "stateSqrtPriceX96"]
@@ -2162,24 +2272,28 @@ def swapTransition (v : PoolImmutables) : TransitionDecl :=
           [ .assign .storage feeGrowthGlobal0X128Ref (.var "stateFeeGrowthGlobalX128"),
             Stmt.ite (gtE (.var "stateProtocolFee") (.intLit 0))
               [ .assign .storage (protocolFeesF "token0")
-                  (addE (.storage (protocolFeesF "token0")) (.var "stateProtocolFee")) ]
+                  (addAt uint128Int (.storage (protocolFeesF "token0"))
+                    (.var "stateProtocolFee")) ]
               [] ]
           [ .assign .storage feeGrowthGlobal1X128Ref (.var "stateFeeGrowthGlobalX128"),
             Stmt.ite (gtE (.var "stateProtocolFee") (.intLit 0))
               [ .assign .storage (protocolFeesF "token1")
-                  (addE (.storage (protocolFeesF "token1")) (.var "stateProtocolFee")) ]
+                  (addAt uint128Int (.storage (protocolFeesF "token1"))
+                    (.var "stateProtocolFee")) ]
               [] ],
         .letDecl "amount0" (some int256) (.intLit 0),
         .letDecl "amount1" (some int256) (.intLit 0),
         Stmt.ite (eqE (.var "zeroForOne") (.var "exactInput"))
           [ .assign .localVar (varRef "amount0")
               (.inRange int256Int
-                (subE (.var "amountSpecified") (.var "stateAmountSpecifiedRemaining"))),
+                (subAt int256Int (.var "amountSpecified")
+                  (.var "stateAmountSpecifiedRemaining"))),
             .assign .localVar (varRef "amount1") (.var "stateAmountCalculated") ]
           [ .assign .localVar (varRef "amount0") (.var "stateAmountCalculated"),
             .assign .localVar (varRef "amount1")
               (.inRange int256Int
-                (subE (.var "amountSpecified") (.var "stateAmountSpecifiedRemaining"))) ],
+                (subAt int256Int (.var "amountSpecified")
+                  (.var "stateAmountSpecifiedRemaining"))) ],
         Stmt.ite (.var "zeroForOne")
           ([ Stmt.ite (ltE (.var "amount1") (.intLit 0))
               (safeTransfer (addrLit v.token1) (.var "recipient")

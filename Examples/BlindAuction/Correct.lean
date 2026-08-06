@@ -1185,7 +1185,7 @@ theorem blindAuctionCtorBiddingEndExprReverts
     evalExpr? blindAuctionConfig
       { contract := blindAuctionContract,
         locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
-      evm (u256 (.binary .add now (.var "biddingTime"))) = .revert := by
+      evm (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) now (.var "biddingTime"))) = .revert := by
   have hword := blindAuctionBiddingWord_toNat biddingTime h0 hlt
   have hge :
       Int.ofNat ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat)
@@ -1200,13 +1200,33 @@ theorem blindAuctionCtorBiddingEndExprReverts
       exact (Int.toNat_of_nonneg h0).symm
     rw [hb]
     exact (Int.natCast_add _ _).symm
-  simp only [u256, evalExpr?, now, envValue, blindAuctionCtorLocals_get_biddingTime,
-    EvalResult.ofOption, EvalResult.bind, bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
-  rw [hInt]
-  rw [if_pos (by
-    simp only [Bool.or_eq_true, decide_eq_true_eq]
-    exact Or.inr hge)]
+  have hnow :
+      evalExpr? blindAuctionConfig
+        { contract := blindAuctionContract,
+          locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
+        evm now =
+          .ok (.int (Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)) := by
+    simp only [evalExpr?, now, envValue, pure]
+  have htime :
+      evalExpr? blindAuctionConfig
+        { contract := blindAuctionContract,
+          locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
+        evm (.var "biddingTime") = .ok (.int biddingTime) := by
+    simp only [evalExpr?, blindAuctionCtorLocals_get_biddingTime, EvalResult.ofOption]
+  have hoverInt :
+      Int.ofNat (EVM.twoPow 256) ≤
+        Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime := by
+    rw [hInt]
+    simpa [EVM.twoPow] using hge
+  have hbinary := evalExpr_checked_add_uint_revert_of_overflow
+    (cfg := blindAuctionConfig)
+    (solm := { contract := blindAuctionContract, locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress })
+    (evm := evm) ⟨256, by decide⟩ _ _ hnow htime hoverInt
+  simpa [u256, uint256Int] using evalExpr_inRange_revert blindAuctionConfig
+    { contract := blindAuctionContract,
+      locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
+    evm (.binary (.add (.uint ⟨256, by decide⟩) .checked) now (.var "biddingTime"))
+    uint256Int hbinary
 
 theorem blindAuctionCtorBiddingEndExprOK
     (evm : EVM.State) (biddingTime revealTime : Int) (beneficiaryAddress : AccountAddress)
@@ -1218,7 +1238,7 @@ theorem blindAuctionCtorBiddingEndExprOK
     evalExpr? blindAuctionConfig
       { contract := blindAuctionContract,
         locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
-      evm (u256 (.binary .add now (.var "biddingTime"))) =
+      evm (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) now (.var "biddingTime"))) =
         .ok (.int (Int.ofNat
           (blindAuctionCtorBiddingEndSolmWord evm biddingTime).toNat)) := by
   have hword := blindAuctionBiddingWord_toNat biddingTime h0 hlt
@@ -1240,20 +1260,40 @@ theorem blindAuctionCtorBiddingEndExprOK
           biddingTime.toNat)).toNat =
         (UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime.toNat := by
     exact ulit_toNat' _ hsumlt
-  simp only [u256, evalExpr?, now, envValue, blindAuctionCtorLocals_get_biddingTime,
-    EvalResult.ofOption, EvalResult.bind, bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
-  rw [hInt]
-  rw [if_neg]
-  · rw [blindAuctionCtorBiddingEndSolmWord, hsumWord]
-  · simp only [Bool.or_eq_true, decide_eq_true_eq, not_or]
-    constructor
-    · exact Int.not_lt_of_ge (Int.natCast_nonneg _)
-    · intro hge
-      have hpow : (2 : Int) ^ 256 = Int.ofNat UInt256.size := by
-        norm_num [UInt256.size]
-      rw [hpow] at hge
-      exact Nat.not_le_of_gt hsumlt (Int.ofNat_le.mp hge)
+  have hnow :
+      evalExpr? blindAuctionConfig
+        { contract := blindAuctionContract,
+          locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
+        evm now =
+          .ok (.int (Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat)) := by
+    simp only [evalExpr?, now, envValue, pure]
+  have htime :
+      evalExpr? blindAuctionConfig
+        { contract := blindAuctionContract,
+          locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
+        evm (.var "biddingTime") = .ok (.int biddingTime) := by
+    simp only [evalExpr?, blindAuctionCtorLocals_get_biddingTime, EvalResult.ofOption]
+  have hnonneg :
+      0 ≤ Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime := by
+    rw [hInt]
+    exact Int.natCast_nonneg _
+  have hfitInt :
+      Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat + biddingTime <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hInt]
+    exact Int.ofNat_lt.mpr (by simpa [UInt256.size, EVM.twoPow] using hsumlt)
+  have hbinary := evalExpr_checked_add_uint_ok
+    (cfg := blindAuctionConfig)
+    (solm := { contract := blindAuctionContract, locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress })
+    (evm := evm) ⟨256, by decide⟩ _ _ hnow htime hnonneg hfitInt
+  have hin := evalExpr_inRange_uint blindAuctionConfig
+    { contract := blindAuctionContract,
+      locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
+    evm (.binary (.add (.uint ⟨256, by decide⟩) .checked) now (.var "biddingTime"))
+    ⟨256, by decide⟩ _ hbinary hnonneg hfitInt
+  rw [hInt] at hin
+  rw [blindAuctionCtorBiddingEndSolmWord, hsumWord]
+  exact hin
 
 theorem blindAuctionCtorAssignBiddingEnd (evm : EVM.State) (biddingTime revealTime : Int)
     (beneficiaryAddress : AccountAddress)
@@ -1303,7 +1343,7 @@ theorem blindAuctionCtorRevealEndExprReverts
     evalExpr? blindAuctionConfig
       { contract := blindAuctionContract,
         locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
-      evm (u256 (.binary .add (.storage biddingEndRef) (.var "revealTime"))) = .revert := by
+      evm (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage biddingEndRef) (.var "revealTime"))) = .revert := by
   have hword := blindAuctionRevealWord_toNat revealTime h0 hlt
   have hstorage :
       evalExpr? blindAuctionConfig
@@ -1342,13 +1382,29 @@ theorem blindAuctionCtorRevealEndExprReverts
       exact (Int.toNat_of_nonneg h0).symm
     rw [hb]
     exact (Int.natCast_add _ _).symm
-  simp only [u256, evalExpr?, hstorage, blindAuctionCtorLocals_get_revealTime,
-    EvalResult.ofOption, EvalResult.bind, bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
-  rw [hInt]
-  rw [if_pos (by
-    simp only [Bool.or_eq_true, decide_eq_true_eq]
-    exact Or.inr hge)]
+  have htime :
+      evalExpr? blindAuctionConfig
+        { contract := blindAuctionContract,
+          locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
+        evm (.var "revealTime") = .ok (.int revealTime) := by
+    simp only [evalExpr?, blindAuctionCtorLocals_get_revealTime, EvalResult.ofOption]
+  have hoverInt :
+      Int.ofNat (EVM.twoPow 256) ≤
+        Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat +
+          revealTime := by
+    rw [hInt]
+    simpa [EVM.twoPow] using hge
+  have hbinary := evalExpr_checked_add_uint_revert_of_overflow
+    (cfg := blindAuctionConfig)
+    (solm := { contract := blindAuctionContract, locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress })
+    (evm := evm) ⟨256, by decide⟩ _ _ hstorage htime hoverInt
+  simpa [u256, uint256Int] using evalExpr_inRange_revert blindAuctionConfig
+    { contract := blindAuctionContract,
+      locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
+    evm
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage biddingEndRef)
+      (.var "revealTime"))
+    uint256Int hbinary
 
 theorem blindAuctionCtorRevealEndExprOK
     (evm : EVM.State) (biddingTime revealTime : Int) (beneficiaryAddress : AccountAddress)
@@ -1360,7 +1416,7 @@ theorem blindAuctionCtorRevealEndExprOK
     evalExpr? blindAuctionConfig
       { contract := blindAuctionContract,
         locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
-      evm (u256 (.binary .add (.storage biddingEndRef) (.var "revealTime"))) =
+      evm (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage biddingEndRef) (.var "revealTime"))) =
         .ok (.int (Int.ofNat
           (EVM.word ((Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat +
             revealTime.toNat)).toNat)) := by
@@ -1406,20 +1462,36 @@ theorem blindAuctionCtorRevealEndExprOK
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat +
           revealTime.toNat := by
     exact ulit_toNat' _ hsumlt
-  simp only [u256, evalExpr?, hstorage, blindAuctionCtorLocals_get_revealTime,
-    EvalResult.ofOption, EvalResult.bind, bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
-  rw [hInt]
-  rw [if_neg]
-  · rw [hsumWord]
-  · simp only [Bool.or_eq_true, decide_eq_true_eq, not_or]
-    constructor
-    · exact Int.not_lt_of_ge (Int.natCast_nonneg _)
-    · intro hge
-      have hpow : (2 : Int) ^ 256 = Int.ofNat UInt256.size := by
-        norm_num [UInt256.size]
-      rw [hpow] at hge
-      exact Nat.not_le_of_gt hsumlt (Int.ofNat_le.mp hge)
+  have htime :
+      evalExpr? blindAuctionConfig
+        { contract := blindAuctionContract,
+          locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
+        evm (.var "revealTime") = .ok (.int revealTime) := by
+    simp only [evalExpr?, blindAuctionCtorLocals_get_revealTime, EvalResult.ofOption]
+  have hnonneg :
+      0 ≤ Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat +
+        revealTime := by
+    rw [hInt]
+    exact Int.natCast_nonneg _
+  have hfitInt :
+      Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩).toNat +
+          revealTime < Int.ofNat (EVM.twoPow 256) := by
+    rw [hInt]
+    exact Int.ofNat_lt.mpr (by simpa [UInt256.size, EVM.twoPow] using hsumlt)
+  have hbinary := evalExpr_checked_add_uint_ok
+    (cfg := blindAuctionConfig)
+    (solm := { contract := blindAuctionContract, locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress })
+    (evm := evm) ⟨256, by decide⟩ _ _ hstorage htime hnonneg hfitInt
+  have hin := evalExpr_inRange_uint blindAuctionConfig
+    { contract := blindAuctionContract,
+      locals := blindAuctionCtorLocals biddingTime revealTime beneficiaryAddress }
+    evm
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage biddingEndRef)
+      (.var "revealTime"))
+    ⟨256, by decide⟩ _ hbinary hnonneg hfitInt
+  rw [hInt] at hin
+  rw [hsumWord]
+  exact hin
 
 theorem blindAuctionCtorAssignRevealEnd (evm : EVM.State) (biddingTime revealTime : Int)
     (beneficiaryAddress : AccountAddress) (val : UInt256) :

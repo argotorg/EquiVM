@@ -93,8 +93,12 @@ theorem evalExpr_safeTransfer_calldata (evm : EVM.State)
 theorem bindParams_safeTransfer (token recipient : AccountAddress) (value : UInt256) :
     bindParams? safeTransferFunction.params (safeTransferArgs token recipient value) =
       some (safeTransferCalleeStore token recipient value) := by
-  simp [safeTransferFunction, safeTransferArgs, safeTransferCalleeStore, safeTransferUintValue,
-    bindParams?]
+  have hmatches :
+      valueMatchesABIType uint256 (.int (Int.ofNat value.toNat)) = true := by
+    simpa [uint256, uint256Int] using valueMatchesABIType_uint256_word value
+  simp only [safeTransferFunction, safeTransferArgs, safeTransferCalleeStore,
+    safeTransferUintValue, bindParams?, hmatches]
+  simp [addr, valueMatchesABIType]
 
 theorem lookupCallable_safeTransfer :
     lookupCallable? contract "_safeTransfer" = some safeTransferFunction.toCallable := by

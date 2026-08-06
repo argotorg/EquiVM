@@ -39,7 +39,7 @@ theorem mintFeeSqrtPrefixSmall
     (hprodSmall : (UInt256.mul reserve0 reserve1).toNat ≤ 3)
     (hkLastSmall : kLast.toNat ≤ 3) :
     ExecBlock config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
-      [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+      [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
           "rootK",
         .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
       (.ok
@@ -58,7 +58,7 @@ theorem mintFeeSqrtPrefixSmall
     uniswapSqrtFunctionCallSuccess_le3
       (caller := mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast)
       (evm := evm) (y := mintFeeReserveProductWord reserve0 reserve1)
-      (args := [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))])
+      (args := [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))])
       (retVar := "rootK") rfl hprodSmall'
       (evalExprs_mintFee_reserveProductArg evm reserve0 reserve1 feeTo true kLast hfit)
   have hrootKValue :
@@ -68,7 +68,7 @@ theorem mintFeeSqrtPrefixSmall
     simp [rootK, hprodWord]
   have hrootK' :
       ExecStmt config (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true kLast) evm
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
           "rootK")
         (.ok (mintFeeAfterRootKFrame reserve0 reserve1 feeTo true kLast rootK) evm) := by
     rw [hrootKValue] at hrootK

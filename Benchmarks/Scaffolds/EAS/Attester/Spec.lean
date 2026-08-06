@@ -47,7 +47,7 @@ def zeroAddr : Expr := .cast (.intLit 0) addrSt
 def zeroBytes32 : Expr := .cast (.intLit 0) bytes32St
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
+def add256 (x y : Expr) : Expr := u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) x y)
 
 def localRef (name : Ident) : StorageRef := { base := name }
 def localIndex (name : Ident) (idx : Expr) : StorageRef :=

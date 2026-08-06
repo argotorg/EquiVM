@@ -18,7 +18,7 @@ Source-side refinement obligations for `bite`, proved with NO bytecode/RD.  The 
 the `evalExpr_storage_scalar_value` collapse (ported from `Ilks.lean`); the three `min` calls use the
 `execMinFunctionReturnX/Y` facts from `Arithmetic.lean`; the inline `checkedMul`/`checkedSub`/
 `checkedAdd` reuse the `evalExpr_{mul,sub,add}256_{ok,revert}` facts; the divisions go through the
-raw `.binary .div` evaluator (which reverts on `/0`).
+raw `.binary (.div (.uint ⟨256, by decide⟩) .checked)` evaluator (which reverts on `/0`).
 -/
 
 /-! ## `ilk`-keyed storage slot equations (ported from `Ilks.lean`) -/
@@ -379,7 +379,8 @@ theorem biteLocals_get_ne (I : ExecutionEnv) {a : Ident}
 theorem biteTupleLet {evm : EVM.State} {locals : Store} (vn name : Ident) (ty : Option ABIType)
     (i : Nat) {tup elem : Value}
     (hget : locals.get? vn = some tup)
-    (hidx : tupleGetValue? tup i = .ok elem) :
+    (hidx : tupleGetValue? tup i = .ok elem)
+    (htype : valueMatchesOptionalABIType ty elem = true) :
     ExecStmt config { contract := contract, locals := locals } evm
       (.letDecl name ty (.tupleGet (.var vn) i))
       (.ok { contract := contract, locals := locals.insert name elem } evm) := by
@@ -388,10 +389,11 @@ theorem biteTupleLet {evm : EVM.State} {locals : Store} (vn name : Ident) (ty : 
     rw [evalExpr?]
     change EvalResult.ofOption EvalError.unboundVariable (locals.get? vn) = .ok tup
     rw [hget]; rfl
-  apply ExecStmt.letDecl
-  rw [evalExpr?]
-  simp only [hvar, EvalResult.bind, bind]
-  exact hidx
+  apply ExecStmt.letDecl (by
+    rw [evalExpr?]
+    simp only [hvar, EvalResult.bind, bind]
+    exact hidx)
+  exact htype
 
 /-! ## Checkpoint stores (prefix through `ink`/`art`) -/
 
@@ -521,20 +523,23 @@ theorem catBiteSourceLiveRevert
         (.letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1))
         (.ok { contract := contract, locals := Lrate } evmIlk) := by
     refine biteTupleLet "vatIlk" "rate" (some uint256) 1
-      (by rw [hLilk, store_get_self]) (by rfl)
+      (by rw [hLilk, store_get_self]) (by rfl) (by
+        simpa [bw, uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word iRate)
   have hSpotStmt :
       ExecStmt config { contract := contract, locals := Lrate } evmIlk
         (.letDecl "spot" (some uint256) (.tupleGet (.var "vatIlk") 2))
         (.ok { contract := contract, locals := Lspot } evmIlk) := by
     refine biteTupleLet "vatIlk" "spot" (some uint256) 2
-      (by rw [hLrate, store_get_ne _ _ (by decide), hLilk, store_get_self]) (by rfl)
+      (by rw [hLrate, store_get_ne _ _ (by decide), hLilk, store_get_self]) (by rfl) (by
+        simpa [bw, uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word iSpot)
   have hDustStmt :
       ExecStmt config { contract := contract, locals := Lspot } evmIlk
         (.letDecl "dust" (some uint256) (.tupleGet (.var "vatIlk") 4))
         (.ok { contract := contract, locals := Ldust } evmIlk) := by
     refine biteTupleLet "vatIlk" "dust" (some uint256) 4
       (by rw [hLspot, store_get_ne _ _ (by decide), hLrate, store_get_ne _ _ (by decide),
-        hLilk, store_get_self]) (by rfl)
+        hLilk, store_get_self]) (by rfl) (by
+          simpa [bw, uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word iDust)
   -- urns external call (success)
   have hDustVat : Ldust.get? "vat" = none := by
     rw [hLdust, store_get_ne _ _ (by decide), hLspot, store_get_ne _ _ (by decide),
@@ -571,13 +576,15 @@ theorem catBiteSourceLiveRevert
         (.letDecl "ink" (some uint256) (.tupleGet (.var "vatUrn") 0))
         (.ok { contract := contract, locals := Link } evmUrn) := by
     refine biteTupleLet "vatUrn" "ink" (some uint256) 0
-      (by rw [hLurn, store_get_self]) (by rfl)
+      (by rw [hLurn, store_get_self]) (by rfl) (by
+        simpa [bw, uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word ink)
   have hArtStmt :
       ExecStmt config { contract := contract, locals := Link } evmUrn
         (.letDecl "art" (some uint256) (.tupleGet (.var "vatUrn") 1))
         (.ok { contract := contract, locals := Lart } evmUrn) := by
     refine biteTupleLet "vatUrn" "art" (some uint256) 1
-      (by rw [hLink, store_get_ne _ _ (by decide), hLurn, store_get_self]) (by rfl)
+      (by rw [hLink, store_get_ne _ _ (by decide), hLurn, store_get_self]) (by rfl) (by
+        simpa [bw, uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word art)
   -- live == 1 evaluates false
   have hLartLive : Lart.get? "live" = none := by
     rw [hLart, store_get_ne _ _ (by decide), hLink, store_get_ne _ _ (by decide),
@@ -625,19 +632,21 @@ theorem evalExpr_div256_ok {evm : EVM.State} {locals : Store} {x y : Expr} {a b 
     (hx : evalExpr? config { contract := contract, locals := locals } evm x = .ok (bw a))
     (hy : evalExpr? config { contract := contract, locals := locals } evm y = .ok (bw b))
     (hb : 0 < b.toNat) :
-    evalExpr? config { contract := contract, locals := locals } evm (.binary .div x y) =
+    evalExpr? config { contract := contract, locals := locals } evm (.binary (.div (.uint ⟨256, by decide⟩) .checked) x y) =
       .ok (bw (UInt256.div a b)) := by
-  have hbne : Int.ofNat b.toNat ≠ 0 := by rw [Int.ofNat_eq_natCast]; exact_mod_cast hb.ne'
-  simp only [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, bw, if_neg hbne]
-  exact congrArg (fun z => EvalResult.ok (Value.int z)) Int.ofNat_ediv_ofNat
+  have hbne : b ≠ ⟨0⟩ := by
+    intro hzero
+    subst b
+    simp at hb
+  simpa [bw] using evalExpr_checked_div_uint256_word_ok hx hy hbne (by rw [udiv_toNat])
 
 theorem evalExpr_div256_revert {evm : EVM.State} {locals : Store} {x y : Expr} {a b : UInt256}
     (hx : evalExpr? config { contract := contract, locals := locals } evm x = .ok (bw a))
     (hy : evalExpr? config { contract := contract, locals := locals } evm y = .ok (bw b))
     (hb : b.toNat = 0) :
-    evalExpr? config { contract := contract, locals := locals } evm (.binary .div x y) = .revert := by
-  simp only [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, bw]
-  rw [if_pos (by rw [hb]; rfl)]
+    evalExpr? config { contract := contract, locals := locals } evm (.binary (.div (.uint ⟨256, by decide⟩) .checked) x y) = .revert := by
+  have hbzero : b = ⟨0⟩ := uint256_toNat_eq_zero hb
+  simpa [bw] using evalExpr_checked_div_uint256_word_revert_of_zero hx hy hbzero
 
 theorem evalExpr_and_true {evm : EVM.State} {locals : Store} {p q : Expr}
     (hp : evalExpr? config { contract := contract, locals := locals } evm p = .ok (.bool true))
@@ -729,22 +738,29 @@ theorem evalExpr_checkedMulCheck_true {evm : EVM.State} {locals : Store} {x y : 
     (hname : locals.get? name = some (bw prod))
     (hprod : prod = a * b) (hfit : a.toNat * b.toNat < UInt256.size) (hb : 0 < b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (.binary .or (.binary .eq y (.intLit 0)) (.binary .eq (.binary .div (.var name) y) x)) =
+      (.binary .or (.binary .eq y (.intLit 0)) (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x)) =
       .ok (.bool true) := by
   have hvar : evalExpr? config { contract := contract, locals := locals } evm (.var name) =
       .ok (bw prod) := by
     rw [evalExpr?]; change EvalResult.ofOption _ (locals.get? name) = _; rw [hname]; rfl
-  have hbne : Int.ofNat b.toNat ≠ 0 := by rw [Int.ofNat_eq_natCast]; exact_mod_cast hb.ne'
   have hprodNat : prod.toNat = a.toNat * b.toNat := by
     rw [hprod, u256_mul_op_toNat, Nat.mod_eq_of_lt hfit]
-  have hyne : (bw b == (Value.int 0)) = false := by
-    simp only [bw, beq_eq_false_iff_ne, ne_eq, Value.int.injEq]
-    rw [Int.ofNat_eq_natCast]; exact_mod_cast hb.ne'
-  simp only [evalExpr?, EvalResult.bind, bind, hx, hy, hvar, evalBinaryOp?, pure, hyne,
-    if_neg hbne, bw]
-  have hdiv : Int.ofNat prod.toNat / Int.ofNat b.toNat = Int.ofNat a.toNat := by
-    rw [hprodNat]; exact Int.ofNat_ediv_ofNat.trans (congrArg Int.ofNat (Nat.mul_div_cancel _ hb))
-  rw [hdiv]; simp
+  have hdivWord : UInt256.div prod b = a := by
+    apply u256_inj
+    rw [udiv_toNat, hprodNat]
+    exact Nat.mul_div_cancel a.toNat hb
+  have hzero :
+      evalExpr? config { contract := contract, locals := locals } evm
+        (.binary .eq y (.intLit 0)) = .ok (.bool false) := by
+    simp [evalExpr?, EvalResult.bind, bind, hy, evalBinaryOp?, pure, bw]
+    exact hb.ne'
+  have hdiv := evalExpr_div256_ok hvar hy hb
+  have heq :
+      evalExpr? config { contract := contract, locals := locals } evm
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x) =
+        .ok (.bool true) := by
+    simp [evalExpr?, EvalResult.bind, bind, hdiv, hx, evalBinaryOp?, hdivWord, bw]
+  simp [evalExpr?, EvalResult.bind, bind, hzero, heq, pure]
 
 /-- `WAD` as a `UInt256`. -/
 def wadU : UInt256 := UInt256.ofNat WAD.toNat
@@ -810,13 +826,17 @@ theorem execMinCall {locals : Store} {evm : EVM.State} {xn yn retVar : Ident} {x
   have hargs : evalExprs? config { contract := contract, locals := locals } evm
       [.var xn, .var yn] = .ok [bw x, bw y] := by
     simp [evalExprs?, hxv, hyv, EvalResult.bind, bind, pure]
+  have hbind : bindParams? minFunction.params [bw x, bw y] =
+      some (uintBinaryLocals x y) := by
+    simpa [minFunction, bw, uintBinaryLocals, uint256, uint256Int] using
+      bindParams_uint256_pair "x" "y" x y
   simpa [resumeAfterInternalCall, collapseReturns] using
     internalCallFunctionReturn (cfg := config)
       (caller := { contract := contract, locals := locals }) (evm := evm) (name := "min")
       (retVar := retVar) (args := [.var xn, .var yn]) (argVals := [bw x, bw y])
       (callee := minFunction) (locals := uintBinaryLocals x y)
       (calleeSolm := { contract := contract, locals := uintBinaryLocals x y }) (calleeEvm := evm)
-      (value := some [bw (umin x y)]) hargs (by rfl) (by rfl) (execMinReturn evm x y)
+      (value := some [bw (umin x y)]) hargs (by rfl) hbind (execMinReturn evm x y)
 
 /-! ## Derived storage-word / intermediate values -/
 
@@ -1085,11 +1105,11 @@ def biteArith1Stmts : List Stmt :=
 def biteArith2Stmts : List Stmt :=
   [ .internalCall "min" [.var "milkDunk", .var "room"] "dunkRoom" ] ++
   checkedMulUintInto "dunkRoomWad" (.var "dunkRoom") (.intLit WAD) ++
-  [ .letDecl "dartDenomRate" (some uint256) (.binary .div (.var "dunkRoomWad") (.var "rate")),
-    .letDecl "dartCandidate" (some uint256) (.binary .div (.var "dartDenomRate") (.var "milkChop")),
+  [ .letDecl "dartDenomRate" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dunkRoomWad") (.var "rate")),
+    .letDecl "dartCandidate" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartDenomRate") (.var "milkChop")),
     .internalCall "min" [.var "art", .var "dartCandidate"] "dart" ] ++
   checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-  [ .letDecl "dinkCandidate" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+  [ .letDecl "dinkCandidate" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
     .internalCall "min" [.var "ink", .var "dinkCandidate"] "dink",
     .require (.binary .and (.binary .gt (.var "dart") (.intLit 0))
       (.binary .gt (.var "dink") (.intLit 0))),
@@ -1103,7 +1123,7 @@ def biteTailStmts : List Stmt :=
   checkedMulUintInto "dartRate" (.var "dart") (.var "rate") ++
   checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "dartRate"] "_fessRet" ++
   checkedMulUintInto "tabBase" (.var "dartRate") (.var "milkChop") ++
-  [ .letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+  [ .letDecl "tab" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ] ++
   checkedAddUintInto "litterNew" (.storage litterRef) (.var "tab") ++
   [ .assign .storage litterRef (.var "litterNew") ] ++
   checkedExternalCallStmts (.var "milkFlip") "kick" (.intLit 0)
@@ -1170,16 +1190,19 @@ theorem catBiteSourcePreLive
         (.letDecl "rate" (some uint256) (.tupleGet (.var "vatIlk") 1))
         (.ok { contract := contract, locals := bsRate I iArt iRate iSpot iLine iDust } evmIlk) :=
     biteTupleLet "vatIlk" "rate" (some uint256) 1 (bsIlk_get_vatIlk I _ _ _ _ _) (by rfl)
+      (by simpa [bw, uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word iRate)
   have hSpotStmt :
       ExecStmt config { contract := contract, locals := bsRate I iArt iRate iSpot iLine iDust } evmIlk
         (.letDecl "spot" (some uint256) (.tupleGet (.var "vatIlk") 2))
         (.ok { contract := contract, locals := bsSpot I iArt iRate iSpot iLine iDust } evmIlk) :=
     biteTupleLet "vatIlk" "spot" (some uint256) 2 (bsRate_get_vatIlk I _ _ _ _ _) (by rfl)
+      (by simpa [bw, uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word iSpot)
   have hDustStmt :
       ExecStmt config { contract := contract, locals := bsSpot I iArt iRate iSpot iLine iDust } evmIlk
         (.letDecl "dust" (some uint256) (.tupleGet (.var "vatIlk") 4))
         (.ok { contract := contract, locals := bsDust I iArt iRate iSpot iLine iDust } evmIlk) :=
     biteTupleLet "vatIlk" "dust" (some uint256) 4 (bsSpot_get_vatIlk I _ _ _ _ _) (by rfl)
+      (by simpa [bw, uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word iDust)
   have hUrnsStmt :
       ExecStmt config { contract := contract, locals := bsDust I iArt iRate iSpot iLine iDust } evmIlk
         (.externalCall (.storage vatRef) "urns" (.intLit 0) [.var "ilk", .var "urn"] "vatUrn"
@@ -1201,11 +1224,13 @@ theorem catBiteSourcePreLive
         (.letDecl "ink" (some uint256) (.tupleGet (.var "vatUrn") 0))
         (.ok { contract := contract, locals := bsInk I iArt iRate iSpot iLine iDust ink art } evmUrn) :=
     biteTupleLet "vatUrn" "ink" (some uint256) 0 (bsUrn_get_vatUrn I _ _ _ _ _ _ _) (by rfl)
+      (by simpa [bw, uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word ink)
   have hArtStmt :
       ExecStmt config { contract := contract, locals := bsInk I iArt iRate iSpot iLine iDust ink art } evmUrn
         (.letDecl "art" (some uint256) (.tupleGet (.var "vatUrn") 1))
         (.ok { contract := contract, locals := bsArt I iArt iRate iSpot iLine iDust ink art } evmUrn) :=
     biteTupleLet "vatUrn" "art" (some uint256) 1 (bsInk_get_vatUrn I _ _ _ _ _ _ _) (by rfl)
+      (by simpa [bw, uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word art)
   have hLiveReq :
       evalExpr? config { contract := contract, locals := bsArt I iArt iRate iSpot iLine iDust ink art }
         evmUrn (.binary .eq (.storage liveRef) (.intLit 1)) = .ok (.bool true) := by
@@ -1248,14 +1273,14 @@ theorem catBiteSourceArith1 {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
   simp only [biteArith1Stmts, checkedMulUintInto, checkedSubUintInto, List.cons_append,
     List.nil_append]
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I a r s l d ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I a r s l d ink art))
       (evalExpr_varUInt256 (bsArt_get_spot I a r s l d ink art)) rfl hfitInkSpot)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (bsInkSpot_get_ink I evmUrn a r s l d ink art))
       (evalExpr_varUInt256 (bsInkSpot_get_spot I evmUrn a r s l d ink art))
       (bsInkSpot_get_inkSpot I evmUrn a r s l d ink art) rfl hfitInkSpot hspotPos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn a r s l d ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn a r s l d ink art))
       (evalExpr_varUInt256 (bsInkSpot_get_rate I evmUrn a r s l d ink art)) rfl hfitArtRate)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (bsArtRate_get_art I evmUrn a r s l d ink art))
@@ -1268,16 +1293,16 @@ theorem catBiteSourceArith1 {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size)
       (evalExpr_lt_uint256_true (evalExpr_varUInt256 (bsArtRate_get_inkSpot I evmUrn a r s l d ink art))
         (evalExpr_varUInt256 (bsArtRate_get_artRateUnsafe I evmUrn a r s l d ink art)) hunsafe))) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (biteFlipRead hsz36 (bsArtRate_get_ilks I evmUrn a r s l d ink art)
+    (ExecStmt.letDecl_address (biteFlipRead hsz36 (bsArtRate_get_ilks I evmUrn a r s l d ink art)
       (bsArtRate_get_ilk I evmUrn a r s l d ink art))) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (biteChopRead hsz36 (bsMilkFlip_get_ilks I evmUrn a r s l d ink art)
+    (ExecStmt.letDecl_uint256_word (biteChopRead hsz36 (bsMilkFlip_get_ilks I evmUrn a r s l d ink art)
       (bsMilkFlip_get_ilk I evmUrn a r s l d ink art))) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (biteDunkRead hsz36 (bsMilkChop_get_ilks I evmUrn a r s l d ink art)
+    (ExecStmt.letDecl_uint256_word (biteDunkRead hsz36 (bsMilkChop_get_ilks I evmUrn a r s l d ink art)
       (bsMilkChop_get_ilk I evmUrn a r s l d ink art))) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_sub256_ok (biteBoxRead (bsMilkDunk_get_box I evmUrn a r s l d ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_sub256_ok (biteBoxRead (bsMilkDunk_get_box I evmUrn a r s l d ink art))
       (biteLitterRead (bsMilkDunk_get_litter I evmUrn a r s l d ink art)) rfl
       (le_of_lt hlitLtBox))) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
@@ -1310,7 +1335,7 @@ theorem catBiteSourceArith2 {I : ExecutionEnv} {evmUrn : EVM.State} {a r s l d i
     (execMinCall (bsRoom_get_milkDunk I evmUrn a r s l d ink art)
       (bsRoom_get_room I evmUrn a r s l d ink art)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok
       (evalExpr_varUInt256 (bsDunkRoom_get_dunkRoom I evmUrn a r s l d ink art))
       evalExpr_wad rfl hfitDunkRoomWad)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
@@ -1319,25 +1344,25 @@ theorem catBiteSourceArith2 {I : ExecutionEnv} {evmUrn : EVM.State} {a r s l d i
       evalExpr_wad (bsDunkRoomWad_get_dunkRoomWad I evmUrn a r s l d ink art) rfl
       hfitDunkRoomWad wadU_pos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_div256_ok
+    (ExecStmt.letDecl_uint256_word (evalExpr_div256_ok
       (evalExpr_varUInt256 (bsDunkRoomWad_get_dunkRoomWad I evmUrn a r s l d ink art))
       (evalExpr_varUInt256 (bsDunkRoomWad_get_rate I evmUrn a r s l d ink art)) hratePos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_div256_ok
+    (ExecStmt.letDecl_uint256_word (evalExpr_div256_ok
       (evalExpr_varUInt256 (bsDartDenom_get_dartDenomRate I evmUrn a r s l d ink art))
       (evalExpr_varUInt256 (bsDartDenom_get_milkChop I evmUrn a r s l d ink art)) hmilkChopPos)) ?_
   refine ExecBlock.consNormal
     (execMinCall (bsDartCand_get_art I evmUrn a r s l d ink art)
       (bsDartCand_get_dartCandidate I evmUrn a r s l d ink art)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsDart_get_ink I evmUrn a r s l d ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsDart_get_ink I evmUrn a r s l d ink art))
       (evalExpr_varUInt256 (bsDart_get_dart I evmUrn a r s l d ink art)) rfl hfitInkDart)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (bsInkDart_get_ink I evmUrn a r s l d ink art))
       (evalExpr_varUInt256 (bsInkDart_get_dart I evmUrn a r s l d ink art))
       (bsInkDart_get_inkDart I evmUrn a r s l d ink art) rfl hfitInkDart hdartPos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_div256_ok
+    (ExecStmt.letDecl_uint256_word (evalExpr_div256_ok
       (evalExpr_varUInt256 (bsInkDart_get_inkDart I evmUrn a r s l d ink art))
       (evalExpr_varUInt256 (bsInkDart_get_art I evmUrn a r s l d ink art)) hartPos)) ?_
   refine ExecBlock.consNormal
@@ -1588,7 +1613,7 @@ theorem catBiteSourceTail {I : ExecutionEnv}
     (biteVatGuard_true (bsDink_get_vat I evmUrn a r s l d ink art) hvatCodeMid)) ?_
   refine ExecBlock.consNormal hGrabStmt ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn a r s l d ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn a r s l d ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn a r s l d ink art)) rfl hfitDartRate)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btDartRate_get_dart I evmUrn a r s l d ink art))
@@ -1598,17 +1623,17 @@ theorem catBiteSourceTail {I : ExecutionEnv}
     (biteVowGuard_true (btDartRate_get_vow I evmUrn a r s l d ink art) hvowCode)) ?_
   refine ExecBlock.consNormal hFessStmt ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btFess_get_dartRate I evmUrn a r s l d ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (btFess_get_dartRate I evmUrn a r s l d ink art))
       (evalExpr_varUInt256 (btFess_get_milkChop I evmUrn a r s l d ink art)) rfl hfitTabBase)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btTabBase_get_dartRate I evmUrn a r s l d ink art))
       (evalExpr_varUInt256 (btTabBase_get_milkChop I evmUrn a r s l d ink art))
       (btTabBase_get_tabBase I evmUrn a r s l d ink art) rfl hfitTabBase hmilkChopPos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_div256_ok (evalExpr_varUInt256 (btTabBase_get_tabBase I evmUrn a r s l d ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_div256_ok (evalExpr_varUInt256 (btTabBase_get_tabBase I evmUrn a r s l d ink art))
       evalExpr_wad wadU_pos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_add256_ok (biteLitterRead (btTab_get_litter I evmUrn a r s l d ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_add256_ok (biteLitterRead (btTab_get_litter I evmUrn a r s l d ink art))
       (evalExpr_varUInt256 (btTab_get_tab I evmUrn a r s l d ink art)) rfl hfitLitterNew)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_ge_uint256_true (evalExpr_varUInt256 (btLitterNew_get_litterNew I evmUrn evmFess a r s l d ink art))
@@ -1798,7 +1823,7 @@ theorem catBiteSourceArtRateOverflowRevert
   simp only [biteArith1Stmts, checkedMulUintInto, checkedSubUintInto, List.cons_append,
     List.nil_append]
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsArt_get_spot I iArt iRate iSpot iLine iDust ink art)) rfl hfitInkSpot)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (bsInkSpot_get_ink I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -1820,7 +1845,7 @@ theorem catBiteSourceArtRateOverflowSpotZeroRevert
   simp only [biteArith1Stmts, checkedMulUintInto, checkedSubUintInto, List.cons_append,
     List.nil_append]
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsArt_get_spot I iArt iRate iSpot iLine iDust ink art)) rfl hfitInkSpot)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_yzero (evalExpr_varUInt256 (bsInkSpot_get_spot I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -1839,13 +1864,13 @@ theorem catBiteSourceSpotZeroRevert
   simp only [biteArith1Stmts, checkedMulUintInto, checkedSubUintInto, List.cons_append,
     List.nil_append]
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsArt_get_spot I iArt iRate iSpot iLine iDust ink art)) rfl hfitInkSpot)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_yzero (evalExpr_varUInt256 (bsInkSpot_get_spot I evmUrn iArt iRate iSpot iLine iDust ink art))
       hspot0)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsInkSpot_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitArtRate)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (bsArtRate_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -1867,13 +1892,13 @@ theorem catBiteSourceSpotZeroRateZeroRevert
   simp only [biteArith1Stmts, checkedMulUintInto, checkedSubUintInto, List.cons_append,
     List.nil_append]
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsArt_get_spot I iArt iRate iSpot iLine iDust ink art)) rfl hfitInkSpot)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_yzero (evalExpr_varUInt256 (bsInkSpot_get_spot I evmUrn iArt iRate iSpot iLine iDust ink art))
       hspot0)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsInkSpot_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitArtRate)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_yzero (evalExpr_varUInt256 (bsArtRate_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -1893,14 +1918,14 @@ theorem catBiteSourceInkSpotGeRevert
   simp only [biteArith1Stmts, checkedMulUintInto, checkedSubUintInto, List.cons_append,
     List.nil_append]
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsArt_get_spot I iArt iRate iSpot iLine iDust ink art)) rfl hfitInkSpot)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (bsInkSpot_get_ink I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsInkSpot_get_spot I evmUrn iArt iRate iSpot iLine iDust ink art))
       (bsInkSpot_get_inkSpot I evmUrn iArt iRate iSpot iLine iDust ink art) rfl hfitInkSpot hspotPos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsInkSpot_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitArtRate)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (bsArtRate_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -1928,14 +1953,14 @@ theorem catBiteSourceInkSpotGeRateZeroRevert
   simp only [biteArith1Stmts, checkedMulUintInto, checkedSubUintInto, List.cons_append,
     List.nil_append]
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsArt_get_spot I iArt iRate iSpot iLine iDust ink art)) rfl hfitInkSpot)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (bsInkSpot_get_ink I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsInkSpot_get_spot I evmUrn iArt iRate iSpot iLine iDust ink art))
       (bsInkSpot_get_inkSpot I evmUrn iArt iRate iSpot iLine iDust ink art) rfl hfitInkSpot hspotPos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsInkSpot_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitArtRate)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_yzero (evalExpr_varUInt256 (bsArtRate_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -1962,14 +1987,14 @@ private theorem biteArith1ToMilk (hsz36 : 36 ≤ I.calldata.size)
   simp only [biteArith1Stmts, checkedMulUintInto, List.append_assoc, List.cons_append,
     List.nil_append]
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsArt_get_ink I iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsArt_get_spot I iArt iRate iSpot iLine iDust ink art)) rfl hfitInkSpot)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (bsInkSpot_get_ink I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsInkSpot_get_spot I evmUrn iArt iRate iSpot iLine iDust ink art))
       (bsInkSpot_get_inkSpot I evmUrn iArt iRate iSpot iLine iDust ink art) rfl hfitInkSpot hspotPos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsInkSpot_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsInkSpot_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitArtRate)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (bsArtRate_get_art I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -1981,13 +2006,13 @@ private theorem biteArith1ToMilk (hsz36 : 36 ≤ I.calldata.size)
       (evalExpr_lt_uint256_true (evalExpr_varUInt256 (bsArtRate_get_inkSpot I evmUrn iArt iRate iSpot iLine iDust ink art))
         (evalExpr_varUInt256 (bsArtRate_get_artRateUnsafe I evmUrn iArt iRate iSpot iLine iDust ink art)) hunsafe))) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (biteFlipRead hsz36 (bsArtRate_get_ilks I evmUrn iArt iRate iSpot iLine iDust ink art)
+    (ExecStmt.letDecl_address (biteFlipRead hsz36 (bsArtRate_get_ilks I evmUrn iArt iRate iSpot iLine iDust ink art)
       (bsArtRate_get_ilk I evmUrn iArt iRate iSpot iLine iDust ink art))) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (biteChopRead hsz36 (bsMilkFlip_get_ilks I evmUrn iArt iRate iSpot iLine iDust ink art)
+    (ExecStmt.letDecl_uint256_word (biteChopRead hsz36 (bsMilkFlip_get_ilks I evmUrn iArt iRate iSpot iLine iDust ink art)
       (bsMilkFlip_get_ilk I evmUrn iArt iRate iSpot iLine iDust ink art))) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (biteDunkRead hsz36 (bsMilkChop_get_ilks I evmUrn iArt iRate iSpot iLine iDust ink art)
+    (ExecStmt.letDecl_uint256_word (biteDunkRead hsz36 (bsMilkChop_get_ilks I evmUrn iArt iRate iSpot iLine iDust ink art)
       (bsMilkChop_get_ilk I evmUrn iArt iRate iSpot iLine iDust ink art))) ?_
   simpa only [List.append_assoc] using hdiv
 
@@ -2023,7 +2048,7 @@ theorem catBiteSourceLitterGeBoxRevert (hsz36 : 36 ≤ I.calldata.size)
       hfitInkSpot hfitArtRate hspotPos hratePos hunsafe ?_)
   simp only [checkedSubUintInto, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_sub256_ok (biteBoxRead (bsMilkDunk_get_box I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_sub256_ok (biteBoxRead (bsMilkDunk_get_box I evmUrn iArt iRate iSpot iLine iDust ink art))
       (biteLitterRead (bsMilkDunk_get_litter I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hle)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_le_uint256_true (evalExpr_varUInt256 (bsRoom_get_room I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -2049,7 +2074,7 @@ theorem catBiteSourceRoomLtDustRevert (hsz36 : 36 ≤ I.calldata.size)
       hfitInkSpot hfitArtRate hspotPos hratePos hunsafe ?_)
   simp only [checkedSubUintInto, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_sub256_ok (biteBoxRead (bsMilkDunk_get_box I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_sub256_ok (biteBoxRead (bsMilkDunk_get_box I evmUrn iArt iRate iSpot iLine iDust ink art))
       (biteLitterRead (bsMilkDunk_get_litter I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl (le_of_lt hlitLtBox))) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_le_uint256_true (evalExpr_varUInt256 (bsRoom_get_room I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -2115,7 +2140,7 @@ theorem catBiteSourceMilkChopZeroRevert (hsz36 : 36 ≤ I.calldata.size)
     (execMinCall (bsRoom_get_milkDunk I evmUrn iArt iRate iSpot iLine iDust ink art)
       (bsRoom_get_room I evmUrn iArt iRate iSpot iLine iDust ink art)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok
       (evalExpr_varUInt256 (bsDunkRoom_get_dunkRoom I evmUrn iArt iRate iSpot iLine iDust ink art))
       evalExpr_wad rfl hfitDunkRoomWad)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
@@ -2124,7 +2149,7 @@ theorem catBiteSourceMilkChopZeroRevert (hsz36 : 36 ≤ I.calldata.size)
       evalExpr_wad (bsDunkRoomWad_get_dunkRoomWad I evmUrn iArt iRate iSpot iLine iDust ink art) rfl
       hfitDunkRoomWad wadU_pos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_div256_ok
+    (ExecStmt.letDecl_uint256_word (evalExpr_div256_ok
       (evalExpr_varUInt256 (bsDunkRoomWad_get_dunkRoomWad I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsDunkRoomWad_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) hratePos)) ?_
   exact ExecBlock.consRevert (ExecStmt.letDeclRevert
@@ -2138,7 +2163,7 @@ private theorem biteArith2ToDart
     (hfitDunkRoomWad : (biteDunkRoomV I evmUrn).toNat * wadU.toNat < UInt256.size) {result : ExecResult}
     (hdiv : ExecBlock config { contract := contract, locals := bsDart I evmUrn iArt iRate iSpot iLine iDust ink art }
       evmUrn (checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-        [ .letDecl "dinkCandidate" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+        [ .letDecl "dinkCandidate" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
           .internalCall "min" [.var "ink", .var "dinkCandidate"] "dink",
           .require (.binary .and (.binary .gt (.var "dart") (.intLit 0))
             (.binary .gt (.var "dink") (.intLit 0))),
@@ -2152,7 +2177,7 @@ private theorem biteArith2ToDart
     (execMinCall (bsRoom_get_milkDunk I evmUrn iArt iRate iSpot iLine iDust ink art)
       (bsRoom_get_room I evmUrn iArt iRate iSpot iLine iDust ink art)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok
       (evalExpr_varUInt256 (bsDunkRoom_get_dunkRoom I evmUrn iArt iRate iSpot iLine iDust ink art))
       evalExpr_wad rfl hfitDunkRoomWad)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
@@ -2161,11 +2186,11 @@ private theorem biteArith2ToDart
       evalExpr_wad (bsDunkRoomWad_get_dunkRoomWad I evmUrn iArt iRate iSpot iLine iDust ink art) rfl
       hfitDunkRoomWad wadU_pos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_div256_ok
+    (ExecStmt.letDecl_uint256_word (evalExpr_div256_ok
       (evalExpr_varUInt256 (bsDunkRoomWad_get_dunkRoomWad I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsDunkRoomWad_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) hratePos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_div256_ok
+    (ExecStmt.letDecl_uint256_word (evalExpr_div256_ok
       (evalExpr_varUInt256 (bsDartDenom_get_dartDenomRate I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsDartDenom_get_milkChop I evmUrn iArt iRate iSpot iLine iDust ink art)) hmilkChopPos)) ?_
   refine ExecBlock.consNormal
@@ -2213,13 +2238,13 @@ theorem catBiteSourceDartZeroRevert (hsz36 : 36 ≤ I.calldata.size)
       hratePos hmilkChopPos hfitDunkRoomWad ?_)
   simp only [checkedMulUintInto, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsDart_get_ink I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsDart_get_ink I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsDart_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitInkDart)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_yzero (evalExpr_varUInt256 (bsInkDart_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       hdart0)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_div256_ok
+    (ExecStmt.letDecl_uint256_word (evalExpr_div256_ok
       (evalExpr_varUInt256 (bsInkDart_get_inkDart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsInkDart_get_art I evmUrn iArt iRate iSpot iLine iDust ink art)) hartPos)) ?_
   refine ExecBlock.consNormal
@@ -2243,7 +2268,7 @@ private theorem biteArith2DartToDink
           (.binary .le (.var "dink") (.intLit int256Limit))) ] ++ biteTailStmts) result) :
     ExecBlock config { contract := contract, locals := bsDart I evmUrn iArt iRate iSpot iLine iDust ink art }
       evmUrn (checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-        [ .letDecl "dinkCandidate" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+        [ .letDecl "dinkCandidate" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
           .internalCall "min" [.var "ink", .var "dinkCandidate"] "dink",
           .require (.binary .and (.binary .gt (.var "dart") (.intLit 0))
             (.binary .gt (.var "dink") (.intLit 0))),
@@ -2251,14 +2276,14 @@ private theorem biteArith2DartToDink
             (.binary .le (.var "dink") (.intLit int256Limit))) ] ++ biteTailStmts) result := by
   simp only [checkedMulUintInto, List.cons_append, List.nil_append]
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (bsDart_get_ink I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (bsDart_get_ink I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsDart_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitInkDart)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (bsInkDart_get_ink I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsInkDart_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (bsInkDart_get_inkDart I evmUrn iArt iRate iSpot iLine iDust ink art) rfl hfitInkDart hdartPos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_div256_ok
+    (ExecStmt.letDecl_uint256_word (evalExpr_div256_ok
       (evalExpr_varUInt256 (bsInkDart_get_inkDart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (bsInkDart_get_art I evmUrn iArt iRate iSpot iLine iDust ink art)) hartPos)) ?_
   refine ExecBlock.consNormal
@@ -2491,7 +2516,7 @@ theorem catBiteSourceFessFailRevert
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
   refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btDartRate_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -2535,7 +2560,7 @@ theorem catBiteSourceTabBaseOverflowRevert
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
   refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btDartRate_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -2587,7 +2612,7 @@ theorem catBiteSourceKickFailRevert
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
   refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btDartRate_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -2597,17 +2622,17 @@ theorem catBiteSourceKickFailRevert
     (biteVowGuard_true (btDartRate_get_vow I evmUrn iArt iRate iSpot iLine iDust ink art) hvowCode)) ?_
   refine ExecBlock.consNormal (biteFessSuccessStmt hFessCall hFessDec) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btFess_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (btFess_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btFess_get_milkChop I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitTabBase)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btTabBase_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btTabBase_get_milkChop I evmUrn iArt iRate iSpot iLine iDust ink art))
       (btTabBase_get_tabBase I evmUrn iArt iRate iSpot iLine iDust ink art) rfl hfitTabBase hmilkChopPos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_div256_ok (evalExpr_varUInt256 (btTabBase_get_tabBase I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_div256_ok (evalExpr_varUInt256 (btTabBase_get_tabBase I evmUrn iArt iRate iSpot iLine iDust ink art))
       evalExpr_wad wadU_pos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_add256_ok (biteLitterRead (btTab_get_litter I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_add256_ok (biteLitterRead (btTab_get_litter I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btTab_get_tab I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitLitterNew)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_ge_uint256_true (evalExpr_varUInt256 (btLitterNew_get_litterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
@@ -2678,7 +2703,7 @@ theorem catBiteSourceKickDecodeRevert
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
   refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btDartRate_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -2688,17 +2713,17 @@ theorem catBiteSourceKickDecodeRevert
     (biteVowGuard_true (btDartRate_get_vow I evmUrn iArt iRate iSpot iLine iDust ink art) hvowCode)) ?_
   refine ExecBlock.consNormal (biteFessSuccessStmt hFessCall hFessDec) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btFess_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (btFess_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btFess_get_milkChop I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitTabBase)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btTabBase_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btTabBase_get_milkChop I evmUrn iArt iRate iSpot iLine iDust ink art))
       (btTabBase_get_tabBase I evmUrn iArt iRate iSpot iLine iDust ink art) rfl hfitTabBase hmilkChopPos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_div256_ok (evalExpr_varUInt256 (btTabBase_get_tabBase I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_div256_ok (evalExpr_varUInt256 (btTabBase_get_tabBase I evmUrn iArt iRate iSpot iLine iDust ink art))
       evalExpr_wad wadU_pos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_add256_ok (biteLitterRead (btTab_get_litter I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_add256_ok (biteLitterRead (btTab_get_litter I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btTab_get_tab I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitLitterNew)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_ge_uint256_true (evalExpr_varUInt256 (btLitterNew_get_litterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))
@@ -2751,7 +2776,7 @@ theorem catBiteSourceFessNoCodeRevert
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
   refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btDartRate_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -2799,7 +2824,7 @@ theorem catBiteSourceKickNoCodeRevert
     (biteVatGuard_true (bsDink_get_vat I evmUrn iArt iRate iSpot iLine iDust ink art) hvatCodeMid)) ?_
   refine ExecBlock.consNormal (biteGrabSuccessStmt hdartLim hdinkLim hGrabCall hGrabDec) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (btGrab_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btGrab_get_rate I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitDartRate)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btDartRate_get_dart I evmUrn iArt iRate iSpot iLine iDust ink art))
@@ -2809,17 +2834,17 @@ theorem catBiteSourceKickNoCodeRevert
     (biteVowGuard_true (btDartRate_get_vow I evmUrn iArt iRate iSpot iLine iDust ink art) hvowCode)) ?_
   refine ExecBlock.consNormal (biteFessSuccessStmt hFessCall hFessDec) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mul256_ok (evalExpr_varUInt256 (btFess_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_mul256_ok (evalExpr_varUInt256 (btFess_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btFess_get_milkChop I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitTabBase)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_checkedMulCheck_true (evalExpr_varUInt256 (btTabBase_get_dartRate I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btTabBase_get_milkChop I evmUrn iArt iRate iSpot iLine iDust ink art))
       (btTabBase_get_tabBase I evmUrn iArt iRate iSpot iLine iDust ink art) rfl hfitTabBase hmilkChopPos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_div256_ok (evalExpr_varUInt256 (btTabBase_get_tabBase I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_div256_ok (evalExpr_varUInt256 (btTabBase_get_tabBase I evmUrn iArt iRate iSpot iLine iDust ink art))
       evalExpr_wad wadU_pos)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_add256_ok (biteLitterRead (btTab_get_litter I evmUrn iArt iRate iSpot iLine iDust ink art))
+    (ExecStmt.letDecl_uint256_word (evalExpr_add256_ok (biteLitterRead (btTab_get_litter I evmUrn iArt iRate iSpot iLine iDust ink art))
       (evalExpr_varUInt256 (btTab_get_tab I evmUrn iArt iRate iSpot iLine iDust ink art)) rfl hfitLitterNew)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue
     (evalExpr_ge_uint256_true (evalExpr_varUInt256 (btLitterNew_get_litterNew I evmUrn evmFess iArt iRate iSpot iLine iDust ink art))

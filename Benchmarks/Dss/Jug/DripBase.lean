@@ -1559,7 +1559,7 @@ theorem evalExprs_dripRpowNZeroArgs (evm : EVM.State) (I : ExecutionEnv)
       evalExpr? config { contract := contract, locals := dripFeeLocals I out fee } evm
         (sub256 (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))) =
           .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
-    exact evalExpr_sub256_ok htimestamp hrho (by simpa [nowWord, rho] using hage.symm) hrhoLe
+    exact evalExpr_sub256_word_ok htimestamp hrho (by simpa [nowWord, rho] using hage.symm)
   have hone :
       evalExpr? config { contract := contract, locals := dripFeeLocals I out fee } evm
         (.intLit one) = .ok (.int (Int.ofNat jugRay.toNat)) := by

@@ -303,6 +303,18 @@ theorem evalExpr_tickNow48 {evm : EVM.State} {locals : Store} {I : ExecutionEnv}
     (hts : evm.executionEnv.header.timestamp = I.header.timestamp) :
     evalExpr? config { contract := contract, locals := locals } evm now48 =
       .ok (.int (Int.ofNat (tickNow48 I).toNat)) := by
+  have htimestamp :
+      evalExpr? config { contract := contract, locals := locals } evm (.env .timestamp) =
+        .ok (.int (Int.ofNat (tickNow I).toNat)) := by
+    simp [evalExpr?, envValue, pure, hts, tickNow]
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } evm
+          (.intLit uint48Modulus) = .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
+  have hfit :
+      Int.ofNat (tickNow I).toNat % uint48Modulus < Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
   have hmod :
       (Int.ofNat (tickNow I).toNat) % uint48Modulus =
         Int.ofNat (tickNow48 I).toNat := by
@@ -313,47 +325,45 @@ theorem evalExpr_tickNow48 {evm : EVM.State} {locals : Store} {I : ExecutionEnv}
           exact (Int.natCast_mod (tickNow I).toNat (2 ^ 48)).symm
       _ = Int.ofNat (tickNow48 I).toNat := by
           rw [← uint48Mask_toNat_mod (tickNow I)]
-  rw [now48, wrap48]
-  simp only [evalExpr?, envValue, hts, EvalResult.bind, bind, pure]
-  change evalBinaryOp? .mod (Value.int (Int.ofNat (tickNow I).toNat))
-      (Value.int uint48Modulus) =
-    .ok (Value.int (Int.ofNat (tickNow48 I).toNat))
-  change (if uint48Modulus = 0 then EvalResult.revert else
-      .ok (Value.int ((Int.ofNat (tickNow I).toNat) % uint48Modulus))) =
-    .ok (Value.int (Int.ofNat (tickNow48 I).toNat))
-  rw [if_neg (by norm_num [uint48Modulus]), hmod]
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩) htimestamp hmodulus
+    (Int.natCast_nonneg _) hpos hfit
+  rw [hmod] at heval
+  simpa [now48, wrap48] using heval
 
 theorem evalExpr_tickEndNew {cA gh bl σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := tickLocals I }
-      (initState cA gh bl σ σ₀ g A I) (wrap48 (.binary .add now48 (.storage tauRef))) =
+      (initState cA gh bl σ σ₀ g A I) (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))) =
         .ok (.int (Int.ofNat (tickEndNewWord σ I).toNat)) := by
   have hnow := evalExpr_tickNow48
     (evm := initState cA gh bl σ σ₀ g A I) (locals := tickLocals I) (I := I) (by rfl)
   have htau := evalExpr_tickTau (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g)
-  rw [wrap48]
-  simp only [evalExpr?, hnow, htau, EvalResult.bind, bind, pure]
-  change (if uint48Modulus = 0 then EvalResult.revert else
-      .ok (Value.int (((Int.ofNat (tickNow48 I).toNat) +
-        Int.ofNat (tickTauWord σ I).toNat) % uint48Modulus))) =
-    .ok (Value.int (Int.ofNat (tickEndNewWord σ I).toNat))
+  have hadd := evalExpr_wrapping_add_uint256_word_ok hnow htau
+    (result := tickNow48 I + tickTauWord σ I) rfl
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := tickLocals I }
+          (initState cA gh bl σ σ₀ g A I) (.intLit uint48Modulus) =
+        .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
   have hmod :
-      ((Int.ofNat (tickNow48 I).toNat) + Int.ofNat (tickTauWord σ I).toNat) %
-          uint48Modulus =
+      Int.ofNat (tickNow48 I + tickTauWord σ I).toNat % uint48Modulus =
         Int.ofNat (tickEndNewWord σ I).toNat := by
     calc
-      ((Int.ofNat (tickNow48 I).toNat) + Int.ofNat (tickTauWord σ I).toNat) %
-          uint48Modulus =
-          Int.ofNat (((tickNow48 I).toNat + (tickTauWord σ I).toNat) % 2 ^ 48) := by
-          rw [show (Int.ofNat (tickNow48 I).toNat +
-              Int.ofNat (tickTauWord σ I).toNat) =
-              Int.ofNat ((tickNow48 I).toNat + (tickTauWord σ I).toNat) by simp]
+      Int.ofNat (tickNow48 I + tickTauWord σ I).toNat % uint48Modulus =
+          Int.ofNat ((tickNow48 I + tickTauWord σ I).toNat % 2 ^ 48) := by
           rw [uint48Modulus]
-          exact (Int.natCast_mod
-            ((tickNow48 I).toNat + (tickTauWord σ I).toNat) (2 ^ 48)).symm
+          exact (Int.natCast_mod (tickNow48 I + tickTauWord σ I).toNat (2 ^ 48)).symm
       _ = Int.ofNat (tickEndNewWord σ I).toNat := by
-          rw [← tickEndNewWord_toNat σ I]
-  rw [if_neg (by norm_num [uint48Modulus]), hmod]
+          rw [tickEndNewWord, uint48Mask_toNat_mod]
+  have hfit :
+      Int.ofNat (tickNow48 I + tickTauWord σ I).toNat % uint48Modulus <
+        Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩) hadd hmodulus
+    (Int.natCast_nonneg _) hpos hfit
+  rw [hmod] at heval
+  simpa [wrap48] using heval
 
 theorem evalExpr_tickEndVarWithEnd {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv} :
     evalExpr? config { contract := contract, locals := tickLocalsWithEnd σ I } evm
@@ -1237,7 +1247,7 @@ theorem flipperTickSourceBodyNotFinished {cA gh bl σ σ₀ A I} {g : UInt256}
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .require (.binary .lt (.storage (bidsF (.var "id") "end")) (.env .timestamp)),
           .require (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0)),
-          .letDecl "end_" (some uint48) (wrap48 (.binary .add now48 (.storage tauRef))),
+          .letDecl "end_" (some uint48) (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))),
           .require (.binary .ge (.var "end_") now48),
           .assign .storage (bidsF (.var "id") "end") (.var "end_") ]
         .reverted := by
@@ -1274,7 +1284,7 @@ theorem flipperTickSourceBodyBidAlreadyPlaced {cA gh bl σ σ₀ A I} {g : UInt2
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .require (.binary .lt (.storage (bidsF (.var "id") "end")) (.env .timestamp)),
           .require (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0)),
-          .letDecl "end_" (some uint48) (wrap48 (.binary .add now48 (.storage tauRef))),
+          .letDecl "end_" (some uint48) (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))),
           .require (.binary .ge (.var "end_") now48),
           .assign .storage (bidsF (.var "id") "end") (.var "end_") ]
         .reverted := by
@@ -1310,7 +1320,7 @@ theorem flipperTickSourceBodyAddOverflow {cA gh bl σ σ₀ A I} {g : UInt256}
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) htic
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm0
-        (wrap48 (.binary .add now48 (.storage tauRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))) =
           .ok (.int (Int.ofNat (tickEndNewWord σ I).toNat)) := by
     simpa [locals, evm0] using
       evalExpr_tickEndNew (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
@@ -1332,7 +1342,7 @@ theorem flipperTickSourceBodyAddOverflow {cA gh bl σ σ₀ A I} {g : UInt256}
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .require (.binary .lt (.storage (bidsF (.var "id") "end")) (.env .timestamp)),
           .require (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0)),
-          .letDecl "end_" (some uint48) (wrap48 (.binary .add now48 (.storage tauRef))),
+          .letDecl "end_" (some uint48) (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))),
           .require (.binary .ge (.var "end_") now48),
           .assign .storage (bidsF (.var "id") "end") (.var "end_") ]
         .reverted := by
@@ -1340,7 +1350,9 @@ theorem flipperTickSourceBodyAddOverflow {cA gh bl σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hend) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hticEval) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hlet (by
+      exact valueMatchesOptionalABIType_uint_of_bounds ⟨48, by decide⟩ _
+        (Int.natCast_nonneg _) (Int.ofNat_lt.mpr (tickEndNewWord_bound σ I)))) ?_
     simpa [locals, tickLocalsWithEnd] using htail
   simpa [ExecTransitionBody, tickTransition, nonpayable, checkedAdd48Into, locals, evm0] using
     ExecFuncBody.execBlockRevert hblock
@@ -1373,7 +1385,7 @@ theorem flipperTickSourceBodySuccess {cA gh bl σ σ₀ A I} {g : UInt256}
         (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) htic
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm0
-        (wrap48 (.binary .add now48 (.storage tauRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))) =
           .ok (.int (Int.ofNat (tickEndNewWord σ I).toNat)) := by
     simpa [locals, evm0] using
       evalExpr_tickEndNew (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
@@ -1404,7 +1416,7 @@ theorem flipperTickSourceBodySuccess {cA gh bl σ σ₀ A I} {g : UInt256}
         [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
           .require (.binary .lt (.storage (bidsF (.var "id") "end")) (.env .timestamp)),
           .require (.binary .eq (.storage (bidsF (.var "id") "tic")) (.intLit 0)),
-          .letDecl "end_" (some uint48) (wrap48 (.binary .add now48 (.storage tauRef))),
+          .letDecl "end_" (some uint48) (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))),
           .require (.binary .ge (.var "end_") now48),
           .assign .storage (bidsF (.var "id") "end") (.var "end_") ]
         (.ok { contract := contract, locals := tickLocalsWithEnd σ I } evm1) := by
@@ -1412,7 +1424,9 @@ theorem flipperTickSourceBodySuccess {cA gh bl σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hend) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hticEval) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hlet (by
+      exact valueMatchesOptionalABIType_uint_of_bounds ⟨48, by decide⟩ _
+        (Int.natCast_nonneg _) (Int.ofNat_lt.mpr (tickEndNewWord_bound σ I)))) ?_
     simpa [locals, tickLocalsWithEnd] using htail
   simpa [ExecTransitionBody, tickTransition, nonpayable, checkedAdd48Into, locals, evm0,
     evm1] using ExecFuncBody.execBlockOK hblock

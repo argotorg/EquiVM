@@ -330,7 +330,8 @@ theorem flapPrefixToDaiSuccess
       bindParams? addFunction.params
           [.int (Int.ofNat vatSin0.toNat), .int (Int.ofNat BumpVal.toNat)] =
         some (uintBinaryLocals vatSin0 BumpVal) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" vatSin0 BumpVal
   have hsurplus0Stmt :
       ExecStmt config { contract := contract, locals := locals1 } evmSin
         (.internalCall "add" [.var "vatSin0", .storage bumpRef] "surplus0")
@@ -370,7 +371,8 @@ theorem flapPrefixToDaiSuccess
       bindParams? addFunction.params
           [.int (Int.ofNat surplus0.toNat), .int (Int.ofNat HumpVal.toNat)] =
         some (uintBinaryLocals surplus0 HumpVal) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" surplus0 HumpVal
   have hsurplusNeedStmt :
       ExecStmt config { contract := contract, locals := locals2 } evmSin
         (.internalCall "add" [.var "surplus0", .storage humpRef] "surplusNeed")
@@ -487,7 +489,8 @@ theorem flapSourceSurplus0AddOverflow
       bindParams? addFunction.params
           [.int (Int.ofNat vatSin0.toNat), .int (Int.ofNat BumpVal.toNat)] =
         some (uintBinaryLocals vatSin0 BumpVal) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" vatSin0 BumpVal
   have haddStmt :
       ExecStmt config { contract := contract, locals := locals1 } evmSin
         (.internalCall "add" [.var "vatSin0", .storage bumpRef] "surplus0") .reverted := by
@@ -579,7 +582,8 @@ theorem flapSourceSurplusNeedAddOverflow
       bindParams? addFunction.params
           [.int (Int.ofNat vatSin0.toNat), .int (Int.ofNat BumpVal.toNat)] =
         some (uintBinaryLocals vatSin0 BumpVal) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" vatSin0 BumpVal
   have hsurplus0Stmt :
       ExecStmt config { contract := contract, locals := locals1 } evmSin
         (.internalCall "add" [.var "vatSin0", .storage bumpRef] "surplus0")
@@ -619,7 +623,8 @@ theorem flapSourceSurplusNeedAddOverflow
       bindParams? addFunction.params
           [.int (Int.ofNat surplus0.toNat), .int (Int.ofNat HumpVal.toNat)] =
         some (uintBinaryLocals surplus0 HumpVal) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" surplus0 HumpVal
   have haddStmt :
       ExecStmt config { contract := contract, locals := locals2 } evmSin
         (.internalCall "add" [.var "surplus0", .storage humpRef] "surplusNeed") .reverted := by
@@ -1110,7 +1115,8 @@ theorem flapPostDaiToKickSuccess
       bindParams? subFunction.params
           [.int (Int.ofNat vatSin1.toNat), .int (Int.ofNat SinVal.toNat)] =
         some (uintBinaryLocals vatSin1 SinVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" vatSin1 SinVal
   have hfreeStmt :
       ExecStmt config { contract := contract, locals := locals5 } evmSin
         (.internalCall "sub" [.var "vatSin1", .storage SinRef] "freeSin")
@@ -1155,7 +1161,8 @@ theorem flapPostDaiToKickSuccess
       bindParams? subFunction.params
           [.int (Int.ofNat freeSin.toNat), .int (Int.ofNat AshVal.toNat)] =
         some (uintBinaryLocals freeSin AshVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" freeSin AshVal
   have hdebtStmt :
       ExecStmt config { contract := contract, locals := locals6 } evmSin
         (.internalCall "sub" [.var "freeSin", .storage AshRef] "debt")

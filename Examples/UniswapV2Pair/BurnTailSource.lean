@@ -7,7 +7,7 @@ set_option maxRecDepth 2000000
 abbrev uniswapKLastIfFeeState (evm : EVM.State) (fee : Bool) : EVM.State :=
   if fee then mintKLastUpdatedState evm else evm
 abbrev uniswapKLastIfFeeStmt : Stmt := .ite (.var "feeOn")
-  [.assign .storage kLastRef (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref)))] []
+  [.assign .storage kLastRef (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref)))] []
 
 theorem uniswapKLastIfFeeSource {locals : Store} (evm : EVM.State) (fee : Bool)
     (hfee : locals.get? "feeOn" = some (.bool fee))

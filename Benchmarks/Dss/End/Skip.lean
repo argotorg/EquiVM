@@ -7561,6 +7561,7 @@ theorem endSkipStmtFlip (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
       (.ok { contract := contract, locals := endSkipStoreFlip I out } evm) := by
   simpa [endSkipStoreFlip] using
     ExecStmt.letDecl (evalExpr_endSkip_catIlk_flip evm I out)
+      (valueMatchesOptionalABIType_address (endSkipCatIlkFlipAddr out))
 
 theorem endSkipBodyReverts_catIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩) (hsz68 : 68 ≤ I.calldata.size)
@@ -7609,7 +7610,7 @@ theorem endSkipBodyReverts_catIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
         checkedExternalCallStmts (.storage vatRef) "hope" (.intLit 0) [.var "flip"]
           "_hope" ++
         checkedExternalCallStmts (.var "flip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -7639,7 +7640,7 @@ theorem endSkipBodyReverts_catIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
         checkedExternalCallStmts (.storage vatRef) "hope" (.intLit 0) [.var "flip"]
           "_hope" ++
         checkedExternalCallStmts (.var "flip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require
@@ -7990,6 +7991,7 @@ theorem endSkipStmtRate (evm : EVM.State) (I : ExecutionEnv)
       (.ok { contract := contract, locals := endSkipStoreRate I catOut vatOut } evm) := by
   simpa [endSkipStoreRate] using
     ExecStmt.letDecl (evalExpr_endSkip_vatIlk_rate evm I catOut vatOut)
+      (valueMatchesOptionalABIType_uint256_word (endFlowVatIlkRateWord vatOut))
 
 @[irreducible] def endSkipPrefixRateStmts : List Stmt :=
   nonpayable ++
@@ -8068,7 +8070,7 @@ theorem endSkipBodyReverts_afterFlipVatIlksBlock {I} {catOut : ByteArray}
       [vowAddr, thisAddr, .var "bid"] "_suck2" ++
     checkedExternalCallStmts (.storage vatRef) "hope" (.intLit 0) [.var "flip"] "_hope" ++
     checkedExternalCallStmts (.var "flip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-    [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+    [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
       .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
       .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
       .require
@@ -8433,6 +8435,7 @@ theorem endSkipStmtBid (evm : EVM.State) (I : ExecutionEnv)
       (.ok { contract := contract, locals := endSkipStoreBid I catOut vatOut bidOut } evm) := by
   simpa [endSkipStoreBid] using
     ExecStmt.letDecl (evalExpr_endSkip_flipBid_bid evm I catOut vatOut bidOut)
+      (valueMatchesOptionalABIType_uint256_word (endSkipBidWord bidOut))
 
 theorem endSkipStmtLot (evm : EVM.State) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) :
@@ -8441,6 +8444,7 @@ theorem endSkipStmtLot (evm : EVM.State) (I : ExecutionEnv)
       (.ok { contract := contract, locals := endSkipStoreLot I catOut vatOut bidOut } evm) := by
   simpa [endSkipStoreLot] using
     ExecStmt.letDecl (evalExpr_endSkip_flipBid_lot evm I catOut vatOut bidOut)
+      (valueMatchesOptionalABIType_uint256_word (endSkipLotWord bidOut))
 
 theorem endSkipStmtUsr (evm : EVM.State) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) :
@@ -8449,6 +8453,7 @@ theorem endSkipStmtUsr (evm : EVM.State) (I : ExecutionEnv)
       (.ok { contract := contract, locals := endSkipStoreUsr I catOut vatOut bidOut } evm) := by
   simpa [endSkipStoreUsr] using
     ExecStmt.letDecl (evalExpr_endSkip_flipBid_usr evm I catOut vatOut bidOut)
+      (valueMatchesOptionalABIType_address (endSkipUsrAddr bidOut))
 
 theorem endSkipStmtTab (evm : EVM.State) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) :
@@ -8457,6 +8462,7 @@ theorem endSkipStmtTab (evm : EVM.State) (I : ExecutionEnv)
       (.ok { contract := contract, locals := endSkipStoreTab I catOut vatOut bidOut } evm) := by
   simpa [endSkipStoreTab] using
     ExecStmt.letDecl (evalExpr_endSkip_flipBid_tab evm I catOut vatOut bidOut)
+      (valueMatchesOptionalABIType_uint256_word (endSkipTabWord bidOut))
 
 @[irreducible] def endSkipBidsLetsStmts : List Stmt :=
   [ .letDecl "bid" (some uint256) (.tupleGet (.var "flipBid") 0),
@@ -8513,7 +8519,7 @@ theorem endSkipBodyReverts_afterRateBidsBlock {I} {catOut vatOut : ByteArray}
       [vowAddr, thisAddr, .var "bid"] "_suck2" ++
     checkedExternalCallStmts (.storage vatRef) "hope" (.intLit 0) [.var "flip"] "_hope" ++
     checkedExternalCallStmts (.var "flip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-    [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+    [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
       .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
       .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
       .require
@@ -9195,23 +9201,24 @@ theorem endSkipStmtArt (evm : EVM.State) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray)
     (hrate : endFlowVatIlkRateWord vatOut ≠ ⟨0⟩) :
     ExecStmt config { contract := contract, locals := endSkipStoreYank I catOut vatOut bidOut }
-      evm (.letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")))
+      evm (.letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")))
       (.ok { contract := contract, locals := endSkipStoreArt I catOut vatOut bidOut } evm) := by
   have htab := evalExpr_endSkip_tab_afterYank evm I catOut vatOut bidOut
   have hrateExpr := evalExpr_endSkip_rate_afterYank evm I catOut vatOut bidOut
   have hdiv :
       evalExpr? config { contract := contract, locals := endSkipStoreYank I catOut vatOut bidOut }
-        evm (.binary .div (.var "tab") (.var "rate")) =
+        evm (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")) =
           .ok (.int (Int.ofNat (endSkipArtWord vatOut bidOut).toNat)) :=
     endEvalExpr_div_uint256_ok htab hrateExpr hrate rfl
   rw [endSkipStoreArt]
   exact ExecStmt.letDecl hdiv
+    (valueMatchesOptionalABIType_uint256_word (endSkipArtWord vatOut bidOut))
 
 theorem endSkipStmtArtReverts (evm : EVM.State) (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray)
     (hrate : endFlowVatIlkRateWord vatOut = ⟨0⟩) :
     ExecStmt config { contract := contract, locals := endSkipStoreYank I catOut vatOut bidOut }
-      evm (.letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")))
+      evm (.letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")))
       .reverted := by
   have htab := evalExpr_endSkip_tab_afterYank evm I catOut vatOut bidOut
   have hrateExpr := evalExpr_endSkip_rate_afterYank evm I catOut vatOut bidOut
@@ -9290,13 +9297,8 @@ theorem endSkipStmtArtNewAddReturns (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endSkipArtOldWord σ I).toNat),
             .int (Int.ofNat (endSkipArtWord vatOut bidOut).toNat)] := by
     simp [evalExprs?, hArt, hart, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? addFunction.params
-          [.int (Int.ofNat (endSkipArtOldWord σ I).toNat),
-            .int (Int.ofNat (endSkipArtWord vatOut bidOut).toNat)] =
-        some (endUintBinaryLocals (endSkipArtOldWord σ I)
-          (endSkipArtWord vatOut bidOut)) := by
-    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_addFunction (endSkipArtOldWord σ I) (endSkipArtWord vatOut bidOut)
   have hbody :=
     endExecAddFunctionReturn (evm := evm)
       (x := endSkipArtOldWord σ I) (y := endSkipArtWord vatOut bidOut)
@@ -9348,13 +9350,8 @@ theorem endSkipStmtArtNewAddReverts (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endSkipArtOldWord σ I).toNat),
             .int (Int.ofNat (endSkipArtWord vatOut bidOut).toNat)] := by
     simp [evalExprs?, hArt, hart, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? addFunction.params
-          [.int (Int.ofNat (endSkipArtOldWord σ I).toNat),
-            .int (Int.ofNat (endSkipArtWord vatOut bidOut).toNat)] =
-        some (endUintBinaryLocals (endSkipArtOldWord σ I)
-          (endSkipArtWord vatOut bidOut)) := by
-    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_addFunction (endSkipArtOldWord σ I) (endSkipArtWord vatOut bidOut)
   have hbody :=
     endExecAddFunctionRevert (evm := evm)
       (x := endSkipArtOldWord σ I) (y := endSkipArtWord vatOut bidOut) hover
@@ -9825,7 +9822,7 @@ def endSkipYankStmts : List Stmt :=
   checkedExternalCallStmts (.var "flip") "yank" (.intLit 0) [.var "id"] "_yank"
 
 def endSkipArtStmts : List Stmt :=
-  [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+  [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
     .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
     .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
     .require
@@ -10345,7 +10342,7 @@ theorem endSkipBodyReverts_tagZero {cA gh bl σ σ₀ A I} {g : UInt256}
         checkedExternalCallStmts (.storage vatRef) "hope" (.intLit 0) [.var "flip"]
           "_hope" ++
         checkedExternalCallStmts (.var "flip") "yank" (.intLit 0) [.var "id"] "_yank" ++
-        [ .letDecl "art" (some uint256) (.binary .div (.var "tab") (.var "rate")),
+        [ .letDecl "art" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tab") (.var "rate")),
           .internalCall "add" [.storage (ArtRef (.var "ilk")), .var "art"] "ArtNew",
           .assign .storage (ArtRef (.var "ilk")) (.var "ArtNew"),
           .require

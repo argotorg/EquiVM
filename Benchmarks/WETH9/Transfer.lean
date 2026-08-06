@@ -46,6 +46,17 @@ abbrev transferCallStore (I : ExecutionEnv) : Store :=
 theorem transferCallStore_bind (I : ExecutionEnv) :
     bindParams? transferFromTransition.params
         [.address I.source, xferDstVal I, xferWadVal I] = some (transferCallStore I) := by
+  have hsrc : valueMatchesABIType addr (.address I.source) = true := by
+    simp [addr]
+  have hdst : valueMatchesABIType addr (xferDstVal I) = true := by
+    simp [addr, xferDstVal]
+  have hwad : valueMatchesABIType uint256 (xferWadVal I) = true := by
+    simpa [uint256, uint256Int, xferWadVal] using valueMatchesABIType_uint256_word (xferWadWord I)
+  change bindParams?
+      [{ name := "src", ty := addr }, { name := "dst", ty := addr },
+        { name := "wad", ty := uint256 }]
+      [.address I.source, xferDstVal I, xferWadVal I] = some (transferCallStore I)
+  simp only [bindParams?, hsrc, hdst, hwad, ↓reduceIte]
   rfl
 
 theorem xferDecode_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
@@ -195,22 +206,36 @@ theorem xferCall_cond_false (evm : EVM.State) (I : ExecutionEnv) (hsrc : evm.exe
 
 theorem xferCall_sub (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferCallStore I } evm
-      (.binary .sub (.storage (balanceOfRef (.var "src"))) (.var "wad")) =
-      .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-        (callerBalSlot I)).toNat - Int.ofNat (xferWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [xferCall_balSrc evm I]
-  simp only [evalExpr?, EvalResult.ofOption, transferCallStore_get_wad, EvalResult.bind, bind,
-    evalBinaryOp?, xferWadVal]
+      (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping)
+        (.storage (balanceOfRef (.var "src"))) (.var "wad")) =
+      .ok (.int (Int.ofNat (UInt256.sub
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (callerBalSlot I))
+        (xferWadWord I)).toNat)) := by
+  exact evalExpr_wrapping_sub_uint256_word_ok (xferCall_balSrc evm I)
+    (by
+      rw [evalExpr?]
+      change EvalResult.ofOption EvalError.unboundVariable
+        ((transferCallStore I).get? "wad") =
+          .ok (.int (Int.ofNat (xferWadWord I).toNat))
+      rw [transferCallStore_get_wad]
+      rfl)
+    rfl
 theorem xferCall_add (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferCallStore I } evm
-      (.binary .add (.storage (balanceOfRef (.var "dst"))) (.var "wad")) =
-      .ok (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-        (xferDstSlot I)).toNat + Int.ofNat (xferWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [xferCall_balDst evm I]
-  simp only [evalExpr?, EvalResult.ofOption, transferCallStore_get_wad, EvalResult.bind, bind,
-    evalBinaryOp?, xferWadVal]
+      (.binary (.add (.uint ⟨256, by decide⟩) .wrapping)
+        (.storage (balanceOfRef (.var "dst"))) (.var "wad")) =
+      .ok (.int (Int.ofNat (UInt256.add
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (xferDstSlot I))
+        (xferWadWord I)).toNat)) := by
+  exact evalExpr_wrapping_add_uint256_word_ok (xferCall_balDst evm I)
+    (by
+      rw [evalExpr?]
+      change EvalResult.ofOption EvalError.unboundVariable
+        ((transferCallStore I).get? "wad") =
+          .ok (.int (Int.ofNat (xferWadWord I).toNat))
+      rw [transferCallStore_get_wad]
+      rfl)
+    rfl
 
 /-! ## Solm-side post-states and their `accountMap` reconciliation to `wtfPostMap` -/
 
@@ -226,8 +251,9 @@ def xferDstSt (evm : EVM.State) (I : ExecutionEnv) : EVM.State :=
 theorem xferCall_assignSrc (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := transferCallStore I } evm
       .storage (balanceOfRef (.var "src"))
-      (.int (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner
-        (callerBalSlot I)).toNat - Int.ofNat (xferWadWord I).toNat)) =
+      (.int (Int.ofNat (UInt256.sub
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (callerBalSlot I))
+        (xferWadWord I)).toNat)) =
       .ok ({ contract := contract, locals := transferCallStore I }, xferSrcSt evm I) := by
   refine assignStorageRef_storage_scalar_value (er := callerBalRef I) (ty := uint256St)
     (loc := wordLoc (callerBalSlot I)) (hbase := by simp [balanceOfRef, transferCallStore])
@@ -236,13 +262,14 @@ theorem xferCall_assignSrc (evm : EVM.State) (I : ExecutionEnv) :
     (by trivial) ?_
   unfold xferSrcSt
   rw [show wordLoc (callerBalSlot I) = uint256Loc (callerBalSlot I) from rfl,
-    storageLocStore_uint256_int, tf_wordOfInt_sub]
+    storageLocStore_uint256_int, wordOfInt_ofNat_toNat]
 theorem xferCall_assignDst (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? config { contract := contract, locals := transferCallStore I }
       (xferSrcSt evm I) .storage (balanceOfRef (.var "dst"))
-      (.int (Int.ofNat (Solm.EVM.storageLoad (xferSrcSt evm I)
-        (xferSrcSt evm I).executionEnv.codeOwner (xferDstSlot I)).toNat
-        + Int.ofNat (xferWadWord I).toNat)) =
+      (.int (Int.ofNat (UInt256.add
+        (Solm.EVM.storageLoad (xferSrcSt evm I)
+          (xferSrcSt evm I).executionEnv.codeOwner (xferDstSlot I))
+        (xferWadWord I)).toNat)) =
       .ok ({ contract := contract, locals := transferCallStore I }, xferDstSt (xferSrcSt evm I) I) := by
   refine assignStorageRef_storage_scalar_value (er := xferDstBalRef I) (ty := uint256St)
     (loc := wordLoc (xferDstSlot I)) (hbase := by simp [balanceOfRef, transferCallStore])
@@ -251,7 +278,7 @@ theorem xferCall_assignDst (evm : EVM.State) (I : ExecutionEnv) :
     (by trivial) ?_
   unfold xferDstSt
   rw [show wordLoc (xferDstSlot I) = uint256Loc (xferDstSlot I) from rfl,
-    storageLocStore_uint256_int, wordOfInt_add_words]
+    storageLocStore_uint256_int, wordOfInt_ofNat_toNat]
 
 theorem xferSrcSt_co (evm : EVM.State) (I : ExecutionEnv) :
     (xferSrcSt evm I).executionEnv.codeOwner = evm.executionEnv.codeOwner := by

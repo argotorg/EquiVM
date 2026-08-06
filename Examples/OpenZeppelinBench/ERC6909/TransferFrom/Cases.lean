@@ -15,7 +15,7 @@ abbrev transferFromTailReceiverBody : List Stmt :=
   [ .letDecl "toBalance" (some uint256)
       (.storage (balanceRef (.var "receiver") (.var "id"))),
     .assign .storage (balanceRef (.var "receiver") (.var "id"))
-      (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))),
+      (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))),
     .return [(.boolLit true)] ]
 
 abbrev transferFromAfterAllowanceBody : List Stmt :=
@@ -25,11 +25,11 @@ abbrev transferFromAfterAllowanceBody : List Stmt :=
       (.storage (balanceRef (.var "sender") (.var "id"))),
     .require (.binary .ge (.var "fromBalance") (.var "amount")),
     .assign .storage (balanceRef (.var "sender") (.var "id"))
-      (.binary .sub (.var "fromBalance") (.var "amount")),
+      (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "amount")),
     .letDecl "toBalance" (some uint256)
       (.storage (balanceRef (.var "receiver") (.var "id"))),
     .assign .storage (balanceRef (.var "receiver") (.var "id"))
-      (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))),
+      (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))),
     .return [(.boolLit true)] ]
 
 theorem erc6909TransferFromAllowanceMaxPrefixBlock (evm : EVM.State) (I : ExecutionEnv)
@@ -59,7 +59,8 @@ theorem erc6909TransferFromAllowanceMaxPrefixBlock (evm : EVM.State) (I : Execut
         evm)
       hallowanceGate ?_) ?_
   · refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+        (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
     rw [transferFromStoreCurrentAllowance] at hallowanceMax ⊢
     let currentFrame : Frame :=
       { contract := contract,
@@ -95,7 +96,8 @@ theorem erc6909TransferFromTailReceiverCoreCurrentAllowance
       (evalExpr_transferFrom_tail_receiver_balance_of_get
         (transferFromStoreCurrentAllowance evm I) evm I
         (transferFromStoreCurrentAllowance_receiver evm I)
-        (transferFromStoreCurrentAllowance_id evm I) hbase)) ?_
+        (transferFromStoreCurrentAllowance_id evm I) hbase)
+      (valueMatchesOptionalABIType_uint256_word (transferFromTailReceiverBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign
       (evalExpr_transferFrom_tail_receiver_credit_of_get
@@ -136,7 +138,8 @@ theorem erc6909TransferFromAfterAllowanceCore (evm : EVM.State) (I : ExecutionEn
       (evalExpr_transferFrom_tail_sender_balance_of_get
         (transferFromStoreCurrentAllowance evm I) evm I
         (transferFromStoreCurrentAllowance_sender evm I)
-        (transferFromStoreCurrentAllowance_id evm I) hbase)) ?_
+        (transferFromStoreCurrentAllowance_id evm I) hbase)
+      (valueMatchesOptionalABIType_uint256_word (transferFromSenderBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_transferFrom_tail_sender_balance_ge_true_of_get
@@ -229,7 +232,8 @@ theorem erc6909TransferFromAfterAllowanceReverts_insufficient_balance
       (evalExpr_transferFrom_tail_sender_balance_of_get
         (transferFromStoreCurrentAllowance evm I) evm I
         (transferFromStoreCurrentAllowance_sender evm I)
-        (transferFromStoreCurrentAllowance_id evm I) hbase)) ?_
+        (transferFromStoreCurrentAllowance_id evm I) hbase)
+      (valueMatchesOptionalABIType_uint256_word (transferFromSenderBalanceWord evm I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse
       (evalExpr_transferFrom_tail_sender_balance_ge_false_of_get
@@ -267,7 +271,8 @@ theorem erc6909TransferFromAfterAllowanceReverts_overflow
       (evalExpr_transferFrom_tail_sender_balance_of_get
         (transferFromStoreCurrentAllowance evm I) evm I
         (transferFromStoreCurrentAllowance_sender evm I)
-        (transferFromStoreCurrentAllowance_id evm I) hbase)) ?_
+        (transferFromStoreCurrentAllowance_id evm I) hbase)
+      (valueMatchesOptionalABIType_uint256_word (transferFromSenderBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_transferFrom_tail_sender_balance_ge_true_of_get
@@ -287,7 +292,8 @@ theorem erc6909TransferFromAfterAllowanceReverts_overflow
       (evalExpr_transferFrom_tail_receiver_balance_of_get
         (transferFromStoreCurrentAllowance evm I) evm I
         (transferFromStoreCurrentAllowance_receiver evm I)
-        (transferFromStoreCurrentAllowance_id evm I) hbase)) ?_
+        (transferFromStoreCurrentAllowance_id evm I) hbase)
+      (valueMatchesOptionalABIType_uint256_word (transferFromTailReceiverBalanceWord evm I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.assignExprRevert
       (evalExpr_transferFrom_tail_receiver_credit_revert_of_get
@@ -341,7 +347,8 @@ theorem erc6909TransferFromBodyCoreAllowanceDebit (evm : EVM.State) (I : Executi
         (transferFromAfterAllowanceState evm I))
       hallowanceGate ?_) ?_
   · refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+        (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
     rw [transferFromStoreCurrentAllowance] at hallowanceNotMax hsenderNonzero hreceiverNonzero ⊢
     let currentFrame : Frame :=
       { contract := contract,
@@ -368,14 +375,19 @@ theorem erc6909TransferFromBodyCoreAllowanceDebit (evm : EVM.State) (I : Executi
     · exact ExecBlock.nil
   refine ExecBlock.consNormal (ExecStmt.requireTrue hsenderNonzero) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreceiverNonzero) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_sender_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_transferFrom_sender_balance evm I)
+      (valueMatchesOptionalABIType_uint256_word
+        (transferFromSenderBalanceWord (transferFromAfterAllowanceState evm I) I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_transferFrom_sender_balance_ge_true evm I hbalanceEnough)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_sender_debit evm I hbalanceEnough)
       (transferFromAssignSenderBalance evm I)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_receiver_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_transferFrom_receiver_balance evm I)
+      (valueMatchesOptionalABIType_uint256_word (transferFromReceiverBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_receiver_credit evm I hfit)
       (transferFromAssignReceiverBalance evm I hfit)) ?_
@@ -533,14 +545,18 @@ theorem erc6909TransferFromBodyCoreNoAllowance (evm : EVM.State) (I : ExecutionE
   · exact ExecBlock.nil
   refine ExecBlock.consNormal (ExecStmt.requireTrue hsenderNonzero) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreceiverNonzero) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_tail_sender_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_transferFrom_tail_sender_balance evm I)
+      (valueMatchesOptionalABIType_uint256_word (transferFromSenderBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_transferFrom_tail_sender_balance_ge_true evm I hbalanceEnough)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_tail_sender_debit evm I hbalanceEnough)
       (transferFromTailAssignSenderBalance evm I)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_tail_receiver_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_transferFrom_tail_receiver_balance evm I)
+      (valueMatchesOptionalABIType_uint256_word (transferFromTailReceiverBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_tail_receiver_credit evm I hfit)
       (transferFromTailAssignReceiverBalance evm I hfit)) ?_
@@ -569,7 +585,8 @@ theorem erc6909TransferFromBodyRevertsAllowance_insufficient
   refine ExecBlock.consRevert ?_
   refine ExecStmt.iteTrue hallowanceGate ?_
   · refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+        (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
     rw [transferFromStoreCurrentAllowance] at hallowanceNotMax
     let currentFrame : Frame :=
       { contract := contract,
@@ -579,7 +596,7 @@ theorem erc6909TransferFromBodyRevertsAllowance_insufficient
       [ .ite (.binary .lt (.var "currentAllowance") maxUint256Lit)
           [ .require (.binary .ge (.var "currentAllowance") (.var "amount")),
             .assign .storage (allowanceRef (.var "sender") sender (.var "id"))
-              (.binary .sub (.var "currentAllowance") (.var "amount")) ]
+              (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "currentAllowance") (.var "amount")) ]
           [] ]
       .reverted
     refine ExecBlock.consRevert ?_
@@ -617,7 +634,8 @@ theorem erc6909TransferFromBodyRevertsAllowance_sender_zero
         (transferFromAfterAllowanceState evm I))
       hallowanceGate ?_) ?_
   · refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+        (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
     rw [transferFromStoreCurrentAllowance] at hallowanceNotMax ⊢
     let currentFrame : Frame :=
       { contract := contract,
@@ -676,7 +694,8 @@ theorem erc6909TransferFromBodyRevertsAllowance_receiver_zero
         (transferFromAfterAllowanceState evm I))
       hallowanceGate ?_) ?_
   · refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+        (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
     rw [transferFromStoreCurrentAllowance] at hallowanceNotMax ⊢
     let currentFrame : Frame :=
       { contract := contract,
@@ -745,7 +764,8 @@ theorem erc6909TransferFromBodyRevertsAllowance_insufficient_balance
         (transferFromAfterAllowanceState evm I))
       hallowanceGate ?_) ?_
   · refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+        (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
     rw [transferFromStoreCurrentAllowance] at hallowanceNotMax ⊢
     let currentFrame : Frame :=
       { contract := contract,
@@ -783,7 +803,10 @@ theorem erc6909TransferFromBodyRevertsAllowance_insufficient_balance
           rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide),
             transferFromStore_receiver])
         hreceiver)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_sender_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_transferFrom_sender_balance evm I)
+      (valueMatchesOptionalABIType_uint256_word
+        (transferFromSenderBalanceWord (transferFromAfterAllowanceState evm I) I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (evalExpr_transferFrom_sender_balance_ge_false evm I hlt))
 
@@ -818,7 +841,8 @@ theorem erc6909TransferFromBodyRevertsAllowance_overflow
         (transferFromAfterAllowanceState evm I))
       hallowanceGate ?_) ?_
   · refine ExecBlock.consNormal
-      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+      (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+        (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
     rw [transferFromStoreCurrentAllowance] at hallowanceNotMax ⊢
     let currentFrame : Frame :=
       { contract := contract,
@@ -856,14 +880,19 @@ theorem erc6909TransferFromBodyRevertsAllowance_overflow
           rw [transferFromStoreCurrentAllowance, store_get_ne _ _ (by decide),
             transferFromStore_receiver])
         hreceiver)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_sender_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_transferFrom_sender_balance evm I)
+      (valueMatchesOptionalABIType_uint256_word
+        (transferFromSenderBalanceWord (transferFromAfterAllowanceState evm I) I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_transferFrom_sender_balance_ge_true evm I hbalanceEnough)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_sender_debit evm I hbalanceEnough)
       (transferFromAssignSenderBalance evm I)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_receiver_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_transferFrom_receiver_balance evm I)
+      (valueMatchesOptionalABIType_uint256_word (transferFromReceiverBalanceWord evm I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.assignExprRevert (evalExpr_transferFrom_receiver_credit_revert evm I hover))
 
@@ -952,7 +981,9 @@ theorem erc6909TransferFromBodyRevertsNoAllowance_insufficient
     (ExecStmt.requireTrue
       (evalExpr_transferFrom_receiver_nonzero_true_of_get evm (transferFromStore I) I
         (transferFromStore_receiver I) hreceiver)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_tail_sender_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_transferFrom_tail_sender_balance evm I)
+      (valueMatchesOptionalABIType_uint256_word (transferFromSenderBalanceWord evm I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (evalExpr_transferFrom_tail_sender_balance_ge_false evm I hlt))
 
@@ -987,14 +1018,18 @@ theorem erc6909TransferFromBodyRevertsNoAllowance_overflow
     (ExecStmt.requireTrue
       (evalExpr_transferFrom_receiver_nonzero_true_of_get evm (transferFromStore I) I
         (transferFromStore_receiver I) hreceiver)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_tail_sender_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_transferFrom_tail_sender_balance evm I)
+      (valueMatchesOptionalABIType_uint256_word (transferFromSenderBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_transferFrom_tail_sender_balance_ge_true evm I henough)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_tail_sender_debit evm I henough)
       (transferFromTailAssignSenderBalance evm I)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_tail_receiver_balance evm I)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_transferFrom_tail_receiver_balance evm I)
+      (valueMatchesOptionalABIType_uint256_word (transferFromTailReceiverBalanceWord evm I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.assignExprRevert
       (evalExpr_transferFrom_tail_receiver_credit_revert evm I hover))

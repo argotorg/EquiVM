@@ -149,10 +149,10 @@ def transferTransition : TransitionDecl :=
         .letDecl "fromBalance" (some uint256) (.storage (balanceRef sender (.var "id"))),
         .require (.binary .ge (.var "fromBalance") (.var "amount")),
         .assign .storage (balanceRef sender (.var "id"))
-          (.binary .sub (.var "fromBalance") (.var "amount")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "amount")),
         .letDecl "toBalance" (some uint256) (.storage (balanceRef (.var "receiver") (.var "id"))),
         .assign .storage (balanceRef (.var "receiver") (.var "id"))
-          (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))),
+          (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))),
         .return [(.boolLit true)] ] }
 
 def transferFromTransition : TransitionDecl :=
@@ -171,7 +171,7 @@ def transferFromTransition : TransitionDecl :=
             .ite (.binary .lt (.var "currentAllowance") maxUint256Lit)
               [ .require (.binary .ge (.var "currentAllowance") (.var "amount")),
                 .assign .storage (allowanceRef (.var "sender") sender (.var "id"))
-                  (.binary .sub (.var "currentAllowance") (.var "amount")) ]
+                  (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "currentAllowance") (.var "amount")) ]
               [] ]
           [],
         .require (.binary .ne (.var "sender") zeroAddr),
@@ -180,11 +180,11 @@ def transferFromTransition : TransitionDecl :=
           (.storage (balanceRef (.var "sender") (.var "id"))),
         .require (.binary .ge (.var "fromBalance") (.var "amount")),
         .assign .storage (balanceRef (.var "sender") (.var "id"))
-          (.binary .sub (.var "fromBalance") (.var "amount")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "amount")),
         .letDecl "toBalance" (some uint256)
           (.storage (balanceRef (.var "receiver") (.var "id"))),
         .assign .storage (balanceRef (.var "receiver") (.var "id"))
-          (valueInUInt256 (.binary .add (.var "toBalance") (.var "amount"))),
+          (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "amount"))),
         .return [(.boolLit true)] ] }
 
 def constructorDecl : ConstructorDecl :=

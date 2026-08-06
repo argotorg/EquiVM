@@ -15,7 +15,7 @@ theorem evalExpr_mint_amount0_of_get
         some (.int (Int.ofNat (uniswapReserve0Word reserveEvm).toNat)))
     (henough : (uniswapReserve0Word reserveEvm).toNat ≤ balance0.toNat) :
     evalExpr? config { contract := contract, locals := locals } callEvm
-      (u256 (.binary .sub (.var "balance0") (.var "_reserve0"))) =
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.var "_reserve0"))) =
         .ok (mintAmount0Value reserveEvm balance0) := by
   have hsub :
       Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word reserveEvm).toNat =
@@ -31,27 +31,29 @@ theorem evalExpr_mint_amount0_of_get
       ¬ Int.ofNat (balance0.toNat - (uniswapReserve0Word reserveEvm).toNat) ≥
         (2 : Int) ^ 256 := by
     exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
+  have hsubEval :
+      evalIntArithResult (.uint ⟨256, by decide⟩) .checked
+          (Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word reserveEvm).toNat) =
+        .ok (.int
+          (Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word reserveEvm).toNat)) := by
+    apply evalIntArithResult_checked_uint_ok
+    · rw [hsub]
+      exact Int.natCast_nonneg _
+    · rw [hsub]
+      simpa [EVM.twoPow, UInt256.size] using Int.ofNat_lt.mpr hfit
   simp only [u256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
   rw [hbalance, hreserve]
-  simp [evalBinaryOp?, mintAmount0Value, mintAmount0Word, uniswapUint256Value,
-    uint256Value, uint256Int]
+  simp only [evalBinaryOp?]
+  rw [hsubEval]
+  simp only [EvalResult.bind, bind, uint256Int]
   rw [if_neg]
-  · have hval :
-        (balance0.toNat : Int) - ((uniswapReserve0Word reserveEvm).toNat : Int) =
-          ((UInt256.sub balance0 (uniswapReserve0Word reserveEvm)).toNat : Int) := by
-      calc
-        (balance0.toNat : Int) - ((uniswapReserve0Word reserveEvm).toNat : Int)
-            = Int.ofNat (balance0.toNat - (uniswapReserve0Word reserveEvm).toNat) := hsub
-        _ = Int.ofNat (mintAmount0Word reserveEvm balance0).toNat := by rw [← htoNat]
-        _ = ((UInt256.sub balance0 (uniswapReserve0Word reserveEvm)).toNat : Int) := by
-          rfl
-    rw [hval]
-  · intro hbad
-    rcases hbad with hlow | hhigh
-    · omega
-    · exact hnotHigh (by
-        rw [← hsub]
-        exact hhigh)
+  · rw [hsub, ← htoNat]
+  · simp only [Bool.or_eq_true, decide_eq_true_eq, not_or]
+    constructor
+    · rw [hsub]
+      exact Int.not_lt.mpr (Int.natCast_nonneg _)
+    · rw [hsub]
+      exact hnotHigh
 
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_mint_amount1_of_get
@@ -62,7 +64,7 @@ theorem evalExpr_mint_amount1_of_get
         some (.int (Int.ofNat (uniswapReserve1Word reserveEvm).toNat)))
     (henough : (uniswapReserve1Word reserveEvm).toNat ≤ balance1.toNat) :
     evalExpr? config { contract := contract, locals := locals } callEvm
-      (u256 (.binary .sub (.var "balance1") (.var "_reserve1"))) =
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.var "_reserve1"))) =
         .ok (mintAmount1Value reserveEvm balance1) := by
   have hsub :
       Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word reserveEvm).toNat =
@@ -78,33 +80,35 @@ theorem evalExpr_mint_amount1_of_get
       ¬ Int.ofNat (balance1.toNat - (uniswapReserve1Word reserveEvm).toNat) ≥
         (2 : Int) ^ 256 := by
     exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
+  have hsubEval :
+      evalIntArithResult (.uint ⟨256, by decide⟩) .checked
+          (Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word reserveEvm).toNat) =
+        .ok (.int
+          (Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word reserveEvm).toNat)) := by
+    apply evalIntArithResult_checked_uint_ok
+    · rw [hsub]
+      exact Int.natCast_nonneg _
+    · rw [hsub]
+      simpa [EVM.twoPow, UInt256.size] using Int.ofNat_lt.mpr hfit
   simp only [u256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
   rw [hbalance, hreserve]
-  simp [evalBinaryOp?, mintAmount1Value, mintAmount1Word, uniswapUint256Value,
-    uint256Value, uint256Int]
+  simp only [evalBinaryOp?]
+  rw [hsubEval]
+  simp only [EvalResult.bind, bind, uint256Int]
   rw [if_neg]
-  · have hval :
-        (balance1.toNat : Int) - ((uniswapReserve1Word reserveEvm).toNat : Int) =
-          ((UInt256.sub balance1 (uniswapReserve1Word reserveEvm)).toNat : Int) := by
-      calc
-        (balance1.toNat : Int) - ((uniswapReserve1Word reserveEvm).toNat : Int)
-            = Int.ofNat (balance1.toNat - (uniswapReserve1Word reserveEvm).toNat) := hsub
-        _ = Int.ofNat (mintAmount1Word reserveEvm balance1).toNat := by rw [← htoNat]
-        _ = ((UInt256.sub balance1 (uniswapReserve1Word reserveEvm)).toNat : Int) := by
-          rfl
-    rw [hval]
-  · intro hbad
-    rcases hbad with hlow | hhigh
-    · omega
-    · exact hnotHigh (by
-        rw [← hsub]
-        exact hhigh)
+  · rw [hsub, ← htoNat]
+  · simp only [Bool.or_eq_true, decide_eq_true_eq, not_or]
+    constructor
+    · rw [hsub]
+      exact Int.not_lt.mpr (Int.natCast_nonneg _)
+    · rw [hsub]
+      exact hnotHigh
 
 theorem evalExpr_mint_amount0_underflow
     (reserveEvm callEvm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256)
     (hlt : balance0.toNat < (uniswapReserve0Word reserveEvm).toNat) :
     evalExpr? config { contract := contract, locals := mintBalanceStore reserveEvm I balance0 balance1 }
-      callEvm (u256 (.binary .sub (.var "balance0") (.var "_reserve0"))) = .revert := by
+      callEvm (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.var "_reserve0"))) = .revert := by
   have hneg :
       Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word reserveEvm).toNat < 0 := by
     change (balance0.toNat : Int) - ((uniswapReserve0Word reserveEvm).toNat : Int) < 0
@@ -112,32 +116,13 @@ theorem evalExpr_mint_amount0_underflow
   simp only [u256, evalExpr?, EvalResult.ofOption, mintBalanceStore_balance0,
     mintBalanceStore_reserve0, EvalResult.bind, bind, pure]
   simp only [evalBinaryOp?, uint256Int]
-  change
-    (if Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word reserveEvm).toNat < 0 ||
-        Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word reserveEvm).toNat ≥
-          (2 : Int) ^ 256 then
-       EvalResult.revert
-     else
-      EvalResult.ok
-        (Value.int
-          (Int.ofNat balance0.toNat - Int.ofNat (uniswapReserve0Word reserveEvm).toNat))) =
-      EvalResult.revert
-  have hcond :
-      (decide
-          (Int.ofNat balance0.toNat -
-              Int.ofNat (uniswapReserve0Word reserveEvm).toNat < 0) ||
-        decide
-          (Int.ofNat balance0.toNat -
-              Int.ofNat (uniswapReserve0Word reserveEvm).toNat ≥ (2 : Int) ^ 256)) = true := by
-    simp only [Bool.or_eq_true, decide_eq_true_eq]
-    exact Or.inl hneg
-  rw [if_pos hcond]
+  rw [evalIntArithResult_checked_uint_revert_of_neg _ _ hneg]
 
 theorem evalExpr_mint_amount1_underflow
     (reserveEvm callEvm : EVM.State) (I : ExecutionEnv) (balance0 balance1 : UInt256)
     (hlt : balance1.toNat < (uniswapReserve1Word reserveEvm).toNat) :
     evalExpr? config { contract := contract, locals := mintAmount0Store reserveEvm I balance0 balance1 }
-      callEvm (u256 (.binary .sub (.var "balance1") (.var "_reserve1"))) = .revert := by
+      callEvm (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.var "_reserve1"))) = .revert := by
   have hneg :
       Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word reserveEvm).toNat < 0 := by
     change (balance1.toNat : Int) - ((uniswapReserve1Word reserveEvm).toNat : Int) < 0
@@ -145,26 +130,7 @@ theorem evalExpr_mint_amount1_underflow
   simp only [u256, evalExpr?, EvalResult.ofOption, mintAmount0Store_balance1,
     mintAmount0Store_reserve1, EvalResult.bind, bind, pure]
   simp only [evalBinaryOp?, uint256Int]
-  change
-    (if Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word reserveEvm).toNat < 0 ||
-        Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word reserveEvm).toNat ≥
-          (2 : Int) ^ 256 then
-       EvalResult.revert
-     else
-      EvalResult.ok
-        (Value.int
-          (Int.ofNat balance1.toNat - Int.ofNat (uniswapReserve1Word reserveEvm).toNat))) =
-      EvalResult.revert
-  have hcond :
-      (decide
-          (Int.ofNat balance1.toNat -
-              Int.ofNat (uniswapReserve1Word reserveEvm).toNat < 0) ||
-        decide
-          (Int.ofNat balance1.toNat -
-              Int.ofNat (uniswapReserve1Word reserveEvm).toNat ≥ (2 : Int) ^ 256)) = true := by
-    simp only [Bool.or_eq_true, decide_eq_true_eq]
-    exact Or.inl hneg
-  rw [if_pos hcond]
+  rw [evalIntArithResult_checked_uint_revert_of_neg _ _ hneg]
 
 theorem uniswapMintBalanceCallsPrefix
     (evm evm0 evm1 : EVM.State) (I : ExecutionEnv)
@@ -454,7 +420,7 @@ theorem uniswapMintBodyReverts_amount0Underflow
       ExecBlock config
         { contract := contract, locals := mintBalanceStore evmL I balance0 balance1 } evm1
         [ .letDecl "amount0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.var "_reserve0"))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.var "_reserve0"))) ]
         .reverted := by
     exact ExecBlock.consRevert
       (ExecStmt.letDeclRevert
@@ -503,7 +469,7 @@ theorem uniswapMintBodyReverts_amount1Underflow
       ExecBlock config
         { contract := contract, locals := mintBalanceStore evmL I balance0 balance1 } evm1
         [ .letDecl "amount0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.var "_reserve0"))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.var "_reserve0"))) ]
         (.ok { contract := contract, locals := mintAmount0Store evmL I balance0 balance1 }
           evm1) := by
     exact ExecBlock.consNormal
@@ -511,13 +477,14 @@ theorem uniswapMintBodyReverts_amount1Underflow
         (evalExpr_mint_amount0_of_get evmL evm1 balance0
           (mintBalanceStore_balance0 evmL I balance0 balance1)
           (mintBalanceStore_reserve0 evmL I balance0 balance1)
-          (by simpa [evmL] using henough0)))
+          (by simpa [evmL] using henough0))
+        (valueMatchesOptionalABIType_uint256_word (mintAmount0Word evmL balance0)))
       ExecBlock.nil
   have hamount1 :
       ExecBlock config
         { contract := contract, locals := mintAmount0Store evmL I balance0 balance1 } evm1
         [ .letDecl "amount1" (some uint256)
-            (u256 (.binary .sub (.var "balance1") (.var "_reserve1"))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.var "_reserve1"))) ]
         .reverted := by
     exact ExecBlock.consRevert
       (ExecStmt.letDeclRevert
@@ -564,9 +531,9 @@ theorem uniswapMintAmountsPrefix
           .letDecl "_reserve1" (some uint112) (.storage reserve1Ref) ] ++
         pairBalanceOfThisStmts "balance0" "balance1" ++
         [ .letDecl "amount0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.var "_reserve0"))),
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.var "_reserve0"))),
           .letDecl "amount1" (some uint256)
-            (u256 (.binary .sub (.var "balance1") (.var "_reserve1"))) ])
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.var "_reserve1"))) ])
       (.ok { contract := contract, locals :=
         mintAmountStore (uniswapLockEnteredState evm) I balance0 balance1 } evm1) := by
   let evmL := uniswapLockEnteredState evm
@@ -577,7 +544,7 @@ theorem uniswapMintAmountsPrefix
       ExecBlock config
         { contract := contract, locals := mintBalanceStore evmL I balance0 balance1 } evm1
         [ .letDecl "amount0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.var "_reserve0"))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.var "_reserve0"))) ]
         (.ok { contract := contract, locals := mintAmount0Store evmL I balance0 balance1 }
           evm1) := by
     exact ExecBlock.consNormal
@@ -585,13 +552,14 @@ theorem uniswapMintAmountsPrefix
         (evalExpr_mint_amount0_of_get evmL evm1 balance0
           (mintBalanceStore_balance0 evmL I balance0 balance1)
           (mintBalanceStore_reserve0 evmL I balance0 balance1)
-          (by simpa [evmL] using henough0)))
+          (by simpa [evmL] using henough0))
+        (valueMatchesOptionalABIType_uint256_word (mintAmount0Word evmL balance0)))
       ExecBlock.nil
   have hamount1 :
       ExecBlock config
         { contract := contract, locals := mintAmount0Store evmL I balance0 balance1 } evm1
         [ .letDecl "amount1" (some uint256)
-            (u256 (.binary .sub (.var "balance1") (.var "_reserve1"))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.var "_reserve1"))) ]
         (.ok { contract := contract, locals := mintAmountStore evmL I balance0 balance1 }
           evm1) := by
     exact ExecBlock.consNormal
@@ -599,7 +567,8 @@ theorem uniswapMintAmountsPrefix
         (evalExpr_mint_amount1_of_get evmL evm1 balance1
           (mintAmount0Store_balance1 evmL I balance0 balance1)
           (mintAmount0Store_reserve1 evmL I balance0 balance1)
-          (by simpa [evmL] using henough1)))
+          (by simpa [evmL] using henough1))
+        (valueMatchesOptionalABIType_uint256_word (mintAmount1Word evmL balance1)))
       ExecBlock.nil
   have hthrough0 := execBlock_append hprefix hamount0
   have hthrough1 := execBlock_append hthrough0 hamount1
@@ -815,9 +784,9 @@ theorem uniswapMintAfterMintFeePrefix_feeOff_kLastZero
           .letDecl "_reserve1" (some uint112) (.storage reserve1Ref) ] ++
         pairBalanceOfThisStmts "balance0" "balance1" ++
         [ .letDecl "amount0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.var "_reserve0"))),
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.var "_reserve0"))),
           .letDecl "amount1" (some uint256)
-            (u256 (.binary .sub (.var "balance1") (.var "_reserve1"))),
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.var "_reserve1"))),
           .internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn" ])
       (.ok
         (resumeAfterInternalCall
@@ -885,9 +854,9 @@ theorem uniswapMintAfterMintFeePrefix_of_call
           .letDecl "_reserve1" (some uint112) (.storage reserve1Ref) ] ++
         pairBalanceOfThisStmts "balance0" "balance1" ++
         [ .letDecl "amount0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.var "_reserve0"))),
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.var "_reserve0"))),
           .letDecl "amount1" (some uint256)
-            (u256 (.binary .sub (.var "balance1") (.var "_reserve1"))),
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.var "_reserve1"))),
           .internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn" ])
       (.ok nextFrame evmAfter) := by
   let evmL := uniswapLockEnteredState evm
@@ -944,9 +913,9 @@ theorem uniswapMintAfterMintFeeTotalSupplyPrefix_of_call
           .letDecl "_reserve1" (some uint112) (.storage reserve1Ref) ] ++
         pairBalanceOfThisStmts "balance0" "balance1" ++
         [ .letDecl "amount0" (some uint256)
-            (u256 (.binary .sub (.var "balance0") (.var "_reserve0"))),
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance0") (.var "_reserve0"))),
           .letDecl "amount1" (some uint256)
-            (u256 (.binary .sub (.var "balance1") (.var "_reserve1"))),
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "balance1") (.var "_reserve1"))),
           .internalCall "_mintFee" [.var "_reserve0", .var "_reserve1"] "feeOn",
           .letDecl "_totalSupply" (some uint256) (.storage totalSupplyRef) ])
       (.ok
@@ -1231,7 +1200,10 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffReturn_of_call
         (by simpa [reserve0] using hreserve0Nonzero)
         (by simpa [reserve1] using hreserve1Nonzero)
         (by simpa [totalSupply, reserve0, reserve1] using hliquidity) hliqNonzero
-        hfitSupply hfitBalance hbound0 hbound1 helapsed
+        hfitSupply hfitBalance hbound0 hbound1
+        (by simpa [reserve0] using uniswapReserve0Word_lt (uniswapLockEnteredState evm))
+        (by simpa [reserve1] using uniswapReserve1Word_lt (uniswapLockEnteredState evm))
+        helapsed
   have hthrough := execBlock_append hprefix htail
   simpa only [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
     mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, List.append_assoc,
@@ -1425,7 +1397,10 @@ theorem uniswapMintAfterMintFeeProportionalFeeOffCumulativeReturn_of_call
         (by simpa [reserve0] using hreserve0Nonzero)
         (by simpa [reserve1] using hreserve1Nonzero)
         (by simpa [totalSupply, reserve0, reserve1] using hliquidity) hliqNonzero
-        hfitSupply hfitBalance hbound0 hbound1 helapsed
+        hfitSupply hfitBalance hbound0 hbound1
+        (by simpa [reserve0] using uniswapReserve0Word_lt (uniswapLockEnteredState evm))
+        (by simpa [reserve1] using uniswapReserve1Word_lt (uniswapLockEnteredState evm))
+        helapsed
         (intOfNat_toNat_ne_zero_of_u256_ne_zero reserve0
           (by simpa [reserve0] using hreserve0Nonzero))
         (intOfNat_toNat_ne_zero_of_u256_ne_zero reserve1
@@ -1638,7 +1613,10 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnReturn_of_call
         (by simpa [reserve0] using hreserve0Nonzero)
         (by simpa [reserve1] using hreserve1Nonzero)
         (by simpa [totalSupply, reserve0, reserve1] using hliquidity) hliqNonzero
-        hfitSupply hfitBalance hbound0 hbound1 helapsed
+        hfitSupply hfitBalance hbound0 hbound1
+        (by simpa [reserve0] using uniswapReserve0Word_lt (uniswapLockEnteredState evm))
+        (by simpa [reserve1] using uniswapReserve1Word_lt (uniswapLockEnteredState evm))
+        helapsed
         hfitKLast
   have hthrough := execBlock_append hprefix htail
   simpa only [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
@@ -1854,7 +1832,10 @@ theorem uniswapMintAfterMintFeeProportionalFeeOnCumulativeReturn_of_call
         (by simpa [reserve0] using hreserve0Nonzero)
         (by simpa [reserve1] using hreserve1Nonzero)
         (by simpa [totalSupply, reserve0, reserve1] using hliquidity) hliqNonzero
-        hfitSupply hfitBalance hbound0 hbound1 helapsed
+        hfitSupply hfitBalance hbound0 hbound1
+        (by simpa [reserve0] using uniswapReserve0Word_lt (uniswapLockEnteredState evm))
+        (by simpa [reserve1] using uniswapReserve1Word_lt (uniswapLockEnteredState evm))
+        helapsed
         (intOfNat_toNat_ne_zero_of_u256_ne_zero reserve0
           (by simpa [reserve0] using hreserve0Nonzero))
         (intOfNat_toNat_ne_zero_of_u256_ne_zero reserve1

@@ -1756,8 +1756,12 @@ theorem endFreeTailReverts_artNonzero (evm : EVM.State) (I : ExecutionEnv)
         (.binary .eq (.var "art") (.intLit 0)) = .ok (.bool false) :=
     endEvalExpr_eq_int_false hartVar hzero hneq
   simp only [endFreeAfterUrnsStmts, List.cons_append, List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.letDecl hinkTuple) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hartTuple) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hinkTuple
+      (valueMatchesOptionalABIType_uint256_word (endFreeUrnInkWord out))) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hartTuple
+      (valueMatchesOptionalABIType_uint256_word (endFreeUrnArtWord out))) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hreq)
 
 theorem endFreeTailReverts_inkOverflow (evm : EVM.State) (I : ExecutionEnv)
@@ -1794,8 +1798,12 @@ theorem endFreeTailReverts_inkOverflow (evm : EVM.State) (I : ExecutionEnv)
         (.binary .le (.var "ink") (.intLit int256Limit)) = .ok (.bool false) :=
     endEvalExpr_le_int_false hinkVar hlimitEval hltInt
   simp only [endFreeAfterUrnsStmts, List.cons_append, List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.letDecl hinkTuple) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hartTuple) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hinkTuple
+      (valueMatchesOptionalABIType_uint256_word (endFreeUrnInkWord out))) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hartTuple
+      (valueMatchesOptionalABIType_uint256_word (endFreeUrnArtWord out))) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqArt) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hreqInk)
 
@@ -1873,8 +1881,12 @@ theorem endFreeTailReverts_grabNoCode (evm : EVM.State) (I : ExecutionEnv)
             .intLit 0])
         (perm := true) hguardGrab
   simp only [endFreeAfterUrnsStmts, List.cons_append, List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.letDecl hinkTuple) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hartTuple) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hinkTuple
+      (valueMatchesOptionalABIType_uint256_word (endFreeUrnInkWord out))) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hartTuple
+      (valueMatchesOptionalABIType_uint256_word (endFreeUrnArtWord out))) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqArt) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqInk) ?_
   simpa using hgrabBlock
@@ -1984,8 +1996,12 @@ theorem endFreeTailReverts_grabCallFailed (evm evmGrab : EVM.State) (I : Executi
         (out := grabOut) (perm := true)
         hguardGrab hreceiver hargs hcall
   simp only [endFreeAfterUrnsStmts, List.cons_append, List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.letDecl hinkTuple) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hartTuple) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hinkTuple
+      (valueMatchesOptionalABIType_uint256_word (endFreeUrnInkWord out))) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hartTuple
+      (valueMatchesOptionalABIType_uint256_word (endFreeUrnArtWord out))) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqArt) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqInk) ?_
   simpa using hgrabBlock
@@ -2098,8 +2114,12 @@ theorem endFreeTailReturns_grabSuccess (evm evmGrab : EVM.State) (I : ExecutionE
       hguardGrab hreceiver hargs hcall hdec
     simpa [checkedExternalCallStmts, endFreeStoreGrab, collapseReturns] using hblock
   simp only [endFreeAfterUrnsStmts, List.cons_append, List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.letDecl hinkTuple) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hartTuple) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hinkTuple
+      (valueMatchesOptionalABIType_uint256_word (endFreeUrnInkWord out))) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hartTuple
+      (valueMatchesOptionalABIType_uint256_word (endFreeUrnArtWord out))) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqArt) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hreqInk) ?_
   simpa using hgrabBlock

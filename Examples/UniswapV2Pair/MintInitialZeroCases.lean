@@ -93,7 +93,7 @@ theorem uniswapMintInitialAfterMintFeeLiquidityZeroRevertCase
             nextLocals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
         evmAfter
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall

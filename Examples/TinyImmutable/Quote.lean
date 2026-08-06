@@ -53,11 +53,37 @@ theorem tinyQuoteBodyReturns (v : TinyImmutables) (evm : EVM.State) (locals : St
       rw [evalAddrLit (config v) { contract := contract v, locals := locals } evm v.owner,
         hcaller]
       simp [evalBinaryOp?])).returns (by
-        simp only [wrap256, scale, evalExpr?, EvalResult.bind, bind, pure]
-        rw [hamount]
-        simp only [EvalResult.ofOption, evalBinaryOp?]
-        rw [if_neg]
-        · norm_num [EVM.wordModulus, EVM.twoPow])
+        let modulus := Int.ofNat EVM.wordModulus
+        let product := amount * Int.ofNat v.scale.toNat
+        let wrapped := product % modulus
+        have hmodulusPos : 0 < modulus := by
+          simp [modulus, EVM.wordModulus, EVM.twoPow]
+        have hwrappedNonneg : 0 ≤ wrapped := Int.emod_nonneg _ (ne_of_gt hmodulusPos)
+        have hwrappedFit : wrapped < Int.ofNat (EVM.twoPow 256) := by
+          change wrapped < modulus
+          exact Int.emod_lt_of_pos _ hmodulusPos
+        let mulExpr := Expr.binary (.mul (.uint ⟨256, by decide⟩) .wrapping)
+          (.var "amount") (scale v)
+        have hmulEval :
+            evalExpr? (config v) { contract := contract v, locals } evm mulExpr =
+              .ok (.int wrapped) := by
+          rw [show mulExpr = .binary (.mul (.uint ⟨256, by decide⟩) .wrapping)
+            (.var "amount") (scale v) from rfl]
+          rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+          simp only [evalExpr?, hamount, scale, EvalResult.ofOption, EvalResult.bind, bind,
+            evalBinaryOp?]
+          rw [evalIntArithResult_wrapping]
+          change EvalResult.ok (Value.int (product % Int.ofNat (EVM.twoPow 256))) =
+            EvalResult.ok (Value.int wrapped)
+          congr 2
+        change evalExpr? (config v) { contract := contract v, locals } evm
+            (.binary (.mod (.uint ⟨256, by decide⟩)) mulExpr (.intLit modulus)) =
+          .ok (.int wrapped)
+        rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+        simp only [hmulEval, evalExpr?, EvalResult.bind, bind, evalBinaryOp?]
+        rw [if_neg (ne_of_gt hmodulusPos)]
+        rw [Int.tmod_eq_of_lt hwrappedNonneg (Int.emod_lt_of_pos _ hmodulusPos)]
+        exact evalIntArithResult_checked_uint_ok _ _ hwrappedNonneg hwrappedFit)
 
 theorem tinyQuoteBodyRevertsUnauthorized (v : TinyImmutables) (evm : EVM.State) (locals : Store)
     (hcv : evm.executionEnv.weiValue = ⟨0⟩)

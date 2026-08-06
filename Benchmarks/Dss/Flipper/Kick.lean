@@ -169,7 +169,7 @@ abbrev kickKicksGuard : Expr :=
   .binary .lt (.storage kicksRef) (.intLit maxUint256)
 
 abbrev kickAfterKicksStmts : List Stmt :=
-  [ .letDecl "id" (some uint256) (wrap256 (.binary .add (.storage kicksRef) (.intLit 1))),
+  [ .letDecl "id" (some uint256) (wrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage kicksRef) (.intLit 1))),
     .assign .storage kicksRef (.var "id"),
     .assign .storage (bidsF (.var "id") "bid") (.var "bid"),
     .assign .storage (bidsF (.var "id") "lot") (.var "lot"),

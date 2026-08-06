@@ -39,7 +39,8 @@ def contractSyntax : ContractDecl := solidity% contract Jug {
   }
 
   function _diff(uint256 x, uint256 y) internal returns (int256) {
-    int256 z = (x - y) as int256;
+    int256 z = ${s256 (.binary (.sub int256Int .wrapping)
+      (.cast (.var "x") int256St) (.cast (.var "y") int256St))};
     require(x <= #maxInt256);
     require(y <= #maxInt256);
     return z;
@@ -97,7 +98,8 @@ def contractSyntax : ContractDecl := solidity% contract Jug {
     var vatIlk = vat.ilks(ilk);
     uint256 prev = ${Expr.tupleGet (.var "vatIlk") 1};
     var fee = _add(base, ilks[ilk].duty);
-    var pow = _rpow(fee, ilks[ilk].rho <= block.timestamp ? (block.timestamp - ilks[ilk].rho) as uint256 : (#(Int.ofNat Ethereum.UInt256.size) + block.timestamp - ilks[ilk].rho) as uint256, #one);
+    var pow = _rpow(fee,
+      ${sub256 (.env .timestamp) (.storage (ilksF (.var "ilk") "rho"))}, #one);
     var rate = _rmul(pow, prev);
     var delta = _diff(rate, prev);
     require(${Expr.extCodeSize (.storage vatRef)} > 0);

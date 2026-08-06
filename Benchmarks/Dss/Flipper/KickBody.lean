@@ -165,29 +165,40 @@ theorem evalExpr_kickKicksLtMax_true {cA gh bl σ σ₀ A I} {g : Sat256}
 theorem evalExpr_kickIdExpr {cA gh bl σ σ₀ A I} {g : Sat256} :
     evalExpr? config { contract := contract, locals := kickLocals I }
       (initState cA gh bl σ σ₀ g A I)
-      (wrap256 (.binary .add (.storage kicksRef) (.intLit 1))) =
+      (wrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage kicksRef) (.intLit 1))) =
         .ok (.int (Int.ofNat (kickIdWord σ I).toNat)) := by
   have hk := evalExpr_kickKicks (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := kickLocals I)
     (kickLocals_get_kicks I)
-  rw [wrap256]
-  simp only [evalExpr?, hk, EvalResult.bind, bind, pure]
-  change (if wordModulus = 0 then EvalResult.revert else
-      .ok (Value.int ((Int.ofNat (kickKicksWord σ I).toNat + 1) % wordModulus))) =
-    .ok (.int (Int.ofNat (kickIdWord σ I).toNat))
-  rw [if_neg (by norm_num [wordModulus])]
-  have hmod :
-      (Int.ofNat (kickKicksWord σ I).toNat + 1) % wordModulus =
-        Int.ofNat (kickIdWord σ I).toNat := by
-    rw [show Int.ofNat (kickKicksWord σ I).toNat + 1 =
-        Int.ofNat ((kickKicksWord σ I).toNat + 1) by simp]
-    rw [wordModulus]
-    rw [show (Int.ofNat ((kickKicksWord σ I).toNat + 1)) % (2 : Int) ^ 256 =
-        Int.ofNat (((kickKicksWord σ I).toNat + 1) % UInt256.size) by
-      exact (Int.natCast_mod ((kickKicksWord σ I).toNat + 1) UInt256.size).symm]
-    rw [kickIdWord, uadd_toNat]
-    rfl
-  rw [hmod]
+  have hone :
+      evalExpr? config { contract := contract, locals := kickLocals I }
+          (initState cA gh bl σ σ₀ g A I) (.intLit 1) =
+        .ok (.int (Int.ofNat (⟨1⟩ : UInt256).toNat)) := by
+    rw [show (⟨1⟩ : UInt256).toNat = 1 by native_decide]
+    simp [evalExpr?, pure]
+  have hadd := evalExpr_wrapping_add_uint256_word_ok hk hone
+    (result := kickIdWord σ I) rfl
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := kickLocals I }
+          (initState cA gh bl σ σ₀ g A I) (.intLit wordModulus) =
+        .ok (.int wordModulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < wordModulus := by norm_num [wordModulus]
+  have hidLt : Int.ofNat (kickIdWord σ I).toNat < Int.ofNat (EVM.twoPow 256) :=
+    Int.ofNat_lt.mpr (kickIdWord σ I).val.isLt
+  have hmod : Int.ofNat (kickIdWord σ I).toNat % wordModulus =
+      Int.ofNat (kickIdWord σ I).toNat := by
+    apply Int.emod_eq_of_lt (Int.natCast_nonneg _)
+    rw [show wordModulus = Int.ofNat (EVM.twoPow 256) by norm_num [wordModulus, EVM.twoPow]]
+    exact hidLt
+  have hfit : Int.ofNat (kickIdWord σ I).toNat % wordModulus <
+      Int.ofNat (EVM.twoPow 256) := by
+    rw [hmod]
+    exact hidLt
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩)
+    hadd hmodulus (Int.natCast_nonneg _) hpos hfit
+  rw [hmod] at heval
+  simpa [wrap256] using heval
 
 theorem evalExpr_kickTau {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
     (htau : locals.get? "tau" = none) :
@@ -227,6 +238,18 @@ theorem evalExpr_kickNow48 {evm : EVM.State} {locals : Store} {I : ExecutionEnv}
     (hts : evm.executionEnv.header.timestamp = I.header.timestamp) :
     evalExpr? config { contract := contract, locals := locals } evm now48 =
       .ok (.int (Int.ofNat (kickNow48 I).toNat)) := by
+  have htimestamp :
+      evalExpr? config { contract := contract, locals := locals } evm (.env .timestamp) =
+        .ok (.int (Int.ofNat (kickNow I).toNat)) := by
+    simp [evalExpr?, envValue, pure, hts, kickNow]
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } evm
+          (.intLit uint48Modulus) = .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
+  have hfit : Int.ofNat (kickNow I).toNat % uint48Modulus <
+      Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
   have hmod :
       (Int.ofNat (kickNow I).toNat) % uint48Modulus =
         Int.ofNat (kickNow48 I).toNat := by
@@ -237,86 +260,74 @@ theorem evalExpr_kickNow48 {evm : EVM.State} {locals : Store} {I : ExecutionEnv}
           exact (Int.natCast_mod (kickNow I).toNat (2 ^ 48)).symm
       _ = Int.ofNat (kickNow48 I).toNat := by
           rw [← uint48Mask_toNat_mod (kickNow I)]
-  rw [now48, wrap48]
-  simp only [evalExpr?, envValue, hts, EvalResult.bind, bind, pure]
-  change (if uint48Modulus = 0 then EvalResult.revert else
-      .ok (Value.int ((Int.ofNat (kickNow I).toNat) % uint48Modulus))) =
-    .ok (Value.int (Int.ofNat (kickNow48 I).toNat))
-  rw [if_neg (by norm_num [uint48Modulus]), hmod]
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩)
+    htimestamp hmodulus (Int.natCast_nonneg _) hpos hfit
+  rw [hmod] at heval
+  simpa [now48, wrap48] using heval
+
+theorem evalExpr_kickEndNew_of_evals {evm : EVM.State} {locals : Store}
+    {σ : AccountMap} {I : ExecutionEnv}
+    (hnow : evalExpr? config { contract := contract, locals := locals } evm now48 =
+      .ok (.int (Int.ofNat (kickNow48 I).toNat)))
+    (htau : evalExpr? config { contract := contract, locals := locals } evm (.storage tauRef) =
+      .ok (.int (Int.ofNat (kickTauWord σ I).toNat))) :
+    evalExpr? config { contract := contract, locals := locals } evm
+      (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))) =
+        .ok (.int (Int.ofNat (kickEndNewWord σ I).toNat)) := by
+  let sum := kickNow48 I + kickTauWord σ I
+  have hadd := evalExpr_wrapping_add_uint256_word_ok hnow htau (result := sum) rfl
+  have hsumNat : sum.toNat = (kickNow48 I).toNat + (kickTauWord σ I).toNat := by
+    change (kickNow48 I + kickTauWord σ I).toNat = _
+    rw [uadd_toNat]
+    have hsum : (kickNow48 I).toNat + (kickTauWord σ I).toNat < UInt256.size := by
+      have hnowBound := kickNow48_bound I
+      have htauBound := kickTauWord_bound σ I
+      calc
+        (kickNow48 I).toNat + (kickTauWord σ I).toNat < 2 ^ 49 := by omega
+        _ < UInt256.size := by norm_num [UInt256.size]
+    exact Nat.mod_eq_of_lt hsum
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } evm
+          (.intLit uint48Modulus) = .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
+  have hmod : Int.ofNat sum.toNat % uint48Modulus =
+      Int.ofNat (kickEndNewWord σ I).toNat := by
+    calc
+      Int.ofNat sum.toNat % uint48Modulus = Int.ofNat (sum.toNat % 2 ^ 48) := by
+        rw [uint48Modulus]
+        exact (Int.natCast_mod sum.toNat (2 ^ 48)).symm
+      _ = Int.ofNat (kickEndNewWord σ I).toNat := by
+        rw [hsumNat, ← kickEndNewWord_toNat σ I]
+  have hfit : Int.ofNat sum.toNat % uint48Modulus < Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩)
+    hadd hmodulus (Int.natCast_nonneg _) hpos hfit
+  rw [hmod] at heval
+  simpa [wrap48] using heval
 
 theorem evalExpr_kickEndNew {cA gh bl σ σ₀ A I} {g : Sat256}
     {locals : Store}
     (htau : locals.get? "tau" = none) :
     evalExpr? config { contract := contract, locals := locals }
-      (initState cA gh bl σ σ₀ g A I) (wrap48 (.binary .add now48 (.storage tauRef))) =
+      (initState cA gh bl σ σ₀ g A I) (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))) =
         .ok (.int (Int.ofNat (kickEndNewWord σ I).toNat)) := by
   have hnow := evalExpr_kickNow48
     (evm := initState cA gh bl σ σ₀ g A I) (locals := locals) (I := I) (by rfl)
   have htauEval := evalExpr_kickTau (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) (locals := locals) htau
-  rw [wrap48]
-  simp only [evalExpr?, hnow, htauEval, EvalResult.bind, bind, pure]
-  change (if uint48Modulus = 0 then EvalResult.revert else
-      .ok (Value.int (((Int.ofNat (kickNow48 I).toNat) +
-        Int.ofNat (kickTauWord σ I).toNat) % uint48Modulus))) =
-    .ok (Value.int (Int.ofNat (kickEndNewWord σ I).toNat))
-  have hmod :
-      ((Int.ofNat (kickNow48 I).toNat) + Int.ofNat (kickTauWord σ I).toNat) %
-          uint48Modulus =
-        Int.ofNat (kickEndNewWord σ I).toNat := by
-    calc
-      ((Int.ofNat (kickNow48 I).toNat) + Int.ofNat (kickTauWord σ I).toNat) %
-          uint48Modulus =
-          Int.ofNat (((kickNow48 I).toNat + (kickTauWord σ I).toNat) % 2 ^ 48) := by
-          rw [show (Int.ofNat (kickNow48 I).toNat +
-              Int.ofNat (kickTauWord σ I).toNat) =
-              Int.ofNat ((kickNow48 I).toNat + (kickTauWord σ I).toNat) by simp]
-          rw [uint48Modulus]
-          exact (Int.natCast_mod
-            ((kickNow48 I).toNat + (kickTauWord σ I).toNat) (2 ^ 48)).symm
-      _ = Int.ofNat (kickEndNewWord σ I).toNat := by
-          rw [← kickEndNewWord_toNat σ I]
-  rw [if_neg (by norm_num [uint48Modulus]), hmod]
+  exact evalExpr_kickEndNew_of_evals hnow htauEval
 
 theorem evalExpr_kickEndNew_evm {evm : EVM.State} {locals : Store}
     (htau : locals.get? "tau" = none) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (wrap48 (.binary .add now48 (.storage tauRef))) =
+      (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))) =
         .ok (.int (Int.ofNat
           (kickEndNewWord evm.accountMap evm.executionEnv).toNat)) := by
   have hnow := evalExpr_kickNow48 (evm := evm) (locals := locals)
     (I := evm.executionEnv) rfl
   have htauEval := evalExpr_kickTau_evm (evm := evm) (locals := locals) htau
-  rw [wrap48]
-  simp only [evalExpr?, hnow, htauEval, EvalResult.bind, bind, pure]
-  change (if uint48Modulus = 0 then EvalResult.revert else
-      .ok (Value.int (((Int.ofNat (kickNow48 evm.executionEnv).toNat) +
-        Int.ofNat (kickTauWord evm.accountMap evm.executionEnv).toNat) %
-          uint48Modulus))) =
-    .ok (Value.int (Int.ofNat
-      (kickEndNewWord evm.accountMap evm.executionEnv).toNat))
-  have hmod :
-      ((Int.ofNat (kickNow48 evm.executionEnv).toNat) +
-          Int.ofNat (kickTauWord evm.accountMap evm.executionEnv).toNat) %
-          uint48Modulus =
-        Int.ofNat (kickEndNewWord evm.accountMap evm.executionEnv).toNat := by
-    calc
-      ((Int.ofNat (kickNow48 evm.executionEnv).toNat) +
-          Int.ofNat (kickTauWord evm.accountMap evm.executionEnv).toNat) %
-          uint48Modulus =
-          Int.ofNat (((kickNow48 evm.executionEnv).toNat +
-            (kickTauWord evm.accountMap evm.executionEnv).toNat) % 2 ^ 48) := by
-          rw [show (Int.ofNat (kickNow48 evm.executionEnv).toNat +
-              Int.ofNat (kickTauWord evm.accountMap evm.executionEnv).toNat) =
-              Int.ofNat ((kickNow48 evm.executionEnv).toNat +
-                (kickTauWord evm.accountMap evm.executionEnv).toNat) by simp]
-          rw [uint48Modulus]
-          exact (Int.natCast_mod
-            ((kickNow48 evm.executionEnv).toNat +
-              (kickTauWord evm.accountMap evm.executionEnv).toNat) (2 ^ 48)).symm
-      _ = Int.ofNat (kickEndNewWord evm.accountMap evm.executionEnv).toNat := by
-          rw [← kickEndNewWord_toNat evm.accountMap evm.executionEnv]
-  rw [if_neg (by norm_num [uint48Modulus]), hmod]
+  exact evalExpr_kickEndNew_of_evals hnow htauEval
 
 theorem evalExpr_kickEndVarWithEnd {evm : EVM.State} {σ : AccountMap} {I : ExecutionEnv} :
     evalExpr? config { contract := contract, locals := kickLocalsWithEnd σ I } evm
@@ -660,7 +671,7 @@ theorem assign_kickTabStorage (evm : EVM.State) (σ : AccountMap) (I : Execution
     (flipperStorageLocStore_uint256 evm (bidSlotOfWord (kickIdWord σ I) ⟨5⟩) (kickTab I))
 
 abbrev kickStoragePrefixStmts : List Stmt :=
-  [ .letDecl "id" (some uint256) (wrap256 (.binary .add (.storage kicksRef) (.intLit 1))),
+  [ .letDecl "id" (some uint256) (wrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage kicksRef) (.intLit 1))),
     .assign .storage kicksRef (.var "id"),
     .assign .storage (bidsF (.var "id") "bid") (.var "bid"),
     .assign .storage (bidsF (.var "id") "lot") (.var "lot"),
@@ -753,7 +764,7 @@ theorem flipperKickSourcePrefix {cA gh bl σ σ₀ A I} {g : UInt256}
     rfl
   have hletEnd :
       evalExpr? config { contract := contract, locals := kickLocalsWithId σ I } evmGuy
-        (wrap48 (.binary .add now48 (.storage tauRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))) =
           .ok (.int (Int.ofNat (kickEndNewWord (kickAfterGuyMap σ I) I).toNat)) := by
     have hraw := evalExpr_kickEndNew_evm (evm := evmGuy) (locals := kickLocalsWithId σ I)
       (kickLocalsWithId_get_tau σ I)
@@ -850,12 +861,14 @@ theorem flipperKickSourcePrefix {cA gh bl σ σ₀ A I} {g : UInt256}
   change ExecBlock config { contract := contract, locals := kickLocals I } evm0
     kickStoragePrefixStmts (.ok { contract := contract, locals := kickLocalsWithEnd σ I } evmTab)
   simp only [kickStoragePrefixStmts, checkedAdd48Into, List.cons_append, List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.letDecl hidEval) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hidEval) ?_
   refine ExecBlock.consNormal (ExecStmt.assign hidVar hassignKicks) ?_
   refine ExecBlock.consNormal (ExecStmt.assign hbidVar hassignBid) ?_
   refine ExecBlock.consNormal (ExecStmt.assign hlotVarId hassignLot) ?_
   refine ExecBlock.consNormal (ExecStmt.assign hsender hassignGuy) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hletEnd) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl_uint_word hletEnd
+      (by simpa [EVM.twoPow] using kickEndNewWord_bound (kickAfterGuyMap σ I) I)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hge) ?_
   refine ExecBlock.consNormal (ExecStmt.assign hendVar hassignEnd) ?_
   refine ExecBlock.consNormal (ExecStmt.assign husrVar hassignUsr) ?_
@@ -924,7 +937,7 @@ theorem flipperKickSourceBodyAdd48Overflow {cA gh bl σ σ₀ A I} {g : UInt256}
     rfl
   have hletEnd :
       evalExpr? config { contract := contract, locals := kickLocalsWithId σ I } evmGuy
-        (wrap48 (.binary .add now48 (.storage tauRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))) =
           .ok (.int (Int.ofNat (kickEndNewWord (kickAfterGuyMap σ I) I).toNat)) := by
     have hraw := evalExpr_kickEndNew_evm (evm := evmGuy) (locals := kickLocalsWithId σ I)
       (kickLocalsWithId_get_tau σ I)
@@ -978,12 +991,14 @@ theorem flipperKickSourceBodyAdd48Overflow {cA gh bl σ σ₀ A I} {g : UInt256}
     · simpa [kickAuthGuard] using hauthEval
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · simpa [kickKicksGuard] using hkicksEval
-    refine ExecBlock.consNormal (ExecStmt.letDecl hidEval) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hidEval) ?_
     refine ExecBlock.consNormal (ExecStmt.assign hidVar hassignKicks) ?_
     refine ExecBlock.consNormal (ExecStmt.assign hbidVar hassignBid) ?_
     refine ExecBlock.consNormal (ExecStmt.assign hlotVarId hassignLot) ?_
     refine ExecBlock.consNormal (ExecStmt.assign hsender hassignGuy) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hletEnd) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl_uint_word hletEnd
+        (by simpa [EVM.twoPow] using kickEndNewWord_bound (kickAfterGuyMap σ I) I)) ?_
     exact ExecBlock.consRevert (ExecStmt.requireFalse hge)
   have hblock :
       ExecBlock config { contract := contract, locals := kickLocals I } evm0

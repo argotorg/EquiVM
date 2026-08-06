@@ -120,7 +120,7 @@ def contractSyntax : ContractDecl := solidity% contract Dai {
     require(holder == recovered);
     require(expiry == 0 || block.timestamp <= expiry);
     require(nonce == nonces[holder]);
-    nonces[holder] = nonces[holder] + 1;
+    nonces[holder] = ${uncheckedAdd256 (.storage (noncesRef (.var "holder"))) (.intLit 1)};
     uint256 wad = allowed ? type(uint256).max : 0;
     allowance[holder][spender] = wad;
   }

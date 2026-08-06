@@ -9,6 +9,27 @@ namespace UniswapV2Pair
 abbrev permitWordBytes32Value (w : UInt256) : Value :=
   .fixedBytes bytes32Width (EVM.Word.toBytesBE w)
 
+theorem permitWordBytes32Value_matches (w : UInt256) :
+    valueMatchesOptionalABIType (some bytes32) (permitWordBytes32Value w) = true := by
+  apply valueMatchesOptionalABIType_fixedBytes
+  simpa [fixedBytesSize, bytes32Width] using word_toBytesBE_toByteArray_size w
+
+theorem evalExpr_keccak256_matches_bytes32 {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {expr : Expr} {value : Value}
+    (heval : evalExpr? cfg solm evm (.keccak256 expr) = .ok value) :
+    valueMatchesOptionalABIType (some bytes32) value = true := by
+  simp only [evalExpr?] at heval
+  generalize hresult : evalExpr? cfg solm evm expr = result at heval
+  cases result with
+  | ok inner =>
+      cases inner <;> simp only [EvalResult.bind, bind, pure] at heval <;> cases heval
+      case ok.bytes.refl bytes =>
+        apply valueMatchesOptionalABIType_fixedBytes
+        rw [byteArray_toList_eq, Array.length_toList]
+        simpa [fixedBytesSize, bytes32Width] using keccak_size bytes
+  | revert => cases heval
+  | error error => cases heval
+
 -- LIBRARY CANDIDATE: ByteArray round trip through its list representation.
 theorem byteArray_mk_toList_toArray (b : ByteArray) :
     ByteArray.mk b.toList.toArray = b := by

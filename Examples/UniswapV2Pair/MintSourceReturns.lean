@@ -22,7 +22,7 @@ theorem uniswapMintAfterLiquidityZeroReverts
               (.var "_reserve0") (.var "_reserve1") ++
             [ .ite (.var "feeOn")
                 [ .assign .storage kLastRef
-                    (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                    (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
                 [] ] ++
             lockExit ++
             [ .return [.var "liquidity"] ]))
@@ -88,22 +88,14 @@ theorem evalExpr_mint_initialLiquidity_sub_underflow
     (hroot : solm.locals.get? "rootLiquidity" = some (.int rootLiquidity))
     (hlt : rootLiquidity < minimumLiquidity) :
     evalExpr? config solm evm
-      (u256 (.binary .sub (.var "rootLiquidity") (.intLit minimumLiquidity))) = .revert := by
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootLiquidity") (.intLit minimumLiquidity))) = .revert := by
   have hneg : rootLiquidity - minimumLiquidity < 0 := by omega
+  have hsubEval :
+      evalBinaryOp? (.sub (.uint ⟨256, by decide⟩) .checked)
+          (.int rootLiquidity) (.int minimumLiquidity) = .revert :=
+    evalIntArithResult_checked_uint_revert_of_neg _ _ hneg
   simp only [u256, evalExpr?, EvalResult.ofOption, hroot, EvalResult.bind, bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
-  change
-    (if rootLiquidity - minimumLiquidity < 0 ||
-        rootLiquidity - minimumLiquidity ≥ (2 : Int) ^ 256 then
-       EvalResult.revert
-     else EvalResult.ok (Value.int (rootLiquidity - minimumLiquidity))) =
-      EvalResult.revert
-  have hcond :
-      (decide (rootLiquidity - minimumLiquidity < 0) ||
-        decide (rootLiquidity - minimumLiquidity ≥ (2 : Int) ^ 256)) = true := by
-    simp only [Bool.or_eq_true, decide_eq_true_eq]
-    exact Or.inl hneg
-  rw [if_pos hcond]
+  rw [hsubEval]
 
 theorem uniswapMintInitialLiquiditySmallRootIteReverts
     {locals : Store} (evm : EVM.State) (amount0 amount1 : UInt256)
@@ -120,18 +112,18 @@ theorem uniswapMintInitialLiquiditySmallRootIteReverts
   have hcond := evalExpr_mint_totalSupply_eq_zero_true evm htotal
   have hargs :
       evalExprs? config caller evm
-        [u256 (.binary .mul (.var "amount0") (.var "amount1"))] =
+        [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))] =
           .ok [sqrtFunctionYValue y] := by
     simpa [caller, y] using
       evalExprs_mint_initialSqrtArg_of_get evm amount0 amount1 hamount0 hamount1 hfit
   have hsqrt :
       ExecStmt config caller evm
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok (resumeAfterInternalCall caller "rootLiquidity"
           (some [sqrtFunctionSmallResultValue y])) evm) := by
     exact uniswapSqrtFunctionCallSuccess_le3 (caller := caller) (evm := evm) (y := y)
-      (args := [u256 (.binary .mul (.var "amount0") (.var "amount1"))])
+      (args := [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))])
       (retVar := "rootLiquidity") rfl (by simpa [y] using hsmall) hargs
   refine ExecStmt.iteTrue hcond ?_
   change ExecBlock config caller evm mintInitialLiquidityBranchStmts .reverted
@@ -183,7 +175,7 @@ theorem uniswapMintFeeCallFromMint_noCode
     (by simpa [reserve0, reserve1] using
       evalExprs_mint_mintFeeArgs reserveEvm callEvm I balance0 balance1)
     (by simpa using uniswapLookupMintFeeFunction)
-    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call reserve0 reserve1)
+    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call_reserves reserveEvm)
     (by
       simpa [reserve0, reserve1] using
         uniswapMintFeeFunctionBody_reverts_noCode callEvm reserve0 reserve1 hguard)
@@ -217,7 +209,7 @@ theorem uniswapMintFeeCallFromMint_callFailure
     (by simpa [reserve0, reserve1] using
       evalExprs_mint_mintFeeArgs reserveEvm callEvm I balance0 balance1)
     (by simpa using uniswapLookupMintFeeFunction)
-    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call reserve0 reserve1)
+    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call_reserves reserveEvm)
     (by
       simpa [reserve0, reserve1] using
         uniswapMintFeeFunctionBody_reverts_callFailure callEvm evmFee reserve0 reserve1
@@ -253,7 +245,7 @@ theorem uniswapMintFeeCallFromMint_decodeRevert
     (by simpa [reserve0, reserve1] using
       evalExprs_mint_mintFeeArgs reserveEvm callEvm I balance0 balance1)
     (by simpa using uniswapLookupMintFeeFunction)
-    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call reserve0 reserve1)
+    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call_reserves reserveEvm)
     (by
       simpa [reserve0, reserve1] using
         uniswapMintFeeFunctionBody_reverts_decode callEvm evmFee reserve0 reserve1
@@ -298,7 +290,7 @@ theorem uniswapMintFeeCallFromMint_feeOff_kLastZero
     (by simpa [reserve0, reserve1] using
       evalExprs_mint_mintFeeArgs reserveEvm callEvm I balance0 balance1)
     (by simpa using uniswapLookupMintFeeFunction)
-    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call reserve0 reserve1)
+    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call_reserves reserveEvm)
     (by
       simpa [reserve0, reserve1] using
         uniswapMintFeeFunctionBody_feeOff_kLastZero callEvm evmFee reserve0 reserve1
@@ -343,7 +335,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastZero
     (by simpa [reserve0, reserve1] using
       evalExprs_mint_mintFeeArgs reserveEvm callEvm I balance0 balance1)
     (by simpa using uniswapLookupMintFeeFunction)
-    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call reserve0 reserve1)
+    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call_reserves reserveEvm)
     (by
       simpa [reserve0, reserve1] using
         uniswapMintFeeFunctionBody_feeOn_kLastZero callEvm evmFee reserve0 reserve1
@@ -388,7 +380,7 @@ theorem uniswapMintFeeCallFromMint_feeOff_kLastNonzero
     (by simpa [reserve0, reserve1] using
       evalExprs_mint_mintFeeArgs reserveEvm callEvm I balance0 balance1)
     (by simpa using uniswapLookupMintFeeFunction)
-    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call reserve0 reserve1)
+    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call_reserves reserveEvm)
     (by
       simpa [reserve0, reserve1] using
         uniswapMintFeeFunctionBody_feeOff_kLastNonzero callEvm evmFee reserve0 reserve1
@@ -414,7 +406,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_noMint
           feeTo true (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt"
-            [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+            [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
           (mintFeeAfterRootKLastFrame (uniswapReserve0Word reserveEvm)
@@ -450,7 +442,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_noMint
     (by simpa [reserve0, reserve1] using
       evalExprs_mint_mintFeeArgs reserveEvm callEvm I balance0 balance1)
     (by simpa using uniswapLookupMintFeeFunction)
-    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call reserve0 reserve1)
+    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call_reserves reserveEvm)
     (by
       simpa [reserve0, reserve1] using
         uniswapMintFeeFunctionBody_feeOn_kLastNonzero_noMint callEvm evmFee reserve0
@@ -476,7 +468,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_positiveNoLiquidity
           feeTo true (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt"
-            [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+            [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
           (mintFeeAfterRootKLastFrame (uniswapReserve0Word reserveEvm)
@@ -518,7 +510,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_positiveNoLiquidity
     (by simpa [reserve0, reserve1] using
       evalExprs_mint_mintFeeArgs reserveEvm callEvm I balance0 balance1)
     (by simpa using uniswapLookupMintFeeFunction)
-    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call reserve0 reserve1)
+    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call_reserves reserveEvm)
     (by
       simpa [reserve0, reserve1] using
         uniswapMintFeeFunctionBody_feeOn_kLastNonzero_positiveNoLiquidity callEvm evmFee
@@ -546,7 +538,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_positiveWithLiquidity
           feeTo true (mintFeeKLastWord evmFee))
         evmFee
         [ .internalCall "sqrt"
-            [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))] "rootK",
+            [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))] "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
           (mintFeeAfterRootKLastFrame (uniswapReserve0Word reserveEvm)
@@ -595,7 +587,7 @@ theorem uniswapMintFeeCallFromMint_feeOn_kLastNonzero_positiveWithLiquidity
     (by simpa [reserve0, reserve1] using
       evalExprs_mint_mintFeeArgs reserveEvm callEvm I balance0 balance1)
     (by simpa using uniswapLookupMintFeeFunction)
-    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call reserve0 reserve1)
+    (by simpa [reserve0, reserve1] using bindParams_mintFeeFunction_call_reserves reserveEvm)
     (by
       simpa [reserve0, reserve1] using
         uniswapMintFeeFunctionBody_feeOn_kLastNonzero_positiveWithLiquidity callEvm evmFee

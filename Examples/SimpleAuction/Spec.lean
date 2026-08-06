@@ -75,7 +75,7 @@ def constructorDecl : ConstructorDecl :=
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .assign .storage beneficiaryRef (.var "beneficiaryAddress"),
-        .assign .storage auctionEndTimeRef (u256 (.binary .add now (.var "biddingTime"))) ] }
+        .assign .storage auctionEndTimeRef (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) now (.var "biddingTime"))) ] }
 
 /-! ## Transitions -/
 
@@ -92,7 +92,7 @@ def bidTransition : TransitionDecl :=
         -- `if (highestBid != 0) pendingReturns[highestBidder] += highestBid;`
         .ite (.binary .ne (.storage highestBidRef) (.intLit 0))
           [ .assign .storage (pendingReturnsRef (.storage highestBidderRef))
-              (u256 (.binary .add
+              (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
                 (.storage (pendingReturnsRef (.storage highestBidderRef)))
                 (.storage highestBidRef))) ]
           [],

@@ -3098,6 +3098,7 @@ theorem endFlowStmtRate (evm : EVM.State) (I : ExecutionEnv) (out : ByteArray) :
       (.ok { contract := contract, locals := endFlowStoreRate I out } evm) := by
   simpa [endFlowStoreRate] using
     ExecStmt.letDecl (evalExpr_endFlow_vatIlk_rate evm I out)
+      (valueMatchesOptionalABIType_uint256_word (endFlowVatIlkRateWord out))
 
 theorem endFlowStmtWad0RmulReturns (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (out : ByteArray)
@@ -3134,12 +3135,8 @@ theorem endFlowStmtWad0RmulReturns (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endFlowArtWord σ I).toNat),
             .int (Int.ofNat (endFlowVatIlkRateWord out).toNat)] := by
     simp [evalExprs?, hArt, hrate, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? rmulFunction.params
-          [.int (Int.ofNat (endFlowArtWord σ I).toNat),
-            .int (Int.ofNat (endFlowVatIlkRateWord out).toNat)] =
-        some (endUintBinaryLocals (endFlowArtWord σ I) (endFlowVatIlkRateWord out)) := by
-    simp [rmulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_rmulFunction (endFlowArtWord σ I) (endFlowVatIlkRateWord out)
   have hbody :=
     endExecRmulFunctionReturn (evm := evm)
       (x := endFlowArtWord σ I) (y := endFlowVatIlkRateWord out)
@@ -3193,12 +3190,8 @@ theorem endFlowStmtWadRmulReturns (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endFlowWad0Word σ I out).toNat),
             .int (Int.ofNat (endFlowTagWord σ I).toNat)] := by
     simp [evalExprs?, hwad0, htag, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? rmulFunction.params
-          [.int (Int.ofNat (endFlowWad0Word σ I out).toNat),
-            .int (Int.ofNat (endFlowTagWord σ I).toNat)] =
-        some (endUintBinaryLocals (endFlowWad0Word σ I out) (endFlowTagWord σ I)) := by
-    simp [rmulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_rmulFunction (endFlowWad0Word σ I out) (endFlowTagWord σ I)
   have hbody :=
     endExecRmulFunctionReturn (evm := evm)
       (x := endFlowWad0Word σ I out) (y := endFlowTagWord σ I)
@@ -3254,12 +3247,8 @@ theorem endFlowStmtNum0SubReturns (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endFlowWadWord σ I out).toNat),
             .int (Int.ofNat (endFlowGapWord σ I).toNat)] := by
     simp [evalExprs?, hwad, hgap, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? subFunction.params
-          [.int (Int.ofNat (endFlowWadWord σ I out).toNat),
-            .int (Int.ofNat (endFlowGapWord σ I).toNat)] =
-        some (endUintBinaryLocals (endFlowWadWord σ I out) (endFlowGapWord σ I)) := by
-    simp [subFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_subFunction (endFlowWadWord σ I out) (endFlowGapWord σ I)
   have hbody :=
     endExecSubFunctionReturn (evm := evm)
       (x := endFlowWadWord σ I out) (y := endFlowGapWord σ I)
@@ -3301,12 +3290,7 @@ theorem endFlowStmtNumMulReturns (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endFlowNum0Word σ I out).toNat),
             .int (Int.ofNat endRayWord.toNat)] := by
     simp [evalExprs?, hnum0, hRay, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? mulFunction.params
-          [.int (Int.ofNat (endFlowNum0Word σ I out).toNat),
-            .int (Int.ofNat endRayWord.toNat)] =
-        some (endUintBinaryLocals (endFlowNum0Word σ I out) endRayWord) := by
-    simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_mulFunction (endFlowNum0Word σ I out) endRayWord
   have hbody :=
     endExecMulFunctionReturn (evm := evm)
       (x := endFlowNum0Word σ I out) (y := endRayWord)
@@ -3329,7 +3313,7 @@ theorem endFlowStmtDenLet (evm : EVM.State) (I : ExecutionEnv)
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩ =
         endFlowDebtWord σ I) :
     ExecStmt config { contract := contract, locals := endFlowStoreNum σ I out } evm
-      (.letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)))
+      (.letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)))
       (.ok { contract := contract, locals := endFlowStoreDen σ I out } evm) := by
   have hbase : (endFlowStoreNum σ I out).get? "debt" = none := by
     simp [endFlowStoreNum, endFlowStoreNum0, endFlowStoreWad, endFlowStoreWad0,
@@ -3347,16 +3331,17 @@ theorem endFlowStmtDenLet (evm : EVM.State) (I : ExecutionEnv)
     simp [evalExpr?, pure, hRayEq]
   have hdiv :
       evalExpr? config { contract := contract, locals := endFlowStoreNum σ I out } evm
-        (.binary .div (.storage debtRef) (.intLit RAY)) =
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)) =
           .ok (.int (Int.ofNat (endFlowDenWord σ I).toNat)) :=
     endEvalExpr_div_uint256_ok hdebt hRay (by native_decide) rfl
-  simpa [endFlowStoreDen] using ExecStmt.letDecl hdiv
+  simpa [endFlowStoreDen] using
+    ExecStmt.letDecl hdiv (valueMatchesOptionalABIType_uint256_word (endFlowDenWord σ I))
 
 theorem endFlowStmtFixVLet (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (out : ByteArray)
     (hden : endFlowDenWord σ I ≠ ⟨0⟩) :
     ExecStmt config { contract := contract, locals := endFlowStoreDen σ I out } evm
-      (.letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")))
+      (.letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")))
       (.ok { contract := contract, locals := endFlowStoreFixV σ I out } evm) := by
   have hnum :
       evalExpr? config { contract := contract, locals := endFlowStoreDen σ I out } evm
@@ -3376,10 +3361,12 @@ theorem endFlowStmtFixVLet (evm : EVM.State) (I : ExecutionEnv)
         (by simp [endFlowStoreDen])
   have hdiv :
       evalExpr? config { contract := contract, locals := endFlowStoreDen σ I out } evm
-        (.binary .div (.var "num") (.var "den")) =
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")) =
           .ok (.int (Int.ofNat (endFlowFixVWord σ I out).toNat)) :=
     endEvalExpr_div_uint256_ok hnum hdenExpr hden rfl
-  simpa [endFlowStoreFixV] using ExecStmt.letDecl hdiv
+  simpa [endFlowStoreFixV] using
+    ExecStmt.letDecl hdiv
+      (valueMatchesOptionalABIType_uint256_word (endFlowFixVWord σ I out))
 
 theorem endFlowStmtAssignFixV (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (out : ByteArray)
@@ -3455,8 +3442,8 @@ theorem endFlowTailReturns (evm : EVM.State) (I : ExecutionEnv)
         .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
         .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
         .internalCall "mul" [.var "num0", .intLit RAY] "num",
-        .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-        .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+        .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+        .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
         .assign .storage (fixRef (.var "ilk")) (.var "fixV") ]
       (.ok { contract := contract, locals := endFlowStoreFixV σ I out }
         (endFlowPostState evm I (endFlowFixVWord σ I out))) := by
@@ -3478,7 +3465,7 @@ theorem endEvalExpr_div_uint256_revert {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat a.toNat)))
     (hy : evalExpr? config { contract := contract, locals := locals } evm y =
       .ok (.int 0)) :
-    evalExpr? config { contract := contract, locals := locals } evm (.binary .div x y) =
+    evalExpr? config { contract := contract, locals := locals } evm (.binary (.div (.uint ⟨256, by decide⟩) .checked) x y) =
       .revert := by
   simp [evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?]
 
@@ -3518,12 +3505,8 @@ theorem endFlowStmtWad0RmulReverts (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endFlowArtWord σ I).toNat),
             .int (Int.ofNat (endFlowVatIlkRateWord out).toNat)] := by
     simp [evalExprs?, hArt, hrate, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? rmulFunction.params
-          [.int (Int.ofNat (endFlowArtWord σ I).toNat),
-            .int (Int.ofNat (endFlowVatIlkRateWord out).toNat)] =
-        some (endUintBinaryLocals (endFlowArtWord σ I) (endFlowVatIlkRateWord out)) := by
-    simp [rmulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_rmulFunction (endFlowArtWord σ I) (endFlowVatIlkRateWord out)
   have hbody :=
     endExecRmulFunctionRevertMul (evm := evm)
       (x := endFlowArtWord σ I) (y := endFlowVatIlkRateWord out) hover
@@ -3575,12 +3558,8 @@ theorem endFlowStmtWadRmulReverts (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endFlowWad0Word σ I out).toNat),
             .int (Int.ofNat (endFlowTagWord σ I).toNat)] := by
     simp [evalExprs?, hwad0, htag, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? rmulFunction.params
-          [.int (Int.ofNat (endFlowWad0Word σ I out).toNat),
-            .int (Int.ofNat (endFlowTagWord σ I).toNat)] =
-        some (endUintBinaryLocals (endFlowWad0Word σ I out) (endFlowTagWord σ I)) := by
-    simp [rmulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_rmulFunction (endFlowWad0Word σ I out) (endFlowTagWord σ I)
   have hbody :=
     endExecRmulFunctionRevertMul (evm := evm)
       (x := endFlowWad0Word σ I out) (y := endFlowTagWord σ I) hover
@@ -3633,12 +3612,8 @@ theorem endFlowStmtNum0SubReverts (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endFlowWadWord σ I out).toNat),
             .int (Int.ofNat (endFlowGapWord σ I).toNat)] := by
     simp [evalExprs?, hwad, hgap, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? subFunction.params
-          [.int (Int.ofNat (endFlowWadWord σ I out).toNat),
-            .int (Int.ofNat (endFlowGapWord σ I).toNat)] =
-        some (endUintBinaryLocals (endFlowWadWord σ I out) (endFlowGapWord σ I)) := by
-    simp [subFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_subFunction (endFlowWadWord σ I out) (endFlowGapWord σ I)
   have hbody :=
     endExecSubFunctionRevert (evm := evm)
       (x := endFlowWadWord σ I out) (y := endFlowGapWord σ I) hlt
@@ -3678,12 +3653,7 @@ theorem endFlowStmtNumMulReverts (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat (endFlowNum0Word σ I out).toNat),
             .int (Int.ofNat endRayWord.toNat)] := by
     simp [evalExprs?, hnum0, hRay, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? mulFunction.params
-          [.int (Int.ofNat (endFlowNum0Word σ I out).toNat),
-            .int (Int.ofNat endRayWord.toNat)] =
-        some (endUintBinaryLocals (endFlowNum0Word σ I out) endRayWord) := by
-    simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_mulFunction (endFlowNum0Word σ I out) endRayWord
   have hbody :=
     endExecMulFunctionRevert (evm := evm)
       (x := endFlowNum0Word σ I out) (y := endRayWord) hover
@@ -3702,7 +3672,7 @@ theorem endFlowStmtFixVLetReverts (evm : EVM.State) (I : ExecutionEnv)
     (σ : AccountMap) (out : ByteArray)
     (hden : endFlowDenWord σ I = ⟨0⟩) :
     ExecStmt config { contract := contract, locals := endFlowStoreDen σ I out } evm
-      (.letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")))
+      (.letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")))
       .reverted := by
   have hnum :
       evalExpr? config { contract := contract, locals := endFlowStoreDen σ I out } evm
@@ -3722,7 +3692,7 @@ theorem endFlowStmtFixVLetReverts (evm : EVM.State) (I : ExecutionEnv)
         (by simp [endFlowStoreDen])
   have hdiv :
       evalExpr? config { contract := contract, locals := endFlowStoreDen σ I out } evm
-        (.binary .div (.var "num") (.var "den")) = .revert :=
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")) = .revert :=
     endEvalExpr_div_uint256_revert hnum hdenExpr
   exact ExecStmt.letDeclRevert hdiv
 
@@ -3740,8 +3710,8 @@ theorem endFlowTailReverts_wad0RmulOverflow (evm : EVM.State) (I : ExecutionEnv)
         .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
         .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
         .internalCall "mul" [.var "num0", .intLit RAY] "num",
-        .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-        .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+        .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+        .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
         .assign .storage (fixRef (.var "ilk")) (.var "fixV") ]
       .reverted := by
   refine ExecBlock.consNormal (endFlowStmtRate evm I out) ?_
@@ -3767,8 +3737,8 @@ theorem endFlowTailReverts_wadRmulOverflow (evm : EVM.State) (I : ExecutionEnv)
         .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
         .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
         .internalCall "mul" [.var "num0", .intLit RAY] "num",
-        .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-        .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+        .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+        .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
         .assign .storage (fixRef (.var "ilk")) (.var "fixV") ]
       .reverted := by
   refine ExecBlock.consNormal (endFlowStmtRate evm I out) ?_
@@ -3800,8 +3770,8 @@ theorem endFlowTailReverts_subUnderflow (evm : EVM.State) (I : ExecutionEnv)
         .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
         .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
         .internalCall "mul" [.var "num0", .intLit RAY] "num",
-        .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-        .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+        .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+        .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
         .assign .storage (fixRef (.var "ilk")) (.var "fixV") ]
       .reverted := by
   refine ExecBlock.consNormal (endFlowStmtRate evm I out) ?_
@@ -3836,8 +3806,8 @@ theorem endFlowTailReverts_mulOverflow (evm : EVM.State) (I : ExecutionEnv)
         .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
         .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
         .internalCall "mul" [.var "num0", .intLit RAY] "num",
-        .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-        .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+        .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+        .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
         .assign .storage (fixRef (.var "ilk")) (.var "fixV") ]
       .reverted := by
   refine ExecBlock.consNormal (endFlowStmtRate evm I out) ?_
@@ -3878,8 +3848,8 @@ theorem endFlowTailReverts_denZero (evm : EVM.State) (I : ExecutionEnv)
         .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
         .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
         .internalCall "mul" [.var "num0", .intLit RAY] "num",
-        .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-        .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+        .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+        .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
         .assign .storage (fixRef (.var "ilk")) (.var "fixV") ]
       .reverted := by
   refine ExecBlock.consNormal (endFlowStmtRate evm I out) ?_
@@ -3923,8 +3893,8 @@ theorem endFlowBodyReverts_debtZero {cA gh bl σ σ₀ A I} {g : UInt256}
           .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
           .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
           .internalCall "mul" [.var "num0", .intLit RAY] "num",
-          .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-          .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+          .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+          .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
           .assign .storage (fixRef (.var "ilk")) (.var "fixV") ])
       (by simp only [evm0, initState]; exact hwv)
       hguard
@@ -4010,8 +3980,8 @@ theorem endFlowBodyReverts_vatIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
             .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
             .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
             .internalCall "mul" [.var "num0", .intLit RAY] "num",
-            .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-            .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+            .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+            .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
             .assign .storage (fixRef (.var "ilk")) (.var "fixV") ])
         .reverted := by
     exact execBlock_append_term
@@ -4021,8 +3991,8 @@ theorem endFlowBodyReverts_vatIlksBlock {cA gh bl σ σ₀ A I} {g : UInt256}
           .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
           .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
           .internalCall "mul" [.var "num0", .intLit RAY] "num",
-          .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-          .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+          .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+          .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
           .assign .storage (fixRef (.var "ilk")) (.var "fixV") ])
       hvat (by intro f' e' h; cases h)
   have hblock :
@@ -4182,8 +4152,8 @@ theorem endFlowBodyReverts_vatIlksOkTailReverted {cA gh bl σ σ₀ A I} {g : UI
           .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
           .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
           .internalCall "mul" [.var "num0", .intLit RAY] "num",
-          .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-          .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+          .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+          .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
           .assign .storage (fixRef (.var "ilk")) (.var "fixV") ]
         .reverted) :
     let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
@@ -4212,8 +4182,8 @@ theorem endFlowBodyReverts_vatIlksOkTailReverted {cA gh bl σ σ₀ A I} {g : UI
           .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
           .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
           .internalCall "mul" [.var "num0", .intLit RAY] "num",
-          .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-          .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+          .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+          .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
           .assign .storage (fixRef (.var "ilk")) (.var "fixV") ])
       hprefix htail
     simpa [flowTransition, List.append_assoc] using happ
@@ -4239,8 +4209,8 @@ theorem endFlowBodyReturns_vatIlksOkTail {cA gh bl σ σ₀ A I} {g : UInt256}
           .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
           .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
           .internalCall "mul" [.var "num0", .intLit RAY] "num",
-          .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-          .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+          .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+          .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
           .assign .storage (fixRef (.var "ilk")) (.var "fixV") ]
         (.ok fPost evmPost)) :
     let evm0 := initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I
@@ -4270,8 +4240,8 @@ theorem endFlowBodyReturns_vatIlksOkTail {cA gh bl σ σ₀ A I} {g : UInt256}
           .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
           .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
           .internalCall "mul" [.var "num0", .intLit RAY] "num",
-          .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-          .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+          .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+          .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
           .assign .storage (fixRef (.var "ilk")) (.var "fixV") ])
       hprefix htail
     simpa [flowTransition, List.append_assoc] using happ
@@ -4342,8 +4312,8 @@ theorem endFlowBodyReturns {cA gh bl σ σ₀ A I} {g : UInt256}
           .internalCall "rmul" [.var "wad0", .storage (tagRef (.var "ilk"))] "wad",
           .internalCall "sub" [.var "wad", .storage (gapRef (.var "ilk"))] "num0",
           .internalCall "mul" [.var "num0", .intLit RAY] "num",
-          .letDecl "den" (some uint256) (.binary .div (.storage debtRef) (.intLit RAY)),
-          .letDecl "fixV" (some uint256) (.binary .div (.var "num") (.var "den")),
+          .letDecl "den" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.storage debtRef) (.intLit RAY)),
+          .letDecl "fixV" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "num") (.var "den")),
           .assign .storage (fixRef (.var "ilk")) (.var "fixV") ])
       hprefix htail
     simpa [flowTransition, List.append_assoc] using happ

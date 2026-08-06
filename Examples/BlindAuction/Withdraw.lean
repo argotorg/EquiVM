@@ -520,7 +520,8 @@ theorem blindAuctionWithdrawBodyReturns_zero (evm : EVM.State) (amount : UInt256
         (.storage (pendingReturnsRef sender)) =
           .ok (.int (Int.ofNat amount.toNat)) := by
     simpa [hamount] using withdrawPendingReturns_load evm ∅ (by simp)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hamountEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hamountEval (valueMatchesOptionalABIType_uint256_word amount)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.iteFalse
       (evalExpr_withdraw_amount_gt_false evm amount hzero)
@@ -549,7 +550,8 @@ theorem blindAuctionWithdrawBodyReturns_callSuccess
         (.storage (pendingReturnsRef sender)) =
           .ok (.int (Int.ofNat amount.toNat)) := by
     simpa [hamount] using withdrawPendingReturns_load evm ∅ (by simp)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hamountEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hamountEval (valueMatchesOptionalABIType_uint256_word amount)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.iteTrue
       (result := .ok
@@ -595,7 +597,8 @@ theorem blindAuctionWithdrawBodyReverts_callFailure
         (.storage (pendingReturnsRef sender)) =
           .ok (.int (Int.ofNat amount.toNat)) := by
     simpa [hamount] using withdrawPendingReturns_load evm ∅ (by simp)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hamountEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hamountEval (valueMatchesOptionalABIType_uint256_word amount)) ?_
   refine ExecBlock.consRevert
     (ExecStmt.iteTrue (result := .reverted)
       (evalExpr_withdraw_amount_gt_true evm amount hpos) ?_)

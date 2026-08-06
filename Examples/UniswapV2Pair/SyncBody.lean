@@ -54,11 +54,11 @@ theorem uniswapUpdateFunctionReturns_conditionFalse_packed
     [ .require (.binary .and
         (.binary .le (.var "balance0") (.intLit maxUint112))
         (.binary .le (.var "balance1") (.intLit maxUint112))),
-      .letDecl "blockTimestamp" (some uint32) (u32 (.binary .mod now (.intLit twoPow32))),
+      .letDecl "blockTimestamp" (some uint32) (u32 (.binary (.mod (.uint ⟨32, by decide⟩)) now (.intLit twoPow32))),
       .letDecl "timeElapsed" (some uint32)
-        (u32 (.binary .mod
-          (.binary .add
-            (.binary .sub (.var "blockTimestamp") (.storage blockTimestampLastRef))
+        (u32 (.binary (.mod (.uint ⟨32, by decide⟩))
+          (.binary (.add (.uint ⟨32, by decide⟩) .wrapping)
+            (.binary (.sub (.uint ⟨32, by decide⟩) .wrapping) (.var "blockTimestamp") (.storage blockTimestampLastRef))
             (.intLit twoPow32))
           (.intLit twoPow32))),
       .ite (.binary .and
@@ -67,12 +67,12 @@ theorem uniswapUpdateFunctionReturns_conditionFalse_packed
             (.binary .ne (.var "_reserve0") (.intLit 0))
             (.binary .ne (.var "_reserve1") (.intLit 0))))
         [ .assign .storage price0CumulativeLastRef
-            (wrapU256 (.binary .add (.storage price0CumulativeLastRef)
-              (.binary .mul (uq112Price (.var "_reserve1") (.var "_reserve0"))
+            (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price0CumulativeLastRef)
+              (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve1") (.var "_reserve0"))
                 (.var "timeElapsed")))),
           .assign .storage price1CumulativeLastRef
-            (wrapU256 (.binary .add (.storage price1CumulativeLastRef)
-              (.binary .mul (uq112Price (.var "_reserve0") (.var "_reserve1"))
+            (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price1CumulativeLastRef)
+              (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve0") (.var "_reserve1"))
                 (.var "timeElapsed")))) ]
         [],
       .assign .storage reserve0Ref (u112 (.var "balance0")),
@@ -84,9 +84,11 @@ theorem uniswapUpdateFunctionReturns_conditionFalse_packed
     (ExecStmt.requireTrue
       (evalExpr_sync_update_bounds_true evm balance0 balance1 hbound0 hbound1)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_sync_update_blockTimestamp evm balance0 balance1)) ?_
+    (ExecStmt.letDecl (evalExpr_sync_update_blockTimestamp evm balance0 balance1)
+      (syncBlockTimestampValue_matches evm)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_sync_update_timeElapsed evm balance0 balance1)) ?_
+    (ExecStmt.letDecl (evalExpr_sync_update_timeElapsed evm balance0 balance1)
+      (syncTimeElapsedValue_matches evm)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.iteFalse hcond ExecBlock.nil) ?_
   refine ExecBlock.consNormal
@@ -163,11 +165,11 @@ theorem uniswapUpdateFunctionReturns_conditionFalse_packed_with
     [ .require (.binary .and
         (.binary .le (.var "balance0") (.intLit maxUint112))
         (.binary .le (.var "balance1") (.intLit maxUint112))),
-      .letDecl "blockTimestamp" (some uint32) (u32 (.binary .mod now (.intLit twoPow32))),
+      .letDecl "blockTimestamp" (some uint32) (u32 (.binary (.mod (.uint ⟨32, by decide⟩)) now (.intLit twoPow32))),
       .letDecl "timeElapsed" (some uint32)
-        (u32 (.binary .mod
-          (.binary .add
-            (.binary .sub (.var "blockTimestamp") (.storage blockTimestampLastRef))
+        (u32 (.binary (.mod (.uint ⟨32, by decide⟩))
+          (.binary (.add (.uint ⟨32, by decide⟩) .wrapping)
+            (.binary (.sub (.uint ⟨32, by decide⟩) .wrapping) (.var "blockTimestamp") (.storage blockTimestampLastRef))
             (.intLit twoPow32))
           (.intLit twoPow32))),
       .ite (.binary .and
@@ -176,12 +178,12 @@ theorem uniswapUpdateFunctionReturns_conditionFalse_packed_with
             (.binary .ne (.var "_reserve0") (.intLit 0))
             (.binary .ne (.var "_reserve1") (.intLit 0))))
         [ .assign .storage price0CumulativeLastRef
-            (wrapU256 (.binary .add (.storage price0CumulativeLastRef)
-              (.binary .mul (uq112Price (.var "_reserve1") (.var "_reserve0"))
+            (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price0CumulativeLastRef)
+              (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve1") (.var "_reserve0"))
                 (.var "timeElapsed")))),
           .assign .storage price1CumulativeLastRef
-            (wrapU256 (.binary .add (.storage price1CumulativeLastRef)
-              (.binary .mul (uq112Price (.var "_reserve0") (.var "_reserve1"))
+            (wrapU256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage price1CumulativeLastRef)
+              (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) (uq112Price (.var "_reserve0") (.var "_reserve1"))
                 (.var "timeElapsed")))) ]
         [],
       .assign .storage reserve0Ref (u112 (.var "balance0")),
@@ -197,10 +199,12 @@ theorem uniswapUpdateFunctionReturns_conditionFalse_packed_with
         hbound0 hbound1)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.letDecl
-      (evalExpr_sync_update_blockTimestamp_with evm balance0 balance1 reserve0 reserve1)) ?_
+      (evalExpr_sync_update_blockTimestamp_with evm balance0 balance1 reserve0 reserve1)
+      (syncBlockTimestampValue_matches evm)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.letDecl
-      (evalExpr_sync_update_timeElapsed_with evm balance0 balance1 reserve0 reserve1)) ?_
+      (evalExpr_sync_update_timeElapsed_with evm balance0 balance1 reserve0 reserve1)
+      (syncTimeElapsedValue_matches evm)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.iteFalse hcond ExecBlock.nil) ?_
   refine ExecBlock.consNormal

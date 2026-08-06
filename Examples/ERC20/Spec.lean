@@ -153,10 +153,10 @@ def transferTransition : TransitionDecl :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef sender)),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
-        .assign .storage (balanceOfRef sender) (.binary .sub (.var "fromBalance") (.var "value")),
+        .assign .storage (balanceOfRef sender) (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .letDecl "newToBalance" (some uint256)
-          (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
+          (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
         .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
         .return [(.boolLit true)] ] }
 
@@ -172,13 +172,13 @@ def transferFromTransition : TransitionDecl :=
         .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
         .require (.binary .ge (.var "fromBalance") (.var "value")),
         .assign .storage (allowanceRef (.var "from") sender)
-          (.binary .sub (.var "currentAllowance") (.var "value")),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "currentAllowance") (.var "value")),
         .assign .storage (balanceOfRef (.var "from"))
           (valueInUInt256
-            (.binary .sub (.storage (balanceOfRef (.var "from"))) (.var "value"))),
+            (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.storage (balanceOfRef (.var "from"))) (.var "value"))),
         .letDecl "toBalance" (some uint256) (.storage (balanceOfRef (.var "to"))),
         .letDecl "newToBalance" (some uint256)
-          (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))),
+          (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))),
         .assign .storage (balanceOfRef (.var "to")) (.var "newToBalance"),
         .return [(.boolLit true)] ] }
 

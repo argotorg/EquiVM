@@ -47,8 +47,8 @@ theorem uniswapMintFeeAfterRoots_mintCallReverts
   have hnumStmt : ExecStmt config
       (mintFeeAfterRootKLastFrame reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       (.letDecl "numerator" (some uint256)
-        (u256 (.binary .mul (.storage totalSupplyRef)
-          (u256 (.binary .sub (.var "rootK") (.var "rootKLast"))))))
+        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage totalSupplyRef)
+          (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.var "rootKLast"))))))
       (.ok (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evm) := ExecStmt.letDecl
     (evalExpr_mintFee_numerator evm reserve0 reserve1 feeTo true kLast rootK rootKLast
@@ -56,7 +56,7 @@ theorem uniswapMintFeeAfterRoots_mintCallReverts
   have hdenStmt : ExecStmt config
       (mintFeeAfterNumeratorFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       (.letDecl "denominator" (some uint256)
-        (u256 (.binary .add (u256 (.binary .mul (.var "rootK") (.intLit 5)))
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "rootK") (.intLit 5)))
           (.var "rootKLast"))))
       (.ok (mintFeeAfterDenominatorFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evm) := ExecStmt.letDecl
@@ -65,7 +65,7 @@ theorem uniswapMintFeeAfterRoots_mintCallReverts
   have hliqStmt : ExecStmt config
       (mintFeeAfterDenominatorFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast) evm
       (.letDecl "liquidity" (some uint256)
-        (.binary .div (.var "numerator") (.var "denominator")))
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "numerator") (.var "denominator")))
       (.ok (mintFeeAfterLiquidityFrame evm reserve0 reserve1 feeTo true kLast rootK rootKLast)
         evm) := ExecStmt.letDecl
     (evalExpr_mintFee_liquidity evm reserve0 reserve1 feeTo true kLast rootK rootKLast hdenom)

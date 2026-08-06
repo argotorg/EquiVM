@@ -32,15 +32,17 @@ theorem weth9DepositBodyReturns {cA gh bl σ σ₀ A I} {g : Sat256} :
   have hcv : (initState cA gh bl σ σ₀ g A I).executionEnv.weiValue = I.weiValue := by rw [hsrc]
   set evm := initState cA gh bl σ σ₀ g A I with hevm
   refine ExecFuncBody.execBlockOK (assignStorageBlock
-    (value := .int (Int.ofNat (Solm.EVM.storageLoad evm I.codeOwner (callerBalSlot I)).toNat
-      + Int.ofNat I.weiValue.toNat)) ?_ ?_)
+    (value := .int (Int.ofNat (UInt256.add
+      (Solm.EVM.storageLoad evm I.codeOwner (callerBalSlot I)) I.weiValue).toNat)) ?_ ?_)
   · -- rhs: balanceOf[msg.sender] + msg.value
     show evalExpr? config { contract := contract, locals := ∅ } evm
-      (.binary .add (.storage (balanceOfRef sender)) (.env .callvalue)) = _
+      (.binary (.add (.uint ⟨256, by decide⟩) .wrapping)
+        (.storage (balanceOfRef sender)) (.env .callvalue)) = _
     have hlhs := evalCallerBal evm I ∅ hsrc (by simp)
     rw [hco] at hlhs
-    simp only [evalExpr?, hlhs, envValue, hcv, EvalResult.bind, bind, pure, evalBinaryOp?]
-    rfl
+    exact evalExpr_wrapping_add_uint256_word_ok hlhs (by
+      simp only [evalExpr?, envValue, hcv, pure]
+      rfl) rfl
   · -- assign: storageLocStore truncates the raw sum to the wrapping word
     refine assignStorageRef_storage_scalar_value
       (er := callerBalRef I) (ty := uint256St) (loc := wordLoc (callerBalSlot I))
@@ -49,7 +51,7 @@ theorem weth9DepositBodyReturns {cA gh bl σ σ₀ A I} {g : Sat256} :
         evalExpr?, envValue, hsrc, valueToKey?, EvalResult.bind, EvalResult.ofOption, bind, pure]
     · simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St]
     · rw [show wordLoc (callerBalSlot I) = uint256Loc (callerBalSlot I) from rfl,
-        storageLocStore_uint256_int, hco, wordOfInt_add_words]
+        storageLocStore_uint256_int, hco, wordOfInt_ofNat_toNat]
 
 /-! ## EVM trace (store portion — the caller-keyed keccak + load-add-store) -/
 

@@ -159,7 +159,8 @@ theorem cureLoadSourceBodyNoCodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl (value := oldAmtVal) ?_) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word
+      (word := Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (loadAmtSlotFor I)) ?_) ?_
     · simpa [oldAmtVal] using holdAmt
     simpa [localsOld, oldAmtVal] using hcallTail
   simpa [ExecTransitionBody, loadTransition, nonpayable, evm0] using
@@ -254,7 +255,8 @@ theorem cureLoadSourceBodyCallFailureRevert {cA gh bl σ σ₀ A I} {g : UInt256
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl (value := oldAmtVal) ?_) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word
+      (word := Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (loadAmtSlotFor I)) ?_) ?_
     · simpa [oldAmtVal] using holdAmt
     simpa [localsOld, oldAmtVal] using hcallTail
   simpa [ExecTransitionBody, loadTransition, nonpayable, evm0] using
@@ -352,7 +354,8 @@ theorem cureLoadSourceBodyReturnDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt25
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl (value := oldAmtVal) ?_) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word
+      (word := Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner (loadAmtSlotFor I)) ?_) ?_
     · simpa [oldAmtVal] using holdAmt
     simpa [localsOld, oldAmtVal] using hcallTail
   simpa [ExecTransitionBody, loadTransition, nonpayable, evm0] using
@@ -495,7 +498,8 @@ theorem cureLoadSourceBodySubRevert {cA gh bl σ σ₀ A I} {g : UInt256}
           (uintBinaryLocals
             (Solm.EVM.storageLoad evmAmt evmAmt.executionEnv.codeOwner ⟨9⟩)
             oldAmt) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" _ _
   have hsubStmt :
       ExecStmt config { contract := contract, locals := localsNew } evmAmt
         (.internalCall "_sub" [.storage sayRef, .var "oldAmt_"] "withoutOld") .reverted := by
@@ -572,7 +576,7 @@ theorem cureLoadSourceBodySubRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl (value := oldAmtVal) ?_) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word (word := oldAmt) ?_) ?_
     · simpa [oldAmt, oldAmtVal, evm0] using holdAmt
     simpa [localsOld, oldAmtVal] using hcallTail
   simpa [ExecTransitionBody, loadTransition, nonpayable, evm0] using
@@ -720,7 +724,8 @@ theorem cureLoadSourceBodyAddRevert {cA gh bl σ σ₀ A I} {g : UInt256}
       bindParams? subFunction.params
           [.int (Int.ofNat sayAfter.toNat), .int (Int.ofNat oldAmt.toNat)] =
         some (uintBinaryLocals sayAfter oldAmt) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" _ _
   have hsubStmt :
       ExecStmt config { contract := contract, locals := localsNew } evmAmt
         (.internalCall "_sub" [.storage sayRef, .var "oldAmt_"] "withoutOld")
@@ -777,7 +782,8 @@ theorem cureLoadSourceBodyAddRevert {cA gh bl σ σ₀ A I} {g : UInt256}
       bindParams? addFunction.params
           [.int (Int.ofNat withoutOld.toNat), .int (Int.ofNat newAmt.toNat)] =
         some (uintBinaryLocals withoutOld newAmt) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" _ _
   have hownerAmtLocal : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
     dsimp [evmAmt]
     simp only [Solm.EVM.storageStore, State.lookupAccount]
@@ -851,7 +857,7 @@ theorem cureLoadSourceBodyAddRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl (value := oldAmtVal) ?_) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word (word := oldAmt) ?_) ?_
     · simpa [oldAmt, oldAmtVal, evm0] using holdAmt
     simpa [localsOld, oldAmtVal] using hcallTail
   simpa [ExecTransitionBody, loadTransition, nonpayable, evm0] using
@@ -1002,7 +1008,8 @@ theorem cureLoadSourceBodyOkLoadedNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
       bindParams? subFunction.params
           [.int (Int.ofNat sayAfter.toNat), .int (Int.ofNat oldAmt.toNat)] =
         some (uintBinaryLocals sayAfter oldAmt) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" _ _
   have hsubStmt :
       ExecStmt config { contract := contract, locals := localsNew } evmAmt
         (.internalCall "_sub" [.storage sayRef, .var "oldAmt_"] "withoutOld")
@@ -1058,7 +1065,8 @@ theorem cureLoadSourceBodyOkLoadedNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
       bindParams? addFunction.params
           [.int (Int.ofNat withoutOld.toNat), .int (Int.ofNat newAmt.toNat)] =
         some (uintBinaryLocals withoutOld newAmt) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" _ _
   have hownerAmtLocal : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
     dsimp [evmAmt]
     simp only [Solm.EVM.storageStore, State.lookupAccount]
@@ -1183,7 +1191,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl (value := oldAmtVal) ?_) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word (word := oldAmt) ?_) ?_
     · simpa [oldAmt, oldAmtVal, evm0] using holdAmt
     simpa [localsOld, oldAmtVal] using hcallTail
   simpa [ExecTransitionBody, loadTransition, nonpayable, evm0] using
@@ -1339,7 +1347,8 @@ theorem cureLoadSourceBodyOkLoadedZero {cA gh bl σ σ₀ A I} {g : UInt256}
       bindParams? subFunction.params
           [.int (Int.ofNat sayAfter.toNat), .int (Int.ofNat oldAmt.toNat)] =
         some (uintBinaryLocals sayAfter oldAmt) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" _ _
   have hsubStmt :
       ExecStmt config { contract := contract, locals := localsNew } evmAmt
         (.internalCall "_sub" [.storage sayRef, .var "oldAmt_"] "withoutOld")
@@ -1395,7 +1404,8 @@ theorem cureLoadSourceBodyOkLoadedZero {cA gh bl σ σ₀ A I} {g : UInt256}
       bindParams? addFunction.params
           [.int (Int.ofNat withoutOld.toNat), .int (Int.ofNat newAmt.toNat)] =
         some (uintBinaryLocals withoutOld newAmt) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" _ _
   have hownerAmtLocal : evmAmt.executionEnv.codeOwner = evmCall.executionEnv.codeOwner := by
     dsimp [evmAmt]
     simp only [Solm.EVM.storageStore, State.lookupAccount]
@@ -1533,7 +1543,7 @@ theorem cureLoadSourceBodyOkLoadedZero {cA gh bl σ σ₀ A I} {g : UInt256}
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardLive) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPos) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl (value := oldAmtVal) ?_) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word (word := oldAmt) ?_) ?_
     · simpa [oldAmt, oldAmtVal, evm0] using holdAmt
     simpa [localsOld, oldAmtVal] using hcallTail
   simpa [ExecTransitionBody, loadTransition, nonpayable, evm0] using

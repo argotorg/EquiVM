@@ -35,7 +35,7 @@ theorem evalExpr_mint_namedProduct_overflow
     (hy : locals.get? yName = some (uniswapUint256Value y))
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (u256 (.binary .mul (.var xName) (.var yName))) = .revert := by
+      (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var xName) (.var yName))) = .revert := by
   exact evalExpr_uint256_mul_overflow
     (by simp only [evalExpr?, EvalResult.ofOption, hx])
     (by simp only [evalExpr?, EvalResult.ofOption, hy]) hover
@@ -46,8 +46,8 @@ theorem evalExpr_mint_proportionalLiquidity0_overflow
     (htotal : locals.get? "_totalSupply" = some (uniswapUint256Value totalSupply))
     (hover : UInt256.size ≤ amount0.toNat * totalSupply.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (.binary .div
-        (u256 (.binary .mul (.var "amount0") (.var "_totalSupply")))
+      (.binary (.div (.uint ⟨256, by decide⟩) .checked)
+        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "_totalSupply")))
         (.var "_reserve0")) = .revert := by
   have hmul :=
     evalExpr_mint_namedProduct_overflow (locals := locals) evm "amount0" "_totalSupply"
@@ -60,8 +60,8 @@ theorem evalExpr_mint_proportionalLiquidity1_overflow
     (htotal : locals.get? "_totalSupply" = some (uniswapUint256Value totalSupply))
     (hover : UInt256.size ≤ amount1.toNat * totalSupply.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (.binary .div
-        (u256 (.binary .mul (.var "amount1") (.var "_totalSupply")))
+      (.binary (.div (.uint ⟨256, by decide⟩) .checked)
+        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount1") (.var "_totalSupply")))
         (.var "_reserve1")) = .revert := by
   have hmul :=
     evalExpr_mint_namedProduct_overflow (locals := locals) evm "amount1" "_totalSupply"
@@ -105,8 +105,8 @@ theorem uniswapMintProportionalLiquidity1ProductOverflowReverts
   have hcond := evalExpr_mint_totalSupply_eq_zero_false evm totalSupply htotal htotalNonzero
   have hliq0 :
       evalExpr? config { contract := contract, locals := locals } evm
-        (.binary .div
-          (u256 (.binary .mul (.var "amount0") (.var "_totalSupply")))
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked)
+          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "_totalSupply")))
           (.var "_reserve0")) =
           .ok (mintProportionalLiquidityValue amount0 totalSupply reserve0) :=
     evalExpr_mint_proportionalLiquidity_of_get evm "amount0" "_reserve0" amount0
@@ -129,7 +129,8 @@ theorem uniswapMintProportionalLiquidity1ProductOverflowReverts
   refine ExecStmt.iteFalse hcond ?_
   change ExecBlock config { contract := contract, locals := locals } evm
     mintProportionalLiquidityBranchStmts .reverted
-  refine ExecBlock.consNormal (ExecStmt.letDecl hliq0) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hliq0 (valueMatchesOptionalABIType_uint256_word liquidity0)) ?_
   exact ExecBlock.consRevert (ExecStmt.letDeclRevert hliq1)
 
 set_option maxHeartbeats 1000000 in

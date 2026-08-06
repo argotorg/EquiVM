@@ -118,7 +118,7 @@ theorem flapPostDaiBeforeKickSuccess
       bindParams? subFunction.params
           [.int (Int.ofNat vatSin1.toNat), .int (Int.ofNat SinVal.toNat)] =
         some (uintBinaryLocals vatSin1 SinVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    exact bindParams_subFunction vatSin1 SinVal
   have hfreeStmt :
       ExecStmt config { contract := contract, locals := locals5 } evmSin
         (.internalCall "sub" [.var "vatSin1", .storage SinRef] "freeSin")
@@ -163,7 +163,7 @@ theorem flapPostDaiBeforeKickSuccess
       bindParams? subFunction.params
           [.int (Int.ofNat freeSin.toNat), .int (Int.ofNat AshVal.toNat)] =
         some (uintBinaryLocals freeSin AshVal) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    exact bindParams_subFunction freeSin AshVal
   have hdebtStmt :
       ExecStmt config { contract := contract, locals := locals6 } evmSin
         (.internalCall "sub" [.var "freeSin", .storage AshRef] "debt")

@@ -2182,7 +2182,7 @@ theorem scratch_revealLoopBody_revert_refundOverflow_of_get (evm : EVM.State)
       scratch_revealSecretStoreOf_refund_get locals evm i refund value secret fake hrefund
   have hadd :
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
           .revert :=
     scratch_evalExpr_reveal_refund_add_deposit_revert evm L4 i refund deposit hbidL4
       hrefundL4 hdeposit hover
@@ -2197,14 +2197,14 @@ theorem scratch_revealLoopBody_revert_refundOverflow_of_get (evm : EVM.State)
               [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
           [.continue] [],
         .assign .localVar { base := "refund" }
-          (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
         .ite
           (.binary .and (.unary .not (.var "fake"))
             (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
         .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
       .reverted
     refine ExecBlock.consNormal (ExecStmt.iteFalse hguard ExecBlock.nil) ?_
@@ -3572,7 +3572,8 @@ theorem scratch_blindAuctionRevealBodyReverts_fromLoopRevertOfLocals
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := callargs }
         evm (.arrayLength .storage (bidsRef sender)) = .ok (.int (Int.ofNat len.toNat)) := by
     exact evalExpr_reveal_bids_length_any evm callargs len hbids hlen
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hlengthEval (valueMatchesOptionalABIType_uint256_word len)) ?_
   change ExecBlock blindAuctionConfig lengthFrame evm
     (List.drop 4 revealTransition.body) .reverted
   refine ExecBlock.consNormal
@@ -3603,7 +3604,9 @@ theorem scratch_blindAuctionRevealBodyReverts_fromLoopRevertOfLocals
     · exact hsecrets
     · decide
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+    (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+      simpa [uint256, uint256Int] using
+        valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
   change ExecBlock blindAuctionConfig refundFrame evm
     [ scratch_revealForStmt,
       .lowLevelCall sender (.var "refund") (.newBytes (.intLit 0)) "success" "_data",
@@ -3617,7 +3620,9 @@ theorem scratch_blindAuctionRevealBodyReverts_fromLoopRevertOfLocals
           [ .letDecl "i" (some uint256) (.intLit 0) ]
           (.ok initLoopFrame evm) := by
       refine ExecBlock.consNormal
-        (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+        (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+          simpa [uint256, uint256Int] using
+            valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
       exact ExecBlock.nil
     exact ExecStmt.for hinit hloop
   exact ExecBlock.consRevert hfor

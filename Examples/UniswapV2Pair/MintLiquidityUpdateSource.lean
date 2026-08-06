@@ -47,8 +47,8 @@ theorem uniswapMintProportionalLiquidityBranchMin
   have hcond := evalExpr_mint_totalSupply_eq_zero_false evm totalSupply htotal htotalNonzero
   have hliq0 :
       evalExpr? config { contract := contract, locals := locals } evm
-        (.binary .div
-          (u256 (.binary .mul (.var "amount0") (.var "_totalSupply")))
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked)
+          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "_totalSupply")))
           (.var "_reserve0")) =
           .ok (mintProportionalLiquidityValue amount0 totalSupply reserve0) :=
     evalExpr_mint_proportionalLiquidity_of_get evm "amount0" "_reserve0" amount0
@@ -75,8 +75,8 @@ theorem uniswapMintProportionalLiquidityBranchMin
     rw [store_get_ne _ _ (by decide), hreserve1]
   have hliq1 :
       evalExpr? config { contract := contract, locals := locals0 } evm
-        (.binary .div
-          (u256 (.binary .mul (.var "amount1") (.var "_totalSupply")))
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked)
+          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount1") (.var "_totalSupply")))
           (.var "_reserve1")) =
           .ok (mintProportionalLiquidityValue amount1 totalSupply reserve1) :=
     evalExpr_mint_proportionalLiquidity_of_get evm "amount1" "_reserve1" amount1
@@ -121,8 +121,14 @@ theorem uniswapMintProportionalLiquidityBranchMin
     (.ok
       (resumeAfterInternalCall { contract := contract, locals := locals1 } "liquidity"
         (some [minFunctionResultValue liquidity0 liquidity1])) evm)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hliq0) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl hliq1) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hliq0
+      (valueMatchesOptionalABIType_uint256_word
+        (mintProportionalLiquidityWord amount0 totalSupply reserve0))) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hliq1
+      (valueMatchesOptionalABIType_uint256_word
+        (mintProportionalLiquidityWord amount1 totalSupply reserve1))) ?_
   exact ExecBlock.consNormal
     (uniswapMinFunctionCallSuccess (caller := { contract := contract, locals := locals1 })
       (evm := evm) (x := liquidity0) (y := liquidity1)
@@ -418,6 +424,8 @@ theorem uniswapMintUpdateCallReverts_firstBound_with
       locals.get? "_reserve0" = some (.int (Int.ofNat reserve0.toNat)))
     (hreserve1 :
       locals.get? "_reserve1" = some (.int (Int.ofNat reserve1.toNat)))
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (hbound : maxUint112 < Int.ofNat balance0.toNat) :
     ExecStmt config { contract := contract, locals := locals } evm
       (.internalCall "_update"
@@ -429,7 +437,8 @@ theorem uniswapMintUpdateCallReverts_firstBound_with
     (evalExprs_mint_updateCallArgsWith_of_get evm balance0 balance1 reserve0 reserve1
       hbalance0 hbalance1 hreserve0 hreserve1)
     uniswapLookupUpdateFunction
-    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1)
+    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1 hreserve0Bound
+      hreserve1Bound)
     (uniswapUpdateFunctionReverts_firstBound_with evm balance0 balance1 reserve0 reserve1
       hbound)
 
@@ -441,6 +450,8 @@ theorem uniswapMintUpdateCallReverts_secondBound_with
       locals.get? "_reserve0" = some (.int (Int.ofNat reserve0.toNat)))
     (hreserve1 :
       locals.get? "_reserve1" = some (.int (Int.ofNat reserve1.toNat)))
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : maxUint112 < Int.ofNat balance1.toNat) :
     ExecStmt config { contract := contract, locals := locals } evm
@@ -453,7 +464,8 @@ theorem uniswapMintUpdateCallReverts_secondBound_with
     (evalExprs_mint_updateCallArgsWith_of_get evm balance0 balance1 reserve0 reserve1
       hbalance0 hbalance1 hreserve0 hreserve1)
     uniswapLookupUpdateFunction
-    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1)
+    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1 hreserve0Bound
+      hreserve1Bound)
     (uniswapUpdateFunctionReverts_secondBound_with evm balance0 balance1 reserve0 reserve1
       hbound0 hbound1)
 
@@ -467,6 +479,8 @@ theorem uniswapMintUpdateCallReturns_elapsedZero_packed_with
       locals.get? "_reserve1" = some (.int (Int.ofNat reserve1.toNat)))
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed : syncTimeElapsedInt evm = 0) :
     ExecStmt config { contract := contract, locals := locals } evm
       (.internalCall "_update"
@@ -501,7 +515,8 @@ theorem uniswapMintUpdateCallReturns_elapsedZero_packed_with
     (value := none)
     hargs
     uniswapLookupUpdateFunction
-    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1)
+    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1 hreserve0Bound
+      hreserve1Bound)
     hbody
 
 theorem uniswapMintUpdateCallReturns_conditionTrue_packed
@@ -573,7 +588,8 @@ theorem uniswapMintUpdateCallReturns_conditionTrue_packed_with
       hbalance0 hbalance1 hreserve0 hreserve1
   have hbody :=
     uniswapUpdateFunctionReturns_conditionTrue_packed_with evm balance0 balance1 reserve0
-      reserve1 hbound0 hbound1 helapsed hreserve0Ne hreserve1Ne
+      reserve1 hbound0 hbound1 helapsed hreserve0Bound hreserve1Bound hreserve0Ne
+      hreserve1Ne
   exact internalCallFunctionReturn
     (cfg := config)
     (caller := { contract := contract, locals := locals })
@@ -591,7 +607,8 @@ theorem uniswapMintUpdateCallReturns_conditionTrue_packed_with
     (value := none)
     hargs
     uniswapLookupUpdateFunction
-    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1)
+    (bindParams_sync_update_call_with balance0 balance1 reserve0 reserve1 hreserve0Bound
+      hreserve1Bound)
     hbody
 
 theorem uniswapMintLiquidityMintUpdateElapsedZeroPrefix
@@ -669,7 +686,7 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroPrefix
         (locals := afterMint.locals)
         (mintFunctionPostState evm recipient liquidity) balance0 balance1 reserve0 reserve1
         hbalance0After hbalance1After hreserve0ArgAfter hreserve1ArgAfter hbound0 hbound1
-        helapsed
+        hreserve0Bound hreserve1Bound helapsed
   have hupdate :
       ExecBlock config afterMint (mintFunctionPostState evm recipient liquidity)
         (updateReservesStmtsWith (.var "balance0") (.var "balance1")
@@ -698,6 +715,8 @@ theorem uniswapMintLiquidityMintUpdateCumulativePrefix
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient liquidity < UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       0 < syncTimeElapsedInt (mintFunctionPostState evm recipient liquidity))
     (hreserve0Ne : Int.ofNat reserve0.toNat ≠ 0)
@@ -758,7 +777,7 @@ theorem uniswapMintLiquidityMintUpdateCumulativePrefix
         (locals := afterMint.locals)
         (mintFunctionPostState evm recipient liquidity) balance0 balance1 reserve0 reserve1
         hbalance0After hbalance1After hreserve0ArgAfter hreserve1ArgAfter hbound0 hbound1
-        helapsed hreserve0Ne hreserve1Ne
+        helapsed hreserve0Bound hreserve1Bound hreserve0Ne hreserve1Ne
   have hupdate :
       ExecBlock config afterMint (mintFunctionPostState evm recipient liquidity)
         (updateReservesStmtsWith (.var "balance0") (.var "balance1")
@@ -907,7 +926,7 @@ theorem uniswapMintProportionalLiquidityUpdateFirstBoundReverts
           change (afterBranch.locals.insert "_mintResult" Value.unit).get? "_reserve1" =
             some (.int (Int.ofNat reserve1.toNat))
           rw [store_get_ne _ _ (by decide), hreserve1After])
-        hbound
+        hreserve0Bound hreserve1Bound hbound
   have hupdate :
       ExecBlock config (resumeAfterInternalCall afterBranch "_mintResult" none)
         (mintFunctionPostState evm recipient liquidity)
@@ -1056,7 +1075,7 @@ theorem uniswapMintProportionalLiquidityUpdateSecondBoundReverts
           change (afterBranch.locals.insert "_mintResult" Value.unit).get? "_reserve1" =
             some (.int (Int.ofNat reserve1.toNat))
           rw [store_get_ne _ _ (by decide), hreserve1After])
-        hbound0 hbound1
+        hreserve0Bound hreserve1Bound hbound0 hbound1
   have hupdate :
       ExecBlock config (resumeAfterInternalCall afterBranch "_mintResult" none)
         (mintFunctionPostState evm recipient liquidity)
@@ -1212,7 +1231,7 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroPrefix
         (locals := afterBranch.locals) evm recipient balance0 balance1 reserve0 reserve1
         liquidity htoAfter hliqAfter hbalance0After hbalance1After hreserve0After
         hreserve1After hreserve0BaseAfter hreserve1BaseAfter hliqNonzero hfitSupply
-        hfitBalance hbound0 hbound1 helapsed
+        hfitBalance hbound0 hbound1 hreserve0Bound hreserve1Bound helapsed
   simpa [List.append_assoc] using execBlock_append hbranch htail
 
 theorem uniswapMintProportionalLiquidityUpdateCumulativePrefix
@@ -1242,6 +1261,8 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativePrefix
     (hfitBalance : mintFunctionToBalanceNewNat evm recipient liquidity < UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       0 < syncTimeElapsedInt (mintFunctionPostState evm recipient liquidity))
     (hreserve0Post :

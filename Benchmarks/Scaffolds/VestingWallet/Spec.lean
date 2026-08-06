@@ -34,7 +34,7 @@ def vestingDuration : Expr := .intLit 31536000
 def uint64Modulus : Int := (2 : Int) ^ 64
 
 def valueInUInt256 (expr : Expr) : Expr := .inRange uint256Int expr
-def wrap64 (expr : Expr) : Expr := .binary .mod expr (.intLit uint64Modulus)
+def wrap64 (expr : Expr) : Expr := .binary (.mod (.uint ⟨256, by decide⟩)) expr (.intLit uint64Modulus)
 
 def selectorBytes (a b c d : UInt8) : ByteArray := ⟨#[a, b, c, d]⟩
 
@@ -97,23 +97,23 @@ def storageLayout : StorageLayout where
     | _, _ => none
 
 def vestingEnd : Expr :=
-  .binary .add vestingStart vestingDuration
+  .binary (.add (.uint ⟨256, by decide⟩) .checked) vestingStart vestingDuration
 
 def vestingSchedule (totalAllocation timestamp : Expr) : Expr :=
   .ite (.binary .lt timestamp vestingStart)
     (.intLit 0)
     (.ite (.binary .ge timestamp vestingEnd)
       totalAllocation
-      (.binary .div
+      (.binary (.div (.uint ⟨256, by decide⟩) .checked)
         (valueInUInt256
-          (.binary .mul totalAllocation (.binary .sub timestamp vestingStart)))
+          (.binary (.mul (.uint ⟨256, by decide⟩) .checked) totalAllocation (.binary (.sub (.uint ⟨256, by decide⟩) .checked) timestamp vestingStart)))
         vestingDuration))
 
 def nativeTotalAllocation : Expr :=
-  valueInUInt256 (.binary .add (.env .selfbalance) (.storage releasedRef))
+  valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.env .selfbalance) (.storage releasedRef))
 
 def tokenTotalAllocation (tokenBalance token : Expr) : Expr :=
-  valueInUInt256 (.binary .add tokenBalance (.storage (erc20ReleasedRef token)))
+  valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) tokenBalance (.storage (erc20ReleasedRef token)))
 
 def nonpayable : List Stmt :=
   [ .require (.binary .eq (.env .callvalue) (.intLit 0)) ]
@@ -211,7 +211,7 @@ def releasableTransition : TransitionDecl :=
       nonpayable ++
       [ .letDecl "vested" (some uint256)
           (vestingSchedule nativeTotalAllocation (wrap64 (.env .timestamp))),
-        .return [(valueInUInt256 (.binary .sub (.var "vested") (.storage releasedRef)))] ] }
+        .return [(valueInUInt256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "vested") (.storage releasedRef)))] ] }
 
 def releasableTokenTransition : TransitionDecl :=
   { name := "releasable"
@@ -225,7 +225,7 @@ def releasableTokenTransition : TransitionDecl :=
             (wrap64 (.env .timestamp))),
         .return [
           (valueInUInt256
-            (.binary .sub (.var "vested") (.storage (erc20ReleasedRef (.var "token")))))] ] }
+            (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "vested") (.storage (erc20ReleasedRef (.var "token")))))] ] }
 
 def releaseTransition : TransitionDecl :=
   { name := "release"
@@ -236,9 +236,9 @@ def releaseTransition : TransitionDecl :=
       [ .letDecl "vested" (some uint256)
           (vestingSchedule nativeTotalAllocation (wrap64 (.env .timestamp))),
         .letDecl "amount" (some uint256)
-          (valueInUInt256 (.binary .sub (.var "vested") (.storage releasedRef))),
+          (valueInUInt256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "vested") (.storage releasedRef))),
         .assign .storage releasedRef
-          (valueInUInt256 (.binary .add (.storage releasedRef) (.var "amount"))),
+          (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage releasedRef) (.var "amount"))),
         .require (.binary .ge (.env .selfbalance) (.var "amount")),
         .lowLevelCall (.storage ownerRef) (.var "amount") (.newBytes (.intLit 0)) "success" "_data",
         .require (.var "success") ] }
@@ -255,10 +255,10 @@ def releaseTokenTransition : TransitionDecl :=
             (wrap64 (.env .timestamp))),
         .letDecl "amount" (some uint256)
           (valueInUInt256
-            (.binary .sub (.var "vested") (.storage (erc20ReleasedRef (.var "token"))))),
+            (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "vested") (.storage (erc20ReleasedRef (.var "token"))))),
         .assign .storage (erc20ReleasedRef (.var "token"))
           (valueInUInt256
-            (.binary .add (.storage (erc20ReleasedRef (.var "token"))) (.var "amount"))) ] ++
+            (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage (erc20ReleasedRef (.var "token"))) (.var "amount"))) ] ++
       safeERC20Transfer "token" (.storage ownerRef) (.var "amount") }
 
 def receiveTransition : TransitionDecl :=

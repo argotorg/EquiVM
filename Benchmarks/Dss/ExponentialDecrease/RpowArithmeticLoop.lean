@@ -65,7 +65,7 @@ theorem execRpowLoopBodyRevertXXRound {evm : EVM.State} {locals : Store}
       evalExpr? config { contract := contract, locals := localsXX } evm
         (.binary .or
           (.binary .eq (.var "x") (.intLit 0))
-          (.binary .eq (.binary .div (.var "xx") (.var "x")) (.var "x"))) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xx") (.var "x")) (.var "x"))) =
         .ok (.bool true) := by
     by_cases hx0 : x = ⟨0⟩
     · have hxZero :
@@ -93,14 +93,14 @@ theorem execRpowLoopBodyRevertXXRound {evm : EVM.State} {locals : Store}
         exact Nat.mul_div_right x.toNat (Nat.pos_of_ne_zero hxNatNe)
       have hdiv :
           evalExpr? config { contract := contract, locals := localsXX } evm
-            (.binary .div (.var "xx") (.var "x")) = .ok (.int (Int.ofNat x.toNat)) := by
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xx") (.var "x")) = .ok (.int (Int.ofNat x.toNat)) := by
         have h := evalExpr_div_uint256_ok (evm := evm) (locals := localsXX)
           (x := .var "xx") (y := .var "x") (a := xx) (b := x)
           (q := UInt256.div xx x) hxx hxXX hx0 rfl
         simpa [hdivWord] using h
       have hright :
           evalExpr? config { contract := contract, locals := localsXX } evm
-            (.binary .eq (.binary .div (.var "xx") (.var "x")) (.var "x")) =
+            (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xx") (.var "x")) (.var "x")) =
             .ok (.bool true) :=
         evalExpr_eq_int_true hdiv hxXX rfl
       exact evalExpr_or_false_right hxEqZero hright
@@ -113,7 +113,9 @@ theorem execRpowLoopBodyRevertXXRound {evm : EVM.State} {locals : Store}
       (ExecStmt.letDecl
         (cfg := config) (solm := { contract := contract, locals := locals }) (evm := evm)
         (name := "xx") (ty := some uint256) (expr := mul256 (.var "x") (.var "x"))
-        (value := .int (Int.ofNat xx.toNat)) hmul)) ?_
+        (value := .int (Int.ofNat xx.toNat)) hmul (by
+          simpa [uint256, uint256Int] using
+            valueMatchesOptionalABIType_uint256_word xx))) ?_
   refine ExecBlock.consNormal (by
     simpa [rpowLoopBody, checkedMulUintInto, checkedAddUintInto, xx, localsXX] using
       (ExecStmt.requireTrue
@@ -121,7 +123,7 @@ theorem execRpowLoopBodyRevertXXRound {evm : EVM.State} {locals : Store}
         (condExpr :=
           .binary .or
             (.binary .eq (.var "x") (.intLit 0))
-            (.binary .eq (.binary .div (.var "xx") (.var "x")) (.var "x")))
+            (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xx") (.var "x")) (.var "x")))
         hmulReq)) ?_
   exact ExecBlock.consRevert (by
     simpa [rpowLoopBody, checkedMulUintInto, checkedAddUintInto, xx, localsXX] using
@@ -173,7 +175,7 @@ theorem execRpowLoopBodyOkEven {evm : EVM.State} {locals : Store}
       evalExpr? config { contract := contract, locals := localsXX } evm
         (.binary .or
           (.binary .eq (.var "x") (.intLit 0))
-          (.binary .eq (.binary .div (.var "xx") (.var "x")) (.var "x"))) =
+          (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xx") (.var "x")) (.var "x"))) =
         .ok (.bool true) := by
     by_cases hx0 : x = ⟨0⟩
     · have hxZero :
@@ -200,14 +202,14 @@ theorem execRpowLoopBodyOkEven {evm : EVM.State} {locals : Store}
         exact Nat.mul_div_right x.toNat (Nat.pos_of_ne_zero hxNatNe)
       have hdiv :
           evalExpr? config { contract := contract, locals := localsXX } evm
-            (.binary .div (.var "xx") (.var "x")) = .ok (.int (Int.ofNat x.toNat)) := by
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xx") (.var "x")) = .ok (.int (Int.ofNat x.toNat)) := by
         have h := evalExpr_div_uint256_ok (evm := evm) (locals := localsXX)
           (x := .var "xx") (y := .var "x") (a := xx) (b := x)
           (q := UInt256.div xx x) hxx hxXX hx0 rfl
         simpa [hdivWord] using h
       have hright :
           evalExpr? config { contract := contract, locals := localsXX } evm
-            (.binary .eq (.binary .div (.var "xx") (.var "x")) (.var "x")) =
+            (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xx") (.var "x")) (.var "x")) =
             .ok (.bool true) :=
         evalExpr_eq_int_true hdiv hxXX rfl
       exact evalExpr_or_false_right hxEqZero hright
@@ -247,7 +249,7 @@ theorem execRpowLoopBodyOkEven {evm : EVM.State} {locals : Store}
     omega
   have hdivX :
       evalExpr? config { contract := contract, locals := localsRound } evm
-        (.binary .div (.var "xxRound") (.var "b")) =
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xxRound") (.var "b")) =
           .ok (.int (Int.ofNat x'.toNat)) := by
     exact evalExpr_div_uint256_ok hxxRound hstoreRound.eval_b hb rfl
   have hassignX :
@@ -272,7 +274,7 @@ theorem execRpowLoopBodyOkEven {evm : EVM.State} {locals : Store}
     simp [evalExpr?, pure, rpowUInt256Two_toNat]
   have hmod :
       evalExpr? config { contract := contract, locals := localsX } evm
-        (.binary .mod (.var "n") (.intLit 2)) = .ok (.int 0) := by
+        (.binary (.mod (.uint ⟨256, by decide⟩)) (.var "n") (.intLit 2)) = .ok (.int 0) := by
     exact evalExpr_mod_int_ok hstoreX.eval_n htwoLitX
       (by simp [rpowUInt256Two_toNat])
       (by
@@ -285,12 +287,12 @@ theorem execRpowLoopBodyOkEven {evm : EVM.State} {locals : Store}
     simp [evalExpr?, pure]
   have hoddCond :
       evalExpr? config { contract := contract, locals := localsX } evm
-        (.binary .ne (.binary .mod (.var "n") (.intLit 2)) (.intLit 0)) =
+        (.binary .ne (.binary (.mod (.uint ⟨256, by decide⟩)) (.var "n") (.intLit 2)) (.intLit 0)) =
           .ok (.bool false) :=
     evalExpr_ne_int_false hmod hzeroLitX rfl
   have hdivN :
       evalExpr? config { contract := contract, locals := localsX } evm
-        (.binary .div (.var "n") (.intLit 2)) = .ok (.int (Int.ofNat n'.toNat)) := by
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "n") (.intLit 2)) = .ok (.int (Int.ofNat n'.toNat)) := by
     exact evalExpr_div_uint256_ok hstoreX.eval_n htwoLitX rpowUInt256Two_ne_zero rfl
   have hassignN :
       assignStorageRef? config { contract := contract, locals := localsX } evm .localVar
@@ -313,22 +315,25 @@ theorem execRpowLoopBodyOkEven {evm : EVM.State} {locals : Store}
           .require
             (.binary .or
               (.binary .eq (.var "x") (.intLit 0))
-              (.binary .eq (.binary .div (.var "xx") (.var "x")) (.var "x"))),
+              (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xx") (.var "x")) (.var "x"))),
           .letDecl "xxRound" (some uint256) (add256 (.var "xx") (.var "half")),
           .require (.binary .ge (.var "xxRound") (.var "xx")),
-          .assign .localVar { base := "x" } (.binary .div (.var "xxRound") (.var "b")),
+          .assign .localVar { base := "x" } (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xxRound") (.var "b")),
           .ite
-            (.binary .ne (.binary .mod (.var "n") (.intLit 2)) (.intLit 0))
+            (.binary .ne (.binary (.mod (.uint ⟨256, by decide⟩)) (.var "n") (.intLit 2)) (.intLit 0))
             (checkedMulUintInto "zx" (.var "z") (.var "x") ++
               checkedAddUintInto "zxRound" (.var "zx") (.var "half") ++
               [ .assign .localVar { base := "z" }
-                  (.binary .div (.var "zxRound") (.var "b")) ])
+                  (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "zxRound") (.var "b")) ])
             [],
-          .assign .localVar { base := "n" } (.binary .div (.var "n") (.intLit 2)) ]
+          .assign .localVar { base := "n" } (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "n") (.intLit 2)) ]
         (.ok { contract := contract, locals := localsN } evm) := by
-    refine ExecBlock.consNormal (ExecStmt.letDecl hmul) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hmul (by
+      simpa [uint256, uint256Int] using valueMatchesOptionalABIType_uint256_word xx)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hmulReq) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl hadd (by
+      simpa [uint256, uint256Int] using
+        valueMatchesOptionalABIType_uint256_word xxRound)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue haddReq) ?_
     refine ExecBlock.consNormal (ExecStmt.assign hdivX hassignX) ?_
     refine ExecBlock.consNormal (ExecStmt.iteFalse hoddCond ExecBlock.nil) ?_

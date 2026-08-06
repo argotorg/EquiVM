@@ -60,7 +60,10 @@ theorem scratch_placeBid_lookup :
 theorem scratch_placeBid_bind (bidder : AccountAddress) (value : UInt256) :
     bindParams? placeBidFn.params [.address bidder, .int (Int.ofNat value.toNat)] =
       some (scratch_placeBidStore bidder value) := by
-  rfl
+  have hvalue : valueMatchesABIType uint256 (.int (Int.ofNat value.toNat)) = true := by
+    simpa [uint256, uint256Int] using valueMatchesABIType_uint256_word value
+  simp only [placeBidFn, scratch_placeBidStore, bindParams?, hvalue]
+  simp [addr, valueMatchesABIType]
 
 theorem scratch_blindAuctionStorageLocStore_address_offset0 (evm : EVM.State)
     (slot addr : UInt256) (hcanon : addr.toNat < EVM.addressModulus) :
@@ -246,35 +249,32 @@ theorem scratch_eval_placeBid_pending_add
     (hsum : pending.toNat + high.toNat < UInt256.size) :
     evalExpr? blindAuctionConfig
       { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value } evm
-      (u256 (.binary .add (.storage (pendingReturnsRef (.storage highestBidderRef)))
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage (pendingReturnsRef (.storage highestBidderRef)))
         (.storage highestBidRef))) =
         .ok (.int (Int.ofNat (pending.toNat + high.toNat))) := by
-  unfold u256
-  rw [evalExpr?]
-  rw [evalExpr?]
-  simp only [scratch_eval_placeBid_pendingReturns evm bidder oldAddr value old pending hold
-      holdAddr hpending,
-    scratch_eval_placeBid_highestBid evm bidder value high hhigh,
-    EvalResult.bind, bind]
-  simp [evalBinaryOp?]
-  have hnonneg : ¬ (((pending.toNat : Int) + (high.toNat : Int)) < 0) := by
-    exact not_lt_of_ge (Int.add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _))
-  have hlt : ¬ ((2 : Int) ^ 256 ≤ (pending.toNat : Int) + (high.toNat : Int)) := by
-    norm_num [UInt256.size] at hsum ⊢
-    omega
-  have hif :
-      ¬ ((pending.toNat : Int) + (high.toNat : Int) < 0 ∨
-        (2 : Int) ^ 256 ≤ (pending.toNat : Int) + (high.toNat : Int)) := by
-    intro hcond
-    rcases hcond with hneg | hge
-    · exact hnonneg hneg
-    · apply hlt
-      norm_num at hge ⊢
-      exact hge
-  simp only [uint256Int]
-  rw [if_neg hif]
-  rfl
-  all_goals decide
+  have hpendingEval := scratch_eval_placeBid_pendingReturns evm bidder oldAddr value old pending
+    hold holdAddr hpending
+  have hhighEval := scratch_eval_placeBid_highestBid evm bidder value high hhigh
+  have hsumInt :
+      Int.ofNat pending.toNat + Int.ofNat high.toNat =
+        Int.ofNat (pending.toNat + high.toNat) := Int.ofNat_add_ofNat _ _
+  have hnonneg : 0 ≤ Int.ofNat pending.toNat + Int.ofNat high.toNat :=
+    add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
+  have hfit :
+      Int.ofNat pending.toNat + Int.ofNat high.toNat < Int.ofNat (EVM.twoPow 256) := by
+    rw [hsumInt, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_lt.mpr hsum
+  have hbinary := evalExpr_checked_add_uint_ok
+    (cfg := blindAuctionConfig)
+    (solm := { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value })
+    (evm := evm) ⟨256, by decide⟩ _ _ hpendingEval hhighEval hnonneg hfit
+  have hin := evalExpr_inRange_uint blindAuctionConfig
+    { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value } evm
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+      (.storage (pendingReturnsRef (.storage highestBidderRef))) (.storage highestBidRef))
+    ⟨256, by decide⟩ _ hbinary hnonneg hfit
+  rw [hsumInt] at hin
+  simpa [u256, uint256Int] using hin
 
 theorem scratch_eval_placeBid_pending_add_revert
     (evm : EVM.State) (bidder oldAddr : AccountAddress) (value old high pending : UInt256)
@@ -286,30 +286,27 @@ theorem scratch_eval_placeBid_pending_add_revert
     (hover : UInt256.size ≤ pending.toNat + high.toNat) :
     evalExpr? blindAuctionConfig
       { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value } evm
-      (u256 (.binary .add (.storage (pendingReturnsRef (.storage highestBidderRef)))
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage (pendingReturnsRef (.storage highestBidderRef)))
         (.storage highestBidRef))) = .revert := by
-  unfold u256
-  rw [evalExpr?]
-  rw [evalExpr?]
-  simp only [scratch_eval_placeBid_pendingReturns evm bidder oldAddr value old pending hold
-      holdAddr hpending,
-    scratch_eval_placeBid_highestBid evm bidder value high hhigh,
-    EvalResult.bind, bind]
-  simp [evalBinaryOp?]
-  have hnonneg : ¬ (((pending.toNat : Int) + (high.toNat : Int)) < 0) := by
-    exact not_lt_of_ge (Int.add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _))
-  have hge : (2 : Int) ^ 256 ≤ (pending.toNat : Int) + (high.toNat : Int) := by
-    norm_num [UInt256.size] at hover ⊢
-    omega
-  have hif :
-      (pending.toNat : Int) + (high.toNat : Int) < 0 ∨
-        (2 : Int) ^ 256 ≤ (pending.toNat : Int) + (high.toNat : Int) := by
-    right
-    norm_num at hge ⊢
-    exact hge
-  simp only [uint256Int]
-  rw [if_pos hif]
-  all_goals decide
+  have hpendingEval := scratch_eval_placeBid_pendingReturns evm bidder oldAddr value old pending
+    hold holdAddr hpending
+  have hhighEval := scratch_eval_placeBid_highestBid evm bidder value high hhigh
+  have hsumInt :
+      Int.ofNat pending.toNat + Int.ofNat high.toNat =
+        Int.ofNat (pending.toNat + high.toNat) := Int.ofNat_add_ofNat _ _
+  have hoverInt :
+      Int.ofNat (EVM.twoPow 256) ≤ Int.ofNat pending.toNat + Int.ofNat high.toNat := by
+    rw [hsumInt, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_le.mpr hover
+  have hbinary := evalExpr_checked_add_uint_revert_of_overflow
+    (cfg := blindAuctionConfig)
+    (solm := { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value })
+    (evm := evm) ⟨256, by decide⟩ _ _ hpendingEval hhighEval hoverInt
+  simpa [u256, uint256Int] using evalExpr_inRange_revert blindAuctionConfig
+    { contract := blindAuctionContract, locals := scratch_placeBidStore bidder value } evm
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+      (.storage (pendingReturnsRef (.storage highestBidderRef))) (.storage highestBidRef))
+    uint256Int hbinary
 
 theorem scratch_assign_placeBid_pendingReturns
     (evm : EVM.State) (bidder oldAddr : AccountAddress)
@@ -446,7 +443,7 @@ theorem scratch_blindAuctionPlaceBidBodyReturns_true_zero
         [ .return [(.boolLit false)] ] [],
       .ite (.binary .ne (.storage highestBidderRef) zeroAddr)
         [ .assign .storage (pendingReturnsRef (.storage highestBidderRef))
-            (u256 (.binary .add
+            (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
               (.storage (pendingReturnsRef (.storage highestBidderRef)))
               (.storage highestBidRef))) ] [],
       .assign .storage highestBidRef (.var "value"),
@@ -511,7 +508,7 @@ theorem scratch_blindAuctionPlaceBidBodyReturns_true_nonzero
         [ .return [(.boolLit false)] ] [],
       .ite (.binary .ne (.storage highestBidderRef) zeroAddr)
         [ .assign .storage (pendingReturnsRef (.storage highestBidderRef))
-            (u256 (.binary .add
+            (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
               (.storage (pendingReturnsRef (.storage highestBidderRef)))
               (.storage highestBidRef))) ] [],
       .assign .storage highestBidRef (.var "value"),

@@ -607,25 +607,11 @@ theorem endThawEvalExpr_sub256_ok {evm : EVM.State} {locals : Store}
     (hdiff : diff = UInt256.sub a b)
     (hle : b.toNat ≤ a.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (u256 (.binary .sub x y)) = .ok (.int (Int.ofNat diff.toNat)) := by
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)) = .ok (.int (Int.ofNat diff.toNat)) := by
   have hdiffNat : diff.toNat = a.toNat - b.toNat := by
     rw [hdiff, usub_toNat hle]
-  have hsubInt : (a.toNat : Int) - (b.toNat : Int) = ((a.toNat - b.toNat : Nat) : Int) :=
-    (Int.ofNat_sub hle).symm
-  have hltNat : a.toNat - b.toNat < UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    omega
-  have hlt : ¬ ((a.toNat - b.toNat : Nat) : Int) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hltNat))
-  simp [u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  rw [if_neg]
-  · rw [hsubInt, ← hdiffNat]
-    rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_le.mpr hbad) hle
-    · rw [hsubInt] at hbad
-      exact hlt hbad
+  simpa [u256, uint256Int] using
+    evalExpr_checked_sub_uint256_word_ok hx hy hdiffNat hle
 
 theorem endThawEvalExpr_sub256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -635,10 +621,9 @@ theorem endThawEvalExpr_sub256_revert {evm : EVM.State} {locals : Store}
       .ok (.int (Int.ofNat b.toNat)))
     (hlt : a.toNat < b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (u256 (.binary .sub x y)) = .revert := by
-  simp [u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro hle
-  omega
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)) = .revert := by
+  simpa [u256, uint256Int] using
+    evalExpr_checked_sub_uint256_word_revert_of_underflow hx hy hlt
 
 theorem endExecSubFunctionReturn (evm : EVM.State) {x y diff : UInt256}
     (hdiff : diff = UInt256.sub x y) (hle : y.toNat ≤ x.toNat) :
@@ -660,7 +645,7 @@ theorem endExecSubFunctionReturn (evm : EVM.State) {x y diff : UInt256}
         (locals := locals) (name := "y") (value := y) (endUintBinaryLocals_get_y x y)
   have hSub :
       evalExpr? config { contract := contract, locals := locals } evm
-        (u256 (.binary .sub (.var "x") (.var "y"))) =
+        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "x") (.var "y"))) =
           .ok (.int (Int.ofNat diff.toNat)) :=
     endThawEvalExpr_sub256_ok hx hy hdiff hle
   have hz :
@@ -684,12 +669,13 @@ theorem endExecSubFunctionReturn (evm : EVM.State) {x y diff : UInt256}
     endThawEvalExpr_le_uint256_true hz hxZ hdiffLe
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm
-        [ .letDecl "z" (some uint256) (u256 (.binary .sub (.var "x") (.var "y"))),
+        [ .letDecl "z" (some uint256) (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "x") (.var "y"))),
           .require (.binary .le (.var "z") (.var "x")),
           .return [.var "z"] ]
         (.returned { contract := contract, locals := localsZ } evm
           (some [.int (Int.ofNat diff.toNat)])) := by
-    refine ExecBlock.consNormal (ExecStmt.letDecl hSub) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl hSub (valueMatchesOptionalABIType_uint256_word diff)) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hReq) ?_
     exact ExecBlock.consReturn (ExecStmt.return (evalExprs?_singleton hz))
   simpa [subFunction, locals, localsZ] using ExecFuncBody.execBlockRet hblock
@@ -711,11 +697,11 @@ theorem endExecSubFunctionRevert (evm : EVM.State) {x y : UInt256}
         (locals := locals) (name := "y") (value := y) (endUintBinaryLocals_get_y x y)
   have hSubRev :
       evalExpr? config { contract := contract, locals := locals } evm
-        (u256 (.binary .sub (.var "x") (.var "y"))) = .revert :=
+        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "x") (.var "y"))) = .revert :=
     endThawEvalExpr_sub256_revert hx hy hlt
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm
-        [ .letDecl "z" (some uint256) (u256 (.binary .sub (.var "x") (.var "y"))),
+        [ .letDecl "z" (some uint256) (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "x") (.var "y"))),
           .require (.binary .le (.var "z") (.var "x")),
           .return [.var "z"] ]
         .reverted := by
@@ -3751,11 +3737,7 @@ theorem endThawBodyReverts_deadlineAddOverflow {cA gh bl σ σ₀ A I} {g : UInt
         [.storage whenRef, .storage waitRef] =
           .ok [.int (Int.ofNat whenWord.toNat), .int (Int.ofNat waitWord.toNat)] := by
     simp [evalExprs?, hwhen, hwait, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? addFunction.params
-          [.int (Int.ofNat whenWord.toNat), .int (Int.ofNat waitWord.toNat)] =
-        some (endUintBinaryLocals whenWord waitWord) := by
-    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_addFunction whenWord waitWord
   have haddStmt :
       ExecStmt config { contract := contract, locals := endThawStoreVatDai out } evmDai
         (.internalCall "add" [.storage whenRef, .storage waitRef] "deadline")
@@ -3907,11 +3889,7 @@ theorem endThawBodyReverts_waitNotFinished {cA gh bl σ σ₀ A I} {g : UInt256}
         [.storage whenRef, .storage waitRef] =
           .ok [.int (Int.ofNat whenWord.toNat), .int (Int.ofNat waitWord.toNat)] := by
     simp [evalExprs?, hwhen, hwaitExpr, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? addFunction.params
-          [.int (Int.ofNat whenWord.toNat), .int (Int.ofNat waitWord.toNat)] =
-        some (endUintBinaryLocals whenWord waitWord) := by
-    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_addFunction whenWord waitWord
   have haddStmt :
       ExecStmt config { contract := contract, locals := endThawStoreVatDai out } evmDai
         (.internalCall "add" [.storage whenRef, .storage waitRef] "deadline")
@@ -4037,11 +4015,7 @@ theorem endThawTailReadyPrefix (evmDai : EVM.State) (out : ByteArray)
         [.storage whenRef, .storage waitRef] =
           .ok [.int (Int.ofNat whenWord.toNat), .int (Int.ofNat waitWord.toNat)] := by
     simp [evalExprs?, hwhen, hwaitExpr, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? addFunction.params
-          [.int (Int.ofNat whenWord.toNat), .int (Int.ofNat waitWord.toNat)] =
-        some (endUintBinaryLocals whenWord waitWord) := by
-    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_addFunction whenWord waitWord
   have haddStmt :
       ExecStmt config { contract := contract, locals := endThawStoreVatDai out } evmDai
         (.internalCall "add" [.storage whenRef, .storage waitRef] "deadline")
@@ -4489,12 +4463,8 @@ theorem endThawTailSubUnderflow (evm : EVM.State) (out debtOut tellOut : ByteArr
           .ok [.int (Int.ofNat (endThawReturnWord debtOut).toNat),
             .int (Int.ofNat (endThawReturnWord tellOut).toNat)] := by
     simp [evalExprs?, hvatDebt, hcureTell, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? subFunction.params
-          [.int (Int.ofNat (endThawReturnWord debtOut).toNat),
-            .int (Int.ofNat (endThawReturnWord tellOut).toNat)] =
-        some (endUintBinaryLocals (endThawReturnWord debtOut) (endThawReturnWord tellOut)) := by
-    simp [subFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_subFunction (endThawReturnWord debtOut) (endThawReturnWord tellOut)
   have hstmt :
       ExecStmt config { contract := contract, locals := locals } evm
         (.internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew")
@@ -4553,12 +4523,8 @@ theorem endThawTailSubAssign (evm : EVM.State) (out debtOut tellOut : ByteArray)
           .ok [.int (Int.ofNat (endThawReturnWord debtOut).toNat),
             .int (Int.ofNat (endThawReturnWord tellOut).toNat)] := by
     simp [evalExprs?, hvatDebt, hcureTell, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? subFunction.params
-          [.int (Int.ofNat (endThawReturnWord debtOut).toNat),
-            .int (Int.ofNat (endThawReturnWord tellOut).toNat)] =
-        some (endUintBinaryLocals (endThawReturnWord debtOut) (endThawReturnWord tellOut)) := by
-    simp [subFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind :=
+    endBindParams_subFunction (endThawReturnWord debtOut) (endThawReturnWord tellOut)
   have hsubStmt :
       ExecStmt config { contract := contract, locals := locals } evm
         (.internalCall "sub" [.var "vatDebt", .var "cureTell"] "debtNew")

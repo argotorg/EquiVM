@@ -823,28 +823,34 @@ theorem cEvalFReturn_ok (evm : EVM.State) (I : ExecutionEnv)
     (hbound : 2 * (cArgWord I).toNat + 1 < UInt256.size) :
     evalExpr? cConfig { contract := Reuse.cContract, locals := cArgStore I } evm
       (.inRange Reuse.uint256Int
-        (.binary .add (.binary .mul (.var "v") (.intLit 2)) (.intLit 1))) =
+        (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "v") (.intLit 2)) (.intLit 1))) =
       .ok (cFResultValue I) := by
   have hres := cFResultWord_toNat (I := I) hbound
-  have hnotNeg : ¬ Int.ofNat (cArgWord I).toNat * 2 + 1 < 0 := by
-    have hn : 0 ≤ Int.ofNat (cArgWord I).toNat := Int.natCast_nonneg _
-    nlinarith
-  have hnotGe : ¬ Int.ofNat (cArgWord I).toNat * 2 + 1 ≥ (2 : Int) ^ 256 := by
-    have hlt : Int.ofNat (2 * (cArgWord I).toNat + 1) < (2 : Int) ^ 256 :=
-      Int.ofNat_lt.mpr (by simpa [UInt256.size] using hbound)
-    have heq : Int.ofNat (2 * (cArgWord I).toNat + 1) =
-        Int.ofNat (cArgWord I).toNat * 2 + 1 := by
-      rw [show 2 * (cArgWord I).toNat + 1 = (cArgWord I).toNat * 2 + 1 by omega]
-      simp
-    omega
+  have hmulNonneg : 0 ≤ Int.ofNat (cArgWord I).toNat * 2 :=
+    mul_nonneg (Int.natCast_nonneg _) (by norm_num)
+  have haddNonneg : 0 ≤ Int.ofNat (cArgWord I).toNat * 2 + 1 :=
+    add_nonneg hmulNonneg (by norm_num)
+  have hmulFitNat : (cArgWord I).toNat * 2 < EVM.wordModulus := by
+    have : (cArgWord I).toNat * 2 < UInt256.size := by omega
+    simpa [EVM.wordModulus, UInt256.size] using this
+  have haddFitNat : (cArgWord I).toNat * 2 + 1 < EVM.wordModulus := by
+    simpa [UInt256.size, EVM.wordModulus, Nat.mul_comm] using hbound
+  have hmulFit : Int.ofNat (cArgWord I).toNat * 2 < Int.ofNat EVM.wordModulus := by
+    simpa using Int.ofNat_lt.mpr hmulFitNat
+  have haddFit : Int.ofNat (cArgWord I).toNat * 2 + 1 < Int.ofNat EVM.wordModulus := by
+    simpa using Int.ofNat_lt.mpr haddFitNat
   simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
   rw [cArgStore_v]
-  simp only [evalBinaryOp?, Reuse.uint256Int]
-  rw [show (decide (Int.ofNat (cArgWord I).toNat * 2 + 1 < 0) ||
-        decide (Int.ofNat (cArgWord I).toNat * 2 + 1 ≥ (2 : Int) ^ 256)) = false by
-      rw [decide_eq_false hnotNeg, decide_eq_false hnotGe]
-      rfl]
-  simp only [Bool.false_eq_true, ↓reduceIte]
+  simp only [evalBinaryOp?]
+  rw [evalIntArithResult_checked_uint_ok _ _ hmulNonneg (by simpa using hmulFit)]
+  simp only [EvalResult.bind, bind]
+  rw [evalIntArithResult_checked_uint_ok _ _ haddNonneg (by simpa using haddFit)]
+  simp only [EvalResult.bind, bind, Reuse.uint256Int]
+  have hguard : ¬ ((decide (Int.ofNat (cArgWord I).toNat * 2 + 1 < 0) ||
+      decide (Int.ofNat (cArgWord I).toNat * 2 + 1 ≥ (2 : Int) ^ 256)) = true) := by
+    simp only [Bool.or_eq_true, decide_eq_true_eq, not_or]
+    exact ⟨Int.not_lt.mpr haddNonneg, Int.not_le.mpr (by simpa using haddFit)⟩
+  rw [if_neg hguard]
   simp only [cFResultValue]
   rw [hres]
   rw [show Int.ofNat (2 * (cArgWord I).toNat + 1) =
@@ -856,23 +862,58 @@ theorem cEvalFReturn_revert (evm : EVM.State) (I : ExecutionEnv)
     (hover : UInt256.size ≤ 2 * (cArgWord I).toNat + 1) :
     evalExpr? cConfig { contract := Reuse.cContract, locals := cArgStore I } evm
       (.inRange Reuse.uint256Int
-        (.binary .add (.binary .mul (.var "v") (.intLit 2)) (.intLit 1))) = .revert := by
-  have hge : Int.ofNat (cArgWord I).toNat * 2 + 1 ≥ (2 : Int) ^ 256 := by
-    have hge' : (2 : Int) ^ 256 ≤ Int.ofNat (2 * (cArgWord I).toNat + 1) :=
-      Int.ofNat_le.mpr (by simpa [UInt256.size] using hover)
-    have heq : Int.ofNat (2 * (cArgWord I).toNat + 1) =
-        Int.ofNat (cArgWord I).toNat * 2 + 1 := by
-      rw [show 2 * (cArgWord I).toNat + 1 = (cArgWord I).toNat * 2 + 1 by omega]
-      simp
-    omega
-  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [cArgStore_v]
-  simp only [evalBinaryOp?, Reuse.uint256Int]
-  rw [show (decide (Int.ofNat (cArgWord I).toNat * 2 + 1 < 0) ||
-        decide (Int.ofNat (cArgWord I).toNat * 2 + 1 ≥ (2 : Int) ^ 256)) = true by
-      rw [decide_eq_true hge]
-      simp]
-  rfl
+        (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "v") (.intLit 2)) (.intLit 1))) = .revert := by
+  have hmulNonneg : 0 ≤ Int.ofNat (cArgWord I).toNat * 2 :=
+    mul_nonneg (Int.natCast_nonneg _) (by norm_num)
+  have haddOverflow : Int.ofNat EVM.wordModulus ≤
+      Int.ofNat (cArgWord I).toNat * 2 + 1 := by
+    have hnat : EVM.wordModulus ≤ (cArgWord I).toNat * 2 + 1 := by
+      change UInt256.size ≤ (cArgWord I).toNat * 2 + 1
+      omega
+    have hcast := Int.ofNat_le.mpr hnat
+    norm_num at hcast ⊢
+    exact hcast
+  by_cases hmulFit : Int.ofNat (cArgWord I).toNat * 2 < Int.ofNat EVM.wordModulus
+  · have hmulEval : evalExpr? cConfig
+        { contract := Reuse.cContract, locals := cArgStore I } evm
+        (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "v") (.intLit 2)) =
+          .ok (.int (Int.ofNat (cArgWord I).toNat * 2)) := by
+      rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+      simp only [evalExpr?, EvalResult.ofOption, cArgStore_v, EvalResult.bind, bind, pure,
+        evalBinaryOp?]
+      exact evalIntArithResult_checked_uint_ok _ _ hmulNonneg (by simpa using hmulFit)
+    have haddEval : evalExpr? cConfig
+        { contract := Reuse.cContract, locals := cArgStore I } evm
+        (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+          (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "v") (.intLit 2))
+          (.intLit 1)) = .revert := by
+      rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+      simp only [hmulEval, evalExpr?, EvalResult.bind, bind, evalBinaryOp?]
+      exact evalIntArithResult_checked_uint_revert_of_overflow _ _ (by
+        simpa using haddOverflow)
+    exact evalExpr_inRange_revert cConfig
+      { contract := Reuse.cContract, locals := cArgStore I } evm _ Reuse.uint256Int haddEval
+  · have hoverflow : Int.ofNat (EVM.twoPow 256) ≤
+        Int.ofNat (cArgWord I).toNat * 2 := by
+      change Int.ofNat EVM.wordModulus ≤ Int.ofNat (cArgWord I).toNat * 2
+      exact le_of_not_gt hmulFit
+    have hmulEval : evalExpr? cConfig
+        { contract := Reuse.cContract, locals := cArgStore I } evm
+        (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "v") (.intLit 2)) =
+          .revert := by
+      rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+      simp only [evalExpr?, EvalResult.ofOption, cArgStore_v, EvalResult.bind, bind, pure,
+        evalBinaryOp?]
+      exact evalIntArithResult_checked_uint_revert_of_overflow _ _ hoverflow
+    have haddEval : evalExpr? cConfig
+        { contract := Reuse.cContract, locals := cArgStore I } evm
+        (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+          (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "v") (.intLit 2))
+          (.intLit 1)) = .revert := by
+      rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+      simp only [hmulEval, EvalResult.bind, bind]
+    exact evalExpr_inRange_revert cConfig
+      { contract := Reuse.cContract, locals := cArgStore I } evm _ Reuse.uint256Int haddEval
 
 theorem cFBodyReturns (evm : EVM.State) (I : ExecutionEnv)
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
@@ -921,7 +962,10 @@ theorem cBindFArg (I : ExecutionEnv) :
     bindParams? Reuse.fTransition.toCallable.params [cArgValue I] = some (cArgStore I) := by
   change bindParams? [{ name := "v", ty := Reuse.uint256 }] [cArgValue I] =
     some ((∅ : Store).insert "v" (cArgValue I))
-  rfl
+  have hmatches : valueMatchesABIType Reuse.uint256 (cArgValue I) = true := by
+    simpa [Reuse.uint256, Reuse.uint256Int, cArgValue] using
+      valueMatchesABIType_uint256_word (cArgWord I)
+  simp [bindParams?, hmatches]
 
 theorem cStorageLocStore_uint256 (evm : EVM.State) (val : UInt256) :
     storageLocStore evm Reuse.sLoc (.int (Int.ofNat val.toNat)) =

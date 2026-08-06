@@ -111,7 +111,7 @@ theorem uniswapMintInitialFeeOffKLastZeroLiquidityZeroFromFactoryWitnessCase
             nextFrame.locals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmFeeS)) }
         evmFeeS
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall
@@ -284,7 +284,7 @@ theorem uniswapMintInitialFeeOnKLastZeroLiquidityZeroFromFactoryWitnessCase
             nextFrame.locals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmFeeS)) }
         evmFeeS
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall
@@ -459,7 +459,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroLiquidityZeroFromFactoryWitnessCase
             nextFrame.locals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfterFee)) }
         evmAfterFee
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall

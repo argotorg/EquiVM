@@ -6,6 +6,12 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 800000
 namespace BlindAuction
 
+theorem scratch_revealSecret_matches_bytes32 (secret : UInt256) :
+    valueMatchesOptionalABIType (some bytes32)
+      (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret)) = true := by
+  apply valueMatchesOptionalABIType_fixedBytes
+  simpa [fixedBytesSize] using scratch_word_toBytesBE_length_32 secret
+
 -- Compatibility wrapper around `Reasoning.Reach.RD.whileLoopCarryFull`.
 theorem scratch_RD_whileLoopCarryAcc {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
     {s0 : State} {rdata : ByteArray} {α : Type}
@@ -168,7 +174,7 @@ theorem scratch_evalExpr_reveal_success_of (evm : EVM.State) (locals : Store)
   rfl
 
 def scratch_revealLoopPostStmts : List Stmt :=
-  [ .assign .localVar { base := "i" } (.binary .add (.var "i") (.intLit 1)) ]
+  [ .assign .localVar { base := "i" } (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
 
 def scratch_revealLoopBodyStmts : List Stmt :=
   [ .letStorage "bidToCheck" (bidElemRef sender (.var "i")),
@@ -181,14 +187,14 @@ def scratch_revealLoopBodyStmts : List Stmt :=
           [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
       [.continue] [],
     .assign .localVar { base := "refund" }
-      (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
     .ite
       (.binary .and (.unary .not (.var "fake"))
         (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
       [ .internalCall "placeBid" [sender, .var "value"] "ok",
         .ite (.var "ok")
           [ .assign .localVar { base := "refund" }
-              (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+              (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
     .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
 
 def scratch_revealForStmt : Stmt :=
@@ -735,14 +741,14 @@ theorem scratch_revealLoopBody_continue_hash_mismatch (evm : EVM.State) (callarg
             [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
         [.continue] [],
       .assign .localVar { base := "refund" }
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
       .ite
         (.binary .and (.unary .not (.var "fake"))
           (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
-                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
       .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
     (.continue { contract := blindAuctionContract, locals := L4 } evm)
   have hvaluesL1 : L1.get? "values" = some (.array values) := by
@@ -760,7 +766,8 @@ theorem scratch_revealLoopBody_continue_hash_mismatch (evm : EVM.State) (callarg
     exact scratch_evalExpr_reveal_local_array_index_norm evm L1 "values" values i
       (.int (Int.ofNat value.toNat)) (.int (Int.ofNat value.toNat)) hvaluesL1 hiL1
       hboundValues hvalueLookup (by simp [normalizeRawBoolWord?])
-  refine ExecBlock.consNormal (ExecStmt.letDecl hvalueEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hvalueEval (valueMatchesOptionalABIType_uint256_word value)) ?_
   change ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L2 } evm
     [ .letDecl "fake" (some boolTy) (.index (.var "fakes") (.var "i")),
       .letDecl "secret" (some bytes32) (.index (.var "secrets") (.var "i")),
@@ -770,14 +777,14 @@ theorem scratch_revealLoopBody_continue_hash_mismatch (evm : EVM.State) (callarg
             [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
         [.continue] [],
       .assign .localVar { base := "refund" }
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
       .ite
         (.binary .and (.unary .not (.var "fake"))
           (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
-                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
       .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
     (.continue { contract := blindAuctionContract, locals := L4 } evm)
   have hfakesL2 : L2.get? "fakes" = some (.array fakes) := by
@@ -793,7 +800,8 @@ theorem scratch_revealLoopBody_continue_hash_mismatch (evm : EVM.State) (callarg
         (.index (.var "fakes") (.var "i")) = .ok (.bool fake) := by
     exact scratch_evalExpr_reveal_local_array_index_norm evm L2 "fakes" fakes i
       fakeRaw (.bool fake) hfakesL2 hiL2 hboundFakes hfakeLookup hfakeNorm
-  refine ExecBlock.consNormal (ExecStmt.letDecl hfakeEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hfakeEval (valueMatchesOptionalABIType_bool fake)) ?_
   change ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L3 } evm
     [ .letDecl "secret" (some bytes32) (.index (.var "secrets") (.var "i")),
       .ite
@@ -802,14 +810,14 @@ theorem scratch_revealLoopBody_continue_hash_mismatch (evm : EVM.State) (callarg
             [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
         [.continue] [],
       .assign .localVar { base := "refund" }
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
       .ite
         (.binary .and (.unary .not (.var "fake"))
           (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
-                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
       .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
     (.continue { contract := blindAuctionContract, locals := L4 } evm)
   have hsecretsL3 : L3.get? "secrets" = some (.array secrets) := by
@@ -830,7 +838,8 @@ theorem scratch_revealLoopBody_continue_hash_mismatch (evm : EVM.State) (callarg
       (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret))
       (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret))
       hsecretsL3 hiL3 hboundSecrets hsecretLookup (by simp [normalizeRawBoolWord?])
-  refine ExecBlock.consNormal (ExecStmt.letDecl hsecretEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hsecretEval (scratch_revealSecret_matches_bytes32 secret)) ?_
   change ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
     [ .ite
         (.binary .ne (.storage (aliasF "bidToCheck" "blindedBid"))
@@ -838,14 +847,14 @@ theorem scratch_revealLoopBody_continue_hash_mismatch (evm : EVM.State) (callarg
             [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
         [.continue] [],
       .assign .localVar { base := "refund" }
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
       .ite
         (.binary .and (.unary .not (.var "fake"))
           (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
-                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
       .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
     (.continue { contract := blindAuctionContract, locals := L4 } evm)
   have hbidL4 :
@@ -926,7 +935,8 @@ theorem scratch_revealLoopBody_prefix_exec (evm : EVM.State) (callargs : Store)
     exact scratch_evalExpr_reveal_local_array_index_norm evm L1 "values" values i
       (.int (Int.ofNat value.toNat)) (.int (Int.ofNat value.toNat)) hvaluesL1 hiL1
       hboundValues hvalueLookup (by simp [normalizeRawBoolWord?])
-  refine ExecBlock.consNormal (ExecStmt.letDecl hvalueEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hvalueEval (valueMatchesOptionalABIType_uint256_word value)) ?_
   have hfakesL2 : L2.get? "fakes" = some (.array fakes) := by
     simpa [L2, scratch_revealValueStore, L1, scratch_revealBidToCheckStore,
       Std.HashMap.getElem?_insert, Std.HashMap.get?_eq_getElem?] using
@@ -940,7 +950,8 @@ theorem scratch_revealLoopBody_prefix_exec (evm : EVM.State) (callargs : Store)
         (.index (.var "fakes") (.var "i")) = .ok (.bool fake) := by
     exact scratch_evalExpr_reveal_local_array_index_norm evm L2 "fakes" fakes i
       fakeRaw (.bool fake) hfakesL2 hiL2 hboundFakes hfakeLookup hfakeNorm
-  refine ExecBlock.consNormal (ExecStmt.letDecl hfakeEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hfakeEval (valueMatchesOptionalABIType_bool fake)) ?_
   have hsecretsL3 : L3.get? "secrets" = some (.array secrets) := by
     simpa [L3, scratch_revealFakeStore, scratch_revealValueStore, L1,
       scratch_revealBidToCheckStore, Std.HashMap.getElem?_insert, Std.HashMap.get?_eq_getElem?]
@@ -959,7 +970,8 @@ theorem scratch_revealLoopBody_prefix_exec (evm : EVM.State) (callargs : Store)
       (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret))
       (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret))
       hsecretsL3 hiL3 hboundSecrets hsecretLookup (by simp [normalizeRawBoolWord?])
-  refine ExecBlock.consNormal (ExecStmt.letDecl hsecretEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hsecretEval (scratch_revealSecret_matches_bytes32 secret)) ?_
   simpa [L4, scratch_revealLoopBodyStmts] using htail
 
 /-
@@ -995,14 +1007,14 @@ theorem scratch_revealLoopBody_prefix (evm : EVM.State) (callargs : Store)
               [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
           [.continue] [],
         .assign .localVar { base := "refund" }
-          (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
         .ite
           (.binary .and (.unary .not (.var "fake"))
             (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
         .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ] := by
   refine ⟨fun htail => ?_⟩
   unfold scratch_revealLoopBodyStmts
@@ -1022,14 +1034,14 @@ theorem scratch_revealLoopBody_prefix (evm : EVM.State) (callargs : Store)
             [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
         [.continue] [],
       .assign .localVar { base := "refund" }
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
       .ite
         (.binary .and (.unary .not (.var "fake"))
           (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
-                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
       .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
     (.continue { contract := blindAuctionContract, locals := L4 } evm) at htail
   change ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L1 } evm
@@ -1042,14 +1054,14 @@ theorem scratch_revealLoopBody_prefix (evm : EVM.State) (callargs : Store)
             [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
         [.continue] [],
       .assign .localVar { base := "refund" }
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
       .ite
         (.binary .and (.unary .not (.var "fake"))
           (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
-                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
       .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
     (ExecResult.continue { contract := blindAuctionContract, locals := L4 } evm) at htail
   have hvaluesL1 : L1.get? "values" = some (.array values) := by
@@ -1067,7 +1079,8 @@ theorem scratch_revealLoopBody_prefix (evm : EVM.State) (callargs : Store)
     exact scratch_evalExpr_reveal_local_array_index_norm evm L1 "values" values i
       (.int (Int.ofNat value.toNat)) (.int (Int.ofNat value.toNat)) hvaluesL1 hiL1
       hboundValues hvalueLookup (by simp [normalizeRawBoolWord?])
-  refine ExecBlock.consNormal (ExecStmt.letDecl hvalueEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hvalueEval (valueMatchesOptionalABIType_uint256_word value)) ?_
   change ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L2 } evm
     [ .letDecl "fake" (some boolTy) (.index (.var "fakes") (.var "i")),
       .letDecl "secret" (some bytes32) (.index (.var "secrets") (.var "i")),
@@ -1077,14 +1090,14 @@ theorem scratch_revealLoopBody_prefix (evm : EVM.State) (callargs : Store)
             [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
         [.continue] [],
       .assign .localVar { base := "refund" }
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
       .ite
         (.binary .and (.unary .not (.var "fake"))
           (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
-                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
       .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
     (.continue { contract := blindAuctionContract, locals := L4 } evm)
   have hfakesL2 : L2.get? "fakes" = some (.array fakes) := by
@@ -1100,7 +1113,8 @@ theorem scratch_revealLoopBody_prefix (evm : EVM.State) (callargs : Store)
         (.index (.var "fakes") (.var "i")) = .ok (.bool fake) := by
     exact scratch_evalExpr_reveal_local_array_index_norm evm L2 "fakes" fakes i
       fakeRaw (.bool fake) hfakesL2 hiL2 hboundFakes hfakeLookup hfakeNorm
-  refine ExecBlock.consNormal (ExecStmt.letDecl hfakeEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hfakeEval (valueMatchesOptionalABIType_bool fake)) ?_
   change ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L3 } evm
     [ .letDecl "secret" (some bytes32) (.index (.var "secrets") (.var "i")),
       .ite
@@ -1109,14 +1123,14 @@ theorem scratch_revealLoopBody_prefix (evm : EVM.State) (callargs : Store)
             [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
         [.continue] [],
       .assign .localVar { base := "refund" }
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
       .ite
         (.binary .and (.unary .not (.var "fake"))
           (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
-                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
       .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
     (.continue { contract := blindAuctionContract, locals := L4 } evm)
   have hsecretsL3 : L3.get? "secrets" = some (.array secrets) := by
@@ -1137,7 +1151,8 @@ theorem scratch_revealLoopBody_prefix (evm : EVM.State) (callargs : Store)
       (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret))
       (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret))
       hsecretsL3 hiL3 hboundSecrets hsecretLookup (by simp [normalizeRawBoolWord?])
-  refine ExecBlock.consNormal (ExecStmt.letDecl hsecretEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hsecretEval (scratch_revealSecret_matches_bytes32 secret)) ?_
   simpa [L4] using htail
 -/
 
@@ -1308,31 +1323,31 @@ theorem scratch_evalExpr_reveal_refund_add_deposit (evm : EVM.State) (locals : S
         (scratch_revealBidDepositSlot evm i) = deposit)
     (hfit : refund.toNat + deposit.toNat < UInt256.size) :
     evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := locals } evm
-      (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
         .ok (.int (Int.ofNat (refund.toNat + deposit.toNat))) := by
-  unfold u256
-  rw [evalExpr?]
-  rw [evalExpr?]
-  simp only [evalExpr_reveal_var_int evm locals "refund" (Int.ofNat refund.toNat) hrefund,
-    scratch_evalExpr_reveal_bid_deposit evm locals i deposit hbid hdeposit,
-    EvalResult.bind, bind]
-  simp [evalBinaryOp?]
-  have hnonneg : ¬ (((refund.toNat : Int) + (deposit.toNat : Int)) < 0) := by
-    exact not_lt_of_ge (Int.add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _))
-  have hlt : ¬ ((2 : Int) ^ 256 ≤ (refund.toNat : Int) + (deposit.toNat : Int)) := by
-    norm_num [UInt256.size] at hfit ⊢
-    omega
-  have hif :
-      ¬ ((refund.toNat : Int) + (deposit.toNat : Int) < 0 ∨
-        (2 : Int) ^ 256 ≤ (refund.toNat : Int) + (deposit.toNat : Int)) := by
-    intro hcond
-    rcases hcond with hneg | hge
-    · exact hnonneg hneg
-    · exact hlt hge
-  simp only [uint256Int]
-  rw [if_neg hif]
-  rfl
-  all_goals decide
+  have hrefundEval :=
+    evalExpr_reveal_var_int evm locals "refund" (Int.ofNat refund.toNat) hrefund
+  have hdepositEval := scratch_evalExpr_reveal_bid_deposit evm locals i deposit hbid hdeposit
+  have hsumInt :
+      Int.ofNat refund.toNat + Int.ofNat deposit.toNat =
+        Int.ofNat (refund.toNat + deposit.toNat) := Int.ofNat_add_ofNat _ _
+  have hnonneg : 0 ≤ Int.ofNat refund.toNat + Int.ofNat deposit.toNat :=
+    add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
+  have hfitInt :
+      Int.ofNat refund.toNat + Int.ofNat deposit.toNat < Int.ofNat (EVM.twoPow 256) := by
+    rw [hsumInt, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_lt.mpr hfit
+  have hbinary := evalExpr_checked_add_uint_ok
+    (cfg := blindAuctionConfig)
+    (solm := { contract := blindAuctionContract, locals := locals }) (evm := evm)
+    ⟨256, by decide⟩ _ _ hrefundEval hdepositEval hnonneg hfitInt
+  have hin := evalExpr_inRange_uint blindAuctionConfig
+    { contract := blindAuctionContract, locals := locals } evm
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund")
+      (.storage (aliasF "bidToCheck" "deposit")))
+    ⟨256, by decide⟩ _ hbinary hnonneg hfitInt
+  rw [hsumInt] at hin
+  simpa [u256, uint256Int] using hin
 
 theorem scratch_evalExpr_reveal_refund_add_deposit_revert (evm : EVM.State)
     (locals : Store) (i refund deposit : UInt256)
@@ -1345,25 +1360,27 @@ theorem scratch_evalExpr_reveal_refund_add_deposit_revert (evm : EVM.State)
         (scratch_revealBidDepositSlot evm i) = deposit)
     (hover : UInt256.size ≤ refund.toNat + deposit.toNat) :
     evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := locals } evm
-      (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
+      (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
         .revert := by
-  unfold u256
-  rw [evalExpr?]
-  rw [evalExpr?]
-  simp only [evalExpr_reveal_var_int evm locals "refund" (Int.ofNat refund.toNat) hrefund,
-    scratch_evalExpr_reveal_bid_deposit evm locals i deposit hbid hdeposit,
-    EvalResult.bind, bind]
-  simp [evalBinaryOp?]
-  have hge : (2 : Int) ^ 256 ≤ (refund.toNat : Int) + (deposit.toNat : Int) := by
-    norm_num [UInt256.size] at hover ⊢
-    omega
-  have hif :
-      (refund.toNat : Int) + (deposit.toNat : Int) < 0 ∨
-        (2 : Int) ^ 256 ≤ (refund.toNat : Int) + (deposit.toNat : Int) := by
-    exact Or.inr hge
-  simp only [uint256Int]
-  rw [if_pos hif]
-  all_goals decide
+  have hrefundEval :=
+    evalExpr_reveal_var_int evm locals "refund" (Int.ofNat refund.toNat) hrefund
+  have hdepositEval := scratch_evalExpr_reveal_bid_deposit evm locals i deposit hbid hdeposit
+  have hsumInt :
+      Int.ofNat refund.toNat + Int.ofNat deposit.toNat =
+        Int.ofNat (refund.toNat + deposit.toNat) := Int.ofNat_add_ofNat _ _
+  have hoverInt :
+      Int.ofNat (EVM.twoPow 256) ≤ Int.ofNat refund.toNat + Int.ofNat deposit.toNat := by
+    rw [hsumInt, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_le.mpr hover
+  have hbinary := evalExpr_checked_add_uint_revert_of_overflow
+    (cfg := blindAuctionConfig)
+    (solm := { contract := blindAuctionContract, locals := locals }) (evm := evm)
+    ⟨256, by decide⟩ _ _ hrefundEval hdepositEval hoverInt
+  simpa [u256, uint256Int] using evalExpr_inRange_revert blindAuctionConfig
+    { contract := blindAuctionContract, locals := locals } evm
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund")
+      (.storage (aliasF "bidToCheck" "deposit")))
+    uint256Int hbinary
 
 theorem scratch_evalExpr_reveal_refund_sub_value (evm : EVM.State) (locals : Store)
     (refund value : UInt256)
@@ -1371,36 +1388,30 @@ theorem scratch_evalExpr_reveal_refund_sub_value (evm : EVM.State) (locals : Sto
     (hvalue : locals.get? "value" = some (.int (Int.ofNat value.toNat)))
     (hle : value.toNat ≤ refund.toNat) :
     evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := locals } evm
-      (u256 (.binary .sub (.var "refund") (.var "value"))) =
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) =
         .ok (.int (Int.ofNat (refund.toNat - value.toNat))) := by
-  unfold u256
-  rw [evalExpr?]
-  rw [evalExpr?]
-  simp only [evalExpr_reveal_var_int evm locals "refund" (Int.ofNat refund.toNat) hrefund,
-    evalExpr_reveal_var_int evm locals "value" (Int.ofNat value.toNat) hvalue,
-    EvalResult.bind, bind]
-  simp [evalBinaryOp?]
-  have hsub_nonneg :
-      ¬ (((refund.toNat : Int) - (value.toNat : Int)) < 0) := by
-    omega
-  have hsub_lt : ¬ ((2 : Int) ^ 256 ≤ (refund.toNat : Int) - (value.toNat : Int)) := by
-    have hrefund_lt : refund.toNat < UInt256.size := refund.val.isLt
-    norm_num [UInt256.size] at hrefund_lt ⊢
-    omega
-  have hif :
-      ¬ ((refund.toNat : Int) - (value.toNat : Int) < 0 ∨
-        (2 : Int) ^ 256 ≤ (refund.toNat : Int) - (value.toNat : Int)) := by
-    intro hcond
-    rcases hcond with hneg | hge
-    · exact hsub_nonneg hneg
-    · exact hsub_lt hge
-  simp only [uint256Int]
-  rw [if_neg hif]
-  change EvalResult.ok (Value.int ((refund.toNat : Int) - (value.toNat : Int))) =
-    EvalResult.ok (Value.int (Int.ofNat (refund.toNat - value.toNat)))
-  rw [← Int.ofNat_sub hle]
-  rfl
-  all_goals decide
+  have hrefundEval :=
+    evalExpr_reveal_var_int evm locals "refund" (Int.ofNat refund.toNat) hrefund
+  have hvalueEval := evalExpr_reveal_var_int evm locals "value" (Int.ofNat value.toNat) hvalue
+  have hsubInt :
+      Int.ofNat refund.toNat - Int.ofNat value.toNat =
+        Int.ofNat (refund.toNat - value.toNat) := (Int.ofNat_sub hle).symm
+  have hnonneg : 0 ≤ Int.ofNat refund.toNat - Int.ofNat value.toNat :=
+    sub_nonneg.mpr (Int.ofNat_le.mpr hle)
+  have hfitInt :
+      Int.ofNat refund.toNat - Int.ofNat value.toNat < Int.ofNat (EVM.twoPow 256) := by
+    rw [hsubInt]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.sub_le _ _) refund.val.isLt)
+  have hbinary := evalExpr_checked_sub_uint_ok
+    (cfg := blindAuctionConfig)
+    (solm := { contract := blindAuctionContract, locals := locals }) (evm := evm)
+    ⟨256, by decide⟩ _ _ hrefundEval hvalueEval hnonneg hfitInt
+  have hin := evalExpr_inRange_uint blindAuctionConfig
+    { contract := blindAuctionContract, locals := locals } evm
+    (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))
+    ⟨256, by decide⟩ _ hbinary hnonneg hfitInt
+  rw [hsubInt] at hin
+  simpa [u256, uint256Int] using hin
 
 theorem scratch_evalExpr_reveal_refund_sub_value_revert (evm : EVM.State) (locals : Store)
     (refund value : UInt256)
@@ -1408,45 +1419,55 @@ theorem scratch_evalExpr_reveal_refund_sub_value_revert (evm : EVM.State) (local
     (hvalue : locals.get? "value" = some (.int (Int.ofNat value.toNat)))
     (hlt : refund.toNat < value.toNat) :
     evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := locals } evm
-      (u256 (.binary .sub (.var "refund") (.var "value"))) =
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) =
         .revert := by
-  unfold u256
-  rw [evalExpr?]
-  rw [evalExpr?]
-  simp only [evalExpr_reveal_var_int evm locals "refund" (Int.ofNat refund.toNat) hrefund,
-    evalExpr_reveal_var_int evm locals "value" (Int.ofNat value.toNat) hvalue,
-    EvalResult.bind, bind]
-  simp [evalBinaryOp?]
-  have hneg : (refund.toNat : Int) - (value.toNat : Int) < 0 := by
+  have hrefundEval :=
+    evalExpr_reveal_var_int evm locals "refund" (Int.ofNat refund.toNat) hrefund
+  have hvalueEval := evalExpr_reveal_var_int evm locals "value" (Int.ofNat value.toNat) hvalue
+  have hneg : Int.ofNat refund.toNat - Int.ofNat value.toNat < 0 := by
+    change (refund.toNat : Int) - (value.toNat : Int) < 0
     omega
-  have hif :
-      (refund.toNat : Int) - (value.toNat : Int) < 0 ∨
-        (2 : Int) ^ 256 ≤ (refund.toNat : Int) - (value.toNat : Int) := Or.inl hneg
-  simp only [uint256Int]
-  rw [if_pos hif]
-  all_goals decide
+  have hbinary := evalExpr_checked_sub_uint_revert_of_neg
+    (cfg := blindAuctionConfig)
+    (solm := { contract := blindAuctionContract, locals := locals }) (evm := evm)
+    ⟨256, by decide⟩ _ _ hrefundEval hvalueEval hneg
+  simpa [u256, uint256Int] using evalExpr_inRange_revert blindAuctionConfig
+    { contract := blindAuctionContract, locals := locals } evm
+    (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))
+    uint256Int hbinary
 
 theorem scratch_evalExpr_reveal_i_add_one (evm : EVM.State) (locals : Store)
     (i : UInt256)
     (hi : locals.get? "i" = some (.int (Int.ofNat i.toNat)))
     (hfit : i.toNat + 1 < UInt256.size) :
     evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := locals } evm
-      (.binary .add (.var "i") (.intLit 1)) =
+      (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) =
         .ok (.int (Int.ofNat (i + ⟨1⟩).toNat)) := by
-  rw [evalExpr?]
-  simp only [evalExpr_reveal_var_int evm locals "i" (Int.ofNat i.toNat) hi,
-    evalExpr?, EvalResult.bind, bind, pure]
-  simp [evalBinaryOp?]
+  have hiEval := evalExpr_reveal_var_int evm locals "i" (Int.ofNat i.toNat) hi
+  have honeEval :
+      evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := locals } evm
+        (.intLit 1) = .ok (.int 1) := by
+    simp [evalExpr?, pure]
+  have hsumInt : Int.ofNat i.toNat + 1 = Int.ofNat (i.toNat + 1) := by
+    simpa using Int.ofNat_add_ofNat i.toNat 1
+  have hnonneg : 0 ≤ Int.ofNat i.toNat + 1 :=
+    add_nonneg (Int.natCast_nonneg _) (by norm_num)
+  have hfitInt : Int.ofNat i.toNat + 1 < Int.ofNat (EVM.twoPow 256) := by
+    rw [hsumInt, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_lt.mpr hfit
+  have hbinary := evalExpr_checked_add_uint_ok
+    (cfg := blindAuctionConfig)
+    (solm := { contract := blindAuctionContract, locals := locals }) (evm := evm)
+    ⟨256, by decide⟩ _ _ hiEval honeEval hnonneg hfitInt
   have hadd : (i + ⟨1⟩).toNat = i.toNat + 1 := add1_toNat hfit
-  rw [hadd]
-  norm_num
-  all_goals decide
+  rw [hsumInt] at hbinary
+  simpa [hadd] using hbinary
 
 theorem scratch_revealLoopPostStep (evm : EVM.State) (locals : Store) (i : UInt256)
     (hi : locals.get? "i" = some (.int (Int.ofNat i.toNat)))
     (hfit : i.toNat + 1 < UInt256.size) :
     ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := locals } evm
-      [ .assign .localVar { base := "i" } (.binary .add (.var "i") (.intLit 1)) ]
+      [ .assign .localVar { base := "i" } (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
       (.ok { contract := blindAuctionContract,
               locals := locals.insert "i" (.int (Int.ofNat (i + ⟨1⟩).toNat)) } evm) := by
   refine ExecBlock.consNormal ?_ ExecBlock.nil
@@ -1570,7 +1591,8 @@ theorem scratch_blindAuctionRevealBodyReturns_callSuccess_fromLoop
         evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := callargs }
           evm (.arrayLength .storage (bidsRef sender)) = .ok (.int (Int.ofNat len.toNat)) := by
       exact evalExpr_reveal_bids_length_any evm callargs len hbids hlen
-    refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl hlengthEval (valueMatchesOptionalABIType_uint256_word len)) ?_
     change ExecBlock blindAuctionConfig lengthFrame evm
       (List.drop 4 revealTransition.body)
       (.ok finalFrame evm')
@@ -1602,7 +1624,9 @@ theorem scratch_blindAuctionRevealBodyReturns_callSuccess_fromLoop
       · exact hsecrets
       · decide
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+      (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+        simpa [uint256, uint256Int] using
+          valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
     change ExecBlock blindAuctionConfig refundFrame evm
       [ scratch_revealForStmt,
         .lowLevelCall sender (.var "refund") (.newBytes (.intLit 0)) "success" "_data",
@@ -1618,7 +1642,9 @@ theorem scratch_blindAuctionRevealBodyReturns_callSuccess_fromLoop
             [ .letDecl "i" (some uint256) (.intLit 0) ]
             (.ok initLoopFrame evm) := by
         refine ExecBlock.consNormal
-          (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+          (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+            simpa [uint256, uint256Int] using
+              valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
         exact ExecBlock.nil
       exact ExecStmt.for hinit hloop
     refine ExecBlock.consNormal hfor ?_
@@ -1691,7 +1717,8 @@ theorem scratch_blindAuctionRevealBodyReverts_callFailure_fromLoop
         evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := callargs }
           evm (.arrayLength .storage (bidsRef sender)) = .ok (.int (Int.ofNat len.toNat)) := by
       exact evalExpr_reveal_bids_length_any evm callargs len hbids hlen
-    refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl hlengthEval (valueMatchesOptionalABIType_uint256_word len)) ?_
     change ExecBlock blindAuctionConfig lengthFrame evm
       (List.drop 4 revealTransition.body) .reverted
     refine ExecBlock.consNormal
@@ -1722,7 +1749,9 @@ theorem scratch_blindAuctionRevealBodyReverts_callFailure_fromLoop
       · exact hsecrets
       · decide
     refine ExecBlock.consNormal
-      (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+      (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+        simpa [uint256, uint256Int] using
+          valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
     change ExecBlock blindAuctionConfig refundFrame evm
       [ scratch_revealForStmt,
         .lowLevelCall sender (.var "refund") (.newBytes (.intLit 0)) "success" "_data",
@@ -1738,7 +1767,9 @@ theorem scratch_blindAuctionRevealBodyReverts_callFailure_fromLoop
             [ .letDecl "i" (some uint256) (.intLit 0) ]
             (.ok initLoopFrame evm) := by
         refine ExecBlock.consNormal
-          (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+          (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+            simpa [uint256, uint256Int] using
+              valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
         exact ExecBlock.nil
       exact ExecStmt.for hinit hloop
     refine ExecBlock.consNormal hfor ?_
@@ -1809,7 +1840,8 @@ theorem scratch_blindAuctionRevealBodyReturns_callSuccess_fromLoopOfLocals
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := callargs }
         evm (.arrayLength .storage (bidsRef sender)) = .ok (.int (Int.ofNat len.toNat)) := by
     exact evalExpr_reveal_bids_length_any evm callargs len hbids hlen
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hlengthEval (valueMatchesOptionalABIType_uint256_word len)) ?_
   change ExecBlock blindAuctionConfig lengthFrame evm
     (List.drop 4 revealTransition.body)
     (.ok
@@ -1843,7 +1875,9 @@ theorem scratch_blindAuctionRevealBodyReturns_callSuccess_fromLoopOfLocals
     · exact hsecrets
     · decide
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+    (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+      simpa [uint256, uint256Int] using
+        valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
   change ExecBlock blindAuctionConfig refundFrame evm
     [ scratch_revealForStmt,
       .lowLevelCall sender (.var "refund") (.newBytes (.intLit 0)) "success" "_data",
@@ -1861,7 +1895,9 @@ theorem scratch_blindAuctionRevealBodyReturns_callSuccess_fromLoopOfLocals
           [ .letDecl "i" (some uint256) (.intLit 0) ]
           (.ok initLoopFrame evm) := by
       refine ExecBlock.consNormal
-        (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+        (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+          simpa [uint256, uint256Int] using
+            valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
       exact ExecBlock.nil
     exact ExecStmt.for hinit hloop
   refine ExecBlock.consNormal hfor ?_
@@ -1929,7 +1965,8 @@ theorem scratch_blindAuctionRevealBodyReverts_callFailure_fromLoopOfLocals
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := callargs }
         evm (.arrayLength .storage (bidsRef sender)) = .ok (.int (Int.ofNat len.toNat)) := by
     exact evalExpr_reveal_bids_length_any evm callargs len hbids hlen
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlengthEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hlengthEval (valueMatchesOptionalABIType_uint256_word len)) ?_
   change ExecBlock blindAuctionConfig lengthFrame evm
     (List.drop 4 revealTransition.body) .reverted
   refine ExecBlock.consNormal
@@ -1960,7 +1997,9 @@ theorem scratch_blindAuctionRevealBodyReverts_callFailure_fromLoopOfLocals
     · exact hsecrets
     · decide
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+    (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+      simpa [uint256, uint256Int] using
+        valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
   change ExecBlock blindAuctionConfig refundFrame evm
     [ scratch_revealForStmt,
       .lowLevelCall sender (.var "refund") (.newBytes (.intLit 0)) "success" "_data",
@@ -1976,7 +2015,9 @@ theorem scratch_blindAuctionRevealBodyReverts_callFailure_fromLoopOfLocals
           [ .letDecl "i" (some uint256) (.intLit 0) ]
           (.ok initLoopFrame evm) := by
       refine ExecBlock.consNormal
-        (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
+        (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure]) (by
+          simpa [uint256, uint256Int] using
+            valueMatchesOptionalABIType_uint256_word (⟨0⟩ : UInt256))) ?_
       exact ExecBlock.nil
     exact ExecStmt.for hinit hloop
   refine ExecBlock.consNormal hfor ?_
@@ -2054,7 +2095,7 @@ theorem scratch_revealLoopBody_ok_noPlace (evm : EVM.State) (callargs : Store)
       scratch_revealSecretStore_refund_get callargs evm len refund i value secret fake
   have hadd :
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
           .ok (.int (Int.ofNat (refund.toNat + deposit.toNat))) :=
     scratch_evalExpr_reveal_refund_add_deposit evm L4 i refund deposit hbidL4 hrefundL4
       hdeposit hfit
@@ -2122,14 +2163,14 @@ theorem scratch_revealLoopBody_ok_noPlace (evm : EVM.State) (callargs : Store)
               [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
           [.continue] [],
         .assign .localVar { base := "refund" }
-          (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
         .ite
           (.binary .and (.unary .not (.var "fake"))
             (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
         .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
       (.ok { contract := blindAuctionContract, locals := L5 }
         (scratch_revealZeroBlindedState evm i))
@@ -2211,7 +2252,7 @@ theorem scratch_revealLoopBody_ok_placeBid_false (evm : EVM.State) (callargs : S
       scratch_revealSecretStore_refund_get callargs evm len refund i value secret false
   have hadd :
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
           .ok (.int (Int.ofNat (refund.toNat + deposit.toNat))) :=
     scratch_evalExpr_reveal_refund_add_deposit evm L4 i refund deposit hbidL4 hrefundL4
       hdeposit hfit
@@ -2294,7 +2335,7 @@ theorem scratch_revealLoopBody_ok_placeBid_false (evm : EVM.State) (callargs : S
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
-                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ]
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ]
         (.ok { contract := blindAuctionContract, locals := L6 } evm) := by
     refine ExecBlock.consNormal hcall ?_
     exact ExecBlock.consNormal (ExecStmt.iteFalse hokFalse ExecBlock.nil) ExecBlock.nil
@@ -2306,7 +2347,7 @@ theorem scratch_revealLoopBody_ok_placeBid_false (evm : EVM.State) (callargs : S
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [])
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [])
         (.ok { contract := blindAuctionContract, locals := L6 } evm) :=
     ExecStmt.iteTrue hcondTrue hplaceThen
   have htail :
@@ -2323,14 +2364,14 @@ theorem scratch_revealLoopBody_ok_placeBid_false (evm : EVM.State) (callargs : S
               [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
           [.continue] [],
         .assign .localVar { base := "refund" }
-          (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
         .ite
           (.binary .and (.unary .not (.var "fake"))
             (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
         .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
       (.ok { contract := blindAuctionContract, locals := L6 }
         (scratch_revealZeroBlindedState evm i))
@@ -2422,7 +2463,7 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core (evm evmPB : EVM.State) (ca
       scratch_revealSecretStore_refund_get callargs evm len refund i value secret false
   have hadd :
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
           .ok (.int (Int.ofNat (refund.toNat + deposit.toNat))) :=
     scratch_evalExpr_reveal_refund_add_deposit evm L4 i refund deposit hbidL4 hrefundL4
       hdeposit hfit
@@ -2494,7 +2535,7 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core (evm evmPB : EVM.State) (ca
     omega
   have hsub :
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L6 } evmPB
-        (u256 (.binary .sub (.var "refund") (.var "value"))) =
+        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) =
           .ok (.int (Int.ofNat (refundAdded.toNat - value.toNat))) :=
     scratch_evalExpr_reveal_refund_sub_value evmPB L6 refundAdded value hrefundL6 hvalueL6
       hsubLe
@@ -2528,14 +2569,14 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core (evm evmPB : EVM.State) (ca
   have hthenOk :
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L6 } evmPB
         [ .assign .localVar { base := "refund" }
-            (u256 (.binary .sub (.var "refund") (.var "value"))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ]
         (.ok { contract := blindAuctionContract, locals := L7 } evmPB) := by
     exact ExecBlock.consNormal (ExecStmt.assign hsub hassignSub) ExecBlock.nil
   have hokIte :
       ExecStmt blindAuctionConfig { contract := blindAuctionContract, locals := L6 } evmPB
         (.ite (.var "ok")
           [ .assign .localVar { base := "refund" }
-              (u256 (.binary .sub (.var "refund") (.var "value"))) ] [])
+              (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [])
         (.ok { contract := blindAuctionContract, locals := L7 } evmPB) :=
     ExecStmt.iteTrue hokTrue hthenOk
   have hplaceThen :
@@ -2543,7 +2584,7 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core (evm evmPB : EVM.State) (ca
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
-                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ]
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ]
         (.ok { contract := blindAuctionContract, locals := L7 } evmPB) := by
     refine ExecBlock.consNormal (solm' := { contract := blindAuctionContract, locals := L6 })
       (evm' := evmPB) hcall ?_
@@ -2556,7 +2597,7 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core (evm evmPB : EVM.State) (ca
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [])
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [])
         (.ok { contract := blindAuctionContract, locals := L7 } evmPB) :=
     ExecStmt.iteTrue hcondTrue hplaceThen
   have htail :
@@ -2573,14 +2614,14 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core (evm evmPB : EVM.State) (ca
               [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
           [.continue] [],
         .assign .localVar { base := "refund" }
-          (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
         .ite
           (.binary .and (.unary .not (.var "fake"))
             (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
         .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
       (.ok { contract := blindAuctionContract, locals := L7 }
         (scratch_revealZeroBlindedState evmPB i))
@@ -2944,7 +2985,8 @@ theorem scratch_revealLoopBody_prefix_exec_of_get (evm : EVM.State) (locals : St
     exact scratch_evalExpr_reveal_local_array_index_norm evm L1 "values" values i
       (.int (Int.ofNat value.toNat)) (.int (Int.ofNat value.toNat)) hvaluesL1 hiL1
       hboundValues hvalueLookup (by simp [normalizeRawBoolWord?])
-  refine ExecBlock.consNormal (ExecStmt.letDecl hvalueEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hvalueEval (valueMatchesOptionalABIType_uint256_word value)) ?_
   have hfakesL2 : L2.get? "fakes" = some (.array fakes) := by
     simpa [L2, scratch_revealValueStoreOf, L1, scratch_revealBidToCheckStoreOf,
       Std.HashMap.getElem?_insert, Std.HashMap.get?_eq_getElem?] using hfakes
@@ -2956,7 +2998,8 @@ theorem scratch_revealLoopBody_prefix_exec_of_get (evm : EVM.State) (locals : St
         (.index (.var "fakes") (.var "i")) = .ok (.bool fake) := by
     exact scratch_evalExpr_reveal_local_array_index_norm evm L2 "fakes" fakes i
       fakeRaw (.bool fake) hfakesL2 hiL2 hboundFakes hfakeLookup hfakeNorm
-  refine ExecBlock.consNormal (ExecStmt.letDecl hfakeEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hfakeEval (valueMatchesOptionalABIType_bool fake)) ?_
   have hsecretsL3 : L3.get? "secrets" = some (.array secrets) := by
     simpa [L3, scratch_revealFakeStoreOf, scratch_revealValueStoreOf, L1,
       scratch_revealBidToCheckStoreOf, Std.HashMap.getElem?_insert,
@@ -2973,7 +3016,8 @@ theorem scratch_revealLoopBody_prefix_exec_of_get (evm : EVM.State) (locals : St
       (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret))
       (.fixedBytes ⟨31, by decide⟩ (EVM.Word.toBytesBE secret))
       hsecretsL3 hiL3 hboundSecrets hsecretLookup (by simp [normalizeRawBoolWord?])
-  refine ExecBlock.consNormal (ExecStmt.letDecl hsecretEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hsecretEval (scratch_revealSecret_matches_bytes32 secret)) ?_
   simpa [L4, scratch_revealLoopBodyStmts] using htail
 
 theorem scratch_revealLoopBody_revert_fake_invalid_of_get (evm : EVM.State)
@@ -3014,7 +3058,8 @@ theorem scratch_revealLoopBody_revert_fake_invalid_of_get (evm : EVM.State)
     exact scratch_evalExpr_reveal_local_array_index_norm evm L1 "values" values i
       (.int (Int.ofNat value.toNat)) (.int (Int.ofNat value.toNat)) hvaluesL1 hiL1
       hboundValues hvalueLookup (by simp [normalizeRawBoolWord?])
-  refine ExecBlock.consNormal (ExecStmt.letDecl hvalueEval) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hvalueEval (valueMatchesOptionalABIType_uint256_word value)) ?_
   have hfakesL2 : L2.get? "fakes" = some (.array fakes) := by
     simpa [L2, scratch_revealValueStoreOf, L1, scratch_revealBidToCheckStoreOf,
       Std.HashMap.getElem?_insert, Std.HashMap.get?_eq_getElem?] using hfakes
@@ -3094,7 +3139,7 @@ theorem scratch_revealLoopBody_ok_noPlace_of_get (evm : EVM.State) (locals : Sto
       scratch_revealSecretStoreOf_refund_get locals evm i refund value secret fake hrefund
   have hadd :
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
           .ok (.int (Int.ofNat (refund.toNat + deposit.toNat))) :=
     scratch_evalExpr_reveal_refund_add_deposit evm L4 i refund deposit hbidL4 hrefundL4
       hdeposit hfit
@@ -3161,14 +3206,14 @@ theorem scratch_revealLoopBody_ok_noPlace_of_get (evm : EVM.State) (locals : Sto
               [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
           [.continue] [],
         .assign .localVar { base := "refund" }
-          (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
         .ite
           (.binary .and (.unary .not (.var "fake"))
             (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
         .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
       (.ok { contract := blindAuctionContract, locals := L5 }
         (scratch_revealZeroBlindedState evm i))
@@ -3247,14 +3292,14 @@ theorem scratch_revealLoopBody_continue_hash_mismatch_of_get (evm : EVM.State)
               [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
           [.continue] [],
         .assign .localVar { base := "refund" }
-          (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
         .ite
           (.binary .and (.unary .not (.var "fake"))
             (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
         .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
       (.continue { contract := blindAuctionContract, locals := L4 } evm)
     refine ExecBlock.consContinue ?_
@@ -3335,7 +3380,7 @@ theorem scratch_revealLoopBody_ok_placeBid_false_of_get (evm : EVM.State) (local
       scratch_revealSecretStoreOf_refund_get locals evm i refund value secret false hrefund
   have hadd :
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
           .ok (.int (Int.ofNat (refund.toNat + deposit.toNat))) :=
     scratch_evalExpr_reveal_refund_add_deposit evm L4 i refund deposit hbidL4 hrefundL4
       hdeposit hfit
@@ -3418,7 +3463,7 @@ theorem scratch_revealLoopBody_ok_placeBid_false_of_get (evm : EVM.State) (local
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
-                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ]
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ]
         (.ok { contract := blindAuctionContract, locals := L6 } evm) := by
     refine ExecBlock.consNormal hcall ?_
     exact ExecBlock.consNormal (ExecStmt.iteFalse hokFalse ExecBlock.nil) ExecBlock.nil
@@ -3430,7 +3475,7 @@ theorem scratch_revealLoopBody_ok_placeBid_false_of_get (evm : EVM.State) (local
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [])
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [])
         (.ok { contract := blindAuctionContract, locals := L6 } evm) :=
     ExecStmt.iteTrue hcondTrue hplaceThen
   have htail :
@@ -3447,14 +3492,14 @@ theorem scratch_revealLoopBody_ok_placeBid_false_of_get (evm : EVM.State) (local
               [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
           [.continue] [],
         .assign .localVar { base := "refund" }
-          (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
         .ite
           (.binary .and (.unary .not (.var "fake"))
             (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
         .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
       (.ok { contract := blindAuctionContract, locals := L6 }
         (scratch_revealZeroBlindedState evm i))
@@ -3548,7 +3593,7 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core_of_get (evm evmPB : EVM.Sta
       scratch_revealSecretStoreOf_refund_get locals evm i refund value secret false hrefund
   have hadd :
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L4 } evm
-        (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
+        (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))) =
           .ok (.int (Int.ofNat (refund.toNat + deposit.toNat))) :=
     scratch_evalExpr_reveal_refund_add_deposit evm L4 i refund deposit hbidL4 hrefundL4
       hdeposit hfit
@@ -3620,7 +3665,7 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core_of_get (evm evmPB : EVM.Sta
     omega
   have hsub :
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := L6 } evmPB
-        (u256 (.binary .sub (.var "refund") (.var "value"))) =
+        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) =
           .ok (.int (Int.ofNat (refundAdded.toNat - value.toNat))) :=
     scratch_evalExpr_reveal_refund_sub_value evmPB L6 refundAdded value hrefundL6 hvalueL6
       hsubLe
@@ -3654,14 +3699,14 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core_of_get (evm evmPB : EVM.Sta
   have hthenOk :
       ExecBlock blindAuctionConfig { contract := blindAuctionContract, locals := L6 } evmPB
         [ .assign .localVar { base := "refund" }
-            (u256 (.binary .sub (.var "refund") (.var "value"))) ]
+            (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ]
         (.ok { contract := blindAuctionContract, locals := L7 } evmPB) := by
     exact ExecBlock.consNormal (ExecStmt.assign hsub hassignSub) ExecBlock.nil
   have hokIte :
       ExecStmt blindAuctionConfig { contract := blindAuctionContract, locals := L6 } evmPB
         (.ite (.var "ok")
           [ .assign .localVar { base := "refund" }
-              (u256 (.binary .sub (.var "refund") (.var "value"))) ] [])
+              (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [])
         (.ok { contract := blindAuctionContract, locals := L7 } evmPB) :=
     ExecStmt.iteTrue hokTrue hthenOk
   have hplaceThen :
@@ -3669,7 +3714,7 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core_of_get (evm evmPB : EVM.Sta
         [ .internalCall "placeBid" [sender, .var "value"] "ok",
           .ite (.var "ok")
             [ .assign .localVar { base := "refund" }
-                (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ]
+                (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ]
         (.ok { contract := blindAuctionContract, locals := L7 } evmPB) := by
     refine ExecBlock.consNormal (solm' := { contract := blindAuctionContract, locals := L6 })
       (evm' := evmPB) hcall ?_
@@ -3682,7 +3727,7 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core_of_get (evm evmPB : EVM.Sta
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [])
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [])
         (.ok { contract := blindAuctionContract, locals := L7 } evmPB) :=
     ExecStmt.iteTrue hcondTrue hplaceThen
   have htail :
@@ -3699,14 +3744,14 @@ theorem scratch_revealLoopBody_ok_placeBid_true_core_of_get (evm evmPB : EVM.Sta
               [(uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret")])))
           [.continue] [],
         .assign .localVar { base := "refund" }
-          (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
         .ite
           (.binary .and (.unary .not (.var "fake"))
             (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
           [ .internalCall "placeBid" [sender, .var "value"] "ok",
             .ite (.var "ok")
               [ .assign .localVar { base := "refund" }
-                  (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ] [],
+                  (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ] [],
         .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ]
       (.ok { contract := blindAuctionContract, locals := L7 }
         (scratch_revealZeroBlindedState evmPB i))

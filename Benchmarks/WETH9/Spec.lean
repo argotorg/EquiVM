@@ -145,7 +145,8 @@ def depositTransition : TransitionDecl :=
     returnType := []
     body :=
       [ .assign .storage (balanceOfRef sender)
-          (.binary .add (.storage (balanceOfRef sender)) (.env .callvalue)) ] }
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping)
+            (.storage (balanceOfRef sender)) (.env .callvalue)) ] }
 
 def fallbackTransition : TransitionDecl :=
   { name := "fallback"
@@ -161,7 +162,8 @@ def withdrawTransition : TransitionDecl :=
       nonpayable ++
         [ .require (.binary .ge (.storage (balanceOfRef sender)) (.var "wad")),
           .assign .storage (balanceOfRef sender)
-            (.binary .sub (.storage (balanceOfRef sender)) (.var "wad")),
+            (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping)
+              (.storage (balanceOfRef sender)) (.var "wad")),
           .lowLevelCall sender (.var "wad") emptyBytes "success" "_data",
           .require (.var "success") ] }
 
@@ -204,12 +206,15 @@ def transferFromTransition : TransitionDecl :=
               (.binary .ne (.storage (allowanceRef (.var "src") sender)) (.intLit maxUint256)))
             [ .require (.binary .ge (.storage (allowanceRef (.var "src") sender)) (.var "wad")),
               .assign .storage (allowanceRef (.var "src") sender)
-                (.binary .sub (.storage (allowanceRef (.var "src") sender)) (.var "wad")) ]
+                (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping)
+                  (.storage (allowanceRef (.var "src") sender)) (.var "wad")) ]
             [],
           .assign .storage (balanceOfRef (.var "src"))
-            (.binary .sub (.storage (balanceOfRef (.var "src"))) (.var "wad")),
+            (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping)
+              (.storage (balanceOfRef (.var "src"))) (.var "wad")),
           .assign .storage (balanceOfRef (.var "dst"))
-            (.binary .add (.storage (balanceOfRef (.var "dst"))) (.var "wad")),
+            (.binary (.add (.uint ⟨256, by decide⟩) .wrapping)
+              (.storage (balanceOfRef (.var "dst"))) (.var "wad")),
           .return [.boolLit true] ] }
 
 def contract : ContractDecl :=

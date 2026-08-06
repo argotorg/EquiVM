@@ -93,7 +93,8 @@ theorem flapBeforeDaiSuccess
       bindParams? addFunction.params
           [.int (Int.ofNat vatSin0.toNat), .int (Int.ofNat BumpVal.toNat)] =
         some (uintBinaryLocals vatSin0 BumpVal) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" vatSin0 BumpVal
   have hsurplus0Stmt :
       ExecStmt config { contract := contract, locals := locals1 } evmSin
         (.internalCall "add" [.var "vatSin0", .storage bumpRef] "surplus0")
@@ -133,7 +134,8 @@ theorem flapBeforeDaiSuccess
       bindParams? addFunction.params
           [.int (Int.ofNat surplus0.toNat), .int (Int.ofNat HumpVal.toNat)] =
         some (uintBinaryLocals surplus0 HumpVal) := by
-    simp [addFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [addFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" surplus0 HumpVal
   have hsurplusNeedStmt :
       ExecStmt config { contract := contract, locals := locals2 } evmSin
         (.internalCall "add" [.var "surplus0", .storage humpRef] "surplusNeed")

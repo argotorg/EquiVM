@@ -35,9 +35,9 @@ def WAD : Int := 1000000000000000000
 def int256Limit : Int := 57896044618658097711785492504343953926634992332820282019728792003956564819968
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
-def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
-def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
+def add256 (x y : Expr) : Expr := u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) x y)
+def sub256 (x y : Expr) : Expr := u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)
+def mul256 (x y : Expr) : Expr := u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) x y)
 def asInt256 (e : Expr) : Expr := .cast e int256St
 
 def zeroPad28 : List UInt8 := List.replicate 28 0
@@ -209,7 +209,7 @@ def checkedMulUintInto (name : Ident) (x y : Expr) : List Stmt :=
     .require
       (.binary .or
         (.binary .eq y (.intLit 0))
-        (.binary .eq (.binary .div (.var name) y) x)) ]
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x)) ]
 
 /-! ## Constructor and internal functions -/
 
@@ -393,9 +393,9 @@ def barkBodyRest (v : DogImmutables) : List Stmt :=
       checkedSubUintInto "ilkRoom" (.var "milkHole") (.var "milkDirt") ++
       [ .internalCall "min" [.var "globalRoom", .var "ilkRoom"] "room" ] ++
       checkedMulUintInto "roomWad" (.var "room") (.intLit WAD) ++
-      [ .letDecl "dartByRate" (some uint256) (.binary .div (.var "roomWad") (.var "rate")),
+      [ .letDecl "dartByRate" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "roomWad") (.var "rate")),
         .letDecl "dartCandidate" (some uint256)
-          (.binary .div (.var "dartByRate") (.var "milkChop")),
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "dartByRate") (.var "milkChop")),
         .internalCall "min" [.var "art", .var "dartCandidate"] "dart",
         .ite
           (.binary .gt (.var "art") (.var "dart"))
@@ -408,7 +408,7 @@ def barkBodyRest (v : DogImmutables) : List Stmt :=
                   [ .require (.binary .ge (.var "partialDue") (.var "dust")) ]) ])
           [] ] ++
       checkedMulUintInto "inkDart" (.var "ink") (.var "dart") ++
-      [ .letDecl "dink" (some uint256) (.binary .div (.var "inkDart") (.var "art")),
+      [ .letDecl "dink" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "inkDart") (.var "art")),
         .require (.binary .gt (.var "dink") (.intLit 0)),
         .require
           (.binary .and
@@ -421,7 +421,7 @@ def barkBodyRest (v : DogImmutables) : List Stmt :=
       checkedMulUintInto "due" (.var "dart") (.var "rate") ++
       checkedExternalCallStmts vowAddr "fess" (.intLit 0) [.var "due"] "_fessRet" ++
       checkedMulUintInto "tabBase" (.var "due") (.var "milkChop") ++
-      [ .letDecl "tab" (some uint256) (.binary .div (.var "tabBase") (.intLit WAD)) ] ++
+      [ .letDecl "tab" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "tabBase") (.intLit WAD)) ] ++
       checkedAddUintInto "DirtNew" (.storage DirtRef) (.var "tab") ++
       [ .assign .storage DirtRef (.var "DirtNew") ] ++
       checkedAddUintInto "ilkDirtNew" (.var "milkDirt") (.var "tab") ++

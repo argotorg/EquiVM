@@ -18,6 +18,32 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
 namespace Benchmarks.Dss.Vat
 
+theorem evalExpr_wordWrap256_uint256_word_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {expr : Expr} {result : UInt256}
+    (hexpr : evalExpr? cfg solm evm expr = .ok (.int (Int.ofNat result.toNat))) :
+    evalExpr? cfg solm evm (wordWrap256 expr) =
+      .ok (.int (Int.ofNat result.toNat)) := by
+  have hmodulus :
+      evalExpr? cfg solm evm (.intLit (Int.ofNat EVM.wordModulus)) =
+        .ok (.int (Int.ofNat EVM.wordModulus)) := by
+    simp [evalExpr?, pure]
+  have hnonneg : 0 ≤ Int.ofNat result.toNat := Int.natCast_nonneg _
+  have hmodulusPos : 0 < Int.ofNat EVM.wordModulus := by
+    norm_num [EVM.wordModulus, EVM.twoPow]
+  have hlt : Int.ofNat result.toNat < Int.ofNat EVM.wordModulus :=
+    Int.ofNat_lt.mpr result.val.isLt
+  have hfit :
+      Int.ofNat result.toNat % Int.ofNat EVM.wordModulus <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [Int.emod_eq_of_lt hnonneg hlt]
+    simpa using hlt
+  have hmod := evalExpr_mod_uint_nonneg_ok
+    (cfg := cfg) (solm := solm) (evm := evm) (lhs := expr)
+    (rhs := .intLit (Int.ofNat EVM.wordModulus)) (bits := ⟨256, by decide⟩)
+    hexpr hmodulus hnonneg hmodulusPos hfit
+  rw [Int.emod_eq_of_lt hnonneg hlt] at hmod
+  simpa [wordWrap256] using hmod
+
 /-- The 4-byte selector word computed by `CALLDATALOAD(0); SHR 224`. -/
 abbrev vatSelWord (I : ExecutionEnv) : UInt256 :=
   UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩

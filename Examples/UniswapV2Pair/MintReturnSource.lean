@@ -39,7 +39,7 @@ theorem evalExpr_mint_kLastReserveProduct_of_storage
       mintFeeReserveProductNat (uniswapReserve0Word evm) (uniswapReserve1Word evm) <
         UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) =
+      (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) =
         .ok (mintKLastProductValue evm) := by
   have hguard :
       ¬ (Int.ofNat (uniswapReserve0Word evm).toNat *
@@ -70,9 +70,19 @@ theorem evalExpr_mint_kLastReserveProduct_of_storage
           ((uniswapReserve0Word evm).toNat * (uniswapReserve1Word evm).toNat)).toNat =
         (uniswapReserve0Word evm).toNat * (uniswapReserve1Word evm).toNat := by
     simpa [mintFeeReserveProductNat] using htoNat
+  have hmulEval :
+      evalBinaryOp? (.mul (.uint ⟨256, by decide⟩) .checked)
+          (.int (Int.ofNat (uniswapReserve0Word evm).toNat))
+          (.int (Int.ofNat (uniswapReserve1Word evm).toNat)) =
+        .ok (.int (Int.ofNat (uniswapReserve0Word evm).toNat *
+          Int.ofNat (uniswapReserve1Word evm).toNat)) := by
+    apply evalIntArithResult_checked_uint_ok
+    · exact Int.mul_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
+    · simpa [EVM.twoPow] using (not_le.mp (not_or.mp hguard).2)
   simp only [u256, evalExpr?, evalExpr_uniswap_reserve0 evm locals hreserve0Base,
     evalExpr_uniswap_reserve1 evm locals hreserve1Base, EvalResult.bind, bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
+  rw [hmulEval]
+  simp only [uint256Int]
   rw [if_neg hguardBool]
   simp [mintKLastProductValue, mintFeeReserveProductValue, mintFeeReserveProductWord,
     mintFeeReserveProductNat, uniswapUint256Value, uint256Value, htoNat']
@@ -103,7 +113,7 @@ theorem uniswapMintAfterUpdateFeeOffReturn
     ExecBlock config { contract := contract, locals := locals } evm
       ([ .ite (.var "feeOn")
           [ .assign .storage kLastRef
-              (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+              (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
           [] ] ++
         lockExit ++
         [ .return [.var "liquidity"] ])
@@ -117,7 +127,7 @@ theorem uniswapMintAfterUpdateFeeOffReturn
       ExecStmt config { contract := contract, locals := locals } evm
         (.ite (.var "feeOn")
           [ .assign .storage kLastRef
-              (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+              (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
           [])
         (.ok { contract := contract, locals := locals } evm) :=
     ExecStmt.iteFalse hfee ExecBlock.nil
@@ -125,7 +135,7 @@ theorem uniswapMintAfterUpdateFeeOffReturn
       ExecBlock config { contract := contract, locals := locals } evm
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ]
         (.ok { contract := contract, locals := locals } evm) :=
     ExecBlock.consNormal hiteStmt ExecBlock.nil
@@ -157,7 +167,7 @@ theorem uniswapMintAfterUpdateFeeOnReturn
     ExecBlock config { contract := contract, locals := locals } evm
       ([ .ite (.var "feeOn")
           [ .assign .storage kLastRef
-              (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+              (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
           [] ] ++
         lockExit ++
         [ .return [.var "liquidity"] ])
@@ -171,7 +181,7 @@ theorem uniswapMintAfterUpdateFeeOnReturn
   have hassignStmt :
       ExecStmt config { contract := contract, locals := locals } evm
         (.assign .storage kLastRef
-          (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))))
+          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))))
         (.ok { contract := contract, locals := locals } (mintKLastUpdatedState evm)) :=
     ExecStmt.assign
       (evalExpr_mint_kLastReserveProduct_of_storage evm hreserve0Base hreserve1Base hfit)
@@ -179,14 +189,14 @@ theorem uniswapMintAfterUpdateFeeOnReturn
   have htrueBranch :
       ExecBlock config { contract := contract, locals := locals } evm
         [ .assign .storage kLastRef
-            (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+            (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
         (.ok { contract := contract, locals := locals } (mintKLastUpdatedState evm)) :=
     ExecBlock.consNormal hassignStmt ExecBlock.nil
   have hiteStmt :
       ExecStmt config { contract := contract, locals := locals } evm
         (.ite (.var "feeOn")
           [ .assign .storage kLastRef
-              (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+              (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
           [])
         (.ok { contract := contract, locals := locals } (mintKLastUpdatedState evm)) :=
     ExecStmt.iteTrue hfee htrueBranch
@@ -194,7 +204,7 @@ theorem uniswapMintAfterUpdateFeeOnReturn
       ExecBlock config { contract := contract, locals := locals } evm
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ]
         (.ok { contract := contract, locals := locals } (mintKLastUpdatedState evm)) :=
     ExecBlock.consNormal hiteStmt ExecBlock.nil
@@ -244,7 +254,7 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOffReturn
           (.var "_reserve0") (.var "_reserve1") ++
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
         lockExit ++
         [ .return [.var "liquidity"] ])
@@ -258,7 +268,7 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOffReturn
     uniswapMintLiquidityMintUpdateElapsedZeroPrefix (locals := locals) evm recipient
       balance0 balance1 reserve0 reserve1 liquidity hto hliq hbalance0 hbalance1
       hreserve0 hreserve1 hreserve0Base hreserve1Base hliqNonzero hfitSupply hfitBalance
-      hbound0 hbound1 helapsed
+      hbound0 hbound1 hreserve0Bound hreserve1Bound helapsed
   have hfeeAfter :
       afterUpdate.locals.get? "feeOn" = some (.bool false) := by
     change ((locals.insert "_mintResult" Value.unit).insert "_updateResult" Value.unit).get?
@@ -280,7 +290,7 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOffReturn
           balance0 balance1)
         ([ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
           lockExit ++
           [ .return [.var "liquidity"] ])
@@ -335,7 +345,7 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOnReturn
           (.var "_reserve0") (.var "_reserve1") ++
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
         lockExit ++
         [ .return [.var "liquidity"] ])
@@ -350,7 +360,7 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOnReturn
     uniswapMintLiquidityMintUpdateElapsedZeroPrefix (locals := locals) evm recipient
       balance0 balance1 reserve0 reserve1 liquidity hto hliq hbalance0 hbalance1
       hreserve0 hreserve1 hreserve0Base hreserve1Base hliqNonzero hfitSupply hfitBalance
-      hbound0 hbound1 helapsed
+      hbound0 hbound1 hreserve0Bound hreserve1Bound helapsed
   have hfeeAfter :
       afterUpdate.locals.get? "feeOn" = some (.bool true) := by
     change ((locals.insert "_mintResult" Value.unit).insert "_updateResult" Value.unit).get?
@@ -387,7 +397,7 @@ theorem uniswapMintLiquidityMintUpdateElapsedZeroFeeOnReturn
           balance0 balance1)
         ([ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
           lockExit ++
           [ .return [.var "liquidity"] ])
@@ -437,7 +447,7 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOffReturn
           (.var "_reserve0") (.var "_reserve1") ++
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
         lockExit ++
         [ .return [.var "liquidity"] ])
@@ -452,7 +462,7 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOffReturn
     uniswapMintLiquidityMintUpdateCumulativePrefix (locals := locals) evm recipient
       balance0 balance1 reserve0 reserve1 liquidity hto hliq hbalance0 hbalance1
       hreserve0 hreserve1 hreserve0Base hreserve1Base hliqNonzero hfitSupply hfitBalance
-      hbound0 hbound1 helapsed hreserve0Ne hreserve1Ne
+      hbound0 hbound1 hreserve0Bound hreserve1Bound helapsed hreserve0Ne hreserve1Ne
   have hfeeAfter :
       afterUpdate.locals.get? "feeOn" = some (.bool false) := by
     change ((locals.insert "_mintResult" Value.unit).insert "_updateResult" Value.unit).get?
@@ -474,7 +484,7 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOffReturn
           (mintFunctionPostState evm recipient liquidity) balance0 balance1 reserve0 reserve1)
         ([ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
           lockExit ++
           [ .return [.var "liquidity"] ])
@@ -535,7 +545,7 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOnReturn
           (.var "_reserve0") (.var "_reserve1") ++
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
         lockExit ++
         [ .return [.var "liquidity"] ])
@@ -551,7 +561,7 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOnReturn
     uniswapMintLiquidityMintUpdateCumulativePrefix (locals := locals) evm recipient
       balance0 balance1 reserve0 reserve1 liquidity hto hliq hbalance0 hbalance1
       hreserve0 hreserve1 hreserve0Base hreserve1Base hliqNonzero hfitSupply hfitBalance
-      hbound0 hbound1 helapsed hreserve0Ne hreserve1Ne
+      hbound0 hbound1 hreserve0Bound hreserve1Bound helapsed hreserve0Ne hreserve1Ne
   have hfeeAfter :
       afterUpdate.locals.get? "feeOn" = some (.bool true) := by
     change ((locals.insert "_mintResult" Value.unit).insert "_updateResult" Value.unit).get?
@@ -588,7 +598,7 @@ theorem uniswapMintLiquidityMintUpdateCumulativeFeeOnReturn
           (mintFunctionPostState evm recipient liquidity) balance0 balance1 reserve0 reserve1)
         ([ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
           lockExit ++
           [ .return [.var "liquidity"] ])
@@ -659,7 +669,7 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOffReturn
           (.var "_reserve0") (.var "_reserve1") ++
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
         lockExit ++
         [ .return [.var "liquidity"] ])
@@ -774,7 +784,7 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOffReturn
           (.var "_reserve0") (.var "_reserve1") ++
           [ .ite (.var "feeOn")
               [ .assign .storage kLastRef
-                  (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                  (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
               [] ] ++
           lockExit ++
           [ .return [.var "liquidity"] ])
@@ -788,7 +798,8 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOffReturn
         (locals := afterBranch.locals) evm recipient balance0 balance1 reserve0 reserve1
         liquidity htoAfter hliqAfter hbalance0After hbalance1After hfeeOnAfter
         hreserve0After hreserve1After hreserve0BaseAfter hreserve1BaseAfter
-        hunlockedBaseAfter hliqNonzero hfitSupply hfitBalance hbound0 hbound1 helapsed
+        hunlockedBaseAfter hliqNonzero hfitSupply hfitBalance hbound0 hbound1
+        hreserve0Bound hreserve1Bound helapsed
   simpa [List.append_assoc] using execBlock_append hbranch htail
 
 theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOffReturn
@@ -847,7 +858,7 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOffReturn
           (.var "_reserve0") (.var "_reserve1") ++
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
         lockExit ++
         [ .return [.var "liquidity"] ])
@@ -963,7 +974,7 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOffReturn
           (.var "_reserve0") (.var "_reserve1") ++
           [ .ite (.var "feeOn")
               [ .assign .storage kLastRef
-                  (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                  (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
               [] ] ++
           lockExit ++
           [ .return [.var "liquidity"] ])
@@ -978,8 +989,8 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOffReturn
         (locals := afterBranch.locals) evm recipient balance0 balance1 reserve0 reserve1
         liquidity htoAfter hliqAfter hbalance0After hbalance1After hfeeOnAfter
         hreserve0After hreserve1After hreserve0BaseAfter hreserve1BaseAfter
-        hunlockedBaseAfter hliqNonzero hfitSupply hfitBalance hbound0 hbound1 helapsed
-        hreserve0Post hreserve1Post
+        hunlockedBaseAfter hliqNonzero hfitSupply hfitBalance hbound0 hbound1
+        hreserve0Bound hreserve1Bound helapsed hreserve0Post hreserve1Post
   simpa [List.append_assoc] using execBlock_append hbranch htail
 
 theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOnReturn
@@ -1043,7 +1054,7 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOnReturn
           (.var "_reserve0") (.var "_reserve1") ++
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
         lockExit ++
         [ .return [.var "liquidity"] ])
@@ -1167,7 +1178,7 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOnReturn
           (.var "_reserve0") (.var "_reserve1") ++
           [ .ite (.var "feeOn")
               [ .assign .storage kLastRef
-                  (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                  (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
               [] ] ++
           lockExit ++
           [ .return [.var "liquidity"] ])
@@ -1183,7 +1194,7 @@ theorem uniswapMintProportionalLiquidityUpdateElapsedZeroFeeOnReturn
         liquidity htoAfter hliqAfter hbalance0After hbalance1After hfeeOnAfter
         hreserve0After hreserve1After hreserve0BaseAfter hreserve1BaseAfter
         hkLastBaseAfter hunlockedBaseAfter hliqNonzero hfitSupply hfitBalance hbound0
-        hbound1 helapsed hfitKLast
+        hbound1 hreserve0Bound hreserve1Bound helapsed hfitKLast
   simpa [List.append_assoc] using execBlock_append hbranch htail
 
 theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOnReturn
@@ -1254,7 +1265,7 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOnReturn
           (.var "_reserve0") (.var "_reserve1") ++
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
         lockExit ++
         [ .return [.var "liquidity"] ])
@@ -1379,7 +1390,7 @@ theorem uniswapMintProportionalLiquidityUpdateCumulativeFeeOnReturn
           (.var "_reserve0") (.var "_reserve1") ++
           [ .ite (.var "feeOn")
               [ .assign .storage kLastRef
-                  (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                  (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
               [] ] ++
           lockExit ++
           [ .return [.var "liquidity"] ])

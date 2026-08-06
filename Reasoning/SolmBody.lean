@@ -19,6 +19,453 @@ open Solm ABI Ethereum
 
 namespace Reasoning.Theory
 
+theorem evalExpr_checked_add_uint256_words_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} {a b result : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hresult : result.toNat = a.toNat + b.toNat)
+    (hfit : a.toNat + b.toNat < UInt256.size) :
+    evalExpr? cfg solm evm
+      (.binary (.add (.uint ⟨256, by decide⟩) .checked) lhs rhs) =
+      .ok (.int (Int.ofNat result.toNat)) := by
+  have hfitInt :
+      Int.ofNat a.toNat + Int.ofNat b.toNat < Int.ofNat (EVM.twoPow 256) := by
+    have hcast := Int.ofNat_lt.mpr hfit
+    simpa [UInt256.size, EVM.twoPow, Nat.cast_add] using hcast
+  have hinner := evalExpr_checked_add_uint_ok ⟨256, by decide⟩
+    (Int.ofNat a.toNat) (Int.ofNat b.toNat) hlhs hrhs
+    (Int.add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)) hfitInt
+  simpa [hresult, Nat.cast_add] using hinner
+
+theorem evalExpr_checked_add_uint256_word_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} {a b result : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hresult : result.toNat = a.toNat + b.toNat)
+    (hfit : a.toNat + b.toNat < UInt256.size) :
+    evalExpr? cfg solm evm
+      (.inRange (.uint ⟨256, by decide⟩)
+        (.binary (.add (.uint ⟨256, by decide⟩) .checked) lhs rhs)) =
+      .ok (.int (Int.ofNat result.toNat)) := by
+  have hfitInt :
+      Int.ofNat a.toNat + Int.ofNat b.toNat < Int.ofNat (EVM.twoPow 256) := by
+    have hcast := Int.ofNat_lt.mpr hfit
+    simpa [UInt256.size, EVM.twoPow, Nat.cast_add] using hcast
+  have hinner := evalExpr_checked_add_uint_ok ⟨256, by decide⟩
+    (Int.ofNat a.toNat) (Int.ofNat b.toNat) hlhs hrhs
+    (Int.add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)) hfitInt
+  have houter := evalExpr_inRange_uint cfg solm evm
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked) lhs rhs) ⟨256, by decide⟩
+    (Int.ofNat a.toNat + Int.ofNat b.toNat) hinner
+    (Int.add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)) hfitInt
+  simpa [hresult, Nat.cast_add] using houter
+
+theorem evalExpr_checked_add_uint256_word_revert_of_overflow {cfg : Config}
+    {solm : Frame} {evm : EVM.State} {lhs rhs : Expr} {a b : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hoverflow : UInt256.size ≤ a.toNat + b.toNat) :
+    evalExpr? cfg solm evm
+      (.inRange (.uint ⟨256, by decide⟩)
+        (.binary (.add (.uint ⟨256, by decide⟩) .checked) lhs rhs)) = .revert := by
+  have hoverflowInt :
+      Int.ofNat (EVM.twoPow 256) ≤ Int.ofNat a.toNat + Int.ofNat b.toNat := by
+    have hcast := Int.ofNat_le.mpr hoverflow
+    simpa [UInt256.size, EVM.twoPow, Nat.cast_add] using hcast
+  have hinner := evalExpr_checked_add_uint_revert_of_overflow ⟨256, by decide⟩
+    (Int.ofNat a.toNat) (Int.ofNat b.toNat) hlhs hrhs hoverflowInt
+  exact evalExpr_inRange_revert cfg solm evm
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked) lhs rhs)
+    (.uint ⟨256, by decide⟩) hinner
+
+theorem normalizeInt_uint256_add_words (a b : UInt256) :
+    normalizeInt (.uint ⟨256, by decide⟩)
+        (Int.ofNat a.toNat + Int.ofNat b.toNat) =
+      Int.ofNat (a + b).toNat := by
+  rw [uadd_toNat]
+  simp only [normalizeInt]
+  rw [show EVM.twoPow 256 = UInt256.size by rfl]
+  simp only [Int.ofNat_eq_natCast]
+  norm_cast
+
+theorem evalExpr_wrapping_add_uint256_word_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} {a b result : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hresult : result = a + b) :
+    evalExpr? cfg solm evm
+      (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) lhs rhs) =
+      .ok (.int (Int.ofNat result.toNat)) := by
+  subst result
+  have hinner := evalExpr_wrapping_add_int (.uint ⟨256, by decide⟩)
+    (Int.ofNat a.toNat) (Int.ofNat b.toNat) hlhs hrhs
+  rw [normalizeInt_uint256_add_words] at hinner
+  exact hinner
+
+theorem evalExpr_checked_sub_uint256_word_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} {a b result : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hresult : result.toNat = a.toNat - b.toNat)
+    (hle : b.toNat ≤ a.toNat) :
+    evalExpr? cfg solm evm
+      (.inRange (.uint ⟨256, by decide⟩)
+        (.binary (.sub (.uint ⟨256, by decide⟩) .checked) lhs rhs)) =
+      .ok (.int (Int.ofNat result.toNat)) := by
+  have hsub :
+      Int.ofNat a.toNat - Int.ofNat b.toNat = Int.ofNat (a.toNat - b.toNat) := by
+    exact (Int.ofNat_sub hle).symm
+  have hfitNat : a.toNat - b.toNat < UInt256.size :=
+    lt_of_le_of_lt (Nat.sub_le a.toNat b.toNat) a.val.isLt
+  have hfitInt :
+      Int.ofNat a.toNat - Int.ofNat b.toNat < Int.ofNat (EVM.twoPow 256) := by
+    rw [hsub]
+    exact Int.ofNat_lt.mpr (by simpa [UInt256.size, EVM.twoPow] using hfitNat)
+  have hnonneg : 0 ≤ Int.ofNat a.toNat - Int.ofNat b.toNat := by
+    exact sub_nonneg.mpr (Int.ofNat_le.mpr hle)
+  have hinner := evalExpr_checked_sub_uint_ok ⟨256, by decide⟩
+    (Int.ofNat a.toNat) (Int.ofNat b.toNat) hlhs hrhs hnonneg hfitInt
+  have houter := evalExpr_inRange_uint cfg solm evm
+    (.binary (.sub (.uint ⟨256, by decide⟩) .checked) lhs rhs) ⟨256, by decide⟩
+    (Int.ofNat a.toNat - Int.ofNat b.toNat) hinner hnonneg hfitInt
+  rw [hsub] at houter
+  simpa [hresult] using houter
+
+theorem evalExpr_checked_sub_uint256_word_revert_of_underflow {cfg : Config}
+    {solm : Frame} {evm : EVM.State} {lhs rhs : Expr} {a b : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hunderflow : a.toNat < b.toNat) :
+    evalExpr? cfg solm evm
+      (.inRange (.uint ⟨256, by decide⟩)
+        (.binary (.sub (.uint ⟨256, by decide⟩) .checked) lhs rhs)) = .revert := by
+  have hneg : Int.ofNat a.toNat - Int.ofNat b.toNat < 0 := by
+    exact sub_neg.mpr (Int.ofNat_lt.mpr hunderflow)
+  have hinner := evalExpr_checked_sub_uint_revert_of_neg ⟨256, by decide⟩
+    (Int.ofNat a.toNat) (Int.ofNat b.toNat) hlhs hrhs hneg
+  exact evalExpr_inRange_revert cfg solm evm
+    (.binary (.sub (.uint ⟨256, by decide⟩) .checked) lhs rhs)
+    (.uint ⟨256, by decide⟩) hinner
+
+theorem normalizeInt_uint256_sub_words (a b : UInt256) :
+    normalizeInt (.uint ⟨256, by decide⟩)
+        (Int.ofNat a.toNat - Int.ofNat b.toNat) =
+      Int.ofNat (UInt256.sub a b).toNat := by
+  by_cases hle : b.toNat ≤ a.toNat
+  · rw [usub_toNat hle]
+    have hsub :
+        Int.ofNat a.toNat - Int.ofNat b.toNat =
+          Int.ofNat (a.toNat - b.toNat) :=
+      (Int.ofNat_sub hle).symm
+    rw [hsub]
+    apply normalizeInt_uint_eq_self
+    · exact Int.natCast_nonneg _
+    · apply Int.ofNat_lt.mpr
+      exact lt_of_le_of_lt (Nat.sub_le a.toNat b.toNat) a.val.isLt
+  · have hlt : a.toNat < b.toNat := Nat.lt_of_not_ge hle
+    rw [usub_toNat_underflow hlt]
+    have hbLe : b.toNat ≤ UInt256.size + a.toNat := by
+      exact le_trans (Nat.le_of_lt b.val.isLt) (Nat.le_add_right UInt256.size a.toNat)
+    have hwrappedNonneg :
+        0 ≤ Int.ofNat (UInt256.size + a.toNat - b.toNat) :=
+      Int.natCast_nonneg _
+    have hwrappedLt : UInt256.size + a.toNat - b.toNat < UInt256.size := by
+      omega
+    have hcast :
+        Int.ofNat (UInt256.size + a.toNat - b.toNat) =
+          Int.ofNat UInt256.size + Int.ofNat a.toNat - Int.ofNat b.toNat := by
+      simp only [Int.ofNat_eq_natCast]
+      omega
+    simp only [normalizeInt]
+    rw [show EVM.twoPow 256 = UInt256.size by rfl]
+    rw [show
+      (Int.ofNat a.toNat - Int.ofNat b.toNat) % Int.ofNat UInt256.size =
+        (Int.ofNat UInt256.size + Int.ofNat a.toNat - Int.ofNat b.toNat) %
+          Int.ofNat UInt256.size by
+        rw [show
+          Int.ofNat UInt256.size + Int.ofNat a.toNat - Int.ofNat b.toNat =
+            Int.ofNat UInt256.size +
+              (Int.ofNat a.toNat - Int.ofNat b.toNat) by omega,
+          Int.add_emod]
+        simp]
+    rw [← hcast]
+    exact Int.emod_eq_of_lt hwrappedNonneg (Int.ofNat_lt.mpr hwrappedLt)
+
+theorem evalExpr_wrapping_sub_uint256_word_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} {a b result : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hresult : result = UInt256.sub a b) :
+    evalExpr? cfg solm evm
+      (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) lhs rhs) =
+      .ok (.int (Int.ofNat result.toNat)) := by
+  subst result
+  have hinner := evalExpr_wrapping_sub_int (.uint ⟨256, by decide⟩)
+    (Int.ofNat a.toNat) (Int.ofNat b.toNat) hlhs hrhs
+  rw [normalizeInt_uint256_sub_words] at hinner
+  exact hinner
+
+theorem evalExpr_cast_sint256_word {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {expr : Expr} {word : UInt256}
+    (heval : evalExpr? cfg solm evm expr = .ok (.int (Int.ofNat word.toNat))) :
+    evalExpr? cfg solm evm
+      (.cast expr (.elem (.int (.sint ⟨256, by decide⟩)))) =
+      .ok (.int (EVM.signed word)) := by
+  have hcast := evalExpr_cast_int (intType := .sint ⟨256, by decide⟩) heval
+  rw [normalizeInt_sint256_word_eq_signed] at hcast
+  exact hcast
+
+theorem evalExpr_wrapping_sub_sint256_words_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} {a b : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat))) :
+    evalExpr? cfg solm evm
+      (.binary (.sub (.sint ⟨256, by decide⟩) .wrapping)
+        (.cast lhs (.elem (.int (.sint ⟨256, by decide⟩))))
+        (.cast rhs (.elem (.int (.sint ⟨256, by decide⟩))))) =
+      .ok (.int (normalizeInt (.sint ⟨256, by decide⟩) (EVM.signed a - EVM.signed b))) := by
+  exact evalExpr_wrapping_sub_int (.sint ⟨256, by decide⟩) (EVM.signed a) (EVM.signed b)
+    (evalExpr_cast_sint256_word hlhs) (evalExpr_cast_sint256_word hrhs)
+
+theorem evalExpr_checked_mul_uint256_word_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} {a b result : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hresult : result.toNat = a.toNat * b.toNat)
+    (hfit : a.toNat * b.toNat < UInt256.size) :
+    evalExpr? cfg solm evm
+      (.inRange (.uint ⟨256, by decide⟩)
+        (.binary (.mul (.uint ⟨256, by decide⟩) .checked) lhs rhs)) =
+      .ok (.int (Int.ofNat result.toNat)) := by
+  have hfitInt :
+      Int.ofNat a.toNat * Int.ofNat b.toNat < Int.ofNat (EVM.twoPow 256) := by
+    have hcast := Int.ofNat_lt.mpr hfit
+    simpa [UInt256.size, EVM.twoPow, Nat.cast_mul] using hcast
+  have hinner := evalExpr_checked_mul_uint_ok ⟨256, by decide⟩
+    (Int.ofNat a.toNat) (Int.ofNat b.toNat) hlhs hrhs
+    (Int.mul_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)) hfitInt
+  have houter := evalExpr_inRange_uint cfg solm evm
+    (.binary (.mul (.uint ⟨256, by decide⟩) .checked) lhs rhs) ⟨256, by decide⟩
+    (Int.ofNat a.toNat * Int.ofNat b.toNat) hinner
+    (Int.mul_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)) hfitInt
+  simpa [hresult, Nat.cast_mul] using houter
+
+theorem evalExpr_checked_mul_uint256_word_revert_of_overflow {cfg : Config}
+    {solm : Frame} {evm : EVM.State} {lhs rhs : Expr} {a b : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hoverflow : UInt256.size ≤ a.toNat * b.toNat) :
+    evalExpr? cfg solm evm
+      (.inRange (.uint ⟨256, by decide⟩)
+        (.binary (.mul (.uint ⟨256, by decide⟩) .checked) lhs rhs)) = .revert := by
+  have hoverflowInt :
+      Int.ofNat (EVM.twoPow 256) ≤ Int.ofNat a.toNat * Int.ofNat b.toNat := by
+    have hcast := Int.ofNat_le.mpr hoverflow
+    simpa [UInt256.size, EVM.twoPow, Nat.cast_mul] using hcast
+  have hinner := evalExpr_checked_mul_uint_revert_of_overflow ⟨256, by decide⟩
+    (Int.ofNat a.toNat) (Int.ofNat b.toNat) hlhs hrhs hoverflowInt
+  exact evalExpr_inRange_revert cfg solm evm
+    (.binary (.mul (.uint ⟨256, by decide⟩) .checked) lhs rhs)
+    (.uint ⟨256, by decide⟩) hinner
+
+theorem normalizeInt_uint256_mul_words (a b : UInt256) :
+    normalizeInt (.uint ⟨256, by decide⟩)
+        (Int.ofNat a.toNat * Int.ofNat b.toNat) =
+      Int.ofNat (a * b).toNat := by
+  rw [u256_mul_op_toNat]
+  simp only [normalizeInt]
+  rw [show EVM.twoPow 256 = UInt256.size by rfl]
+  simp only [Int.ofNat_eq_natCast]
+  norm_cast
+
+theorem evalExpr_wrapping_mul_uint256_word_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} {a b result : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hresult : result = a * b) :
+    evalExpr? cfg solm evm
+      (.binary (.mul (.uint ⟨256, by decide⟩) .wrapping) lhs rhs) =
+      .ok (.int (Int.ofNat result.toNat)) := by
+  subst result
+  have hinner := evalExpr_wrapping_mul_int (.uint ⟨256, by decide⟩)
+    (Int.ofNat a.toNat) (Int.ofNat b.toNat) hlhs hrhs
+  rw [normalizeInt_uint256_mul_words] at hinner
+  exact hinner
+
+theorem evalExpr_checked_div_uint256_word_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} {a b result : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hrhsNonzero : b ≠ ⟨0⟩)
+    (hresult : result.toNat = a.toNat / b.toNat) :
+    evalExpr? cfg solm evm
+      (.binary (.div (.uint ⟨256, by decide⟩) .checked) lhs rhs) =
+      .ok (.int (Int.ofNat result.toNat)) := by
+  have hrhsNatNonzero : b.toNat ≠ 0 := by
+    intro hzero
+    exact hrhsNonzero (uint256_toNat_eq_zero hzero)
+  have hfitNat : a.toNat / b.toNat < UInt256.size :=
+    lt_of_le_of_lt (Nat.div_le_self a.toNat b.toNat) a.val.isLt
+  have hdiv :
+      (Int.ofNat a.toNat).tdiv (Int.ofNat b.toNat) =
+        Int.ofNat (a.toNat / b.toNat) :=
+    (Int.ofNat_tdiv a.toNat b.toNat).symm
+  have hfitInt :
+      (Int.ofNat a.toNat).tdiv (Int.ofNat b.toNat) < Int.ofNat (EVM.twoPow 256) := by
+    rw [hdiv]
+    exact Int.ofNat_lt.mpr (by simpa [UInt256.size, EVM.twoPow] using hfitNat)
+  have hinner := evalExpr_checked_div_uint_ok ⟨256, by decide⟩
+    (Int.ofNat a.toNat) (Int.ofNat b.toNat) hlhs hrhs
+    (Int.ofNat_ne_zero.mpr hrhsNatNonzero)
+    (Int.tdiv_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)) hfitInt
+  simpa [hresult, hdiv] using hinner
+
+theorem evalExpr_checked_div_uint256_word_revert_of_zero {cfg : Config}
+    {solm : Frame} {evm : EVM.State} {lhs rhs : Expr} {a b : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hrhsZero : b = ⟨0⟩) :
+    evalExpr? cfg solm evm
+      (.binary (.div (.uint ⟨256, by decide⟩) .checked) lhs rhs) = .revert := by
+  subst b
+  exact evalExpr_checked_div_uint_revert_of_zero ⟨256, by decide⟩
+    (Int.ofNat a.toNat) hlhs (by simpa using hrhs)
+
+theorem evalExpr_mod_uint_nonneg_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} {bits : BitWidth} {lhsValue rhsValue : Int}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int lhsValue))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int rhsValue))
+    (hlhsNonneg : 0 ≤ lhsValue) (hrhsPos : 0 < rhsValue)
+    (hfit : lhsValue % rhsValue < Int.ofNat (EVM.twoPow bits.val)) :
+    evalExpr? cfg solm evm (.binary (.mod (.uint bits)) lhs rhs) =
+      .ok (.int (lhsValue % rhsValue)) := by
+  have htmod : lhsValue.tmod rhsValue = lhsValue % rhsValue :=
+    Int.tmod_eq_emod_of_nonneg hlhsNonneg
+  have hnonneg : 0 ≤ lhsValue.tmod rhsValue :=
+    Int.tmod_nonneg rhsValue hlhsNonneg
+  simpa [htmod] using evalExpr_mod_uint_ok bits lhsValue rhsValue hlhs hrhs
+    (ne_of_gt hrhsPos) hnonneg (by simpa [htmod] using hfit)
+
+theorem evalExpr_mod_uint256_word_nat_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} {a : UInt256} {modulus : Nat}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat modulus)))
+    (hmodulus : 0 < modulus) :
+    evalExpr? cfg solm evm (.binary (.mod (.uint ⟨256, by decide⟩)) lhs rhs) =
+      .ok (.int (Int.ofNat (a.toNat % modulus))) := by
+  have hfitNat : a.toNat % modulus < UInt256.size :=
+    lt_of_le_of_lt (Nat.mod_le a.toNat modulus) a.val.isLt
+  have hfit :
+      Int.ofNat a.toNat % Int.ofNat modulus < Int.ofNat (EVM.twoPow 256) := by
+    simpa only [Int.natCast_emod, UInt256.size, EVM.twoPow] using Int.ofNat_lt.mpr hfitNat
+  have hresult := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩) hlhs hrhs
+    (Int.natCast_nonneg _) (Int.ofNat_lt.mpr hmodulus) hfit
+  simpa only [Int.natCast_emod] using hresult
+
+theorem evalExpr_mod_uint256_words_ok {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} {a b : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hrhsNonzero : b ≠ ⟨0⟩) :
+    evalExpr? cfg solm evm (.binary (.mod (.uint ⟨256, by decide⟩)) lhs rhs) =
+      .ok (.int (Int.ofNat (a.toNat % b.toNat))) := by
+  have hrhsNatNonzero : b.toNat ≠ 0 := by
+    intro hzero
+    exact hrhsNonzero (uint256_toNat_eq_zero hzero)
+  have hrhsPos : 0 < Int.ofNat b.toNat := by
+    exact Int.ofNat_lt.mpr (Nat.pos_of_ne_zero hrhsNatNonzero)
+  have hrhsBound : Int.ofNat b.toNat < Int.ofNat (EVM.twoPow 256) := by
+    apply Int.ofNat_lt.mpr
+    exact b.val.isLt
+  have hfit :
+      Int.ofNat a.toNat % Int.ofNat b.toNat < Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hrhsPos) hrhsBound
+  have hresult := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩) hlhs hrhs
+    (Int.natCast_nonneg _) hrhsPos hfit
+  simpa only [Int.natCast_emod] using hresult
+
+theorem evalExpr_mod_uint256_words_revert_of_zero {cfg : Config} {solm : Frame}
+    {evm : EVM.State} {lhs rhs : Expr} {a b : UInt256}
+    (hlhs : evalExpr? cfg solm evm lhs = .ok (.int (Int.ofNat a.toNat)))
+    (hrhs : evalExpr? cfg solm evm rhs = .ok (.int (Int.ofNat b.toNat)))
+    (hrhsZero : b = ⟨0⟩) :
+    evalExpr? cfg solm evm (.binary (.mod (.uint ⟨256, by decide⟩)) lhs rhs) = .revert := by
+  subst b
+  exact evalExpr_mod_uint_revert_of_zero ⟨256, by decide⟩
+    (Int.ofNat a.toNat) hlhs (by simpa using hrhs)
+
+theorem bindParams_uint256_pair (xName yName : Ident) (x y : UInt256) :
+    bindParams?
+        [{ name := xName, ty := .elem (.int (.uint ⟨256, by decide⟩)) },
+          { name := yName, ty := .elem (.int (.uint ⟨256, by decide⟩)) }]
+        [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] =
+      some (((∅ : Store).insert yName (.int (Int.ofNat y.toNat))).insert xName
+        (.int (Int.ofNat x.toNat))) := by
+  simp only [bindParams?, valueMatchesABIType_uint256_word, ↓reduceIte]
+  rfl
+
+theorem bindParams_uint256_triple (xName yName zName : Ident) (x y z : UInt256) :
+    bindParams?
+        [{ name := xName, ty := .elem (.int (.uint ⟨256, by decide⟩)) },
+          { name := yName, ty := .elem (.int (.uint ⟨256, by decide⟩)) },
+          { name := zName, ty := .elem (.int (.uint ⟨256, by decide⟩)) }]
+        [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat), .int (Int.ofNat z.toNat)] =
+      some (((((∅ : Store).insert zName (.int (Int.ofNat z.toNat))).insert yName
+        (.int (Int.ofNat y.toNat))).insert xName (.int (Int.ofNat x.toNat)))) := by
+  simp only [bindParams?, valueMatchesABIType_uint256_word, ↓reduceIte]
+  rfl
+
+/-- A typed local declaration whose result is an EVM word represented as a Solm `uint256`. -/
+theorem ExecStmt.letDecl_uint256_word {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {name : Ident} {expr : Expr} {word : UInt256}
+    (heval : evalExpr? cfg solm evm expr = .ok (.int (Int.ofNat word.toNat))) :
+    ExecStmt cfg solm evm
+      (.letDecl name (some (.elem (.int (.uint ⟨256, by decide⟩)))) expr)
+      (.ok { solm with locals := solm.locals.insert name (.int (Int.ofNat word.toNat)) } evm) :=
+  ExecStmt.letDecl heval (valueMatchesOptionalABIType_uint256_word word)
+
+/-- A typed local declaration whose result is an EVM word fitting the declared unsigned width. -/
+theorem ExecStmt.letDecl_uint_word {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {name : Ident} {bits : BitWidth} {expr : Expr} {word : UInt256}
+    (heval : evalExpr? cfg solm evm expr = .ok (.int (Int.ofNat word.toNat)))
+    (hfit : word.toNat < EVM.twoPow bits.val) :
+    ExecStmt cfg solm evm
+      (.letDecl name (some (.elem (.int (.uint bits)))) expr)
+      (.ok { solm with locals := solm.locals.insert name (.int (Int.ofNat word.toNat)) } evm) :=
+  ExecStmt.letDecl heval (valueMatchesOptionalABIType_uint_word_of_lt bits word hfit)
+
+/-- A typed local declaration whose natural-number result fits the declared unsigned width. -/
+theorem ExecStmt.letDecl_uint_nat {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {name : Ident} {bits : BitWidth} {expr : Expr} {value : Nat}
+    (heval : evalExpr? cfg solm evm expr = .ok (.int (Int.ofNat value)))
+    (hfit : value < EVM.twoPow bits.val) :
+    ExecStmt cfg solm evm
+      (.letDecl name (some (.elem (.int (.uint bits)))) expr)
+      (.ok { solm with locals := solm.locals.insert name (.int (Int.ofNat value)) } evm) :=
+  ExecStmt.letDecl heval
+    (valueMatchesOptionalABIType_uint_of_bounds bits _ (Int.natCast_nonneg _)
+      (Int.ofNat_lt.mpr hfit))
+
+/-- A typed signed-256 declaration whose result is already in the canonical signed range. -/
+theorem ExecStmt.letDecl_sint256 {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {name : Ident} {expr : Expr} {value : Int}
+    (heval : evalExpr? cfg solm evm expr = .ok (.int value))
+    (hlo : -Int.ofNat (EVM.twoPow 255) ≤ value)
+    (hhi : value < Int.ofNat (EVM.twoPow 255)) :
+    ExecStmt cfg solm evm
+      (.letDecl name (some (.elem (.int (.sint ⟨256, by decide⟩)))) expr)
+      (.ok { solm with locals := solm.locals.insert name (.int value) } evm) :=
+  ExecStmt.letDecl heval (valueMatchesOptionalABIType_sint256_of_bounds value hlo hhi)
+
+/-- A typed local declaration whose result is a Solm address. -/
+theorem ExecStmt.letDecl_address {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {name : Ident} {expr : Expr} {address : EVM.Address}
+    (heval : evalExpr? cfg solm evm expr = .ok (.address address)) :
+    ExecStmt cfg solm evm
+      (.letDecl name (some (.elem .address)) expr)
+      (.ok { solm with locals := solm.locals.insert name (.address address) } evm) :=
+  ExecStmt.letDecl heval (valueMatchesOptionalABIType_address address)
+
 /-- The non-payable guard `callvalue == 0` evaluates to `true` when the call value is zero. -/
 theorem evalCallvalueEq_true {cfg : Config} {solm : Frame} {evm : EVM.State}
     (h : evm.executionEnv.weiValue = ⟨0⟩) :
@@ -144,22 +591,45 @@ abbrev uint256Value (w : UInt256) : Value :=
 theorem evalExpr_timestampModUint32 {cfg : Config} {solm : Frame} (evm : EVM.State) :
     evalExpr? cfg solm evm
       (.inRange (.uint ⟨32, by decide⟩)
-        (.binary .mod (.env .timestamp) (.intLit ((2 : Int) ^ 32)))) =
+        (.binary (.mod (.uint ⟨32, by decide⟩)) (.env .timestamp) (.intLit ((2 : Int) ^ 32)))) =
       .ok (.int (Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
         ((2 : Int) ^ 32))) := by
   simp only [evalExpr?, envValue, EvalResult.bind, bind, pure, evalBinaryOp?]
   norm_num
-  intro _hbad
+  rw [Int.tmod_eq_emod_of_nonneg (Int.natCast_nonneg _)]
   have hnonneg :
-      0 ≤ Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
+      0 ≤ ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat : Int) %
         (4294967296 : Int) := by
     exact Int.emod_nonneg _ (by norm_num)
   have hlt :
-      Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
+      ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat : Int) %
           (4294967296 : Int) <
         4294967296 := by
     exact Int.emod_lt_of_pos _ (by norm_num)
-  omega
+  have hlt32 :
+      ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat : Int) %
+          (4294967296 : Int) <
+        Int.ofNat (EVM.twoPow 32) := by
+    simpa [EVM.twoPow] using hlt
+  simp only [evalIntArithResult]
+  have hguard32Inner :
+      ¬ ((decide (((UInt256.ofNat evm.executionEnv.header.timestamp).toNat : Int) %
+            (4294967296 : Int) < 0) ||
+          decide (((UInt256.ofNat evm.executionEnv.header.timestamp).toNat : Int) %
+            (4294967296 : Int) ≥ Int.ofNat (EVM.twoPow 32))) = true) := by
+    simp only [Bool.or_eq_true, decide_eq_true_eq]
+    omega
+  rw [if_neg hguard32Inner]
+  simp only
+  have hguard32 :
+      ¬ (((UInt256.ofNat evm.executionEnv.header.timestamp).toNat : Int) %
+          (4294967296 : Int) < 0 ∨
+        (2 : Int) ^ 32 ≤
+          ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat : Int) %
+            (4294967296 : Int)) := by
+    norm_num
+    omega
+  rw [if_neg hguard32]
 
 /-! ## Internal calls -/
 
@@ -689,9 +1159,10 @@ theorem ABlock.requireStep {cfg evm solm₀ stmts₀ solm rest} {cond : Expr}
 /-- A `let` binding (advances the cursor's locals). -/
 theorem ABlock.letStep {cfg evm solm₀ stmts₀ solm rest} {name ty expr value}
     (prev : ABlock cfg evm solm₀ stmts₀ solm (.letDecl name ty expr :: rest))
-    (heval : evalExpr? cfg solm evm expr = .ok value) :
+    (heval : evalExpr? cfg solm evm expr = .ok value)
+    (htype : valueMatchesOptionalABIType ty value = true) :
     ABlock cfg evm solm₀ stmts₀ { solm with locals := solm.locals.insert name value } rest :=
-  ⟨fun h => prev.run (ExecBlock.consNormal (ExecStmt.letDecl heval) h)⟩
+  ⟨fun h => prev.run (ExecBlock.consNormal (ExecStmt.letDecl heval htype) h)⟩
 
 /-- A `while` loop that runs to `.ok` at frame `solm'` (supply the loop fact, e.g. `execWhile_var`). -/
 theorem ABlock.whileStep {cfg evm solm₀ stmts₀ solm solm' rest} {cond body}

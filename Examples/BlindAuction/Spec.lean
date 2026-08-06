@@ -104,9 +104,9 @@ def constructorDecl : ConstructorDecl :=
     body :=
       [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
         .assign .storage beneficiaryRef (.var "beneficiaryAddress"),
-        .assign .storage biddingEndRef (u256 (.binary .add now (.var "biddingTime"))),
+        .assign .storage biddingEndRef (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) now (.var "biddingTime"))),
         .assign .storage revealEndRef
-          (u256 (.binary .add (.storage biddingEndRef) (.var "revealTime"))) ] }
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.storage biddingEndRef) (.var "revealTime"))) ] }
 
 /-! ## Internal helper -/
 
@@ -121,7 +121,7 @@ def placeBidFn : FunctionDecl :=
           [ .return [(.boolLit false)] ] [],
         .ite (.binary .ne (.storage highestBidderRef) zeroAddr)
           [ .assign .storage (pendingReturnsRef (.storage highestBidderRef))
-              (u256 (.binary .add
+              (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked)
                 (.storage (pendingReturnsRef (.storage highestBidderRef)))
                 (.storage highestBidRef))) ]
           [],
@@ -172,7 +172,7 @@ def revealTransition : TransitionDecl :=
         .for
           [ .letDecl "i" (some uint256) (.intLit 0) ]
           (.binary .lt (.var "i") (.var "length"))
-          [ .assign .localVar { base := "i" } (.binary .add (.var "i") (.intLit 1)) ]
+          [ .assign .localVar { base := "i" } (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ]
           [ -- `Bid storage bidToCheck = bids[msg.sender][i];`
             .letStorage "bidToCheck" (bidElemRef sender (.var "i")),
             .letDecl "value"  (some uint256)  (.index (.var "values")  (.var "i")),
@@ -184,13 +184,13 @@ def revealTransition : TransitionDecl :=
                       [ (uint256, .var "value"), (boolTy, .var "fake"), (bytes32, .var "secret") ])))
               [ .continue ] [],
             .assign .localVar { base := "refund" }
-              (u256 (.binary .add (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
+              (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.storage (aliasF "bidToCheck" "deposit")))),
             .ite (.binary .and (.unary .not (.var "fake"))
                                (.binary .ge (.storage (aliasF "bidToCheck" "deposit")) (.var "value")))
               [ .internalCall "placeBid" [sender, .var "value"] "ok",
                 .ite (.var "ok")
                   [ .assign .localVar { base := "refund" }
-                      (u256 (.binary .sub (.var "refund") (.var "value"))) ] [] ]
+                      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "refund") (.var "value"))) ] [] ]
               [],
             -- `bidToCheck.blindedBid = bytes32(0);`
             .assign .storage (aliasF "bidToCheck" "blindedBid") (.cast (.intLit 0) bytes32St) ],

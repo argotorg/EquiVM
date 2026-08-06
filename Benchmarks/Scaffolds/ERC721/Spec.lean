@@ -49,7 +49,7 @@ def sender : Expr := .env .caller
 def zeroAddr : Expr := .cast (.intLit 0) addrSt
 
 def wrap256 (e : Expr) : Expr :=
-  .binary .mod e (.intLit (Int.ofNat EVM.wordModulus))
+  .binary (.mod (.uint ⟨256, by decide⟩)) e (.intLit (Int.ofNat EVM.wordModulus))
 
 def ownerOfRef (id : Expr) : StorageRef := { base := "_ownerOf", steps := [.mindex id] }
 def balanceOfRef (a : Expr) : StorageRef := { base := "_balanceOf", steps := [.mindex a] }
@@ -160,9 +160,9 @@ def transferFromTransition : TransitionDecl :=
           (.binary .eq sender (.storage (getApprovedRef (.var "id"))))),
         -- unchecked { _balanceOf[from]--; _balanceOf[to]++; }
         .assign .storage (balanceOfRef (.var "from"))
-          (wrap256 (.binary .sub (.storage (balanceOfRef (.var "from"))) (.intLit 1))),
+          (wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.storage (balanceOfRef (.var "from"))) (.intLit 1))),
         .assign .storage (balanceOfRef (.var "to"))
-          (wrap256 (.binary .add (.storage (balanceOfRef (.var "to"))) (.intLit 1))),
+          (wrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (balanceOfRef (.var "to"))) (.intLit 1))),
         .assign .storage (ownerOfRef (.var "id")) (.var "to"),
         .delete (getApprovedRef (.var "id")) ] }
 

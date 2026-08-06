@@ -52,13 +52,13 @@ def uint64Modulus : Int := (2 : Int) ^ 64
 def uint192Modulus : Int := (2 : Int) ^ 192
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
-def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
-def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
-def wrap256 (e : Expr) : Expr := .binary .mod e (.intLit wordModulus)
-def wrap96 (e : Expr) : Expr := .binary .mod e (.intLit uint96Modulus)
-def wrap64 (e : Expr) : Expr := .binary .mod e (.intLit uint64Modulus)
-def wrap192 (e : Expr) : Expr := .binary .mod e (.intLit uint192Modulus)
+def add256 (x y : Expr) : Expr := u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) x y)
+def sub256 (x y : Expr) : Expr := u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)
+def mul256 (x y : Expr) : Expr := u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) x y)
+def wrap256 (e : Expr) : Expr := .binary (.mod (.uint ⟨256, by decide⟩)) e (.intLit wordModulus)
+def wrap96 (e : Expr) : Expr := .binary (.mod (.uint ⟨256, by decide⟩)) e (.intLit uint96Modulus)
+def wrap64 (e : Expr) : Expr := .binary (.mod (.uint ⟨256, by decide⟩)) e (.intLit uint64Modulus)
+def wrap192 (e : Expr) : Expr := .binary (.mod (.uint ⟨256, by decide⟩)) e (.intLit uint192Modulus)
 def tuple0 (e : Expr) : Expr := .tupleGet e 0
 def tuple1 (e : Expr) : Expr := .tupleGet e 1
 
@@ -294,12 +294,12 @@ def checkedMulUintInto (name : Ident) (x y : Expr) : List Stmt :=
     .require
       (.binary .or
         (.binary .eq y (.intLit 0))
-        (.binary .eq (.binary .div (.var name) y) x)) ]
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x)) ]
 -- Built-in wrapping `+`/`-` (bare solc `ADD`/`SUB`), unlike the reverting DSMath `add`/`sub` above.
 def wrappingSubInto (name : Ident) (x y : Expr) : List Stmt :=
-  [ .letDecl name (some uint256) (wrap256 (.binary .sub x y)) ]
+  [ .letDecl name (some uint256) (wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) x y)) ]
 def wrappingAddInto (name : Ident) (x y : Expr) : List Stmt :=
-  [ .letDecl name (some uint256) (wrap256 (.binary .add x y)) ]
+  [ .letDecl name (some uint256) (wrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) x y)) ]
 
 /-! ## Constructor and internal functions -/
 
@@ -335,15 +335,15 @@ def mulFunction : FunctionDecl :=
 def wmulFunction : FunctionDecl :=
   { name := "wmul", params := [{ name := "x", ty := uint256 }, { name := "y", ty := uint256 }],
     returnType := [uint256],
-    body := [ .internalCall "mul" [.var "x", .var "y"] "xy", .return [.binary .div (.var "xy") (.intLit WAD)] ] }
+    body := [ .internalCall "mul" [.var "x", .var "y"] "xy", .return [.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xy") (.intLit WAD)] ] }
 def rmulFunction : FunctionDecl :=
   { name := "rmul", params := [{ name := "x", ty := uint256 }, { name := "y", ty := uint256 }],
     returnType := [uint256],
-    body := [ .internalCall "mul" [.var "x", .var "y"] "xy", .return [.binary .div (.var "xy") (.intLit RAY)] ] }
+    body := [ .internalCall "mul" [.var "x", .var "y"] "xy", .return [.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xy") (.intLit RAY)] ] }
 def rdivFunction : FunctionDecl :=
   { name := "rdiv", params := [{ name := "x", ty := uint256 }, { name := "y", ty := uint256 }],
     returnType := [uint256],
-    body := [ .internalCall "mul" [.var "x", .intLit RAY] "xray", .return [.binary .div (.var "xray") (.var "y")] ] }
+    body := [ .internalCall "mul" [.var "x", .intLit RAY] "xray", .return [.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "xray") (.var "y")] ] }
 
 def getFeedPriceFunction (v : ClipperImmutables) : FunctionDecl :=
   { name := "getFeedPrice"
@@ -499,7 +499,7 @@ def kickTransition (v : ClipperImmutables) : TransitionDecl :=
       [ .require (.binary .gt (.var "tab") (.intLit 0)),
         .require (.binary .gt (.var "lot") (.intLit 0)),
         .require (.binary .ne (.var "usr") zeroAddr),
-        .letDecl "id" (some uint256) (wrap256 (.binary .add (.storage kicksRef) (.intLit 1))),
+        .letDecl "id" (some uint256) (wrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage kicksRef) (.intLit 1))),
         .assign .storage kicksRef (.var "id"),
         .require (.binary .gt (.var "id") (.intLit 0)),
         .push activeRef (some (.var "id")) ] ++
@@ -590,7 +590,7 @@ def takeTransition (v : ClipperImmutables) : TransitionDecl :=
         .ite
           (.binary .gt (.var "owe") (.var "tab"))
           [ .assign .localVar (varRef "owe") (.var "tab"),
-            .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ]
+            .assign .localVar (varRef "slice") (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "owe") (.var "price")) ]
           [ .ite
               (.binary .and (.binary .lt (.var "owe") (.var "tab")) (.binary .lt (.var "slice") (.var "lot")))
               ([ .letDecl "_chost" (some uint256) (.storage chostRef) ] ++
@@ -600,7 +600,7 @@ def takeTransition (v : ClipperImmutables) : TransitionDecl :=
                     ( [ .require (.binary .gt (.var "tab") (.var "_chost")) ] ++
                       wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                       [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
-                        .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ])
+                        .assign .localVar (varRef "slice") (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "owe") (.var "price")) ])
                     [] ])
               [] ] ] ++
       wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++

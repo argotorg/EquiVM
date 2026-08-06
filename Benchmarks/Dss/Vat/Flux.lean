@@ -1419,42 +1419,6 @@ theorem assignStorageRef_flux_dst_gem {evm evm' : EVM.State} {I : ExecutionEnv}
     (hloc := fluxStorageLayout_dst_gem I)
     (hstore := hstore)
 
-theorem fluxEvalExpr_add256_ok {evm : EVM.State} {locals : Store}
-    {x y : Expr} {a b sum : UInt256}
-    (hx : evalExpr? config { contract := contract, locals := locals } evm x =
-      .ok (.int (Int.ofNat a.toNat)))
-    (hy : evalExpr? config { contract := contract, locals := locals } evm y =
-      .ok (.int (Int.ofNat b.toNat)))
-    (hsum : sum = a + b)
-    (hfit : a.toNat + b.toNat < UInt256.size) :
-    evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
-      .ok (.int (Int.ofNat sum.toNat)) := by
-  have hlt : ¬ Int.ofNat (a.toNat + b.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  have hword : sum.toNat = a.toNat + b.toNat := by
-    rw [hsum, uadd_toNat, Nat.mod_eq_of_lt hfit]
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
-
-theorem fluxEvalExpr_add256_revert {evm : EVM.State} {locals : Store}
-    {x y : Expr} {a b : UInt256}
-    (hx : evalExpr? config { contract := contract, locals := locals } evm x =
-      .ok (.int (Int.ofNat a.toNat)))
-    (hy : evalExpr? config { contract := contract, locals := locals } evm y =
-      .ok (.int (Int.ofNat b.toNat)))
-    (hover : UInt256.size ≤ a.toNat + b.toNat) :
-    evalExpr? config { contract := contract, locals := locals } evm (add256 x y) =
-      .revert := by
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
-
 theorem fluxEvalExpr_ge_uint256_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : UInt256}
     (hlhs : evalExpr? config { contract := contract, locals := locals } evm lhs =
@@ -1555,7 +1519,10 @@ theorem vatFluxSourceOk
       evalExpr? config { contract := contract, locals := fluxStoreSrcGemNew I srcGemNew }
           evm1 (add256 (.storage (gemRef (.var "ilk") (.var "dst"))) (.var "wad")) =
         .ok (.int (Int.ofNat dstGemNew.toNat)) :=
-    fluxEvalExpr_add256_ok hdst hwadAfterSrc (by simp [dstGemNew]) hdstFit
+    evalExpr_checked_add_uint256_word_ok hdst hwadAfterSrc
+      (by rw [show dstGemNew = dstOld + fluxWadWord I by simp [dstGemNew], uadd_toNat,
+        Nat.mod_eq_of_lt hdstFit])
+      hdstFit
   have hdstGemNewEval :
       evalExpr? config { contract := contract, locals := fluxStoreDstGemNew I srcGemNew dstGemNew }
           evm1 (.var "dstGemNew") =
@@ -1623,10 +1590,10 @@ theorem vatFluxSourceOk
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hwish) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hsub) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqSub) ?_
     refine ExecBlock.consNormal (ExecStmt.assign hsrcGemNewEval hassignSrc) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hadd) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqAdd) ?_
     exact ExecBlock.consNormal (ExecStmt.assign hdstGemNewEval hassignDst) ExecBlock.nil
   simpa [ExecTransitionBody, fluxTransition, evm0, evm1, nonpayable,
@@ -1817,7 +1784,7 @@ theorem vatFluxSourceRevertDstOverflow
       evalExpr? config { contract := contract, locals := fluxStoreSrcGemNew I srcGemNew }
           evm1 (add256 (.storage (gemRef (.var "ilk") (.var "dst"))) (.var "wad")) =
         .revert :=
-    fluxEvalExpr_add256_revert hdst hwadAfterSrc hover
+    evalExpr_checked_add_uint256_word_revert_of_overflow hdst hwadAfterSrc hover
   have hblock :
       ExecBlock config { contract := contract, locals := fluxStore I } evm0
         (nonpayable ++
@@ -1846,7 +1813,7 @@ theorem vatFluxSourceRevertDstOverflow
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hwish) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hsub) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqSub) ?_
     refine ExecBlock.consNormal (ExecStmt.assign hsrcGemNewEval hassignSrc) ?_
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert hadd)

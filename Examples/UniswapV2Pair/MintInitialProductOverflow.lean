@@ -13,7 +13,7 @@ theorem evalExpr_mint_amountProduct_overflow
     (hamount1 : locals.get? "amount1" = some (uniswapUint256Value amount1))
     (hover : UInt256.size ≤ amount0.toNat * amount1.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (u256 (.binary .mul (.var "amount0") (.var "amount1"))) = .revert := by
+      (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))) = .revert := by
   exact evalExpr_uint256_mul_overflow
     (by simp only [evalExpr?, EvalResult.ofOption, hamount0])
     (by simp only [evalExpr?, EvalResult.ofOption, hamount1]) hover
@@ -24,7 +24,7 @@ theorem evalExprs_mint_initialSqrtArg_overflow
     (hamount1 : locals.get? "amount1" = some (uniswapUint256Value amount1))
     (hover : UInt256.size ≤ amount0.toNat * amount1.toNat) :
     evalExprs? config { contract := contract, locals := locals } evm
-      [u256 (.binary .mul (.var "amount0") (.var "amount1"))] = .revert := by
+      [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))] = .revert := by
   simp only [evalExprs?, evalExpr_mint_amountProduct_overflow evm amount0 amount1
     hamount0 hamount1 hover, EvalResult.bind, bind]
 
@@ -40,13 +40,13 @@ theorem uniswapMintInitialLiquidityBranchStmtProductOverflowReverts
   have hcond := evalExpr_mint_totalSupply_eq_zero_true evm htotal
   have hargs :
       evalExprs? config caller evm
-        [u256 (.binary .mul (.var "amount0") (.var "amount1"))] = .revert := by
+        [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))] = .revert := by
     simpa [caller] using
       evalExprs_mint_initialSqrtArg_overflow evm amount0 amount1 hamount0 hamount1
         hover
   have hsqrt :
       ExecStmt config caller evm
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity") .reverted :=
     ExecStmt.internalCallArgsRevert hargs
   refine ExecStmt.iteTrue hcond ?_

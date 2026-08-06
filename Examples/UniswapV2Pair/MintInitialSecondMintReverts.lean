@@ -32,7 +32,7 @@ theorem uniswapMintAfterLiquidityMintTotalSupplyOverflowReverts
           (.var "_reserve0") (.var "_reserve1") ++
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
         lockExit ++
         [ .return [(.var "liquidity")] ]))
@@ -72,7 +72,7 @@ theorem uniswapMintAfterLiquidityMintBalanceOverflowReverts
           (.var "_reserve0") (.var "_reserve1") ++
         [ .ite (.var "feeOn")
             [ .assign .storage kLastRef
-                (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
             [] ] ++
         lockExit ++
         [ .return [(.var "liquidity")] ]))
@@ -173,7 +173,7 @@ theorem uniswapMintInitialAfterMintFeeSecondMintTotalSupplyOverflowRevertCase
             nextLocals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
         evmAfter
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall
@@ -434,7 +434,7 @@ theorem uniswapMintInitialAfterMintFeeSecondMintBalanceOverflowRevertCase
             nextLocals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
         evmAfter
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall

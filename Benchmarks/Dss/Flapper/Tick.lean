@@ -460,68 +460,105 @@ theorem evalExpr_tick_tic_eq_zero_false (evm : EVM.State) (I : ExecutionEnv)
   simp only [evalBinaryOp?]
   rw [hbeq]
 
-theorem evalExpr_tick_now48 (evm : EVM.State) (I : ExecutionEnv) :
-    evalExpr? config { contract := contract, locals := tickLocals I } evm now48 =
+theorem evalExpr_tick_now48 {locals : Store} (evm : EVM.State) :
+    evalExpr? config { contract := contract, locals } evm now48 =
       .ok (.int (Int.ofNat (tickNow48Word evm).toNat)) := by
-  unfold now48 wrap48
-  simp only [evalExpr?, envValue, EvalResult.bind, bind, pure, evalBinaryOp?]
+  have htimestamp :
+      evalExpr? config { contract := contract, locals } evm (.env .timestamp) =
+        .ok (.int (Int.ofNat (tickTimestampWord evm).toNat)) := by
+    simp [evalExpr?, envValue, pure, tickTimestampWord]
+  have hmodulus :
+      evalExpr? config { contract := contract, locals } evm (.intLit uint48Modulus) =
+        .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
+  have hfit :
+      Int.ofNat (tickTimestampWord evm).toNat % uint48Modulus <
+        Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
   have hmod :
-      Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
-          uint48Modulus =
+      Int.ofNat (tickTimestampWord evm).toNat % uint48Modulus =
         Int.ofNat (tickNow48Word evm).toNat := by
     have hnow := tickNow48Word_toNat evm
     rw [hnow]
     norm_num [uint48Modulus, Int.natCast_mod]
-  simpa [uint48Modulus] using hmod
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩)
+    htimestamp hmodulus (Int.natCast_nonneg _) hpos hfit
+  rw [hmod] at heval
+  simpa [now48, wrap48] using heval
 
 theorem evalExpr_tick_endAdd_ok (evm : EVM.State) (I : ExecutionEnv)
     (hfit : (tickNow48Word evm).toNat + (tickTauWord evm).toNat < 2 ^ 48) :
     evalExpr? config { contract := contract, locals := tickLocals I } evm
-        (wrap48 (.binary .add now48 (.storage tauRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))) =
       .ok (.int (Int.ofNat (tickEndPostWord evm).toNat)) := by
-  have hnow := evalExpr_tick_now48 evm I
+  have hnow := evalExpr_tick_now48 (locals := tickLocals I) evm
   have htau := evalExpr_tick_tau_storage evm I
   have hendNat := tickEndPostWord_toNat evm hfit
-  unfold wrap48
-  simp only [evalExpr?, hnow, htau, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hsumMod :
-      (Int.ofNat (tickNow48Word evm).toNat +
-          Int.ofNat (tickTauWord evm).toNat) % uint48Modulus =
-        Int.ofNat (tickEndPostWord evm).toNat := by
-    rw [hendNat]
-    have hsumCast :
-        Int.ofNat ((tickNow48Word evm).toNat + (tickTauWord evm).toNat) =
-          Int.ofNat (tickNow48Word evm).toNat + Int.ofNat (tickTauWord evm).toNat := by
-      norm_num
-    rw [← hsumCast]
-    have hfitInt :
-        Int.ofNat ((tickNow48Word evm).toNat + (tickTauWord evm).toNat) <
-          uint48Modulus := by
-      change Int.ofNat ((tickNow48Word evm).toNat + (tickTauWord evm).toNat) <
-        Int.ofNat (2 ^ 48)
-      exact Int.ofNat_lt.mpr hfit
-    exact Int.emod_eq_of_lt (Int.natCast_nonneg _) hfitInt
-  simpa [uint48Modulus] using hsumMod
+  let sum := tickNow48Word evm + tickTauWord evm
+  have hadd := evalExpr_wrapping_add_uint256_word_ok hnow htau (result := sum) rfl
+  have hsumNat :
+      sum.toNat = (tickNow48Word evm).toNat + (tickTauWord evm).toNat := by
+    change (tickNow48Word evm + tickTauWord evm).toNat = _
+    rw [uadd_toNat, Nat.mod_eq_of_lt (lt_trans hfit (by norm_num [UInt256.size]))]
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := tickLocals I } evm
+          (.intLit uint48Modulus) = .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
+  have hmod : Int.ofNat sum.toNat % uint48Modulus =
+      Int.ofNat (tickEndPostWord evm).toNat := by
+    rw [hsumNat, hendNat]
+    exact Int.emod_eq_of_lt (Int.natCast_nonneg _) (Int.ofNat_lt.mpr hfit)
+  have hfitResult :
+      Int.ofNat sum.toNat % uint48Modulus < Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩)
+    hadd hmodulus (Int.natCast_nonneg _) hpos hfitResult
+  rw [hmod] at heval
+  simpa [wrap48] using heval
 
 theorem evalExpr_tick_endAdd_wrapped (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := tickLocals I } evm
-        (wrap48 (.binary .add now48 (.storage tauRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage tauRef))) =
       .ok (.int (Int.ofNat (tickEndWrappedNat evm))) := by
-  have hnow := evalExpr_tick_now48 evm I
+  have hnow := evalExpr_tick_now48 (locals := tickLocals I) evm
   have htau := evalExpr_tick_tau_storage evm I
-  unfold wrap48
-  simp only [evalExpr?, hnow, htau, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hsumMod :
-      (Int.ofNat (tickNow48Word evm).toNat + Int.ofNat (tickTauWord evm).toNat) %
-          uint48Modulus =
-        Int.ofNat (tickEndWrappedNat evm) := by
-    have hsumCast :
-        Int.ofNat ((tickNow48Word evm).toNat + (tickTauWord evm).toNat) =
-          Int.ofNat (tickNow48Word evm).toNat + Int.ofNat (tickTauWord evm).toNat := by
-      norm_num
-    rw [← hsumCast]
+  let sum := tickNow48Word evm + tickTauWord evm
+  have hadd := evalExpr_wrapping_add_uint256_word_ok hnow htau (result := sum) rfl
+  have hnowLt : (tickNow48Word evm).toNat < 2 ^ 48 := by
+    rw [tickNow48Word_toNat]
+    exact Nat.mod_lt _ (by norm_num)
+  have htauLt : (tickTauWord evm).toNat < 2 ^ 48 := by
+    simpa [tickTauWord, flapperUint48Offset6Word, EVM.twoPow, u256_land_comm] using
+      flapperUint48Masked_lt
+        (UInt256.div
+          (flapperSlotWord ⟨5⟩ evm.accountMap evm.executionEnv)
+          (UInt256.ofNat (256 ^ 6)))
+  have hsumLt :
+      (tickNow48Word evm).toNat + (tickTauWord evm).toNat < UInt256.size := by
+    have : (tickNow48Word evm).toNat + (tickTauWord evm).toNat < 2 ^ 49 := by omega
+    exact lt_trans this (by norm_num [UInt256.size])
+  have hsumNat :
+      sum.toNat = (tickNow48Word evm).toNat + (tickTauWord evm).toNat := by
+    change (tickNow48Word evm + tickTauWord evm).toNat = _
+    rw [uadd_toNat, Nat.mod_eq_of_lt hsumLt]
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := tickLocals I } evm
+          (.intLit uint48Modulus) = .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
+  have hmod : Int.ofNat sum.toNat % uint48Modulus =
+      Int.ofNat (tickEndWrappedNat evm) := by
+    rw [hsumNat]
     norm_num [tickEndWrappedNat, uint48Modulus, Int.natCast_mod]
-  simpa [uint48Modulus] using hsumMod
+  have hfitResult :
+      Int.ofNat sum.toNat % uint48Modulus < Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
+  have heval := evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩)
+    hadd hmodulus (Int.natCast_nonneg _) hpos hfitResult
+  rw [hmod] at heval
+  simpa [wrap48] using heval
 
 theorem evalExpr_tick_end_guard_true (evm : EVM.State) (I : ExecutionEnv)
     (hfit : (tickNow48Word evm).toNat + (tickTauWord evm).toNat < 2 ^ 48) :
@@ -535,19 +572,7 @@ theorem evalExpr_tick_end_guard_true (evm : EVM.State) (I : ExecutionEnv)
       .ok (.int (Int.ofNat (tickEndPostWord evm).toNat))
     rw [tickEndLocals_get_end]
     rfl
-  have hnow :
-      evalExpr? config { contract := contract, locals := tickEndLocals evm I } evm now48 =
-        .ok (.int (Int.ofNat (tickNow48Word evm).toNat)) := by
-    unfold now48 wrap48
-    simp only [evalExpr?, envValue, EvalResult.bind, bind, pure, evalBinaryOp?]
-    have hmod :
-        Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
-            uint48Modulus =
-          Int.ofNat (tickNow48Word evm).toNat := by
-      have hnowNat := tickNow48Word_toNat evm
-      rw [hnowNat]
-      norm_num [uint48Modulus, Int.natCast_mod]
-    simpa [uint48Modulus] using hmod
+  have hnow := evalExpr_tick_now48 (locals := tickEndLocals evm I) evm
   have hendNat := tickEndPostWord_toNat evm hfit
   have hge :
       Int.ofNat (tickNow48Word evm).toNat ≤
@@ -573,19 +598,7 @@ theorem evalExpr_tick_end_guard_false_wrapped (evm : EVM.State) (I : ExecutionEn
       .ok (.int (Int.ofNat (tickEndWrappedNat evm)))
     rw [tickEndWrappedLocals_get_end]
     rfl
-  have hnow :
-      evalExpr? config { contract := contract, locals := tickEndWrappedLocals evm I } evm now48 =
-        .ok (.int (Int.ofNat (tickNow48Word evm).toNat)) := by
-    unfold now48 wrap48
-    simp only [evalExpr?, envValue, EvalResult.bind, bind, pure, evalBinaryOp?]
-    have hmod :
-        Int.ofNat (UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
-            uint48Modulus =
-          Int.ofNat (tickNow48Word evm).toNat := by
-      have hnowNat := tickNow48Word_toNat evm
-      rw [hnowNat]
-      norm_num [uint48Modulus, Int.natCast_mod]
-    simpa [uint48Modulus] using hmod
+  have hnow := evalExpr_tick_now48 (locals := tickEndWrappedLocals evm I) evm
   have hnowLt : (tickNow48Word evm).toNat < 2 ^ 48 := by
     have h := tickNow48Word_toNat evm
     rw [h]
@@ -710,7 +723,8 @@ theorem flapperTickBodyReverts_addOverflow (evm : EVM.State) (I : ExecutionEnv)
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tick_tic_eq_zero_true evm I htic)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tick_endAdd_wrapped evm I)) <|
+        (ExecStmt.letDecl_uint_nat (evalExpr_tick_endAdd_wrapped evm I)
+          (Nat.mod_lt _ (by norm_num [EVM.twoPow]))) <|
       ExecBlock.consRevert
         (ExecStmt.requireFalse (evalExpr_tick_end_guard_false_wrapped evm I haddOverflow)))
 
@@ -731,7 +745,10 @@ theorem flapperTickBodyReturns_success (evm : EVM.State) (I : ExecutionEnv)
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tick_tic_eq_zero_true evm I htic)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tick_endAdd_ok evm I haddFit)) <|
+        (ExecStmt.letDecl_uint_word (evalExpr_tick_endAdd_ok evm I haddFit)
+          (by
+            rw [tickEndPostWord_toNat evm haddFit]
+            simpa [EVM.twoPow] using haddFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tick_end_guard_true evm I haddFit)) <|
       ExecBlock.consNormal

@@ -36,7 +36,7 @@ def intMax : Int := 578960446186580977117854925043439539266349923328202820197287
 def intLimit : Int := 57896044618658097711785492504343953926634992332820282019728792003956564819968
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
+def mul256 (x y : Expr) : Expr := u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) x y)
 def asInt256 (e : Expr) : Expr := .cast e int256St
 
 /-! ## External ABI -/
@@ -140,7 +140,7 @@ def checkedMulUintInto (name : Ident) (x y : Expr) : List Stmt :=
     .require
       (.binary .or
         (.binary .eq y (.intLit 0))
-        (.binary .eq (.binary .div (.var name) y) x)) ]
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x)) ]
 
 /-! ## Constructor -/
 

@@ -51,7 +51,7 @@ theorem uniswapMintFeeOnKLastNonzeroFactoryRoots
       ExecBlock config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastSlotWord σFee I))
         evmFeeS
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
@@ -129,7 +129,7 @@ theorem uniswapMintFeeOnKLastNonzeroFactoryRootsInput
       ExecBlock config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastSlotWord σFee I))
         evmFeeS
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
@@ -209,7 +209,7 @@ theorem uniswapMintFeeOnKLastNonzeroFactoryProductZeroRoots
       ExecBlock config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastSlotWord σFee I))
         evmFeeS
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
@@ -471,7 +471,7 @@ theorem uniswapMintFeeOnKLastNonzeroNoMintFromFactoryCase
           (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true
             (mintFeeKLastSlotWord σFee I))
           evmFeeS
-          [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+          [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
               "rootK",
             .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
           (.ok
@@ -521,7 +521,7 @@ theorem uniswapMintFeeOnKLastNonzeroNoMintFromFactoryCase
               (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
           feeTo true (mintFeeKLastWord evmFeeS))
         evmFeeS
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
@@ -809,7 +809,7 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveNoLiquidityFromFactoryCase
               (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
           feeTo true (mintFeeKLastWord evmFeeS))
         evmFeeS
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
@@ -912,7 +912,7 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveWithLiquidityRuntimeFromFactory
       ExecBlock config
         (mintFeeAfterKLastFrame reserve0 reserve1 feeTo true (mintFeeKLastSlotWord σFee I))
         evmFeeS
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok
@@ -1466,7 +1466,7 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveWithLiquidityFromFactoryCase
               (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)))
           feeTo true (mintFeeKLastWord evmFeeS))
         evmFeeS
-        [ .internalCall "sqrt" [u256 (.binary .mul (.var "_reserve0") (.var "_reserve1"))]
+        [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "_reserve0") (.var "_reserve1"))]
             "rootK",
           .internalCall "sqrt" [.var "_kLast"] "rootKLast" ]
         (.ok

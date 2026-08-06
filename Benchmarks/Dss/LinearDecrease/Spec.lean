@@ -28,9 +28,9 @@ def sender : Expr := .env .caller
 def RAY : Int := 1000000000000000000000000000
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
-def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
-def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
+def add256 (x y : Expr) : Expr := u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) x y)
+def sub256 (x y : Expr) : Expr := u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)
+def mul256 (x y : Expr) : Expr := u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) x y)
 
 def zeroPad29 : List UInt8 := List.replicate 29 0
 def zeroPad28 : List UInt8 := List.replicate 28 0
@@ -91,7 +91,7 @@ def checkedMulUintInto (name : Ident) (x y : Expr) : List Stmt :=
     .require
       (.binary .or
         (.binary .eq y (.intLit 0))
-        (.binary .eq (.binary .div (.var name) y) x)) ]
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x)) ]
 
 /-! ## Constructor -/
 
@@ -119,7 +119,7 @@ def rmulFunction : FunctionDecl :=
     returnType := [uint256]
     body :=
       checkedMulUintInto "z" (.var "x") (.var "y") ++
-      [ .assign .localVar { base := "z" } (.binary .div (.var "z") (.intLit RAY)),
+      [ .assign .localVar { base := "z" } (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "z") (.intLit RAY)),
         .return [.var "z"] ] }
 
 def functions : List FunctionDecl :=
@@ -173,7 +173,7 @@ def priceTransition : TransitionDecl :=
           [ .return [.intLit 0] ]
           [ .letDecl "left" (some uint256) (sub256 (.storage tauRef) (.var "dur")),
             .internalCall "mul" [.var "left", .intLit RAY] "scaled",
-            .letDecl "ratio" (some uint256) (.binary .div (.var "scaled") (.storage tauRef)),
+            .letDecl "ratio" (some uint256) (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "scaled") (.storage tauRef)),
             .internalCall "rmul" [.var "top", .var "ratio"] "out",
             .return [.var "out"] ] ] }
 

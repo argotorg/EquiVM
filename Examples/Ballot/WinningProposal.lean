@@ -18,7 +18,8 @@ private theorem evalBinaryOp_gt_int_ok (x y : Int) :
   rfl
 
 private theorem evalBinaryOp_add_int_ok (x y : Int) :
-    evalBinaryOp? .add (.int x) (.int y) = .ok (.int (x + y)) := by
+    evalBinaryOp? (.add (.uint ⟨256, by decide⟩) .checked) (.int x) (.int y) =
+      evalIntArithResult (.uint ⟨256, by decide⟩) .checked (x + y) := by
   rfl
 
 def winningProposalLengthWord (sigma : AccountMap) (I : ExecutionEnv) : UInt256 :=
@@ -59,7 +60,7 @@ def winningProposalLoopCondExpr : Expr :=
 
 def winningProposalLoopPostStmts : List Stmt :=
   [ .assign .localVar ({ base := "p" } : StorageRef)
-      (.binary .add (.var "p") (.intLit 1)) ]
+      (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "p") (.intLit 1)) ]
 
 def winningProposalLoopBodyStmts : List Stmt :=
   [ .ite (.binary .gt (.storage (proposalF (.var "p") "voteCount"))
@@ -316,7 +317,7 @@ theorem winningProposalLoopPostStep (evm : EVM.State) (locals : Store) (p : UInt
     (hsize : p.toNat + 1 < UInt256.size) :
     ExecBlock ballotConfig { contract := ballotContract, locals := locals } evm
       [ .assign .localVar ({ base := "p" } : StorageRef)
-          (.binary .add (.var "p") (.intLit 1)) ]
+          (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "p") (.intLit 1)) ]
       (.ok (winningProposalFrame
         (locals.insert "p" (.int (Int.ofNat (p + ⟨1⟩).toNat)))) evm) := by
   apply ExecBlock.consNormal
@@ -325,16 +326,18 @@ theorem winningProposalLoopPostStep (evm : EVM.State) (locals : Store) (p : UInt
         rw [add1_toNat hsize]
         norm_num
       change evalExpr? ballotConfig { contract := ballotContract, locals := locals } evm
-        (.binary .add (.var "p") (.intLit 1)) =
+        (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "p") (.intLit 1)) =
           .ok (.int (Int.ofNat (p + ⟨1⟩).toNat))
-      rw [evalExpr?]
-      rw [winningProposalEvalVar evm locals "p" p hold]
-      simp only [evalExpr?, EvalResult.bind, bind, pure]
-      change evalBinaryOp? .add (.int (Int.ofNat p.toNat)) (.int 1) =
+      simp only [evalExpr?, EvalResult.bind, bind, EvalResult.ofOption, hold]
+      change evalBinaryOp? (.add (.uint ⟨256, by decide⟩) .checked)
+        (.int (Int.ofNat p.toNat)) (.int 1) =
         .ok (.int (Int.ofNat (p + ⟨1⟩).toNat))
       rw [evalBinaryOp_add_int_ok]
-      simpa [hadd]
-      all_goals decide
+      rw [hadd]
+      exact evalIntArithResult_checked_uint_ok _ _ (Int.natCast_nonneg _) (by
+        apply Int.ofNat_lt.mpr
+        change (p + ⟨1⟩).val < UInt256.size
+        exact (p + ⟨1⟩).val.isLt)
     · exact winningProposalAssignLocal evm locals "p" p (p + ⟨1⟩) hold
   · exact ExecBlock.nil
 
@@ -541,6 +544,9 @@ theorem winningProposalForLoopReturns (evm : EVM.State) (locals : Store)
       change evalExpr? ballotConfig (winningProposalFrame locals) evm (.intLit 0) =
         .ok (.int (Int.ofNat (0 : Nat)))
       simp [evalExpr?, pure, winningProposalFrame]
+      simpa [valueMatchesOptionalABIType, uint256] using
+        (valueMatchesABIType_uint256_ofNat (value := 0)
+          (by norm_num [EVM.wordModulus, EVM.twoPow]))
     · exact ExecBlock.nil
   have hp0 : L0.get? "p" = some (.int (Int.ofNat (0 : Nat))) := by
     simp [L0]
@@ -597,8 +603,13 @@ theorem ballotWinningProposalBodyReturns (evm : EVM.State) (locals : Store)
     simpa [winningProposalFrame, hbestResult] using
       (winningProposalEvalVar evm locals' "winningProposal_" best hbest)
   refine ⟨locals', ExecFuncBody.execBlockRet ?_⟩
-  exact ((((ABlock.start.requireStep (evalCallvalueEq_true h)).letStep hwpEval).letStep
-    hcountEval).forStep hfor).returns hretEval
+  exact ((((ABlock.start.requireStep (evalCallvalueEq_true h)).letStep hwpEval (by
+    simpa [valueMatchesOptionalABIType, uint256] using
+      (valueMatchesABIType_uint256_ofNat (value := 0)
+        (by norm_num [EVM.wordModulus, EVM.twoPow])))).letStep hcountEval (by
+    simpa [valueMatchesOptionalABIType, uint256] using
+      (valueMatchesABIType_uint256_ofNat (value := 0)
+        (by norm_num [EVM.wordModulus, EVM.twoPow])))).forStep hfor).returns hretEval
 
 theorem winningProposalLengthWord_eq_current_init {cA gh bl σ σ₀ A I} {g : Sat256} :
     winningProposalLengthWord σ I =

@@ -27,9 +27,11 @@ structure CallableDecl where
 def bindParams? (params : List Param) (args : List Value) : Option Store :=
   match params, args with
   | [], [] => some ∅
-  | p :: ps, v :: vs => do
-      let rest <- bindParams? ps vs
-      pure (rest.insert p.name v)
+  | p :: ps, v :: vs =>
+      if valueMatchesABIType p.ty v then do
+        let rest <- bindParams? ps vs
+        pure (rest.insert p.name v)
+      else none
   | _, _ => none
 
 def FunctionDecl.toCallable (decl : FunctionDecl) : CallableDecl :=
@@ -173,6 +175,7 @@ inductive ExecStmt (cfg : Config) :
     Frame -> EVM.State -> Stmt -> ExecResult -> Prop where
   | letDecl :
       evalExpr? cfg solm evm expr = .ok value ->
+      valueMatchesOptionalABIType ty value = true ->
       ExecStmt cfg solm evm (.letDecl name ty expr)
         (.ok { solm with locals := solm.locals.insert name value } evm)
   | letDeclRevert :

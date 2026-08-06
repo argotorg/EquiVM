@@ -600,7 +600,10 @@ theorem vatMoveSourceOk
       evalExpr? config { contract := contract, locals := moveStoreSrcDaiNew I srcDaiNew }
           evm1 (add256 (.storage (daiRef (.var "dst"))) (.var "rad")) =
         .ok (.int (Int.ofNat dstDaiNew.toNat)) :=
-    fluxEvalExpr_add256_ok hdst hradAfterSrc (by simp [dstDaiNew]) hdstFit
+    evalExpr_checked_add_uint256_word_ok hdst hradAfterSrc
+      (by rw [show dstDaiNew = dstOld + moveRadWord I by simp [dstDaiNew], uadd_toNat,
+        Nat.mod_eq_of_lt hdstFit])
+      hdstFit
   have hdstDaiNewEval :
       evalExpr? config { contract := contract, locals := moveStoreDstDaiNew I srcDaiNew dstDaiNew }
           evm1 (.var "dstDaiNew") =
@@ -668,10 +671,10 @@ theorem vatMoveSourceOk
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hwish) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hsub) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqSub) ?_
     refine ExecBlock.consNormal (ExecStmt.assign hsrcDaiNewEval hassignSrc) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hadd) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hadd) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqAdd) ?_
     exact ExecBlock.consNormal (ExecStmt.assign hdstDaiNewEval hassignDst) ExecBlock.nil
   simpa [ExecTransitionBody, moveTransition, evm0, evm1, nonpayable,
@@ -862,7 +865,7 @@ theorem vatMoveSourceRevertDstOverflow
       evalExpr? config { contract := contract, locals := moveStoreSrcDaiNew I srcDaiNew }
           evm1 (add256 (.storage (daiRef (.var "dst"))) (.var "rad")) =
         .revert :=
-    fluxEvalExpr_add256_revert hdst hradAfterSrc hover
+    evalExpr_checked_add_uint256_word_revert_of_overflow hdst hradAfterSrc hover
   have hblock :
       ExecBlock config { contract := contract, locals := moveStore I } evm0
         (nonpayable ++
@@ -891,7 +894,7 @@ theorem vatMoveSourceRevertDstOverflow
     refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
     · exact evalCallvalueEq_true (by simp [evm0, initState]; exact hwv)
     refine ExecBlock.consNormal (ExecStmt.requireTrue hwish) ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hsub) ?_
+    refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hsub) ?_
     refine ExecBlock.consNormal (ExecStmt.requireTrue hreqSub) ?_
     refine ExecBlock.consNormal (ExecStmt.assign hsrcDaiNewEval hassignSrc) ?_
     exact ExecBlock.consRevert (ExecStmt.letDeclRevert hadd)

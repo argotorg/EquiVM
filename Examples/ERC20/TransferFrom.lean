@@ -603,7 +603,7 @@ theorem evalExpr_transferFrom_allowance_debit (evm : EVM.State) (I : ExecutionEn
       (transferFromCurrentAllowanceWord evm I).toNat) :
     evalExpr? erc20Config
       { contract := erc20Contract, locals := transferFromStoreFromBalance evm I } evm
-      (.binary .sub (.var "currentAllowance") (.var "value")) =
+      (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "currentAllowance") (.var "value")) =
         .ok (.int (Int.ofNat (transferFromAllowanceDebitWord evm I).toNat)) := by
   have hsub :
       Int.ofNat (transferFromCurrentAllowanceWord evm I).toNat -
@@ -616,10 +616,27 @@ theorem evalExpr_transferFrom_allowance_debit (evm : EVM.State) (I : ExecutionEn
     unfold transferFromAllowanceDebitWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (transferFromCurrentAllowanceWord evm I).val.isLt)
-  simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [transferFromStoreFromBalance_currentAllowance, transferFromStoreFromBalance_value]
-  simp [evalBinaryOp?, transferFromCurrentAllowanceValue, transferFromValueValue, hsub, htoNat]
-  exact hsub
+  have hdiffNonneg :
+      0 ≤ Int.ofNat (transferFromCurrentAllowanceWord evm I).toNat -
+        Int.ofNat (transferFromValueWord I).toNat := by
+    rw [hsub]
+    exact Int.natCast_nonneg _
+  have hdiffFit :
+      Int.ofNat (transferFromCurrentAllowanceWord evm I).toNat -
+          Int.ofNat (transferFromValueWord I).toNat <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hsub, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.sub_le _ _)
+      (transferFromCurrentAllowanceWord evm I).val.isLt)
+  have hsubEval := evalIntArithResult_checked_uint_ok ⟨256, by decide⟩
+    (Int.ofNat (transferFromCurrentAllowanceWord evm I).toNat -
+      Int.ofNat (transferFromValueWord I).toNat)
+    hdiffNonneg hdiffFit
+  rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+  simp only [evalExpr?, EvalResult.ofOption, transferFromStoreFromBalance_currentAllowance,
+    transferFromStoreFromBalance_value, EvalResult.bind, bind, evalBinaryOp?,
+    transferFromCurrentAllowanceValue, transferFromValueValue]
+  rw [hsubEval, hsub, ← htoNat]
 
 theorem transferFromAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? erc20Config
@@ -648,26 +665,13 @@ theorem transferFromAssignAllowance (evm : EVM.State) (I : ExecutionEnv) :
   rw [erc20StorageLocStore_uint256]
   simp [transferFromAfterAllowanceState, transferFromAllowanceSlot]
 
-theorem evalExpr_transferFrom_balance_debit_raw (evm evm' : EVM.State) (I : ExecutionEnv) :
-    evalExpr? erc20Config
-      { contract := erc20Contract, locals := transferFromStoreFromBalance evm I } evm'
-      (.binary .sub (.storage (balanceOfRef (.var "from"))) (.var "value")) =
-        .ok (.int
-          (Int.ofNat (transferFromFromBalanceWord evm' I).toNat -
-            Int.ofNat (transferFromValueWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [evalExpr_transferFrom_from_balance_fromBalance evm evm' I,
-    evalExpr_transferFrom_value_fromBalance evm evm' I]
-  simp [EvalResult.bind, bind, pure, evalBinaryOp?, transferFromFromBalanceValue,
-    transferFromValueValue]
-
 theorem evalExpr_transferFrom_balance_debit (evm evm' : EVM.State) (I : ExecutionEnv)
     (henough : (transferFromValueWord I).toNat ≤
       (transferFromFromBalanceWord evm' I).toNat) :
     evalExpr? erc20Config
       { contract := erc20Contract, locals := transferFromStoreFromBalance evm I } evm'
       (valueInUInt256
-        (.binary .sub (.storage (balanceOfRef (.var "from"))) (.var "value"))) =
+        (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.storage (balanceOfRef (.var "from"))) (.var "value"))) =
         .ok (.int (Int.ofNat (transferFromBalanceDebitWord evm' I).toNat)) := by
   have hsub :
       Int.ofNat (transferFromFromBalanceWord evm' I).toNat -
@@ -680,35 +684,51 @@ theorem evalExpr_transferFrom_balance_debit (evm evm' : EVM.State) (I : Executio
     unfold transferFromBalanceDebitWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (transferFromFromBalanceWord evm' I).val.isLt)
-  have hltNat :
-      (transferFromFromBalanceWord evm' I).toNat - (transferFromValueWord I).toNat <
-        2 ^ 256 :=
-    lt_of_le_of_lt (Nat.sub_le _ _) (by
-      simpa [UInt256.toNat, UInt256.size] using
-        (transferFromFromBalanceWord evm' I).val.isLt)
-  have hlt : ¬ Int.ofNat
-        ((transferFromFromBalanceWord evm' I).toNat - (transferFromValueWord I).toNat) ≥
-      (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr hltNat)
-  have hnotNeg : ¬
-      (Int.ofNat
-        ((transferFromFromBalanceWord evm' I).toNat - (transferFromValueWord I).toNat) < 0) := by
-    exact not_lt_of_ge (Int.natCast_nonneg _)
-  have hnotBound : ¬
-      115792089237316195423570985008687907853269984665640564039457584007913129639936 ≤
-        (transferFromFromBalanceWord evm' I).toNat - (transferFromValueWord I).toNat := by
-    exact Nat.not_le_of_lt (by simpa using hltNat)
-  conv_lhs =>
-    unfold valueInUInt256
-    unfold evalExpr?
-  rw [evalExpr_transferFrom_balance_debit_raw evm evm' I, hsub]
-  simp [EvalResult.bind, bind, pure, uint256Int, hlt, hnotNeg, hnotBound]
-  by_cases hnegGuard :
-      (↑((transferFromFromBalanceWord evm' I).toNat -
-        (transferFromValueWord I).toNat) : Int) < 0
-  · exact False.elim (hnotNeg hnegGuard)
-  · rw [if_neg hnegGuard]
-    rw [htoNat]
+  have hdiffNonneg :
+      0 ≤ Int.ofNat (transferFromFromBalanceWord evm' I).toNat -
+        Int.ofNat (transferFromValueWord I).toNat := by
+    rw [hsub]
+    exact Int.natCast_nonneg _
+  have hdiffFit :
+      Int.ofNat (transferFromFromBalanceWord evm' I).toNat -
+          Int.ofNat (transferFromValueWord I).toNat <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hsub, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.sub_le _ _)
+      (transferFromFromBalanceWord evm' I).val.isLt)
+  have hsubEval := evalIntArithResult_checked_uint_ok ⟨256, by decide⟩
+    (Int.ofNat (transferFromFromBalanceWord evm' I).toNat -
+      Int.ofNat (transferFromValueWord I).toNat)
+    hdiffNonneg hdiffFit
+  have hbinaryEval :
+      evalExpr? erc20Config
+        { contract := erc20Contract, locals := transferFromStoreFromBalance evm I } evm'
+        (.binary (.sub (.uint ⟨256, by decide⟩) .checked)
+          (.storage (balanceOfRef (.var "from"))) (.var "value")) =
+        .ok (.int
+          (Int.ofNat (transferFromFromBalanceWord evm' I).toNat -
+            Int.ofNat (transferFromValueWord I).toNat)) := by
+    rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+    simp only [evalExpr_transferFrom_from_balance_fromBalance,
+      evalExpr_transferFrom_value_fromBalance, EvalResult.bind, bind, evalBinaryOp?,
+      transferFromFromBalanceValue, transferFromValueValue]
+    exact hsubEval
+  change evalExpr? erc20Config
+      { contract := erc20Contract, locals := transferFromStoreFromBalance evm I } evm'
+      (.inRange uint256Int
+        (.binary (.sub (.uint ⟨256, by decide⟩) .checked)
+          (.storage (balanceOfRef (.var "from"))) (.var "value"))) =
+    .ok (.int (Int.ofNat (transferFromBalanceDebitWord evm' I).toNat))
+  have hinRange := evalExpr_inRange_uint erc20Config
+    { contract := erc20Contract, locals := transferFromStoreFromBalance evm I } evm'
+    (.binary (.sub (.uint ⟨256, by decide⟩) .checked)
+      (.storage (balanceOfRef (.var "from"))) (.var "value"))
+    ⟨256, by decide⟩
+    (Int.ofNat (transferFromFromBalanceWord evm' I).toNat -
+      Int.ofNat (transferFromValueWord I).toNat)
+    hbinaryEval hdiffNonneg hdiffFit
+  rw [hsub, ← htoNat] at hinRange
+  exact hinRange
 
 theorem evalExpr_transferFrom_balance_debit_revert (evm evm' : EVM.State) (I : ExecutionEnv)
     (hlt : (transferFromFromBalanceWord evm' I).toNat <
@@ -716,7 +736,7 @@ theorem evalExpr_transferFrom_balance_debit_revert (evm evm' : EVM.State) (I : E
     evalExpr? erc20Config
       { contract := erc20Contract, locals := transferFromStoreFromBalance evm I } evm'
       (valueInUInt256
-        (.binary .sub (.storage (balanceOfRef (.var "from"))) (.var "value"))) = .revert := by
+        (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.storage (balanceOfRef (.var "from"))) (.var "value"))) = .revert := by
   have hneg :
       Int.ofNat (transferFromFromBalanceWord evm' I).toNat -
           Int.ofNat (transferFromValueWord I).toNat < 0 := by
@@ -724,14 +744,26 @@ theorem evalExpr_transferFrom_balance_debit_revert (evm evm' : EVM.State) (I : E
         Int.ofNat (transferFromValueWord I).toNat :=
       Int.ofNat_lt.mpr hlt
     omega
-  have hnotEnough : ¬
-      (transferFromValueWord I).toNat ≤ (transferFromFromBalanceWord evm' I).toNat :=
-    Nat.not_le_of_lt hlt
-  conv_lhs =>
-    unfold valueInUInt256
-    unfold evalExpr?
-  rw [evalExpr_transferFrom_balance_debit_raw evm evm' I]
-  simp [EvalResult.bind, bind, pure, uint256Int, hneg, hnotEnough]
+  have hbinaryEval :
+      evalExpr? erc20Config
+        { contract := erc20Contract, locals := transferFromStoreFromBalance evm I } evm'
+        (.binary (.sub (.uint ⟨256, by decide⟩) .checked)
+          (.storage (balanceOfRef (.var "from"))) (.var "value")) = .revert := by
+    rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+    simp only [evalExpr_transferFrom_from_balance_fromBalance,
+      evalExpr_transferFrom_value_fromBalance, EvalResult.bind, bind, evalBinaryOp?,
+      transferFromFromBalanceValue, transferFromValueValue]
+    exact evalIntArithResult_checked_uint_revert_of_neg _ _ hneg
+  change evalExpr? erc20Config
+      { contract := erc20Contract, locals := transferFromStoreFromBalance evm I } evm'
+      (.inRange uint256Int
+        (.binary (.sub (.uint ⟨256, by decide⟩) .checked)
+          (.storage (balanceOfRef (.var "from"))) (.var "value"))) = .revert
+  exact evalExpr_inRange_revert erc20Config
+    { contract := erc20Contract, locals := transferFromStoreFromBalance evm I } evm'
+    (.binary (.sub (.uint ⟨256, by decide⟩) .checked)
+      (.storage (balanceOfRef (.var "from"))) (.var "value"))
+    uint256Int hbinaryEval
 
 theorem transferFromAssignFrom (evm : EVM.State) (I : ExecutionEnv) :
     assignStorageRef? erc20Config
@@ -798,36 +830,102 @@ theorem evalExpr_transferFrom_newToBalance (evm : EVM.State) (I : ExecutionEnv)
     evalExpr? erc20Config
       { contract := erc20Contract, locals := transferFromStoreToBalance evm I }
       (transferFromAfterBalanceState evm I)
-      (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))) =
+      (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))) =
         .ok (transferFromNewToValue evm I) := by
-  have hlt : ¬ Int.ofNat (transferFromNewToNat evm I) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  simp only [valueInUInt256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [transferFromStoreToBalance_toBalance, transferFromStoreToBalance_value]
-  simp [evalBinaryOp?, transferFromToBalanceValue, transferFromValueValue,
-    transferFromNewToValue, transferFromNewToNat, uint256Int, hlt]
-  constructor
-  · omega
-  · have hfitNat :
-        (transferFromToBalanceWord evm I).toNat + (transferFromValueWord I).toNat < 2 ^ 256 := by
-      simpa [transferFromNewToNat, UInt256.size] using hfit
-    omega
+  have hsum :
+      Int.ofNat (transferFromToBalanceWord evm I).toNat +
+          Int.ofNat (transferFromValueWord I).toNat =
+        Int.ofNat (transferFromNewToNat evm I) := by
+    unfold transferFromNewToNat
+    exact Int.ofNat_add_ofNat _ _
+  have hsumNonneg :
+      0 ≤ Int.ofNat (transferFromToBalanceWord evm I).toNat +
+        Int.ofNat (transferFromValueWord I).toNat :=
+    Int.add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
+  have hsumFit :
+      Int.ofNat (transferFromToBalanceWord evm I).toNat +
+          Int.ofNat (transferFromValueWord I).toNat <
+        Int.ofNat (EVM.twoPow 256) := by
+    rw [hsum, show EVM.twoPow 256 = UInt256.size by rfl]
+    exact Int.ofNat_lt.mpr hfit
+  have haddEval := evalIntArithResult_checked_uint_ok ⟨256, by decide⟩
+    (Int.ofNat (transferFromToBalanceWord evm I).toNat +
+      Int.ofNat (transferFromValueWord I).toNat)
+    hsumNonneg hsumFit
+  have hbinaryEval :
+      evalExpr? erc20Config
+        { contract := erc20Contract, locals := transferFromStoreToBalance evm I }
+        (transferFromAfterBalanceState evm I)
+        (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+          (.var "toBalance") (.var "value")) =
+        .ok (.int
+          (Int.ofNat (transferFromToBalanceWord evm I).toNat +
+            Int.ofNat (transferFromValueWord I).toNat)) := by
+    rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+    simp only [evalExpr?, EvalResult.ofOption, transferFromStoreToBalance_toBalance,
+      transferFromStoreToBalance_value, EvalResult.bind, bind, evalBinaryOp?,
+      transferFromToBalanceValue, transferFromValueValue]
+    exact haddEval
+  change evalExpr? erc20Config
+      { contract := erc20Contract, locals := transferFromStoreToBalance evm I }
+      (transferFromAfterBalanceState evm I)
+      (.inRange uint256Int
+        (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+          (.var "toBalance") (.var "value"))) =
+    .ok (transferFromNewToValue evm I)
+  have hinRange := evalExpr_inRange_uint erc20Config
+    { contract := erc20Contract, locals := transferFromStoreToBalance evm I }
+    (transferFromAfterBalanceState evm I)
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+      (.var "toBalance") (.var "value"))
+    ⟨256, by decide⟩
+    (Int.ofNat (transferFromToBalanceWord evm I).toNat +
+      Int.ofNat (transferFromValueWord I).toNat)
+    hbinaryEval hsumNonneg hsumFit
+  rw [hsum] at hinRange
+  exact hinRange
 
 theorem evalExpr_transferFrom_newToBalance_revert (evm : EVM.State) (I : ExecutionEnv)
     (hover : UInt256.size ≤ transferFromNewToNat evm I) :
     evalExpr? erc20Config
       { contract := erc20Contract, locals := transferFromStoreToBalance evm I }
       (transferFromAfterBalanceState evm I)
-      (valueInUInt256 (.binary .add (.var "toBalance") (.var "value"))) = .revert := by
-  have hge : Int.ofNat (transferFromNewToNat evm I) ≥ (2 : Int) ^ 256 := by
-    rw [UInt256.size] at hover
+      (valueInUInt256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "toBalance") (.var "value"))) = .revert := by
+  have hsum :
+      Int.ofNat (transferFromToBalanceWord evm I).toNat +
+          Int.ofNat (transferFromValueWord I).toNat =
+        Int.ofNat (transferFromNewToNat evm I) := by
+    unfold transferFromNewToNat
+    exact Int.ofNat_add_ofNat _ _
+  have hsumOverflow :
+      Int.ofNat (EVM.twoPow 256) ≤
+        Int.ofNat (transferFromToBalanceWord evm I).toNat +
+          Int.ofNat (transferFromValueWord I).toNat := by
+    rw [hsum, show EVM.twoPow 256 = UInt256.size by rfl]
     exact Int.ofNat_le.mpr hover
-  simp only [valueInUInt256, evalExpr?, EvalResult.ofOption, EvalResult.bind, bind, pure]
-  rw [transferFromStoreToBalance_toBalance, transferFromStoreToBalance_value]
-  simp [evalBinaryOp?, transferFromToBalanceValue, transferFromValueValue,
-    transferFromNewToValue, transferFromNewToNat, uint256Int]
-  intro _
-  simpa [transferFromNewToNat] using hge
+  have hbinaryEval :
+      evalExpr? erc20Config
+        { contract := erc20Contract, locals := transferFromStoreToBalance evm I }
+        (transferFromAfterBalanceState evm I)
+        (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+          (.var "toBalance") (.var "value")) = .revert := by
+    rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+    simp only [evalExpr?, EvalResult.ofOption, transferFromStoreToBalance_toBalance,
+      transferFromStoreToBalance_value, EvalResult.bind, bind, evalBinaryOp?,
+      transferFromToBalanceValue, transferFromValueValue]
+    exact evalIntArithResult_checked_uint_revert_of_overflow _ _ hsumOverflow
+  change evalExpr? erc20Config
+      { contract := erc20Contract, locals := transferFromStoreToBalance evm I }
+      (transferFromAfterBalanceState evm I)
+      (.inRange uint256Int
+        (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+          (.var "toBalance") (.var "value"))) = .revert
+  exact evalExpr_inRange_revert erc20Config
+    { contract := erc20Contract, locals := transferFromStoreToBalance evm I }
+    (transferFromAfterBalanceState evm I)
+    (.binary (.add (.uint ⟨256, by decide⟩) .checked)
+      (.var "toBalance") (.var "value"))
+    uint256Int hbinaryEval
 
 theorem evalExpr_transferFrom_newToBalance_var (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? erc20Config
@@ -875,10 +973,12 @@ theorem erc20TransferFromBodyReturns (evm : EVM.State) (I : ExecutionEnv)
         (transferFromPostState evm I) (some [(.bool true)])) := by
   refine ExecFuncBody.execBlockRet ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_transferFrom_require_allowance_true evm I hallowance)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromFromBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_transferFrom_require_from_true evm I hbalance)) ?_
   refine ExecBlock.consNormal
@@ -889,9 +989,14 @@ theorem erc20TransferFromBodyReturns (evm : EVM.State) (I : ExecutionEnv)
       (evalExpr_transferFrom_balance_debit evm (transferFromAfterAllowanceState evm I) I
         hbalanceDebit)
       (transferFromAssignFrom evm I)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_to_balance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_to_balance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromToBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_transferFrom_newToBalance evm I hfit)) ?_
+    (ExecStmt.letDecl (evalExpr_transferFrom_newToBalance evm I hfit)
+      (valueMatchesOptionalABIType_uint_of_bounds _ _ (Int.natCast_nonneg _)
+        (by
+          rw [show EVM.twoPow 256 = UInt256.size by rfl]
+          exact Int.ofNat_lt.mpr hfit))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_transferFrom_newToBalance_var evm I)
       (transferFromAssignTo evm I hfit)) ?_
@@ -905,7 +1010,8 @@ theorem erc20TransferFromBodyReverts_allowance (evm : EVM.State) (I : ExecutionE
       transferFromTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (evalExpr_transferFrom_require_allowance_false evm I hlt))
 
@@ -919,10 +1025,12 @@ theorem erc20TransferFromBodyReverts_balance (evm : EVM.State) (I : ExecutionEnv
       transferFromTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_transferFrom_require_allowance_true evm I hallowance)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromFromBalanceWord evm I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (evalExpr_transferFrom_require_from_false evm I hlt))
 
@@ -939,10 +1047,12 @@ theorem erc20TransferFromBodyReverts_overflow (evm : EVM.State) (I : ExecutionEn
       transferFromTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_transferFrom_require_allowance_true evm I hallowance)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromFromBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_transferFrom_require_from_true evm I hbalance)) ?_
   refine ExecBlock.consNormal
@@ -953,7 +1063,8 @@ theorem erc20TransferFromBodyReverts_overflow (evm : EVM.State) (I : ExecutionEn
       (evalExpr_transferFrom_balance_debit evm (transferFromAfterAllowanceState evm I) I
         hbalanceDebit)
       (transferFromAssignFrom evm I)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_to_balance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_to_balance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromToBalanceWord evm I))) ?_
   exact ExecBlock.consRevert
     (ExecStmt.letDeclRevert (evalExpr_transferFrom_newToBalance_revert evm I hover))
 
@@ -969,10 +1080,12 @@ theorem erc20TransferFromBodyReverts_balanceDebit (evm : EVM.State) (I : Executi
       transferFromTransition.body .reverted := by
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_currentAllowance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromCurrentAllowanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_transferFrom_require_allowance_true evm I hallowance)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl (evalExpr_transferFrom_from_balance evm I)
+    (valueMatchesOptionalABIType_uint256_word (transferFromFromBalanceWord evm I))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue (evalExpr_transferFrom_require_from_true evm I hbalance)) ?_
   refine ExecBlock.consNormal

@@ -1636,12 +1636,7 @@ theorem endPackTailReverts_bagAddOverflow (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat bagWord.toNat),
             .int (Int.ofNat (endPackWadWord I).toNat)] := by
     simp [evalExprs?, hbag, hwad, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? addFunction.params
-          [.int (Int.ofNat bagWord.toNat),
-            .int (Int.ofNat (endPackWadWord I).toNat)] =
-        some (endUintBinaryLocals bagWord (endPackWadWord I)) := by
-    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_addFunction bagWord (endPackWadWord I)
   have haddStmt :
       ExecStmt config { contract := contract, locals := endPackStoreMove I } evm
         (.internalCall "add" [.storage (bagRef sender), .var "wad"] "bagNew")
@@ -1701,12 +1696,7 @@ theorem endPackTailReturns (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat bagWord.toNat),
             .int (Int.ofNat (endPackWadWord I).toNat)] := by
     simp [evalExprs?, hbag, hwad, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? addFunction.params
-          [.int (Int.ofNat bagWord.toNat),
-            .int (Int.ofNat (endPackWadWord I).toNat)] =
-        some (endUintBinaryLocals bagWord (endPackWadWord I)) := by
-    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_addFunction bagWord (endPackWadWord I)
   have haddStmt :
       ExecStmt config { contract := contract, locals := endPackStoreMove I } evm
         (.internalCall "add" [.storage (bagRef sender), .var "wad"] "bagNew")
@@ -1863,12 +1853,7 @@ theorem endPackBodyReverts_mulOverflow {cA gh bl σ σ₀ A I} {g : UInt256}
           .ok [.int (Int.ofNat (endPackWadWord I).toNat),
             .int (Int.ofNat endPackRayWord.toNat)] := by
     simp [evalExprs?, hwad, hray, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? mulFunction.params
-          [.int (Int.ofNat (endPackWadWord I).toNat),
-            .int (Int.ofNat endPackRayWord.toNat)] =
-        some (endUintBinaryLocals (endPackWadWord I) endPackRayWord) := by
-    simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_mulFunction (endPackWadWord I) endPackRayWord
   have hmulStmt :
       ExecStmt config { contract := contract, locals := endPackStore I } evm0
         (.internalCall "mul" [.var "wad", .intLit RAY] "amt") .reverted := by
@@ -1932,12 +1917,7 @@ theorem endPackBodyReverts_moveNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
           .ok [.int (Int.ofNat (endPackWadWord I).toNat),
             .int (Int.ofNat endPackRayWord.toNat)] := by
     simp [evalExprs?, hwad, hray, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? mulFunction.params
-          [.int (Int.ofNat (endPackWadWord I).toNat),
-            .int (Int.ofNat endPackRayWord.toNat)] =
-        some (endUintBinaryLocals (endPackWadWord I) endPackRayWord) := by
-    simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_mulFunction (endPackWadWord I) endPackRayWord
   have hmulStmt :
       ExecStmt config { contract := contract, locals := endPackStore I } evm0
         (.internalCall "mul" [.var "wad", .intLit RAY] "amt")
@@ -2055,12 +2035,7 @@ theorem endPackBodyReverts_moveCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
           .ok [.int (Int.ofNat (endPackWadWord I).toNat),
             .int (Int.ofNat endPackRayWord.toNat)] := by
     simp [evalExprs?, hwad, hray, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? mulFunction.params
-          [.int (Int.ofNat (endPackWadWord I).toNat),
-            .int (Int.ofNat endPackRayWord.toNat)] =
-        some (endUintBinaryLocals (endPackWadWord I) endPackRayWord) := by
-    simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_mulFunction (endPackWadWord I) endPackRayWord
   have hmulStmt :
       ExecStmt config { contract := contract, locals := endPackStore I } evm0
         (.internalCall "mul" [.var "wad", .intLit RAY] "amt")
@@ -2211,12 +2186,7 @@ theorem endPackPrefixMoveSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
           .ok [.int (Int.ofNat (endPackWadWord I).toNat),
             .int (Int.ofNat endPackRayWord.toNat)] := by
     simp [evalExprs?, hwad, hray, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? mulFunction.params
-          [.int (Int.ofNat (endPackWadWord I).toNat),
-            .int (Int.ofNat endPackRayWord.toNat)] =
-        some (endUintBinaryLocals (endPackWadWord I) endPackRayWord) := by
-    simp [mulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_mulFunction (endPackWadWord I) endPackRayWord
   have hmulStmt :
       ExecStmt config { contract := contract, locals := endPackStore I } evm0
         (.internalCall "mul" [.var "wad", .intLit RAY] "amt")

@@ -67,7 +67,7 @@ theorem uniswapMintInitialLiquidityBranchStmtMinimumMintTotalSupplyOverflowRever
     (htotal : locals.get? "_totalSupply" = some (uniswapUint256Value (⟨0⟩ : UInt256)))
     (hsqrt :
       ExecStmt config { contract := contract, locals := locals } evm
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall { contract := contract, locals := locals }
@@ -90,7 +90,7 @@ theorem uniswapMintInitialLiquidityBranchStmtMinimumMintTotalSupplyOverflowRever
     simp [afterRoot, caller, resumeAfterInternalCall, collapseReturns]
   have hliqEval :
       evalExpr? config afterRoot evm
-        (u256 (.binary .sub (.var "rootLiquidity") (.intLit minimumLiquidity))) =
+        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootLiquidity") (.intLit minimumLiquidity))) =
           .ok (uniswapUint256Value liquidity) :=
     evalExpr_mint_initialLiquidity_sub_ok evm rootLiquidity liquidity hroot hge hfit
       hliquidity
@@ -106,7 +106,8 @@ theorem uniswapMintInitialLiquidityBranchStmtMinimumMintTotalSupplyOverflowRever
   have hbranch :
       ExecBlock config caller evm mintInitialLiquidityBranchStmts .reverted := by
     refine ExecBlock.consNormal hsqrt ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hliqEval) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl hliqEval (valueMatchesOptionalABIType_uint256_word liquidity)) ?_
     exact ExecBlock.consRevert hmint
   exact ExecStmt.iteTrue hcond hbranch
 
@@ -115,7 +116,7 @@ theorem uniswapMintInitialLiquidityBranchStmtMinimumMintBalanceOverflowReverts
     (htotal : locals.get? "_totalSupply" = some (uniswapUint256Value (⟨0⟩ : UInt256)))
     (hsqrt :
       ExecStmt config { contract := contract, locals := locals } evm
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall { contract := contract, locals := locals }
@@ -141,7 +142,7 @@ theorem uniswapMintInitialLiquidityBranchStmtMinimumMintBalanceOverflowReverts
     simp [afterRoot, caller, resumeAfterInternalCall, collapseReturns]
   have hliqEval :
       evalExpr? config afterRoot evm
-        (u256 (.binary .sub (.var "rootLiquidity") (.intLit minimumLiquidity))) =
+        (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootLiquidity") (.intLit minimumLiquidity))) =
           .ok (uniswapUint256Value liquidity) :=
     evalExpr_mint_initialLiquidity_sub_ok evm rootLiquidity liquidity hroot hge hfit
       hliquidity
@@ -157,7 +158,8 @@ theorem uniswapMintInitialLiquidityBranchStmtMinimumMintBalanceOverflowReverts
   have hbranch :
       ExecBlock config caller evm mintInitialLiquidityBranchStmts .reverted := by
     refine ExecBlock.consNormal hsqrt ?_
-    refine ExecBlock.consNormal (ExecStmt.letDecl hliqEval) ?_
+    refine ExecBlock.consNormal
+      (ExecStmt.letDecl hliqEval (valueMatchesOptionalABIType_uint256_word liquidity)) ?_
     exact ExecBlock.consRevert hmint
   exact ExecStmt.iteTrue hcond hbranch
 
@@ -348,7 +350,7 @@ theorem uniswapMintInitialAfterMintFeeMinimumMintTotalSupplyOverflowRevertCase
             nextLocals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
         evmAfter
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall
@@ -506,7 +508,7 @@ theorem uniswapMintInitialAfterMintFeeMinimumMintBalanceOverflowRevertCase
             nextLocals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
         evmAfter
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall

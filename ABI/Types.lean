@@ -14,6 +14,13 @@ inductive IntType where
   | sint : BitWidth -> IntType
   deriving DecidableEq, Repr
 
+def IntType.bitWidth : IntType -> BitWidth
+  | .uint bits | .sint bits => bits
+
+def IntType.isSigned : IntType -> Bool
+  | .uint _ => false
+  | .sint _ => true
+
 /-- Fixed-point decimal number types used by Solidity-style ABI values. -/
 -- Note: Just added to have complete coverage of ABI, will not implement right now
 inductive FixedType where

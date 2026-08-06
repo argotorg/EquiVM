@@ -163,7 +163,7 @@ def createAuctionFn : FunctionDecl :=
       [ .checkedCall (.storage nounsRef) "mint" (.intLit 0) [] "nounId"
           [ .letDecl "startTime" (some uint256) now,
             .letDecl "endTime" (some uint256)
-              (u256 (.binary .add (.var "startTime") (.storage durationRef))),
+              (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "startTime") (.storage durationRef))),
             .assign .storage (aField "nounId") (.var "nounId"),
             .assign .storage (aField "amount") (.intLit 0),
             .assign .storage (aField "startTime") (.var "startTime"),
@@ -225,8 +225,8 @@ def createBidTransition : TransitionDecl :=
         .require (.binary .lt now (auctionMemField "endTime")),
         .require (.binary .ge (.env .callvalue) (.storage reservePriceRef)),
         .require (.binary .ge (.env .callvalue)
-          (u256 (.binary .add (auctionMemField "amount")
-            (.binary .div (u256 (.binary .mul (auctionMemField "amount")
+          (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) (auctionMemField "amount")
+            (.binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (auctionMemField "amount")
               (.storage minBidIncRef))) (.intLit 100))))),
         .letDecl "lastBidder" (some addr) (auctionMemField "bidder"),
         .ite (.binary .ne (.var "lastBidder") zeroAddr)
@@ -236,9 +236,9 @@ def createBidTransition : TransitionDecl :=
         .assign .storage (aField "amount") (.env .callvalue),
         .assign .storage (aField "bidder") sender,
         .letDecl "extended" (some boolTy)
-          (.binary .lt (.binary .sub (auctionMemField "endTime") now) (.storage timeBufferRef)),
+          (.binary .lt (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (auctionMemField "endTime") now) (.storage timeBufferRef)),
         .ite (.var "extended")
-          [ .assign .storage (aField "endTime") (u256 (.binary .add now (.storage timeBufferRef))) ]
+          [ .assign .storage (aField "endTime") (u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) now (.storage timeBufferRef))) ]
           [],
         .assign .storage statusRef notEntered ] }
 

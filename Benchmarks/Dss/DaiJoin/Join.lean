@@ -140,7 +140,8 @@ theorem daiJoinJoinBodyMulReverts (evm : EVM.State) (I : ExecutionEnv)
       bindParams? mulFunction.params
           [.int (Int.ofNat daiJoinONEWord.toNat), joinWadValue I] =
         some (daiJoinUintBinaryLocals daiJoinONEWord (joinWadWord I)) := by
-    simp [mulFunction, uint256, bindParams?, daiJoinUintBinaryLocals, joinWadValue]
+    simpa [mulFunction, uint256, uint256Int, daiJoinUintBinaryLocals, joinWadValue] using
+      bindParams_uint256_pair "x" "y" daiJoinONEWord (joinWadWord I)
   have hover :
       UInt256.size ≤ daiJoinONEWord.toNat * (joinWadWord I).toNat :=
     daiJoinMulOverflow_of_guard_fail (x := daiJoinONEWord) (y := joinWadWord I) hwad hguard
@@ -179,7 +180,8 @@ theorem daiJoinJoinInternalMulReturns (evm : EVM.State) (I : ExecutionEnv)
       bindParams? mulFunction.params
           [.int (Int.ofNat daiJoinONEWord.toNat), joinWadValue I] =
         some (daiJoinUintBinaryLocals daiJoinONEWord (joinWadWord I)) := by
-    simp [mulFunction, uint256, bindParams?, daiJoinUintBinaryLocals, joinWadValue]
+    simpa [mulFunction, uint256, uint256Int, daiJoinUintBinaryLocals, joinWadValue] using
+      bindParams_uint256_pair "x" "y" daiJoinONEWord (joinWadWord I)
   have hbody :=
     execDaiJoinMulFunctionReturn evm
       (x := daiJoinONEWord) (y := joinWadWord I)

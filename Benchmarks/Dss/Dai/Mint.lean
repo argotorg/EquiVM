@@ -303,36 +303,20 @@ theorem evalExpr_mint_totalSupply (evm : EVM.State) (I : ExecutionEnv) :
       simpa [wordLoc, uint256Loc, uint256Int, mintTotalSupplyWord, mintTotalSupplySlot] using
         storageLocLoad_uint256 evm mintTotalSupplySlot)]
 
-theorem evalExpr_mint_usr_add_raw (evm : EVM.State) (I : ExecutionEnv) :
-    evalExpr? config { contract := contract, locals := mintStore I } evm
-      (.binary .add (.storage (balanceOfRef (.var "usr"))) (.var "wad")) =
-        .ok (.int (Int.ofNat (mintUsrBalanceWord evm I).toNat +
-          Int.ofNat (mintWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [evalExpr_mint_usr_balance, evalExpr_mint_wad]
-  simp [EvalResult.bind, bind, evalBinaryOp?, mintWadValue]
-
-set_option maxHeartbeats 1000000 in
 theorem evalExpr_mint_usr_credit (evm : EVM.State) (I : ExecutionEnv)
     (hfit : mintUsrCreditNat evm I < UInt256.size) :
     evalExpr? config { contract := contract, locals := mintStore I } evm
       (add256 (.storage (balanceOfRef (.var "usr"))) (.var "wad")) =
         .ok (mintUsrCreditValue evm I) := by
-  have hlt : ¬ Int.ofNat (mintUsrCreditNat evm I) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  conv_lhs =>
-    unfold add256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_mint_usr_add_raw]
-  simp [EvalResult.bind, bind, pure, evalBinaryOp?, mintUsrCreditValue, mintUsrCreditNat,
-    mintWadValue, uint256Int, hlt]
-  constructor
-  · omega
-  · have hfitNat :
-        (mintUsrBalanceWord evm I).toNat + (mintWadWord I).toNat < 2 ^ 256 := by
-      simpa [mintUsrCreditNat, UInt256.size] using hfit
-    omega
+  have htoNat : (mintUsrCreditWord evm I).toNat = mintUsrCreditNat evm I := by
+    unfold mintUsrCreditWord
+    exact ulit_toNat' _ hfit
+  have h := evalExpr_checked_add_uint256_word_ok
+    (result := mintUsrCreditWord evm I)
+    (evalExpr_mint_usr_balance evm I) (evalExpr_mint_wad evm I)
+    (by simpa only [mintUsrCreditNat] using htoNat) hfit
+  rw [htoNat] at h
+  exact h
 
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_mint_usr_checkedAdd_true (evm : EVM.State) (I : ExecutionEnv)
@@ -349,19 +333,9 @@ theorem evalExpr_mint_usr_credit_revert (evm : EVM.State) (I : ExecutionEnv)
     (hover : UInt256.size ≤ mintUsrCreditNat evm I) :
     evalExpr? config { contract := contract, locals := mintStore I } evm
       (add256 (.storage (balanceOfRef (.var "usr"))) (.var "wad")) = .revert := by
-  have hge : (2 : Int) ^ 256 ≤ Int.ofNat (mintUsrCreditNat evm I) := by
-    exact Int.ofNat_le.mpr (by simpa [UInt256.size] using hover)
-  have hnotNeg : ¬ Int.ofNat (mintUsrCreditNat evm I) < 0 := by
-    exact not_lt_of_ge (Int.natCast_nonneg _)
-  conv_lhs =>
-    unfold add256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_mint_usr_add_raw]
-  simp [EvalResult.bind, bind, pure, evalBinaryOp?, mintUsrCreditNat, mintWadValue,
-    uint256Int, hnotNeg, hge]
-  intro _
-  simpa [mintUsrCreditNat] using hge
+  exact evalExpr_checked_add_uint256_word_revert_of_overflow
+    (evalExpr_mint_usr_balance evm I) (evalExpr_mint_wad evm I)
+    (by simpa only [mintUsrCreditNat] using hover)
 
 theorem evalExpr_mint_usr_checkedAdd_revert (evm : EVM.State) (I : ExecutionEnv)
     (hover : UInt256.size ≤ mintUsrCreditNat evm I) :
@@ -372,36 +346,20 @@ theorem evalExpr_mint_usr_checkedAdd_revert (evm : EVM.State) (I : ExecutionEnv)
   rw [evalExpr_mint_usr_credit_revert evm I hover]
   simp [EvalResult.bind, bind]
 
-theorem evalExpr_mint_supply_add_raw (evm : EVM.State) (I : ExecutionEnv) :
-    evalExpr? config { contract := contract, locals := mintStore I } evm
-      (.binary .add (.storage totalSupplyRef) (.var "wad")) =
-        .ok (.int (Int.ofNat (mintTotalSupplyWord evm).toNat +
-          Int.ofNat (mintWadWord I).toNat)) := by
-  conv_lhs => unfold evalExpr?
-  rw [evalExpr_mint_totalSupply, evalExpr_mint_wad]
-  simp [EvalResult.bind, bind, evalBinaryOp?, mintWadValue]
-
-set_option maxHeartbeats 1000000 in
 theorem evalExpr_mint_supply_credit (evm : EVM.State) (I : ExecutionEnv)
     (hfit : mintSupplyCreditNat evm I < UInt256.size) :
     evalExpr? config { contract := contract, locals := mintStore I } evm
       (add256 (.storage totalSupplyRef) (.var "wad")) =
         .ok (mintSupplyCreditValue evm I) := by
-  have hlt : ¬ Int.ofNat (mintSupplyCreditNat evm I) ≥ (2 : Int) ^ 256 := by
-    exact not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
-  conv_lhs =>
-    unfold add256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_mint_supply_add_raw]
-  simp [EvalResult.bind, bind, pure, evalBinaryOp?, mintSupplyCreditValue,
-    mintSupplyCreditNat, mintWadValue, uint256Int, hlt]
-  constructor
-  · omega
-  · have hfitNat :
-        (mintTotalSupplyWord evm).toNat + (mintWadWord I).toNat < 2 ^ 256 := by
-      simpa [mintSupplyCreditNat, UInt256.size] using hfit
-    omega
+  have htoNat : (mintSupplyCreditWord evm I).toNat = mintSupplyCreditNat evm I := by
+    unfold mintSupplyCreditWord
+    exact ulit_toNat' _ hfit
+  have h := evalExpr_checked_add_uint256_word_ok
+    (result := mintSupplyCreditWord evm I)
+    (evalExpr_mint_totalSupply evm I) (evalExpr_mint_wad evm I)
+    (by simpa only [mintSupplyCreditNat] using htoNat) hfit
+  rw [htoNat] at h
+  exact h
 
 set_option maxHeartbeats 1000000 in
 theorem evalExpr_mint_supply_checkedAdd_true (evm : EVM.State) (I : ExecutionEnv)
@@ -418,19 +376,9 @@ theorem evalExpr_mint_supply_credit_revert (evm : EVM.State) (I : ExecutionEnv)
     (hover : UInt256.size ≤ mintSupplyCreditNat evm I) :
     evalExpr? config { contract := contract, locals := mintStore I } evm
       (add256 (.storage totalSupplyRef) (.var "wad")) = .revert := by
-  have hge : (2 : Int) ^ 256 ≤ Int.ofNat (mintSupplyCreditNat evm I) := by
-    exact Int.ofNat_le.mpr (by simpa [UInt256.size] using hover)
-  have hnotNeg : ¬ Int.ofNat (mintSupplyCreditNat evm I) < 0 := by
-    exact not_lt_of_ge (Int.natCast_nonneg _)
-  conv_lhs =>
-    unfold add256
-    unfold u256
-    unfold evalExpr?
-  rw [evalExpr_mint_supply_add_raw]
-  simp [EvalResult.bind, bind, pure, evalBinaryOp?, mintSupplyCreditNat, mintWadValue,
-    uint256Int, hnotNeg, hge]
-  intro _
-  simpa [mintSupplyCreditNat] using hge
+  exact evalExpr_checked_add_uint256_word_revert_of_overflow
+    (evalExpr_mint_totalSupply evm I) (evalExpr_mint_wad evm I)
+    (by simpa only [mintSupplyCreditNat] using hover)
 
 theorem evalExpr_mint_supply_checkedAdd_revert (evm : EVM.State) (I : ExecutionEnv)
     (hover : UInt256.size ≤ mintSupplyCreditNat evm I) :

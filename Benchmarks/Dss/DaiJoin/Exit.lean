@@ -177,7 +177,8 @@ theorem daiJoinExitInternalMulReturns (evm : EVM.State) (I : ExecutionEnv)
       bindParams? mulFunction.params
           [.int (Int.ofNat daiJoinONEWord.toNat), exitWadValue I] =
         some (daiJoinUintBinaryLocals daiJoinONEWord (exitWadWord I)) := by
-    simp [mulFunction, uint256, bindParams?, daiJoinUintBinaryLocals, exitWadValue]
+    simpa [mulFunction, daiJoinUintBinaryLocals, exitWadValue] using
+      bindParams_uint256_pair "x" "y" daiJoinONEWord (exitWadWord I)
   have hbody :=
     execDaiJoinMulFunctionReturn evm
       (x := daiJoinONEWord) (y := exitWadWord I)

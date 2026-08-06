@@ -1201,8 +1201,25 @@ theorem uniswapMintReservePrefix (evm : EVM.State) (I : ExecutionEnv)
         [ .letDecl "_reserve0" (some uint112) (.storage reserve0Ref),
           .letDecl "_reserve1" (some uint112) (.storage reserve1Ref) ]
         (.ok { contract := contract, locals := mintReserveStore evmL I } evmL) := by
-    refine ExecBlock.consNormal (ExecStmt.letDecl hreserve0) ?_
-    exact ExecBlock.consNormal (ExecStmt.letDecl hreserve1) (by
+    have hreserve0Matches :
+        valueMatchesOptionalABIType (some uint112)
+            (.int (Int.ofNat (uniswapReserve0Word evmL).toNat)) = true := by
+      apply valueMatchesOptionalABIType_uint_of_bounds
+      · exact Int.natCast_nonneg _
+      · apply Int.ofNat_lt.mpr
+        simpa [uniswapReserve0Word] using uniswapUint112Masked_lt
+          (Solm.EVM.storageLoad evmL evmL.executionEnv.codeOwner ⟨8⟩)
+    have hreserve1Matches :
+        valueMatchesOptionalABIType (some uint112)
+            (.int (Int.ofNat (uniswapReserve1Word evmL).toNat)) = true := by
+      apply valueMatchesOptionalABIType_uint_of_bounds
+      · exact Int.natCast_nonneg _
+      · apply Int.ofNat_lt.mpr
+        simpa [uniswapReserve1Word] using uniswapUint112Masked_lt
+          (UInt256.div (Solm.EVM.storageLoad evmL evmL.executionEnv.codeOwner ⟨8⟩)
+            reserve112Shift)
+    refine ExecBlock.consNormal (ExecStmt.letDecl hreserve0 hreserve0Matches) ?_
+    exact ExecBlock.consNormal (ExecStmt.letDecl hreserve1 hreserve1Matches) (by
       simpa [mintReserveStore] using
         (ExecBlock.nil : ExecBlock config
           { contract := contract, locals := mintReserveStore evmL I } evmL []
@@ -1553,9 +1570,17 @@ theorem uniswapMintTotalSupplyLet
           locals := locals.insert "_totalSupply"
             (uniswapUint256Value (mintFunctionTotalSupplyWord evm)) }
         evm) := by
-  exact ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_mint_totalSupply_of_get evm hbase))
-    ExecBlock.nil
+  have hdecl :
+      ExecStmt config { contract := contract, locals := locals } evm
+        (.letDecl "_totalSupply" (some uint256) (.storage totalSupplyRef))
+        (.ok
+          { contract := contract,
+            locals := locals.insert "_totalSupply"
+              (uniswapUint256Value (mintFunctionTotalSupplyWord evm)) }
+          evm) :=
+    ExecStmt.letDecl (evalExpr_mint_totalSupply_of_get evm hbase)
+      (valueMatchesOptionalABIType_uint256_word (mintFunctionTotalSupplyWord evm))
+  exact ExecBlock.consNormal hdecl ExecBlock.nil
 
 theorem evalExpr_mint_totalSupply_eq_zero_true
     {locals : Store} (evm : EVM.State)
@@ -1583,7 +1608,7 @@ theorem evalExpr_mint_amountProduct_of_get
     (hamount1 : locals.get? "amount1" = some (uniswapUint256Value amount1))
     (hfit : mintAmountProductNat amount0 amount1 < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (u256 (.binary .mul (.var "amount0") (.var "amount1"))) =
+      (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))) =
         .ok (mintAmountProductValue amount0 amount1) := by
   rw [mintAmountProductValue, mintAmountProductWord_eq_mul amount0 amount1 hfit]
   exact evalExpr_uint256_mul
@@ -1596,7 +1621,7 @@ theorem evalExpr_mint_namedProduct_of_get
     (hy : locals.get? yName = some (uniswapUint256Value y))
     (hfit : mintAmountProductNat x y < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (u256 (.binary .mul (.var xName) (.var yName))) =
+      (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var xName) (.var yName))) =
         .ok (mintAmountProductValue x y) := by
   rw [mintAmountProductValue, mintAmountProductWord_eq_mul x y hfit]
   exact evalExpr_uint256_mul
@@ -1609,10 +1634,11 @@ theorem evalExprs_mint_initialSqrtArg_of_get
     (hamount1 : locals.get? "amount1" = some (uniswapUint256Value amount1))
     (hfit : mintAmountProductNat amount0 amount1 < UInt256.size) :
     evalExprs? config { contract := contract, locals := locals } evm
-      [u256 (.binary .mul (.var "amount0") (.var "amount1"))] =
+      [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))] =
         .ok [sqrtFunctionYValue (mintAmountProductWord amount0 amount1)] := by
-  simp [evalExprs?, evalExpr_mint_amountProduct_of_get evm amount0 amount1 hamount0
-    hamount1 hfit, sqrtFunctionYValue, mintAmountProductValue, EvalResult.bind, bind, pure]
+  rw [evalExprs?, evalExpr_mint_amountProduct_of_get evm amount0 amount1 hamount0
+    hamount1 hfit]
+  rfl
 
 theorem evalExpr_mint_proportionalLiquidity_of_get
     {locals : Store} (evm : EVM.State) (amountName reserveName : Ident)
@@ -1623,8 +1649,8 @@ theorem evalExpr_mint_proportionalLiquidity_of_get
     (hfit : mintAmountProductNat amount totalSupply < UInt256.size)
     (hreserveNonzero : reserve ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (.binary .div
-        (u256 (.binary .mul (.var amountName) (.var "_totalSupply")))
+      (.binary (.div (.uint ⟨256, by decide⟩) .checked)
+        (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var amountName) (.var "_totalSupply")))
         (.var reserveName)) =
         .ok (mintProportionalLiquidityValue amount totalSupply reserve) := by
   have hmul :=
@@ -1636,23 +1662,49 @@ theorem evalExpr_mint_proportionalLiquidity_of_get
   have hreserveInt : Int.ofNat reserve.toNat ≠ 0 := by
     intro h
     exact hreserveNat (Int.ofNat.inj h)
-  simp only [evalExpr?, hmul, EvalResult.ofOption, hreserve, EvalResult.bind, bind]
-  simp [evalBinaryOp?, mintProportionalLiquidityValue, uniswapUint256Value, uint256Value,
-    mintProportionalLiquidityWord, hreserveNat, udiv_toNat]
+  have htdiv :
+      (Int.ofNat (mintAmountProductWord amount totalSupply).toNat).tdiv
+          (Int.ofNat reserve.toNat) =
+        Int.ofNat (mintAmountProductWord amount totalSupply).toNat /
+          Int.ofNat reserve.toNat :=
+    Int.tdiv_eq_ediv_of_nonneg (Int.natCast_nonneg _)
+  have hreserveEval :
+      evalExpr? config { contract := contract, locals := locals } evm (.var reserveName) =
+        .ok (.int (Int.ofNat reserve.toNat)) := by
+    simp only [evalExpr?, EvalResult.ofOption, hreserve]
+  have hquotient :
+      Int.ofNat (mintAmountProductWord amount totalSupply).toNat /
+          Int.ofNat reserve.toNat =
+        Int.ofNat (mintProportionalLiquidityWord amount totalSupply reserve).toNat := by
+    rw [mintProportionalLiquidityWord, udiv_toNat]
+    exact (Int.natCast_ediv _ _).symm
+  have hdivEval :
+      evalBinaryOp? (.div (.uint ⟨256, by decide⟩) .checked)
+          (mintAmountProductValue amount totalSupply) (.int (Int.ofNat reserve.toNat)) =
+        .ok (mintProportionalLiquidityValue amount totalSupply reserve) := by
+    simp only [evalBinaryOp?]
+    rw [if_neg hreserveInt, htdiv, hquotient]
+    exact evalIntArithResult_checked_uint_ok _ _ (Int.natCast_nonneg _)
+      (Int.ofNat_lt.mpr (mintProportionalLiquidityWord amount totalSupply reserve).val.isLt)
+  rw [evalExpr_binary (hAnd := by decide) (hOr := by decide)]
+  rw [hmul]
+  simp only [EvalResult.bind, bind]
+  rw [hreserveEval]
+  exact hdivEval
 
 abbrev mintInitialLiquidityBranchStmts : List Stmt :=
-  [ .internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+  [ .internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
       "rootLiquidity",
     .letDecl "liquidity" (some uint256)
-      (u256 (.binary .sub (.var "rootLiquidity") (.intLit minimumLiquidity))),
+      (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "rootLiquidity") (.intLit minimumLiquidity))),
     .internalCall "_mint" [zeroAddr, (.intLit minimumLiquidity)] "_minimumMint" ]
 
 abbrev mintProportionalLiquidityBranchStmts : List Stmt :=
   [ .letDecl "liquidity0" (some uint256)
-      (.binary .div (u256 (.binary .mul (.var "amount0") (.var "_totalSupply")))
+      (.binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "_totalSupply")))
         (.var "_reserve0")),
     .letDecl "liquidity1" (some uint256)
-      (.binary .div (u256 (.binary .mul (.var "amount1") (.var "_totalSupply")))
+      (.binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount1") (.var "_totalSupply")))
         (.var "_reserve1")),
     .internalCall "min" [.var "liquidity0", .var "liquidity1"] "liquidity" ]
 
@@ -1668,7 +1720,7 @@ abbrev mintAfterLiquidityTailStmts : List Stmt :=
     (.var "_reserve0") (.var "_reserve1") ++
   [ .ite (.var "feeOn")
       [ .assign .storage kLastRef
-          (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
       [] ] ++
   lockExit ++
   [ .return [(.var "liquidity")] ]

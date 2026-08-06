@@ -1138,7 +1138,7 @@ theorem evalExpr_grab_dtab_mul_guard_dart_zero_true
     (hzero : grabDartInt I = 0) :
     evalExpr? config { contract := contract, locals := locals.insert "dtab" (.int dtab) } evm
       (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-        (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+        (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
           (.storage (ilksF (.var "i") "rate")))) =
       .ok (.bool true) := by
   have hdartEval :
@@ -1163,10 +1163,11 @@ theorem evalExpr_grab_dtab_mul_guard_exact_true
       evalExpr? config { contract := contract, locals := locals.insert "dtab" (.int dtab) } evm
         (.storage (ilksF (.var "i") "rate")) = .ok (.int (Int.ofNat rate.toNat)))
     (hdartNe : grabDartInt I ≠ 0)
-    (hdiv : dtab / grabDartInt I = Int.ofNat rate.toNat) :
+    (hrateLow : rate.toNat < EVM.twoPow 255)
+    (hdiv : dtab.tdiv (grabDartInt I) = Int.ofNat rate.toNat) :
     evalExpr? config { contract := contract, locals := locals.insert "dtab" (.int dtab) } evm
       (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-        (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+        (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
           (.storage (ilksF (.var "i") "rate")))) =
       .ok (.bool true) := by
   have hdartEval :
@@ -1188,11 +1189,14 @@ theorem evalExpr_grab_dtab_mul_guard_exact_true
     simp [evalExpr?, EvalResult.bind, bind, hdartEval, evalBinaryOp?, hdartNe]
   have hright :
       evalExpr? config { contract := contract, locals := locals.insert "dtab" (.int dtab) } evm
-        (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+        (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
           (.storage (ilksF (.var "i") "rate"))) =
       .ok (.bool true) := by
-    simp [evalExpr?, EvalResult.bind, bind, hdtabEval, hdartEval, hrate,
-      evalBinaryOp?, hdartNe, hdiv]
+    have hdivEval := evalExpr_checked_div_sint_ok ⟨256, by decide⟩ dtab (grabDartInt I)
+      hdtabEval hdartEval hdartNe (by rw [hdiv]; exact Int.natCast_nonneg _)
+      (by rw [hdiv]; exact Int.ofNat_lt.mpr hrateLow)
+    rw [hdiv] at hdivEval
+    simp [evalExpr?, EvalResult.bind, bind, hdivEval, hrate, evalBinaryOp?]
   exact vatEvalExpr_or_false_right hleft hright
 
 def grabUrnSourceBase (I : ExecutionEnv) : UInt256 :=
@@ -2708,7 +2712,7 @@ theorem execGrabUrnInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))) =
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))) =
         .ok (.int (Int.ofNat urnInkNew.toNat)) := by
     exact evalExpr_fold_wordWrapAdd_ok hstorage hdinkEval (grabDinkInt_mod_word I) hnew
   have hnewEval :
@@ -2764,7 +2768,7 @@ theorem execGrabUrnInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "urnInkNew" (some uint256)
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))),
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))),
       .require
         (eitherExpr (.binary .ge (.var "dink") (.intLit 0))
           (.binary .le (.var "urnInkNew")
@@ -2775,7 +2779,7 @@ theorem execGrabUrnInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
             (.storage (urnsF (.var "i") (.var "u") "ink")))),
       .assign .storage (urnsF (.var "i") (.var "u") "ink") (.var "urnInkNew") ]
     (.ok { contract := contract, locals := locals' } evm')
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNegEval) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardPosEval) ?_
   exact ExecBlock.consNormal (ExecStmt.assign hnewEval hassign) ExecBlock.nil
@@ -2813,7 +2817,7 @@ theorem execGrabUrnInkCheckedOk {evm : EVM.State} {I : ExecutionEnv}
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))) =
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))) =
         .ok (.int (Int.ofNat urnInkNew.toNat)) := by
     exact evalExpr_fold_wordWrapAdd_ok hstorage hdinkEval (grabDinkInt_mod_word I) hnew
   have hnewEval :
@@ -2864,7 +2868,7 @@ theorem execGrabUrnInkCheckedOk {evm : EVM.State} {I : ExecutionEnv}
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "urnInkNew" (some uint256)
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))),
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))),
       .require
         (eitherExpr (.binary .ge (.var "dink") (.intLit 0))
           (.binary .le (.var "urnInkNew")
@@ -2874,7 +2878,7 @@ theorem execGrabUrnInkCheckedOk {evm : EVM.State} {I : ExecutionEnv}
           (.binary .ge (.var "urnInkNew")
             (.storage (urnsF (.var "i") (.var "u") "ink")))) ]
     (.ok { contract := contract, locals := locals' } evm)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNegEval) ?_
   exact ExecBlock.consNormal (ExecStmt.requireTrue hguardPosEval) ExecBlock.nil
 
@@ -2907,7 +2911,7 @@ theorem execGrabUrnInkCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))) =
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))) =
         .ok (.int (Int.ofNat urnInkNew.toNat)) := by
     exact evalExpr_fold_wordWrapAdd_ok hstorage hdinkEval (grabDinkInt_mod_word I) hnew
   have hnewEval :
@@ -2951,7 +2955,7 @@ theorem execGrabUrnInkCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "urnInkNew" (some uint256)
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))),
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))),
       .require
         (eitherExpr (.binary .ge (.var "dink") (.intLit 0))
           (.binary .le (.var "urnInkNew")
@@ -2961,7 +2965,7 @@ theorem execGrabUrnInkCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
           (.binary .ge (.var "urnInkNew")
             (.storage (urnsF (.var "i") (.var "u") "ink")))) ]
     .reverted
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguardNegEval)
 
 theorem execGrabUrnInkCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
@@ -2994,7 +2998,7 @@ theorem execGrabUrnInkCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))) =
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))) =
         .ok (.int (Int.ofNat urnInkNew.toNat)) := by
     exact evalExpr_fold_wordWrapAdd_ok hstorage hdinkEval (grabDinkInt_mod_word I) hnew
   have hnewEval :
@@ -3045,7 +3049,7 @@ theorem execGrabUrnInkCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "urnInkNew" (some uint256)
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))),
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "ink")) (.var "dink"))),
       .require
         (eitherExpr (.binary .ge (.var "dink") (.intLit 0))
           (.binary .le (.var "urnInkNew")
@@ -3055,7 +3059,7 @@ theorem execGrabUrnInkCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
           (.binary .ge (.var "urnInkNew")
             (.storage (urnsF (.var "i") (.var "u") "ink")))) ]
     .reverted
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNegEval) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguardPosEval)
 
@@ -3092,7 +3096,7 @@ theorem execGrabUrnArtCheckedOk {evm : EVM.State} {I : ExecutionEnv}
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))) =
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))) =
         .ok (.int (Int.ofNat urnArtNew.toNat)) := by
     exact evalExpr_fold_wordWrapAdd_ok hstorage hdartEval (grabDartInt_mod_word I) hnew
   have hnewEval :
@@ -3143,7 +3147,7 @@ theorem execGrabUrnArtCheckedOk {evm : EVM.State} {I : ExecutionEnv}
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "urnArtNew" (some uint256)
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))),
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))),
       .require
         (eitherExpr (.binary .ge (.var "dart") (.intLit 0))
           (.binary .le (.var "urnArtNew")
@@ -3153,7 +3157,7 @@ theorem execGrabUrnArtCheckedOk {evm : EVM.State} {I : ExecutionEnv}
           (.binary .ge (.var "urnArtNew")
             (.storage (urnsF (.var "i") (.var "u") "art")))) ]
     (.ok { contract := contract, locals := locals' } evm)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNegEval) ?_
   exact ExecBlock.consNormal (ExecStmt.requireTrue hguardPosEval) ExecBlock.nil
 
@@ -3186,7 +3190,7 @@ theorem execGrabUrnArtCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))) =
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))) =
         .ok (.int (Int.ofNat urnArtNew.toNat)) := by
     exact evalExpr_fold_wordWrapAdd_ok hstorage hdartEval (grabDartInt_mod_word I) hnew
   have hnewEval :
@@ -3231,7 +3235,7 @@ theorem execGrabUrnArtCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "urnArtNew" (some uint256)
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))),
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))),
       .require
         (eitherExpr (.binary .ge (.var "dart") (.intLit 0))
           (.binary .le (.var "urnArtNew")
@@ -3241,7 +3245,7 @@ theorem execGrabUrnArtCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
           (.binary .ge (.var "urnArtNew")
             (.storage (urnsF (.var "i") (.var "u") "art")))) ]
     .reverted
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguardNegEval)
 
 theorem execGrabUrnArtCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
@@ -3274,7 +3278,7 @@ theorem execGrabUrnArtCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))) =
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))) =
         .ok (.int (Int.ofNat urnArtNew.toNat)) := by
     exact evalExpr_fold_wordWrapAdd_ok hstorage hdartEval (grabDartInt_mod_word I) hnew
   have hnewEval :
@@ -3326,7 +3330,7 @@ theorem execGrabUrnArtCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "urnArtNew" (some uint256)
         (wordWrap256
-          (.binary .add (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))),
+          (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (urnsF (.var "i") (.var "u") "art")) (.var "dart"))),
       .require
         (eitherExpr (.binary .ge (.var "dart") (.intLit 0))
           (.binary .le (.var "urnArtNew")
@@ -3336,7 +3340,7 @@ theorem execGrabUrnArtCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
           (.binary .ge (.var "urnArtNew")
             (.storage (urnsF (.var "i") (.var "u") "art")))) ]
     .reverted
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNegEval) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguardPosEval)
 
@@ -3370,7 +3374,7 @@ theorem execGrabIlkArtCheckedOk {evm : EVM.State} {I : ExecutionEnv}
     vatEvalExpr_varInt (by simpa [grabDartValue] using hdart)
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
-        (wordWrap256 (.binary .add (.storage (ilksF (.var "i") "Art")) (.var "dart"))) =
+        (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (ilksF (.var "i") "Art")) (.var "dart"))) =
         .ok (.int (Int.ofNat ilkArtNew.toNat)) := by
     exact evalExpr_fold_wordWrapAdd_ok hstorage hdartEval (grabDartInt_mod_word I) hnew
   have hnewEval :
@@ -3413,7 +3417,7 @@ theorem execGrabIlkArtCheckedOk {evm : EVM.State} {I : ExecutionEnv}
     evalSignedAddGuardPos_true hdartAfter hnewEval hstorageAfter hguardPos
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "ilkArtNew" (some uint256)
-        (wordWrap256 (.binary .add (.storage (ilksF (.var "i") "Art")) (.var "dart"))),
+        (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (ilksF (.var "i") "Art")) (.var "dart"))),
       .require
         (eitherExpr (.binary .ge (.var "dart") (.intLit 0))
           (.binary .le (.var "ilkArtNew") (.storage (ilksF (.var "i") "Art")))),
@@ -3421,7 +3425,7 @@ theorem execGrabIlkArtCheckedOk {evm : EVM.State} {I : ExecutionEnv}
         (eitherExpr (.binary .le (.var "dart") (.intLit 0))
           (.binary .ge (.var "ilkArtNew") (.storage (ilksF (.var "i") "Art")))) ]
     (.ok { contract := contract, locals := locals' } evm)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNegEval) ?_
   exact ExecBlock.consNormal (ExecStmt.requireTrue hguardPosEval) ExecBlock.nil
 
@@ -3448,7 +3452,7 @@ theorem execGrabDtabMulCheckedOk {evm : EVM.State} {I : ExecutionEnv}
         { contract := contract,
           locals := locals.insert "dtab" (.int dtab) } evm
         (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-          (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
             (.storage (ilksF (.var "i") "rate")))) =
         .ok (.bool true)) :
     ExecBlock config { contract := contract, locals := locals } evm
@@ -3468,24 +3472,24 @@ theorem execGrabDtabMulCheckedOk {evm : EVM.State} {I : ExecutionEnv}
     vatEvalExpr_varInt (by simpa [grabDartValue] using hdart)
   have hmul :
       evalExpr? config { contract := contract, locals := locals } evm
-        (.binary .mul (.storage (ilksF (.var "i") "rate")) (.var "dart")) =
+        (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "rate")) (.var "dart")) =
         .ok (.int dtab) :=
-    evalExpr_fold_mul_int_ok hrate hdartEval hdtab
+    evalExpr_fold_mul_int_ok hrate hdartEval hdtab hdtabLo hdtabHi
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
-        (s256 (.binary .mul (.storage (ilksF (.var "i") "rate")) (.var "dart"))) =
+        (s256 (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "rate")) (.var "dart"))) =
         .ok (.int dtab) :=
     evalExpr_fold_s256_ok hmul hdtabLo hdtabHi
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "dtab" (some int256)
-        (s256 (.binary .mul (.storage (ilksF (.var "i") "rate")) (.var "dart"))),
+        (s256 (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "rate")) (.var "dart"))),
       .require (.binary .le (.storage (ilksF (.var "i") "rate")) (.intLit maxInt256)),
       .require
         (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-          (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
             (.storage (ilksF (.var "i") "rate")))) ]
     (.ok { contract := contract, locals := locals' } evm)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_sint256 hlet (by simpa [EVM.twoPow] using hdtabLo) (by simpa [EVM.twoPow] using hdtabHi)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardMax) ?_
   exact ExecBlock.consNormal (ExecStmt.requireTrue hguardMul) ExecBlock.nil
 
@@ -3514,19 +3518,19 @@ theorem execGrabDtabMulCheckedRevertRange {evm : EVM.State} {I : ExecutionEnv}
     vatEvalExpr_varInt (by simpa [grabDartValue] using hdart)
   have hmul :
       evalExpr? config { contract := contract, locals := locals } evm
-        (.binary .mul (.storage (ilksF (.var "i") "rate")) (.var "dart")) =
-        .ok (.int dtab) :=
-    evalExpr_fold_mul_int_ok hrate hdartEval hdtab
+        (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "rate")) (.var "dart")) =
+        .revert :=
+    evalExpr_fold_mul_int_revert hrate hdartEval (by simpa only [hdtab] using hbad)
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "dtab" (some int256)
-        (s256 (.binary .mul (.storage (ilksF (.var "i") "rate")) (.var "dart"))),
+        (s256 (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "rate")) (.var "dart"))),
       .require (.binary .le (.storage (ilksF (.var "i") "rate")) (.intLit maxInt256)),
       .require
         (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-          (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
             (.storage (ilksF (.var "i") "rate")))) ]
     .reverted
-  exact ExecBlock.consRevert (ExecStmt.letDeclRevert (evalExpr_s256_revert hmul hbad))
+  exact ExecBlock.consRevert (ExecStmt.letDeclRevert (evalExpr_inRange_revert _ _ _ _ _ hmul))
 
 theorem execGrabDtabMulCheckedRevertMax {evm : EVM.State} {I : ExecutionEnv}
     (locals : Store) (rateOld : UInt256) (dtab : Int)
@@ -3558,24 +3562,24 @@ theorem execGrabDtabMulCheckedRevertMax {evm : EVM.State} {I : ExecutionEnv}
     vatEvalExpr_varInt (by simpa [grabDartValue] using hdart)
   have hmul :
       evalExpr? config { contract := contract, locals := locals } evm
-        (.binary .mul (.storage (ilksF (.var "i") "rate")) (.var "dart")) =
+        (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "rate")) (.var "dart")) =
         .ok (.int dtab) :=
-    evalExpr_fold_mul_int_ok hrate hdartEval hdtab
+    evalExpr_fold_mul_int_ok hrate hdartEval hdtab hdtabLo hdtabHi
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
-        (s256 (.binary .mul (.storage (ilksF (.var "i") "rate")) (.var "dart"))) =
+        (s256 (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "rate")) (.var "dart"))) =
         .ok (.int dtab) :=
     evalExpr_fold_s256_ok hmul hdtabLo hdtabHi
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "dtab" (some int256)
-        (s256 (.binary .mul (.storage (ilksF (.var "i") "rate")) (.var "dart"))),
+        (s256 (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "rate")) (.var "dart"))),
       .require (.binary .le (.storage (ilksF (.var "i") "rate")) (.intLit maxInt256)),
       .require
         (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-          (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
             (.storage (ilksF (.var "i") "rate")))) ]
     .reverted
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_sint256 hlet (by simpa [EVM.twoPow] using hdtabLo) (by simpa [EVM.twoPow] using hdtabHi)) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguardMax)
 
 theorem execGrabDtabMulCheckedRevertMaxSlt {evm : EVM.State} {I : ExecutionEnv}
@@ -3632,7 +3636,7 @@ theorem execGrabDtabMulCheckedRevertMul {evm : EVM.State} {I : ExecutionEnv}
       evalExpr? config { contract := contract, locals := locals.insert "dtab" (.int dtab) }
         evm
         (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-          (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
             (.storage (ilksF (.var "i") "rate")))) =
         .ok (.bool false)) :
     ExecBlock config { contract := contract, locals := locals } evm
@@ -3649,24 +3653,24 @@ theorem execGrabDtabMulCheckedRevertMul {evm : EVM.State} {I : ExecutionEnv}
     vatEvalExpr_varInt (by simpa [grabDartValue] using hdart)
   have hmul :
       evalExpr? config { contract := contract, locals := locals } evm
-        (.binary .mul (.storage (ilksF (.var "i") "rate")) (.var "dart")) =
+        (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "rate")) (.var "dart")) =
         .ok (.int dtab) :=
-    evalExpr_fold_mul_int_ok hrate hdartEval hdtab
+    evalExpr_fold_mul_int_ok hrate hdartEval hdtab hdtabLo hdtabHi
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
-        (s256 (.binary .mul (.storage (ilksF (.var "i") "rate")) (.var "dart"))) =
+        (s256 (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "rate")) (.var "dart"))) =
         .ok (.int dtab) :=
     evalExpr_fold_s256_ok hmul hdtabLo hdtabHi
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "dtab" (some int256)
-        (s256 (.binary .mul (.storage (ilksF (.var "i") "rate")) (.var "dart"))),
+        (s256 (.binary (.mul (.sint ⟨256, by decide⟩) .checked) (.storage (ilksF (.var "i") "rate")) (.var "dart"))),
       .require (.binary .le (.storage (ilksF (.var "i") "rate")) (.intLit maxInt256)),
       .require
         (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-          (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
             (.storage (ilksF (.var "i") "rate")))) ]
     .reverted
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_sint256 hlet (by simpa [EVM.twoPow] using hdtabLo) (by simpa [EVM.twoPow] using hdtabHi)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardMax) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguardMul)
 
@@ -3696,7 +3700,7 @@ theorem execGrabIlkArtCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     vatEvalExpr_varInt (by simpa [grabDartValue] using hdart)
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
-        (wordWrap256 (.binary .add (.storage (ilksF (.var "i") "Art")) (.var "dart"))) =
+        (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (ilksF (.var "i") "Art")) (.var "dart"))) =
         .ok (.int (Int.ofNat ilkArtNew.toNat)) := by
     exact evalExpr_fold_wordWrapAdd_ok hstorage hdartEval (grabDartInt_mod_word I) hnew
   have hnewEval :
@@ -3734,7 +3738,7 @@ theorem execGrabIlkArtCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     evalSignedAddGuardNeg_false hdartAfter hnewEval hstorageAfter hguardNeg
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "ilkArtNew" (some uint256)
-        (wordWrap256 (.binary .add (.storage (ilksF (.var "i") "Art")) (.var "dart"))),
+        (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (ilksF (.var "i") "Art")) (.var "dart"))),
       .require
         (eitherExpr (.binary .ge (.var "dart") (.intLit 0))
           (.binary .le (.var "ilkArtNew") (.storage (ilksF (.var "i") "Art")))),
@@ -3742,7 +3746,7 @@ theorem execGrabIlkArtCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
         (eitherExpr (.binary .le (.var "dart") (.intLit 0))
           (.binary .ge (.var "ilkArtNew") (.storage (ilksF (.var "i") "Art")))) ]
     .reverted
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguardNegEval)
 
 theorem execGrabIlkArtCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
@@ -3772,7 +3776,7 @@ theorem execGrabIlkArtCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     vatEvalExpr_varInt (by simpa [grabDartValue] using hdart)
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
-        (wordWrap256 (.binary .add (.storage (ilksF (.var "i") "Art")) (.var "dart"))) =
+        (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (ilksF (.var "i") "Art")) (.var "dart"))) =
         .ok (.int (Int.ofNat ilkArtNew.toNat)) := by
     exact evalExpr_fold_wordWrapAdd_ok hstorage hdartEval (grabDartInt_mod_word I) hnew
   have hnewEval :
@@ -3816,7 +3820,7 @@ theorem execGrabIlkArtCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     evalSignedAddGuardPos_false hdartAfter hnewEval hstorageAfter hguardPos
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "ilkArtNew" (some uint256)
-        (wordWrap256 (.binary .add (.storage (ilksF (.var "i") "Art")) (.var "dart"))),
+        (wordWrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.storage (ilksF (.var "i") "Art")) (.var "dart"))),
       .require
         (eitherExpr (.binary .ge (.var "dart") (.intLit 0))
           (.binary .le (.var "ilkArtNew") (.storage (ilksF (.var "i") "Art")))),
@@ -3824,7 +3828,7 @@ theorem execGrabIlkArtCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
         (eitherExpr (.binary .le (.var "dart") (.intLit 0))
           (.binary .ge (.var "ilkArtNew") (.storage (ilksF (.var "i") "Art")))) ]
     .reverted
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNegEval) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguardPosEval)
 
@@ -3860,7 +3864,7 @@ theorem execGrabGemSubCheckedOk {evm : EVM.State} {I : ExecutionEnv}
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
         (wordWrap256
-          (.binary .sub (.storage (gemRef (.var "i") (.var "v"))) (.var "dink"))) =
+          (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.storage (gemRef (.var "i") (.var "v"))) (.var "dink"))) =
         .ok (.int (Int.ofNat gemNew.toNat)) := by
     exact evalExpr_fold_wordWrapSub_ok hstorage hdinkEval
       (by simpa [hnew] using
@@ -3911,7 +3915,7 @@ theorem execGrabGemSubCheckedOk {evm : EVM.State} {I : ExecutionEnv}
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "gemNew" (some uint256)
         (wordWrap256
-          (.binary .sub (.storage (gemRef (.var "i") (.var "v"))) (.var "dink"))),
+          (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.storage (gemRef (.var "i") (.var "v"))) (.var "dink"))),
       .require
         (eitherExpr (.binary .le (.var "dink") (.intLit 0))
           (.binary .le (.var "gemNew") (.storage (gemRef (.var "i") (.var "v"))))),
@@ -3919,7 +3923,7 @@ theorem execGrabGemSubCheckedOk {evm : EVM.State} {I : ExecutionEnv}
         (eitherExpr (.binary .ge (.var "dink") (.intLit 0))
           (.binary .ge (.var "gemNew") (.storage (gemRef (.var "i") (.var "v"))))) ]
     (.ok { contract := contract, locals := locals' } evm)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNegEval) ?_
   exact ExecBlock.consNormal (ExecStmt.requireTrue hguardPosEval) ExecBlock.nil
 
@@ -3947,7 +3951,7 @@ theorem execCheckedSubSignedRevertGuardNeg {evm : EVM.State} {locals : Store}
   let locals' := locals.insert name (.int (Int.ofNat new.toNat))
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
-        (wordWrap256 (.binary .sub x y)) =
+        (wordWrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) x y)) =
         .ok (.int (Int.ofNat new.toNat)) :=
     evalExpr_fold_wordWrapSub_ok hx hy hwrap
   have hnewEval :
@@ -3961,11 +3965,11 @@ theorem execCheckedSubSignedRevertGuardNeg {evm : EVM.State} {locals : Store}
     evalSignedSubGuardNeg_false (by simpa [locals'] using hyAfter)
       hnewEval (by simpa [locals'] using hxAfter) hcond
   change ExecBlock config { contract := contract, locals := locals } evm
-    [ .letDecl name (some uint256) (wordWrap256 (.binary .sub x y)),
+    [ .letDecl name (some uint256) (wordWrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) x y)),
       .require (eitherExpr (.binary .le y (.intLit 0)) (.binary .le (.var name) x)),
       .require (eitherExpr (.binary .ge y (.intLit 0)) (.binary .ge (.var name) x)) ]
     .reverted
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguardNegEval)
 
 theorem execCheckedSubSignedRevertGuardPos {evm : EVM.State} {locals : Store}
@@ -3997,7 +4001,7 @@ theorem execCheckedSubSignedRevertGuardPos {evm : EVM.State} {locals : Store}
   let locals' := locals.insert name (.int (Int.ofNat new.toNat))
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
-        (wordWrap256 (.binary .sub x y)) =
+        (wordWrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) x y)) =
         .ok (.int (Int.ofNat new.toNat)) :=
     evalExpr_fold_wordWrapSub_ok hx hy hwrap
   have hnewEval :
@@ -4011,11 +4015,11 @@ theorem execCheckedSubSignedRevertGuardPos {evm : EVM.State} {locals : Store}
     evalSignedSubGuardPos_false (by simpa [locals'] using hyAfter)
       hnewEval (by simpa [locals'] using hxAfter) hcond
   change ExecBlock config { contract := contract, locals := locals } evm
-    [ .letDecl name (some uint256) (wordWrap256 (.binary .sub x y)),
+    [ .letDecl name (some uint256) (wordWrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) x y)),
       .require (eitherExpr (.binary .le y (.intLit 0)) (.binary .le (.var name) x)),
       .require (eitherExpr (.binary .ge y (.intLit 0)) (.binary .ge (.var name) x)) ]
     .reverted
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (by simpa [locals'] using hguardNeg)) ?_
   exact ExecBlock.consRevert (ExecStmt.requireFalse hguardPosEval)
 
@@ -4190,7 +4194,7 @@ theorem execGrabSinSubCheckedOk {evm : EVM.State} {I : ExecutionEnv}
     vatEvalExpr_varInt hdtab
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
-        (wordWrap256 (.binary .sub (.storage (sinRef (.var "w"))) (.var "dtab"))) =
+        (wordWrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.storage (sinRef (.var "w"))) (.var "dtab"))) =
         .ok (.int (Int.ofNat sinNew.toNat)) := by
     exact evalExpr_fold_wordWrapSub_ok hstorage hdtabEval
       (by simpa [hnew] using signedSubWrap sinOld dtabWord dtab hdtabMod)
@@ -4234,7 +4238,7 @@ theorem execGrabSinSubCheckedOk {evm : EVM.State} {I : ExecutionEnv}
     evalSignedSubGuardPos_true hdtabAfter hnewEval hstorageAfter hguardPos
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "sinNew" (some uint256)
-        (wordWrap256 (.binary .sub (.storage (sinRef (.var "w"))) (.var "dtab"))),
+        (wordWrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.storage (sinRef (.var "w"))) (.var "dtab"))),
       .require
         (eitherExpr (.binary .le (.var "dtab") (.intLit 0))
           (.binary .le (.var "sinNew") (.storage (sinRef (.var "w"))))),
@@ -4242,7 +4246,7 @@ theorem execGrabSinSubCheckedOk {evm : EVM.State} {I : ExecutionEnv}
         (eitherExpr (.binary .ge (.var "dtab") (.intLit 0))
           (.binary .ge (.var "sinNew") (.storage (sinRef (.var "w"))))) ]
     (.ok { contract := contract, locals := locals' } evm)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNegEval) ?_
   exact ExecBlock.consNormal (ExecStmt.requireTrue hguardPosEval) ExecBlock.nil
 
@@ -4404,7 +4408,7 @@ theorem execGrabViceSubCheckedOk {evm : EVM.State}
     vatEvalExpr_varInt hdtab
   have hlet :
       evalExpr? config { contract := contract, locals := locals } evm
-        (wordWrap256 (.binary .sub (.storage viceRef) (.var "dtab"))) =
+        (wordWrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.storage viceRef) (.var "dtab"))) =
         .ok (.int (Int.ofNat viceNew.toNat)) := by
     exact evalExpr_fold_wordWrapSub_ok hstorage hdtabEval
       (by simpa [hnew] using signedSubWrap viceOld dtabWord dtab hdtabMod)
@@ -4442,7 +4446,7 @@ theorem execGrabViceSubCheckedOk {evm : EVM.State}
     evalSignedSubGuardPos_true hdtabAfter hnewEval hstorageAfter hguardPos
   change ExecBlock config { contract := contract, locals := locals } evm
     [ .letDecl "viceNew" (some uint256)
-        (wordWrap256 (.binary .sub (.storage viceRef) (.var "dtab"))),
+        (wordWrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.storage viceRef) (.var "dtab"))),
       .require
         (eitherExpr (.binary .le (.var "dtab") (.intLit 0))
           (.binary .le (.var "viceNew") (.storage viceRef))),
@@ -4450,7 +4454,7 @@ theorem execGrabViceSubCheckedOk {evm : EVM.State}
         (eitherExpr (.binary .ge (.var "dtab") (.intLit 0))
           (.binary .ge (.var "viceNew") (.storage viceRef))) ]
     (.ok { contract := contract, locals := locals' } evm)
-  refine ExecBlock.consNormal (ExecStmt.letDecl hlet) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word hlet) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue hguardNegEval) ?_
   exact ExecBlock.consNormal (ExecStmt.requireTrue hguardPosEval) ExecBlock.nil
 
@@ -5176,7 +5180,7 @@ theorem execGrabSourceOk {cA gh bl σ σ₀ A I} {g : UInt256}
             (grabStoreIlkArtNew I urnInkNew urnArtNew ilkArtNew).insert "dtab" (.int dtab) }
         evm3
         (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-          (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
             (.storage (ilksF (.var "i") "rate")))) =
         .ok (.bool true))
     (hloadGem :
@@ -5474,7 +5478,7 @@ theorem vatGrabSourceBodySuccessFromFinalValues
               (grabIlkArtNew σ I)).insert "dtab" (.int dtab) }
         evm3
         (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-          (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
             (.storage (ilksF (.var "i") "rate")))) =
         .ok (.bool true))
     (hDtabWord : dtabWord = grabDtab σ I)
@@ -5624,7 +5628,7 @@ theorem vatGrabSourceBodySuccessFromRuntimeGuards
         (grabSourceEvm3 cA gh bl σ_solm σ₀ A I g
           (grabUrnInkNew σ_solm I) (grabUrnArtNew σ_solm I) (grabIlkArtNew σ_solm I))
         (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-          (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+          (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
             (.storage (ilksF (.var "i") "rate")))) =
         .ok (.bool true))
     (hInkNeg : grabInkNegOk σ_evm I) (hInkPos : grabInkPosOk σ_evm I)
@@ -9003,7 +9007,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
             .ok (.bool true) ∧
           evalExpr? config { contract := contract, locals := localsDtab } evm3
             (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-              (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+              (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
                 (.storage (ilksF (.var "i") "rate")))) =
             .ok (.bool true)
       · rcases hsuccess with
@@ -9152,7 +9156,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                         have hguardMul :
                             evalExpr? config { contract := contract, locals := localsDtab } evm3
                               (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-                                (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+                                (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
                                   (.storage (ilksF (.var "i") "rate")))) =
                             .ok (.bool true) := by
                           change
@@ -9162,7 +9166,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                   (grabUrnArtNew σ_solm I) (grabIlkArtNew σ_solm I)).insert
                                   "dtab" (.int dtab) } evm3
                               (eitherExpr (.binary .eq (.var "dart") (.intLit 0))
-                                (.binary .eq (.binary .div (.var "dtab") (.var "dart"))
+                                (.binary .eq (.binary (.div (.sint ⟨256, by decide⟩) .checked) (.var "dtab") (.var "dart"))
                                   (.storage (ilksF (.var "i") "rate")))) =
                             .ok (.bool true)
                           by_cases hwordZero : grabDartWord I = ⟨0⟩
@@ -9178,19 +9182,19 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                           · have hdartNe : grabDartInt I ≠ 0 :=
                               grabDartInt_ne_zero_of_word_ne I hwordZero
                             have hdiv :
-                                dtab / grabDartInt I =
+                                dtab.tdiv (grabDartInt I) =
                                   Int.ofNat
                                     (solcSlotWord (grabAfterIlkArt σ_solm I) I
                                       (grabIlkRateSlot I)).toNat := by
                               change
                                 (Int.ofNat
                                   (solcSlotWord (grabAfterIlkArt σ_solm I) I
-                                    (grabIlkRateSlot I)).toNat * grabDartInt I) /
-                                  grabDartInt I =
+                                    (grabIlkRateSlot I)).toNat * grabDartInt I).tdiv
+                                  (grabDartInt I) =
                                 Int.ofNat
                                   (solcSlotWord (grabAfterIlkArt σ_solm I) I
                                     (grabIlkRateSlot I)).toNat
-                              exact Int.mul_ediv_cancel
+                              exact Int.mul_tdiv_cancel
                                 (Int.ofNat
                                   (solcSlotWord (grabAfterIlkArt σ_solm I) I
                                     (grabIlkRateSlot I)).toNat)
@@ -9206,7 +9210,7 @@ theorem vatGrabBodyCore : VatBodyTheorem 13 := by
                                 (grabStoreIlkArtNew_get_dart I (grabUrnInkNew σ_solm I)
                                   (grabUrnArtNew σ_solm I) (grabIlkArtNew σ_solm I))
                                 (by simpa using hRateEval)
-                                hdartNe hdiv
+                                hdartNe hRateLowS hdiv
                         have hdtabMod :
                             dtab % (Int.ofNat EVM.wordModulus) = Int.ofNat dtabWord.toNat := by
                           change

@@ -1214,18 +1214,10 @@ theorem evalExpr_tend_mul256_ok {evm : EVM.State} {locals : Store}
     (hfit : a.toNat * b.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm (mul256 x y) =
       .ok (.int (Int.ofNat prod.toNat)) := by
-  have hlt : ¬ Int.ofNat (a.toNat * b.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
   have hword : prod.toNat = a.toNat * b.toNat := by
     rw [hprod, umul_toNat a b hfit]
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  simpa [mul256] using
+    evalExpr_checked_mul_uint256_word_ok hx hy hword hfit
 
 theorem evalExpr_tend_mul256_revert {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b : UInt256}
@@ -1236,9 +1228,8 @@ theorem evalExpr_tend_mul256_revert {evm : EVM.State} {locals : Store}
     (hover : UInt256.size ≤ a.toNat * b.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm (mul256 x y) =
       .revert := by
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  simpa [mul256] using
+    evalExpr_checked_mul_uint256_word_revert_of_overflow hx hy hover
 
 theorem evalExpr_tend_bidOne_ok (evm : EVM.State) (I : ExecutionEnv)
     (hfit : (tendBidWord I).toNat * tendOneWord.toNat < UInt256.size) :
@@ -1295,10 +1286,15 @@ set_option maxHeartbeats 1000000 in
 theorem evalExpr_tend_bidOne_div_one_eq_bid (evm : EVM.State) (I : ExecutionEnv)
     (hfit : (tendBidWord I).toNat * tendOneWord.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := tendBidOneLocals I } evm
-      (.binary .eq (.binary .div (.var "bidOne") (.intLit ONE)) (.var "bid")) =
+      (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "bidOne") (.intLit ONE)) (.var "bid")) =
         .ok (.bool true) := by
   have hbase := evalExpr_tend_bidOne_var evm I
   have hbidEval := evalExpr_tend_bid_var_bidOneLocals evm I
+  have hone :
+      evalExpr? config { contract := contract, locals := tendBidOneLocals I } evm
+          (.intLit ONE) = .ok (.int (Int.ofNat tendOneWord.toNat)) := by
+    simp only [evalExpr?, pure]
+    native_decide
   have hbaseNat := tendBidOneWord_toNat_of_fit I hfit
   have honeNat : tendOneWord.toNat = 1000000000000000000 := by native_decide
   have honePos : 0 < tendOneWord.toNat := by
@@ -1309,33 +1305,17 @@ theorem evalExpr_tend_bidOne_div_one_eq_bid (evm : EVM.State) (I : ExecutionEnv)
     rw [hbaseNat]
     rw [Nat.mul_comm]
     exact Nat.mul_div_right _ honePos
-  have hdivInt :
-      Int.ofNat (tendBidOneWord I).toNat / ONE = Int.ofNat (tendBidWord I).toNat := by
-    have honeInt : ONE = Int.ofNat tendOneWord.toNat := by
-      native_decide
-    rw [hbaseNat]
-    rw [honeInt]
-    have honeNeInt : Int.ofNat tendOneWord.toNat ≠ 0 := by
-      exact Int.natCast_ne_zero.mpr (Nat.ne_of_gt honePos)
-    have hmulCast :
-        Int.ofNat ((tendBidWord I).toNat * tendOneWord.toNat) =
-          Int.ofNat (tendBidWord I).toNat * Int.ofNat tendOneWord.toNat := by
-      norm_num
-    rw [hmulCast]
-    exact Int.mul_ediv_cancel (Int.ofNat (tendBidWord I).toNat) honeNeInt
-  simp only [evalExpr?, hbase, hbidEval, EvalResult.bind, bind]
-  have honeNe : ONE ≠ 0 := by native_decide
-  simp only [evalBinaryOp?]
-  rw [if_neg honeNe]
-  simp [tendBidValue, hdivInt]
-  exact hdivInt
+  have hdiv := evalExpr_checked_div_uint256_word_ok hbase hone
+    (by native_decide : tendOneWord ≠ ⟨0⟩) (result := tendBidWord I) hdivNat.symm
+  simp only [evalExpr?, hdiv, hbidEval, EvalResult.bind, bind, evalBinaryOp?,
+    beq_self_eq_true]
 
 theorem evalExpr_tend_bidOne_mul_guard_true (evm : EVM.State) (I : ExecutionEnv)
     (hfit : (tendBidWord I).toNat * tendOneWord.toNat < UInt256.size) :
     evalExpr? config { contract := contract, locals := tendBidOneLocals I } evm
       (.binary .or
         (.binary .eq (.intLit ONE) (.intLit 0))
-        (.binary .eq (.binary .div (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "bidOne") (.intLit ONE)) (.var "bid"))) =
       .ok (.bool true) := by
   simp only [evalExpr?, evalExpr_tend_one_eq_zero_false_bidOneLocals evm I,
     evalExpr_tend_bidOne_div_one_eq_bid evm I hfit, EvalResult.bind, bind, pure]
@@ -1371,7 +1351,7 @@ theorem evalExpr_tend_begBid_div_bid_eq_beg (evm : EVM.State) (I : ExecutionEnv)
     (hbid : tendBidStoredWord evm I ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := tendBegBidLocals evm I } evm
       (.binary .eq
-        (.binary .div (.var "begBid") (.storage (bidsF (.var "id") "bid")))
+        (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "begBid") (.storage (bidsF (.var "id") "bid")))
         (.storage begRef)) =
         .ok (.bool true) := by
   have hbase := evalExpr_tend_begBid_var evm I
@@ -1388,15 +1368,10 @@ theorem evalExpr_tend_begBid_div_bid_eq_beg (evm : EVM.State) (I : ExecutionEnv)
     rw [hbaseNat]
     rw [Nat.mul_comm]
     exact Nat.mul_div_right _ hbidPos
-  have hdivInt :
-      Int.ofNat (tendBegBidWord evm I).toNat /
-          Int.ofNat (tendBidStoredWord evm I).toNat =
-        Int.ofNat (tendBegWord evm).toNat := by
-    simpa [Int.natCast_ediv] using
-      (congrArg (fun n : Nat => (n : Int)) hdivNat)
-  simp only [evalExpr?, hbase, hbidEval, hbegEval, EvalResult.bind, bind]
-  simp [evalBinaryOp?, hbidPos.ne']
-  exact hdivInt
+  have hdiv := evalExpr_checked_div_uint256_word_ok hbase hbidEval hbid
+    (result := tendBegWord evm) hdivNat.symm
+  rw [evalExpr_binary .eq _ _ (by decide) (by decide), hdiv, hbegEval]
+  simp [EvalResult.bind, bind, evalBinaryOp?]
 
 theorem evalExpr_tend_begBid_mul_guard_true (evm : EVM.State) (I : ExecutionEnv)
     (hfit : (tendBegWord evm).toNat * (tendBidStoredWord evm I).toNat < UInt256.size) :
@@ -1404,7 +1379,7 @@ theorem evalExpr_tend_begBid_mul_guard_true (evm : EVM.State) (I : ExecutionEnv)
       (.binary .or
         (.binary .eq (.storage (bidsF (.var "id") "bid")) (.intLit 0))
         (.binary .eq
-          (.binary .div (.var "begBid") (.storage (bidsF (.var "id") "bid")))
+          (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "begBid") (.storage (bidsF (.var "id") "bid")))
           (.storage begRef))) =
       .ok (.bool true) := by
   by_cases hbidZero : tendBidStoredWord evm I = ⟨0⟩
@@ -1660,16 +1635,27 @@ theorem evalExpr_tend_pay_amount
     (hbid : locals.get? "bid" = some (tendBidValue I))
     (hbids : locals.get? "bids" = none) :
     evalExpr? config { contract := contract, locals := locals } evm
-        (wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))) =
+        (wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))) =
       .ok (.int (Int.ofNat (UInt256.sub (tendBidWord I) (tendBidStoredWord evm I)).toNat)) := by
   have hbidVar :=
     evalExpr_tend_var_of_get evm (locals := locals) (name := "bid") (value := tendBidValue I)
       hbid
   have hbidStorage := evalExpr_tend_bid_storage_of_locals evm I hid hbids
-  have hmod := tendUInt256SubIntMod (tendBidWord I) (tendBidStoredWord evm I)
-  unfold wrap256
-  simp only [evalExpr?, hbidVar, hbidStorage, EvalResult.bind, bind, pure, evalBinaryOp?]
-  simpa [wordModulus] using hmod
+  have hsub := evalExpr_wrapping_sub_uint256_word_ok hbidVar hbidStorage rfl
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } evm (.intLit wordModulus) =
+        .ok (.int (Int.ofNat (2 ^ 256))) := by
+    simp [evalExpr?, pure, wordModulus]
+  have hmod := evalExpr_mod_uint256_word_nat_ok hsub hmodulus (by norm_num)
+  have hresultBound :
+      (UInt256.sub (tendBidWord I) (tendBidStoredWord evm I)).toNat < 2 ^ 256 :=
+    (UInt256.sub (tendBidWord I) (tendBidStoredWord evm I)).val.isLt
+  have hresultNat :
+      (UInt256.sub (tendBidWord I) (tendBidStoredWord evm I)).toNat % (2 ^ 256) =
+        (UInt256.sub (tendBidWord I) (tendBidStoredWord evm I)).toNat :=
+    Nat.mod_eq_of_lt hresultBound
+  rw [hresultNat] at hmod
+  simpa [wrap256, wordModulus] using hmod
 
 set_option maxHeartbeats 1000000 in
 theorem evalExprs_tend_pay_args
@@ -1679,7 +1665,7 @@ theorem evalExprs_tend_pay_args
     (hbids : locals.get? "bids" = none) :
     evalExprs? config { contract := contract, locals := locals } evm
         [sender, thisAddr,
-          wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))] =
+          wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))] =
       .ok [.address evm.executionEnv.source, .address evm.executionEnv.codeOwner,
         .int (Int.ofNat (UInt256.sub (tendBidWord I) (tendBidStoredWord evm I)).toNat)] := by
   have hsender := evalExpr_tend_sender evm locals
@@ -1765,20 +1751,27 @@ theorem evalExpr_tend_now48_afterBid_of_locals
     (evm : EVM.State) (I : ExecutionEnv) (locals : Store) :
     evalExpr? config { contract := contract, locals := locals } (tendAfterBidStore evm I) now48 =
       .ok (.int (Int.ofNat (tendNow48Word evm).toNat)) := by
-  unfold now48 wrap48
-  simp only [evalExpr?, envValue, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hmod :
-      Int.ofNat (UInt256.ofNat (tendAfterBidStore evm I).executionEnv.header.timestamp).toNat %
-          uint48Modulus =
-        Int.ofNat (tendNow48Word evm).toNat := by
-    have hnow := tendNow48Word_toNat evm
+  have htime :
+      evalExpr? config { contract := contract, locals := locals } (tendAfterBidStore evm I)
+          (.env .timestamp) =
+        .ok (.int (Int.ofNat
+          (UInt256.ofNat (tendAfterBidStore evm I).executionEnv.header.timestamp).toNat)) := by
+    simp [evalExpr?, envValue, pure]
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } (tendAfterBidStore evm I)
+          (.intLit uint48Modulus) = .ok (.int (Int.ofNat (2 ^ 48))) := by
+    simp [evalExpr?, pure, uint48Modulus]
+  have hmod := evalExpr_mod_uint256_word_nat_ok htime hmodulus (by norm_num)
+  have hresult :
+      (UInt256.ofNat (tendAfterBidStore evm I).executionEnv.header.timestamp).toNat %
+          (2 ^ 48) = (tendNow48Word evm).toNat := by
     have henv :
         (UInt256.ofNat (tendAfterBidStore evm I).executionEnv.header.timestamp).toNat =
           (tendTimestampWord evm).toNat := by
       simp [tendTimestampWord, tendAfterBidStore_executionEnv]
-    rw [henv, hnow]
-    norm_num [uint48Modulus, Int.natCast_mod]
-  simpa [uint48Modulus] using hmod
+    rw [henv, tendNow48Word_toNat]
+  rw [hresult] at hmod
+  simpa [now48, wrap48] using hmod
 
 theorem evalExpr_tend_ttl_storage_afterBid_of_locals
     (evm : EVM.State) (I : ExecutionEnv) {locals : Store}
@@ -1811,59 +1804,67 @@ theorem evalExpr_tend_ticAdd_ok_of_locals
       (tendNow48Word evm).toNat + (tendTtlWord (tendAfterBidStore evm I)).toNat <
         2 ^ 48) :
     evalExpr? config { contract := contract, locals := locals } (tendAfterBidStore evm I)
-        (wrap48 (.binary .add now48 (.storage ttlRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage ttlRef))) =
       .ok (.int (Int.ofNat (tendTicPostWord evm I).toNat)) := by
   have hnow := evalExpr_tend_now48_afterBid_of_locals evm I locals
   have httlEval := evalExpr_tend_ttl_storage_afterBid_of_locals evm I (locals := locals) httl
   have hticNat := tendTicPostWord_toNat evm I hfit
-  unfold wrap48
-  simp only [evalExpr?, hnow, httlEval, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hsumMod :
-      (Int.ofNat (tendNow48Word evm).toNat +
-          Int.ofNat (tendTtlWord (tendAfterBidStore evm I)).toNat) %
-          uint48Modulus =
-        Int.ofNat (tendTicPostWord evm I).toNat := by
-    rw [hticNat]
-    have hsumCast :
-        Int.ofNat ((tendNow48Word evm).toNat +
-            (tendTtlWord (tendAfterBidStore evm I)).toNat) =
-          Int.ofNat (tendNow48Word evm).toNat +
-            Int.ofNat (tendTtlWord (tendAfterBidStore evm I)).toNat := by
-      norm_num
-    rw [← hsumCast]
-    have hfitInt :
-        Int.ofNat ((tendNow48Word evm).toNat +
-            (tendTtlWord (tendAfterBidStore evm I)).toNat) < uint48Modulus := by
-      change Int.ofNat ((tendNow48Word evm).toNat +
-          (tendTtlWord (tendAfterBidStore evm I)).toNat) < Int.ofNat (2 ^ 48)
-      exact Int.ofNat_lt.mpr hfit
-    exact Int.emod_eq_of_lt (Int.natCast_nonneg _) hfitInt
-  simpa [uint48Modulus] using hsumMod
+  let sum := tendNow48Word evm + tendTtlWord (tendAfterBidStore evm I)
+  have hadd := evalExpr_wrapping_add_uint256_word_ok hnow httlEval (result := sum) rfl
+  have hsumNat :
+      sum.toNat =
+        (tendNow48Word evm).toNat + (tendTtlWord (tendAfterBidStore evm I)).toNat := by
+    change (tendNow48Word evm + tendTtlWord (tendAfterBidStore evm I)).toNat = _
+    rw [uadd_toNat, Nat.mod_eq_of_lt (lt_trans hfit (by norm_num [UInt256.size]))]
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } (tendAfterBidStore evm I)
+          (.intLit uint48Modulus) = .ok (.int (Int.ofNat (2 ^ 48))) := by
+    simp [evalExpr?, pure, uint48Modulus]
+  have hmod := evalExpr_mod_uint256_word_nat_ok hadd hmodulus (by norm_num)
+  have hresultNat : sum.toNat % (2 ^ 48) = (tendTicPostWord evm I).toNat := by
+    rw [hsumNat, Nat.mod_eq_of_lt hfit, hticNat]
+  rw [hresultNat] at hmod
+  simpa [wrap48, uint48Modulus] using hmod
 
 theorem evalExpr_tend_ticAdd_wrapped_of_locals
     (evm : EVM.State) (I : ExecutionEnv) {locals : Store}
     (httl : locals.get? "ttl" = none) :
     evalExpr? config { contract := contract, locals := locals } (tendAfterBidStore evm I)
-        (wrap48 (.binary .add now48 (.storage ttlRef))) =
+        (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) now48 (.storage ttlRef))) =
       .ok (.int (Int.ofNat (tendTicWrappedNat evm I))) := by
   have hnow := evalExpr_tend_now48_afterBid_of_locals evm I locals
   have httlEval := evalExpr_tend_ttl_storage_afterBid_of_locals evm I (locals := locals) httl
-  unfold wrap48
-  simp only [evalExpr?, hnow, httlEval, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hsumMod :
-      (Int.ofNat (tendNow48Word evm).toNat +
-          Int.ofNat (tendTtlWord (tendAfterBidStore evm I)).toNat) %
-          uint48Modulus =
-        Int.ofNat (tendTicWrappedNat evm I) := by
-    have hsumCast :
-        Int.ofNat ((tendNow48Word evm).toNat +
-            (tendTtlWord (tendAfterBidStore evm I)).toNat) =
-          Int.ofNat (tendNow48Word evm).toNat +
-            Int.ofNat (tendTtlWord (tendAfterBidStore evm I)).toNat := by
-      norm_num
-    rw [← hsumCast]
-    norm_num [tendTicWrappedNat, uint48Modulus, Int.natCast_mod]
-  simpa [uint48Modulus] using hsumMod
+  let sum := tendNow48Word evm + tendTtlWord (tendAfterBidStore evm I)
+  have hadd := evalExpr_wrapping_add_uint256_word_ok hnow httlEval (result := sum) rfl
+  have hnowLt : (tendNow48Word evm).toNat < 2 ^ 48 := by
+    rw [tendNow48Word_toNat]
+    exact Nat.mod_lt _ (by norm_num)
+  have httlLt : (tendTtlWord (tendAfterBidStore evm I)).toNat < 2 ^ 48 := by
+    simpa [tendTtlWord, flapperUint48Offset0Word, EVM.twoPow] using
+      flapperUint48Masked_lt
+        (flapperSlotWord ⟨5⟩ (tendAfterBidStore evm I).accountMap
+          (tendAfterBidStore evm I).executionEnv)
+  have hsumLt :
+      (tendNow48Word evm).toNat + (tendTtlWord (tendAfterBidStore evm I)).toNat <
+        UInt256.size := by
+    have :
+        (tendNow48Word evm).toNat + (tendTtlWord (tendAfterBidStore evm I)).toNat <
+          2 ^ 49 := by omega
+    exact lt_trans this (by norm_num [UInt256.size])
+  have hsumNat :
+      sum.toNat =
+        (tendNow48Word evm).toNat + (tendTtlWord (tendAfterBidStore evm I)).toNat := by
+    change (tendNow48Word evm + tendTtlWord (tendAfterBidStore evm I)).toNat = _
+    rw [uadd_toNat, Nat.mod_eq_of_lt hsumLt]
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } (tendAfterBidStore evm I)
+          (.intLit uint48Modulus) = .ok (.int (Int.ofNat (2 ^ 48))) := by
+    simp [evalExpr?, pure, uint48Modulus]
+  have hmod := evalExpr_mod_uint256_word_nat_ok hadd hmodulus (by norm_num)
+  have hresultNat : sum.toNat % (2 ^ 48) = tendTicWrappedNat evm I := by
+    simp [hsumNat, tendTicWrappedNat]
+  rw [hresultNat] at hmod
+  simpa [wrap48, uint48Modulus] using hmod
 
 theorem evalExpr_tend_tic_guard_true_of_locals
     (evm : EVM.State) (I : ExecutionEnv) {baseLocals : Store}
@@ -2031,7 +2032,7 @@ theorem flapperTendPaySuccessTail
     ExecBlock config { contract := contract, locals := baseLocals } evm
       ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet" ++
         [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
@@ -2059,7 +2060,7 @@ theorem flapperTendPaySuccessTail
       ExecBlock config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet")
         (.ok { contract := contract, locals := tendPayRetLocals baseLocals } evmPay) := by
     simpa [checkedExternalCallStmts, tendPayRetLocals] using
@@ -2094,7 +2095,7 @@ theorem flapperTendPaySuccessTail
       ExecBlock config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet" ++
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
@@ -2115,9 +2116,12 @@ theorem flapperTendPaySuccessTail
           (tendPostState evmPay I)) := by
     simpa [checkedAdd48Into] using
       (ExecBlock.consNormal
-        (ExecStmt.letDecl
+        (ExecStmt.letDecl_uint_word
           (evalExpr_tend_ticAdd_ok_of_locals evmPay I
-            (locals := tendPayRetLocals baseLocals) hpayTtl haddFit)) <|
+            (locals := tendPayRetLocals baseLocals) hpayTtl haddFit)
+          (by
+            rw [tendTicPostWord_toNat evmPay I haddFit]
+            simpa [EVM.twoPow] using haddFit)) <|
         ExecBlock.consNormal
           (ExecStmt.requireTrue
             (evalExpr_tend_tic_guard_true_of_locals evmPay I
@@ -2196,7 +2200,7 @@ theorem flapperTendBodyReturns_success_callerEq
           []] ++
           ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
               [sender, thisAddr,
-                wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+                wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
               "_payRet" ++
             [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
             (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
@@ -2220,11 +2224,11 @@ theorem flapperTendBodyReturns_success_callerEq
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_bid_gt_true evm I hbidGt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tend_bidOne_ok evm I hbidOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_tend_bidOne_ok evm I hbidOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_bidOne_mul_guard_true evm I hbidOneFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tend_begBid_ok evm I hbegBidFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_tend_begBid_ok evm I hbegBidFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_begBid_mul_guard_true evm I hbegBidFit)) <|
       ExecBlock.consNormal
@@ -2370,7 +2374,7 @@ theorem flapperTendBodyReturns_success_callerNe
       ExecBlock config { contract := contract, locals := tendRefundRetLocals evm I } evmGuy
         ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, thisAddr,
-              wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+              wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
             "_payRet" ++
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
           (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
@@ -2392,7 +2396,7 @@ theorem flapperTendBodyReturns_success_callerNe
           []] ++
           ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
               [sender, thisAddr,
-                wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+                wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
               "_payRet" ++
             [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
             (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
@@ -2416,11 +2420,11 @@ theorem flapperTendBodyReturns_success_callerNe
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_bid_gt_true evm I hbidGt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tend_bidOne_ok evm I hbidOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_tend_bidOne_ok evm I hbidOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_bidOne_mul_guard_true evm I hbidOneFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tend_begBid_ok evm I hbegBidFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_tend_begBid_ok evm I hbegBidFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_begBid_mul_guard_true evm I hbegBidFit)) <|
       ExecBlock.consNormal
@@ -2441,7 +2445,7 @@ theorem flapperTendRefundNoCodeTail
         []] ++
         ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, thisAddr,
-              wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+              wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
             "_payRet" ++
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
           (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
@@ -2515,7 +2519,7 @@ theorem flapperTendRefundCallFailureTail
         []] ++
         ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
             [sender, thisAddr,
-              wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+              wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
             "_payRet" ++
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
           (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
@@ -2578,7 +2582,7 @@ theorem flapperTendPayNoCodeTail
     ExecBlock config { contract := contract, locals := baseLocals } evm
       ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet" ++
         [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
@@ -2604,7 +2608,7 @@ theorem flapperTendPayNoCodeTail
       ExecBlock config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet")
         .reverted := by
     simpa [checkedExternalCallStmts] using checkedExternalCallNoCode hguard
@@ -2612,7 +2616,7 @@ theorem flapperTendPayNoCodeTail
       ExecBlock config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet" ++
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         .reverted :=
@@ -2639,7 +2643,7 @@ theorem flapperTendPayCallFailureTail
     ExecBlock config { contract := contract, locals := baseLocals } evm
       ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet" ++
         [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
@@ -2666,7 +2670,7 @@ theorem flapperTendPayCallFailureTail
       ExecBlock config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet")
         .reverted := by
     simpa [checkedExternalCallStmts] using
@@ -2675,7 +2679,7 @@ theorem flapperTendPayCallFailureTail
       ExecBlock config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet" ++
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         .reverted :=
@@ -2707,7 +2711,7 @@ theorem flapperTendPayAddOverflowTail
     ExecBlock config { contract := contract, locals := baseLocals } evm
       ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet" ++
         [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
         (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
@@ -2734,7 +2738,7 @@ theorem flapperTendPayAddOverflowTail
       ExecBlock config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet")
         (.ok { contract := contract, locals := tendPayRetLocals baseLocals } evmPay) := by
     simpa [checkedExternalCallStmts, tendPayRetLocals] using
@@ -2769,7 +2773,7 @@ theorem flapperTendPayAddOverflowTail
       ExecBlock config { contract := contract, locals := baseLocals } evm
         (checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet" ++
           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")])
         (.ok { contract := contract, locals := tendPayRetLocals baseLocals }
@@ -2781,9 +2785,10 @@ theorem flapperTendPayAddOverflowTail
         (checkedAdd48Into "tic_" now48 (.storage ttlRef)) .reverted := by
     simpa [checkedAdd48Into] using
       (ExecBlock.consNormal
-        (ExecStmt.letDecl
+        (ExecStmt.letDecl_uint_nat
           (evalExpr_tend_ticAdd_wrapped_of_locals evmPay I
-            (locals := tendPayRetLocals baseLocals) hpayTtl)) <|
+            (locals := tendPayRetLocals baseLocals) hpayTtl)
+          (by exact Nat.mod_lt _ (by norm_num [EVM.twoPow]))) <|
         ExecBlock.consRevert
           (ExecStmt.requireFalse
             (evalExpr_tend_tic_guard_false_wrapped_of_locals evmPay I
@@ -2822,7 +2827,7 @@ theorem flapperTendBodyReverts_afterIncrease
           []] ++
           ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
               [sender, thisAddr,
-                wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+                wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
               "_payRet" ++
             [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
             (checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
@@ -2854,11 +2859,11 @@ theorem flapperTendBodyReverts_afterIncrease
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_bid_gt_true evm I hbidGt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tend_bidOne_ok evm I hbidOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_tend_bidOne_ok evm I hbidOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_bidOne_mul_guard_true evm I hbidOneFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tend_begBid_ok evm I hbegBidFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_tend_begBid_ok evm I hbegBidFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_begBid_mul_guard_true evm I hbegBidFit)) <|
       ExecBlock.consNormal
@@ -2897,7 +2902,7 @@ theorem flapperTendBodyReverts_notLive (evm : EVM.State) (I : ExecutionEnv)
             []] ++
         checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
           [sender, thisAddr,
-            wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
           "_payRet" ++
         [ .assign .storage (bidsF (.var "id") "bid") (.var "bid") ] ++
         checkedAdd48Into "tic_" now48 (.storage ttlRef) ++
@@ -3110,7 +3115,7 @@ theorem flapperTendBodyReverts_begBidOverflow (evm : EVM.State) (I : ExecutionEn
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_bid_gt_true evm I hbidGt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tend_bidOne_ok evm I hbidOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_tend_bidOne_ok evm I hbidOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_bidOne_mul_guard_true evm I hbidOneFit)) <|
       ExecBlock.consRevert
@@ -3155,11 +3160,11 @@ theorem flapperTendBodyReverts_insufficientIncrease (evm : EVM.State) (I : Execu
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_bid_gt_true evm I hbidGt)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tend_bidOne_ok evm I hbidOneFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_tend_bidOne_ok evm I hbidOneFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_bidOne_mul_guard_true evm I hbidOneFit)) <|
       ExecBlock.consNormal
-        (ExecStmt.letDecl (evalExpr_tend_begBid_ok evm I hbegBidFit)) <|
+        (ExecStmt.letDecl_uint256_word (evalExpr_tend_begBid_ok evm I hbegBidFit)) <|
       ExecBlock.consNormal
         (ExecStmt.requireTrue (evalExpr_tend_begBid_mul_guard_true evm I hbegBidFit)) <|
       ExecBlock.consRevert
@@ -7870,7 +7875,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
               []] ++
               ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
                   [sender, thisAddr,
-                    wrap256 (.binary .sub (.var "bid")
+                    wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid")
                       (.storage (bidsF (.var "id") "bid")))]
                   "_payRet" ++
                 [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
@@ -7946,7 +7951,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                 []] ++
                 ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
                     [sender, thisAddr,
-                      wrap256 (.binary .sub (.var "bid")
+                      wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid")
                         (.storage (bidsF (.var "id") "bid")))]
                     "_payRet" ++
                   [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
@@ -8078,7 +8083,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                     []] ++
                     ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
                         [sender, thisAddr,
-                          wrap256 (.binary .sub (.var "bid")
+                          wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid")
                             (.storage (bidsF (.var "id") "bid")))]
                         "_payRet" ++
                       [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
@@ -8134,7 +8139,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                   []] ++
                   ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
                       [sender, thisAddr,
-                        wrap256 (.binary .sub (.var "bid")
+                        wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid")
                           (.storage (bidsF (.var "id") "bid")))]
                       "_payRet" ++
                     [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
@@ -8365,7 +8370,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                     []] ++
                     ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
                         [sender, thisAddr,
-                          wrap256 (.binary .sub (.var "bid")
+                          wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid")
                             (.storage (bidsF (.var "id") "bid")))]
                         "_payRet" ++
                       [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
@@ -8554,7 +8559,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                         []] ++
                         ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
                             [sender, thisAddr,
-                              wrap256 (.binary .sub (.var "bid")
+                              wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid")
                                 (.storage (bidsF (.var "id") "bid")))]
                             "_payRet" ++
                           [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++
@@ -8605,7 +8610,7 @@ theorem flapperTendBodyCoreIncreaseSufficient_finishFromGuard
                       []] ++
                       ((checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
                           [sender, thisAddr,
-                            wrap256 (.binary .sub (.var "bid")
+                            wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid")
                               (.storage (bidsF (.var "id") "bid")))]
                           "_payRet" ++
                         [.assign .storage (bidsF (.var "id") "bid") (.var "bid")]) ++

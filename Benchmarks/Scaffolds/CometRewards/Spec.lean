@@ -204,7 +204,7 @@ def pow10Function : FunctionDecl :=
     returnType := [uint256]
     body :=
       [ .require (.binary .le (.var "n") (.intLit 77)),
-        .return [u256 (.binary .exp (.intLit 10) (.var "n"))] ] }
+        .return [u256 (.binary (.exp (.uint ⟨256, by decide⟩) .checked) (.intLit 10) (.var "n"))] ] }
 
 def getRewardAccruedFunction : FunctionDecl :=
   { name := "getRewardAccrued"
@@ -218,12 +218,12 @@ def getRewardAccruedFunction : FunctionDecl :=
           [.var "account"] "accrued" false,
         .ite (.var "shouldUpscale")
           [ .assign .localVar { base := "accrued" }
-              (u256 (.binary .mul (.var "accrued") (.var "rescaleFactor"))) ]
+              (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "accrued") (.var "rescaleFactor"))) ]
           [ .assign .localVar { base := "accrued" }
-              (.binary .div (.var "accrued") (.var "rescaleFactor")) ],
+              (.binary (.div (.uint ⟨64, by decide⟩) .checked) (.var "accrued") (.var "rescaleFactor")) ],
         .letDecl "scaled" (some uint256)
-          (u256 (.binary .mul (.var "accrued") (.var "multiplier"))),
-        .return [.binary .div (.var "scaled") (.intLit factorScale)] ] }
+          (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "accrued") (.var "multiplier"))),
+        .return [.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var "scaled") (.intLit factorScale)] ] }
 
 def doTransferOutFunction : FunctionDecl :=
   { name := "doTransferOut"
@@ -252,12 +252,12 @@ def setRewardConfigWithMultiplierFunction : FunctionDecl :=
         .ite (.binary .gt (.var "accrualScale") (.var "tokenScale"))
           [ .assign .storage (rewardConfigF (.var "comet") "token") (.var "token"),
             .assign .storage (rewardConfigF (.var "comet") "rescaleFactor")
-              (.binary .div (.var "accrualScale") (.var "tokenScale")),
+              (.binary (.div (.uint ⟨64, by decide⟩) .checked) (.var "accrualScale") (.var "tokenScale")),
             .assign .storage (rewardConfigF (.var "comet") "shouldUpscale") (.boolLit false),
             .assign .storage (rewardConfigF (.var "comet") "multiplier") (.var "multiplier") ]
           [ .assign .storage (rewardConfigF (.var "comet") "token") (.var "token"),
             .assign .storage (rewardConfigF (.var "comet") "rescaleFactor")
-              (.binary .div (.var "tokenScale") (.var "accrualScale")),
+              (.binary (.div (.uint ⟨64, by decide⟩) .checked) (.var "tokenScale") (.var "accrualScale")),
             .assign .storage (rewardConfigF (.var "comet") "shouldUpscale") (.boolLit true),
             .assign .storage (rewardConfigF (.var "comet") "multiplier") (.var "multiplier") ] ] }
 
@@ -286,7 +286,7 @@ def claimInternalFunction : FunctionDecl :=
           [ .var "comet", .var "src", .var "rescaleFactor",
             .var "shouldUpscale", .var "multiplier" ] "accrued",
         .ite (.binary .gt (.var "accrued") (.var "claimed"))
-          [ .letDecl "owed" (some uint256) (.binary .sub (.var "accrued") (.var "claimed")),
+          [ .letDecl "owed" (some uint256) (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "accrued") (.var "claimed")),
             .assign .storage (rewardsClaimedRef (.var "comet") (.var "src")) (.var "accrued"),
             .internalCall "doTransferOut" [.var "token", .var "to", .var "owed"] "_sent" ]
           [] ] }
@@ -339,7 +339,7 @@ def getRewardOwedTransition : TransitionDecl :=
             .var "shouldUpscale", .var "multiplier" ] "accrued",
         .letDecl "owed" (some uint256)
           (.ite (.binary .gt (.var "accrued") (.var "claimed"))
-            (.binary .sub (.var "accrued") (.var "claimed"))
+            (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "accrued") (.var "claimed"))
             (.intLit 0)),
         .return [(.tupleLit [.var "token", .var "owed"])] ] }
 
@@ -396,7 +396,7 @@ def setRewardsClaimedTransition : TransitionDecl :=
               (rewardsClaimedRef (.var "comet") (.index (.var "users") (.var "i")))
               (.index (.var "claimedAmounts") (.var "i")),
             .assign .localVar { base := "i" }
-              (.binary .add (.var "i") (.intLit 1)) ] ] }
+              (.binary (.add (.uint ⟨256, by decide⟩) .checked) (.var "i") (.intLit 1)) ] ] }
 
 def functions : List FunctionDecl :=
   [ safe64Function,

@@ -39,11 +39,11 @@ def wordModulus : Int := (2 : Int) ^ 256
 def uint48Modulus : Int := (2 : Int) ^ 48
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
-def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
-def mul256 (x y : Expr) : Expr := u256 (.binary .mul x y)
-def wrap256 (e : Expr) : Expr := .binary .mod e (.intLit wordModulus)
-def wrap48 (e : Expr) : Expr := .binary .mod e (.intLit uint48Modulus)
+def add256 (x y : Expr) : Expr := u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) x y)
+def sub256 (x y : Expr) : Expr := u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)
+def mul256 (x y : Expr) : Expr := u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) x y)
+def wrap256 (e : Expr) : Expr := .binary (.mod (.uint ⟨256, by decide⟩)) e (.intLit wordModulus)
+def wrap48 (e : Expr) : Expr := .binary (.mod (.uint ⟨256, by decide⟩)) e (.intLit uint48Modulus)
 
 def zeroPad29 : List UInt8 := List.replicate 29 0
 def zeroPad28 : List UInt8 := List.replicate 28 0
@@ -210,10 +210,10 @@ def checkedMulUintInto (name : Ident) (x y : Expr) : List Stmt :=
     .require
       (.binary .or
         (.binary .eq y (.intLit 0))
-        (.binary .eq (.binary .div (.var name) y) x)) ]
+        (.binary .eq (.binary (.div (.uint ⟨256, by decide⟩) .checked) (.var name) y) x)) ]
 
 def checkedAdd48Into (name : Ident) (x y : Expr) : List Stmt :=
-  [ .letDecl name (some uint48) (wrap48 (.binary .add x y)),
+  [ .letDecl name (some uint48) (wrap48 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) x y)),
     .require (.binary .ge (.var name) x) ]
 
 /-! ## Constructor and internal functions -/
@@ -235,7 +235,13 @@ def add48Function : FunctionDecl :=
   { name := "add"
     params := [{ name := "x", ty := uint48 }, { name := "y", ty := uint48 }]
     returnType := [uint48]
-    body := checkedAdd48Into "z" (.var "x") (.var "y") ++ [ .return [.var "z"] ] }
+    body :=
+      [ .letDecl "z" (some uint48)
+          (.binary (.mod (.uint ⟨48, by decide⟩))
+            (.binary (.add (.uint ⟨48, by decide⟩) .wrapping) (.var "x") (.var "y"))
+            (.intLit uint48Modulus)),
+        .require (.binary .ge (.var "z") (.var "x")),
+        .return [.var "z"] ] }
 
 def add256Function : FunctionDecl :=
   { name := "add256"
@@ -410,7 +416,7 @@ def tendTransition : TransitionDecl :=
           [] ] ++
       checkedExternalCallStmts (.storage gemRef) "move" (.intLit 0)
         [sender, thisAddr,
-          wrap256 (.binary .sub (.var "bid") (.storage (bidsF (.var "id") "bid")))]
+          wrap256 (.binary (.sub (.uint ⟨256, by decide⟩) .wrapping) (.var "bid") (.storage (bidsF (.var "id") "bid")))]
         "_payRet" ++
       [ .assign .storage (bidsF (.var "id") "bid") (.var "bid") ] ++
       checkedAdd48Into "tic_" now48 (.storage ttlRef) ++

@@ -296,7 +296,8 @@ theorem catClawBodyCore
             [.int (Int.ofNat (solcSlotWord σ_solm I ⟨6⟩).toNat),
               .int (Int.ofNat (clawRad I).toNat)] =
           some (uintBinaryLocals (solcSlotWord σ_solm I ⟨6⟩) (clawRad I)) := by
-      simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+      simpa [subFunction, uint256, uint256Int, uintBinaryLocals] using
+        bindParams_uint256_pair "x" "y" (solcSlotWord σ_solm I ⟨6⟩) (clawRad I)
     by_cases hle : (clawRad I).toNat ≤ (solcSlotWord σ_solm I ⟨6⟩).toNat
     · -- `rad ≤ litter`: success.
       obtain ⟨_, _, hretPc⟩ := RD.catClawStoreLitter

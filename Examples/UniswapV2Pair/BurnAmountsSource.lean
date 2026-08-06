@@ -16,7 +16,7 @@ theorem evalExpr_burn_amount_of_get
     (hfit : mintAmountProductNat liquidity balance < UInt256.size)
     (hnonzero : totalSupply ≠ ⟨0⟩) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (.binary .div (u256 (.binary .mul (.var "liquidity") (.var balanceName)))
+      (.binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "liquidity") (.var balanceName)))
         (.var "_totalSupply")) =
       .ok (uniswapUint256Value (burnAmountWord liquidity balance totalSupply)) := by
   have hmul := evalExpr_mint_namedProduct_of_get evm "liquidity" balanceName
@@ -33,7 +33,7 @@ theorem evalExpr_burn_amount_divZero
     (htotal : locals.get? "_totalSupply" = some (.int 0))
     (hfit : mintAmountProductNat liquidity balance < UInt256.size) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (.binary .div (u256 (.binary .mul (.var "liquidity") (.var balanceName)))
+      (.binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "liquidity") (.var balanceName)))
         (.var "_totalSupply")) = .revert := by
   have hmul := evalExpr_mint_namedProduct_of_get evm "liquidity" balanceName
     liquidity balance hliq hbalance hfit
@@ -46,7 +46,7 @@ theorem evalExpr_burn_amount_productOverflow
     (hbalance : locals.get? balanceName = some (uniswapUint256Value balance))
     (hover : UInt256.size ≤ liquidity.toNat * balance.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm
-      (.binary .div (u256 (.binary .mul (.var "liquidity") (.var balanceName)))
+      (.binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "liquidity") (.var balanceName)))
         (.var "_totalSupply")) = .revert := by
   have hmul := evalExpr_mint_namedProduct_overflow evm "liquidity" balanceName
     liquidity balance hliq hbalance hover
@@ -54,11 +54,11 @@ theorem evalExpr_burn_amount_productOverflow
 
 abbrev burnAmount0Stmt : Stmt :=
   .letDecl "amount0" (some uint256)
-    (.binary .div (u256 (.binary .mul (.var "liquidity") (.var "balance0"))) (.var "_totalSupply"))
+    (.binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "liquidity") (.var "balance0"))) (.var "_totalSupply"))
 
 abbrev burnAmount1Stmt : Stmt :=
   .letDecl "amount1" (some uint256)
-    (.binary .div (u256 (.binary .mul (.var "liquidity") (.var "balance1"))) (.var "_totalSupply"))
+    (.binary (.div (.uint ⟨256, by decide⟩) .checked) (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "liquidity") (.var "balance1"))) (.var "_totalSupply"))
 
 abbrev burnAmountsStore (locals : Store) (liquidity balance0 balance1 totalSupply : UInt256) : Store :=
   ((locals.insert "amount0" (uniswapUint256Value (burnAmountWord liquidity balance0 totalSupply))).insert

@@ -198,7 +198,8 @@ theorem spotPokeSourceBodyPeekHasFalseVatNoCode {cA gh bl σ σ₀ A I} {g : UIn
         (ty := some bytes32)
         (expr := .tupleGet (.var "peekRet") 0)
         (value := .fixedBytes bytes32Width (pokePeekValBytes out))
-        (evalExpr_pokePeekVal evmPip I out))
+        (evalExpr_pokePeekVal evmPip I out)
+        (pokePeekVal_value_matches hdec))
   have hhasStmt :
       ExecStmt config { contract := contract, locals := pokeValLocals I out } evmPip
         (.letDecl "has" (some boolTy) (.tupleGet (.var "peekRet") 1))
@@ -212,7 +213,8 @@ theorem spotPokeSourceBodyPeekHasFalseVatNoCode {cA gh bl σ σ₀ A I} {g : UIn
         (ty := some boolTy)
         (expr := .tupleGet (.var "peekRet") 1)
         (value := .bool (pokePeekHasBool out))
-        (evalExpr_pokePeekHas evmPip I out))
+        (evalExpr_pokePeekHas evmPip I out)
+        (valueMatchesOptionalABIType_bool _))
   have hspotExpr :
       evalExpr? config { contract := contract, locals := pokeHasLocals I out } evmPip
         (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
@@ -222,15 +224,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatNoCode {cA gh bl σ σ₀ A I} {g : UIn
         (.letDecl "spot" (some uint256) (.intLit 0))
         (.ok { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip) := by
     simpa [pokeSpotLocals] using
-      (ExecStmt.letDecl
-        (cfg := config)
-        (solm := { contract := contract, locals := pokeHasLocals I out })
-        (evm := evmPip)
-        (name := "spot")
-        (ty := some uint256)
-        (expr := .intLit 0)
-        (value := .int (Int.ofNat (⟨0⟩ : UInt256).toNat))
-        hspotExpr)
+      (ExecStmt.letDecl_uint256_word hspotExpr)
   have hhasGuard :
       evalExpr? config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
         (.var "has") = .ok (.bool false) :=
@@ -331,7 +325,8 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallFailed {cA gh bl σ σ₀ A I} {g :
         (ty := some bytes32)
         (expr := .tupleGet (.var "peekRet") 0)
         (value := .fixedBytes bytes32Width (pokePeekValBytes out))
-        (evalExpr_pokePeekVal evmPip I out))
+        (evalExpr_pokePeekVal evmPip I out)
+        (pokePeekVal_value_matches hdec))
   have hhasStmt :
       ExecStmt config { contract := contract, locals := pokeValLocals I out } evmPip
         (.letDecl "has" (some boolTy) (.tupleGet (.var "peekRet") 1))
@@ -345,7 +340,8 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallFailed {cA gh bl σ σ₀ A I} {g :
         (ty := some boolTy)
         (expr := .tupleGet (.var "peekRet") 1)
         (value := .bool (pokePeekHasBool out))
-        (evalExpr_pokePeekHas evmPip I out))
+        (evalExpr_pokePeekHas evmPip I out)
+        (valueMatchesOptionalABIType_bool _))
   have hspotExpr :
       evalExpr? config { contract := contract, locals := pokeHasLocals I out } evmPip
         (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
@@ -355,15 +351,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallFailed {cA gh bl σ σ₀ A I} {g :
         (.letDecl "spot" (some uint256) (.intLit 0))
         (.ok { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip) := by
     simpa [pokeSpotLocals] using
-      (ExecStmt.letDecl
-        (cfg := config)
-        (solm := { contract := contract, locals := pokeHasLocals I out })
-        (evm := evmPip)
-        (name := "spot")
-        (ty := some uint256)
-        (expr := .intLit 0)
-        (value := .int (Int.ofNat (⟨0⟩ : UInt256).toNat))
-        hspotExpr)
+      (ExecStmt.letDecl_uint256_word hspotExpr)
   have hhasGuard :
       evalExpr? config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
         (.var "has") = .ok (.bool false) :=
@@ -477,7 +465,8 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallSucceededReturns
         (ty := some bytes32)
         (expr := .tupleGet (.var "peekRet") 0)
         (value := .fixedBytes bytes32Width (pokePeekValBytes out))
-        (evalExpr_pokePeekVal evmPip I out))
+        (evalExpr_pokePeekVal evmPip I out)
+        (pokePeekVal_value_matches hdec))
   have hhasStmt :
       ExecStmt config { contract := contract, locals := pokeValLocals I out } evmPip
         (.letDecl "has" (some boolTy) (.tupleGet (.var "peekRet") 1))
@@ -491,7 +480,8 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallSucceededReturns
         (ty := some boolTy)
         (expr := .tupleGet (.var "peekRet") 1)
         (value := .bool (pokePeekHasBool out))
-        (evalExpr_pokePeekHas evmPip I out))
+        (evalExpr_pokePeekHas evmPip I out)
+        (valueMatchesOptionalABIType_bool _))
   have hspotExpr :
       evalExpr? config { contract := contract, locals := pokeHasLocals I out } evmPip
         (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
@@ -501,15 +491,7 @@ theorem spotPokeSourceBodyPeekHasFalseVatCallSucceededReturns
         (.letDecl "spot" (some uint256) (.intLit 0))
         (.ok { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip) := by
     simpa [pokeSpotLocals] using
-      (ExecStmt.letDecl
-        (cfg := config)
-        (solm := { contract := contract, locals := pokeHasLocals I out })
-        (evm := evmPip)
-        (name := "spot")
-        (ty := some uint256)
-        (expr := .intLit 0)
-        (value := .int (Int.ofNat (⟨0⟩ : UInt256).toNat))
-        hspotExpr)
+      (ExecStmt.letDecl_uint256_word hspotExpr)
   have hhasGuard :
       evalExpr? config { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip
         (.var "has") = .ok (.bool false) :=
@@ -629,7 +611,8 @@ theorem spotPokeSourceBodyPeekHasTrueTailReverts {cA gh bl σ σ₀ A I} {g : UI
         (ty := some bytes32)
         (expr := .tupleGet (.var "peekRet") 0)
         (value := .fixedBytes bytes32Width (pokePeekValBytes out))
-        (evalExpr_pokePeekVal evmPip I out))
+        (evalExpr_pokePeekVal evmPip I out)
+        (pokePeekVal_value_matches hdec))
   have hhasStmt :
       ExecStmt config { contract := contract, locals := pokeValLocals I out } evmPip
         (.letDecl "has" (some boolTy) (.tupleGet (.var "peekRet") 1))
@@ -643,7 +626,8 @@ theorem spotPokeSourceBodyPeekHasTrueTailReverts {cA gh bl σ σ₀ A I} {g : UI
         (ty := some boolTy)
         (expr := .tupleGet (.var "peekRet") 1)
         (value := .bool (pokePeekHasBool out))
-        (evalExpr_pokePeekHas evmPip I out))
+        (evalExpr_pokePeekHas evmPip I out)
+        (valueMatchesOptionalABIType_bool _))
   have hspotExpr :
       evalExpr? config { contract := contract, locals := pokeHasLocals I out } evmPip
         (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
@@ -653,15 +637,7 @@ theorem spotPokeSourceBodyPeekHasTrueTailReverts {cA gh bl σ σ₀ A I} {g : UI
         (.letDecl "spot" (some uint256) (.intLit 0))
         (.ok { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip) := by
     simpa [pokeSpotLocals] using
-      (ExecStmt.letDecl
-        (cfg := config)
-        (solm := { contract := contract, locals := pokeHasLocals I out })
-        (evm := evmPip)
-        (name := "spot")
-        (ty := some uint256)
-        (expr := .intLit 0)
-        (value := .int (Int.ofNat (⟨0⟩ : UInt256).toNat))
-        hspotExpr)
+      (ExecStmt.letDecl_uint256_word hspotExpr)
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 pokeTransition.body
         .reverted := by
@@ -738,7 +714,8 @@ theorem spotPokeSourceBodyPeekHasTrueTailReturns {cA gh bl σ σ₀ A I} {g : UI
         (ty := some bytes32)
         (expr := .tupleGet (.var "peekRet") 0)
         (value := .fixedBytes bytes32Width (pokePeekValBytes out))
-        (evalExpr_pokePeekVal evmPip I out))
+        (evalExpr_pokePeekVal evmPip I out)
+        (pokePeekVal_value_matches hdec))
   have hhasStmt :
       ExecStmt config { contract := contract, locals := pokeValLocals I out } evmPip
         (.letDecl "has" (some boolTy) (.tupleGet (.var "peekRet") 1))
@@ -752,7 +729,8 @@ theorem spotPokeSourceBodyPeekHasTrueTailReturns {cA gh bl σ σ₀ A I} {g : UI
         (ty := some boolTy)
         (expr := .tupleGet (.var "peekRet") 1)
         (value := .bool (pokePeekHasBool out))
-        (evalExpr_pokePeekHas evmPip I out))
+        (evalExpr_pokePeekHas evmPip I out)
+        (valueMatchesOptionalABIType_bool _))
   have hspotExpr :
       evalExpr? config { contract := contract, locals := pokeHasLocals I out } evmPip
         (.intLit 0) = .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
@@ -762,15 +740,7 @@ theorem spotPokeSourceBodyPeekHasTrueTailReturns {cA gh bl σ σ₀ A I} {g : UI
         (.letDecl "spot" (some uint256) (.intLit 0))
         (.ok { contract := contract, locals := pokeSpotLocals I out ⟨0⟩ } evmPip) := by
     simpa [pokeSpotLocals] using
-      (ExecStmt.letDecl
-        (cfg := config)
-        (solm := { contract := contract, locals := pokeHasLocals I out })
-        (evm := evmPip)
-        (name := "spot")
-        (ty := some uint256)
-        (expr := .intLit 0)
-        (value := .int (Int.ofNat (⟨0⟩ : UInt256).toNat))
-        hspotExpr)
+      (ExecStmt.letDecl_uint256_word hspotExpr)
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm0 pokeTransition.body
         (.ok { contract := contract, locals := fileLocals } evmFile) := by

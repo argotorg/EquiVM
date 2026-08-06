@@ -605,7 +605,9 @@ theorem potDripSolm_rpowReturn {cA gh bl σ σ₀ A I} {g pow : UInt256} {rpowLo
     (locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay)
     (calleeSolm := { contract := contract, locals := rpowLocals })
     (potDripSolm_rpowArgs hle) rfl
-    (by simp [rpowFunction, uintTernaryLocals, bindParams?]) hrpow
+    (by simpa [rpowFunction, uintTernaryLocals] using
+      (bindParams_uint256_triple "x" "n" "base"
+        (dripDsrWord σ I) (dripSubNowRho σ I) potRay)) hrpow
   simpa [resumeAfterInternalCall, dripPowFrameLocals, collapseReturns] using h
 
 /-- `s3` returns `tmp = _rmul(pow, chi)` when `pow * chi` fits. -/
@@ -633,7 +635,8 @@ theorem potDripSolm_rmulReturn {cA gh bl σ σ₀ A I} {g pow : UInt256}
     (evm := evm0) (name := "_rmul") (retVar := "tmp") (args := [.var "pow", .storage chiRef])
     (argVals := [.int (Int.ofNat pow.toNat), .int (Int.ofNat (dripChiWord σ I).toNat)])
     (callee := rmulFunction) (locals := uintBinaryLocals pow (dripChiWord σ I))
-    hargs rfl (by simp [rmulFunction, uintBinaryLocals, bindParams?])
+    hargs rfl (by simpa [rmulFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" pow (dripChiWord σ I))
     (execRmulFunctionReturn evm0 (x := pow) (y := dripChiWord σ I)
       (prod := pow * dripChiWord σ I) (q := dripTmpVal σ I pow) rfl hfit rfl)
   simpa [resumeAfterInternalCall, dripTmpFrameLocals, collapseReturns] using h
@@ -658,7 +661,8 @@ theorem potDripSolm_rmulRevert {cA gh bl σ σ₀ A I} {g pow : UInt256}
     (argVals := [.int (Int.ofNat pow.toNat), .int (Int.ofNat (dripChiWord σ I).toNat)])
     (callee := rmulFunction) (locals := uintBinaryLocals pow (dripChiWord σ I))
     (by simp [evalExprs?, EvalResult.bind, bind, pure, hpow, hchi]) rfl
-    (by simp [rmulFunction, uintBinaryLocals, bindParams?])
+    (by simpa [rmulFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" pow (dripChiWord σ I))
     (execRmulFunctionRevert evm0 hover)
 
 /-- `s4` returns `chi_ = _sub(tmp, chi)` when `chi ≤ tmp`. -/
@@ -684,7 +688,8 @@ theorem potDripSolm_subReturn {cA gh bl σ σ₀ A I} {g pow : UInt256}
       .int (Int.ofNat (dripChiWord σ I).toNat)])
     (callee := subFunction) (locals := uintBinaryLocals (dripTmpVal σ I pow) (dripChiWord σ I))
     (by simp [evalExprs?, EvalResult.bind, bind, pure, htmp, hchi]) rfl
-    (by simp [subFunction, uintBinaryLocals, bindParams?])
+    (by simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" (dripTmpVal σ I pow) (dripChiWord σ I))
     (execSubFunctionReturn evm0 (x := dripTmpVal σ I pow) (y := dripChiWord σ I)
       (diff := dripChiDeltaVal σ I pow) rfl hle)
   simpa [resumeAfterInternalCall, dripChiDeltaFrameLocals, collapseReturns] using h
@@ -710,7 +715,8 @@ theorem potDripSolm_subRevert {cA gh bl σ σ₀ A I} {g pow : UInt256}
       .int (Int.ofNat (dripChiWord σ I).toNat)])
     (callee := subFunction) (locals := uintBinaryLocals (dripTmpVal σ I pow) (dripChiWord σ I))
     (by simp [evalExprs?, EvalResult.bind, bind, pure, htmp, hchi]) rfl
-    (by simp [subFunction, uintBinaryLocals, bindParams?])
+    (by simpa [subFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" (dripTmpVal σ I pow) (dripChiWord σ I))
     (execSubFunctionRevert evm0 hlt)
 
 /-- `s5`: `chi := tmp` mutates slot 4 (`evm0 → dripEvmChi`). -/
@@ -777,7 +783,8 @@ theorem potDripSolm_mulReturn {cA gh bl σ σ₀ A I} {g pow : UInt256}
     (callee := mulFunction)
     (locals := uintBinaryLocals (dripPieWord σ I) (dripChiDeltaVal σ I pow))
     (by simp [evalExprs?, EvalResult.bind, bind, pure, hPie, hchi_]) rfl
-    (by simp [mulFunction, uintBinaryLocals, bindParams?])
+    (by simpa [mulFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" (dripPieWord σ I) (dripChiDeltaVal σ I pow))
     (execMulFunctionReturn evmR (x := dripPieWord σ I) (y := dripChiDeltaVal σ I pow)
       (prod := dripRadVal σ I pow) rfl hfit)
   simpa [resumeAfterInternalCall, dripRadFrameLocals, collapseReturns] using h
@@ -808,7 +815,8 @@ theorem potDripSolm_mulRevert {cA gh bl σ σ₀ A I} {g pow : UInt256}
     (callee := mulFunction)
     (locals := uintBinaryLocals (dripPieWord σ I) (dripChiDeltaVal σ I pow))
     (by simp [evalExprs?, EvalResult.bind, bind, pure, hPie, hchi_]) rfl
-    (by simp [mulFunction, uintBinaryLocals, bindParams?])
+    (by simpa [mulFunction, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" (dripPieWord σ I) (dripChiDeltaVal σ I pow))
     (execMulFunctionRevert evmR hover)
 
 /-! ## Post-store `σ''` word reductions (slots `≠ 4, 7` unchanged by the two SSTOREs) -/
@@ -1306,7 +1314,9 @@ theorem potDripSolm_rpowRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     (callee := rpowFunction)
     (locals := uintTernaryLocals (dripDsrWord σ I) (dripSubNowRho σ I) potRay)
     (potDripSolm_rpowArgs hle) rfl
-    (by simp [rpowFunction, uintTernaryLocals, bindParams?]) hrpow
+    (by simpa [rpowFunction, uintTernaryLocals] using
+      (bindParams_uint256_triple "x" "n" "base"
+        (dripDsrWord σ I) (dripSubNowRho σ I) potRay)) hrpow
 
 /-- `L2`: the `_rpow` call reverts the whole body. -/
 theorem potDripSolmBody_rpowReverts {cA gh bl σ σ₀ A I} {g : UInt256}

@@ -19,12 +19,10 @@ theorem evalExpr_uint256_mul {cfg : Config} {caller : Frame} {evm : EVM.State}
     (ha : evalExpr? cfg caller evm lhs = .ok (uint256Value a))
     (hb : evalExpr? cfg caller evm rhs = .ok (uint256Value b))
     (hfit : a.toNat * b.toNat < UInt256.size) :
-    evalExpr? cfg caller evm (.inRange (.uint ⟨256, by decide⟩) (.binary .mul lhs rhs)) =
+    evalExpr? cfg caller evm (.inRange (.uint ⟨256, by decide⟩) (.binary (.mul (.uint ⟨256, by decide⟩) .checked) lhs rhs)) =
       .ok (uint256Value (UInt256.mul a b)) := by
-  apply evalExpr_uint256_inRange
-  simp only [evalExpr?, ha, hb, EvalResult.bind, bind, uint256Value, evalBinaryOp?]
-  rw [u256_mul_toNat, Nat.mod_eq_of_lt hfit]
-  simp only [Int.ofNat_eq_natCast, Nat.cast_mul]
+  exact evalExpr_checked_mul_uint256_word_ok ha hb
+    (by rw [u256_mul_toNat, Nat.mod_eq_of_lt hfit]) hfit
 
 -- LIBRARY CANDIDATE: checked multiplication overflow for arbitrary word-valued expressions.
 theorem evalExpr_uint256_mul_overflow {cfg : Config} {caller : Frame} {evm : EVM.State}
@@ -32,14 +30,8 @@ theorem evalExpr_uint256_mul_overflow {cfg : Config} {caller : Frame} {evm : EVM
     (ha : evalExpr? cfg caller evm lhs = .ok (uint256Value a))
     (hb : evalExpr? cfg caller evm rhs = .ok (uint256Value b))
     (hover : UInt256.size ≤ a.toNat * b.toNat) :
-    evalExpr? cfg caller evm (.inRange (.uint ⟨256, by decide⟩) (.binary .mul lhs rhs)) = .revert := by
-  have hge : Int.ofNat (a.toNat * b.toNat) ≥ (2 : Int) ^ 256 := by
-    rw [UInt256.size] at hover
-    exact Int.ofNat_le.mpr hover
-  simp only [evalExpr?, ha, hb, EvalResult.bind, bind, uint256Value, evalBinaryOp?]
-  rw [if_pos]
-  simp only [Bool.or_eq_true, decide_eq_true_eq]
-  exact Or.inr (by simpa [Nat.cast_mul] using hge)
+    evalExpr? cfg caller evm (.inRange (.uint ⟨256, by decide⟩) (.binary (.mul (.uint ⟨256, by decide⟩) .checked) lhs rhs)) = .revert := by
+  exact evalExpr_checked_mul_uint256_word_revert_of_overflow ha hb hover
 
 -- LIBRARY CANDIDATE: checked subtraction of arbitrary expressions with ordered word values.
 theorem evalExpr_uint256_sub {cfg : Config} {caller : Frame} {evm : EVM.State}
@@ -47,11 +39,8 @@ theorem evalExpr_uint256_sub {cfg : Config} {caller : Frame} {evm : EVM.State}
     (ha : evalExpr? cfg caller evm lhs = .ok (uint256Value a))
     (hb : evalExpr? cfg caller evm rhs = .ok (uint256Value b))
     (hle : b.toNat ≤ a.toNat) :
-    evalExpr? cfg caller evm (.inRange (.uint ⟨256, by decide⟩) (.binary .sub lhs rhs)) =
+    evalExpr? cfg caller evm (.inRange (.uint ⟨256, by decide⟩) (.binary (.sub (.uint ⟨256, by decide⟩) .checked) lhs rhs)) =
       .ok (uint256Value (UInt256.sub a b)) := by
-  apply evalExpr_uint256_inRange
-  simp only [evalExpr?, ha, hb, EvalResult.bind, bind, uint256Value, evalBinaryOp?]
-  rw [usub_toNat hle]
-  simp only [Int.ofNat_eq_natCast, Int.ofNat_sub hle]
+  exact evalExpr_checked_sub_uint256_word_ok ha hb (usub_toNat hle) hle
 
 end UniswapV2Pair

@@ -245,7 +245,7 @@ theorem evalExpr_burnFunction_balance_debit (evm : EVM.State)
     (henough : value.toNat ≤ (burnFunctionFromBalanceWord evm holder).toNat) :
     evalExpr? config
       { contract := contract, locals := burnFunctionAfterBalanceStore evm holder value } evm
-      (.binary .sub (.var "fromBalance") (.var "value")) =
+      (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")) =
         .ok (burnFunctionBalanceDebitValue evm holder value) := by
   have hsub :
       Int.ofNat (burnFunctionFromBalanceWord evm holder).toNat - Int.ofNat value.toNat =
@@ -257,12 +257,21 @@ theorem evalExpr_burnFunction_balance_debit (evm : EVM.State)
     unfold burnFunctionBalanceDebitWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (burnFunctionFromBalanceWord evm holder).val.isLt)
+  have hnonneg : 0 ≤ Int.ofNat (burnFunctionFromBalanceWord evm holder).toNat -
+      Int.ofNat value.toNat := by
+    rw [hsub]
+    exact Int.natCast_nonneg _
+  have hfit : Int.ofNat (burnFunctionFromBalanceWord evm holder).toNat -
+      Int.ofNat value.toNat < Int.ofNat EVM.wordModulus := by
+    rw [hsub]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.sub_le _ _)
+      (burnFunctionFromBalanceWord evm holder).val.isLt)
   simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
   rw [burnFunctionAfterBalanceStore_fromBalance, burnFunctionAfterBalanceStore_value]
-  change EvalResult.ok (Value.int
-      (Int.ofNat (burnFunctionFromBalanceWord evm holder).toNat - Int.ofNat value.toNat)) =
-    EvalResult.ok (Value.int (Int.ofNat (burnFunctionBalanceDebitWord evm holder value).toNat))
-  rw [hsub, htoNat]
+  simp only [evalBinaryOp?]
+  rw [evalIntArithResult_checked_uint_ok _ _ hnonneg (by simpa using hfit)]
+  rw [hsub]
+  simp [burnFunctionBalanceDebitValue, htoNat]
 
 theorem burnFunctionAssignBalance (evm : EVM.State) (holder : AccountAddress)
     (value : UInt256) :
@@ -339,7 +348,7 @@ theorem evalExpr_burnFunction_totalSupply_debit (evm : EVM.State)
     evalExpr? config
       { contract := contract, locals := burnFunctionAfterTotalSupplyStore evm holder value }
       (burnFunctionAfterBalanceState evm holder value)
-      (.binary .sub (.var "_totalSupply") (.var "value")) =
+      (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "_totalSupply") (.var "value")) =
         .ok (burnFunctionTotalSupplyDebitValue evm holder value) := by
   have hsub :
       Int.ofNat (burnFunctionTotalSupplyWord evm holder value).toNat - Int.ofNat value.toNat =
@@ -351,15 +360,22 @@ theorem evalExpr_burnFunction_totalSupply_debit (evm : EVM.State)
     unfold burnFunctionTotalSupplyDebitWord
     exact ulit_toNat' _ (lt_of_le_of_lt (Nat.sub_le _ _)
       (burnFunctionTotalSupplyWord evm holder value).val.isLt)
+  have hnonneg : 0 ≤ Int.ofNat (burnFunctionTotalSupplyWord evm holder value).toNat -
+      Int.ofNat value.toNat := by
+    rw [hsub]
+    exact Int.natCast_nonneg _
+  have hfit : Int.ofNat (burnFunctionTotalSupplyWord evm holder value).toNat -
+      Int.ofNat value.toNat < Int.ofNat EVM.wordModulus := by
+    rw [hsub]
+    exact Int.ofNat_lt.mpr (lt_of_le_of_lt (Nat.sub_le _ _)
+      (burnFunctionTotalSupplyWord evm holder value).val.isLt)
   simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
   rw [burnFunctionAfterTotalSupplyStore_totalSupplyLocal,
     burnFunctionAfterTotalSupplyStore_value]
-  change EvalResult.ok (Value.int
-      (Int.ofNat (burnFunctionTotalSupplyWord evm holder value).toNat -
-        Int.ofNat value.toNat)) =
-    EvalResult.ok
-      (Value.int (Int.ofNat (burnFunctionTotalSupplyDebitWord evm holder value).toNat))
-  rw [hsub, htoNat]
+  simp only [evalBinaryOp?]
+  rw [evalIntArithResult_checked_uint_ok _ _ hnonneg (by simpa using hfit)]
+  rw [hsub]
+  simp [burnFunctionTotalSupplyDebitValue, htoNat]
 
 theorem burnFunctionAssignTotalSupply (evm : EVM.State) (holder : AccountAddress)
     (value : UInt256) :
@@ -403,14 +419,15 @@ theorem uniswapBurnFunctionBody (evm : EVM.State) (holder : AccountAddress) (val
     [ .letDecl "fromBalance" (some uint256) (.storage (balanceOfRef (.var "from"))),
       .require (.binary .ge (.var "fromBalance") (.var "value")),
       .assign .storage (balanceOfRef (.var "from"))
-        (.binary .sub (.var "fromBalance") (.var "value")),
+        (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "fromBalance") (.var "value")),
       .letDecl "_totalSupply" (some uint256) (.storage totalSupplyRef),
       .require (.binary .ge (.var "_totalSupply") (.var "value")),
-      .assign .storage totalSupplyRef (.binary .sub (.var "_totalSupply") (.var "value")) ]
+      .assign .storage totalSupplyRef (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var "_totalSupply") (.var "value")) ]
     (.ok { contract := contract, locals := burnFunctionAfterTotalSupplyStore evm holder value }
       (burnFunctionPostState evm holder value))
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_burnFunction_from_balance evm holder value)) ?_
+    (ExecStmt.letDecl (evalExpr_burnFunction_from_balance evm holder value)
+      (by simp [valueMatchesOptionalABIType, burnFunctionFromBalanceValue])) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_burnFunction_balance_require_true evm holder value hbalance)) ?_
@@ -419,7 +436,8 @@ theorem uniswapBurnFunctionBody (evm : EVM.State) (holder : AccountAddress) (val
       (evalExpr_burnFunction_balance_debit evm holder value hbalance)
       (burnFunctionAssignBalance evm holder value)) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_burnFunction_totalSupply evm holder value)) ?_
+    (ExecStmt.letDecl (evalExpr_burnFunction_totalSupply evm holder value)
+      (by simp [valueMatchesOptionalABIType, burnFunctionTotalSupplyValue])) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_burnFunction_totalSupply_require_true evm holder value hsupply)) ?_

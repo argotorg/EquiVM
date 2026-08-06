@@ -177,7 +177,7 @@ theorem uniswapMintInitialFeeOffKLastZeroReturnFromFactoryWitnessCase
             nextFrame.locals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmFeeS)) }
         evmFeeS
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall
@@ -476,7 +476,7 @@ theorem uniswapMintInitialFeeOnKLastZeroReturnFromFactoryWitnessCase
             nextFrame.locals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmFeeS)) }
         evmFeeS
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall
@@ -828,7 +828,7 @@ theorem uniswapMintInitialFeeOffKLastNonzeroReturnFromFactoryWitnessCase
             nextFrame.locals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfterFee)) }
         evmAfterFee
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall
@@ -1041,6 +1041,15 @@ theorem uniswapMintInitialFeeOffKLastNonzeroReturnFromFactoryWitnessCase
           have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound1
           norm_num [maxUint112]
           exact_mod_cast hnat)
+        (by
+          simpa [uniswapReserve0Word] using
+            uniswapUint112Masked_lt
+              (Solm.EVM.storageLoad evmL evmL.executionEnv.codeOwner ⟨8⟩))
+        (by
+          simpa [uniswapReserve1Word] using
+            uniswapUint112Masked_lt
+              (UInt256.div (Solm.EVM.storageLoad evmL evmL.executionEnv.codeOwner ⟨8⟩)
+                reserve112Shift))
         helapsedSource)
   have hrecipient :
       AccountAddress.ofNat (mintToWord I).toNat =

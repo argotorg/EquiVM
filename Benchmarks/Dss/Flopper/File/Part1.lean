@@ -216,14 +216,19 @@ theorem evalExpr_wrap48FileData {evm : EVM.State} {I : ExecutionEnv} {locals : S
     (h : locals.get? "data" = some (.int (Int.ofNat (fileData I).toNat))) :
     evalExpr? config { contract := contract, locals := locals } evm (wrap48 (.var "data")) =
       .ok (.int (Int.ofNat (fileData I).toNat % uint48Modulus)) := by
-  unfold wrap48
-  rw [evalExpr?]
-  simp only [evalExpr?, h, EvalResult.bind, pure, bind]
-  change evalBinaryOp? BinaryOp.mod (Value.int (Int.ofNat (fileData I).toNat))
-      (Value.int uint48Modulus) =
-    .ok (.int (Int.ofNat (fileData I).toNat % uint48Modulus))
-  simp [evalBinaryOp?, uint48Modulus]
-  all_goals decide
+  have hdata := evalExpr_fileData (evm := evm) (I := I) (locals := locals) h
+  have hmodulus :
+      evalExpr? config { contract := contract, locals := locals } evm
+          (.intLit uint48Modulus) = .ok (.int uint48Modulus) := by
+    simp [evalExpr?, pure]
+  have hpos : 0 < uint48Modulus := by norm_num [uint48Modulus]
+  have hfit :
+      Int.ofNat (fileData I).toNat % uint48Modulus <
+        Int.ofNat (EVM.twoPow 256) :=
+    lt_trans (Int.emod_lt_of_pos _ hpos) (by norm_num [uint48Modulus, EVM.twoPow])
+  simpa [wrap48] using
+    evalExpr_mod_uint_nonneg_ok (bits := ⟨256, by decide⟩) hdata hmodulus
+      (Int.natCast_nonneg _) hpos hfit
 
 theorem evalExpr_fileWhatEq_true {evm : EVM.State} {I : ExecutionEnv} {locals : Store}
     {bs : List UInt8}

@@ -63,6 +63,52 @@ theorem normalizeInt_sint256_word (w : EVM.Word) :
     rw [show EVM.twoPow 256 = Ethereum.UInt256.size by rfl]
     exact w.val.isLt
 
+theorem normalizeInt_sint256_word_eq_signed (w : EVM.Word) :
+    normalizeInt (.sint ⟨256, by decide⟩) (Int.ofNat w.toNat) = EVM.signed w := by
+  rw [normalizeInt_sint256_word]
+  simp only [EVM.signed, EVM.signBit, Ethereum.UInt256.toNat]
+  rfl
+
+theorem normalizeInt_sint256_bounds (i : Int) :
+    -Int.ofNat (EVM.twoPow 255) ≤ normalizeInt (.sint ⟨256, by decide⟩) i ∧
+      normalizeInt (.sint ⟨256, by decide⟩) i < Int.ofNat (EVM.twoPow 255) := by
+  let modulus := Int.ofNat (EVM.twoPow 256)
+  let half := Int.ofNat (EVM.twoPow 255)
+  have hmodulusPos : 0 < modulus := by norm_num [modulus, EVM.twoPow]
+  have hresidueNonneg : 0 ≤ i % modulus := Int.emod_nonneg i (ne_of_gt hmodulusPos)
+  have hresidueLt : i % modulus < modulus := Int.emod_lt_of_pos i hmodulusPos
+  have hmodulus : modulus = 2 * half := by
+    dsimp [modulus, half, EVM.twoPow]
+  change -half ≤ (if i % modulus < half then i % modulus else i % modulus - modulus) ∧
+    (if i % modulus < half then i % modulus else i % modulus - modulus) < half
+  split <;> omega
+
+theorem normalizeInt_sint256_eq_self (i : Int)
+    (hlo : -Int.ofNat (EVM.twoPow 255) ≤ i)
+    (hhi : i < Int.ofNat (EVM.twoPow 255)) :
+    normalizeInt (.sint ⟨256, by decide⟩) i = i := by
+  let modulus := Int.ofNat (EVM.twoPow 256)
+  let half := Int.ofNat (EVM.twoPow 255)
+  have hhalfPos : 0 < half := by norm_num [half, EVM.twoPow]
+  have hmodulus : modulus = 2 * half := by
+    dsimp [modulus, half, EVM.twoPow]
+  change (if i % modulus < half then i % modulus else i % modulus - modulus) = i
+  by_cases hnonneg : 0 ≤ i
+  · have hlt : i < modulus := by omega
+    rw [Int.emod_eq_of_lt hnonneg hlt, if_pos (by simpa [half] using hhi)]
+  · have hsumNonneg : 0 ≤ i + modulus := by
+      have := hlo
+      change -half ≤ i at this
+      omega
+    have hsumLt : i + modulus < modulus := by omega
+    have hmod : i % modulus = i + modulus := by
+      rw [Int.emod_eq_add_self_emod, Int.emod_eq_of_lt hsumNonneg hsumLt]
+    rw [hmod, if_neg (by
+      intro hlt
+      have := not_le.mpr hlt
+      omega)]
+    omega
+
 theorem normalizeInt_sint256_word_of_lt (w : EVM.Word)
     (hbound : w.toNat < EVM.twoPow 255) :
     normalizeInt (.sint ⟨256, by decide⟩) (Int.ofNat w.toNat) = Int.ofNat w.toNat := by

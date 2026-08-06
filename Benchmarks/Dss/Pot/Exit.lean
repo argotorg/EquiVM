@@ -776,7 +776,7 @@ theorem potExitSolmDriverPie {cA gh bl σ_solm σ₀ A I} {g : Sat256} {result :
           (pieSlot (.address I.source))).toNat - (joinWadWord I).toNat := by
     rw [usub_toNat hpieOk]
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
-  refine ExecBlock.consNormal (ExecStmt.letDecl
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word
     (evalExpr_sub256_ok
       (a := Solm.EVM.storageLoad (initState cA gh bl σ_solm σ₀ g A I) I.codeOwner
         (pieSlot (.address I.source)))
@@ -851,7 +851,7 @@ theorem potExitSolmMulSeg {cA gh bl σ_solm σ₀ A I} {g : Sat256} {result : Ex
           I.codeOwner (pieSlot (.address I.source)) PIEV) I.codeOwner ⟨2⟩).toNat
           - (joinWadWord I).toNat := by
     rw [usub_toNat hPieOk]
-  refine ExecBlock.consNormal (ExecStmt.letDecl
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word
     (evalExpr_sub256_ok
       (a := Solm.EVM.storageLoad (Solm.EVM.storageStore (initState cA gh bl σ_solm σ₀ g A I)
         I.codeOwner (pieSlot (.address I.source)) PIEV) I.codeOwner ⟨2⟩)

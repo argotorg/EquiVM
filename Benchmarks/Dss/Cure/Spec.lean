@@ -29,10 +29,10 @@ def sender : Expr := .env .caller
 def wordModulus : Int := (2 : Int) ^ 256
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
-def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
-def wrap256 (e : Expr) : Expr := .binary .mod e (.intLit wordModulus)
-def incUnchecked (e : Expr) : Expr := wrap256 (.binary .add e (.intLit 1))
+def add256 (x y : Expr) : Expr := u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) x y)
+def sub256 (x y : Expr) : Expr := u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)
+def wrap256 (e : Expr) : Expr := .binary (.mod (.uint ⟨256, by decide⟩)) e (.intLit wordModulus)
+def incUnchecked (e : Expr) : Expr := wrap256 (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) e (.intLit 1))
 
 def zeroPad28 : List UInt8 := List.replicate 28 0
 def waitParamLit : Expr :=

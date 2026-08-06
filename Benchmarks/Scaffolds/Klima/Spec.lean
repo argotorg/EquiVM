@@ -54,8 +54,8 @@ def ecrecoverPrecompile : Expr := .cast (.intLit 1) addrSt
 def maxUint256 : Int := (2 : Int) ^ 256 - 1
 
 def u256 (e : Expr) : Expr := .inRange uint256Int e
-def add256 (x y : Expr) : Expr := u256 (.binary .add x y)
-def sub256 (x y : Expr) : Expr := u256 (.binary .sub x y)
+def add256 (x y : Expr) : Expr := u256 (.binary (.add (.uint ⟨256, by decide⟩) .checked) x y)
+def sub256 (x y : Expr) : Expr := u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) x y)
 
 def addrAsU256 (e : Expr) : Expr := .cast e uint256St
 /-- The `bytes32(uint256(addr))` set key form the EnumerableSet library stores. -/

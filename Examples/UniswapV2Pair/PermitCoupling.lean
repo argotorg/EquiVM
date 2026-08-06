@@ -18,8 +18,10 @@ theorem uniswapPermitHashPrefixAt {base cur : EVM.State} {I : ExecutionEnv}
       [ .letDecl "structHash" (some bytes32) permitStructHashExpr,
         .letDecl "digest" (some bytes32) permitDigestExpr ]
       (.ok { contract := contract, locals := permitAfterDigestStore base I structHash digest } cur) := by
-  refine ExecBlock.consNormal (ExecStmt.letDecl hstruct) ?_
-  exact ExecBlock.consNormal (ExecStmt.letDecl hdigest) ExecBlock.nil
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl hstruct (evalExpr_keccak256_matches_bytes32 hstruct)) ?_
+  exact ExecBlock.consNormal
+    (ExecStmt.letDecl hdigest (evalExpr_keccak256_matches_bytes32 hdigest)) ExecBlock.nil
 
 theorem uniswapPermitHashEcrecoverSuccessAt {base cur cur' : EVM.State} {I : ExecutionEnv}
     {structHash digest recovered : Value} {out : ByteArray}
@@ -362,13 +364,15 @@ theorem uniswapPermitNonceStorePrefix (evm : EVM.State) (I : ExecutionEnv) :
     [ .letDecl "domainSeparator" (some bytes32) (.storage domainSeparatorRef),
       .letDecl "nonce" (some uint256) (.storage (noncesRef (.var "owner"))),
       .assign .storage (noncesRef (.var "owner"))
-        (wrapU256 (.binary .add (.var "nonce") (.intLit 1))) ]
+        (.binary (.add (.uint ⟨256, by decide⟩) .wrapping) (.var "nonce") (.intLit 1)) ]
     (.ok { contract := contract, locals := permitAfterNonceLoadStore evm I }
       (permitAfterNonceState evm I))
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_permit_domainSeparator_storage evm I)) ?_
+    (ExecStmt.letDecl (evalExpr_permit_domainSeparator_storage evm I)
+      (permitWordBytes32Value_matches (permitDomainSeparatorLoadedWord evm))) ?_
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_permit_afterDomain_nonce_storage evm I)) ?_
+    (ExecStmt.letDecl (evalExpr_permit_afterDomain_nonce_storage evm I)
+      (valueMatchesOptionalABIType_uint256_word (permitNonceLoadedWord evm I))) ?_
   exact ExecBlock.consNormal
     (ExecStmt.assign (evalExpr_permit_nonce_next evm I) (permitAssignNonce evm I))
     ExecBlock.nil

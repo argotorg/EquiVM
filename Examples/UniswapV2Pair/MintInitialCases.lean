@@ -54,7 +54,7 @@ theorem uniswapMintAfterMintFeeInitialRootUnderflowReverts_of_call
             nextLocals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
         evmAfter
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall
@@ -149,7 +149,7 @@ theorem uniswapMintAfterMintFeeInitialFeeOffReturn_of_call
             nextLocals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
         evmAfter
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall
@@ -180,6 +180,8 @@ theorem uniswapMintAfterMintFeeInitialFeeOffReturn_of_call
         UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       syncTimeElapsedInt
           (mintFunctionPostState
@@ -276,7 +278,8 @@ theorem uniswapMintAfterMintFeeInitialFeeOffReturn_of_call
         reserve0 reserve1 liquidity htotal hto' hbalance0' hbalance1' hreserve0'
         hreserve1' hfeeOn' hreserve0Base' hreserve1Base' hunlockedBase'
         (by simpa [afterTotalSupplyLocals] using hsqrt) hge hfit hliquidity hliqNonzero
-        hfitSupplyMin hfitBalanceMin hfitSupply hfitBalance hbound0 hbound1 helapsed
+        hfitSupplyMin hfitBalanceMin hfitSupply hfitBalance hbound0 hbound1 hreserve0Bound
+        hreserve1Bound helapsed
   have hthrough := execBlock_append hprefix htail
   simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
     mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, List.append_assoc,
@@ -338,7 +341,7 @@ theorem uniswapMintAfterMintFeeInitialFeeOnReturn_of_call
             nextLocals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
         evmAfter
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall
@@ -369,6 +372,8 @@ theorem uniswapMintAfterMintFeeInitialFeeOnReturn_of_call
         UInt256.size)
     (hbound0 : Int.ofNat balance0.toNat ≤ maxUint112)
     (hbound1 : Int.ofNat balance1.toNat ≤ maxUint112)
+    (hreserve0Bound : reserve0.toNat < 2 ^ 112)
+    (hreserve1Bound : reserve1.toNat < 2 ^ 112)
     (helapsed :
       syncTimeElapsedInt
           (mintFunctionPostState
@@ -486,8 +491,8 @@ theorem uniswapMintAfterMintFeeInitialFeeOnReturn_of_call
         reserve0 reserve1 liquidity htotal hto' hbalance0' hbalance1' hreserve0'
         hreserve1' hfeeOn' hreserve0Base' hreserve1Base' hkLastBase' hunlockedBase'
         (by simpa [afterTotalSupplyLocals] using hsqrt) hge hfit hliquidity hliqNonzero
-        hfitSupplyMin hfitBalanceMin hfitSupply hfitBalance hbound0 hbound1 helapsed
-        hfitKLast
+        hfitSupplyMin hfitBalanceMin hfitSupply hfitBalance hbound0 hbound1 hreserve0Bound
+        hreserve1Bound helapsed hfitKLast
   have hthrough := execBlock_append hprefix htail
   simpa [mintTransition, mintLiquidityBranchStmt, mintInitialLiquidityBranchStmts,
     mintProportionalLiquidityBranchStmts, mintAfterLiquidityTailStmts, List.append_assoc,
@@ -548,7 +553,7 @@ theorem uniswapMintInitialFeeOffReturn_kLastZero
             nextFrame.locals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmFee)) }
         evmFee
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall
@@ -642,6 +647,15 @@ theorem uniswapMintInitialFeeOffReturn_kLastZero
       mintAfterMintFeeCallStore_unlocked evmL I balance0 balance1 false)
     htotalZero (by simpa [evmL, nextFrame] using hsqrt) hge hfit hliquidity
     hliqNonzero hfitSupplyMin hfitBalanceMin hfitSupply hfitBalance hbound0 hbound1
+    (by
+      simpa [uniswapReserve0Word] using
+        uniswapUint112Masked_lt
+          (Solm.EVM.storageLoad evmL evmL.executionEnv.codeOwner ⟨8⟩))
+    (by
+      simpa [uniswapReserve1Word] using
+        uniswapUint112Masked_lt
+          (UInt256.div (Solm.EVM.storageLoad evmL evmL.executionEnv.codeOwner ⟨8⟩)
+            reserve112Shift))
     helapsed
 
 set_option maxHeartbeats 1000000 in
@@ -699,7 +713,7 @@ theorem uniswapMintInitialFeeOnReturn_kLastZero
             nextFrame.locals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmFee)) }
         evmFee
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall
@@ -813,6 +827,15 @@ theorem uniswapMintInitialFeeOnReturn_kLastZero
       mintAfterMintFeeCallStore_unlocked evmL I balance0 balance1 true)
     htotalZero (by simpa [evmL, nextFrame] using hsqrt) hge hfit hliquidity
     hliqNonzero hfitSupplyMin hfitBalanceMin hfitSupply hfitBalance hbound0 hbound1
+    (by
+      simpa [uniswapReserve0Word] using
+        uniswapUint112Masked_lt
+          (Solm.EVM.storageLoad evmL evmL.executionEnv.codeOwner ⟨8⟩))
+    (by
+      simpa [uniswapReserve1Word] using
+        uniswapUint112Masked_lt
+          (UInt256.div (Solm.EVM.storageLoad evmL evmL.executionEnv.codeOwner ⟨8⟩)
+            reserve112Shift))
     helapsed hfitKLast
 
 set_option maxHeartbeats 1000000 in
@@ -901,7 +924,7 @@ theorem uniswapMintInitialAfterMintFeeRootUnderflowRevertCase
             nextLocals.insert "_totalSupply"
               (uniswapUint256Value (mintFunctionTotalSupplyWord evmAfter)) }
         evmAfter
-        (.internalCall "sqrt" [u256 (.binary .mul (.var "amount0") (.var "amount1"))]
+        (.internalCall "sqrt" [u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.var "amount0") (.var "amount1"))]
           "rootLiquidity")
         (.ok
           (resumeAfterInternalCall

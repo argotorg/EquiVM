@@ -2641,12 +2641,7 @@ theorem endCashStmtRmulReturns {cA gh bl σ σ₀ A I} {g : UInt256}
           .ok [.int (Int.ofNat (endCashWadWord I).toNat),
             .int (Int.ofNat (endCashFixWord σ I).toNat)] := by
     simp [evalExprs?, hwad, hfixExpr, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? rmulFunction.params
-          [.int (Int.ofNat (endCashWadWord I).toNat),
-            .int (Int.ofNat (endCashFixWord σ I).toNat)] =
-        some (endUintBinaryLocals (endCashWadWord I) (endCashFixWord σ I)) := by
-    simp [rmulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_rmulFunction (endCashWadWord I) (endCashFixWord σ I)
   have hbody :=
     endExecRmulFunctionReturn (evm := evm0)
       (x := endCashWadWord I) (y := endCashFixWord σ I)
@@ -2732,12 +2727,7 @@ theorem endCashBodyReverts_rmulOverflow {cA gh bl σ σ₀ A I} {g : UInt256}
           .ok [.int (Int.ofNat (endCashWadWord I).toNat),
             .int (Int.ofNat (endCashFixWord σ I).toNat)] := by
     simp [evalExprs?, hwad, hfixExpr, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? rmulFunction.params
-          [.int (Int.ofNat (endCashWadWord I).toNat),
-            .int (Int.ofNat (endCashFixWord σ I).toNat)] =
-        some (endUintBinaryLocals (endCashWadWord I) (endCashFixWord σ I)) := by
-    simp [rmulFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_rmulFunction (endCashWadWord I) (endCashFixWord σ I)
   have hrmulStmt :
       ExecStmt config { contract := contract, locals := endCashStore I } evm0
         (.internalCall "rmul" [.var "wad", .storage (fixRef (.var "ilk"))] "amt")
@@ -3165,12 +3155,7 @@ theorem endCashTailReverts_outAddOverflow (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat outWord.toNat),
             .int (Int.ofNat (endCashWadWord I).toNat)] := by
     simp [evalExprs?, hout, hwad, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? addFunction.params
-          [.int (Int.ofNat outWord.toNat),
-            .int (Int.ofNat (endCashWadWord I).toNat)] =
-        some (endUintBinaryLocals outWord (endCashWadWord I)) := by
-    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_addFunction outWord (endCashWadWord I)
   have haddStmt :
       ExecStmt config { contract := contract, locals := endCashStoreFlux σ I } evm
         (.internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew")
@@ -3224,12 +3209,7 @@ theorem endCashTailPrefixOutAssigned (evm : EVM.State) (I : ExecutionEnv)
           .ok [.int (Int.ofNat outWord.toNat),
             .int (Int.ofNat (endCashWadWord I).toNat)] := by
     simp [evalExprs?, hout, hwad, EvalResult.bind, bind, pure]
-  have hbind :
-      bindParams? addFunction.params
-          [.int (Int.ofNat outWord.toNat),
-            .int (Int.ofNat (endCashWadWord I).toNat)] =
-        some (endUintBinaryLocals outWord (endCashWadWord I)) := by
-    simp [addFunction, uint256, bindParams?, endUintBinaryLocals]
+  have hbind := endBindParams_addFunction outWord (endCashWadWord I)
   have haddStmt :
       ExecStmt config { contract := contract, locals := endCashStoreFlux σ I } evm
         (.internalCall "add" [.storage (outRef (.var "ilk") sender), .var "wad"] "outNew")

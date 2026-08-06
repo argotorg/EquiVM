@@ -208,6 +208,12 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
         (by simpa [mintAmountProductNat] using hmulFit1) hreserve0Nonzero
         hreserve1Nonzero
         (by
+          rw [← hclean0]
+          simpa [u256_land_comm] using uniswapUint112Masked_lt reserve0)
+        (by
+          rw [← hclean1]
+          simpa [u256_land_comm] using uniswapUint112Masked_lt reserve1)
+        (by
           rw [hliquidity]
           simp [mintProportionalLiquidityWord,
             mintAmountProductWord_eq_mul amount0 totalSupply
@@ -225,7 +231,7 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
         (s2 :=
           [ .ite (.var "feeOn")
               [ .assign .storage kLastRef
-                  (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                  (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
               [] ] ++
           lockExit ++
           [ .return [(.var "liquidity")] ])
@@ -450,6 +456,12 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
         (by simpa [mintAmountProductNat] using hmulFit1) hreserve0Nonzero
         hreserve1Nonzero
         (by
+          rw [← hclean0]
+          simpa [u256_land_comm] using uniswapUint112Masked_lt reserve0)
+        (by
+          rw [← hclean1]
+          simpa [u256_land_comm] using uniswapUint112Masked_lt reserve1)
+        (by
           rw [hliquidity]
           simp [mintProportionalLiquidityWord,
             mintAmountProductWord_eq_mul amount0 totalSupply
@@ -467,7 +479,7 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
         (s2 :=
           [ .ite (.var "feeOn")
               [ .assign .storage kLastRef
-                  (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
+                  (u256 (.binary (.mul (.uint ⟨256, by decide⟩) .checked) (.storage reserve0Ref) (.storage reserve1Ref))) ]
               [] ] ++
           lockExit ++
           [ .return [(.var "liquidity")] ])

@@ -396,7 +396,8 @@ theorem kissInternalSubReturn (I : ExecutionEnv) (evm : EVM.State)
       bindParams? subFunction.params
         [.int (Int.ofNat AshVal.toNat), .int (Int.ofNat (kissRad I).toNat)] =
           some (uintBinaryLocals AshVal (kissRad I)) := by
-    simp [subFunction, uint256, bindParams?, uintBinaryLocals]
+    simpa [subFunction, uint256, uint256Int, uintBinaryLocals] using
+      bindParams_uint256_pair "x" "y" AshVal (kissRad I)
   have hbody := execSubFunctionReturn (evm := evm) (x := AshVal) (y := kissRad I)
     (diff := AshNew) hAshNew hle
   simpa [kissFrameAshNew, kissLocalsAshNew, resumeAfterInternalCall] using

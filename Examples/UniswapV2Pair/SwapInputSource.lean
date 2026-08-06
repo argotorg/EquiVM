@@ -5,8 +5,8 @@ namespace UniswapV2Pair
 set_option maxRecDepth 2000000
 
 abbrev swapInputExpr (balanceVar reserveVar outVar : Ident) : Expr :=
-  .ite (.binary .gt (.var balanceVar) (.binary .sub (.var reserveVar) (.var outVar)))
-    (u256 (.binary .sub (.var balanceVar) (.binary .sub (.var reserveVar) (.var outVar))))
+  .ite (.binary .gt (.var balanceVar) (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var reserveVar) (.var outVar)))
+    (u256 (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var balanceVar) (.binary (.sub (.uint ⟨256, by decide⟩) .checked) (.var reserveVar) (.var outVar))))
     (.intLit 0)
 
 theorem evalExpr_swap_input {caller : Frame} (evm : EVM.State)
