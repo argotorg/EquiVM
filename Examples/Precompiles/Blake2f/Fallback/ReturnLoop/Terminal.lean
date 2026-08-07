@@ -122,7 +122,7 @@ private theorem returnLoopWord7Mem_read1984
     2072 2096 (returnLoopWord6Mem_size I hlen hmem) (by decide) (by decide) (by native_decide)]
   exact returnLoopWord6Mem_read1984 I hlen hmem
 
-private theorem returnLoopExitRetGasFrom {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem returnLoopExitRetGasFrom {cA gh bl σ σ₀ A I} {g : Sat256}
     {mem : ByteArray} {k C : Nat}
     (hlen : I.calldata.size = 213)
     (hmem : mem.size = 1984)

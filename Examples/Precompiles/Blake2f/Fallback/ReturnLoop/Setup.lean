@@ -15,7 +15,7 @@ namespace Blake2f
 set_option maxRecDepth 500000
 set_option maxHeartbeats 0
 
-private theorem returnAllocatorPrefixGasFrom {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem returnAllocatorPrefixGasFrom {cA gh bl σ σ₀ A I} {g : Sat256}
     {mem : ByteArray} {k C : Nat}
     (hmem : mem.size = 1984)
     (hread : mem.readWithPadding 64 32 = UInt256.toByteArray (UInt256.ofNat 1984))
@@ -149,7 +149,7 @@ theorem validReturnAllocZeroRoundsOneFlagPrefixGas {cA gh bl σ σ₀ A I} {g : 
     (outputWordsMem_read64 (v14FinalFlagMem_size I hlen) (v14FinalFlagMem_read64 I hlen))
     rd168
 
-private theorem returnBufferCopyPrefixGasFrom {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem returnBufferCopyPrefixGasFrom {cA gh bl σ σ₀ A I} {g : Sat256}
     {mem : ByteArray} {k C : Nat}
     (hlen : I.calldata.size = 213)
     (h : RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I)
@@ -232,7 +232,7 @@ theorem validReturnCopyZeroRoundsOneFlagPrefixGas {cA gh bl σ σ₀ A I} {g : S
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
     (mem := outputWordsMem (v14FinalFlagMem I)) (k := k0) (C := 8922) hlen rd899
 
-private theorem returnLoopSetupPrefixGasFrom {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem returnLoopSetupPrefixGasFrom {cA gh bl σ σ₀ A I} {g : Sat256}
     {mem : ByteArray} {aw : UInt256} {k C : Nat}
     (h : RDx runtimeBytecode I g (initState cA gh bl σ σ₀ g A I)
       ⟨176⟩ [⟨1984⟩, ⟨1216⟩]

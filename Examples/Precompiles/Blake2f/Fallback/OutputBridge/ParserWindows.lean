@@ -10,6 +10,18 @@ set_option maxHeartbeats 0
 private theorem usize_pos0 : 0 < USize.size :=
   lt_usize 0 (by norm_num)
 
+theorem parserSlotWrite_read_payload_window
+    (I : ExecutionEnv) (word : UInt256) {base : ByteArray} {off len storeOff : Nat}
+    (hbelow : 160 + off + len ≤ storeOff)
+    (hbase : base.readWithPadding (160 + off) len = I.calldata.extract off (off + len))
+    (hpos : 0 < len) (hlen64 : len < 2 ^ 64)
+    (hgap : storeOff - base.size < USize.size) :
+    ((UInt256.toByteArray word).write 0 base storeOff 32).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  rw [toByteArray_write_read_below_len_padded_of_gap word base storeOff (160 + off) len
+    (by omega) hpos hlen64 hgap]
+  exact hbase
+
 theorem solcBytesSetPaddedMem_read_payload_window
     (cd : ByteArray) (hlen : cd.size = 213) (off len : Nat)
     (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
@@ -181,6 +193,282 @@ theorem tArrayZeroMem_read_payload_window
     omega
   · exact hpos
   · exact hlen64
+
+theorem h0StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (h0StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold h0StoredMem
+  exact parserSlotWrite_read_payload_window I (h0ParsedWord I)
+    (storeOff := 384) (by omega)
+    (tArrayZeroMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [tArrayZeroMem_size I hlen]; exact usize_pos0)
+
+theorem h1StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (h1StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold h1StoredMem
+  exact parserSlotWrite_read_payload_window I (h1ParsedWord I)
+    (storeOff := 416) (by omega)
+    (h0StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [h0StoredMem_size I hlen]; exact usize_pos0)
+
+theorem h2StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (h2StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold h2StoredMem
+  exact parserSlotWrite_read_payload_window I (h2ParsedWord I)
+    (storeOff := 448) (by omega)
+    (h1StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [h1StoredMem_size I hlen]; exact usize_pos0)
+
+theorem h3StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (h3StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold h3StoredMem
+  exact parserSlotWrite_read_payload_window I (h3ParsedWord I)
+    (storeOff := 480) (by omega)
+    (h2StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [h2StoredMem_size I hlen]; exact usize_pos0)
+
+theorem h4StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (h4StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold h4StoredMem
+  exact parserSlotWrite_read_payload_window I (h4ParsedWord I)
+    (storeOff := 512) (by omega)
+    (h3StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [h3StoredMem_size I hlen]; exact usize_pos0)
+
+theorem h5StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (h5StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold h5StoredMem
+  exact parserSlotWrite_read_payload_window I (h5ParsedWord I)
+    (storeOff := 544) (by omega)
+    (h4StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [h4StoredMem_size I hlen]; exact usize_pos0)
+
+theorem h6StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (h6StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold h6StoredMem
+  exact parserSlotWrite_read_payload_window I (h6ParsedWord I)
+    (storeOff := 576) (by omega)
+    (h5StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [h5StoredMem_size I hlen]; exact usize_pos0)
+
+theorem h7StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (h7StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold h7StoredMem
+  exact parserSlotWrite_read_payload_window I (h7ParsedWord I)
+    (storeOff := 608) (by omega)
+    (h6StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [h6StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m0StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m0StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m0StoredMem
+  exact parserSlotWrite_read_payload_window I (m0ParsedWord I)
+    (storeOff := 640) (by omega)
+    (h7StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [h7StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m1StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m1StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m1StoredMem
+  exact parserSlotWrite_read_payload_window I (m1ParsedWord I)
+    (storeOff := 672) (by omega)
+    (m0StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m0StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m2StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m2StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m2StoredMem
+  exact parserSlotWrite_read_payload_window I (m2ParsedWord I)
+    (storeOff := 704) (by omega)
+    (m1StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m1StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m3StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m3StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m3StoredMem
+  exact parserSlotWrite_read_payload_window I (m3ParsedWord I)
+    (storeOff := 736) (by omega)
+    (m2StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m2StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m4StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m4StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m4StoredMem
+  exact parserSlotWrite_read_payload_window I (m4ParsedWord I)
+    (storeOff := 768) (by omega)
+    (m3StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m3StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m5StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m5StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m5StoredMem
+  exact parserSlotWrite_read_payload_window I (m5ParsedWord I)
+    (storeOff := 800) (by omega)
+    (m4StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m4StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m6StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m6StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m6StoredMem
+  exact parserSlotWrite_read_payload_window I (m6ParsedWord I)
+    (storeOff := 832) (by omega)
+    (m5StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m5StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m7StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m7StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m7StoredMem
+  exact parserSlotWrite_read_payload_window I (m7ParsedWord I)
+    (storeOff := 864) (by omega)
+    (m6StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m6StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m8StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m8StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m8StoredMem
+  exact parserSlotWrite_read_payload_window I (m8ParsedWord I)
+    (storeOff := 896) (by omega)
+    (m7StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m7StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m9StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m9StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m9StoredMem
+  exact parserSlotWrite_read_payload_window I (m9ParsedWord I)
+    (storeOff := 928) (by omega)
+    (m8StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m8StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m10StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m10StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m10StoredMem
+  exact parserSlotWrite_read_payload_window I (m10ParsedWord I)
+    (storeOff := 960) (by omega)
+    (m9StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m9StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m11StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m11StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m11StoredMem
+  exact parserSlotWrite_read_payload_window I (m11ParsedWord I)
+    (storeOff := 992) (by omega)
+    (m10StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m10StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m12StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m12StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m12StoredMem
+  exact parserSlotWrite_read_payload_window I (m12ParsedWord I)
+    (storeOff := 1024) (by omega)
+    (m11StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m11StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m13StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m13StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m13StoredMem
+  exact parserSlotWrite_read_payload_window I (m13ParsedWord I)
+    (storeOff := 1056) (by omega)
+    (m12StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m12StoredMem_size I hlen]; exact usize_pos0)
+
+theorem m14StoredMem_read_payload_window
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)
+    (hwin : off + len ≤ 213) (hpos : 0 < len) (hlen64 : len < 2 ^ 64) :
+    (m14StoredMem I).readWithPadding (160 + off) len =
+      I.calldata.extract off (off + len) := by
+  unfold m14StoredMem
+  exact parserSlotWrite_read_payload_window I (m14ParsedWord I)
+    (storeOff := 1088) (by omega)
+    (m13StoredMem_read_payload_window I hlen off len hwin hpos hlen64)
+    hpos hlen64
+    (by rw [m13StoredMem_size I hlen]; exact usize_pos0)
 
 theorem m15StoredMem_read_payload_window
     (I : ExecutionEnv) (hlen : I.calldata.size = 213) (off len : Nat)

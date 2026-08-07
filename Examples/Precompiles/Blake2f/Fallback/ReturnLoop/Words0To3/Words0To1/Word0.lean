@@ -11,7 +11,7 @@ namespace Blake2f
 set_option maxRecDepth 500000
 set_option maxHeartbeats 0
 
-private theorem returnLoopFirstWordPrefixGasFrom {cA gh bl σ σ₀ A I} {g : Sat256}
+theorem returnLoopFirstWordPrefixGasFrom {cA gh bl σ σ₀ A I} {g : Sat256}
     {mem : ByteArray} {k C : Nat}
     (hlen : I.calldata.size = 213)
     (hmem : mem.size = 1984)

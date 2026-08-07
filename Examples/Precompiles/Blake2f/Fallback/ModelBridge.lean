@@ -207,6 +207,49 @@ theorem modelRounds_eq_inputFirstWord_shiftRight
       (UInt256.shiftRight (inputFirstWord I) ⟨224⟩).toNat :=
   (inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen).symm
 
+private theorem bytesToBigEndianNat_list_bound (xs : List UInt8) (acc : Nat) :
+    xs.foldl (fun acc b => acc * 256 + b.toNat) acc < (acc + 1) * 256 ^ xs.length := by
+  induction xs generalizing acc with
+  | nil =>
+      simp
+  | cons b xs ih =>
+      simp [List.foldl]
+      have hb : b.toNat < 256 := UInt8.toNat_lt b
+      have h := ih (acc * 256 + b.toNat)
+      calc
+        List.foldl (fun acc b => acc * 256 + b.toNat) (acc * 256 + b.toNat) xs
+            < (acc * 256 + b.toNat + 1) * 256 ^ xs.length := h
+        _ ≤ ((acc + 1) * 256) * 256 ^ xs.length := by
+            have : acc * 256 + b.toNat + 1 ≤ (acc + 1) * 256 := by omega
+            exact Nat.mul_le_mul_right _ this
+        _ = (acc + 1) * 256 ^ (xs.length + 1) := by ring
+
+theorem bytesToBigEndianNat_lt_pow_size (bs : ByteArray) :
+    Model.bytesToBigEndianNat bs < 256 ^ bs.size := by
+  unfold Model.bytesToBigEndianNat
+  have h := bytesToBigEndianNat_list_bound bs.toList 0
+  have hlen : bs.toList.length = bs.size := by
+    rw [byteArray_toList_eq, Array.length_toList, ByteArray.size_data]
+  rw [hlen] at h
+  simpa using h
+
+/-- The BLAKE2F round counter is parsed from exactly four bytes, so it is uint32-bounded.
+
+This bridge is needed by arbitrary-index selector proofs: the bytecode computes on `UInt256`
+words, while the model loop index is a `Nat`.  The bound rules out wrapping for
+`UInt256.ofNat i` whenever `i < Model.rounds input`. -/
+theorem modelRounds_lt_uint32 (input : ByteArray) :
+    Model.rounds input < 2 ^ 32 := by
+  unfold Model.rounds
+  have h := bytesToBigEndianNat_lt_pow_size (input.extract 0 4)
+  have hsize : (input.extract 0 4).size ≤ 4 := by
+    rw [ByteArray.size_extract]
+    omega
+  calc
+    Model.bytesToBigEndianNat (input.extract 0 4) < 256 ^ (input.extract 0 4).size := h
+    _ ≤ 256 ^ 4 := by exact Nat.pow_le_pow_right (by decide) hsize
+    _ = 2 ^ 32 := by norm_num
+
 theorem modelOutput_eq_compressBytes_zero_of_rounds_zero
     (input : ByteArray) (hrounds : Model.rounds input = 0) :
     Model.output input = Model.compressBytes input 0 := by
@@ -259,5 +302,240 @@ theorem modelRounds_pos_of_bytecodeRoundGuard_ne_zero
   by_contra hnot
   have hzero : Model.rounds I.calldata = 0 := by omega
   exact hcond (bytecodeRoundGuard_zero_of_modelRounds_zero I hlen hzero)
+
+theorem bytecodeRound1Guard_zero_of_modelRounds_le_one
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : Model.rounds I.calldata ≤ 1) :
+    UInt256.lt ⟨1⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  apply ult_zero
+  rw [inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  simpa using hrounds
+
+theorem bytecodeRound1Guard_zero_of_modelRounds_one
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : Model.rounds I.calldata = 1) :
+    UInt256.lt ⟨1⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  exact bytecodeRound1Guard_zero_of_modelRounds_le_one I hlen (by omega)
+
+theorem bytecodeRound1Guard_one_of_modelRounds_gt_one
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : 1 < Model.rounds I.calldata) :
+    UInt256.lt ⟨1⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨1⟩ := by
+  apply ult_one
+  rw [inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  exact hrounds
+
+theorem bytecodeRound1Guard_ne_zero_of_modelRounds_gt_one
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : 1 < Model.rounds I.calldata) :
+    UInt256.lt ⟨1⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) ≠ ⟨0⟩ := by
+  rw [bytecodeRound1Guard_one_of_modelRounds_gt_one I hlen hrounds]
+  decide
+
+theorem bytecodeRound2Guard_zero_of_modelRounds_le_two
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : Model.rounds I.calldata ≤ 2) :
+    UInt256.lt ⟨2⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  apply ult_zero
+  rw [inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  simpa using hrounds
+
+theorem bytecodeRound2Guard_zero_of_modelRounds_two
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : Model.rounds I.calldata = 2) :
+    UInt256.lt ⟨2⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  exact bytecodeRound2Guard_zero_of_modelRounds_le_two I hlen (by omega)
+
+theorem bytecodeRound2Guard_one_of_modelRounds_gt_two
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : 2 < Model.rounds I.calldata) :
+    UInt256.lt ⟨2⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨1⟩ := by
+  apply ult_one
+  rw [inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  exact hrounds
+
+theorem bytecodeRound2Guard_ne_zero_of_modelRounds_gt_two
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : 2 < Model.rounds I.calldata) :
+    UInt256.lt ⟨2⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) ≠ ⟨0⟩ := by
+  rw [bytecodeRound2Guard_one_of_modelRounds_gt_two I hlen hrounds]
+  decide
+
+theorem bytecodeRound3Guard_zero_of_modelRounds_le_three
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : Model.rounds I.calldata ≤ 3) :
+    UInt256.lt ⟨3⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  apply ult_zero
+  rw [inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  simpa using hrounds
+
+theorem bytecodeRound3Guard_zero_of_modelRounds_three
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : Model.rounds I.calldata = 3) :
+    UInt256.lt ⟨3⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  exact bytecodeRound3Guard_zero_of_modelRounds_le_three I hlen (by omega)
+
+theorem bytecodeRound3Guard_one_of_modelRounds_gt_three
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : 3 < Model.rounds I.calldata) :
+    UInt256.lt ⟨3⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨1⟩ := by
+  apply ult_one
+  rw [inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  exact hrounds
+
+theorem bytecodeRound3Guard_ne_zero_of_modelRounds_gt_three
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : 3 < Model.rounds I.calldata) :
+    UInt256.lt ⟨3⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) ≠ ⟨0⟩ := by
+  rw [bytecodeRound3Guard_one_of_modelRounds_gt_three I hlen hrounds]
+  decide
+
+theorem bytecodeRound4Guard_zero_of_modelRounds_le_four
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : Model.rounds I.calldata ≤ 4) :
+    UInt256.lt ⟨4⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  apply ult_zero
+  rw [inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  simpa using hrounds
+
+theorem bytecodeRound4Guard_zero_of_modelRounds_four
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : Model.rounds I.calldata = 4) :
+    UInt256.lt ⟨4⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  exact bytecodeRound4Guard_zero_of_modelRounds_le_four I hlen (by omega)
+
+theorem bytecodeRound4Guard_one_of_modelRounds_gt_four
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : 4 < Model.rounds I.calldata) :
+    UInt256.lt ⟨4⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨1⟩ := by
+  apply ult_one
+  rw [inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  exact hrounds
+
+theorem bytecodeRound4Guard_ne_zero_of_modelRounds_gt_four
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : 4 < Model.rounds I.calldata) :
+    UInt256.lt ⟨4⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) ≠ ⟨0⟩ := by
+  rw [bytecodeRound4Guard_one_of_modelRounds_gt_four I hlen hrounds]
+  decide
+
+theorem bytecodeRound5Guard_zero_of_modelRounds_le_five
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : Model.rounds I.calldata ≤ 5) :
+    UInt256.lt ⟨5⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  apply ult_zero
+  rw [inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  simpa using hrounds
+
+theorem bytecodeRound5Guard_zero_of_modelRounds_five
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : Model.rounds I.calldata = 5) :
+    UInt256.lt ⟨5⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  exact bytecodeRound5Guard_zero_of_modelRounds_le_five I hlen (by omega)
+
+theorem bytecodeRound5Guard_one_of_modelRounds_gt_five
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : 5 < Model.rounds I.calldata) :
+    UInt256.lt ⟨5⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨1⟩ := by
+  apply ult_one
+  rw [inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  exact hrounds
+
+theorem bytecodeRound5Guard_ne_zero_of_modelRounds_gt_five
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : 5 < Model.rounds I.calldata) :
+    UInt256.lt ⟨5⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) ≠ ⟨0⟩ := by
+  rw [bytecodeRound5Guard_one_of_modelRounds_gt_five I hlen hrounds]
+  decide
+
+theorem bytecodeRound6Guard_zero_of_modelRounds_le_six
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : Model.rounds I.calldata ≤ 6) :
+    UInt256.lt ⟨6⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  apply ult_zero
+  rw [inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  simpa using hrounds
+
+theorem bytecodeRound6Guard_zero_of_modelRounds_six
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : Model.rounds I.calldata = 6) :
+    UInt256.lt ⟨6⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  exact bytecodeRound6Guard_zero_of_modelRounds_le_six I hlen (by omega)
+
+theorem bytecodeRound6Guard_one_of_modelRounds_gt_six
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : 6 < Model.rounds I.calldata) :
+    UInt256.lt ⟨6⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨1⟩ := by
+  apply ult_one
+  rw [inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  exact hrounds
+
+theorem bytecodeRound6Guard_ne_zero_of_modelRounds_gt_six
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213)
+    (hrounds : 6 < Model.rounds I.calldata) :
+    UInt256.lt ⟨6⟩ (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) ≠ ⟨0⟩ := by
+  rw [bytecodeRound6Guard_one_of_modelRounds_gt_six I hlen hrounds]
+  decide
+
+/-! ## Generic round-guard bridge
+
+The positive-round invariant should not depend on a hand-written guard lemma for every concrete
+loop index.  These generic lemmas are the guard facts needed by a future `RDx.whileLoopCarryGas`
+proof: the bytecode guard at PC `1370` compares the loop index with the trusted model's decoded
+round count.
+
+The `UInt256.ofNat i` bound is discharged from the model round count.  This matters because an
+unbounded natural index would wrap when encoded as a `UInt256`; the loop invariant should carry
+`i ≤ Model.rounds I.calldata`, and the decoded round count comes from four input bytes.
+-/
+
+theorem modelRounds_lt_u256_size
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    Model.rounds I.calldata < UInt256.size := by
+  rw [modelRounds_eq_inputFirstWord_shiftRight I hlen]
+  exact (UInt256.shiftRight (inputFirstWord I) ⟨224⟩).val.isLt
+
+theorem roundIndex_lt_u256_size_of_le_modelRounds
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) {i : Nat}
+    (hi : i ≤ Model.rounds I.calldata) :
+    i < UInt256.size :=
+  lt_of_le_of_lt hi (modelRounds_lt_u256_size I hlen)
+
+theorem bytecodeRoundIndexGuard_zero_of_modelRounds_eq
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) {i : Nat}
+    (hrounds : Model.rounds I.calldata = i) :
+    UInt256.lt (UInt256.ofNat i) (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  have hi : i < UInt256.size := by
+    rw [← hrounds]
+    exact modelRounds_lt_u256_size I hlen
+  apply ult_zero
+  rw [UInt256.toNat_ofNat_of_lt hi, inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen,
+    hrounds]
+
+theorem bytecodeRoundIndexGuard_zero_of_modelRounds_le
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) {i : Nat}
+    (hi : i < UInt256.size)
+    (hrounds : Model.rounds I.calldata ≤ i) :
+    UInt256.lt (UInt256.ofNat i) (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨0⟩ := by
+  apply ult_zero
+  rw [UInt256.toNat_ofNat_of_lt hi, inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  exact hrounds
+
+theorem bytecodeRoundIndexGuard_one_of_modelRounds_gt
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) {i : Nat}
+    (hrounds : i < Model.rounds I.calldata) :
+    UInt256.lt (UInt256.ofNat i) (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) = ⟨1⟩ := by
+  have hi : i < UInt256.size :=
+    lt_trans hrounds (modelRounds_lt_u256_size I hlen)
+  apply ult_one
+  rw [UInt256.toNat_ofNat_of_lt hi, inputFirstWord_shiftRight_toNat_eq_modelRounds I hlen]
+  exact hrounds
+
+theorem bytecodeRoundIndexGuard_ne_zero_of_modelRounds_gt
+    (I : ExecutionEnv) (hlen : I.calldata.size = 213) {i : Nat}
+    (hrounds : i < Model.rounds I.calldata) :
+    UInt256.lt (UInt256.ofNat i) (UInt256.shiftRight (inputFirstWord I) ⟨224⟩) ≠ ⟨0⟩ := by
+  rw [bytecodeRoundIndexGuard_one_of_modelRounds_gt I hlen hrounds]
+  decide
 
 end Blake2f

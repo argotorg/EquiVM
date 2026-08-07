@@ -224,6 +224,246 @@ theorem shr192_fromByteArrayBigEndian_readWithPadding32
     exact lt_trans hle (by norm_num [UInt256.size])
   rw [UInt256.toNat_ofNat_of_lt hlt8]
 
+theorem h0ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    h0ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 4).toNat := by
+  unfold h0ParsedWord h0LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (tArrayZeroMem I) 164
+    (by rw [tArrayZeroMem_size I hlen]; decide)]
+  rw [tArrayZeroMem_read_payload_window I hlen 4 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 4 (by rw [hlen]; decide)]
+
+theorem h1ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    h1ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 12).toNat := by
+  unfold h1ParsedWord h1LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (h0StoredMem I) 172
+    (by rw [h0StoredMem_size I hlen]; decide)]
+  rw [h0StoredMem_read_payload_window I hlen 12 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 12 (by rw [hlen]; decide)]
+
+theorem h2ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    h2ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 20).toNat := by
+  unfold h2ParsedWord h2LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (h1StoredMem I) 180
+    (by rw [h1StoredMem_size I hlen]; decide)]
+  rw [h1StoredMem_read_payload_window I hlen 20 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 20 (by rw [hlen]; decide)]
+
+theorem h3ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    h3ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 28).toNat := by
+  unfold h3ParsedWord h3LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (h2StoredMem I) 188
+    (by rw [h2StoredMem_size I hlen]; decide)]
+  rw [h2StoredMem_read_payload_window I hlen 28 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 28 (by rw [hlen]; decide)]
+
+theorem h4ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    h4ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 36).toNat := by
+  unfold h4ParsedWord h4LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (h3StoredMem I) 196
+    (by rw [h3StoredMem_size I hlen]; decide)]
+  rw [h3StoredMem_read_payload_window I hlen 36 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 36 (by rw [hlen]; decide)]
+
+theorem h5ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    h5ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 44).toNat := by
+  unfold h5ParsedWord h5LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (h4StoredMem I) 204
+    (by rw [h4StoredMem_size I hlen]; decide)]
+  rw [h4StoredMem_read_payload_window I hlen 44 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 44 (by rw [hlen]; decide)]
+
+theorem h6ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    h6ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 52).toNat := by
+  unfold h6ParsedWord h6LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (h5StoredMem I) 212
+    (by rw [h5StoredMem_size I hlen]; decide)]
+  rw [h5StoredMem_read_payload_window I hlen 52 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 52 (by rw [hlen]; decide)]
+
+theorem h7ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    h7ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 60).toNat := by
+  unfold h7ParsedWord h7LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (h6StoredMem I) 220
+    (by rw [h6StoredMem_size I hlen]; decide)]
+  rw [h6StoredMem_read_payload_window I hlen 60 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 60 (by rw [hlen]; decide)]
+
+theorem m0ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m0ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 68).toNat := by
+  unfold m0ParsedWord m0LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (h7StoredMem I) 228
+    (by rw [h7StoredMem_size I hlen]; decide)]
+  rw [h7StoredMem_read_payload_window I hlen 68 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 68 (by rw [hlen]; decide)]
+
+theorem m1ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m1ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 76).toNat := by
+  unfold m1ParsedWord m1LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m0StoredMem I) 236
+    (by rw [m0StoredMem_size I hlen]; decide)]
+  rw [m0StoredMem_read_payload_window I hlen 76 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 76 (by rw [hlen]; decide)]
+
+theorem m2ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m2ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 84).toNat := by
+  unfold m2ParsedWord m2LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m1StoredMem I) 244
+    (by rw [m1StoredMem_size I hlen]; decide)]
+  rw [m1StoredMem_read_payload_window I hlen 84 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 84 (by rw [hlen]; decide)]
+
+theorem m3ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m3ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 92).toNat := by
+  unfold m3ParsedWord m3LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m2StoredMem I) 252
+    (by rw [m2StoredMem_size I hlen]; decide)]
+  rw [m2StoredMem_read_payload_window I hlen 92 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 92 (by rw [hlen]; decide)]
+
+theorem m4ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m4ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 100).toNat := by
+  unfold m4ParsedWord m4LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m3StoredMem I) 260
+    (by rw [m3StoredMem_size I hlen]; decide)]
+  rw [m3StoredMem_read_payload_window I hlen 100 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 100 (by rw [hlen]; decide)]
+
+theorem m5ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m5ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 108).toNat := by
+  unfold m5ParsedWord m5LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m4StoredMem I) 268
+    (by rw [m4StoredMem_size I hlen]; decide)]
+  rw [m4StoredMem_read_payload_window I hlen 108 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 108 (by rw [hlen]; decide)]
+
+theorem m6ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m6ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 116).toNat := by
+  unfold m6ParsedWord m6LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m5StoredMem I) 276
+    (by rw [m5StoredMem_size I hlen]; decide)]
+  rw [m5StoredMem_read_payload_window I hlen 116 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 116 (by rw [hlen]; decide)]
+
+theorem m7ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m7ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 124).toNat := by
+  unfold m7ParsedWord m7LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m6StoredMem I) 284
+    (by rw [m6StoredMem_size I hlen]; decide)]
+  rw [m6StoredMem_read_payload_window I hlen 124 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 124 (by rw [hlen]; decide)]
+
+theorem m8ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m8ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 132).toNat := by
+  unfold m8ParsedWord m8LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m7StoredMem I) 292
+    (by rw [m7StoredMem_size I hlen]; decide)]
+  rw [m7StoredMem_read_payload_window I hlen 132 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 132 (by rw [hlen]; decide)]
+
+theorem m9ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m9ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 140).toNat := by
+  unfold m9ParsedWord m9LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m8StoredMem I) 300
+    (by rw [m8StoredMem_size I hlen]; decide)]
+  rw [m8StoredMem_read_payload_window I hlen 140 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 140 (by rw [hlen]; decide)]
+
+theorem m10ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m10ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 148).toNat := by
+  unfold m10ParsedWord m10LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m9StoredMem I) 308
+    (by rw [m9StoredMem_size I hlen]; decide)]
+  rw [m9StoredMem_read_payload_window I hlen 148 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 148 (by rw [hlen]; decide)]
+
+theorem m11ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m11ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 156).toNat := by
+  unfold m11ParsedWord m11LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m10StoredMem I) 316
+    (by rw [m10StoredMem_size I hlen]; decide)]
+  rw [m10StoredMem_read_payload_window I hlen 156 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 156 (by rw [hlen]; decide)]
+
+theorem m12ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m12ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 164).toNat := by
+  unfold m12ParsedWord m12LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m11StoredMem I) 324
+    (by rw [m11StoredMem_size I hlen]; decide)]
+  rw [m11StoredMem_read_payload_window I hlen 164 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 164 (by rw [hlen]; decide)]
+
+theorem m13ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m13ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 172).toNat := by
+  unfold m13ParsedWord m13LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m12StoredMem I) 332
+    (by rw [m12StoredMem_size I hlen]; decide)]
+  rw [m12StoredMem_read_payload_window I hlen 172 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 172 (by rw [hlen]; decide)]
+
+theorem m14ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m14ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 180).toNat := by
+  unfold m14ParsedWord m14LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m13StoredMem I) 340
+    (by rw [m13StoredMem_size I hlen]; decide)]
+  rw [m13StoredMem_read_payload_window I hlen 180 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 180 (by rw [hlen]; decide)]
+
+theorem m15ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
+    m15ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 188).toNat := by
+  unfold m15ParsedWord m15LoadWord
+  rw [shr192_fromByteArrayBigEndian_readWithPadding32 (m14StoredMem I) 348
+    (by rw [m14StoredMem_size I hlen]; decide)]
+  rw [m14StoredMem_read_payload_window I hlen 188 8 (by decide) (by decide) (by decide)]
+  rw [evmSwap64_fromBytesBigEndian_size8_eq_readLE64_zero _
+    (by rw [ByteArray.size_extract, hlen]; decide)]
+  rw [← readLE64_extract_window I.calldata 188 (by rw [hlen]; decide)]
+
 theorem t0ParsedWord_eq_readLE64 (I : ExecutionEnv) (hlen : I.calldata.size = 213) :
     t0ParsedWord I = UInt256.ofNat (Model.readLE64 I.calldata 196).toNat := by
   unfold t0ParsedWord t0LoadWord
