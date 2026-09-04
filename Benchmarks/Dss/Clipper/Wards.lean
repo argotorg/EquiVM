@@ -129,7 +129,7 @@ theorem clipperDecode_wards_ok (v : ClipperImmutables) {I : ExecutionEnv}
   show decodeCalldataWithMode (config v).abiDecodeMode ["arg0"] [addr] I.calldata = _
   simpa [config, clipperWardsStore, clipperWardsArgValue, clipperWardsArgWord,
     calldataWord] using
-      decodeCalldata_legacyAddress_ok (cd := I.calldata) (x := "arg0") hsz36
+      decodeCalldata_solcV1SignedAddress_ok (cd := I.calldata) (x := "arg0") hsz36
 
 theorem clipperDecode_wards_none_short (v : ClipperImmutables) {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
@@ -137,7 +137,7 @@ theorem clipperDecode_wards_none_short (v : ClipperImmutables) {I : ExecutionEnv
       (transitionSignature wardsTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode (config v).abiDecodeMode ["arg0"] [addr] I.calldata = none
   simpa [config] using
-    decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort
+    decodeCalldata_solcV1SignedAddress_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort
 
 /-- The Solm `wards(address)` body returns `wards[arg0]`. -/
 theorem clipperWardsBodyReturns (v : ClipperImmutables) (evm : EVM.State)
