@@ -286,6 +286,11 @@ theorem clipperLookupWmulFunction (v : ClipperImmutables) :
   simp [lookupCallable?, lookupFunction?, contract, functions, FunctionDecl.toCallable,
     minFunction, addFunction, subFunction, mulFunction, wmulFunction]
 
+theorem clipperLookupRmulFunction (v : ClipperImmutables) :
+    lookupCallable? (contract v) "rmul" = some rmulFunction.toCallable := by
+  simp [lookupCallable?, lookupFunction?, contract, functions, FunctionDecl.toCallable,
+    minFunction, addFunction, subFunction, mulFunction, wmulFunction, rmulFunction]
+
 theorem clipperLookupRdivFunction (v : ClipperImmutables) :
     lookupCallable? (contract v) "rdiv" = some rdivFunction.toCallable := by
   simp [lookupCallable?, lookupFunction?, contract, functions, FunctionDecl.toCallable,
@@ -309,6 +314,12 @@ theorem clipperBindParamsWmul (x y : UInt256) :
       [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] =
       some (clipperUintBinaryLocals x y) := by
   simp [wmulFunction, bindParams?, clipperUintBinaryLocals]
+
+theorem clipperBindParamsRmul (x y : UInt256) :
+    bindParams? rmulFunction.params
+      [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] =
+      some (clipperUintBinaryLocals x y) := by
+  simp [rmulFunction, bindParams?, clipperUintBinaryLocals]
 
 theorem clipperBindParamsRdiv (x y : UInt256) :
     bindParams? rdivFunction.params
@@ -547,6 +558,25 @@ theorem clipperEvalWmulReturn (v : ClipperImmutables) (evm : EVM.State) (x y : U
   simp only [evalExpr?, clipperEvalVarXY, bind, EvalResult.bind, pure, evalBinaryOp?]
   rw [if_neg hwad, hdiv]
 
+theorem clipperEvalRmulReturn (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256) :
+    evalExpr? (config v)
+      ({ contract := contract v, locals := clipperWmulReturnLocals x y (UInt256.mul x y) } :
+        Frame) evm
+      (.binary .div (.var "xy") (.intLit RAY)) =
+      .ok (.int (Int.ofNat
+        (UInt256.div (UInt256.mul x y) clipperRayWord).toNat)) := by
+  have hray : ¬(RAY : Int) = 0 := by norm_num [RAY]
+  have hdiv :
+      Int.ofNat (UInt256.mul x y).toNat / RAY =
+        Int.ofNat (UInt256.div (UInt256.mul x y) clipperRayWord).toNat := by
+    rw [udiv_toNat]
+    have hw : RAY = Int.ofNat clipperRayWord.toNat := by native_decide
+    rw [hw]
+    exact Int.ofNat_ediv_ofNat
+      (a := (UInt256.mul x y).toNat) (b := clipperRayWord.toNat)
+  simp only [evalExpr?, clipperEvalVarXY, bind, EvalResult.bind, pure, evalBinaryOp?]
+  rw [if_neg hray, hdiv]
+
 theorem clipperEvalRdivReturn (v : ClipperImmutables) (evm : EVM.State)
     (x y xray : UInt256) (hy : y ≠ ⟨0⟩) :
     evalExpr? (config v)
@@ -696,6 +726,69 @@ theorem clipperWmulFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
         (clipperEvalVarX v evm x y) (clipperEvalVarY v evm x y))
       (clipperLookupMulFunction v)
       (clipperBindParamsMul x y)
+      (clipperMulFunctionReverts v evm x y hover)
+  exact ExecBlock.consRevert hcall
+
+theorem clipperRmulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
+    (x y : UInt256) (hmul : x.toNat * y.toNat < UInt256.size) :
+    ExecFuncBody (config v)
+      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+      evm rmulFunction.body
+      (.returned
+        ({ contract := contract v, locals := clipperWmulReturnLocals x y (UInt256.mul x y) } :
+          Frame) evm
+        (some [.int (Int.ofNat
+          (UInt256.div (UInt256.mul x y) clipperRayWord).toNat)])) := by
+  apply ExecFuncBody.execBlockRet
+  simp only [rmulFunction]
+  let afterMul : Frame :=
+    { contract := contract v, locals := clipperWmulReturnLocals x y (UInt256.mul x y) }
+  have hcall :
+      ExecStmt (config v)
+        ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame) evm
+        (.internalCall "mul" [.var "x", .var "y"] "xy") (.ok afterMul evm) := by
+    simpa [afterMul, resumeAfterInternalCall, clipperWmulReturnLocals] using
+      (internalCallFunctionReturn
+        (cfg := config v)
+        (caller := { contract := contract v, locals := clipperUintBinaryLocals x y })
+        (evm := evm) (calleeEvm := evm)
+        (name := "mul") (retVar := "xy")
+        (args := [.var "x", .var "y"])
+        (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
+        (callee := mulFunction) (locals := clipperUintBinaryLocals x y)
+        (calleeSolm :=
+          { contract := contract v, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y) })
+        (value := some [.int (Int.ofNat (UInt256.mul x y).toNat)])
+        (clipperEvalExprsUintBinary v evm (clipperUintBinaryLocals x y) x y
+          (clipperEvalVarX v evm x y) (clipperEvalVarY v evm x y))
+        (clipperLookupMulFunction v) (clipperBindParamsMul x y)
+        (clipperMulFunctionReturns v evm x y hmul))
+  refine ExecBlock.consNormal hcall ?_
+  simpa [afterMul] using
+    ExecBlock.consReturn
+      (ExecStmt.return (evalExprs?_singleton (clipperEvalRmulReturn v evm x y)))
+
+theorem clipperRmulFunctionReverts (v : ClipperImmutables) (evm : EVM.State)
+    (x y : UInt256) (hover : UInt256.size ≤ x.toNat * y.toNat) :
+    ExecFuncBody (config v)
+      ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame)
+      evm rmulFunction.body .reverted := by
+  apply ExecFuncBody.execBlockRevert
+  simp only [rmulFunction]
+  have hcall :
+      ExecStmt (config v)
+        ({ contract := contract v, locals := clipperUintBinaryLocals x y } : Frame) evm
+        (.internalCall "mul" [.var "x", .var "y"] "xy") .reverted :=
+    internalCallFunctionRevert
+      (cfg := config v)
+      (caller := { contract := contract v, locals := clipperUintBinaryLocals x y })
+      (evm := evm) (name := "mul") (retVar := "xy")
+      (args := [.var "x", .var "y"])
+      (argVals := [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)])
+      (callee := mulFunction) (locals := clipperUintBinaryLocals x y)
+      (clipperEvalExprsUintBinary v evm (clipperUintBinaryLocals x y) x y
+        (clipperEvalVarX v evm x y) (clipperEvalVarY v evm x y))
+      (clipperLookupMulFunction v) (clipperBindParamsMul x y)
       (clipperMulFunctionReverts v evm x y hover)
   exact ExecBlock.consRevert hcall
 

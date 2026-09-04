@@ -9,15 +9,32 @@ namespace Benchmarks.Dss.Clipper
 private theorem clipperRedoSuccessJumpDest
     (pc : Nat) (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (hpc : pc ∈ [7733, 7813, 7880, 7910, 7913, 7932, 8091, 8111, 8116, 8118]) :
+    (hpc : pc ∈ [6235, 7733, 7813, 7880, 7910, 7913, 7932, 8091, 8111, 8116, 8118,
+      8238, 9258]) :
     (D_J code 0).contains (UInt256.ofNat pc) = true := by
   simp at hpc
-  rcases hpc with hpc | hpc | hpc | hpc | hpc | hpc | hpc | hpc | hpc | hpc <;>
+  rcases hpc with hpc | hpc | hpc | hpc | hpc | hpc | hpc | hpc | hpc | hpc | hpc |
+      hpc | hpc <;>
     subst pc <;>
     apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9400) hpatch <;>
     unfold patches patchesFrom offsets immValues <;>
     simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons] <;>
     cases hIlk : wordBytes? v.ilk <;> simp [hIlk] <;> native_decide
+
+theorem clipperRedoJumpDest6235 (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
+    (D_J code 0).contains (⟨6235⟩ : UInt256) = true :=
+  clipperRedoSuccessJumpDest 6235 v hpatch (by simp)
+
+theorem clipperRedoJumpDest8238 (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
+    (D_J code 0).contains (⟨8238⟩ : UInt256) = true :=
+  clipperRedoSuccessJumpDest 8238 v hpatch (by simp)
+
+theorem clipperRedoJumpDest9258 (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
+    (D_J code 0).contains (⟨9258⟩ : UInt256) = true :=
+  clipperRedoSuccessJumpDest 9258 v hpatch (by simp)
 
 theorem clipperRedoJumpDest7733 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
@@ -552,5 +569,131 @@ theorem RD.clipperRedoLotFeedAtLeastChostToPayout {code : ByteArray}
     raw push2 ⟨8116⟩ (by clipper_runtime_decode) (by evm_ov)]
   exact ⟨_, _, by simpa using
     rd7919Pre.jumpiNT (by clipper_runtime_decode) (by decide) (by evm_ov)⟩
+
+theorem RD.clipperRedoPayoutToWmul {code : ByteArray}
+    (v : ClipperImmutables)
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {chost coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
+    {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    (rd : RD code ee g s0 ⟨7919⟩
+      (chost :: coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
+        usr :: two :: kpr :: id :: ret :: sel :: R)
+      mem aw o acc k C)
+    (hov : R.length + 30 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 ⟨8238⟩
+      (chip :: tab :: ⟨6235⟩ :: tip :: ⟨7932⟩ :: chost :: coin :: chip :: tip ::
+        feedPrice :: lot :: tab :: done :: topNew :: tic :: usr :: two :: kpr :: id :: ret ::
+        sel :: R)
+      mem aw o acc k' C' := by
+  exact ⟨_, _, evm_run rd with [
+    raw push2 ⟨7932⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw dup5 (by clipper_runtime_decode) (by evm_ov),
+    raw push2 ⟨6235⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw dup10 (by clipper_runtime_decode) (by evm_ov),
+    raw dup7 (by clipper_runtime_decode) (by evm_ov),
+    raw push2 ⟨8238⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw jump (by clipper_runtime_decode) (clipperRedoJumpDest8238 v hpatch) (by evm_ov)]⟩
+
+theorem RD.clipperRedoPayoutWmulOverflowReverts {code : ByteArray}
+    (v : ClipperImmutables)
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {chip tab tip : UInt256} {R : List UInt256}
+    {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    (rd : RD code ee g s0 ⟨8238⟩
+      (chip :: tab :: ⟨6235⟩ :: tip :: R) mem aw o acc k C)
+    (hover : UInt256.size ≤ chip.toNat * tab.toNat)
+    (hov : R.length + 20 ≤ 1024) :
+    RDrev code g s0 := by
+  exact
+    _root_.Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperWmulRoutineRevert
+      v hpatch rd hover (by omega)
+
+theorem RD.clipperRedoPayoutWmulToCheckedAdd {code : ByteArray}
+    (v : ClipperImmutables)
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {chip tab tip keep : UInt256} {R : List UInt256}
+    {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    (rd : RD code ee g s0 ⟨8238⟩
+      (chip :: tab :: ⟨6235⟩ :: tip :: ⟨7932⟩ :: keep :: R) mem aw o acc k C)
+    (hmul : chip.toNat * tab.toNat < UInt256.size)
+    (hov : R.length + 25 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 ⟨9258⟩
+      (UInt256.div (UInt256.mul chip tab) ⟨1000000000000000000⟩ :: tip ::
+        ⟨7932⟩ :: keep :: R)
+      mem aw o acc k' C' := by
+  obtain ⟨_, _, rd6235⟩ :=
+    _root_.Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperWmulRoutine
+      v hpatch rd hmul (clipperRedoJumpDest6235 v hpatch)
+        (by simp only [List.length_cons]; omega)
+  exact ⟨_, _, evm_run rd6235 with [
+    raw jumpdest (by clipper_runtime_decode) (by evm_ov),
+    raw push2 ⟨9258⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw jump (by clipper_runtime_decode) (clipperRedoJumpDest9258 v hpatch) (by evm_ov)]⟩
+
+theorem RD.clipperRedoPayoutAddOverflowReverts {code : ByteArray}
+    (v : ClipperImmutables)
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {chipCoin tip ret : UInt256} {R : List UInt256}
+    {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    (rd : RD code ee g s0 ⟨9258⟩ (chipCoin :: tip :: ret :: R) mem aw o acc k C)
+    (hover : UInt256.size ≤ tip.toNat + chipCoin.toNat)
+    (hov : R.length + 15 ≤ 1024) :
+    RDrev code g s0 := by
+  have haddNat : (tip + chipCoin).toNat = tip.toNat + chipCoin.toNat - UInt256.size := by
+    rw [uadd_toNat, Nat.mod_eq_sub_mod hover]
+    have hlt : tip.toNat + chipCoin.toNat < UInt256.size + UInt256.size := by
+      have htip : tip.toNat < UInt256.size := tip.val.isLt
+      have hchip : chipCoin.toNat < UInt256.size := chipCoin.val.isLt
+      omega
+    rw [Nat.mod_eq_of_lt]
+    omega
+  have hlt : UInt256.lt (tip + chipCoin) tip = ⟨1⟩ := by
+    apply ult_one
+    rw [haddNat]
+    have hchip : chipCoin.toNat < UInt256.size := chipCoin.val.isLt
+    omega
+  have rd9270 := evm_run rd with [
+    raw jumpdest (by clipper_runtime_decode) (by evm_ov),
+    raw dup1 (by clipper_runtime_decode) (by evm_ov),
+    raw dup3 (by clipper_runtime_decode) (by evm_ov),
+    raw add (by clipper_runtime_decode) (by evm_ov),
+    raw dup3 (by clipper_runtime_decode) (by evm_ov),
+    raw dup2 (by clipper_runtime_decode) (by evm_ov),
+    raw lt (by clipper_runtime_decode) (by evm_ov)]
+  rw [hlt] at rd9270
+  have rd9274 := evm_run rd9270 with [
+    raw iszero (by clipper_runtime_decode) (by evm_ov),
+    raw push2 ⟨8722⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw jumpiNT (by clipper_runtime_decode) (by decide) (by evm_ov)]
+  exact RD.solcPush1Dup1Revert0 rd9274
+    (by clipper_runtime_decode) (by clipper_runtime_decode)
+    (by clipper_runtime_decode) (by evm_ov)
+
+theorem RD.clipperRedoPayoutAddSuccess {code : ByteArray}
+    (v : ClipperImmutables)
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {chipCoin tip keep : UInt256} {R : List UInt256}
+    {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    (rd : RD code ee g s0 ⟨9258⟩
+      (chipCoin :: tip :: ⟨7932⟩ :: keep :: R) mem aw o acc k C)
+    (hfit : tip.toNat + chipCoin.toNat < UInt256.size)
+    (hov : R.length + 15 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 ⟨7932⟩ ((tip + chipCoin) :: keep :: R) mem aw o acc k' C' := by
+  exact RD.solcCheckedAddSuccess rd
+    (by
+      unfold solcCheckedAddSuccessWf
+      repeat' first | apply And.intro | clipper_runtime_decode)
+    hfit (clipperRedoJumpDest7932 v hpatch) (clipperJumpDest8722 v hpatch)
+      (by simp only [List.length_cons]; omega)
 
 end Benchmarks.Dss.Clipper
