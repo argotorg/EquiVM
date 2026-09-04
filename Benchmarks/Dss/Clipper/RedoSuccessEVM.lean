@@ -9,12 +9,12 @@ namespace Benchmarks.Dss.Clipper
 private theorem clipperRedoSuccessJumpDest
     (pc : Nat) (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (hpc : pc ∈ [6235, 7733, 7813, 7880, 7910, 7913, 7932, 8091, 8111, 8116, 8118,
+    (hpc : pc ∈ [6235, 7719, 7733, 7813, 7880, 7910, 7913, 7932, 8091, 8111, 8116, 8118,
       8238, 9258]) :
     (D_J code 0).contains (UInt256.ofNat pc) = true := by
   simp at hpc
   rcases hpc with hpc | hpc | hpc | hpc | hpc | hpc | hpc | hpc | hpc | hpc | hpc |
-      hpc | hpc <;>
+      hpc | hpc | hpc <;>
     subst pc <;>
     apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 9400) hpatch <;>
     unfold patches patchesFrom offsets immValues <;>
@@ -25,6 +25,11 @@ theorem clipperRedoJumpDest6235 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
     (D_J code 0).contains (⟨6235⟩ : UInt256) = true :=
   clipperRedoSuccessJumpDest 6235 v hpatch (by simp)
+
+theorem clipperRedoJumpDest7719 (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
+    (D_J code 0).contains (⟨7719⟩ : UInt256) = true :=
+  clipperRedoSuccessJumpDest 7719 v hpatch (by simp)
 
 theorem clipperRedoJumpDest8238 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
@@ -92,7 +97,7 @@ theorem RD.clipperRedoFeedPriceToRmul {code : ByteArray}
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
     {feedPrice discard lot tab done top tic usr two kpr id ret sel : UInt256}
-    {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨7719⟩
       (feedPrice :: discard :: lot :: tab :: done :: top :: tic :: usr :: two ::
         kpr :: id :: ret :: sel :: R)
@@ -155,6 +160,94 @@ theorem RD.clipperRedoRmulSuccess {code : ByteArray}
     _root_.Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperRmulRoutine
       v hpatch rd hmul (clipperRedoJumpDest7733 v hpatch) (by omega)
 
+theorem RD.clipperRedoTopZeroReverts {code : ByteArray}
+    (v : ClipperImmutables)
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {topNew feedPrice lot tab done top tic usr two kpr id ret sel : UInt256}
+    {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
+    (rd : RD code ee g s0 ⟨7733⟩
+      (topNew :: feedPrice :: lot :: tab :: done :: top :: tic :: usr :: two ::
+        kpr :: id :: ret :: sel :: R)
+      mem (UInt256.ofNat 7) o acc k C)
+    (hzero : topNew = ⟨0⟩)
+    (hmem : mem.size = 196)
+    (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩)
+    (hov : R.length + 20 ≤ 1024) :
+    RDrev code g s0 := by
+  have hgt : UInt256.gt topNew ⟨0⟩ = ⟨0⟩ := by
+    subst topNew
+    native_decide
+  have rdGuard := evm_run rd with [
+    raw jumpdest (by clipper_runtime_decode) (by evm_ov),
+    raw swap5 (by clipper_runtime_decode) (by evm_ov),
+    raw pop (by clipper_runtime_decode) (by evm_ov),
+    raw push1 ⟨0⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw dup6 (by clipper_runtime_decode) (by evm_ov),
+    raw gt (by clipper_runtime_decode) (by evm_ov),
+    raw push2 ⟨7813⟩ (by clipper_runtime_decode) (by evm_ov)]
+  rw [hgt] at rdGuard
+  have rdFallthrough := rdGuard.jumpiNT (by clipper_runtime_decode)
+    (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
+  have rdMload := evm_run rdFallthrough with [
+    raw push1 ⟨64⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw dup1 (by clipper_runtime_decode) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by clipper_runtime_decode)
+      mem_cost (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
+      (by decide) (by evm_ov)]
+  have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
+    (width := 3) (op := .PUSH3) (by decide) (by clipper_runtime_decode) (by evm_ov)
+  have rdPrefix := evm_run rdSelectorRaw with [
+    raw push1 ⟨229⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw shl (by clipper_runtime_decode) (by evm_ov),
+    raw dup2 (by clipper_runtime_decode) (by evm_ov),
+    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 7)
+      (by clipper_runtime_decode) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw push1 ⟨4⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw dup3 (by clipper_runtime_decode) (by evm_ov),
+    raw add (by clipper_runtime_decode) (by evm_ov),
+    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 7)
+      (by clipper_runtime_decode) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨22⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw push1 ⟨36⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw dup3 (by clipper_runtime_decode) (by evm_ov),
+    raw add (by clipper_runtime_decode) (by evm_ov),
+    raw mstore 0 (solcErrorStringMem2 ⟨22⟩ mem) (UInt256.ofNat 7)
+      (by clipper_runtime_decode) mem_cost (by rfl) (by decide) (by evm_ov)]
+  let rawWord : UInt256 :=
+    ⟨25226120211836879428703562217324731842797597832602469⟩
+  have rdRaw := rdPrefix.pushConst rawWord (width := 22) (op := .PUSH22)
+    (by decide) (by simpa [rawWord] using
+      (show decode code ⟨7771⟩ = some (.PUSH22, some (rawWord, 22)) by
+        clipper_runtime_decode)) (by evm_ov)
+  have rdWord := evm_run rdRaw with [
+    raw push1 ⟨80⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw shl (by clipper_runtime_decode) (by evm_ov)]
+  exact evm_run rdWord with [
+    raw push1 ⟨68⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw dup3 (by clipper_runtime_decode) (by evm_ov),
+    raw add (by clipper_runtime_decode) (by evm_ov),
+    raw mstore 3
+      (solcErrorStringMem3 ⟨22⟩ (UInt256.shiftLeft rawWord ⟨80⟩) mem)
+      (UInt256.ofNat 8) (by clipper_runtime_decode) mem_cost (by rfl)
+      (by decide) (by evm_ov),
+    raw swap1 (by clipper_runtime_decode) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by clipper_runtime_decode)
+      mem_cost
+      (solcErrorStringMem3_mload64_of_size196 ⟨22⟩
+        (UInt256.shiftLeft rawWord ⟨80⟩) hmem hread64)
+      (by decide) (by evm_ov),
+    raw swap1 (by clipper_runtime_decode) (by evm_ov),
+    raw dup2 (by clipper_runtime_decode) (by evm_ov),
+    raw swap1 (by clipper_runtime_decode) (by evm_ov),
+    raw sub (by clipper_runtime_decode) (by evm_ov),
+    raw push1 ⟨100⟩ (by clipper_runtime_decode) (by evm_ov),
+    raw add (by clipper_runtime_decode) (by evm_ov),
+    raw swap1 (by clipper_runtime_decode) (by evm_ov),
+    raw rev 0 (by clipper_runtime_decode) mem_cost (by evm_ov)]
+
 abbrev clipperRedoTopSlotWord (id : UInt256) : UInt256 :=
   solcMappingSlot ⟨12⟩ id + ⟨4⟩
 
@@ -173,10 +266,10 @@ theorem RD.clipperRedoTopPositiveToIncentiveValues {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
-    {topNew feedPrice lot tab done tic usr two kpr id ret sel : UInt256}
+    {topNew feedPrice lot tab done top tic usr two kpr id ret sel : UInt256}
     {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
     (rd : RD code ee g s0 ⟨7733⟩
-      (topNew :: feedPrice :: lot :: tab :: done :: topNew :: tic :: usr :: two ::
+      (topNew :: feedPrice :: lot :: tab :: done :: top :: tic :: usr :: two ::
         kpr :: id :: ret :: sel :: R)
       mem (UInt256.ofNat 7) o (cA, σ) k C)
     (htop : 0 < topNew.toNat)
@@ -256,6 +349,61 @@ theorem RD.clipperRedoTopPositiveToIncentiveValues {code : ByteArray}
   exact ⟨_, _, by
     simpa [topSlot, σTop, clipperRedoTopSlotWord, clipperRedoTipWord,
       clipperRedoChipWord, solcSlotWord, u256_add_comm] using rd7867⟩
+
+/-- Compose the successful `rdiv` return, the caller's `rmul`, the positive-top
+    guard, and the top-slot write.  Keeping this stack plumbing out of the
+    top-level proof avoids repeatedly normalizing the large inlined call memory. -/
+theorem RD.clipperRedoRdivToIncentiveValues {code : ByteArray}
+    (v : ClipperImmutables)
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {cA : Batteries.RBSet AccountAddress compare} {σ : AccountMap}
+    {par valBln has val pipWord ret discard lot tab done top tic usr two kpr id
+      outerRet sel : UInt256}
+    {R : List UInt256} {mem o : ByteArray} {k C : ℕ}
+    (rd : RD code ee g s0 ⟨9290⟩
+      (par :: valBln :: ⟨9225⟩ :: has :: val :: pipWord :: ret :: ⟨7719⟩ ::
+        discard :: lot :: tab :: done :: top :: tic :: usr :: two :: kpr :: id ::
+        outerRet :: sel :: R)
+      mem (UInt256.ofNat 7) o (cA, σ) k C)
+    (hrdivMul : valBln.toNat * clipperRayWord.toNat < UInt256.size)
+    (hpar : par ≠ ⟨0⟩)
+    (hrmul :
+      (solcSlotWord σ ee ⟨5⟩).toNat *
+        (UInt256.div (UInt256.mul valBln clipperRayWord) par).toNat < UInt256.size)
+    (htop : 0 <
+      (UInt256.div
+        (UInt256.mul (solcSlotWord σ ee ⟨5⟩)
+          (UInt256.div (UInt256.mul valBln clipperRayWord) par))
+        clipperRayWord).toNat)
+    (hmem : mem.size = 196)
+    (hperm : ee.perm = true)
+    (hov : R.length + 100 ≤ 1024) :
+    let feedPrice := UInt256.div (UInt256.mul valBln clipperRayWord) par
+    let topNew := UInt256.div
+      (UInt256.mul (solcSlotWord σ ee ⟨5⟩) feedPrice) clipperRayWord
+    let topSlot := clipperRedoTopSlotWord id
+    let σTop := sstoreAccountMap ee.codeOwner σ topSlot topNew
+    ∃ k' C', RD code ee g s0 ⟨7867⟩
+      (⟨0⟩ :: clipperRedoChipWord σTop ee :: clipperRedoTipWord σTop ee ::
+        feedPrice :: lot :: tab :: done :: topNew :: tic :: usr :: two :: kpr ::
+        id :: outerRet :: sel :: R)
+      (twoWordHashMem id ⟨12⟩ mem) (UInt256.ofNat 7) o (cA, σTop) k' C' := by
+  intro feedPrice topNew topSlot σTop
+  obtain ⟨_, _, rd7719⟩ := RD.clipperGetFeedPriceRdivSuccess
+    (v := v) (hpatch := hpatch) rd hrdivMul hpar
+    (clipperRedoJumpDest7719 v hpatch)
+    (by simp only [List.length_cons]; omega)
+  obtain ⟨_, _, rd9233⟩ := RD.clipperRedoFeedPriceToRmul
+    (v := v) (hpatch := hpatch) rd7719
+    (by omega)
+  obtain ⟨_, _, rd7733⟩ := RD.clipperRedoRmulSuccess
+    (v := v) (hpatch := hpatch) rd9233 hrmul
+    (by simp only [List.length_cons]; omega)
+  simpa [feedPrice, topNew, topSlot, σTop] using
+    (RD.clipperRedoTopPositiveToIncentiveValues
+      (v := v) (hpatch := hpatch) rd7733 htop hmem
+        (by omega) hperm)
 
 theorem RD.clipperRedoIncentiveInactive {code : ByteArray}
     (v : ClipperImmutables)
