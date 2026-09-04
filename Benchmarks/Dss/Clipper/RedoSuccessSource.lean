@@ -239,13 +239,13 @@ theorem clipperRedoAssignSalesTop (v : ClipperImmutables)
       storageLocStore_uint256 evm (clipperRedoSalesTopSlot I) topNew
 
 theorem clipperRedoAfterTicSuccessPrefix
-    (v : ClipperImmutables) (evmLoc evmRead evmFeed : EVM.State)
+    (v : ClipperImmutables) (evmLoc evmRead evmStart evmFeed : EVM.State)
     (I : ExecutionEnv) (price feedPrice : UInt256)
     {result : ExecResult}
     (hgetFeed :
       ExecStmt (config v)
         { contract := contract v, locals := clipperRedoLocalsLot evmLoc evmRead I price }
-        evmRead (.internalCall "getFeedPrice" [] "feedPrice")
+        evmStart (.internalCall "getFeedPrice" [] "feedPrice")
         (.ok
           { contract := contract v,
             locals := clipperRedoLocalsFeedPrice evmLoc evmRead I price feedPrice }
@@ -287,7 +287,7 @@ theorem clipperRedoAfterTicSuccessPrefix
         result) :
     ExecBlock (config v)
       { contract := contract v, locals := clipperRedoLocalsLot evmLoc evmRead I price }
-      evmRead (clipperRedoAfterTicBody v) result := by
+      evmStart (clipperRedoAfterTicBody v) result := by
   let buf := Solm.EVM.storageLoad evmFeed evmFeed.executionEnv.codeOwner ⟨5⟩
   let topNew := UInt256.div (UInt256.mul feedPrice buf) clipperRayWord
   let topFrame : Frame :=
@@ -481,6 +481,24 @@ theorem clipperEvalRedoIncentiveActiveOfChip
     EvalResult.bind, bind, pure, evalBinaryOp?]
   rw [htip]
   simp [hpos]
+
+theorem clipperEvalRedoIncentiveActive
+    (v : ClipperImmutables) (evmLoc evmRead evmVals evm : EVM.State)
+    (I : ExecutionEnv) (price feedPrice topNew : UInt256)
+    (hactive : clipperRedoTipSolmWord evmVals ≠ ⟨0⟩ ∨
+      clipperRedoChipSolmWord evmVals ≠ ⟨0⟩) :
+    evalExpr? (config v)
+      { contract := contract v,
+        locals := clipperRedoLocalsChip evmLoc evmRead evmVals I price feedPrice topNew }
+      evm
+      (.binary .or (.binary .gt (.var "_tip") (.intLit 0))
+        (.binary .gt (.var "_chip") (.intLit 0))) = .ok (.bool true) := by
+  by_cases htip : clipperRedoTipSolmWord evmVals = ⟨0⟩
+  · exact clipperEvalRedoIncentiveActiveOfChip v evmLoc evmRead evmVals evm I
+      price feedPrice topNew htip
+      (hactive.resolve_left (fun hne => hne htip))
+  · exact clipperEvalRedoIncentiveActiveOfTip v evmLoc evmRead evmVals evm I
+      price feedPrice topNew htip
 
 theorem clipperRedoIncentiveInactiveTail
     (v : ClipperImmutables) (evmLoc evmRead evmTop : EVM.State)

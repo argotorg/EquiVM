@@ -8,6 +8,7 @@ import Benchmarks.Dss.Clipper.Sales
 import Benchmarks.Dss.Clipper.StatusPriceCall
 import Benchmarks.Dss.Clipper.Take
 import Benchmarks.Dss.Clipper.TakeOweVatMoveSource
+import Benchmarks.Dss.Clipper.TakePostDogFlux
 import Benchmarks.Dss.Clipper.TakeStatus
 import Benchmarks.Dss.Clipper.TakeDogDigs
 import Benchmarks.Dss.Clipper.TakeEvent
@@ -1705,7 +1706,1044 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
                                                   simp only [List.length_cons, List.length_nil]
                                                   omega)
                                                 hstatus
-                                          · sorry
+                                          · by_cases hgt :
+                                              (solcSlotWord σ' I
+                                                  (solcMappingSlot ⟨12⟩
+                                                    (clipperTakeIdWord I) + ⟨1⟩)).toNat <
+                                                (UInt256.mul priceWord sliceE).toNat
+                                            · have hvatCode :
+                                                  Reasoning.Theory.extCodeSizeWord σ'
+                                                      (clipperTakeVatTarget v) ≠ ⟨0⟩ := by
+                                                intro hzero
+                                                exact hcase ⟨hgt, hzero⟩
+                                              have htab :=
+                                                clipperTakePostTabWord_eq (σ := σ')
+                                                  (τ := σ'_solm) (evm := evmPriceSolm)
+                                                  (I := I) (by simpa using hPostAccounts)
+                                                  (by simp [evmPriceSolm])
+                                                  (by simpa [evmPriceSolm] using hlockOwner)
+                                              have hlot :=
+                                                clipperTakePostLotWord_eq (σ := σ')
+                                                  (τ := σ'_solm) (evm := evmPriceSolm)
+                                                  (I := I) (by simpa using hPostAccounts)
+                                                  (by simp [evmPriceSolm])
+                                                  (by simpa [evmPriceSolm] using hlockOwner)
+                                              have hbaseMem196 :
+                                                  (clipperStatusPricePostCallMem
+                                                      (clipperTakeSalesTopWord σLockEvm I)
+                                                      ((UInt256.ofNat I.header.timestamp).sub
+                                                        ((clipperTakeSalesTicStackWord σLockEvm I).land
+                                                          clipperSalesUint96Mask))
+                                                      (clipperTakeSalesTopHashMem I) o).size =
+                                                    196 := by
+                                                exact
+                                                  clipperStatusPricePostCallMem_size
+                                                    (clipperTakeSalesTopWord σLockEvm I)
+                                                    ((UInt256.ofNat I.header.timestamp).sub
+                                                      ((clipperTakeSalesTicStackWord σLockEvm I).land
+                                                        clipperSalesUint96Mask))
+                                                    (clipperTakeSalesTopHashMem_size I) hout
+                                              have hbaseRead64 :
+                                                  (clipperStatusPricePostCallMem
+                                                      (clipperTakeSalesTopWord σLockEvm I)
+                                                      ((UInt256.ofNat I.header.timestamp).sub
+                                                        ((clipperTakeSalesTicStackWord σLockEvm I).land
+                                                          clipperSalesUint96Mask))
+                                                      (clipperTakeSalesTopHashMem I) o).readWithPadding
+                                                      64 32 = UInt256.toByteArray ⟨128⟩ := by
+                                                exact
+                                                  clipperStatusPricePostCallMem_read64
+                                                    (clipperTakeSalesTopWord σLockEvm I)
+                                                    ((UInt256.ofNat I.header.timestamp).sub
+                                                      ((clipperTakeSalesTicStackWord σLockEvm I).land
+                                                        clipperSalesUint96Mask))
+                                                    (clipperTakeSalesTopHashMem_size I)
+                                                    (clipperTakeSalesTopHashMem_read64 I) hout
+                                              have hmem196 :
+                                                  (twoWordHashMem (clipperTakeIdWord I) ⟨12⟩
+                                                    (clipperStatusPricePostCallMem
+                                                      (clipperTakeSalesTopWord σLockEvm I)
+                                                      ((UInt256.ofNat I.header.timestamp).sub
+                                                        ((clipperTakeSalesTicStackWord σLockEvm I).land
+                                                          clipperSalesUint96Mask))
+                                                      (clipperTakeSalesTopHashMem I) o)).size =
+                                                    196 := by
+                                                have hsize :=
+                                                  twoWordHashMem_size_of_ge_64'
+                                                    (clipperTakeIdWord I) (⟨12⟩ : UInt256)
+                                                    (mem := clipperStatusPricePostCallMem
+                                                      (clipperTakeSalesTopWord σLockEvm I)
+                                                      ((UInt256.ofNat I.header.timestamp).sub
+                                                        ((clipperTakeSalesTicStackWord σLockEvm I).land
+                                                          clipperSalesUint96Mask))
+                                                      (clipperTakeSalesTopHashMem I) o)
+                                                    (by rw [hbaseMem196]; norm_num)
+                                                rw [hsize, hbaseMem196]
+                                              have hread64 :
+                                                  (twoWordHashMem (clipperTakeIdWord I) ⟨12⟩
+                                                    (clipperStatusPricePostCallMem
+                                                      (clipperTakeSalesTopWord σLockEvm I)
+                                                      ((UInt256.ofNat I.header.timestamp).sub
+                                                        ((clipperTakeSalesTicStackWord σLockEvm I).land
+                                                          clipperSalesUint96Mask))
+                                                      (clipperTakeSalesTopHashMem I) o)).readWithPadding
+                                                      64 32 = UInt256.toByteArray ⟨128⟩ := by
+                                                exact
+                                                  twoWordHashMem_read64_of_ge_96
+                                                    (clipperTakeIdWord I) (⟨12⟩ : UInt256)
+                                                    (by rw [hbaseMem196]; norm_num) hbaseRead64
+                                              obtain ⟨cAVat, σVat, zVat, outVat, AVat,
+                                                  kVat, CVat, rdVat, hcallVat, houtVat⟩ :=
+                                                RD.clipperTakeOweGtTabVatFluxPostCall
+                                                  (v := v) (hpatch := hpatch)
+                                                  (by simpa [sliceE, lotE] using rd8686)
+                                                  howeMul hgt hmem196 hread64 hvatCode hdepth
+                                                  hperm (by
+                                                    simp only [List.length_cons,
+                                                      List.length_nil]
+                                                    omega)
+                                              by_cases hzVat : zVat = false
+                                              · exact
+                                                  clipperTakeOweGtTabVatFluxCallFailureRevertEquivFromPostCallAccounts
+                                                    (v := v) (hpatch := hpatch) hcode hwv
+                                                    hdispatch hdec hlockedSolm hstoppedSolmLt
+                                                    husrSolm rdVat hcallVat hzVat houtVat
+                                                    (by simpa using hPostAccounts)
+                                                    (by simp [evmPriceSolm])
+                                                    (by simp [evmPriceSolm, evmLockSolm,
+                                                      evmSolm, initState])
+                                                    (by simp [evmPriceSolm])
+                                                    (by simp [evmPriceSolm, evmLockSolm,
+                                                      evmSolm, initState])
+                                                    (by simp [evmPriceSolm, evmLockSolm,
+                                                      evmSolm, initState])
+                                                    (by simp [evmPriceSolm, evmLockSolm,
+                                                      evmSolm, initState])
+                                                    htab hlot (by rfl) hmaxLe
+                                                    (by simpa [sliceE, lotE] using howeMul)
+                                                    (by simpa [sliceE, lotE] using hgt)
+                                                    hvatCode (by
+                                                      simp only [List.length_cons,
+                                                        List.length_nil]
+                                                      omega)
+                                                    hstatus
+                                              · have hzVatTrue : zVat = true := by
+                                                  exact Bool.eq_true_of_not_eq_false hzVat
+                                                have hawVat :
+                                                    UInt256.ofNat
+                                                        (MachineState.M
+                                                          (MachineState.M
+                                                            (UInt256.ofNat 9).toNat
+                                                            (⟨128⟩ : UInt256).toNat
+                                                            (⟨132⟩ : UInt256).toNat)
+                                                          (⟨128⟩ : UInt256).toNat
+                                                          (⟨0⟩ : UInt256).toNat) =
+                                                      UInt256.ofNat 9 :=
+                                                  clipperTakeVatFluxPostCallAw_eq
+                                                have hmemVat :
+                                                    (outVat.write 0
+                                                        (clipperTakeVatFluxCalldataMem v I
+                                                          ((clipperTakeWhoWord I).land
+                                                            solcAddrMask)
+                                                          ((solcSlotWord σ' I
+                                                              (solcMappingSlot ⟨12⟩
+                                                                (clipperTakeIdWord I) +
+                                                                  ⟨1⟩)).div priceWord)
+                                                          (twoWordHashMem
+                                                            (clipperTakeIdWord I) ⟨12⟩
+                                                            (clipperStatusPricePostCallMem
+                                                              (clipperTakeSalesTopWord
+                                                                σLockEvm I)
+                                                              ((UInt256.ofNat
+                                                                  I.header.timestamp).sub
+                                                                ((clipperTakeSalesTicStackWord
+                                                                    σLockEvm I).land
+                                                                  clipperSalesUint96Mask))
+                                                              (clipperTakeSalesTopHashMem I)
+                                                              o)))
+                                                        128
+                                                        (min (⟨0⟩ : UInt256)
+                                                          (UInt256.ofNat outVat.size)).toNat).size =
+                                                      260 := by
+                                                  exact clipperTakeVatFluxPostCallMem_size v I
+                                                    ((clipperTakeWhoWord I).land solcAddrMask)
+                                                    ((solcSlotWord σ' I
+                                                        (solcMappingSlot ⟨12⟩
+                                                          (clipperTakeIdWord I) + ⟨1⟩)).div
+                                                      priceWord)
+                                                    hmem196
+                                                have hreadVat :
+                                                    (outVat.write 0
+                                                        (clipperTakeVatFluxCalldataMem v I
+                                                          ((clipperTakeWhoWord I).land
+                                                            solcAddrMask)
+                                                          ((solcSlotWord σ' I
+                                                              (solcMappingSlot ⟨12⟩
+                                                                (clipperTakeIdWord I) +
+                                                                  ⟨1⟩)).div priceWord)
+                                                          (twoWordHashMem
+                                                            (clipperTakeIdWord I) ⟨12⟩
+                                                            (clipperStatusPricePostCallMem
+                                                              (clipperTakeSalesTopWord
+                                                                σLockEvm I)
+                                                              ((UInt256.ofNat
+                                                                  I.header.timestamp).sub
+                                                                ((clipperTakeSalesTicStackWord
+                                                                    σLockEvm I).land
+                                                                  clipperSalesUint96Mask))
+                                                              (clipperTakeSalesTopHashMem I)
+                                                              o)))
+                                                        128
+                                                        (min (⟨0⟩ : UInt256)
+                                                          (UInt256.ofNat outVat.size)).toNat)
+                                                        .readWithPadding 64 32 =
+                                                      UInt256.toByteArray ⟨128⟩ := by
+                                                  exact clipperTakeVatFluxPostCallMem_read64 v I
+                                                    ((clipperTakeWhoWord I).land solcAddrMask)
+                                                    ((solcSlotWord σ' I
+                                                        (solcMappingSlot ⟨12⟩
+                                                          (clipperTakeIdWord I) + ⟨1⟩)).div
+                                                      priceWord)
+                                                    hmem196 hread64
+                                                by_cases hdataLen :
+                                                    clipperTakeDataLenWord I = ⟨0⟩
+                                                · by_cases hmoveCode :
+                                                      Reasoning.Theory.extCodeSizeWord σVat
+                                                          (clipperTakeVatTarget v) = ⟨0⟩
+                                                  · exact
+                                                      clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeRevertEquivFromPostCallAccounts
+                                                        (v := v) (hpatch := hpatch) hcode hwv
+                                                        hdispatch hdec hlockedSolm
+                                                        hstoppedSolmLt husrSolm rdVat hcallVat
+                                                        hzVatTrue hawVat
+                                                        (by simpa using hPostAccounts)
+                                                        (by simp [evmPriceSolm])
+                                                        (by simp [evmPriceSolm,
+                                                          evmLockSolm, evmSolm, initState])
+                                                        (by simp [evmPriceSolm])
+                                                        (by simp [evmPriceSolm,
+                                                          evmLockSolm, evmSolm, initState])
+                                                        (by simp [evmPriceSolm,
+                                                          evmLockSolm, evmSolm, initState])
+                                                        (by simp [evmPriceSolm,
+                                                          evmLockSolm, evmSolm, initState])
+                                                        htab hlot (by rfl) hmaxLe
+                                                        (by simpa [sliceE, lotE] using howeMul)
+                                                        (by simpa [sliceE, lotE] using hgt)
+                                                        hvatCode hdataLen hdataLen hmemVat
+                                                        hreadVat hmoveCode (by
+                                                          simp only [List.length_cons,
+                                                            List.length_nil]
+                                                          omega)
+                                                        hstatus
+                                                  · obtain ⟨cAMove, σMove, zMove, outMove,
+                                                        AMove, kMove, CMove, rdMove,
+                                                        hcallMove, houtMove⟩ :=
+                                                      RD.clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMovePostCall
+                                                        (v := v) (hpatch := hpatch) rdVat
+                                                        hzVatTrue hawVat hdataLen hmemVat
+                                                        hreadVat hmoveCode hdepth hperm (by
+                                                          simp only [List.length_cons,
+                                                            List.length_nil]
+                                                          omega)
+                                                    by_cases hzMove : zMove = false
+                                                    · exact
+                                                        clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureRevertEquivFromPostCallAccounts
+                                                          (v := v) (hpatch := hpatch) hcode hwv
+                                                          hdispatch hdec hlockedSolm
+                                                          hstoppedSolmLt husrSolm rdVat hcallVat
+                                                          rdMove hcallMove hzMove houtMove
+                                                          hzVatTrue hawVat
+                                                          (by simpa using hPostAccounts)
+                                                          (by simp [evmPriceSolm])
+                                                          (by simp [evmPriceSolm,
+                                                            evmLockSolm, evmSolm, initState])
+                                                          (by simp [evmPriceSolm])
+                                                          (by simp [evmPriceSolm,
+                                                            evmLockSolm, evmSolm, initState])
+                                                          (by simp [evmPriceSolm,
+                                                            evmLockSolm, evmSolm, initState])
+                                                          (by simp [evmPriceSolm,
+                                                            evmLockSolm, evmSolm, initState])
+                                                          htab hlot (by rfl) hmaxLe
+                                                          (by simpa [sliceE, lotE] using howeMul)
+                                                          (by simpa [sliceE, lotE] using hgt)
+                                                          hvatCode hdataLen hmoveCode (by
+                                                            simp only [List.length_cons,
+                                                              List.length_nil]
+                                                            omega)
+                                                          hstatus
+                                                    · have hzMoveTrue : zMove = true := by
+                                                        exact
+                                                          Bool.eq_true_of_not_eq_false hzMove
+                                                      let evmPostEvm : EVM.State :=
+                                                        { initState cA gh bl σ_evm σ₀
+                                                            (Sat256.ofUInt256 g) A I with
+                                                          accountMap := σ'
+                                                          createdAccounts := cA' }
+                                                      have hAccountsState :
+                                                          accountMapEquiv
+                                                            evmPostEvm.accountMap
+                                                            evmPriceSolm.accountMap := by
+                                                        simpa [evmPostEvm, evmPriceSolm] using
+                                                          hPostAccounts
+                                                      obtain ⟨σVatSolm, AVatSolm,
+                                                          hcallVatSolmRaw, hAccountsVat⟩ :=
+                                                        typedCallViaEVM_accountMapEquiv_noSubstate
+                                                          (evm_solm := evmPriceSolm)
+                                                          (hcall := hcallVat) hAccountsState
+                                                          (by simp [evmPostEvm,
+                                                            evmPriceSolm, evmLockSolm,
+                                                            evmSolm, initState])
+                                                          (by simp [evmPostEvm,
+                                                            evmPriceSolm])
+                                                          (by simp [evmPostEvm,
+                                                            evmPriceSolm, evmLockSolm,
+                                                            evmSolm, initState])
+                                                          (by simp [evmPostEvm,
+                                                            evmPriceSolm, evmLockSolm,
+                                                            evmSolm, initState])
+                                                          (by simp [evmPostEvm,
+                                                            evmPriceSolm, evmLockSolm,
+                                                            evmSolm, initState])
+                                                      let evmVatSolm : EVM.State :=
+                                                        { evmPriceSolm with
+                                                          accountMap := σVatSolm
+                                                          substate := AVatSolm
+                                                          createdAccounts := cAVat }
+                                                      have hcallVatSolm :
+                                                          typedCallViaEVM (config v)
+                                                            evmPriceSolm (EVM.address v.vat)
+                                                            "flux" 0
+                                                            [v.ilk,
+                                                              .address
+                                                                evmPriceSolm.executionEnv.codeOwner,
+                                                              .address (AccountAddress.ofNat
+                                                                ((clipperTakeWhoWord I).land
+                                                                  solcAddrMask).toNat),
+                                                              .int (Int.ofNat
+                                                                ((clipperTakeSalesTabEVMWord
+                                                                    evmPriceSolm I).div
+                                                                  priceWord).toNat)]
+                                                            (true, evmVatSolm, outVat) true := by
+                                                        simpa [evmVatSolm, evmPriceSolm,
+                                                          htab] using hcallVatSolmRaw
+                                                      have hvatCodeSolm :
+                                                          0 < (UInt256.ofNat
+                                                            ((evmPriceSolm.lookupAccount
+                                                                v.vat).option 0
+                                                              (fun acc => acc.code.size))).toNat := by
+                                                        simpa [State.lookupAccount,
+                                                          evmPriceSolm] using
+                                                          clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
+                                                            (σ := σ') (τ := σ'_solm)
+                                                            (target := clipperTakeVatTarget v)
+                                                            (addr := v.vat)
+                                                            (by simpa using hPostAccounts)
+                                                            (clipperTakeVatTargetAddress v).symm
+                                                            hvatCode
+                                                      have hvatMoveCodeSolm :
+                                                          0 < (UInt256.ofNat
+                                                            ((evmVatSolm.lookupAccount
+                                                                v.vat).option 0
+                                                              (fun acc => acc.code.size))).toNat := by
+                                                        simpa [evmVatSolm,
+                                                          State.lookupAccount] using
+                                                          clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
+                                                            (σ := σVat) (τ := σVatSolm)
+                                                            (target := clipperTakeVatTarget v)
+                                                            (addr := v.vat) hAccountsVat
+                                                            (clipperTakeVatTargetAddress v).symm
+                                                            hmoveCode
+                                                      have hvow :
+                                                          clipperTakeVowTarget σVat I =
+                                                            clipperTakeVowEVMWord evmVatSolm := by
+                                                        have hslot :=
+                                                          accountMapEquiv_storage_findD
+                                                            hAccountsVat I.codeOwner ⟨2⟩ ⟨0⟩
+                                                        simp [clipperTakeVowTarget,
+                                                          clipperTakeVowEVMWord, evmVatSolm,
+                                                          evmPriceSolm, Solm.EVM.storageLoad,
+                                                          State.lookupAccount,
+                                                          Account.lookupStorage, solcSlotWord,
+                                                          hslot]
+                                                      let evmVatEvm : EVM.State :=
+                                                        { initState cA gh bl σ_evm σ₀
+                                                            (Sat256.ofUInt256 g) A I with
+                                                          accountMap := σVat
+                                                          createdAccounts := cAVat }
+                                                      have hAccountsMoveState :
+                                                          accountMapEquiv
+                                                            evmVatEvm.accountMap
+                                                            evmVatSolm.accountMap := by
+                                                        simpa [evmVatEvm, evmVatSolm] using
+                                                          hAccountsVat
+                                                      obtain ⟨σMoveSolm, AMoveSolm,
+                                                          hcallMoveSolmRaw, hAccountsMove⟩ :=
+                                                        typedCallViaEVM_accountMapEquiv_noSubstate
+                                                          (evm_solm := evmVatSolm)
+                                                          (hcall := hcallMove)
+                                                          hAccountsMoveState
+                                                          (by simp [evmVatEvm, evmVatSolm,
+                                                            evmPriceSolm, evmLockSolm,
+                                                            evmSolm, initState])
+                                                          (by simp [evmVatSolm])
+                                                          (by simp [evmVatEvm, evmVatSolm,
+                                                            evmPriceSolm, evmLockSolm,
+                                                            evmSolm, initState])
+                                                          (by simp [evmVatEvm, evmVatSolm,
+                                                            evmPriceSolm, evmLockSolm,
+                                                            evmSolm, initState])
+                                                          (by simp [evmVatEvm, evmVatSolm,
+                                                            evmPriceSolm, evmLockSolm,
+                                                            evmSolm, initState])
+                                                      let evmMoveSolm : EVM.State :=
+                                                        { evmVatSolm with
+                                                          accountMap := σMoveSolm
+                                                          substate := AMoveSolm
+                                                          createdAccounts := cAMove }
+                                                      have hcallMoveSolm :
+                                                          typedCallViaEVM (config v)
+                                                            evmVatSolm (EVM.address v.vat)
+                                                            "move" 0
+                                                            [.address
+                                                                evmVatSolm.executionEnv.source,
+                                                              .address (AccountAddress.ofNat
+                                                                (clipperTakeVowEVMWord
+                                                                  evmVatSolm).toNat),
+                                                              .int (Int.ofNat
+                                                                (clipperTakeSalesTabEVMWord
+                                                                  evmPriceSolm I).toNat)]
+                                                            (true, evmMoveSolm, outMove)
+                                                            true := by
+                                                        simpa [evmMoveSolm, evmVatSolm,
+                                                          evmPriceSolm, hvow, htab,
+                                                          hzMoveTrue] using hcallMoveSolmRaw
+                                                      have hmulNat :
+                                                          (UInt256.mul priceWord sliceE).toNat =
+                                                            priceWord.toNat * sliceE.toNat := by
+                                                        rw [u256_mul_toNat,
+                                                          Nat.mod_eq_of_lt howeMul]
+                                                      have hdivLtSlice :
+                                                          ((solcSlotWord σ' I
+                                                              (solcMappingSlot ⟨12⟩
+                                                                (clipperTakeIdWord I) +
+                                                                  ⟨1⟩)).div priceWord).toNat <
+                                                            sliceE.toNat := by
+                                                        rw [udiv_toNat]
+                                                        apply Nat.div_lt_of_lt_mul
+                                                        simpa [hmulNat, Nat.mul_comm] using hgt
+                                                      have hsliceLeLot :
+                                                          sliceE.toNat ≤ lotE.toNat := by
+                                                        exact clipperMinWord_le_right
+                                                          (clipperTakeAmtWord I) lotE
+                                                      have hlotNew :
+                                                          lotE.sub
+                                                              ((solcSlotWord σ' I
+                                                                  (solcMappingSlot ⟨12⟩
+                                                                    (clipperTakeIdWord I) +
+                                                                      ⟨1⟩)).div
+                                                                priceWord) ≠ ⟨0⟩ := by
+                                                        apply u256_sub_ne_zero_of_ne
+                                                        exact u256_ne_of_toNat_ne (by omega)
+                                                      have hmemMove :
+                                                          (outMove.write 0
+                                                              (clipperTakeVatMoveCalldataMem
+                                                                σVat I
+                                                                (solcSlotWord σ' I
+                                                                  (solcMappingSlot ⟨12⟩
+                                                                    (clipperTakeIdWord I) +
+                                                                      ⟨1⟩))
+                                                                (outVat.write 0
+                                                                  (clipperTakeVatFluxCalldataMem
+                                                                    v I
+                                                                    ((clipperTakeWhoWord I).land
+                                                                      solcAddrMask)
+                                                                    ((solcSlotWord σ' I
+                                                                        (solcMappingSlot ⟨12⟩
+                                                                          (clipperTakeIdWord I) +
+                                                                            ⟨1⟩)).div
+                                                                      priceWord)
+                                                                    (twoWordHashMem
+                                                                      (clipperTakeIdWord I) ⟨12⟩
+                                                                      (clipperStatusPricePostCallMem
+                                                                        (clipperTakeSalesTopWord
+                                                                          σLockEvm I)
+                                                                        ((UInt256.ofNat
+                                                                            I.header.timestamp).sub
+                                                                          ((clipperTakeSalesTicStackWord
+                                                                              σLockEvm I).land
+                                                                            clipperSalesUint96Mask))
+                                                                        (clipperTakeSalesTopHashMem I)
+                                                                        o)))
+                                                                  128
+                                                                  (min (⟨0⟩ : UInt256)
+                                                                    (UInt256.ofNat
+                                                                      outVat.size)).toNat))
+                                                              128
+                                                              (min (⟨0⟩ : UInt256)
+                                                                (UInt256.ofNat
+                                                                  outMove.size)).toNat).size =
+                                                            260 := by
+                                                        exact
+                                                          clipperTakeVatMovePostCallMem_size
+                                                            σVat I
+                                                            (solcSlotWord σ' I
+                                                              (solcMappingSlot ⟨12⟩
+                                                                (clipperTakeIdWord I) + ⟨1⟩))
+                                                            hmemVat
+                                                      have hreadMove :
+                                                          (outMove.write 0
+                                                              (clipperTakeVatMoveCalldataMem
+                                                                σVat I
+                                                                (solcSlotWord σ' I
+                                                                  (solcMappingSlot ⟨12⟩
+                                                                    (clipperTakeIdWord I) +
+                                                                      ⟨1⟩))
+                                                                (outVat.write 0
+                                                                  (clipperTakeVatFluxCalldataMem
+                                                                    v I
+                                                                    ((clipperTakeWhoWord I).land
+                                                                      solcAddrMask)
+                                                                    ((solcSlotWord σ' I
+                                                                        (solcMappingSlot ⟨12⟩
+                                                                          (clipperTakeIdWord I) +
+                                                                            ⟨1⟩)).div
+                                                                      priceWord)
+                                                                    (twoWordHashMem
+                                                                      (clipperTakeIdWord I) ⟨12⟩
+                                                                      (clipperStatusPricePostCallMem
+                                                                        (clipperTakeSalesTopWord
+                                                                          σLockEvm I)
+                                                                        ((UInt256.ofNat
+                                                                            I.header.timestamp).sub
+                                                                          ((clipperTakeSalesTicStackWord
+                                                                              σLockEvm I).land
+                                                                            clipperSalesUint96Mask))
+                                                                        (clipperTakeSalesTopHashMem I)
+                                                                        o)))
+                                                                  128
+                                                                  (min (⟨0⟩ : UInt256)
+                                                                    (UInt256.ofNat
+                                                                      outVat.size)).toNat))
+                                                              128
+                                                              (min (⟨0⟩ : UInt256)
+                                                                (UInt256.ofNat
+                                                                  outMove.size)).toNat)
+                                                              .readWithPadding 64 32 =
+                                                            UInt256.toByteArray ⟨128⟩ := by
+                                                        exact
+                                                          clipperTakeVatMovePostCallMem_read64
+                                                            σVat I
+                                                            (solcSlotWord σ' I
+                                                              (solcMappingSlot ⟨12⟩
+                                                                (clipperTakeIdWord I) + ⟨1⟩))
+                                                            hmemVat hreadVat
+                                                      have hawMove :
+                                                          UInt256.ofNat
+                                                              (MachineState.M
+                                                                (MachineState.M
+                                                                  (UInt256.ofNat 9).toNat
+                                                                  (⟨128⟩ : UInt256).toNat
+                                                                  (⟨100⟩ : UInt256).toNat)
+                                                                (⟨128⟩ : UInt256).toNat
+                                                                (⟨0⟩ : UInt256).toNat) =
+                                                            UInt256.ofNat 9 :=
+                                                        clipperTakeVatMovePostCallAw_eq
+                                                      let sliceSolm :=
+                                                        clipperMinWord
+                                                          (clipperTakeSalesLotEVMWord
+                                                            evmPriceSolm I)
+                                                          (clipperTakeAmtWord I)
+                                                      have hsrcMul :
+                                                          sliceSolm.toNat * priceWord.toNat <
+                                                            UInt256.size := by
+                                                        simpa [sliceSolm] using
+                                                          (clipperTakeOweGtTabSourceMul_of_post_lot
+                                                            (I := I)
+                                                            (evmPrice := evmPriceSolm)
+                                                            (price := priceWord)
+                                                            (lot := lotE) hlot
+                                                            (by simpa [sliceE, lotE] using
+                                                              howeMul))
+                                                      have hsrcGt :
+                                                          (clipperTakeSalesTabEVMWord
+                                                              evmPriceSolm I).toNat <
+                                                            (UInt256.mul sliceSolm
+                                                              priceWord).toNat := by
+                                                        simpa [sliceSolm] using
+                                                          (clipperTakeOweGtTabSourceGt_of_post_words
+                                                            (I := I)
+                                                            (evmPrice := evmPriceSolm)
+                                                            (price := priceWord)
+                                                            (tab := solcSlotWord σ' I
+                                                              (solcMappingSlot ⟨12⟩
+                                                                (clipperTakeIdWord I) + ⟨1⟩))
+                                                            (lot := lotE) htab hlot
+                                                            (by simpa [sliceE, lotE] using hgt))
+                                                      have hsliceLot :
+                                                          ((clipperTakeSalesTabEVMWord
+                                                              evmPriceSolm I).div
+                                                            priceWord).toNat ≤
+                                                            (clipperTakeSalesLotEVMWord
+                                                              evmPriceSolm I).toNat := by
+                                                        exact
+                                                          clipperTakeOweGtTabSourceDivLeLot_of_post_words
+                                                            (I := I)
+                                                            (evmPrice := evmPriceSolm)
+                                                            (price := priceWord)
+                                                            (tab := solcSlotWord σ' I
+                                                              (solcMappingSlot ⟨12⟩
+                                                                (clipperTakeIdWord I) + ⟨1⟩))
+                                                            (lot := lotE) htab hlot
+                                                            (by simpa [sliceE, lotE] using
+                                                              howeMul)
+                                                            (by simpa [sliceE, lotE] using hgt)
+                                                      have hlotNewSolm :
+                                                          (clipperTakeSalesLotEVMWord
+                                                              evmPriceSolm I).sub
+                                                              ((clipperTakeSalesTabEVMWord
+                                                                  evmPriceSolm I).div
+                                                                priceWord) ≠ ⟨0⟩ := by
+                                                        simpa [lotE, hlot, htab] using hlotNew
+                                                      have hfluxBlock :=
+                                                        clipperTakeOweGtTabVatFluxCallSuccessTailBlock
+                                                          v evmLockSolm evmPriceSolm
+                                                          evmVatSolm I priceWord sliceSolm
+                                                          hsrcMul hsrcGt hsliceLot
+                                                          hvatCodeSolm hcallVatSolm
+                                                      have hmoveBlock :=
+                                                        clipperTakeVatMoveCallSuccessBlock v
+                                                          evmLockSolm evmPriceSolm evmVatSolm
+                                                          evmMoveSolm I priceWord sliceSolm
+                                                          (UInt256.mul sliceSolm priceWord)
+                                                          (UInt256.mul sliceSolm priceWord)
+                                                          ((clipperTakeSalesTabEVMWord
+                                                            evmPriceSolm I).div priceWord)
+                                                          ((clipperTakeSalesTabEVMWord
+                                                            evmPriceSolm I).sub
+                                                            (clipperTakeSalesTabEVMWord
+                                                              evmPriceSolm I))
+                                                          ((clipperTakeSalesLotEVMWord
+                                                            evmPriceSolm I).sub
+                                                            ((clipperTakeSalesTabEVMWord
+                                                              evmPriceSolm I).div priceWord))
+                                                          hdataLen hvatMoveCodeSolm
+                                                          hcallMoveSolm
+                                                      have hdogWord :
+                                                          (solcSlotWord σVat I ⟨1⟩).land
+                                                              solcAddrMask =
+                                                            clipperTakeDogEVMWord
+                                                              evmVatSolm := by
+                                                        have hslot :=
+                                                          accountMapEquiv_storage_findD
+                                                            hAccountsVat I.codeOwner ⟨1⟩ ⟨0⟩
+                                                        simp [clipperTakeDogEVMWord,
+                                                          evmVatSolm, evmPriceSolm,
+                                                          Solm.EVM.storageLoad,
+                                                          State.lookupAccount,
+                                                          Account.lookupStorage, solcSlotWord,
+                                                          hslot]
+                                                      by_cases hdogCode :
+                                                          Reasoning.Theory.extCodeSizeWord σMove
+                                                            (UInt256.land solcAddrMask
+                                                              (solcSlotWord σVat I ⟨1⟩)) = ⟨0⟩
+                                                      · have hrev :=
+                                                          RD.clipperTakeOweGtTabDogDigsNoCodeNonzero
+                                                            (v := v) (hpatch := hpatch) rdMove
+                                                            hzMoveTrue hmemMove hreadMove
+                                                            (by simpa [lotE] using hlotNew)
+                                                            hdogCode (by
+                                                              simp only [List.length_cons,
+                                                                List.length_nil]
+                                                              omega)
+                                                        have hnoDogCodeSolm :
+                                                            (UInt256.ofNat
+                                                              ((evmMoveSolm.lookupAccount
+                                                                (AccountAddress.ofNat
+                                                                  (clipperTakeDogEVMWord
+                                                                    evmVatSolm).toNat)).option
+                                                                0 (fun acc => acc.code.size))).toNat =
+                                                              0 := by
+                                                          simpa [evmMoveSolm,
+                                                            State.lookupAccount] using
+                                                            clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
+                                                              (σ := σMove) (τ := σMoveSolm)
+                                                              (target := UInt256.land
+                                                                solcAddrMask
+                                                                (solcSlotWord σVat I ⟨1⟩))
+                                                              (addr := AccountAddress.ofNat
+                                                                (clipperTakeDogEVMWord
+                                                                  evmVatSolm).toNat)
+                                                              hAccountsMove
+                                                              (by simp [← hdogWord,
+                                                                u256_land_comm])
+                                                              hdogCode
+                                                        have hdogBlock :=
+                                                          clipperTakeDogDigsOweNoCodeBlock v
+                                                            evmLockSolm evmPriceSolm
+                                                            evmVatSolm evmMoveSolm I
+                                                            priceWord sliceSolm
+                                                            (UInt256.mul sliceSolm priceWord)
+                                                            (UInt256.mul sliceSolm priceWord)
+                                                            ((clipperTakeSalesTabEVMWord
+                                                              evmPriceSolm I).div priceWord)
+                                                            ((clipperTakeSalesTabEVMWord
+                                                              evmPriceSolm I).sub
+                                                              (clipperTakeSalesTabEVMWord
+                                                                evmPriceSolm I))
+                                                            ((clipperTakeSalesLotEVMWord
+                                                              evmPriceSolm I).sub
+                                                              ((clipperTakeSalesTabEVMWord
+                                                                evmPriceSolm I).div priceWord))
+                                                            hlotNewSolm hnoDogCodeSolm
+                                                        have htail :
+                                                            ExecBlock (config v)
+                                                              { contract := contract v,
+                                                                locals :=
+                                                                  clipperTakeLocalsSlice
+                                                                    evmLockSolm evmPriceSolm I
+                                                                    false priceWord sliceSolm }
+                                                              evmPriceSolm
+                                                              (clipperTakeAfterSliceStmts v)
+                                                              .reverted := by
+                                                          have hafterMove :
+                                                              ExecBlock (config v)
+                                                                { contract := contract v,
+                                                                  locals :=
+                                                                    clipperTakeLocalsMoveRet
+                                                                      evmLockSolm evmPriceSolm
+                                                                      evmVatSolm I priceWord
+                                                                      sliceSolm
+                                                                      (UInt256.mul sliceSolm
+                                                                        priceWord)
+                                                                      (UInt256.mul sliceSolm
+                                                                        priceWord)
+                                                                      ((clipperTakeSalesTabEVMWord
+                                                                          evmPriceSolm I).div
+                                                                        priceWord)
+                                                                      ((clipperTakeSalesTabEVMWord
+                                                                          evmPriceSolm I).sub
+                                                                        (clipperTakeSalesTabEVMWord
+                                                                          evmPriceSolm I))
+                                                                      ((clipperTakeSalesLotEVMWord
+                                                                          evmPriceSolm I).sub
+                                                                        ((clipperTakeSalesTabEVMWord
+                                                                            evmPriceSolm I).div
+                                                                          priceWord)) }
+                                                                evmMoveSolm
+                                                                (clipperTakeAfterMoveStmts v)
+                                                                .reverted := by
+                                                            simpa [clipperTakeAfterMoveStmts]
+                                                              using
+                                                                (execBlockAppendReverted
+                                                                  (suff :=
+                                                                    [ .ite
+                                                                        (.binary .eq
+                                                                          (.var "lot")
+                                                                          (.intLit 0))
+                                                                        [ .internalCall "_remove"
+                                                                            [.var "id"]
+                                                                            "_removeRet" ]
+                                                                        [ .ite
+                                                                            (.binary .eq
+                                                                              (.var "tab")
+                                                                              (.intLit 0))
+                                                                            (checkedExternalCallStmts
+                                                                              (vatExpr v) "flux"
+                                                                              (.intLit 0)
+                                                                              [ilkExpr v, thisAddr,
+                                                                                .var "usr",
+                                                                                .var "lot"]
+                                                                              "_fluxUsrRet" ++
+                                                                              [ .internalCall
+                                                                                  "_remove"
+                                                                                  [.var "id"]
+                                                                                  "_removeRet2" ])
+                                                                            [ .assign .storage
+                                                                                (salesF (.var "id")
+                                                                                  "tab")
+                                                                                (.var "tab"),
+                                                                              .assign .storage
+                                                                                (salesF (.var "id")
+                                                                                  "lot")
+                                                                                (.var "lot") ] ],
+                                                                      .assign .storage lockedRef
+                                                                        (.intLit 0) ])
+                                                                  hdogBlock)
+                                                          simpa [clipperTakeAfterSliceStmts,
+                                                            List.append_assoc] using
+                                                            execBlockAppendOk hfluxBlock
+                                                              (execBlockAppendOk hmoveBlock
+                                                                hafterMove)
+                                                        have hbody :=
+                                                          clipperTakeSourceRevertsOfAfterSlice
+                                                            (cA := cA) (gh := gh) (bl := bl)
+                                                            (σ := σ_solm) (σ₀ := σ₀) (A := A)
+                                                            (I := I) (g := g)
+                                                            (evmPrice := evmPriceSolm)
+                                                            v priceWord hwv hlockedSolm
+                                                            hstoppedSolmLt husrSolm hmaxLe
+                                                            hstatus (by
+                                                              simpa [sliceSolm] using htail)
+                                                        exact hrev.reEquivExecutionRevert hcode
+                                                          hdispatch hdec hbody
+                                                      · obtain ⟨cADog, σDog, zDog, outDog,
+                                                            ADog, hcallDog, houtDog,
+                                                            hdogFailure, hdogSuccess⟩ :=
+                                                          RD.clipperTakeOweGtTabDogDigsPostCallCasesNonzero
+                                                            (v := v) (hpatch := hpatch) rdMove
+                                                            hzMoveTrue hmemMove hreadMove
+                                                            (by simpa [lotE] using hlotNew)
+                                                            hdogCode hdepth hperm (by
+                                                              simp only [List.length_cons,
+                                                                List.length_nil]
+                                                              omega)
+                                                        have hdogCodeSolm :
+                                                            0 < (UInt256.ofNat
+                                                              ((evmMoveSolm.lookupAccount
+                                                                (AccountAddress.ofNat
+                                                                  (clipperTakeDogEVMWord
+                                                                    evmVatSolm).toNat)).option
+                                                                0 (fun acc => acc.code.size))).toNat := by
+                                                          simpa [evmMoveSolm,
+                                                            State.lookupAccount] using
+                                                            clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
+                                                              (σ := σMove) (τ := σMoveSolm)
+                                                              (target := UInt256.land
+                                                                solcAddrMask
+                                                                (solcSlotWord σVat I ⟨1⟩))
+                                                              (addr := AccountAddress.ofNat
+                                                                (clipperTakeDogEVMWord
+                                                                  evmVatSolm).toNat)
+                                                              hAccountsMove
+                                                              (by simp [← hdogWord,
+                                                                u256_land_comm])
+                                                              hdogCode
+                                                        let evmMoveEvm : EVM.State :=
+                                                          { initState cA gh bl σ_evm σ₀
+                                                              (Sat256.ofUInt256 g) A I with
+                                                            accountMap := σMove
+                                                            createdAccounts := cAMove }
+                                                        have hAccountsDogState :
+                                                            accountMapEquiv
+                                                              evmMoveEvm.accountMap
+                                                              evmMoveSolm.accountMap := by
+                                                          simpa [evmMoveEvm, evmMoveSolm] using
+                                                            hAccountsMove
+                                                        obtain ⟨σDogSolm, ADogSolm,
+                                                            hcallDogSolmRaw, hAccountsDog⟩ :=
+                                                          typedCallViaEVM_accountMapEquiv_noSubstate
+                                                            (evm_solm := evmMoveSolm)
+                                                            (hcall := hcallDog)
+                                                            hAccountsDogState
+                                                            (by simp [evmMoveEvm,
+                                                              evmMoveSolm, evmVatSolm,
+                                                              evmPriceSolm, evmLockSolm,
+                                                              evmSolm, initState])
+                                                            (by simp [evmMoveSolm])
+                                                            (by simp [evmMoveEvm,
+                                                              evmMoveSolm, evmVatSolm,
+                                                              evmPriceSolm, evmLockSolm,
+                                                              evmSolm, initState])
+                                                            (by simp [evmMoveEvm,
+                                                              evmMoveSolm, evmVatSolm,
+                                                              evmPriceSolm, evmLockSolm,
+                                                              evmSolm, initState])
+                                                            (by simp [evmMoveEvm,
+                                                              evmMoveSolm, evmVatSolm,
+                                                              evmPriceSolm, evmLockSolm,
+                                                              evmSolm, initState])
+                                                        let evmDogSolm : EVM.State :=
+                                                          { evmMoveSolm with
+                                                            accountMap := σDogSolm
+                                                            substate := ADogSolm
+                                                            createdAccounts := cADog }
+                                                        have hcallDogSolm :
+                                                            typedCallViaEVM (config v)
+                                                              evmMoveSolm
+                                                              (EVM.address
+                                                                (AccountAddress.ofNat
+                                                                  (clipperTakeDogEVMWord
+                                                                    evmVatSolm).toNat))
+                                                              "digs" 0
+                                                              [v.ilk, .int (Int.ofNat
+                                                                (clipperTakeSalesTabEVMWord
+                                                                  evmPriceSolm I).toNat)]
+                                                              (zDog, evmDogSolm, outDog)
+                                                              true := by
+                                                          simpa [evmDogSolm,
+                                                            evmMoveSolm, evmVatSolm,
+                                                            evmPriceSolm, hdogWord, htab,
+                                                            u256_land_comm] using
+                                                            hcallDogSolmRaw
+                                                        have hbodyOfDogRevert
+                                                            (hdogBlock :
+                                                              ExecBlock (config v)
+                                                                { contract := contract v,
+                                                                  locals :=
+                                                                    clipperTakeLocalsMoveRet
+                                                                      evmLockSolm evmPriceSolm
+                                                                      evmVatSolm I priceWord
+                                                                      sliceSolm
+                                                                      (UInt256.mul sliceSolm
+                                                                        priceWord)
+                                                                      (UInt256.mul sliceSolm
+                                                                        priceWord)
+                                                                      ((clipperTakeSalesTabEVMWord
+                                                                          evmPriceSolm I).div
+                                                                        priceWord)
+                                                                      ((clipperTakeSalesTabEVMWord
+                                                                          evmPriceSolm I).sub
+                                                                        (clipperTakeSalesTabEVMWord
+                                                                          evmPriceSolm I))
+                                                                      ((clipperTakeSalesLotEVMWord
+                                                                          evmPriceSolm I).sub
+                                                                        ((clipperTakeSalesTabEVMWord
+                                                                            evmPriceSolm I).div
+                                                                          priceWord)) }
+                                                                evmMoveSolm
+                                                                [ .ite
+                                                                    (.binary .eq (.var "lot")
+                                                                      (.intLit 0))
+                                                                    (wrappingAddInto "digsAmt"
+                                                                      (.var "tab") (.var "owe") ++
+                                                                      checkedExternalCallStmts
+                                                                        (.var "dog_") "digs"
+                                                                        (.intLit 0)
+                                                                        [ilkExpr v,
+                                                                          .var "digsAmt"]
+                                                                        "_digsRet")
+                                                                    (checkedExternalCallStmts
+                                                                      (.var "dog_") "digs"
+                                                                      (.intLit 0)
+                                                                      [ilkExpr v, .var "owe"]
+                                                                      "_digsRet") ]
+                                                                .reverted) :
+                                                            ExecTransitionBody (config v)
+                                                              (contract v) evmSolm
+                                                              (clipperTakeStore I)
+                                                              (takeTransition v).body
+                                                              .reverted := by
+                                                          have hafterMove :
+                                                              ExecBlock (config v)
+                                                                { contract := contract v,
+                                                                  locals :=
+                                                                    clipperTakeLocalsMoveRet
+                                                                      evmLockSolm evmPriceSolm
+                                                                      evmVatSolm I priceWord
+                                                                      sliceSolm
+                                                                      (UInt256.mul sliceSolm
+                                                                        priceWord)
+                                                                      (UInt256.mul sliceSolm
+                                                                        priceWord)
+                                                                      ((clipperTakeSalesTabEVMWord
+                                                                          evmPriceSolm I).div
+                                                                        priceWord)
+                                                                      ((clipperTakeSalesTabEVMWord
+                                                                          evmPriceSolm I).sub
+                                                                        (clipperTakeSalesTabEVMWord
+                                                                          evmPriceSolm I))
+                                                                      ((clipperTakeSalesLotEVMWord
+                                                                          evmPriceSolm I).sub
+                                                                        ((clipperTakeSalesTabEVMWord
+                                                                            evmPriceSolm I).div
+                                                                          priceWord)) }
+                                                                evmMoveSolm
+                                                                (clipperTakeAfterMoveStmts v)
+                                                                .reverted := by
+                                                            simpa [clipperTakeAfterMoveStmts]
+                                                              using
+                                                                (execBlockAppendReverted
+                                                                  (suff :=
+                                                                    [ .ite
+                                                                        (.binary .eq
+                                                                          (.var "lot")
+                                                                          (.intLit 0))
+                                                                        [ .internalCall "_remove"
+                                                                            [.var "id"]
+                                                                            "_removeRet" ]
+                                                                        [ .ite
+                                                                            (.binary .eq
+                                                                              (.var "tab")
+                                                                              (.intLit 0))
+                                                                            (checkedExternalCallStmts
+                                                                              (vatExpr v) "flux"
+                                                                              (.intLit 0)
+                                                                              [ilkExpr v, thisAddr,
+                                                                                .var "usr",
+                                                                                .var "lot"]
+                                                                              "_fluxUsrRet" ++
+                                                                              [ .internalCall
+                                                                                  "_remove"
+                                                                                  [.var "id"]
+                                                                                  "_removeRet2" ])
+                                                                            [ .assign .storage
+                                                                                (salesF (.var "id")
+                                                                                  "tab")
+                                                                                (.var "tab"),
+                                                                              .assign .storage
+                                                                                (salesF (.var "id")
+                                                                                  "lot")
+                                                                                (.var "lot") ] ],
+                                                                      .assign .storage lockedRef
+                                                                        (.intLit 0) ])
+                                                                  hdogBlock)
+                                                          have htail :
+                                                              ExecBlock (config v)
+                                                                { contract := contract v,
+                                                                  locals :=
+                                                                    clipperTakeLocalsSlice
+                                                                      evmLockSolm evmPriceSolm I
+                                                                      false priceWord sliceSolm }
+                                                                evmPriceSolm
+                                                                (clipperTakeAfterSliceStmts v)
+                                                                .reverted := by
+                                                            simpa [clipperTakeAfterSliceStmts,
+                                                              List.append_assoc] using
+                                                              execBlockAppendOk hfluxBlock
+                                                                (execBlockAppendOk hmoveBlock
+                                                                  hafterMove)
+                                                          simpa [evmSolm] using
+                                                            (clipperTakeSourceRevertsOfAfterSlice
+                                                              (cA := cA) (gh := gh) (bl := bl)
+                                                              (σ := σ_solm) (σ₀ := σ₀) (A := A)
+                                                              (I := I) (g := g)
+                                                              (evmPrice := evmPriceSolm)
+                                                              v priceWord hwv hlockedSolm
+                                                              hstoppedSolmLt husrSolm hmaxLe
+                                                              hstatus (by
+                                                                simpa [sliceSolm] using htail))
+                                                        by_cases hzDog : zDog = false
+                                                        · have hrev := hdogFailure hzDog
+                                                          have hdogBlock :=
+                                                            clipperTakeDogDigsOweCallFailureBlock
+                                                              v evmLockSolm evmPriceSolm
+                                                              evmVatSolm evmMoveSolm evmDogSolm I
+                                                              priceWord sliceSolm
+                                                              (UInt256.mul sliceSolm priceWord)
+                                                              (UInt256.mul sliceSolm priceWord)
+                                                              ((clipperTakeSalesTabEVMWord
+                                                                evmPriceSolm I).div priceWord)
+                                                              ((clipperTakeSalesTabEVMWord
+                                                                evmPriceSolm I).sub
+                                                                (clipperTakeSalesTabEVMWord
+                                                                  evmPriceSolm I))
+                                                              ((clipperTakeSalesLotEVMWord
+                                                                evmPriceSolm I).sub
+                                                                ((clipperTakeSalesTabEVMWord
+                                                                  evmPriceSolm I).div priceWord))
+                                                              hlotNewSolm hdogCodeSolm
+                                                              (by simpa [hzDog] using hcallDogSolm)
+                                                          exact hrev.reEquivExecutionRevert hcode
+                                                            hdispatch hdec
+                                                            (hbodyOfDogRevert hdogBlock)
+                                                        · trace_state
+                                                          sorry
+                                                · trace_state
+                                                  sorry
+                                            · trace_state
+                                              sorry
                                         · have hrev :=
                                             Benchmarks.Dss.Clipper.Reasoning.Reach.RD.clipperCheckedMulRevert
                                               (v := v) (hpatch := hpatch) rd8686

@@ -518,6 +518,30 @@ theorem RD.clipperRedoIncentiveActiveOfChip {code : ByteArray}
   exact ⟨_, _, by simpa using
     rd7886Pre.jumpiNT (by clipper_runtime_decode) (by decide) (by evm_ov)⟩
 
+theorem RD.clipperRedoIncentiveActive {code : ByteArray}
+    (v : ClipperImmutables)
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    {ee : ExecutionEnv} {g : Sat256} {s0 : State}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
+    {coin chip tip feedPrice lot tab done topNew tic usr two kpr id ret sel : UInt256}
+    {R : List UInt256} {mem o : ByteArray} {aw : UInt256} {k C : ℕ}
+    (rd : RD code ee g s0 ⟨7867⟩
+      (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
+        usr :: two :: kpr :: id :: ret :: sel :: R)
+      mem aw o acc k C)
+    (hactive : tip ≠ ⟨0⟩ ∨ chip ≠ ⟨0⟩)
+    (hov : R.length + 25 ≤ 1024) :
+    ∃ k' C', RD code ee g s0 ⟨7886⟩
+      (coin :: chip :: tip :: feedPrice :: lot :: tab :: done :: topNew :: tic ::
+        usr :: two :: kpr :: id :: ret :: sel :: R)
+      mem aw o acc k' C' := by
+  by_cases htip : tip = ⟨0⟩
+  · have hchip : chip ≠ ⟨0⟩ := hactive.resolve_left (fun hne => hne htip)
+    simpa [htip] using
+      (RD.clipperRedoIncentiveActiveOfChip v hpatch (by simpa [htip] using rd)
+        hchip hov)
+  · exact RD.clipperRedoIncentiveActiveOfTip v hpatch rd htip hov
+
 abbrev clipperRedoChostWord (σ : AccountMap) (ee : ExecutionEnv) : UInt256 :=
   solcSlotWord σ ee ⟨9⟩
 
