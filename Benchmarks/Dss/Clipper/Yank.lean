@@ -856,7 +856,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                           cases σ_vat_solm.find? I.codeOwner <;> rfl
                         by_cases hidxBound :
                             idxEvm.toNat < (solcSlotWord σ_vat I ⟨11⟩).toNat
-                        · obtain ⟨memJoin, awJoin, k8379, C8379, rd8379, hjoinMemSize⟩ :=
+                        · obtain ⟨k8379, C8379, rd8379, hjoinMemSize⟩ :=
                             Benchmarks.Dss.Clipper.RD.clipperYankRemoveIdNeMoveToJoin
                               v hpatch
                               (by simpa [removeMem] using rd8274)
@@ -864,6 +864,7 @@ theorem clipperYankBody (v : ClipperImmutables) {code : ByteArray}
                               (by simpa [lastIndexEvm, moveEvm] using hidEq)
                               (by simpa [removeMem] using hremoveMemSize)
                               (by simpa [idxEvm] using hidxBound)
+                              (by simp)
                               hperm
                           let evmIndexSolm :=
                             Solm.EVM.storageStore evmVatSolm

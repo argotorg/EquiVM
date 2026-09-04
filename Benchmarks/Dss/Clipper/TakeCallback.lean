@@ -759,6 +759,15 @@ noncomputable def clipperTakeCallbackCalldataMem (ee : ExecutionEnv)
     (clipperTakeCallbackPayloadMem ee owe slice dataLen dataStart mem)
     (292 + dataLen.toNat) 32
 
+/-- Memory facts preserved after constructing the dynamic callback calldata.  The memory may be
+larger than the fixed 260-byte pre-callback layout, but all later fixed-offset call builders remain
+in bounds and the active-word multiplication remains unwrapped. -/
+def clipperTakeMemoryWF (mem : ByteArray) (aw : UInt256) : Prop :=
+  260 ≤ mem.size ∧
+    mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ ∧
+    mem.size ≤ aw.toNat * 32 ∧
+    aw.toNat * 32 < UInt256.size
+
 theorem clipperTakeCallbackSelectorMem_size {mem : ByteArray} (hmem : mem.size = 260) :
     (clipperTakeCallbackSelectorMem mem).size = 260 := by
   unfold clipperTakeCallbackSelectorMem
@@ -1361,7 +1370,9 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
           owe :: tabNew :: lotNew :: price :: tic :: packed :: stopped :: dataLen :: dataStart ::
           who :: max :: amt :: id :: R)
         (clipperTakeCallbackCalldataMem ee owe slice dataLen dataStart mem)
-        aw o (cA, σ) k' C' := by
+        aw o (cA, σ) k' C' ∧
+      clipperTakeMemoryWF
+        (clipperTakeCallbackCalldataMem ee owe slice dataLen dataStart mem) aw := by
   have hbaseMload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ mem.size
           ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 9 * ⟨32⟩ then ⟨0⟩
@@ -1579,6 +1590,41 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     rw [hawPadNat, haddr, hawCopyNat]
     simp only [MachineState.M]
     omega
+  have hawPadSmall : awPad.toNat * 32 < UInt256.size := by
+    rw [hawPadNat, haddr, hawCopyNat,
+      show UInt256.size = 2 ^ 256 by decide]
+    have hcopyDiv :
+        ((292 + dataLen.toNat + 31) / 32) * 32 ≤
+          292 + dataLen.toNat + 31 := Nat.div_mul_le_self _ _
+    have hpadDiv :
+        ((292 + dataLen.toNat + 32 + 31) / 32) * 32 ≤
+          292 + dataLen.toNat + 32 + 31 := Nat.div_mul_le_self _ _
+    have hsmall : 4294967296 + 355 < 2 ^ 256 := by native_decide
+    simp only [MachineState.M, hdataLenNat, ↓reduceIte,
+      show (UInt256.ofNat 10).toNat = 10 by decide]
+    rw [Nat.max_def]
+    split
+    · exact lt_of_le_of_lt hpadDiv (by omega)
+    · rw [Nat.max_def]
+      split
+      · exact lt_of_le_of_lt hcopyDiv (by omega)
+      · native_decide
+  have hawPadCovers :
+      (clipperTakeCallbackCalldataMem ee owe slice dataLen dataStart mem).size ≤
+        awPad.toNat * 32 := by
+    rw [clipperTakeCallbackCalldataMem_size ee owe slice dataLen dataStart hmem
+      hdataLen hpayload, hawPadNat, haddr]
+    simp only [MachineState.M]
+    have hceil :
+        324 + dataLen.toNat ≤ ((324 + dataLen.toNat + 31) / 32) * 32 := by
+      have hmod := Nat.mod_lt (324 + dataLen.toNat + 31) (by decide : 0 < 32)
+      have hdiv := Nat.div_add_mod (324 + dataLen.toNat + 31) 32
+      omega
+    have hright : (324 + dataLen.toNat + 31) / 32 ≤
+        Nat.max awCopy.toNat ((292 + dataLen.toNat + 32 + 31) / 32) := by
+      convert Nat.le_max_right awCopy.toNat
+        ((292 + dataLen.toNat + 32 + 31) / 32) using 1 <;> omega
+    exact le_trans hceil (Nat.mul_le_mul_right 32 hright)
   have hawMload64 :
       UInt256.ofNat (MachineState.M awPad.toNat (⟨64⟩ : UInt256).toNat 32) =
         awPad := by
@@ -1602,25 +1648,7 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     · rw [clipperTakeCallbackCalldataMem_size ee owe slice dataLen dataStart hmem
         hdataLen hpayload]
       omega
-    · have hawPadSmall : awPad.toNat * 32 < UInt256.size := by
-        rw [hawPadNat, haddr, hawCopyNat,
-          show UInt256.size = 2 ^ 256 by decide]
-        have hcopyDiv :
-            ((292 + dataLen.toNat + 31) / 32) * 32 ≤
-              292 + dataLen.toNat + 31 := Nat.div_mul_le_self _ _
-        have hpadDiv :
-            ((292 + dataLen.toNat + 32 + 31) / 32) * 32 ≤
-              292 + dataLen.toNat + 32 + 31 := Nat.div_mul_le_self _ _
-        have hsmall : 4294967296 + 355 < 2 ^ 256 := by native_decide
-        simp only [MachineState.M, hdataLenNat, ↓reduceIte,
-          show (UInt256.ofNat 10).toNat = 10 by decide]
-        rw [Nat.max_def]
-        split
-        · exact lt_of_le_of_lt hpadDiv (by omega)
-        · rw [Nat.max_def]
-          split
-          · exact lt_of_le_of_lt hcopyDiv (by omega)
-          · native_decide
+    ·
       have hmul : (awPad * (⟨32⟩ : UInt256)).toNat = awPad.toNat * 32 := by
         simpa [show (⟨32⟩ : UInt256).toNat = 32 by decide] using
           umul_toNat (a := awPad) (b := (⟨32⟩ : UInt256)) hawPadSmall
@@ -1649,6 +1677,14 @@ theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     raw dup8 (by clipper_runtime_decode) (by evm_ov),
     raw dup1 (by clipper_runtime_decode) (by evm_ov)]
   rw [clipperTakeCallbackInputSizeWord dataLen hlenMax] at rd4664pre
-  exact ⟨awPad, _, _, by simpa [u256_land_comm] using rd4664pre⟩
+  refine ⟨awPad, _, _, by simpa [u256_land_comm] using rd4664pre, ?_⟩
+  exact ⟨by
+    rw [clipperTakeCallbackCalldataMem_size ee owe slice dataLen dataStart hmem
+      hdataLen hpayload]
+    omega,
+    clipperTakeCallbackCalldataMem_read64 ee owe slice dataLen dataStart hmem hread64
+      hdataLen hpayload,
+    hawPadCovers,
+    hawPadSmall⟩
 
 end Benchmarks.Dss.Clipper

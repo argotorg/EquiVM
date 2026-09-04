@@ -939,10 +939,10 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     {code : ByteArray} (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
-    {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {sel : UInt256}
+    {mem o : ByteArray} {aw : UInt256} {k C : ℕ} {ret : UInt256}
+    {R : List UInt256}
     {cA σ}
-    (rd : RD code ee g s0 ⟨8274⟩
-      (clipperYankArgWord ee :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ :: [sel])
+    (rd : RD code ee g s0 ⟨8274⟩ (clipperYankArgWord ee :: ret :: R)
       mem aw o (cA, σ) k C)
     (hlen : solcSlotWord σ ee ⟨11⟩ ≠ ⟨0⟩)
     (hne :
@@ -952,34 +952,35 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     (hidxBound :
       (solcSlotWord σ ee (clipperYankSalesPosSlot ee)).toNat <
         (solcSlotWord σ ee ⟨11⟩).toNat)
+    (hov : R.length + 32 ≤ 1024)
     (hperm : ee.perm = true) :
     let lastIndex := solcSlotWord σ ee ⟨11⟩ + UInt256.lnot ⟨0⟩
     let move := solcSlotWord σ ee (clipperYankActiveSlot lastIndex)
     let idx := solcSlotWord σ ee (clipperYankSalesPosSlot ee)
-    ∃ mem' aw' k' C',
+    let activeMem := wordAt0Mem (⟨11⟩ : UInt256) mem
+    let aw1 := UInt256.ofNat (MachineState.M aw.toNat 0 32)
+    let aw2 := UInt256.ofNat (MachineState.M aw1.toNat 0 32)
+    let saleHashMem := twoWordHashMem (clipperYankArgWord ee) ⟨12⟩ activeMem
+    let aw3 := UInt256.ofNat (MachineState.M aw2.toNat 0 32)
+    let aw4 := UInt256.ofNat (MachineState.M aw3.toNat 32 32)
+    let aw5 := UInt256.ofNat (MachineState.M aw4.toNat 0 64)
+    let activeIndexMem := wordAt0Mem (⟨11⟩ : UInt256) saleHashMem
+    let aw6 := UInt256.ofNat (MachineState.M aw5.toNat 0 32)
+    let aw7 := UInt256.ofNat (MachineState.M aw6.toNat 0 32)
+    let aw8 := UInt256.ofNat (MachineState.M aw7.toNat 0 32)
+    let moveHashMem := twoWordHashMem move ⟨12⟩ activeIndexMem
+    let aw9 := UInt256.ofNat (MachineState.M aw8.toNat 32 32)
+    let aw10 := UInt256.ofNat (MachineState.M aw9.toNat 0 64)
+    ∃ k' C',
       RD code ee g s0 ⟨8379⟩
-        (move :: clipperYankArgWord ee :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ ::
-          [sel])
-        mem' aw' o (cA, clipperYankMoveAccountMap σ ee idx move) k' C' ∧
-      64 ≤ (wordAt0Mem (⟨11⟩ : UInt256) mem').size := by
-  intro lastIndex move idx
-  let activeMem := wordAt0Mem (⟨11⟩ : UInt256) mem
-  let aw1 := UInt256.ofNat (MachineState.M aw.toNat 0 32)
-  let aw2 := UInt256.ofNat (MachineState.M aw1.toNat 0 32)
+        (move :: clipperYankArgWord ee :: ret :: R)
+        moveHashMem aw10 o (cA, clipperYankMoveAccountMap σ ee idx move) k' C' ∧
+      64 ≤ (wordAt0Mem (⟨11⟩ : UInt256) moveHashMem).size := by
+  intro lastIndex move idx activeMem aw1 aw2 saleHashMem aw3 aw4 aw5 activeIndexMem
+    aw6 aw7 aw8 moveHashMem aw9 aw10
   let saleKeyMem := wordAt0Mem (clipperYankArgWord ee) activeMem
-  let aw3 := UInt256.ofNat (MachineState.M aw2.toNat 0 32)
-  let saleHashMem := twoWordHashMem (clipperYankArgWord ee) ⟨12⟩ activeMem
-  let aw4 := UInt256.ofNat (MachineState.M aw3.toNat 32 32)
-  let aw5 := UInt256.ofNat (MachineState.M aw4.toNat 0 64)
-  let activeIndexMem := wordAt0Mem (⟨11⟩ : UInt256) saleHashMem
-  let aw6 := UInt256.ofNat (MachineState.M aw5.toNat 0 32)
-  let aw7 := UInt256.ofNat (MachineState.M aw6.toNat 0 32)
   let σIndex := sstoreAccountMap ee.codeOwner σ (clipperYankActiveSlot idx) move
   let moveKeyMem := wordAt0Mem move activeIndexMem
-  let aw8 := UInt256.ofNat (MachineState.M aw7.toNat 0 32)
-  let moveHashMem := twoWordHashMem move ⟨12⟩ activeIndexMem
-  let aw9 := UInt256.ofNat (MachineState.M aw8.toNat 32 32)
-  let aw10 := UInt256.ofNat (MachineState.M aw9.toNat 0 64)
   have rd8277 := evm_run rd with [
     raw jumpdest (by clipper_yank_remove_decode) (by evm_ov),
     raw push1 ⟨11⟩ (by clipper_yank_remove_decode) (by evm_ov),
@@ -1058,15 +1059,13 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     exact hslotActive
   obtain ⟨k8307, C8307, rd8307slot⟩ :
       ∃ k C, RD code ee g s0 ⟨8307⟩
-        (clipperYankActiveSlot lastIndex :: ⟨0⟩ :: clipperYankArgWord ee :: ⟨2540⟩ ::
-          clipperYankArgWord ee :: ⟨502⟩ :: [sel])
+        (clipperYankActiveSlot lastIndex :: ⟨0⟩ :: clipperYankArgWord ee :: ret :: R)
         activeMem aw2 o (cA, σ) k C := by
     exact ⟨_, _, by simpa [solcSlotWord, hslotActive] using rd8307pre⟩
   obtain ⟨_, _, rd8308raw⟩ := rd8307slot.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8308, C8308, rd8308⟩ :
       ∃ k C, RD code ee g s0 ⟨8308⟩
-        (move :: ⟨0⟩ :: clipperYankArgWord ee :: ⟨2540⟩ ::
-          clipperYankArgWord ee :: ⟨502⟩ :: [sel])
+        (move :: ⟨0⟩ :: clipperYankArgWord ee :: ret :: R)
         activeMem aw2 o (cA, σ) k C := by
     exact ⟨_, _, by simpa [move, solcSlotWord] using rd8308raw⟩
   have rd8312 := evm_run rd8308 with [
@@ -1135,8 +1134,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
   obtain ⟨_, _, rd8332raw⟩ := rd8331pre.sload (by clipper_yank_remove_decode) (by evm_ov)
   obtain ⟨k8332, C8332, rd8332⟩ :
       ∃ k C, RD code ee g s0 ⟨8332⟩
-        (idx :: move :: clipperYankArgWord ee :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ ::
-          [sel])
+        (idx :: move :: clipperYankArgWord ee :: ret :: R)
         saleHashMem aw5 o (cA, σ) k C := by
     exact ⟨_, _, by simpa [idx, clipperYankSalesPosSlot, solcSlotWord] using rd8332raw⟩
   have rd8346 := evm_run rd8332 with [
@@ -1199,11 +1197,10 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     raw swap3 (by clipper_yank_remove_decode) (by evm_ov)]
   obtain ⟨k8366, C8366, rd8366⟩ :
       ∃ k C, RD code ee g s0 ⟨8366⟩
-        (⟨0⟩ :: ⟨32⟩ :: idx :: move :: clipperYankArgWord ee :: ⟨2540⟩ ::
-          clipperYankArgWord ee :: ⟨502⟩ :: [sel])
+        (⟨0⟩ :: ⟨32⟩ :: idx :: move :: clipperYankArgWord ee :: ret :: R)
         activeIndexMem aw7 o (cA, σIndex) k C := by
     obtain ⟨k', C', rd'⟩ := rd8365pre.sstore hperm (by clipper_yank_remove_decode)
-      (by simp only [List.length_cons, List.length_nil]; omega)
+      (by simp only [List.length_cons]; omega)
     exact ⟨k', C', by
       simpa [σIndex, clipperYankActiveSlot_eq, u256_add_comm activeDataSlot idx] using rd'⟩
   have rd8368pre := evm_run rd8366 with [
@@ -1289,11 +1286,10 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
     hmoveBase (by rfl) (by evm_ov)
   obtain ⟨k8379, C8379, rd8379raw⟩ :
       ∃ k C, RD code ee g s0 ⟨8379⟩
-        (move :: clipperYankArgWord ee :: ⟨2540⟩ :: clipperYankArgWord ee :: ⟨502⟩ ::
-          [sel])
+        (move :: clipperYankArgWord ee :: ret :: R)
         moveHashMem aw10 o (cA, clipperYankMoveAccountMap σ ee idx move) k C := by
     obtain ⟨k', C', rd'⟩ := rd8378pre.sstore hperm (by clipper_yank_remove_decode)
-      (by simp only [List.length_cons, List.length_nil]; omega)
+      (by simp only [List.length_cons]; omega)
     exact ⟨k', C', by
       simpa [clipperYankMoveAccountMap, σIndex] using rd'⟩
   have hmoveHashSize : 64 ≤ moveHashMem.size := by
@@ -1315,7 +1311,7 @@ theorem RD.clipperYankRemoveIdNeMoveToJoin
           simpa using lt_usize 0 (by norm_num)))
     rw [hsizeEq]
     exact le_trans hmoveHashSize (Nat.le_max_left _ _)
-  exact ⟨moveHashMem, aw10, k8379, C8379, rd8379raw, hjoinMemSize⟩
+  exact ⟨k8379, C8379, rd8379raw, hjoinMemSize⟩
 
 set_option maxHeartbeats 4000000 in
 theorem RD.clipperYankRemoveIdNeMoveIndexOobInvalid
