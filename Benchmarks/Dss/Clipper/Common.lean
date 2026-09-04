@@ -63,8 +63,11 @@ The constant covers the largest pointer/length expression used by the generated 
 return code: a 128-byte base, 32-byte array length word, 64-byte ABI prefix, and two `32 * len`
 byte spans. The second conjunct is model-specific: `ByteArray.readWithPadding` handles return
 reads only below `2^64`, so the returned ABI byte length is bounded separately. The calldata
-bound rules out dynamic-ABI inputs that Solm rejects via its signed-size guard while this legacy
-wrapper bytecode checks only the ordinary unsigned head and v1 dynamic-offset/length bounds. -/
+bound explains the apparent ABI mismatch: Clipper's solc 0.6.12 decoder emits a signed `SLT`
+size guard, whereas the older solc 0.5 wrapper bytecode used elsewhere in this development has
+only the ordinary unsigned head and v1 dynamic-offset/length checks. They differ only on enormous
+lengths admitted by the unbounded model, not on concrete EVM calldata; this bound excludes exactly
+that model-only region. -/
 def clipperStorageWF (σ : AccountMap) (I : ExecutionEnv) : Prop :=
   224 + 64 * (solcSlotWord σ I ⟨11⟩).toNat < UInt256.size ∧
     64 + 32 * (solcSlotWord σ I ⟨11⟩).toNat < 2 ^ 64 ∧
