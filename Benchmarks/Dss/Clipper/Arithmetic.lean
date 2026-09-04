@@ -433,6 +433,41 @@ theorem clipperEvalMul256_revert (v : ClipperImmutables) (evm : EVM.State) (x y 
   intro _
   exact_mod_cast hover
 
+theorem clipperEvalAdd256_ok (v : ClipperImmutables) {evm : EVM.State} {locals : Store}
+    {x y : Expr} {a b sum : UInt256}
+    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hsum : sum = a + b) (hfit : a.toNat + b.toNat < UInt256.size) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm (add256 x y) =
+      .ok (.int (Int.ofNat sum.toNat)) := by
+  have hlt : ¬ Int.ofNat (a.toNat + b.toNat) ≥ (2 : Int) ^ 256 :=
+    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
+  have hword : sum.toNat = a.toNat + b.toNat := by
+    rw [hsum, uadd_toNat, Nat.mod_eq_of_lt hfit]
+  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
+    uint256Int, hword]
+  rw [if_neg]
+  · rfl
+  · intro hbad
+    rcases hbad with hbad | hbad
+    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
+    · exact hlt hbad
+
+theorem clipperEvalAdd256_revert (v : ClipperImmutables) {evm : EVM.State}
+    {locals : Store} {x y : Expr} {a b : UInt256}
+    (hx : evalExpr? (config v) { contract := contract v, locals := locals } evm x =
+      .ok (.int (Int.ofNat a.toNat)))
+    (hy : evalExpr? (config v) { contract := contract v, locals := locals } evm y =
+      .ok (.int (Int.ofNat b.toNat)))
+    (hover : UInt256.size ≤ a.toNat + b.toNat) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm (add256 x y) =
+      .revert := by
+  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
+  intro _
+  exact_mod_cast hover
+
 theorem clipperEvalSub256_ok (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256)
     (hle : y.toNat ≤ x.toNat) :
     evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocals x y }
