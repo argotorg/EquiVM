@@ -1333,6 +1333,7 @@ theorem clipperTakeCallbackEncode_eq (v : ClipperImmutables) (I : ExecutionEnv)
     ByteArray.append_assoc]
 
 set_option maxHeartbeats 1000000 in
+set_option maxRecDepth 5000 in
 theorem RD.clipperTakeClipperCallExtcodesizeGuard {code : ByteArray}
     (v : ClipperImmutables)
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
