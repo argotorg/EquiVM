@@ -961,6 +961,6 @@ theorem clipperCtorPatchedRuntime_read (vat : AccountAddress) (ilk : List UInt8)
     (by rw [clipperCtorPatchedRuntime_size])]
   rw [show 9360 = (clipperCtorPatchedRuntime vat ilk).size by
     rw [clipperCtorPatchedRuntime_size]]
-  simpa using byteArray_extract_self (clipperCtorPatchedRuntime vat ilk)
+  simp
 
 end Benchmarks.Dss.Clipper

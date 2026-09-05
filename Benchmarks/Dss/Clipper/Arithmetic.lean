@@ -11,8 +11,8 @@ set_option linter.unusedTactic false
 theorem clipperRuntimePatchesWindowDisjoint32Bool (v : ClipperImmutables)
     (lo hi : Nat)
     (h : patchOffsetsWindowDisjoint32Bool lo hi
-      [1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747,
-       1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936] = true) :
+      [1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936,
+       1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747] = true) :
     PatchesWindowDisjoint32 lo hi (patches v) := by
   apply patchesWindowDisjoint32_of_offsets_bool
   unfold patches patchesFrom offsets immValues
@@ -27,13 +27,13 @@ theorem clipperRuntimeDecodeDisjoint (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {pc : UInt256} {res : Operation × Option (UInt256 × Nat)}
     (hbyte : patchOffsetsWindowDisjoint32Bool pc.toNat (pc.toNat + 1)
-      [1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747,
-       1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936] = true)
+      [1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936,
+       1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747] = true)
     (hargs :
       patchOffsetsWindowDisjoint32Bool (pc.toNat + 1)
         (pc.toNat + 1 + (match res.2 with | none => 0 | some p => p.2))
-        [1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747,
-         1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936] = true)
+        [1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936,
+         1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747] = true)
     (hdec : decode clipperBytecode pc = some res)
     (hi64 : pc.toNat + 1 < 2 ^ 64)
     (harg64 :

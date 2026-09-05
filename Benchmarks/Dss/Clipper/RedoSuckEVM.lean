@@ -321,18 +321,28 @@ theorem clipperRedoVatPatchPayload7936 (v : ClipperImmutables) {code : ByteArray
     { data := (EVM.Word.ofNat (↑v.vat : Nat)).toBytesBE.toArray }
   have hsize : vatBytes.size = 32 := by
     simpa [vatBytes] using word_toBytesBE_toByteArray_size (EVM.Word.ofNat (↑v.vat : Nat))
+  have hpost :
+      PatchesWindowDisjoint32 7936 7968
+        [(1510, ilkBytes), (1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes),
+          (4239, ilkBytes), (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes),
+          (8747, ilkBytes)] := by
+    intro p hp
+    simp only [List.mem_cons, List.mem_nil_iff] at hp
+    rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | hfalse
+    all_goals first | (unfold PatchWindowDisjoint32; omega) | cases hfalse
   exact patchRuntime_extract'_exact_split (template := clipperBytecode)
     (pre :=
+      [(1463, vatBytes), (2437, vatBytes), (3145, vatBytes), (4318, vatBytes),
+       (4441, vatBytes), (4751, vatBytes), (5115, vatBytes), (6295, vatBytes)])
+    (post :=
       [(1510, ilkBytes), (1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes),
        (4239, ilkBytes), (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes),
-       (8747, ilkBytes),
-       (1463, vatBytes), (2437, vatBytes), (3145, vatBytes), (4318, vatBytes),
-       (4441, vatBytes), (4751, vatBytes), (5115, vatBytes), (6295, vatBytes)])
-    (post := []) (off := 7936) (value := vatBytes)
+       (8747, ilkBytes)])
+    (off := 7936) (value := vatBytes)
     (by
       simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord,
         hilk, hlen, List.lookup_cons, ilkBytes, vatBytes] using hpatch)
-    hsize (by simp [PatchesWindowDisjoint32]) (by norm_num) (by norm_num)
+    hsize hpost (by norm_num) (by norm_num)
 
 set_option maxRecDepth 2000000 in
 set_option maxHeartbeats 1000000 in

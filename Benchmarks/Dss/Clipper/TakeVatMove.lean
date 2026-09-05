@@ -264,21 +264,24 @@ theorem clipperTakeVatPatchPayload4751 (v : ClipperImmutables) {code : ByteArray
     simpa [vatBytes] using word_toBytesBE_toByteArray_size (EVM.Word.ofNat (↑v.vat : Nat))
   have hpost :
       PatchesWindowDisjoint32 4751 4783
-        [(5115, vatBytes), (6295, vatBytes), (7936, vatBytes)] := by
+        [(5115, vatBytes), (6295, vatBytes), (7936, vatBytes),
+          (1510, ilkBytes), (1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes),
+          (4239, ilkBytes), (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes),
+          (8747, ilkBytes)] := by
     intro p hp
     simp only [List.mem_cons, List.mem_nil_iff] at hp
-    rcases hp with rfl | rfl | rfl | hfalse
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · cases hfalse
+    rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+      rfl | rfl | hfalse
+    all_goals first | (unfold PatchWindowDisjoint32; omega) | cases hfalse
   exact patchRuntime_extract'_exact_split (template := clipperBytecode)
     (pre :=
-      [(1510, ilkBytes), (1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes),
+      [(1463, vatBytes), (2437, vatBytes), (3145, vatBytes), (4318, vatBytes),
+        (4441, vatBytes)])
+    (post :=
+      [(5115, vatBytes), (6295, vatBytes), (7936, vatBytes),
+        (1510, ilkBytes), (1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes),
         (4239, ilkBytes), (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes),
-        (8747, ilkBytes), (1463, vatBytes), (2437, vatBytes), (3145, vatBytes),
-        (4318, vatBytes), (4441, vatBytes)])
-    (post := [(5115, vatBytes), (6295, vatBytes), (7936, vatBytes)])
+        (8747, ilkBytes)])
     (off := 4751) (value := vatBytes)
     (by
       simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, hilk, hlen,

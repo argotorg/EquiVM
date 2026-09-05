@@ -17,11 +17,8 @@ Contract-wide selector notation and constants for the optimized Clipper runtime.
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
-
 set_option maxRecDepth 2000000
-
 namespace Benchmarks.Dss.Clipper
-
 -- LIBRARY CANDIDATE: `Reasoning.Memory` — compute `MLOAD` expansion cost from the stack top,
 -- matching `mstoreCost_of_stack`.
 theorem mloadCost_of_stack {s : State} {aw off : UInt256} {t : List UInt256} {mcost : ℕ}
@@ -35,7 +32,6 @@ theorem mloadCost_of_stack {s : State} {aw off : UInt256} {t : List UInt256} {mc
     rfl
   rw [htop, haw]
   exact hcost
-
 -- LIBRARY CANDIDATE: `Reasoning.Memory` — compute `RETURN` expansion cost from the
 -- stack offset/length, matching `mstoreCost_of_stack`.
 theorem returnCost_of_stack {s : State} {aw off len : UInt256} {t : List UInt256}
@@ -54,7 +50,6 @@ theorem returnCost_of_stack {s : State} {aw off len : UInt256} {t : List UInt256
     rfl
   rw [h0, h1, haw]
   exact hcost
-
 /-- Clipper states in which the public `list()` getter's byte-level memory arithmetic for
 the `active` array cannot overflow, and dynamic ABI calldata decoding stays in the modeled
 legacy-solc signed-size domain.
@@ -72,24 +67,20 @@ def clipperStorageWF (σ : AccountMap) (I : ExecutionEnv) : Prop :=
   224 + 64 * (solcSlotWord σ I ⟨11⟩).toNat < UInt256.size ∧
     64 + 32 * (solcSlotWord σ I ⟨11⟩).toNat < 2 ^ 64 ∧
       I.calldata.size < 2 ^ 255
-
 theorem clipperStorageWF_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ) :
     clipperStorageWF σ I ↔ clipperStorageWF τ I := by
   have hword : solcSlotWord σ I ⟨11⟩ = solcSlotWord τ I ⟨11⟩ :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨11⟩ ⟨0⟩
   constructor <;> intro h <;> simpa [clipperStorageWF, hword] using h
-
 theorem clipperStorageWF_of_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ) (hwf : clipperStorageWF σ I) :
     clipperStorageWF τ I :=
   (clipperStorageWF_accountMapEquiv hAccounts).mp hwf
-
 theorem clipperStorageWF_calldata_lt_sign {σ : AccountMap} {I : ExecutionEnv}
     (hwf : clipperStorageWF σ I) :
     I.calldata.size < 2 ^ 255 := by
   simpa [clipperStorageWF] using hwf.2.2
-
 -- LIBRARY CANDIDATE: zero-code-size counterpart to extcode-size lookup positivity lemmas.
 theorem clipperExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt256}
     {addr : AccountAddress}
@@ -105,7 +96,6 @@ theorem clipperExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target :
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
-
 -- LIBRARY CANDIDATE: account-map transport for zero-code-size lookup facts.
 theorem clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
     {σ τ : AccountMap} {target : UInt256} {addr : AccountAddress}
@@ -116,7 +106,6 @@ theorem clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
   have hzeroτ : Reasoning.Theory.extCodeSizeWord τ target = ⟨0⟩ := by
     rwa [← Reasoning.Theory.extCodeSizeWord_accountMapEquiv hAccounts target]
   exact clipperExtCodeSizeWord_zero_lookup_code_zero haddr hzeroτ
-
 -- LIBRARY CANDIDATE: account-map transport for nonzero-code-size lookup facts.
 theorem clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
     {σ τ : AccountMap} {target : UInt256} {addr : AccountAddress}
@@ -148,15 +137,12 @@ theorem clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
             · rfl
             · simp [UInt256.toNat, hword] at hzeroNat
       simpa [hacc] using Nat.pos_of_ne_zero htoNatNe
-
 /-- The 4-byte selector word computed by `CALLDATALOAD(0); SHR 224`. -/
 abbrev clipperSelWord (I : ExecutionEnv) : UInt256 :=
   UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩
-
 /-- The 4-byte selector of `I`'s calldata equals `sel`. -/
 abbrev selIs (I : ExecutionEnv) (sel : ByteArray) : Prop :=
   (sel == I.calldata.extract 0 4) = true
-
 /-- Function selectors in `(contract v).transitions` order. -/
 def clipperSelBytes : ℕ → ByteArray
   | 0 => ⟨#[0x80, 0x33, 0xd5, 0x81]⟩  -- active(uint256)

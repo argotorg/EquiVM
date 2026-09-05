@@ -230,6 +230,11 @@ theorem assign_clipperCtorWardsCaller {v : ClipperImmutables}
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw])
     (hstore := hstore)
 
+theorem clipperCtorCallerWardsSlot_eq (I : ExecutionEnv) :
+    wardsSlot (.address I.source) = clipperCtorCallerWardsSlot I := by
+  unfold wardsSlot mapSlot clipperCtorCallerWardsSlot solcMappingSlot solcSourceWord
+  rw [keyValueToWord_address]
+
 private theorem clipperCtor_storageStore_executionEnv (evm : EVM.State)
     (addr : AccountAddress) (slot value : UInt256) :
     (Solm.EVM.storageStore evm addr slot value).executionEnv = evm.executionEnv := by
@@ -265,7 +270,6 @@ theorem clipperCtorBodySuccess
     (v : ClipperImmutables) (vat spotter dog : AccountAddress) (ilk : List UInt8)
     (hwv : I.weiValue = ⟨0⟩) :
     let locals := clipperCtorLocals vat spotter dog ilk
-    let vatLocals := clipperCtorVatLocals vat spotter dog ilk
     let finalLocals := clipperCtorFinalLocals vat spotter dog ilk
     let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
       (Sat256.ofUInt256 g) A I
@@ -276,7 +280,7 @@ theorem clipperCtorBodySuccess
     let evm5 := clipperCtorAfterWardsState evm4
     ExecBlock (config v) { contract := contract v, locals := locals } evm0 constructorDecl.body
       (.ok { contract := contract v, locals := finalLocals } evm5) := by
-  intro locals vatLocals finalLocals evm0 evm1 evm2 evm3 evm4 evm5
+  intro locals finalLocals evm0 evm1 evm2 evm3 evm4 evm5
   have hstopped := assign_clipperCtorStoppedStorage (v := v) evm0 locals
     (by simp [locals, clipperCtorLocals])
   have hspotter := assign_clipperCtorSpotterStorage (v := v) evm1 finalLocals spotter
@@ -291,7 +295,6 @@ theorem clipperCtorBodySuccess
   refine ExecBlock.consNormal (ExecStmt.assign (by simp [evalExpr?, pure]) hstopped) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact evalCallvalueEq_true (by
-      change (clipperCtorAfterStoppedState evm0).executionEnv.weiValue = ⟨0⟩
       rw [clipperCtorAfterStoppedState, clipperCtor_storageStore_executionEnv]
       simpa [evm0, initState] using hwv)
   refine ExecBlock.consNormal (ExecStmt.letDecl (value := .address vat) ?_) ?_
@@ -363,7 +366,6 @@ theorem clipperSolmCtorExecReverts_nonpayable
     refine ExecBlock.consNormal
       (ExecStmt.assign (by simp [evalExpr?, pure]) hstopped) ?_
     exact blockReverts_nonPayable (by
-      change (clipperCtorAfterStoppedState evm0).executionEnv.weiValue ≠ ⟨0⟩
       rw [clipperCtorAfterStoppedState, clipperCtor_storageStore_executionEnv]
       simpa [evm0, initState] using hwv)
   refine solmCtorExec.intro (evmState := evm0)

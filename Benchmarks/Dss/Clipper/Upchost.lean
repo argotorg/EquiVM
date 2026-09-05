@@ -1065,8 +1065,8 @@ abbrev clipperUpchostChostLocals (out outDog : ByteArray) : Store :=
 theorem clipperUpchostPatchesWindowDisjoint32Bool (v : ClipperImmutables)
     (lo hi : Nat)
     (h : patchOffsetsWindowDisjoint32Bool lo hi
-      [1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747,
-       1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936] = true) :
+      [1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936,
+       1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747] = true) :
     PatchesWindowDisjoint32 lo hi (patches v) := by
   apply patchesWindowDisjoint32_of_offsets_bool
   unfold patches patchesFrom offsets immValues
@@ -1081,13 +1081,13 @@ theorem clipperUpchostDecodeDisjoint (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {pc : UInt256} {res : Operation × Option (UInt256 × Nat)}
     (hbyte : patchOffsetsWindowDisjoint32Bool pc.toNat (pc.toNat + 1)
-      [1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747,
-       1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936] = true)
+      [1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936,
+       1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747] = true)
     (hargs :
       patchOffsetsWindowDisjoint32Bool (pc.toNat + 1)
         (pc.toNat + 1 + (match res.2 with | none => 0 | some p => p.2))
-        [1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747,
-         1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936] = true)
+        [1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936,
+         1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747] = true)
     (hdec : decode clipperBytecode pc = some res)
     (hi64 : pc.toNat + 1 < 2 ^ 64)
     (harg64 :
@@ -1122,27 +1122,23 @@ theorem clipperUpchostVatPatchPayload (v : ClipperImmutables) {code : ByteArray}
   have hpost :
       PatchesWindowDisjoint32 1463 1495
         [(2437, vatBytes), (3145, vatBytes), (4318, vatBytes), (4441, vatBytes),
-          (4751, vatBytes), (5115, vatBytes), (6295, vatBytes), (7936, vatBytes)] := by
+          (4751, vatBytes), (5115, vatBytes), (6295, vatBytes), (7936, vatBytes),
+          (1510, ilkBytes), (1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes),
+          (4239, ilkBytes), (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes),
+          (8747, ilkBytes)] := by
     intro p hp
     simp only [List.mem_cons, List.mem_nil_iff] at hp
-    rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | hfalse
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · cases hfalse
+    rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+      rfl | rfl | rfl | rfl | rfl | rfl | rfl | hfalse
+    all_goals first | (unfold PatchWindowDisjoint32; omega) | cases hfalse
   exact patchRuntime_extract'_exact_split (template := clipperBytecode)
-    (pre :=
-      [(1510, ilkBytes), (1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes),
-        (4239, ilkBytes), (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes),
-        (8747, ilkBytes)])
+    (pre := [])
     (post :=
       [(2437, vatBytes), (3145, vatBytes), (4318, vatBytes), (4441, vatBytes),
-        (4751, vatBytes), (5115, vatBytes), (6295, vatBytes), (7936, vatBytes)])
+        (4751, vatBytes), (5115, vatBytes), (6295, vatBytes), (7936, vatBytes),
+        (1510, ilkBytes), (1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes),
+        (4239, ilkBytes), (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes),
+        (8747, ilkBytes)])
     (off := 1463) (value := vatBytes)
     (by
       simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord,
@@ -1166,40 +1162,19 @@ theorem clipperUpchostIlkPatchPayload (v : ClipperImmutables) {code : ByteArray}
   have hpost :
       PatchesWindowDisjoint32 1510 1542
         [(1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes), (4239, ilkBytes),
-          (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes), (8747, ilkBytes),
-          (1463, vatBytes), (2437, vatBytes), (3145, vatBytes), (4318, vatBytes),
-          (4441, vatBytes), (4751, vatBytes), (5115, vatBytes), (6295, vatBytes),
-          (7936, vatBytes)] := by
+          (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes), (8747, ilkBytes)] := by
     intro p hp
     simp only [List.mem_cons, List.mem_nil_iff] at hp
-    rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-      | rfl | rfl | rfl | rfl | rfl | rfl | rfl | hfalse
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · cases hfalse
+    rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | hfalse
+    all_goals first | (unfold PatchWindowDisjoint32; omega) | cases hfalse
   exact patchRuntime_extract'_exact_split (template := clipperBytecode)
-    (pre := [])
-    (post :=
-      [(1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes), (4239, ilkBytes),
-        (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes), (8747, ilkBytes),
-        (1463, vatBytes), (2437, vatBytes), (3145, vatBytes), (4318, vatBytes),
+    (pre :=
+      [(1463, vatBytes), (2437, vatBytes), (3145, vatBytes), (4318, vatBytes),
         (4441, vatBytes), (4751, vatBytes), (5115, vatBytes), (6295, vatBytes),
         (7936, vatBytes)])
+    (post :=
+      [(1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes), (4239, ilkBytes),
+        (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes), (8747, ilkBytes)])
     (off := 1510) (value := ilkBytes)
     (by
       simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, hilk, hlen,
@@ -1223,38 +1198,19 @@ theorem clipperUpchostIlkPatchPayload1661 (v : ClipperImmutables) {code : ByteAr
   have hpost :
       PatchesWindowDisjoint32 1661 1693
         [(2221, ilkBytes), (2369, ilkBytes), (4239, ilkBytes), (4866, ilkBytes),
-          (5046, ilkBytes), (6800, ilkBytes), (8747, ilkBytes),
-          (1463, vatBytes), (2437, vatBytes), (3145, vatBytes), (4318, vatBytes),
-          (4441, vatBytes), (4751, vatBytes), (5115, vatBytes), (6295, vatBytes),
-          (7936, vatBytes)] := by
+          (5046, ilkBytes), (6800, ilkBytes), (8747, ilkBytes)] := by
     intro p hp
     simp only [List.mem_cons, List.mem_nil_iff] at hp
-    rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
-      | rfl | rfl | rfl | rfl | rfl | rfl | hfalse
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · unfold PatchWindowDisjoint32; omega
-    · cases hfalse
+    rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | hfalse
+    all_goals first | (unfold PatchWindowDisjoint32; omega) | cases hfalse
   exact patchRuntime_extract'_exact_split (template := clipperBytecode)
-    (pre := [(1510, ilkBytes)])
+    (pre :=
+      [(1463, vatBytes), (2437, vatBytes), (3145, vatBytes), (4318, vatBytes),
+        (4441, vatBytes), (4751, vatBytes), (5115, vatBytes), (6295, vatBytes),
+        (7936, vatBytes), (1510, ilkBytes)])
     (post :=
       [(2221, ilkBytes), (2369, ilkBytes), (4239, ilkBytes), (4866, ilkBytes),
-        (5046, ilkBytes), (6800, ilkBytes), (8747, ilkBytes), (1463, vatBytes),
-        (2437, vatBytes), (3145, vatBytes), (4318, vatBytes), (4441, vatBytes),
-        (4751, vatBytes), (5115, vatBytes), (6295, vatBytes), (7936, vatBytes)])
+        (5046, ilkBytes), (6800, ilkBytes), (8747, ilkBytes)])
     (off := 1661) (value := ilkBytes)
     (by
       simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord, hilk, hlen,
