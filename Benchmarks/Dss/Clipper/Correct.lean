@@ -32,11 +32,10 @@ import Benchmarks.Dss.Clipper.Yank
 import Solm.Equiv
 
 /-!
-# MakerDAO/Sky DSS Clipper benchmark correctness stub
+# MakerDAO/Sky DSS Clipper benchmark correctness
 
-The upstream Solidity source, optimized runtime bytecode, Solm AST spec, and Solm syntax companion
-are present. The runtime-equivalence proof is intentionally left as the benchmark target. This file
-also exposes the whole-contract wrapper that combines the constructor and runtime targets.
+This file proves runtime equivalence and exposes the whole-contract wrapper combining it with
+constructor equivalence.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
