@@ -54,6 +54,47 @@ def localBytesLength (name : Ident) : Expr :=
 def errorStringPayload (name : Ident) : Expr :=
   .bytesSlice (.var name) (.intLit 4) (localBytesLength name)
 
+def errorStringReturndataLongEnough (name : Ident) : Expr :=
+  .binary .ge (localBytesLength name) (.intLit 68)
+
+def solcMaxU64Expr : Expr :=
+  .intLit (Int.ofNat ABI.solcMaxU64)
+
+def errorStringOffsetDecode (name : Ident) : Expr :=
+  .abiDecode uint256 (errorStringPayload name)
+
+def errorStringOffsetInBounds (name offsetName : Ident) : Expr :=
+  .binary .le (.binary .add (.var offsetName) (.intLit 36)) (localBytesLength name)
+
+def errorStringLengthWord (name offsetName : Ident) : Expr :=
+  .bytesSlice (errorStringPayload name) (.var offsetName)
+    (.binary .add (.var offsetName) (.intLit 32))
+
+def errorStringLengthDecode (name offsetName : Ident) : Expr :=
+  .abiDecode uint256 (errorStringLengthWord name offsetName)
+
+def errorStringPayloadInBounds (name offsetName lengthName : Ident) : Expr :=
+  .binary .le
+    (.binary .add (.binary .add (.var offsetName) (.var lengthName)) (.intLit 36))
+    (localBytesLength name)
+
+def solcWordAlignMaskExpr : Expr :=
+  .intLit (Int.ofNat (Ethereum.UInt256.size - 32))
+
+def errorStringRoundedAllocSize (offset length : Expr) : Expr :=
+  .binary .bitAnd solcWordAlignMaskExpr
+    (.binary .add (.binary .add (.binary .add offset length) (.intLit 32)) (.intLit 31))
+
+def errorStringNewFreePtr (offsetName lengthName : Ident) : Expr :=
+  .binary .add (.intLit 128)
+    (errorStringRoundedAllocSize (.var offsetName) (.var lengthName))
+
+def errorStringAllocationWithinU64 (offsetName lengthName : Ident) : Expr :=
+  .binary .le (errorStringNewFreePtr offsetName lengthName) solcMaxU64Expr
+
+def errorStringAllocationNoWrap (offsetName lengthName : Ident) : Expr :=
+  .binary .ge (errorStringNewFreePtr offsetName lengthName) (.intLit 128)
+
 def initializedRef : StorageRef := { base := "_initialized" }
 def initializingRef : StorageRef := { base := "_initializing" }
 def pausedRef : StorageRef := { base := "_paused" }
@@ -173,7 +214,16 @@ def createAuctionFn : FunctionDecl :=
           "err"
           [ .ite (.binary .eq (.bytesSlice (.var "err") (.intLit 0) (.intLit 4))
                               (.bytesLit errorStringSelector))
-              [ .letDecl "_errString" (some .string) (.abiDecode .string (errorStringPayload "err")),
+              [ .require (errorStringReturndataLongEnough "err"),
+                .letDecl "_errOffset" (some uint256) (errorStringOffsetDecode "err"),
+                .require (.binary .le (.var "_errOffset") solcMaxU64Expr),
+                .require (errorStringOffsetInBounds "err" "_errOffset"),
+                .letDecl "_errLength" (some uint256) (errorStringLengthDecode "err" "_errOffset"),
+                .require (.binary .le (.var "_errLength") solcMaxU64Expr),
+                .require (errorStringPayloadInBounds "err" "_errOffset" "_errLength"),
+                .require (errorStringAllocationWithinU64 "_errOffset" "_errLength"),
+                .require (errorStringAllocationNoWrap "_errOffset" "_errLength"),
+                .letDecl "_errString" (some .string) (.abiDecode .string (errorStringPayload "err")),
                 .require (.unary .not (.storage pausedRef)),
                 .assign .storage pausedRef (.boolLit true) ]
               [ .require (.boolLit false) ] ] ] }
@@ -414,7 +464,7 @@ def auctionGetter : TransitionDecl :=
 
 def constructorDecl : ConstructorDecl :=
   { params := []
-    body := [] }
+    body := [nonpayable] }
 
 def auctionContract : ContractDecl :=
   { name := "NounsAuctionHouse"
