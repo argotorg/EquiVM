@@ -16,6 +16,8 @@ set_option maxRecDepth 2000000
 set_option maxHeartbeats 2000000
 set_option linter.unusedSimpArgs false
 
+abbrev clipperCtorRayWord : UInt256 := ⟨1000000000000000000000000000⟩
+
 def clipperCtorArgsTail (vat spotter dog : AccountAddress) (ilk : List UInt8) : ByteArray :=
   (EVM.Word.toBytesBE (EVM.word vat.val)).toByteArray ++
   (EVM.Word.toBytesBE (EVM.word spotter.val)).toByteArray ++
@@ -573,8 +575,6 @@ theorem clipperCtorIlkMem_read64 (vat spotter dog : AccountAddress)
     (clipperCtorIlkMem vat spotter dog ilk).readWithPadding 64 32 =
       UInt256.toByteArray (⟨320⟩ : UInt256) := by
   unfold clipperCtorIlkMem
-  change (writeWord (clipperCtorVatMem vat spotter dog ilk) 128
-    (ABI.bytesToWord ilk)).readWithPadding 64 32 = _
   rw [writeWord_read_preserved]
   · unfold clipperCtorVatMem
     rw [writeWord_read_preserved]
@@ -589,20 +589,20 @@ theorem clipperCtorIlkMem_read64 (vat spotter dog : AccountAddress)
       constructor
       · norm_num
       · rw [clipperCtorArgFreeMem_size _ _ _ _ hilk]
+        omega
   · rw [clipperCtorVatMem_size _ _ _ _ hilk]
     exact lt_usize _ (by norm_num)
   · left
     constructor
     · norm_num
     · rw [clipperCtorVatMem_size _ _ _ _ hilk]
+      omega
 
 theorem clipperCtorIlkMem_read128 (vat spotter dog : AccountAddress)
     (ilk : List UInt8) (hilk : ilk.length = 32) :
     (clipperCtorIlkMem vat spotter dog ilk).readWithPadding 128 32 =
       UInt256.toByteArray (ABI.bytesToWord ilk) := by
   unfold clipperCtorIlkMem
-  change (writeWord (clipperCtorVatMem vat spotter dog ilk) 128
-    (ABI.bytesToWord ilk)).readWithPadding 128 32 = _
   exact writeWord_read_back (clipperCtorVatMem vat spotter dog ilk) 128
     (ABI.bytesToWord ilk) (by
       rw [clipperCtorVatMem_size _ _ _ _ hilk]
@@ -613,8 +613,6 @@ theorem clipperCtorIlkMem_read160 (vat spotter dog : AccountAddress)
     (clipperCtorIlkMem vat spotter dog ilk).readWithPadding 160 32 =
       UInt256.toByteArray (UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩) := by
   unfold clipperCtorIlkMem
-  change (writeWord (clipperCtorVatMem vat spotter dog ilk) 128
-    (ABI.bytesToWord ilk)).readWithPadding 160 32 = _
   rw [writeWord_read_preserved]
   · exact writeWord_read_back (clipperCtorArgFreeMem vat spotter dog ilk) 160
       (UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩) (by
@@ -834,5 +832,135 @@ theorem clipperCtorWardsHashMem_mload160_shr96 (I : ExecutionEnv)
          (⟨160⟩ : UInt256).toNat 32))) ⟨96⟩ = EVM.word vat.val
   rw [hload]
   exact clipperCtorAddressHighShiftDecode vat
+
+private theorem write0_eq_extract_from_of_base_le (src base : ByteArray)
+    (srcAddr len : Nat) (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
+    (hbase : base.size ≤ len) :
+    src.write srcAddr base 0 len = src.extract srcAddr (srcAddr + len) := by
+  apply ByteArray.ext
+  rw [write0_data_from src base srcAddr len hlen hsrc]
+  rw [show base.data.extract len base.data.size = (#[] : Array UInt8) from by
+    apply Array.extract_eq_empty_of_le
+    rw [show base.data.size = base.size from rfl]
+    simpa using hbase]
+  simp
+
+theorem clipperCtorRuntime_codecopy_mem (I : ExecutionEnv)
+    (vat spotter dog : AccountAddress) (ilk : List UInt8) (hilk : ilk.length = 32) :
+    (clipperCtorCode vat spotter dog ilk).write 347
+        (clipperCtorWardsHashMem I vat spotter dog ilk) 0 9360 = clipperBytecode := by
+  rw [write0_eq_extract_from_of_base_le]
+  · exact clipperCtorCode_runtime_window vat spotter dog ilk
+  · norm_num
+  · rw [clipperCtorCode_size _ _ _ _ hilk]
+    norm_num
+  · rw [clipperCtorWardsHashMem_size _ _ _ _ _ hilk]
+    norm_num
+
+def clipperCtorRuntimeWrites (vat : AccountAddress) (ilk : List UInt8) :
+    List (Nat × UInt256) :=
+  [ (1463, EVM.word vat.val), (2437, EVM.word vat.val),
+    (3145, EVM.word vat.val), (4318, EVM.word vat.val),
+    (4441, EVM.word vat.val), (4751, EVM.word vat.val),
+    (5115, EVM.word vat.val), (6295, EVM.word vat.val),
+    (7936, EVM.word vat.val),
+    (1510, ABI.bytesToWord ilk), (1661, ABI.bytesToWord ilk),
+    (2221, ABI.bytesToWord ilk), (2369, ABI.bytesToWord ilk),
+    (4239, ABI.bytesToWord ilk), (4866, ABI.bytesToWord ilk),
+    (5046, ABI.bytesToWord ilk), (6800, ABI.bytesToWord ilk),
+    (8747, ABI.bytesToWord ilk) ]
+
+noncomputable def clipperCtorPatchedRuntime (vat : AccountAddress)
+    (ilk : List UInt8) : ByteArray :=
+  writeCascade clipperBytecode (clipperCtorRuntimeWrites vat ilk)
+
+def clipperCtorImmutables (vat : AccountAddress) (ilk : List UInt8)
+    (hilk : ilk.length = 32) : ClipperImmutables :=
+  { ilk := .fixedBytes bytes32Width ilk
+    vat := vat
+    ilk_wf := ⟨ilk, rfl, hilk⟩ }
+
+private theorem spliceBytes_toByteArray_eq_writeWord (mem : ByteArray) (off : Nat)
+    (w : UInt256) (h : off + 32 ≤ mem.size) :
+    spliceBytes? mem off (UInt256.toByteArray w) = some (writeWord mem off w) := by
+  unfold spliceBytes? Reasoning.Theory.writeWord
+  rw [toByteArray_size, if_pos h]
+  rw [write32_eq _ _ _ (by rw [toByteArray_size]) (by omega)]
+  rw [toByteArray_extract_all]
+
+private theorem patchRuntime_wordWrites_eq_writeCascade
+    (mem : ByteArray) (writes : List (Nat × UInt256))
+    (hfit : ∀ p ∈ writes, p.1 + 32 ≤ mem.size) :
+    patchRuntime mem (writes.map fun p => (p.1, UInt256.toByteArray p.2)) =
+      some (writeCascade mem writes) := by
+  induction writes generalizing mem with
+  | nil => rfl
+  | cons p rest ih =>
+      rcases p with ⟨off, word⟩
+      have hoff : off + 32 ≤ mem.size := hfit (off, word) (by simp)
+      have hgap : off - mem.size < USize.size := by
+        rw [Nat.sub_eq_zero_of_le (by omega)]
+        exact lt_usize 0 (by norm_num)
+      have hsize : (writeWord mem off word).size = mem.size := by
+        rw [writeWord_size mem off word hgap]
+        omega
+      have hrest : ∀ p ∈ rest, p.1 + 32 ≤ (writeWord mem off word).size := by
+        intro p hp
+        rw [hsize]
+        exact hfit p (by simp [hp])
+      simp only [List.map_cons, patchRuntime, List.foldlM_cons,
+        Option.bind_eq_bind, toByteArray_size, ↓reduceIte]
+      rw [spliceBytes_toByteArray_eq_writeWord mem off word hoff]
+      simpa [writeCascade] using ih (writeWord mem off word) hrest
+
+private theorem word_toBytesBE_array_eq_toByteArray (w : UInt256) :
+    (ByteArray.mk (EVM.Word.toBytesBE w).toArray) = UInt256.toByteArray w := by
+  rw [← word_toBytesBE_toByteArray_eq_toByteArray]
+  apply ByteArray.ext
+  apply Array.toList_inj.mp
+  rw [List.toList_data_toByteArray]
+
+theorem clipperPatchRuntime_eq_ctorPatchedRuntime (vat : AccountAddress)
+    (ilk : List UInt8) (hilk : ilk.length = 32) :
+    patchRuntime clipperBytecode (patches (clipperCtorImmutables vat ilk hilk)) =
+      some (clipperCtorPatchedRuntime vat ilk) := by
+  have hpatches :
+      patches (clipperCtorImmutables vat ilk hilk) =
+        (clipperCtorRuntimeWrites vat ilk).map
+          (fun p => (p.1, UInt256.toByteArray p.2)) := by
+    simp [patches, patchesFrom, offsets, immValues, clipperCtorImmutables,
+      clipperCtorRuntimeWrites, wordBytes?, valueToWord, hilk, bytes32Width,
+      List.lookup_cons]
+    constructor
+    · exact word_toBytesBE_array_eq_toByteArray (EVM.word vat.val)
+    · simpa [ABI.bytesToWord, fromByteArrayBigEndian, byteArray_toList_eq] using
+        word_toBytesBE_array_eq_toByteArray
+          (EVM.Word.ofNat (fromBytesBigEndian ilk))
+  rw [hpatches]
+  unfold clipperCtorPatchedRuntime
+  apply patchRuntime_wordWrites_eq_writeCascade
+  intro p hp
+  simp [clipperCtorRuntimeWrites] at hp
+  rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+    rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  all_goals rw [clipperBytecode_size]
+  all_goals norm_num
+
+theorem clipperCtorPatchedRuntime_size (vat : AccountAddress) (ilk : List UInt8) :
+    (clipperCtorPatchedRuntime vat ilk).size = 9360 := by
+  unfold clipperCtorPatchedRuntime
+  exact writeCascade_size_of_base clipperBytecode (clipperCtorRuntimeWrites vat ilk)
+    (base := 9360) (out := 9360) (by native_decide)
+    (by simp [clipperCtorRuntimeWrites, WriteGapsOk])
+    (by simp [clipperCtorRuntimeWrites, writeCascadeSize])
+
+theorem clipperCtorPatchedRuntime_read (vat : AccountAddress) (ilk : List UInt8) :
+    (clipperCtorPatchedRuntime vat ilk).readWithPadding 0 9360 =
+      clipperCtorPatchedRuntime vat ilk := by
+  rw [readWithPadding_eq_extract' _ 0 9360 (by norm_num) (by norm_num)
+    (by rw [clipperCtorPatchedRuntime_size])]
+  rw [show 9360 = (clipperCtorPatchedRuntime vat ilk).size by
+    rw [clipperCtorPatchedRuntime_size]]
+  simpa using byteArray_extract_self (clipperCtorPatchedRuntime vat ilk)
 
 end Benchmarks.Dss.Clipper
