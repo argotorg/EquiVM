@@ -84,7 +84,7 @@ theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
                                 hAccounts
                             · by_cases hkick : selIs I (clipperSelBytes 13)
                               · exact clipperKickBody v hcode hIcode hsize hperm hwv hkick
-                                  hAccounts
+                                  hAccounts hStorageWF
                               · by_cases hkicks : selIs I (clipperSelBytes 14)
                                 · exact clipperKicksBody v hcode hIcode hsize hperm hwv
                                     hkicks hAccounts

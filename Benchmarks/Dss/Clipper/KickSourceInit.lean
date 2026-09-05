@@ -157,6 +157,38 @@ theorem evalExpr_clipperStopped_lt_one (v : ClipperImmutables)
   simp [evalBinaryOp?]
   omega
 
+theorem evalExpr_clipperStopped_lt_one_false (v : ClipperImmutables)
+    (evm : EVM.State) (locals : Store) (hbase : locals.get? "stopped" = none)
+    (hload : 1 ≤ (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨14⟩).toNat) :
+    evalExpr? (config v) { contract := contract v, locals := locals } evm
+      (.binary .lt (.storage stoppedRef) (.intLit 1)) = .ok (.bool false) := by
+  have hstorage :
+      evalExpr? (config v) { contract := contract v, locals := locals } evm
+        (.storage stoppedRef) =
+          .ok (.int (Int.ofNat
+            (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨14⟩).toNat)) := by
+    exact evalExpr_storage_scalar_value
+      (cfg := config v)
+      (solm := { contract := contract v, locals := locals })
+      (slot := stoppedRef)
+      (er := { base := "stopped", steps := [] })
+      (t := .int uint256Int)
+      (loc := wordLoc ⟨14⟩)
+      (hbase := hbase)
+      (her := by
+        simp only [stoppedRef, evalStorageRef, evalStorageRefSteps]
+        rfl)
+      (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
+      (hloc := by rfl)
+      (hload := by simpa using clipperStorageLocLoad_uint256 evm ⟨14⟩)
+  simp only [evalExpr?, hstorage, EvalResult.bind, bind, pure]
+  change evalBinaryOp? BinaryOp.lt
+      (.int (Int.ofNat
+        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨14⟩).toNat))
+      (.int 1) = .ok (.bool false)
+  simp [evalBinaryOp?]
+  omega
+
 theorem clipperEvalKickTabPositive (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (h : 0 < (clipperKickTabWord I).toNat) :
     evalExpr? (config v) { contract := contract v, locals := clipperKickStore I } evm
@@ -171,6 +203,19 @@ theorem clipperEvalKickTabPositive (v : ClipperImmutables) (evm : EVM.State)
   simpa [evalExpr?, htab, clipperKickTabValue, EvalResult.bind, bind,
     evalBinaryOp?] using h
 
+theorem clipperEvalKickTabNotPositive (v : ClipperImmutables) (evm : EVM.State)
+    (I : ExecutionEnv) (h : ¬ 0 < (clipperKickTabWord I).toNat) :
+    evalExpr? (config v) { contract := contract v, locals := clipperKickStore I } evm
+      (.binary .gt (.var "tab") (.intLit 0)) = .ok (.bool false) := by
+  have htab :
+      evalExpr? (config v) { contract := contract v, locals := clipperKickStore I } evm
+        (.var "tab") = .ok (clipperKickTabValue I) := by
+    simp only [evalExpr?, clipperKickStore]
+    rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide),
+      store_get_ne _ _ (by decide), store_get_self]
+    rfl
+  simp [evalExpr?, htab, clipperKickTabValue, EvalResult.bind, bind, evalBinaryOp?, h]
+
 theorem clipperEvalKickLotPositive (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (h : 0 < (clipperKickLotWord I).toNat) :
     evalExpr? (config v) { contract := contract v, locals := clipperKickStore I } evm
@@ -183,6 +228,18 @@ theorem clipperEvalKickLotPositive (v : ClipperImmutables) (evm : EVM.State)
     rfl
   simpa [evalExpr?, hlot, clipperKickLotValue, EvalResult.bind, bind,
     evalBinaryOp?] using h
+
+theorem clipperEvalKickLotNotPositive (v : ClipperImmutables) (evm : EVM.State)
+    (I : ExecutionEnv) (h : ¬ 0 < (clipperKickLotWord I).toNat) :
+    evalExpr? (config v) { contract := contract v, locals := clipperKickStore I } evm
+      (.binary .gt (.var "lot") (.intLit 0)) = .ok (.bool false) := by
+  have hlot :
+      evalExpr? (config v) { contract := contract v, locals := clipperKickStore I } evm
+        (.var "lot") = .ok (clipperKickLotValue I) := by
+    simp only [evalExpr?, clipperKickStore]
+    rw [store_get_ne _ _ (by decide), store_get_ne _ _ (by decide), store_get_self]
+    rfl
+  simp [evalExpr?, hlot, clipperKickLotValue, EvalResult.bind, bind, evalBinaryOp?, h]
 
 theorem clipperEvalKickUsrNonzero (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (h : clipperKickUsrMaskedWord I ≠ ⟨0⟩) :
@@ -291,6 +348,25 @@ theorem clipperEvalKickIdPositive (v : ClipperImmutables) (evm : EVM.State)
         .ok (.int (Int.ofNat (clipperKickSourceIdWord evm).toNat)) := by
     simp only [evalExpr?, clipperKickLocalsId, store_get_self, EvalResult.ofOption]
   simpa [evalExpr?, hid, EvalResult.bind, bind, evalBinaryOp?] using hpos
+
+theorem clipperEvalKickIdNotPositive (v : ClipperImmutables) (evm : EVM.State)
+    (I : ExecutionEnv) (h : clipperKickSourceIdWord evm = ⟨0⟩) :
+    evalExpr? (config v)
+      { contract := contract v, locals := clipperKickLocalsId evm I }
+      (clipperKickSourceIdState evm)
+      (.binary .gt (.var "id") (.intLit 0)) = .ok (.bool false) := by
+  have hid :
+      evalExpr? (config v)
+        { contract := contract v, locals := clipperKickLocalsId evm I }
+        (clipperKickSourceIdState evm) (.var "id") =
+        .ok (.int (Int.ofNat (clipperKickSourceIdWord evm).toNat)) := by
+    simp only [evalExpr?, clipperKickLocalsId, store_get_self, EvalResult.ofOption]
+  simp only [evalExpr?, hid, EvalResult.bind, bind, pure]
+  change evalBinaryOp? .gt
+      (.int (Int.ofNat (clipperKickSourceIdWord evm).toNat)) (.int 0) =
+        .ok (.bool false)
+  rw [h]
+  native_decide
 
 theorem clipperKickPushActive (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv)
@@ -541,6 +617,26 @@ theorem clipperKickUsrValue_masked (I : ExecutionEnv) :
       .address (AccountAddress.ofNat (clipperKickUsrMaskedWord I).toNat) := by
   simpa [clipperKickUsrValue, clipperKickUsrMaskedWord] using
     (solcAddressValue_masked (clipperKickUsrWord I))
+
+theorem clipperEvalKickUsrZero (v : ClipperImmutables) (evm : EVM.State)
+    (I : ExecutionEnv) (h : clipperKickUsrMaskedWord I = ⟨0⟩) :
+    evalExpr? (config v) { contract := contract v, locals := clipperKickStore I } evm
+      (.binary .ne (.var "usr") zeroAddr) = .ok (.bool false) := by
+  have husr :
+      evalExpr? (config v) { contract := contract v, locals := clipperKickStore I } evm
+        (.var "usr") = .ok (clipperKickUsrValue I) := by
+    simp only [evalExpr?, clipperKickStore]
+    rw [store_get_ne _ _ (by decide), store_get_self]
+    rfl
+  have hzero :
+      evalExpr? (config v) { contract := contract v, locals := clipperKickStore I } evm
+        zeroAddr = .ok (.address (AccountAddress.ofNat 0)) := by
+    simp [zeroAddr, addrSt, evalExpr?, castValue?, EvalResult.bind,
+      EvalResult.ofOption, pure, bind]
+  rw [clipperKickUsrValue_masked I] at husr
+  simp only [evalExpr?, husr, hzero, EvalResult.bind, bind]
+  rw [h]
+  native_decide
 
 theorem clipperKickAssignSalesUsr (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv) :

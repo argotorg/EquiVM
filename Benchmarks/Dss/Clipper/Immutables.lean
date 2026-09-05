@@ -31,8 +31,11 @@ def ilkExpr : Expr :=
 def vatExpr : Expr := addrLit v.vat
 
 def offsets : List (Ident × List Nat) :=
-  [ ("imm_ilk", [1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747]),
-    ("imm_vat", [1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936]) ]
+  -- The groups follow the constructor's actual write order.  The `vat` and `ilk` windows are
+  -- disjoint, so this ordering does not change the deployed runtime bytes; it only keeps the
+  -- symbolic patch cascade aligned with the creation-bytecode trace.
+  [ ("imm_vat", [1463, 2437, 3145, 4318, 4441, 4751, 5115, 6295, 7936]),
+    ("imm_ilk", [1510, 1661, 2221, 2369, 4239, 4866, 5046, 6800, 8747]) ]
 
 def immValues (v : ClipperImmutables) : List (Ident × Value) :=
   [("imm_ilk", v.ilk), ("imm_vat", .address v.vat)]

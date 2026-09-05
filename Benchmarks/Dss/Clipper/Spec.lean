@@ -308,7 +308,7 @@ def constructorDecl : ConstructorDecl :=
       [ { name := "vat_", ty := addr }, { name := "spotter_", ty := addr },
         { name := "dog_", ty := addr }, { name := "ilk_", ty := bytes32 } ]
     body :=
-      nonpayable ++
+      [ .assign .storage stoppedRef (.intLit 0) ] ++ nonpayable ++
       [ .letDecl "imm_vat" (some addr) (.var "vat_"),
         .letDecl "imm_ilk" (some bytes32) (.var "ilk_"),
         .assign .storage spotterRef (.var "spotter_"),

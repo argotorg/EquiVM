@@ -1,4 +1,85 @@
-import Benchmarks.Dss.Clipper.KickEventEVM
-open Ethereum
-example (n : UInt256) : UInt256.sub n ⟨1⟩ = n + UInt256.lnot ⟨0⟩ := by
-  rfl
+import Benchmarks.Dss.Clipper.KickRevertEVM
+import Benchmarks.Dss.Clipper.KickStateEquiv
+import Benchmarks.Dss.Clipper.KickFeedPriceSimulation
+
+open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
+open Benchmarks.Dss.Clipper.Immutables
+open Benchmarks.Dss.Clipper
+
+#check clipperGetFeedPriceCallRevertsSpotterIlksNoCode
+#check clipperGetFeedPriceCallRevertsSpotterIlksCallFailure
+#check clipperGetFeedPriceCallRevertsSpotterIlksDecode
+#check clipperSpotterIlksDecode_ok
+#check clipperGetFeedPriceCallRevertsPipPeekNoCode
+#check clipperGetFeedPriceCallRevertsPipPeekCallFailure
+#check clipperGetFeedPriceCallRevertsPipPeekDecode
+#check clipperGetFeedPriceCallRevertsPipPeekHasFalse
+#check clipperGetFeedPricePrefixToHas
+#check clipperGetFeedPriceSuccessCallRevertsOfTail
+#check clipperGetFeedPriceSuccessCallReturnsOfTail
+#check clipperGetFeedPriceTailRevertsValBlnOverflow
+#check clipperGetFeedPriceTailRevertsParNoCode
+#check clipperGetFeedPriceTailRevertsParCallFailure
+#check clipperGetFeedPriceTailRevertsParDecode
+#check clipperGetFeedPriceTailOfParSuccess
+#check clipperGetFeedPriceRdivRevertsMul
+#check clipperGetFeedPriceRdivRevertsDivZero
+#check clipperGetFeedPriceRdivReturns
+#check RD.clipperGetFeedPriceValBlnOverflowReverts
+#check RD.clipperGetFeedPriceRdivSuccess
+#check clipperExtCodeSizeWord_zero_lookup_code_zero_of_accountMapEquiv
+#check clipperExtCodeSizeWord_ne_zero_lookup_code_pos_of_accountMapEquiv
+#check accountMapEquiv_storage_findD
+#check RD.clipperKickGetFeedPriceSpotterIlksPostCall
+#check RD.clipperKickGetFeedPriceSpotterIlksDecodeOkToPipPeekExtcodesizeGuard
+#check RD.clipperGetFeedPricePipPeekNoCode
+#check RD.clipperKickGetFeedPricePipPeekPostCall
+#check RD.clipperGetFeedPricePipPeekCallFailure
+#check RD.clipperGetFeedPricePipPeekCallSuccessToDecode
+#check RD.clipperKickGetFeedPricePipPeekDecodeShortReverts
+#check RD.clipperKickGetFeedPricePipPeekHasFalseReverts
+#check RD.clipperKickGetFeedPricePipPeekHasTrueToValBln
+#check RD.clipperKickGetFeedPriceValBlnToParExtcodesizeGuard
+#check RD.clipperGetFeedPriceParNoCode
+#check RD.clipperKickGetFeedPriceParPostCall
+#check RD.clipperGetFeedPriceParCallFailure
+#check RD.clipperGetFeedPriceParCallSuccessToDecode
+#check RD.clipperKickGetFeedPriceParDecodeShortReverts
+#check RD.clipperKickGetFeedPriceParDecodeOkToRdiv
+#check typedCallViaEVM_accountMapEquiv_noSubstate
+#check RD.clipperKickGetFeedPriceToRmul
+#check RD.clipperKickRmulOverflowReverts
+#check RD.clipperKickRmulSuccess
+#check RD.clipperKickTopZeroReverts
+#check RD.clipperKickTopPositiveToIncentive
+#check RD.clipperKickIncentiveInactive
+#check RD.clipperKickIncentiveActive
+#check RD.clipperKickIncentiveToWmul
+#check RD.clipperKickIncentiveWmulToCheckedAdd
+#check RD.clipperKickIncentiveAddSuccess
+#check RD.clipperKickIncentiveToSuckGuard
+#check RD.clipperKickSuckNoCode
+#check RD.clipperKickSuckPostCall
+#check RD.clipperKickSuckCallFailure
+#check RD.clipperKickSuckCallSuccess
+#check RD.clipperKickEventUnlockReturnFrom228
+#check RD.clipperKickEventUnlockReturnFrom192
+#check clipperKickAfterInitializationSuccessPrefix
+#check clipperKickAfterInitializationRmulReverts
+#check clipperKickAfterInitializationTopZeroReverts
+#check clipperKickIncentiveInactiveTail
+#check clipperKickIncentiveWmulReverts
+#check clipperKickIncentiveAddReverts
+#check clipperKickIncentiveSuckReverts
+#check clipperKickIncentiveSucceeds
+#check sstoreAccountMap_storage_findD_ne
+#check storageLoad_storageStore_ne
+#check storageStore_executionEnv
+#check storageStore_createdAccounts
+
+#eval offsets
+#eval (patches ({
+  ilk := .fixedBytes bytes32Width (EVM.Word.toBytesBE (⟨1⟩ : UInt256))
+  vat := 2
+  ilk_wf := ⟨_, rfl, by native_decide⟩
+} : ClipperImmutables)).map Prod.fst
