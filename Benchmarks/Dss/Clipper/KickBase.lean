@@ -1,4 +1,4 @@
-import Benchmarks.Dss.Clipper.Dispatch
+import Benchmarks.Dss.Clipper.Fallback
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Benchmarks.Dss.Clipper.Immutables
@@ -290,14 +290,178 @@ theorem clipperDecode_kick_none_short (v : ClipperImmutables) {I : ExecutionEnv}
       (cd := I.calldata) (w := "tab") (x := "lot") (y := "usr") (z := "kpr")
       hsz4 hshort
 
-theorem clipperKickBody (v : ClipperImmutables) {code : ByteArray}
-    (_hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
-    (_hcode : I.code = code) (_hsize : I.calldata.size < UInt256.size)
-    (_hperm : I.perm = true) (_hwv : I.weiValue = ⟨0⟩)
-    (_hsel : selIs I (clipperSelBytes 13))
-    (_hAccounts : accountMapEquiv σ_evm σ_solm) :
-    runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
-  sorry
+abbrev clipperKickUsrMaskedWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.land solcAddrMask (clipperKickUsrWord I)
+
+abbrev clipperKickKprMaskedWord (I : ExecutionEnv) : UInt256 :=
+  UInt256.land solcAddrMask (clipperKickKprWord I)
+
+theorem clipperKickSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
+    (hsel : selIs I (clipperSelBytes 13)) :
+    clipperSelWord I = clipperSelNat 13 := by
+  simpa [clipperSelWord, solcSelectorWord, clipperSelNat] using
+    solcSelectorWord_eq_of_beq I hsz 0x89 0x8e 0xb2 0x67 (clipperSelNat 13)
+      (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
+
+set_option maxHeartbeats 1000000 in
+theorem clipperReachKickEntry {cA gh bl σ σ₀ A I} {g : Sat256}
+    (v : ClipperImmutables)
+    {code : ByteArray} (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    (hcode : I.code = code) (hwv : I.weiValue = ⟨0⟩)
+    (hsz : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hsel : selIs I (clipperSelBytes 13)) :
+    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1057⟩ : UInt256)
+      [clipperSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
+      (cA, σ) k C := by
+  obtain ⟨_, _, h32⟩ := clipperReachRoot (cA := cA) (gh := gh) (bl := bl)
+    (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) v hpatch hcode hwv hsz hsize
+  have hword := clipperKickSelectorWord hsz hsel
+  have h43 := clipperSplitNotTaken (pc := (⟨32⟩ : UInt256))
+    (next := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 20)
+    (tgt := (⟨260⟩ : UInt256)) h32
+    (by clipper_decode) (by clipper_decode) (by clipper_decode) (by decide)
+    (by clipper_decode) (by clipper_decode)
+    (by rw [hword]; native_decide) (by native_decide) (by simp)
+  have h162 := clipperSplitTaken (pc := (⟨43⟩ : UInt256))
+    (pivot := clipperSelNat 3) (tgt := (⟨162⟩ : UInt256)) h43
+    (by clipper_decode) (by clipper_decode) (by clipper_decode) (by decide)
+    (by clipper_decode) (by clipper_decode)
+    (by rw [hword]; native_decide)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨162⟩ : UInt256) (by native_decide))
+    (by simp)
+  have h174 := clipperSplitNotTaken (pc := (⟨163⟩ : UInt256))
+    (next := (⟨174⟩ : UInt256)) (pivot := clipperSelNat 13)
+    (tgt := (⟨222⟩ : UInt256))
+    (h162.jumpdest (by clipper_decode) (by simp))
+    (by clipper_decode) (by clipper_decode) (by clipper_decode) (by decide)
+    (by clipper_decode) (by clipper_decode)
+    (by rw [hword]; native_decide) (by native_decide) (by simp)
+  have h1057 := clipperArmTaken (pc := (⟨174⟩ : UInt256))
+    (sel := clipperSelNat 13) (tgt := (⟨1057⟩ : UInt256)) h174
+    (by clipper_decode) (by clipper_decode) (by clipper_decode) (by decide)
+    (by clipper_decode) (by clipper_decode)
+    (by rw [hword]; native_decide)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨1057⟩ : UInt256) (by native_decide))
+    (by simp)
+  exact ⟨_, _, h1057⟩
+
+theorem clipperKickJumpDest1079 (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
+    (D_J code 0).contains (⟨1079⟩ : UInt256) = true :=
+  clipperJumpDestBeforeFirstPatch v hpatch (⟨1079⟩ : UInt256) (by native_decide)
+
+theorem clipperKickJumpDest5361 (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
+    (D_J code 0).contains (⟨5361⟩ : UInt256) = true := by
+  apply patchRuntime_D_J_contains_of_patchScanReaches (fuel := 6000) hpatch
+  unfold patches patchesFrom offsets immValues
+  simp only [List.foldrM_cons, List.foldrM_nil, List.lookup_cons]
+  cases hIlk : wordBytes? v.ilk with
+  | none =>
+      simp [hIlk]
+      native_decide
+  | some bs =>
+      simp [hIlk]
+      native_decide
+
+theorem clipperKickX_headOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hreach : ∃ k C, RD code I g
+      (initState cA gh bl σ σ₀ g A I) (⟨1057⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1079⟩ : UInt256)
+      (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩ :: ⟨4⟩ :: ⟨476⟩ :: [sel])
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  have hlt :
+      UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨128⟩ = ⟨0⟩ :=
+    solcDecodeLenCheckOkUnsigned (by simpa using hsz132) hsize
+  exact RD.solcExternalStaticArgsLenOk
+    (entry := (⟨1057⟩ : UInt256)) (ret := (⟨476⟩ : UInt256))
+    (decoded := (⟨1079⟩ : UInt256)) (need := (⟨128⟩ : UInt256)) hreach
+    (by clipper_decode) (by clipper_decode) (by clipper_decode) (by clipper_decode)
+    (by clipper_decode) (by clipper_decode) (by clipper_decode) (by clipper_decode)
+    (by clipper_decode) (by clipper_decode) (by clipper_decode) (by clipper_decode)
+    (clipperKickJumpDest1079 v hpatch) hlt
+
+theorem clipperKickX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hshort : I.calldata.size < 132)
+    (hreach : ∃ k C, RD code I g
+      (initState cA gh bl σ σ₀ g A I) (⟨1057⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    RDrev code g (initState cA gh bl σ σ₀ g A I) := by
+  have hlt :
+      UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨128⟩ = ⟨1⟩ := by
+    apply ult_one
+    rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
+      usub_ofNat_word_toNat (c := (⟨4⟩ : UInt256)) (by simpa using hsz4) hsize,
+      show (⟨4⟩ : UInt256).toNat = 4 from by decide]
+    omega
+  exact RD.solcExternalStaticArgsShortReverts
+    (entry := (⟨1057⟩ : UInt256)) (ret := (⟨476⟩ : UInt256))
+    (decoded := (⟨1079⟩ : UInt256)) (need := (⟨128⟩ : UInt256)) hreach
+    (by clipper_decode) (by clipper_decode) (by clipper_decode) (by clipper_decode)
+    (by clipper_decode) (by clipper_decode) (by clipper_decode) (by clipper_decode)
+    (by clipper_decode) (by clipper_decode) (by clipper_decode) (by clipper_decode)
+    (by clipper_decode) (by clipper_decode) (by clipper_decode) hlt
+
+set_option maxHeartbeats 4000000 in
+theorem clipperKickX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
+    (v : ClipperImmutables) {code : ByteArray}
+    (hpatch : patchRuntime clipperBytecode (patches v) = some code)
+    (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
+    (hreach : ∃ k C, RD code I g
+      (initState cA gh bl σ σ₀ g A I) (⟨1057⟩ : UInt256) [sel]
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
+    ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨5361⟩ : UInt256)
+      (clipperKickKprMaskedWord I :: clipperKickUsrMaskedWord I ::
+        clipperKickLotWord I :: clipperKickTabWord I :: ⟨476⟩ :: [sel])
+      solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
+  obtain ⟨_, _, rd1079⟩ := clipperKickX_headOk v hpatch hsz132 hsize hreach
+  have hmask :
+      UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
+        solcAddrMask := by native_decide
+  have h100 : (⟨96⟩ : UInt256) + ⟨4⟩ = ⟨100⟩ := by native_decide
+  have h68 : (⟨4⟩ : UInt256) + ⟨64⟩ = ⟨68⟩ := by native_decide
+  have h36 : (⟨4⟩ : UInt256) + ⟨32⟩ = ⟨36⟩ := by native_decide
+  have rd1114 := evm_run rd1079 with [
+    raw jumpdest (by clipper_decode) (by evm_ov),
+    raw pop (by clipper_decode) (by evm_ov),
+    raw dup1 (by clipper_decode) (by evm_ov),
+    raw calldataload (by clipper_decode) (by evm_ov),
+    raw swap1 (by clipper_decode) (by evm_ov),
+    raw push1 ⟨32⟩ (by clipper_decode) (by evm_ov),
+    raw dup2 (by clipper_decode) (by evm_ov),
+    raw add (by clipper_decode) (by evm_ov),
+    raw calldataload (by clipper_decode) (by evm_ov),
+    raw swap1 (by clipper_decode) (by evm_ov),
+    raw push1 ⟨1⟩ (by clipper_decode) (by evm_ov),
+    raw push1 ⟨1⟩ (by clipper_decode) (by evm_ov),
+    raw push1 ⟨160⟩ (by clipper_decode) (by evm_ov),
+    raw shl (by clipper_decode) (by evm_ov),
+    raw sub (by clipper_decode) (by evm_ov),
+    raw push1 ⟨64⟩ (by clipper_decode) (by evm_ov),
+    raw dup3 (by clipper_decode) (by evm_ov),
+    raw add (by clipper_decode) (by evm_ov),
+    raw calldataload (by clipper_decode) (by evm_ov),
+    raw dup2 (by clipper_decode) (by evm_ov),
+    raw and (by clipper_decode) (by evm_ov),
+    raw swap2 (by clipper_decode) (by evm_ov),
+    raw push1 ⟨96⟩ (by clipper_decode) (by evm_ov),
+    raw add (by clipper_decode) (by evm_ov),
+    raw calldataload (by clipper_decode) (by evm_ov),
+    raw and (by clipper_decode) (by evm_ov),
+    raw push2 ⟨5361⟩ (by clipper_decode) (by evm_ov)]
+  rw [hmask] at rd1114
+  exact ⟨_, _, by
+    simpa [clipperKickTabWord, clipperKickLotWord, clipperKickUsrMaskedWord,
+      clipperKickUsrWord, clipperKickKprMaskedWord, clipperKickKprWord,
+      calldataWord, u256_land_comm, h100, h68, h36,
+      show (⟨4⟩ : UInt256).toNat = 4 from by decide] using
+      rd1114.jump (by clipper_decode) (clipperKickJumpDest5361 v hpatch) (by evm_ov)⟩
 
 end Benchmarks.Dss.Clipper
