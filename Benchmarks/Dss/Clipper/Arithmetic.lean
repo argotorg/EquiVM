@@ -1044,6 +1044,93 @@ theorem clipperMinFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
       simp [clipperMinWord, hle]
     simpa [hmin] using ExecBlock.consReturn (ExecStmt.iteFalse hcond helse)
 
+/-! ## Source-level wrapping subtraction -/
+
+theorem clipperIntModWord_sub_toNat (a b : UInt256) :
+    (Int.ofNat a.toNat - Int.ofNat b.toNat) % wordModulus =
+      Int.ofNat (UInt256.sub a b).toNat := by
+  by_cases hle : b.toNat ≤ a.toNat
+  · have hsub : Int.ofNat a.toNat - Int.ofNat b.toNat =
+        Int.ofNat (a.toNat - b.toNat) := by
+      exact (Int.ofNat_sub hle).symm
+    have hlt : a.toNat - b.toNat < UInt256.size := by
+      exact Nat.lt_of_le_of_lt (Nat.sub_le _ _) a.val.isLt
+    have hltInt : Int.ofNat (a.toNat - b.toNat) < wordModulus := by
+      rw [wordModulus]
+      norm_num [UInt256.size] at hlt ⊢
+      exact_mod_cast hlt
+    rw [hsub]
+    rw [Int.emod_eq_of_lt (by exact Int.natCast_nonneg _) hltInt]
+    rw [usub_toNat (a := a) (b := b) hle]
+  · have hlt : a.toNat < b.toNat := Nat.lt_of_not_ge hle
+    let d := b.toNat - a.toNat
+    have hdpos : 0 < d := by
+      dsimp [d]
+      exact Nat.sub_pos_of_lt hlt
+    have hdiff : Int.ofNat a.toNat - Int.ofNat b.toNat = -Int.ofNat d := by
+      have hsub : Int.ofNat d = Int.ofNat b.toNat - Int.ofNat a.toNat := by
+        dsimp [d]
+        exact Int.ofNat_sub (le_of_lt hlt)
+      rw [hsub]
+      ring
+    have hwrapEq : UInt256.size + a.toNat - b.toNat = UInt256.size - d := by
+      dsimp [d]
+      omega
+    have hdLe : d ≤ UInt256.size := by
+      dsimp [d]
+      exact Nat.le_trans (Nat.sub_le _ _) (Nat.le_of_lt b.val.isLt)
+    have hwrapLt : UInt256.size + a.toNat - b.toNat < UInt256.size := by
+      rw [hwrapEq]
+      exact Nat.sub_lt (by norm_num [UInt256.size]) hdpos
+    have hwrapLtInt : Int.ofNat (UInt256.size + a.toNat - b.toNat) < wordModulus := by
+      rw [wordModulus]
+      norm_num [UInt256.size] at hwrapLt ⊢
+      exact_mod_cast hwrapLt
+    have hwrapMod : Int.ofNat (UInt256.size + a.toNat - b.toNat) % wordModulus =
+        Int.ofNat (UInt256.size + a.toNat - b.toNat) :=
+      Int.emod_eq_of_lt (Int.natCast_nonneg _) hwrapLtInt
+    have hrepr : -Int.ofNat d =
+        Int.ofNat (UInt256.size + a.toNat - b.toNat) - Int.ofNat UInt256.size := by
+      rw [hwrapEq]
+      have hcast : Int.ofNat (UInt256.size - d) =
+          Int.ofNat UInt256.size - Int.ofNat d :=
+        Int.ofNat_sub hdLe
+      rw [hcast]
+      ring
+    rw [hdiff, hrepr]
+    rw [Int.sub_emod]
+    have hsizeMod : (Int.ofNat UInt256.size) % wordModulus = 0 := by
+      rw [wordModulus]
+      norm_num [UInt256.size]
+    rw [hsizeMod]
+    simp
+    rw [usub_toNat_underflow (a := a) (b := b) hlt]
+    exact hwrapMod
+
+theorem clipperSubOne_eq_addNotZero (a : UInt256) :
+    UInt256.sub a ⟨1⟩ = a + UInt256.lnot ⟨0⟩ := by
+  apply u256_inj
+  rw [uadd_toNat,
+    show (UInt256.lnot ⟨0⟩).toNat = UInt256.size - 1 by native_decide]
+  by_cases hz : a.toNat = 0
+  · rw [usub_toNat_underflow (by
+      rw [hz, show (⟨1⟩ : UInt256).toNat = 1 by native_decide]
+      omega)]
+    rw [hz, show (⟨1⟩ : UInt256).toNat = 1 by native_decide]
+    norm_num [UInt256.size]
+  · have hone : (⟨1⟩ : UInt256).toNat ≤ a.toNat := by
+      rw [show (⟨1⟩ : UInt256).toNat = 1 by native_decide]
+      omega
+    rw [usub_toNat hone]
+    rw [show (⟨1⟩ : UInt256).toNat = 1 by native_decide]
+    have hadd : a.toNat + (UInt256.size - 1) = UInt256.size + (a.toNat - 1) := by
+      have hsize : 1 ≤ UInt256.size := by norm_num [UInt256.size]
+      omega
+    rw [hadd, Nat.add_mod, Nat.mod_self, zero_add]
+    have hlt : a.toNat - 1 < UInt256.size :=
+      Nat.lt_of_le_of_lt (Nat.sub_le _ _) a.val.isLt
+    simp [Nat.mod_eq_of_lt hlt]
+
 namespace Reasoning.Reach
 
 set_option maxHeartbeats 1000000 in
