@@ -207,6 +207,23 @@ theorem clipperEvalTakeTabGtChost_true (v : ClipperImmutables)
     evalBinaryOp?]
   exact hlt
 
+theorem clipperEvalTakeTabGtChost_false (v : ClipperImmutables)
+    (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
+    (price slice owe0 owe chost remainingTab : UInt256)
+    (hle : (clipperTakeSalesTabEVMWord evmRead I).toNat ≤ chost.toNat) :
+    evalExpr? (config v)
+      { contract := contract v,
+        locals := clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe chost
+          remainingTab }
+      evmRead (.binary .gt (.var "tab") (.var "_chost")) = .ok (.bool false) := by
+  simp [evalExpr?, EvalResult.bind, bind,
+    clipperEvalTakeVarTabAtRemainingTab v evmLoc evmRead evmRead I price slice owe0 owe
+      chost remainingTab,
+    clipperEvalTakeVarChostAtRemainingTab v evmLoc evmRead evmRead I price slice owe0 owe
+      chost remainingTab,
+    evalBinaryOp?]
+  exact hle
+
 theorem clipperEvalTakeTabSubChostAtRemainingTab (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe chost remainingTab : UInt256)
@@ -747,6 +764,149 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
         (.ok sliceFrame evmRead) :=
     ExecBlock.consNormal hinner ExecBlock.nil
   simpa [clipperTakeOweAdjustmentStmt, oweFrame, sliceFrame] using
+    ExecStmt.iteFalse houter helse
+
+theorem clipperTakeOweLtTabSliceLtLotChostRequireReverts (v : ClipperImmutables)
+    (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (price slice : UInt256)
+    (hle : (UInt256.mul slice price).toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat)
+    (hlt : (UInt256.mul slice price).toNat < (clipperTakeSalesTabEVMWord evmRead I).toNat)
+    (hsliceLt : slice.toNat < (clipperTakeSalesLotEVMWord evmRead I).toNat)
+    (hremainingLt :
+      (UInt256.sub (clipperTakeSalesTabEVMWord evmRead I)
+          (UInt256.mul slice price)).toNat <
+        (Solm.EVM.storageLoad evmRead evmRead.executionEnv.codeOwner ⟨9⟩).toNat)
+    (htabLeChost :
+      (clipperTakeSalesTabEVMWord evmRead I).toNat ≤
+        (Solm.EVM.storageLoad evmRead evmRead.executionEnv.codeOwner ⟨9⟩).toNat) :
+    let owe0 := UInt256.mul slice price
+    ExecStmt (config v)
+      (Frame.mk (contract v)
+        (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0))
+      evmRead clipperTakeOweAdjustmentStmt .reverted := by
+  intro owe0
+  let chost := Solm.EVM.storageLoad evmRead evmRead.executionEnv.codeOwner ⟨9⟩
+  let remainingTab := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) owe0
+  let oweFrame : Frame :=
+    Frame.mk (contract v)
+      (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0)
+  let chostFrame : Frame :=
+    Frame.mk (contract v)
+      (clipperTakeLocalsChost evmLoc evmRead I price slice owe0 owe0 chost)
+  let remainingFrame : Frame :=
+    Frame.mk (contract v)
+      (clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe0 chost
+        remainingTab)
+  have houter :
+      evalExpr? (config v) oweFrame evmRead
+        (.binary .gt (.var "owe") (.var "tab")) = .ok (.bool false) := by
+    simpa [oweFrame, owe0] using
+      clipperEvalTakeOweGtTab_false v evmLoc evmRead I price slice owe0 owe0 hle
+  have hinnerCond :
+      evalExpr? (config v) oweFrame evmRead
+        (.binary .and (.binary .lt (.var "owe") (.var "tab"))
+          (.binary .lt (.var "slice") (.var "lot"))) = .ok (.bool true) := by
+    simpa [oweFrame, owe0] using
+      clipperEvalTakeNoChostCond_true v evmLoc evmRead I price slice owe0 owe0 hlt hsliceLt
+  have hbase :
+      (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0).get? "chost" =
+        none := by
+    simp [clipperTakeLocalsOwe, clipperTakeLocalsOwe0, clipperTakeLocalsSlice,
+      clipperTakeLocalsTab, clipperTakeLocalsLot, clipperTakeLocalsPrice,
+      clipperTakeLocalsDone, clipperTakeLocalsSt, clipperTakeLocalsTic,
+      clipperTakeLocalsUsr, clipperTakeStore]
+  have hletChost :
+      ExecStmt (config v) oweFrame evmRead
+        (.letDecl "_chost" (some uint256) (.storage chostRef))
+        (.ok chostFrame evmRead) := by
+    simpa [oweFrame, chostFrame, chost, clipperTakeLocalsChost] using
+      (ExecStmt.letDecl
+        (cfg := config v) (solm := oweFrame) (evm := evmRead) (name := "_chost")
+        (ty := some uint256) (expr := .storage chostRef)
+        (value := .int (Int.ofNat chost.toNat))
+        (by simpa [oweFrame, chost] using
+          (clipperEvalChost v evmRead
+            (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe0) hbase)))
+  have hletRemaining :
+      ExecStmt (config v) chostFrame evmRead
+        (.letDecl "remainingTab" (some uint256)
+          (wrap256 (.binary .sub (.var "tab") (.var "owe"))))
+        (.ok remainingFrame evmRead) := by
+    simpa [chostFrame, remainingFrame, remainingTab, clipperTakeLocalsRemainingTab] using
+      (ExecStmt.letDecl
+        (cfg := config v) (solm := chostFrame) (evm := evmRead) (name := "remainingTab")
+        (ty := some uint256) (expr := wrap256 (.binary .sub (.var "tab") (.var "owe")))
+        (value := .int (Int.ofNat remainingTab.toNat))
+        (by simpa [chostFrame, remainingTab, owe0] using
+          (clipperEvalTakeTabSubOweAtChost v evmLoc evmRead I price slice owe0 owe0 chost
+            hle)))
+  have hadjustCond :
+      evalExpr? (config v) remainingFrame evmRead
+        (.binary .lt (.var "remainingTab") (.var "_chost")) = .ok (.bool true) := by
+    simpa [remainingFrame, chost, remainingTab, owe0] using
+      clipperEvalTakeRemainingTabLtChost_true v evmLoc evmRead I price slice owe0 owe0
+        chost remainingTab hremainingLt
+  have hrequireCond :
+      evalExpr? (config v) remainingFrame evmRead
+        (.binary .gt (.var "tab") (.var "_chost")) = .ok (.bool false) := by
+    simpa [remainingFrame, chost] using
+      clipperEvalTakeTabGtChost_false v evmLoc evmRead I price slice owe0 owe0 chost
+        remainingTab htabLeChost
+  have hadjust :
+      ExecStmt (config v) remainingFrame evmRead
+        (.ite (.binary .lt (.var "remainingTab") (.var "_chost"))
+          ([ .require (.binary .gt (.var "tab") (.var "_chost")) ] ++
+            wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
+            [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
+              .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ])
+          []) .reverted := by
+    apply ExecStmt.iteTrue hadjustCond
+    exact ExecBlock.consRevert (ExecStmt.requireFalse hrequireCond)
+  have hinnerBlock :
+      ExecBlock (config v) oweFrame evmRead
+        ([ .letDecl "_chost" (some uint256) (.storage chostRef) ] ++
+          wrappingSubInto "remainingTab" (.var "tab") (.var "owe") ++
+          [ .ite (.binary .lt (.var "remainingTab") (.var "_chost"))
+            ([ .require (.binary .gt (.var "tab") (.var "_chost")) ] ++
+              wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
+              [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
+                .assign .localVar (varRef "slice")
+                  (.binary .div (.var "owe") (.var "price")) ])
+            [] ]) .reverted := by
+    simpa [wrappingSubInto, oweFrame] using
+      (ExecBlock.consNormal hletChost
+        (ExecBlock.consNormal hletRemaining
+          (ExecBlock.consRevert hadjust)))
+  have hinner :
+      ExecStmt (config v) oweFrame evmRead
+        (.ite (.binary .and (.binary .lt (.var "owe") (.var "tab"))
+            (.binary .lt (.var "slice") (.var "lot")))
+          ([ .letDecl "_chost" (some uint256) (.storage chostRef) ] ++
+            wrappingSubInto "remainingTab" (.var "tab") (.var "owe") ++
+            [ .ite (.binary .lt (.var "remainingTab") (.var "_chost"))
+              ([ .require (.binary .gt (.var "tab") (.var "_chost")) ] ++
+                wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
+                [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
+                  .assign .localVar (varRef "slice")
+                    (.binary .div (.var "owe") (.var "price")) ])
+              [] ])
+          []) .reverted :=
+    ExecStmt.iteTrue hinnerCond hinnerBlock
+  have helse :
+      ExecBlock (config v) oweFrame evmRead
+        [ .ite (.binary .and (.binary .lt (.var "owe") (.var "tab"))
+            (.binary .lt (.var "slice") (.var "lot")))
+          ([ .letDecl "_chost" (some uint256) (.storage chostRef) ] ++
+            wrappingSubInto "remainingTab" (.var "tab") (.var "owe") ++
+            [ .ite (.binary .lt (.var "remainingTab") (.var "_chost"))
+              ([ .require (.binary .gt (.var "tab") (.var "_chost")) ] ++
+                wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
+                [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
+                  .assign .localVar (varRef "slice")
+                    (.binary .div (.var "owe") (.var "price")) ])
+              [] ])
+          [] ] .reverted :=
+    ExecBlock.consRevert hinner
+  simpa [clipperTakeOweAdjustmentStmt, oweFrame] using
     ExecStmt.iteFalse houter helse
 
 end Benchmarks.Dss.Clipper
