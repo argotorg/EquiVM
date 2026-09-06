@@ -423,8 +423,9 @@ def mintFeeFunction : FunctionDecl :=
 def constructorDecl : ConstructorDecl :=
   { params := []
     body :=
-      [ .assign .storage domainSeparatorRef domainSeparatorExpr,
-        .assign .storage unlockedRef (.intLit 1),
+      [ .assign .storage unlockedRef (.intLit 1),
+        .require (.binary .eq (.env .callvalue) (.intLit 0)),
+        .assign .storage domainSeparatorRef domainSeparatorExpr,
         .assign .storage factoryRef sender ] }
 
 /-! ## LP-token inherited public surface -/
@@ -659,7 +660,8 @@ def burnTransition : TransitionDecl :=
       safeTransferStmts (.var "_token1") (.var "to") (.var "amount1") "ok1" "_ret1" ++
       balanceOfThisStmts (.var "_token0") "newBalance0" ++
       balanceOfThisStmts (.var "_token1") "newBalance1" ++
-      updateReservesStmts (.var "newBalance0") (.var "newBalance1") ++
+      updateReservesStmtsWith (.var "newBalance0") (.var "newBalance1")
+        (.var "_reserve0") (.var "_reserve1") ++
       [ .ite (.var "feeOn")
           [ .assign .storage kLastRef
               (u256 (.binary .mul (.storage reserve0Ref) (.storage reserve1Ref))) ]
@@ -728,7 +730,8 @@ def swapTransition : TransitionDecl :=
             (u256 (.binary .mul
               (u256 (.binary .mul (.var "_reserve0") (.var "_reserve1")))
               (.intLit 1000000)))) ] ++
-      updateReservesStmts (.var "balance0") (.var "balance1") ++
+      updateReservesStmtsWith (.var "balance0") (.var "balance1")
+        (.var "_reserve0") (.var "_reserve1") ++
       lockExit }
 
 def skimTransition : TransitionDecl :=
