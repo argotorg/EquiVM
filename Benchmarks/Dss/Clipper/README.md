@@ -57,6 +57,6 @@ Scaffold notes:
 - Events are intentionally omitted from the Solm specs, matching the existing event-bearing DSS
   benchmarks whose equivalence relation ignores logs/substate.
 - Proof status is tracked by `clipperContractCorrect` in `Correct.lean`.
-- The spec uses `DecodeMode.legacySolc05` for coder-v1 calldata and return decoding. The runtime
+- The spec uses `DecodeMode.legacySolc05` for calldata and return decoding. The runtime
   theorem's existing `clipperStorageWF` precondition includes `I.calldata.size < 2^255`, excluding
   the inputs on which Clipper's signed dynamic-size guard differs from the legacy decoder.
