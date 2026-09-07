@@ -27,6 +27,7 @@ trusted spec of the FFI hash; asserts nothing about collision resistance).
 | `Solc.lean` | Compiler-emitted code shapes, proved once: selector dispatch, ABI length checks, free-memory-pointer and revert memory, the 160-bit address mask, getter/store routines, reentrancy locks, checked arithmetic, event logs, high-level call combinators. |
 | `Storage.lean` | Storage maps: red-black-map lookup/update facts, `StorageLoc` load/store for the Solidity value encodings, the bytes/string storage layout, `accountMapEquiv`/`EVMStateEquiv` with `SLOAD`/`SSTORE` preservation. |
 | `Dispatch.lean` | Solm dispatcher facts: `dispatchMsg` as a list walk (`dispatchList`), single-transition instances, `SingleSelectorDispatch`, and the `RDret`/`RDrev.reEquiv*` bridges that connect a finished trace to the equivalence statement. |
+| `Dispatcher.lean` | The whole solc selector dispatcher as one driver: `SelTree` (read off the bytecode with `SelTree.readAt`, validated by the `Bool` check `SelTree.check`, semantics `SelTree.lookup`), the entry prefix check `solcEntryCheck` for both selector-load generations, `solcDispatchReachArm` / `solcDispatchNoMatchRevert`, the Solm-side `dispatchMsg_*_of_table` facts from one selector table, and `runtimeEquivalence_of_solcDispatcher`, which assembles the top-level theorem from per-selector `SelectorBody` obligations. |
 | `ExternalCall.lean` | The `CALL` ↔ Solm `externalCall` boundary: both sides invoke the same `Θ`, so results coincide (`callCoincides`); transport of call results across equivalent account maps. |
 | `Constructor.lean` | Skeletons for constructor (creation-code) equivalence proofs. |
 
@@ -52,6 +53,7 @@ Stepping   EVMWord ── SolmBody
              └── ExternalCall  (also SolmBody)
 
 Constructor ← Reach, SolmBody     Initcode ← EVMWord     JumpDest ← (Ethereum only)
+Dispatcher ← Solc, Dispatch, SolmBody
 ```
 
 ## Where to look
@@ -62,7 +64,8 @@ Constructor ← Reach, SolmBody     Initcode ← EVMWord     JumpDest ← (Ether
 - Decode calldata / encode a return value → `ABI` (solc-specific length checks: `Solc`).
 - A code shape the compiler always emits → `Solc`.
 - Storage read/write, packed values, bytes/string layout, account-map equivalence → `Storage`.
-- Selector dispatch, connecting a trace to `runtimeEquivalence` → `Dispatch`.
+- Selector dispatch, connecting a trace to `runtimeEquivalence` → `Dispatch`; the whole dispatcher
+  (tree walk, no-match revert, top-level assembly) → `Dispatcher`.
 - An external call inside a function body → `ExternalCall` (EVM side: `RD.call` in `Reach`;
   Solm side: `SolmBody`).
 - Constructor proofs → `Constructor`, `Initcode`.
@@ -70,5 +73,5 @@ Constructor ← Reach, SolmBody     Initcode ← EVMWord     JumpDest ← (Ether
 
 ## Build
 
-`lake build Reasoning` builds all fourteen files. A bare `lake build` builds only `Solm`
+`lake build Reasoning` builds all fifteen files. A bare `lake build` builds only `Solm`
 (the default target) — use explicit targets.

@@ -2,6 +2,7 @@ import Solm
 import Reasoning.ABI
 import Reasoning.Constructor
 import Reasoning.Dispatch
+import Reasoning.Dispatcher
 import Reasoning.EVMWord
 import Reasoning.ExternalCall
 import Reasoning.Initcode
