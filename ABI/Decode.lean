@@ -396,8 +396,8 @@ def decodeCalldata (names : List Solm.Ident) (types : List ABIType) (calldata : 
     else
     -- Modern solc ABI decoders guard the argument region with a signed check,
     -- `SLT(calldatasize - 4, headSize)`, reverting when `calldatasize - 4` is a negative
-    -- two's-complement word (i.e. `>= 2^255`). Coder-v1 fixed-argument wrappers use unsigned
-    -- static length checks instead.
+    -- two's-complement word (i.e. `>= 2^255`). The legacySolc05 mode instead uses an unsigned
+    -- minimum-length check.
     match mode with
     | DecodeMode.modern =>
         if types.isEmpty = false ∧ 2 ^ 255 ≤ argsArray.length then
