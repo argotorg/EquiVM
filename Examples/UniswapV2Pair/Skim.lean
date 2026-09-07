@@ -1,3 +1,4 @@
+import Examples.UniswapV2Pair.RawCallSource
 import Examples.UniswapV2Pair.SkimCommon
 import Examples.UniswapV2Pair.SkimSafeTransferDynamicRuntime
 import Examples.UniswapV2Pair.SkimDynamicSecondRuntime
@@ -45,11 +46,6 @@ theorem uniswapStorageStore_substate (evm : EVM.State) (a : AccountAddress)
   cases evm.accountMap.find? a <;>
     simp [Option.option, State.setAccount, Account.updateStorage]
 
-theorem uniswapAddress_self (a : AccountAddress) : EVM.address a.val = a := by
-  apply Fin.ext
-  show a.val % EVM.addressModulus = a.val
-  rw [show EVM.addressModulus = AccountAddress.size from by decide]
-  exact Nat.mod_eq_of_lt a.isLt
 
 theorem uniswapSkimBalanceOfDecode_ok {returndata : ByteArray} (hlo : 32 ≤ returndata.size) :
     config.externalABI.decode? "balanceOf" returndata =

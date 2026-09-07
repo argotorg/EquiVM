@@ -36,14 +36,9 @@ theorem evalExpr_mint_namedProduct_overflow
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
     evalExpr? config { contract := contract, locals := locals } evm
       (u256 (.binary .mul (.var xName) (.var yName))) = .revert := by
-  have hge : Int.ofNat (x.toNat * y.toNat) ≥ (2 : Int) ^ 256 := by
-    rw [UInt256.size] at hover
-    exact Int.ofNat_le.mpr hover
-  simp only [u256, evalExpr?, EvalResult.ofOption, hx, hy, EvalResult.bind, bind, pure]
-  simp only [evalBinaryOp?, uint256Int]
-  rw [if_pos]
-  simp only [Bool.or_eq_true, decide_eq_true_eq]
-  exact Or.inr (by simpa [Nat.cast_mul] using hge)
+  exact evalExpr_uint256_mul_overflow
+    (by simp only [evalExpr?, EvalResult.ofOption, hx])
+    (by simp only [evalExpr?, EvalResult.ofOption, hy]) hover
 
 theorem evalExpr_mint_proportionalLiquidity0_overflow
     {locals : Store} (evm : EVM.State) (amount0 totalSupply : UInt256)
@@ -155,16 +150,8 @@ theorem uniswapMintRuntimeProportionalLiquidity0ProductOverflowReverts
     (hmem64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  have rd6780pre := evm_run rd3762 with [
-    jumpdest, push2 ⟨3838⟩, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub,
-    dup10, and, push2 ⟨3791⟩, dup7, dup5, push4 ⟨0xffffffff⟩, push2 ⟨6780⟩,
-    and]
-  rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩ =
-      reserve112Mask from by rfl,
-    hclean0,
-    show UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ from by decide]
-    at rd6780pre
-  have rd6780 := rd6780pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd6780⟩ := RD.uniswapMintProportionalMul0Entry rd3762 hclean0
+    (by simp only [List.length_cons, List.length_nil]; omega)
   exact RD.uniswapSafeMathMulOverflow_feeToStaticcall_size164
     (a := amount0) (b := totalSupply) rd6780 hover hmem hmem64
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -192,15 +179,8 @@ theorem uniswapMintRuntimeProportionalLiquidity1ProductOverflowReverts
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd3800⟩ :=
     uniswapMintRuntimeProportionalLiquidity0Entry rd3762 hclean0 hfit0 hreserve0Nonzero
-  have rd6780pre := evm_run rd3800 with [
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup10, and,
-    push2 ⟨3825⟩, dup7, dup6, push4 ⟨0xffffffff⟩, push2 ⟨6780⟩, and]
-  rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨112⟩) ⟨1⟩ =
-      reserve112Mask from by rfl,
-    hclean1,
-    show UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ from by decide]
-    at rd6780pre
-  have rd6780 := rd6780pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd6780⟩ := RD.uniswapMintProportionalMul1Entry rd3800 hclean1
+    (by simp only [List.length_cons, List.length_nil]; omega)
   exact RD.uniswapSafeMathMulOverflow_feeToStaticcall_size164
     (a := amount1) (b := totalSupply) rd6780 hover hmem hmem64
     (by simp only [List.length_cons, List.length_nil]; omega)

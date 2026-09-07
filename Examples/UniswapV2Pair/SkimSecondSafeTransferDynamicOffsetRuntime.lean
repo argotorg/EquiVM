@@ -1,3 +1,4 @@
+import Examples.UniswapV2Pair.MemorySteps
 import Examples.UniswapV2Pair.SkimDynamicSecondRuntime
 import Examples.UniswapV2Pair.SkimSecondSafeTransferDynamicRuntime
 
@@ -153,24 +154,7 @@ def skimSecondSafeTransferDynamicWordsCall2 (out1 : ByteArray) : UInt256 :=
   UInt256.ofNat (MachineState.M (skimSecondSafeTransferDynamicWordsCall1 out1).toNat
     (skimSecondSafeTransferDynamicBasePtr out1 + ⟨228⟩).toNat 32)
 
-theorem MachineState_M_mul32_lt_of_bounds {s f l : Nat}
-    (hs : s * 32 < UInt256.size) (hf : f + l + 31 < UInt256.size) :
-    MachineState.M s f l * 32 < UInt256.size := by
-  unfold MachineState.M
-  split
-  · exact hs
-  · by_cases hle : s ≤ (f + l + 31) / 32
-    · rw [Nat.max_eq_right hle]
-      have hdiv := Nat.div_mul_le_self (f + l + 31) 32
-      omega
-    · rw [Nat.max_eq_left (Nat.le_of_not_ge hle)]
-      exact hs
 
-theorem MachineState_M_ge_left (s f l : Nat) : s ≤ MachineState.M s f l := by
-  unfold MachineState.M
-  split
-  · rfl
-  · exact Nat.le_max_left _ _
 
 theorem skimSecondSafeTransferDynamicBasePtr_window_lt (out : ByteArray)
     (n len : Nat) (houtSize : out.size < 2 ^ 255) (hn : n ≤ 512)
@@ -182,70 +166,10 @@ theorem skimSecondSafeTransferDynamicBasePtr_window_lt (out : ByteArray)
   have hcap : 2 ^ 255 + 1410 < UInt256.size := by norm_num [UInt256.size]
   omega
 
-theorem UInt256_ofNat_M_mul32_lt (aw off : UInt256)
-    (haw : aw.toNat * 32 < UInt256.size)
-    (hoff : off.toNat + 32 + 31 < UInt256.size) :
-    (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)).toNat * 32 <
-      UInt256.size := by
-  have hMmul := MachineState_M_mul32_lt_of_bounds haw hoff
-  have hMlt : MachineState.M aw.toNat off.toNat 32 < UInt256.size := by
-    omega
-  rw [UInt256.toNat_ofNat_of_lt hMlt]
-  exact hMmul
 
-theorem UInt256_ofNat_M_toNat_ge (aw off : UInt256) {n : Nat}
-    (hn : n ≤ aw.toNat)
-    (haw : aw.toNat * 32 < UInt256.size)
-    (hoff : off.toNat + 32 + 31 < UInt256.size) :
-    n ≤ (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)).toNat := by
-  have hMmul := MachineState_M_mul32_lt_of_bounds haw hoff
-  have hMlt : MachineState.M aw.toNat off.toNat 32 < UInt256.size := by
-    omega
-  rw [UInt256.toNat_ofNat_of_lt hMlt]
-  exact le_trans hn (MachineState_M_ge_left _ _ _)
 
-theorem UInt256_ofNat_M_covers (aw off : UInt256)
-    (haw : aw.toNat * 32 < UInt256.size)
-    (hoff : off.toNat + 32 + 31 < UInt256.size) :
-    off.toNat + 32 ≤
-      (UInt256.ofNat (MachineState.M aw.toNat off.toNat 32)).toNat * 32 := by
-  have hMmul := MachineState_M_mul32_lt_of_bounds haw hoff
-  have hMlt : MachineState.M aw.toNat off.toNat 32 < UInt256.size := by
-    omega
-  rw [UInt256.toNat_ofNat_of_lt hMlt]
-  unfold MachineState.M
-  have hceil : off.toNat + 32 ≤ ((off.toNat + 32 + 31) / 32) * 32 := by
-    have hmod := Nat.mod_lt (off.toNat + 32 + 31) (by norm_num : 0 < 32)
-    have hdm := Nat.div_add_mod (off.toNat + 32 + 31) 32
-    omega
-  split
-  · omega
-  · exact le_trans hceil (Nat.mul_le_mul_right 32 (Nat.le_max_right _ _))
 
-theorem UInt256_M_same_of_cover (aw off : UInt256)
-    (_haw : aw.toNat * 32 < UInt256.size)
-    (hcover : off.toNat + 32 ≤ aw.toNat * 32) :
-    UInt256.ofNat (MachineState.M aw.toNat off.toNat 32) = aw := by
-  have hM : MachineState.M aw.toNat off.toNat 32 = aw.toNat := by
-    unfold MachineState.M
-    change max aw.toNat ((off.toNat + 32 + 31) / 32) = aw.toNat
-    rw [Nat.max_eq_left]
-    have hdivlt : (off.toNat + 32 + 31) / 32 < aw.toNat + 1 := by
-      rw [Nat.div_lt_iff_lt_mul (by norm_num : 0 < 32)]
-      omega
-    omega
-  rw [hM]
-  exact u256_ofNat_toNat aw
 
-theorem UInt256_mload_haw_of_cover (aw off : UInt256)
-    (haw : aw.toNat * 32 < UInt256.size)
-    (hcover : off.toNat + 32 ≤ aw.toNat * 32) :
-    ¬ off ≥ aw * ⟨32⟩ := by
-  intro h
-  have hle : (aw * ⟨32⟩).toNat ≤ off.toNat := h
-  rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
-    Nat.mod_eq_of_lt haw] at hle
-  omega
 
 theorem skimSecondBalanceDynamicStaticcallWords_mload64_ptr_same (out : ByteArray)
     (houtSize : out.size < 2 ^ 255) :

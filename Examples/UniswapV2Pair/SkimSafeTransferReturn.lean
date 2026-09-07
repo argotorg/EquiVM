@@ -500,4 +500,66 @@ theorem RD.uniswapSkimSafeTransferNonemptyReturnToCheck {g : Sat256} {s0 : State
       rw [show ((⟨292⟩ : UInt256) + ⟨32⟩).toNat = 324 from by decide]
       rfl)
     (by simp only [List.length_cons, List.length_nil]; omega)
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSafeTransferEmptyFailureReverts {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {callRetOffset maskedToken value toWord token ret : UInt256}
+    {R : List UInt256} {mem out : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {aw : UInt256}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+      (⟨0⟩ :: callRetOffset :: maskedToken :: ⟨96⟩ :: ⟨0⟩ ::
+        value :: toWord :: token :: ret :: R)
+      mem aw out acc k C)
+    (hout : out.size = 0) (hR : R.length + 16 ≤ 1024) :
+    RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
+  have rd6607 := evm_run h with [
+    swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
+  have rd6607' := rd6607
+  rw [hout] at rd6607'
+  have rd6641 := evm_run rd6607' with [jumpiT (by native_decide) (by jump_dest)]
+  have rd6652 := evm_run rd6641 with [
+    jumpdest, push1 ⟨96⟩, swap2, pop, jumpdest, pop, swap2, pop, swap2, pop]
+  exact RD.uniswapSafeTransferReturnNonemptyFailureReverts (R := R) rd6652 hR
+
+set_option maxHeartbeats 1000000 in
+theorem RD.uniswapSafeTransferEmptyReturnToRet {g : Sat256} {s0 : State}
+    {ee : ExecutionEnv} {k C : ℕ} {callRetOffset maskedToken value toWord token ret : UInt256}
+    {R : List UInt256} {mem out : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {aw : UInt256}
+    (h : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨6595⟩
+      (⟨1⟩ :: callRetOffset :: maskedToken :: ⟨96⟩ :: ⟨0⟩ ::
+        value :: toWord :: token :: ret :: R)
+      mem aw out acc k C)
+    (hout : out.size = 0)
+    (hload96 :
+      (if (⟨96⟩ : UInt256).toNat ≥ mem.size ∨ (⟨96⟩ : UInt256) ≥ aw * ⟨32⟩ then
+          ⟨0⟩
+       else UInt256.ofNat
+        (fromByteArrayBigEndian (mem.readWithPadding (⟨96⟩ : UInt256).toNat 32))) =
+        ⟨0⟩)
+    (haw96 : UInt256.ofNat (MachineState.M aw.toNat (⟨96⟩ : UInt256).toNat 32) = aw)
+    (hret : (D_J UniswapV2Pair.uniswapV2PairBytecode 0).contains ret = true)
+    (hR : R.length + 16 ≤ 1024) :
+    ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ret R mem aw out acc k' C' := by
+  have rd6607 := evm_run h with [
+    swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
+  have rd6607' := rd6607
+  rw [hout] at rd6607'
+  have rd6641 := evm_run rd6607' with [jumpiT (by native_decide) (by jump_dest)]
+  have rd6652 := evm_run rd6641 with [
+    jumpdest, push1 ⟨96⟩, swap2, pop, jumpdest, pop, swap2, pop, swap2, pop]
+  have rd6658 := evm_run rd6652 with [
+    dup2, dup1, iszero, push2 ⟨6692⟩, jumpiNT (by native_decide)]
+  have rd6661 := evm_run rd6658 with [pop, dup1]
+  have rd6662 := RD.mload 0 ⟨0⟩ aw rd6661 (by native_decide)
+    (by
+      intro s haw hstk
+      simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw96])
+    hload96 haw96
+    (by simp only [List.length_cons]; omega)
+  have rd6668 := evm_run rd6662 with [
+    iszero, dup1, push2 ⟨6692⟩, jumpiT (by native_decide) (by jump_dest)]
+  have rd6773 := evm_run rd6668 with [jumpdest, push2 ⟨6773⟩,
+    jumpiT (by native_decide) (by jump_dest)]
+  exact ⟨_, _, evm_run rd6773 with [jumpdest, pop, pop, pop, pop, pop, jump hret]⟩
+
 end UniswapV2Pair
