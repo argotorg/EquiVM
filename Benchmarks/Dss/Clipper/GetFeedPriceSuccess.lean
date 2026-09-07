@@ -22,7 +22,7 @@ theorem clipperSpotterParDecode_none_short {v : ClipperImmutables} {out : ByteAr
     (hshort : out.size < 32) :
     (config v).externalABI.decode? "par" out = none := by
   simpa [config, externalABI, decodeReturn?, uint256, uint256Int, abiUInt256] using
-    (decodeReturnValueWithMode_solcV1Signed_uint256_none_short
+    (decodeReturnValueWithMode_legacy_uint256_none_short
       (returndata := out) hshort)
 
 theorem clipperSpotterParDecode_ok {v : ClipperImmutables} {out : ByteArray}
@@ -36,7 +36,7 @@ theorem clipperSpotterParDecode_ok {v : ClipperImmutables} {out : ByteArray}
       (fromByteArrayBigEndian_extract0_32_lt (returndata := out) hlo)
   simpa [config, externalABI, decodeReturn?, clipperSpotterParValues,
     clipperSpotterParWord, uint256, uint256Int, abiUInt256, hword] using
-    (decodeReturnValueWithMode_solcV1Signed_uint256_ok
+    (decodeReturnValueWithMode_legacy_uint256_ok
       (returndata := out) hlo)
 
 abbrev clipperGetFeedPriceValBlnLocals (outIlks outPeek : ByteArray) : Store :=

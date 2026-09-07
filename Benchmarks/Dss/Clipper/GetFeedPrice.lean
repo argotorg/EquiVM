@@ -489,7 +489,7 @@ theorem clipperGetFeedPriceBytesToWord_drop_take32_eq_extract
 
 theorem clipperSpotterIlksDecode_none_short_aux {out : ByteArray}
     (hshort : out.size < 64) :
-    ABI.decodeReturnValuesWithMode? DecodeMode.solcV1Signed [abiAddress, abiUInt256] out =
+    ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiAddress, abiUInt256] out =
       none := by
   have hlen : out.toList.length = out.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -498,16 +498,16 @@ theorem clipperSpotterIlksDecode_none_short_aux {out : ByteArray}
   rw [abiTupleHeadSize_scalarWords_eq
     (types := [abiAddress, abiUInt256]) (by decide)]
   simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.solcV1Signed)
+  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
     (types := [abiAddress, abiUInt256]) (bytes := out.toList)
     (cursor := 0) (total := 32 * [abiAddress, abiUInt256].length)
     (by decide) (by simp)]
-  cases hdec : decodeScalarWordsWithMode? DecodeMode.solcV1Signed
+  cases hdec : decodeScalarWordsWithMode? DecodeMode.legacySolc05
       [abiAddress, abiUInt256] out.toList 0 with
   | none => rfl
   | some values =>
       have hlenDecoded :=
-        decodeScalarWordsWithMode?_some_length (mode := DecodeMode.solcV1Signed)
+        decodeScalarWordsWithMode?_some_length (mode := DecodeMode.legacySolc05)
           (types := [abiAddress, abiUInt256]) (bytes := out.toList)
           (cursor := 0) (values := values) (by omega) hdec
       rw [hlen] at hlenDecoded
@@ -521,7 +521,7 @@ theorem clipperSpotterIlksDecode_none_short {v : ClipperImmutables} {out : ByteA
   simpa [config, externalABI, addr, uint256, uint256Int, abiAddress, abiUInt256] using h
 
 theorem clipperSpotterIlksDecode_ok_aux {out : ByteArray} (hlo : 64 ≤ out.size) :
-    ABI.decodeReturnValuesWithMode? DecodeMode.solcV1Signed [abiAddress, abiUInt256] out =
+    ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiAddress, abiUInt256] out =
       some (clipperSpotterIlksValues out) := by
   have hlen : out.toList.length = out.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -544,12 +544,12 @@ theorem clipperSpotterIlksDecode_ok_aux {out : ByteArray} (hlo : 64 ≤ out.size
   rw [abiTupleHeadSize_scalarWords_eq
     (types := [abiAddress, abiUInt256]) (by decide)]
   simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.solcV1Signed)
+  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
     (types := [abiAddress, abiUInt256]) (bytes := out.toList) (cursor := 0)
     (total := 32 * [abiAddress, abiUInt256].length) (by decide) (by simp)]
   simp only [decodeScalarWordsWithMode?]
-  rw [decodeScalarWord_solcV1SignedAddress_ok (bytes := out.toList) (start := 0) htake0]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.solcV1Signed)
+  rw [decodeScalarWord_legacyAddress_ok (bytes := out.toList) (start := 0) htake0]
+  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
     (bytes := out.toList) (start := 32) htake32]
   rw [hword0, hword1]
   rfl
@@ -563,7 +563,7 @@ theorem clipperSpotterIlksDecode_ok {v : ClipperImmutables} {out : ByteArray}
 
 theorem clipperPipPeekDecode_none_short_aux {out : ByteArray}
     (hshort : out.size < 64) :
-    ABI.decodeReturnValuesWithMode? DecodeMode.solcV1Signed [abiBytes32, abiBool] out =
+    ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiBytes32, abiBool] out =
       none := by
   have hlen : out.toList.length = out.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -597,7 +597,7 @@ theorem clipperPipPeekDecode_none_short {v : ClipperImmutables} {out : ByteArray
     abiBool] using h
 
 theorem clipperPipPeekDecode_ok_aux {out : ByteArray} (hlo : 64 ≤ out.size) :
-    ABI.decodeReturnValuesWithMode? DecodeMode.solcV1Signed [abiBytes32, abiBool] out =
+    ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [abiBytes32, abiBool] out =
       some (clipperPipPeekValues out) := by
   have hlen : out.toList.length = out.size := by
     rw [byteArray_toList_eq, Array.length_toList]

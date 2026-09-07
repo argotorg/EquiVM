@@ -78,7 +78,7 @@ theorem clipperDecode_rely_ok (v : ClipperImmutables) {I : ExecutionEnv}
   show decodeCalldataWithMode (config v).abiDecodeMode ["usr"] [addr] I.calldata = _
   simpa [config, clipperRelyStore, clipperRelyUsrValue, clipperRelyUsrWord,
     calldataWord] using
-      decodeCalldata_solcV1SignedAddress_ok (cd := I.calldata) (x := "usr") hsz36
+      decodeCalldata_legacyAddress_ok (cd := I.calldata) (x := "usr") hsz36
 
 theorem clipperDecode_rely_none_short (v : ClipperImmutables) {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 36) :
@@ -86,7 +86,7 @@ theorem clipperDecode_rely_none_short (v : ClipperImmutables) {I : ExecutionEnv}
       (transitionSignature relyTransition).paramTypes I.calldata = none := by
   show decodeCalldataWithMode (config v).abiDecodeMode ["usr"] [addr] I.calldata = none
   simpa [config] using
-    decodeCalldata_solcV1SignedAddress_none_short (cd := I.calldata) (x := "usr") hsz4 hshort
+    decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "usr") hsz4 hshort
 
 theorem evalStorageRef_clipperRely_usr (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :

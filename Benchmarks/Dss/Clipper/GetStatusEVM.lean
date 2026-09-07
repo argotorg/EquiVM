@@ -197,7 +197,7 @@ theorem clipperStatusPriceDecode_none_short {v : ClipperImmutables} {out : ByteA
     (hshort : out.size < 32) :
     (config v).externalABI.decode? "price" out = none := by
   simpa [config, externalABI, decodeReturn?, uint256, uint256Int, abiUInt256] using
-    (decodeReturnValueWithMode_solcV1Signed_uint256_none_short (returndata := out) hshort)
+    (decodeReturnValueWithMode_legacy_uint256_none_short (returndata := out) hshort)
 
 theorem clipperStatusPriceDecode_ok {v : ClipperImmutables} {out : ByteArray}
     (hlo : 32 ≤ out.size) :
@@ -209,7 +209,7 @@ theorem clipperStatusPriceDecode_ok {v : ClipperImmutables} {out : ByteArray}
     UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt (returndata := out) hlo)
   simpa [config, externalABI, decodeReturn?, clipperStatusPriceValues,
     clipperStatusPriceWord, uint256, uint256Int, abiUInt256, hword] using
-    (decodeReturnValueWithMode_solcV1Signed_uint256_ok (returndata := out) hlo)
+    (decodeReturnValueWithMode_legacy_uint256_ok (returndata := out) hlo)
 
 abbrev clipperGetStatusNeedsRedoWord (usr done : UInt256) : UInt256 :=
   if UInt256.isZero (UInt256.land usr solcAddrMask) = ⟨0⟩ then done else ⟨0⟩

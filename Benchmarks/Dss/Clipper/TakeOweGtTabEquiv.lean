@@ -74,9 +74,9 @@ theorem clipperTakeOweGtTabEquiv
     (hevmPriceGenesis : evmPrice.genesisBlockHeader = gh)
     (hevmPriceBlocks : evmPrice.blocks = bl)
     (hevmPriceEnv : evmPrice.executionEnv = I)
-    (hlenMax : ¬ solcMaxLen DecodeMode.solcV1Signed <
+    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 <
       (clipperTakeDataLenWord I).toNat)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed <
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 <
       (clipperTakeDataOffsetWord I).toNat)
     (hpayloadOk : (((I.calldata.toList.drop 4).drop
       ((clipperTakeDataOffsetWord I).toNat + 32)).take

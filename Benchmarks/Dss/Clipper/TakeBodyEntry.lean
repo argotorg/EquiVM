@@ -25,8 +25,8 @@ set_option maxRecDepth 2000 in
 theorem clipperTakeX_decode_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat)
-    (hlenMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataLenWord I).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
+    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat)
     (hpayloadGt :
       UInt256.gt
         (((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I) +

@@ -914,7 +914,7 @@ theorem clipperVatIlksPostCallMem_mload256_long (v : ClipperImmutables) (out : B
         by native_decide⟩
 
 theorem clipperVatIlksDecode_none_short_aux {out : ByteArray} (hshort : out.size < 160) :
-    ABI.decodeReturnValuesWithMode? DecodeMode.solcV1Signed
+    ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05
       [uint256, uint256, uint256, uint256, uint256] out = none := by
   have hlen : out.toList.length = out.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -923,16 +923,16 @@ theorem clipperVatIlksDecode_none_short_aux {out : ByteArray} (hshort : out.size
   rw [abiTupleHeadSize_scalarWords_eq
     (types := [uint256, uint256, uint256, uint256, uint256]) (by decide)]
   simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.solcV1Signed)
+  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
     (types := [uint256, uint256, uint256, uint256, uint256]) (bytes := out.toList)
     (cursor := 0) (total := 32 * [uint256, uint256, uint256, uint256, uint256].length)
     (by decide) (by simp)]
-  cases hdec : decodeScalarWordsWithMode? DecodeMode.solcV1Signed
+  cases hdec : decodeScalarWordsWithMode? DecodeMode.legacySolc05
       [uint256, uint256, uint256, uint256, uint256] out.toList 0 with
   | none => rfl
   | some values =>
       have hlenDecoded :=
-        decodeScalarWordsWithMode?_some_length (mode := DecodeMode.solcV1Signed)
+        decodeScalarWordsWithMode?_some_length (mode := DecodeMode.legacySolc05)
           (types := [uint256, uint256, uint256, uint256, uint256])
           (bytes := out.toList) (cursor := 0) (values := values) (by omega) hdec
       rw [hlen] at hlenDecoded
@@ -946,7 +946,7 @@ theorem clipperVatIlksDecode_none_short {v : ClipperImmutables} {out : ByteArray
   simpa [config, externalABI] using h
 
 theorem clipperVatIlksDecode_ok_aux {out : ByteArray} (hlo : 160 ≤ out.size) :
-    ABI.decodeReturnValuesWithMode? DecodeMode.solcV1Signed
+    ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05
       [abiUInt256, abiUInt256, abiUInt256, abiUInt256, abiUInt256] out =
       some [.int (Int.ofNat (clipperVatIlksArtWord out).toNat),
         .int (Int.ofNat (clipperVatIlksRateWord out).toNat),
@@ -990,25 +990,25 @@ theorem clipperVatIlksDecode_ok_aux {out : ByteArray} (hlo : 160 ≤ out.size) :
   rw [abiTupleHeadSize_scalarWords_eq
     (types := [abiUInt256, abiUInt256, abiUInt256, abiUInt256, abiUInt256]) (by decide)]
   simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.solcV1Signed)
+  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
     (types := [abiUInt256, abiUInt256, abiUInt256, abiUInt256, abiUInt256])
     (bytes := out.toList) (cursor := 0)
     (total := 32 * [abiUInt256, abiUInt256, abiUInt256, abiUInt256, abiUInt256].length)
     (by decide) (by simp)]
   simp only [decodeScalarWordsWithMode?]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.solcV1Signed)
+  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
     (bytes := out.toList) (start := 0) htake0]
   simp only [Option.bind_eq_bind, Option.bind_some]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.solcV1Signed)
+  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
     (bytes := out.toList) (start := 32) htake32]
   simp only [Option.bind_some]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.solcV1Signed)
+  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
     (bytes := out.toList) (start := 64) htake64]
   simp only [Option.bind_some]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.solcV1Signed)
+  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
     (bytes := out.toList) (start := 96) htake96]
   simp only [Option.bind_some]
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.solcV1Signed)
+  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
     (bytes := out.toList) (start := 128) htake128]
   simp only [Option.bind_some]
   rw [hword0, hword1, hword2, hword3, hword4]
@@ -1028,14 +1028,14 @@ theorem clipperDogChopDecode_none_short {v : ClipperImmutables} {outDog : ByteAr
     (hshort : outDog.size < 32) :
     (config v).externalABI.decode? "chop" outDog = none := by
   simpa [config, externalABI, decodeReturn?, uint256, uint256Int, abiUInt256] using
-    (decodeReturnValueWithMode_solcV1Signed_uint256_none_short (returndata := outDog) hshort)
+    (decodeReturnValueWithMode_legacy_uint256_none_short (returndata := outDog) hshort)
 
 theorem clipperDogChopDecode_ok {v : ClipperImmutables} {outDog : ByteArray}
     (hlo : 32 ≤ outDog.size) :
     (config v).externalABI.decode? "chop" outDog = some (clipperDogChopValues outDog) := by
   simpa [config, externalABI, decodeReturn?, clipperDogChopValues, clipperDogChopValue,
     clipperDogChopNat, uint256, uint256Int, abiUInt256] using
-    (decodeReturnValueWithMode_solcV1Signed_uint256_ok (returndata := outDog) hlo)
+    (decodeReturnValueWithMode_legacy_uint256_ok (returndata := outDog) hlo)
 
 abbrev clipperVatIlksValues (out : ByteArray) : List Value :=
   [.int (Int.ofNat (clipperVatIlksArtWord out).toNat),

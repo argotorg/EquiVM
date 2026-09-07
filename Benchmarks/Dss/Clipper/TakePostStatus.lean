@@ -815,9 +815,9 @@ theorem clipperTakeStoppedStringWord :
 theorem clipperTakePayloadGt_zero {I : ExecutionEnv}
     (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
     (hlenWord : 4 + (clipperTakeDataOffsetWord I).toNat + 32 ≤ I.calldata.size)
-    (hlenMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataLenWord I).toNat)
+    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat)
     (hpayloadOk :
       (((I.calldata.toList.drop 4).drop ((clipperTakeDataOffsetWord I).toNat + 32)).take
         (clipperTakeDataLenWord I).toNat).length = (clipperTakeDataLenWord I).toNat) :

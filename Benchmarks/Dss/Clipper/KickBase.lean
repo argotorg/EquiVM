@@ -88,7 +88,7 @@ theorem clipperDispatch_kick (v : ClipperImmutables) {I : ExecutionEnv}
 -- `(uint256,uint256,address,address)`.
 theorem decodeCalldata_legacyUint256_uint256_address_address_ok {cd : ByteArray}
     {w x y z : Solm.Ident} (hsz132 : 132 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [w, x, y, z]
+    decodeCalldataWithMode DecodeMode.legacySolc05 [w, x, y, z]
         [uint256, uint256, addr, addr] cd =
       some (((((∅ : Solm.Store).insert w
         (.int (Int.ofNat (calldataWord cd 4).toNat))).insert x
@@ -124,36 +124,36 @@ theorem decodeCalldata_legacyUint256_uint256_address_address_ok {cd : ByteArray}
       calldataWord cd 100 := by
     simpa [List.drop_drop, Nat.add_comm, Nat.add_left_comm, Nat.add_assoc] using
       decode_word_at_eq cd 100 (by omega) (by norm_num)
-  rw [decodeCalldataWithMode_solcV1SignedScalarWords_eq (names := [w, x, y, z])
+  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [w, x, y, z])
     (types := [uint256, uint256, addr, addr]) (cd := cd) (by native_decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   simp only [decodeScalarWordsWithMode?]
   have hdecode0 :
-      decodeScalarWordWithMode? DecodeMode.solcV1Signed uint256 (cd.toList.drop 4) 0 =
+      decodeScalarWordWithMode? DecodeMode.legacySolc05 uint256 (cd.toList.drop 4) 0 =
         some (.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat),
           0 + 32) := by
     simpa [uint256, uint256Int] using
-      decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.solcV1Signed)
+      decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
         (bytes := cd.toList.drop 4) (start := 0) htake4
   have hdecode32 :
-      decodeScalarWordWithMode? DecodeMode.solcV1Signed uint256 (cd.toList.drop 4) 32 =
+      decodeScalarWordWithMode? DecodeMode.legacySolc05 uint256 (cd.toList.drop 4) 32 =
         some (.int (Int.ofNat
           (ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32)).toNat), 32 + 32) := by
     simpa [uint256, uint256Int] using
-      decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.solcV1Signed)
+      decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
         (bytes := cd.toList.drop 4) (start := 32) htake36
   have hdecode64 :
-      decodeScalarWordWithMode? DecodeMode.solcV1Signed addr (cd.toList.drop 4) 64 =
+      decodeScalarWordWithMode? DecodeMode.legacySolc05 addr (cd.toList.drop 4) 64 =
         some (.address (AccountAddress.ofNat
           (ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32)).toNat), 64 + 32) := by
     simpa [addr] using
-      decodeScalarWord_solcV1SignedAddress_ok (bytes := cd.toList.drop 4) (start := 64) htake68
+      decodeScalarWord_legacyAddress_ok (bytes := cd.toList.drop 4) (start := 64) htake68
   have hdecode96 :
-      decodeScalarWordWithMode? DecodeMode.solcV1Signed addr (cd.toList.drop 4) 96 =
+      decodeScalarWordWithMode? DecodeMode.legacySolc05 addr (cd.toList.drop 4) 96 =
         some (.address (AccountAddress.ofNat
           (ABI.bytesToWord (((cd.toList.drop 4).drop 96).take 32)).toNat), 96 + 32) := by
     simpa [addr] using
-      decodeScalarWord_solcV1SignedAddress_ok (bytes := cd.toList.drop 4) (start := 96) htake100
+      decodeScalarWord_legacyAddress_ok (bytes := cd.toList.drop 4) (start := 96) htake100
   rw [hdecode0, hdecode32, hdecode64, hdecode96]
   simp only [Option.bind, bind]
   change decodeCalldata.insertValues [w, x, y, z]
@@ -175,12 +175,12 @@ theorem decodeCalldata_legacyUint256_uint256_address_address_ok {cd : ByteArray}
 -- `(uint256,uint256,address,address)`.
 theorem decodeCalldata_legacyUint256_uint256_address_address_none_short {cd : ByteArray}
     {w x y z : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 132) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [w, x, y, z]
+    decodeCalldataWithMode DecodeMode.legacySolc05 [w, x, y, z]
       [uint256, uint256, addr, addr] cd = none := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]
     rfl
-  rw [decodeCalldataWithMode_solcV1SignedScalarWords_eq (names := [w, x, y, z])
+  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [w, x, y, z])
     (types := [uint256, uint256, addr, addr]) (cd := cd) (by native_decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   by_cases hlen0 : 32 ≤ (cd.toList.drop 4).length
@@ -189,11 +189,11 @@ theorem decodeCalldata_legacyUint256_uint256_address_address_none_short {cd : By
       omega
     simp only [decodeScalarWordsWithMode?]
     have hdecode0 :
-        decodeScalarWordWithMode? DecodeMode.solcV1Signed uint256 (cd.toList.drop 4) 0 =
+        decodeScalarWordWithMode? DecodeMode.legacySolc05 uint256 (cd.toList.drop 4) 0 =
           some (.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat),
             0 + 32) := by
       simpa [uint256, uint256Int] using
-        decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.solcV1Signed)
+        decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
           (bytes := cd.toList.drop 4) (start := 0) htake0
     rw [hdecode0]
     by_cases hlen32 : 64 ≤ (cd.toList.drop 4).length
@@ -201,11 +201,11 @@ theorem decodeCalldata_legacyUint256_uint256_address_address_none_short {cd : By
         rw [List.length_take, List.length_drop]
         omega
       have hdecode32 :
-          decodeScalarWordWithMode? DecodeMode.solcV1Signed uint256 (cd.toList.drop 4) 32 =
+          decodeScalarWordWithMode? DecodeMode.legacySolc05 uint256 (cd.toList.drop 4) 32 =
             some (.int (Int.ofNat
               (ABI.bytesToWord (((cd.toList.drop 4).drop 32).take 32)).toNat), 32 + 32) := by
         simpa [uint256, uint256Int] using
-          decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.solcV1Signed)
+          decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
             (bytes := cd.toList.drop 4) (start := 32) htake32
       rw [hdecode32]
       by_cases hlen64 : 96 ≤ (cd.toList.drop 4).length
@@ -213,21 +213,21 @@ theorem decodeCalldata_legacyUint256_uint256_address_address_none_short {cd : By
           rw [List.length_take, List.length_drop]
           omega
         have hdecode64 :
-            decodeScalarWordWithMode? DecodeMode.solcV1Signed addr (cd.toList.drop 4) 64 =
+            decodeScalarWordWithMode? DecodeMode.legacySolc05 addr (cd.toList.drop 4) 64 =
               some (.address (AccountAddress.ofNat
                 (ABI.bytesToWord (((cd.toList.drop 4).drop 64).take 32)).toNat), 64 + 32) := by
           simpa [addr] using
-            decodeScalarWord_solcV1SignedAddress_ok (bytes := cd.toList.drop 4) (start := 64)
+            decodeScalarWord_legacyAddress_ok (bytes := cd.toList.drop 4) (start := 64)
               htake64
         rw [hdecode64]
         have htake96n : ¬ (((cd.toList.drop 4).drop 96).take 32).length = 32 := by
           rw [List.length_take, List.length_drop, List.length_drop, htlen]
           omega
         have hdecode96 :
-            decodeScalarWordWithMode? DecodeMode.solcV1Signed addr (cd.toList.drop 4) 96 =
+            decodeScalarWordWithMode? DecodeMode.legacySolc05 addr (cd.toList.drop 4) 96 =
               none := by
           simpa [addr] using
-            decodeScalarWord_solcV1SignedAddress_none_short (bytes := cd.toList.drop 4)
+            decodeScalarWord_legacyAddress_none_short (bytes := cd.toList.drop 4)
               (start := 96) htake96n
         rw [hdecode96]
         simp only [Option.bind, bind]
@@ -235,10 +235,10 @@ theorem decodeCalldata_legacyUint256_uint256_address_address_none_short {cd : By
           rw [List.length_take, List.length_drop]
           omega
         have hdecode64 :
-            decodeScalarWordWithMode? DecodeMode.solcV1Signed addr (cd.toList.drop 4) 64 =
+            decodeScalarWordWithMode? DecodeMode.legacySolc05 addr (cd.toList.drop 4) 64 =
               none := by
           simpa [addr] using
-            decodeScalarWord_solcV1SignedAddress_none_short (bytes := cd.toList.drop 4)
+            decodeScalarWord_legacyAddress_none_short (bytes := cd.toList.drop 4)
               (start := 64) htake64n
         rw [hdecode64]
         simp only [Option.bind, bind]
@@ -246,10 +246,10 @@ theorem decodeCalldata_legacyUint256_uint256_address_address_none_short {cd : By
         rw [List.length_take, List.length_drop]
         omega
       have hdecode32 :
-          decodeScalarWordWithMode? DecodeMode.solcV1Signed uint256 (cd.toList.drop 4) 32 =
+          decodeScalarWordWithMode? DecodeMode.legacySolc05 uint256 (cd.toList.drop 4) 32 =
             none := by
         simpa [uint256, uint256Int] using
-          decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.solcV1Signed)
+          decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
             (bytes := cd.toList.drop 4) (start := 32) htake32n
       rw [hdecode32]
       simp only [Option.bind, bind]
@@ -258,10 +258,10 @@ theorem decodeCalldata_legacyUint256_uint256_address_address_none_short {cd : By
       omega
     simp only [decodeScalarWordsWithMode?]
     have hdecode0 :
-        decodeScalarWordWithMode? DecodeMode.solcV1Signed uint256 (cd.toList.drop 4) 0 =
+        decodeScalarWordWithMode? DecodeMode.legacySolc05 uint256 (cd.toList.drop 4) 0 =
           none := by
       simpa [uint256, uint256Int] using
-        decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.solcV1Signed)
+        decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
           (bytes := cd.toList.drop 4) (start := 0) htake0n
     rw [hdecode0]
     simp only [Option.bind, bind]

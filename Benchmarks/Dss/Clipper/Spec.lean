@@ -98,7 +98,7 @@ def vatMoveSelector : ByteArray := selectorBytes 0xbb 0x35 0x78 0x3b
 def vatSuckSelector : ByteArray := selectorBytes 0xf2 0x4e 0x23 0xeb
 
 def decodeReturn? (ty : ABIType) (out : EVM.Bytes) : Option (List Value) :=
-  (ABI.decodeReturnValueWithMode? DecodeMode.solcV1Signed ty out).map (fun v => [v])
+  (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 ty out).map (fun v => [v])
 
 def decodeVoid? (_out : EVM.Bytes) : Option (List Value) := some []
 
@@ -138,15 +138,15 @@ def externalABI : ExternalCallABI where
     else if name = "digs" then
       decodeVoid? out
     else if name = "peek" then
-      ABI.decodeReturnValuesWithMode? DecodeMode.solcV1Signed [bytes32, boolTy] out
+      ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [bytes32, boolTy] out
     else if name = "spotterIlks" then
-      ABI.decodeReturnValuesWithMode? DecodeMode.solcV1Signed [addr, uint256] out
+      ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05 [addr, uint256] out
     else if name = "par" then
       decodeReturn? uint256 out
     else if name = "flux" then
       decodeVoid? out
     else if name = "vatIlks" then
-      ABI.decodeReturnValuesWithMode? DecodeMode.solcV1Signed
+      ABI.decodeReturnValuesWithMode? DecodeMode.legacySolc05
         [uint256, uint256, uint256, uint256, uint256] out
     else if name = "move" then
       decodeVoid? out
@@ -683,7 +683,7 @@ def contract (v : ClipperImmutables) : ContractDecl :=
 def config (v : ClipperImmutables) : Config :=
   { storage := storageLayout
     externalABI := externalABI
-    abiDecodeMode := DecodeMode.solcV1Signed
+    abiDecodeMode := DecodeMode.legacySolc05
     selfDeployment := genSolidityConstructorDeployment (contract v).ctor.params }
 
 end Benchmarks.Dss.Clipper

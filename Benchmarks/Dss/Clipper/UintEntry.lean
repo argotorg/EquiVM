@@ -12,7 +12,7 @@ set_option linter.unusedTactic false
 -- LIBRARY CANDIDATE: legacy solc-0.5/0.6 one-word uint256 ABI decoding.
 theorem decodeCalldataWithMode_legacyUint256_ok {cd : ByteArray} {x : Solm.Ident}
     (hsz36 : 36 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [x] [uint256] cd =
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [uint256] cd =
       some ((∅ : Solm.Store).insert x (.int (Int.ofNat (calldataWord cd 4).toNat))) := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -22,18 +22,18 @@ theorem decodeCalldataWithMode_legacyUint256_ok {cd : ByteArray} {x : Solm.Ident
     omega
   have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 := by
     exact decode_word_at_eq cd 4 (by omega) (by norm_num)
-  rw [decodeCalldataWithMode_solcV1SignedScalarWords_eq (names := [x]) (types := [uint256])
+  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [uint256])
     (cd := cd) (by native_decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   simp only [decodeScalarWordsWithMode?]
   change (match do
-      let decoded ← decodeScalarWordWithMode? DecodeMode.solcV1Signed abiUInt256
+      let decoded ← decodeScalarWordWithMode? DecodeMode.legacySolc05 abiUInt256
         (List.drop 4 cd.toList) 0
       let values ← some []
       some (decoded.1 :: values) with
     | some values => decodeCalldata.insertValues [x] values ∅
     | none => none) = _
-  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.solcV1Signed)
+  rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
     (bytes := cd.toList.drop 4) (start := 0) (by simpa using htake4)]
   change decodeCalldata.insertValues [x]
       [.int (Int.ofNat (ABI.bytesToWord ((cd.toList.drop 4).take 32)).toNat)] ∅ =
@@ -44,11 +44,11 @@ theorem decodeCalldataWithMode_legacyUint256_ok {cd : ByteArray} {x : Solm.Ident
 -- LIBRARY CANDIDATE: legacy solc-0.5/0.6 one-word uint256 short-calldata rejection.
 theorem decodeCalldataWithMode_legacyUint256_none_short {cd : ByteArray} {x : Solm.Ident}
     (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [x] [uint256] cd = none := by
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x] [uint256] cd = none := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]
     rfl
-  rw [decodeCalldataWithMode_solcV1SignedScalarWords_eq (names := [x]) (types := [uint256])
+  rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [uint256])
     (cd := cd) (by native_decide)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   simp only [decodeScalarWordsWithMode?]
@@ -56,13 +56,13 @@ theorem decodeCalldataWithMode_legacyUint256_none_short {cd : ByteArray} {x : So
     rw [List.length_take, List.length_drop, htlen]
     omega
   change (match do
-      let decoded ← decodeScalarWordWithMode? DecodeMode.solcV1Signed abiUInt256
+      let decoded ← decodeScalarWordWithMode? DecodeMode.legacySolc05 abiUInt256
         (List.drop 4 cd.toList) 0
       let values ← some []
       some (decoded.1 :: values) with
     | some values => decodeCalldata.insertValues [x] values ∅
     | none => none) = none
-  rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.solcV1Signed)
+  rw [decodeScalarWordWithMode_uint256_none_short (mode := DecodeMode.legacySolc05)
     (start := 0) (by simpa using htake0n)]
   simp only [Option.bind, bind]
 

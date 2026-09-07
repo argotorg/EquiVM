@@ -122,46 +122,6 @@ theorem decodeScalarWordsWithMode_vyper_eq :
       | some head =>
           rw [decodeScalarWordsWithMode_vyper_eq tys bytes (cursor + 32)]
 
-/-- The signed-guard coder-v1 mode changes only top-level dynamic calldata rejection; scalar word
-    cleanup is identical to the solc 0.5.x coder-v1 mode. -/
-theorem decodeABIWord_solcV1Signed_eq_legacy (ty : ABIType) (word : EVM.Word) :
-    decodeABIWord? ty word DecodeMode.solcV1Signed =
-      decodeABIWord? ty word DecodeMode.legacySolc05 := by
-  cases ty with
-  | elem e =>
-      cases e with
-      | bool => rfl
-      | address => rfl
-      | int i => cases i <;> rfl
-      | fixed f => rfl
-      | bytes n => rfl
-      | function => rfl
-  | array ty n => rfl
-  | dynamicArray ty => rfl
-  | tuple tys => rfl
-  | bytes => rfl
-  | string => rfl
-
-theorem decodeScalarWordWithMode_solcV1Signed_eq_legacy (ty : ABIType)
-    (bytes : List UInt8) (start : Nat) :
-    decodeScalarWordWithMode? DecodeMode.solcV1Signed ty bytes start =
-      decodeScalarWordWithMode? DecodeMode.legacySolc05 ty bytes start := by
-  unfold decodeScalarWordWithMode?
-  cases readWord? bytes start <;> simp [decodeABIWord_solcV1Signed_eq_legacy]
-
-theorem decodeScalarWordsWithMode_solcV1Signed_eq_legacy :
-    ∀ (types : List ABIType) (bytes : List UInt8) (cursor : Nat),
-      decodeScalarWordsWithMode? DecodeMode.solcV1Signed types bytes cursor =
-        decodeScalarWordsWithMode? DecodeMode.legacySolc05 types bytes cursor
-  | [], _, _ => rfl
-  | ty :: tys, bytes, cursor => by
-      simp only [decodeScalarWordsWithMode?]
-      rw [decodeScalarWordWithMode_solcV1Signed_eq_legacy]
-      cases decodeScalarWordWithMode? DecodeMode.legacySolc05 ty bytes cursor with
-      | none => rfl
-      | some head =>
-          rw [decodeScalarWordsWithMode_solcV1Signed_eq_legacy tys bytes (cursor + 32)]
-
 theorem readWord?_some_length {bytes : List UInt8} {offset : Nat} {word : EVM.Word}
     (h : readWord? bytes offset = some word) : offset + 32 ≤ bytes.length := by
   unfold readWord? at h
@@ -512,65 +472,6 @@ theorem decodeCalldataWithMode_legacyScalarWords_eq {names : List Solm.Ident}
             simp only
             cases decodeCalldata.insertValues names values ∅ <;> rfl
 
-/-- Evaluate fixed scalar-word calldata using coder-v1 cleanup and Clipper's signed dynamic guard.
-    Since scalar arguments are not dynamic, this has the same result as `legacySolc05`. -/
-theorem decodeCalldataWithMode_solcV1SignedScalarWords_eq {names : List Solm.Ident}
-    {types : List ABIType} {cd : ByteArray}
-    (hscalar : types.all isABIScalarWordType = true) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed names types cd =
-      if cd.toList.length < 4 then
-        none
-      else
-        match decodeScalarWordsWithMode? DecodeMode.solcV1Signed types
-            (cd.toList.drop 4) 0 with
-        | some values => decodeCalldata.insertValues names values ∅
-        | none => none := by
-  unfold decodeCalldataWithMode decodeCalldata
-  by_cases hlt : cd.toList.length < 4
-  · conv_lhs => rw [if_pos hlt]
-    conv_rhs => rw [if_pos hlt]
-  · conv_lhs => rw [if_neg hlt]
-    conv_rhs => rw [if_neg hlt]
-    have hdynFalse : types.any isDynamicABIType = false :=
-      isABIScalarWordTypes_any_dynamic_false hscalar
-    conv_lhs => rw [if_neg (by simp [hdynFalse])]
-    cases types with
-    | nil =>
-        simp [decodeCalldata.decodeArgs, decodeScalarWordsWithMode?]
-        cases names <;> rfl
-    | cons ty tys =>
-        have hhead := abiTupleHeadSize_scalarWords_eq hscalar
-        simp only [decodeCalldata.decodeArgs]
-        rw [hhead]
-        simp only [bind, Option.bind]
-        have hvals := decodeABIValues_scalarWordsWithMode_eq
-          (mode := DecodeMode.solcV1Signed) (types := ty :: tys)
-          (bytes := cd.toList.drop 4) (cursor := 0) (total := 32 * (ty :: tys).length)
-          hscalar (by simp)
-        rw [hvals]
-        cases hscal : decodeScalarWordsWithMode? DecodeMode.solcV1Signed (ty :: tys)
-            (cd.toList.drop 4) 0 with
-        | none =>
-            by_cases hshort : (cd.toList.drop 4).length < 32 * (ty :: tys).length
-            · rw [if_pos hshort]
-            · rw [if_neg hshort]
-        | some values =>
-            have hnotShort : ¬(cd.toList.drop 4).length < 32 * (ty :: tys).length := by
-              have hlen := decodeScalarWordsWithMode?_some_length (Nat.zero_le _) hscal
-              omega
-            rw [if_neg hnotShort]
-            simp only
-            cases decodeCalldata.insertValues names values ∅ <;> rfl
-
-theorem decodeCalldataWithMode_solcV1Signed_eq_legacy_of_scalar
-    {names : List Solm.Ident} {types : List ABIType} {cd : ByteArray}
-    (hscalar : types.all isABIScalarWordType = true) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed names types cd =
-      decodeCalldataWithMode DecodeMode.legacySolc05 names types cd := by
-  rw [decodeCalldataWithMode_solcV1SignedScalarWords_eq hscalar,
-    decodeCalldataWithMode_legacyScalarWords_eq hscalar,
-    decodeScalarWordsWithMode_solcV1Signed_eq_legacy]
-
 theorem decodeCalldataWithMode_vyperScalarWords_eq {names : List Solm.Ident}
     {types : List ABIType} {cd : ByteArray}
     (hscalar : types.all isABIScalarWordType = true) :
@@ -766,11 +667,6 @@ theorem decodeScalarWordWithMode_uint256_ok {mode : DecodeMode} {bytes : List UI
     rw [Nat.mod_eq_of_lt (show (↑(ABI.bytesToWord (List.take 32 (List.drop start bytes))).val : ℕ)
       < EVM.twoPow 256 from (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt)]
     rfl
-  | solcV1Signed =>
-    -- coder-v1 with signed size guards has the same scalar cleanup as legacy solc 0.5.x.
-    rw [Nat.mod_eq_of_lt (show (↑(ABI.bytesToWord (List.take 32 (List.drop start bytes))).val : ℕ)
-      < EVM.twoPow 256 from (ABI.bytesToWord ((bytes.drop start).take 32)).val.isLt)]
-    rfl
 
 theorem decodeScalarWordWithMode_uint256_none_short {mode : DecodeMode} {bytes : List UInt8}
     {start : Nat}
@@ -826,20 +722,6 @@ theorem decodeScalarWord_legacyAddress_none_short {bytes : List UInt8} {start : 
   simp only [decodeScalarWordWithMode?, readWord?, readBytes?, decodeABIWord?, bind,
     Option.bind]
   rw [if_neg hshort]
-
-theorem decodeScalarWord_solcV1SignedAddress_ok {bytes : List UInt8} {start : Nat}
-    (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeScalarWordWithMode? DecodeMode.solcV1Signed abiAddress bytes start =
-      some (.address (AccountAddress.ofNat
-        (ABI.bytesToWord ((bytes.drop start).take 32)).toNat), start + 32) := by
-  rw [decodeScalarWordWithMode_solcV1Signed_eq_legacy]
-  exact decodeScalarWord_legacyAddress_ok hlen
-
-theorem decodeScalarWord_solcV1SignedAddress_none_short {bytes : List UInt8} {start : Nat}
-    (hshort : ¬ ((bytes.drop start).take 32).length = 32) :
-    decodeScalarWordWithMode? DecodeMode.solcV1Signed abiAddress bytes start = none := by
-  rw [decodeScalarWordWithMode_solcV1Signed_eq_legacy]
-  exact decodeScalarWord_legacyAddress_none_short hshort
 
 theorem decodeScalarWordWithMode_legacy_bool_false {bytes : List UInt8} {start : Nat}
     (hlen : ((bytes.drop start).take 32).length = 32)
@@ -919,33 +801,6 @@ theorem decodeReturnValueWithMode_legacy_uint256_ok {returndata : ByteArray}
   rw [decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
     (bytes := returndata.toList) (start := 0) htake0]
   simp [hword, UInt256.toNat_ofNat_of_lt (fromByteArrayBigEndian_extract0_32_lt hlo)]
-
-theorem decodeReturnValueWithMode_solcV1Signed_uint256_eq_legacy (returndata : ByteArray) :
-    ABI.decodeReturnValueWithMode? DecodeMode.solcV1Signed abiUInt256 returndata =
-      ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 abiUInt256 returndata := by
-  unfold ABI.decodeReturnValueWithMode? ABI.decodeReturnValuesWithMode?
-  rw [abiTupleHeadSize_scalarWords_eq (types := [abiUInt256]) (by decide)]
-  simp only [bind, Option.bind]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.solcV1Signed)
-    (types := [abiUInt256]) (bytes := returndata.toList) (cursor := 0)
-    (total := 32 * [abiUInt256].length) (by decide) (by simp)]
-  rw [decodeABIValues_scalarWordsWithMode_eq (mode := DecodeMode.legacySolc05)
-    (types := [abiUInt256]) (bytes := returndata.toList) (cursor := 0)
-    (total := 32 * [abiUInt256].length) (by decide) (by simp)]
-  rw [decodeScalarWordsWithMode_solcV1Signed_eq_legacy]
-
-theorem decodeReturnValueWithMode_solcV1Signed_uint256_none_short {returndata : ByteArray}
-    (hshort : returndata.size < 32) :
-    ABI.decodeReturnValueWithMode? DecodeMode.solcV1Signed abiUInt256 returndata = none := by
-  rw [decodeReturnValueWithMode_solcV1Signed_uint256_eq_legacy]
-  exact decodeReturnValueWithMode_legacy_uint256_none_short hshort
-
-theorem decodeReturnValueWithMode_solcV1Signed_uint256_ok {returndata : ByteArray}
-    (hlo : 32 ≤ returndata.size) :
-    ABI.decodeReturnValueWithMode? DecodeMode.solcV1Signed abiUInt256 returndata =
-      some (.int (Int.ofNat (fromByteArrayBigEndian (returndata.extract 0 32)))) := by
-  rw [decodeReturnValueWithMode_solcV1Signed_uint256_eq_legacy]
-  exact decodeReturnValueWithMode_legacy_uint256_ok hlo
 
 theorem decodeReturnValueWithMode_legacy_bool_none_short {returndata : ByteArray}
     (hshort : returndata.size < 32) :
@@ -1092,20 +947,6 @@ theorem decodeCalldata_legacyAddress_none_short {cd : ByteArray} {x : Solm.Ident
     omega
   rw [decodeScalarWord_legacyAddress_none_short (start := 0) (by simpa using htake0n)]
   simp only [Option.bind, bind]
-
-theorem decodeCalldata_solcV1SignedAddress_ok {cd : ByteArray} {x : Solm.Ident}
-    (hsz36 : 36 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [x] [abiAddress] cd =
-      some ((∅ : Solm.Store).insert x
-        (.address (AccountAddress.ofNat (calldataWord cd 4).toNat))) := by
-  rw [decodeCalldataWithMode_solcV1Signed_eq_legacy_of_scalar (by decide)]
-  exact decodeCalldata_legacyAddress_ok hsz36
-
-theorem decodeCalldata_solcV1SignedAddress_none_short {cd : ByteArray} {x : Solm.Ident}
-    (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 36) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [x] [abiAddress] cd = none := by
-  rw [decodeCalldataWithMode_solcV1Signed_eq_legacy_of_scalar (by decide)]
-  exact decodeCalldata_legacyAddress_none_short hsz4 hshort
 
 theorem decodeCalldata_legacyAddress_uint256_ok {cd : ByteArray} {x y : Solm.Ident}
     (hsz68 : 68 ≤ cd.size) :
@@ -1330,9 +1171,6 @@ theorem decodeCalldataWithMode_empty_ok {mode : DecodeMode} {cd : ByteArray}
       (by decide)]
     rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
     simp [decodeScalarWordsWithMode?, decodeCalldata.insertValues]
-  · have htlen : cd.toList.length = cd.size := by
-      rw [byteArray_toList_eq, Array.length_toList]; rfl
-    simp [decodeCalldataWithMode, decodeCalldata, htlen, hsz4, decodeCalldata.decodeArgs]
   · have htlen : cd.toList.length = cd.size := by
       rw [byteArray_toList_eq, Array.length_toList]; rfl
     simp [decodeCalldataWithMode, decodeCalldata, htlen, hsz4, decodeCalldata.decodeArgs]

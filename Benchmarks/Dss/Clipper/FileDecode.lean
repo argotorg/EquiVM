@@ -11,7 +11,7 @@ namespace Benchmarks.Dss.Clipper
 theorem decodeABIValues_bytes32_uint256_legacy_ok {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)
     (hlen32 : ((bytes.drop 32).take 32).length = 32) :
-    decodeABIValues? [abiBytes32, abiUInt256] bytes 0 0 64 64 DecodeMode.solcV1Signed =
+    decodeABIValues? [abiBytes32, abiUInt256] bytes 0 0 64 64 DecodeMode.legacySolc05 =
       some ([.fixedBytes abiBytes32Width (bytes.take 32),
         .int (Int.ofNat (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)], 64) := by
   simp [decodeABIValues?, abiBytes32, abiBytes32Width, abiUInt256, isDynamicABIType,
@@ -25,7 +25,7 @@ theorem decodeABIValues_bytes32_uint256_legacy_ok {bytes : List UInt8}
 -- LIBRARY CANDIDATE: legacy-solc05 short-input failure for `(bytes32,uint256)`.
 theorem decodeABIValues_bytes32_uint256_legacy_none_short {bytes : List UInt8}
     (hshort : bytes.length < 64) :
-    decodeABIValues? [abiBytes32, abiUInt256] bytes 0 0 64 64 DecodeMode.solcV1Signed =
+    decodeABIValues? [abiBytes32, abiUInt256] bytes 0 0 64 64 DecodeMode.legacySolc05 =
       none := by
   simp only [decodeABIValues?, abiBytes32, abiBytes32Width, abiUInt256, isDynamicABIType,
     Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
@@ -50,7 +50,7 @@ theorem decodeABIValues_bytes32_uint256_legacy_none_short {bytes : List UInt8}
 -- LIBRARY CANDIDATE: legacy-solc05 calldata decoding for `(bytes32,uint256)`.
 theorem decodeCalldata_legacyBytes32_uint256_ok {cd : ByteArray} {x y : Solm.Ident}
     (hsz68 : 68 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [x, y] [abiBytes32, abiUInt256] cd =
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiUInt256] cd =
       some (((∅ : Solm.Store).insert x
         (.fixedBytes abiBytes32Width ((cd.toList.drop 4).take 32))).insert y
         (.int (Int.ofNat (calldataWord cd 36).toNat))) := by
@@ -81,7 +81,7 @@ theorem decodeCalldata_legacyBytes32_uint256_ok {cd : ByteArray} {x y : Solm.Ide
 -- LIBRARY CANDIDATE: legacy-solc05 short calldata failure for `(bytes32,uint256)`.
 theorem decodeCalldata_legacyBytes32_uint256_none_short {cd : ByteArray}
     {x y : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 68) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [x, y] [abiBytes32, abiUInt256] cd =
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiUInt256] cd =
       none := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -103,7 +103,7 @@ theorem decodeCalldata_legacyBytes32_uint256_none_short {cd : ByteArray}
 theorem decodeABIValues_bytes32_address_legacy_ok {bytes : List UInt8}
     (hlen0 : (bytes.take 32).length = 32)
     (hlen32 : ((bytes.drop 32).take 32).length = 32) :
-    decodeABIValues? [abiBytes32, abiAddress] bytes 0 0 64 64 DecodeMode.solcV1Signed =
+    decodeABIValues? [abiBytes32, abiAddress] bytes 0 0 64 64 DecodeMode.legacySolc05 =
       some ([.fixedBytes abiBytes32Width (bytes.take 32),
         .address (AccountAddress.ofNat
           (ABI.bytesToWord ((bytes.drop 32).take 32)).toNat)], 64) := by
@@ -114,7 +114,7 @@ theorem decodeABIValues_bytes32_address_legacy_ok {bytes : List UInt8}
 -- LIBRARY CANDIDATE: legacy-solc05 short-input failure for `(bytes32,address)`.
 theorem decodeABIValues_bytes32_address_legacy_none_short {bytes : List UInt8}
     (hshort : bytes.length < 64) :
-    decodeABIValues? [abiBytes32, abiAddress] bytes 0 0 64 64 DecodeMode.solcV1Signed =
+    decodeABIValues? [abiBytes32, abiAddress] bytes 0 0 64 64 DecodeMode.legacySolc05 =
       none := by
   simp only [decodeABIValues?, abiBytes32, abiBytes32Width, abiAddress, isDynamicABIType,
     Bool.false_eq_true, if_false, staticABIEncodedSize?, bind, Option.bind, Nat.zero_add]
@@ -139,7 +139,7 @@ theorem decodeABIValues_bytes32_address_legacy_none_short {bytes : List UInt8}
 -- LIBRARY CANDIDATE: legacy-solc05 calldata decoding for `(bytes32,address)`.
 theorem decodeCalldata_legacyBytes32_address_ok {cd : ByteArray} {x y : Solm.Ident}
     (hsz68 : 68 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [x, y] [abiBytes32, abiAddress] cd =
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiAddress] cd =
       some (((∅ : Solm.Store).insert x
         (.fixedBytes abiBytes32Width ((cd.toList.drop 4).take 32))).insert y
         (.address (AccountAddress.ofNat (calldataWord cd 36).toNat))) := by
@@ -170,7 +170,7 @@ theorem decodeCalldata_legacyBytes32_address_ok {cd : ByteArray} {x y : Solm.Ide
 -- LIBRARY CANDIDATE: legacy-solc05 short calldata failure for `(bytes32,address)`.
 theorem decodeCalldata_legacyBytes32_address_none_short {cd : ByteArray}
     {x y : Solm.Ident} (hsz4 : 4 ≤ cd.size) (hshort : cd.size < 68) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [x, y] [abiBytes32, abiAddress] cd =
+    decodeCalldataWithMode DecodeMode.legacySolc05 [x, y] [abiBytes32, abiAddress] cd =
       none := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]

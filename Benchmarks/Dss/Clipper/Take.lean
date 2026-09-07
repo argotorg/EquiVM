@@ -123,9 +123,9 @@ theorem readBytes_drop4_payload {cd : ByteArray} {off len : Nat}
 -- LIBRARY CANDIDATE: legacy-solc05 dynamic `bytes` ABI value decoding at a known tail.
 theorem decodeABIValue_legacyBytes_ok {bytes : List UInt8} {start len : Nat}
     (hreadLen : readNat? bytes start = some len)
-    (hlenMax : ¬ solcMaxLen DecodeMode.solcV1Signed < len)
+    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 < len)
     (hpayload : ((bytes.drop (start + 32)).take len).length = len) :
-    decodeABIValue? ABIType.bytes bytes start DecodeMode.solcV1Signed =
+    decodeABIValue? ABIType.bytes bytes start DecodeMode.legacySolc05 =
       some (.bytes (ByteArray.mk (((bytes.drop (start + 32)).take len).toArray)),
         start + 32 + paddedSize len) := by
   unfold decodeABIValue?
@@ -141,25 +141,25 @@ theorem decodeABIValue_legacyBytes_ok {bytes : List UInt8} {start len : Nat}
 -- LIBRARY CANDIDATE: legacy-solc05 full-width uint256 ABI value decoding.
 theorem decodeABIValue_legacyUint256_ok {bytes : List UInt8} {start : Nat}
     (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? uint256 bytes start DecodeMode.solcV1Signed =
+    decodeABIValue? uint256 bytes start DecodeMode.legacySolc05 =
       some (.int (Int.ofNat (ABI.bytesToWord ((bytes.drop start).take 32)).toNat),
         start + 32) := by
-  rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.solcV1Signed)
+  rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
     (ty := uint256) (bytes := bytes) (start := start) (by native_decide)]
   simpa [uint256, uint256Int] using
-    decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.solcV1Signed)
+    decodeScalarWordWithMode_uint256_ok (mode := DecodeMode.legacySolc05)
       (bytes := bytes) (start := start) hlen
 
 -- LIBRARY CANDIDATE: legacy-solc05 address ABI value decoding.
 theorem decodeABIValue_legacyAddress_ok {bytes : List UInt8} {start : Nat}
     (hlen : ((bytes.drop start).take 32).length = 32) :
-    decodeABIValue? addr bytes start DecodeMode.solcV1Signed =
+    decodeABIValue? addr bytes start DecodeMode.legacySolc05 =
       some (.address (AccountAddress.ofNat
         (ABI.bytesToWord ((bytes.drop start).take 32)).toNat), start + 32) := by
-  rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.solcV1Signed)
+  rw [decodeABIValue_scalarWordWithMode_eq (mode := DecodeMode.legacySolc05)
     (ty := addr) (bytes := bytes) (start := start) (by native_decide)]
   simpa [addr] using
-    decodeScalarWord_solcV1SignedAddress_ok (bytes := bytes) (start := start) hlen
+    decodeScalarWord_legacyAddress_ok (bytes := bytes) (start := start) hlen
 
 -- LIBRARY CANDIDATE: legacy-solc05 calldata decoding for
 -- `(uint256,uint256,uint256,address,bytes)`.
@@ -168,15 +168,15 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_ok {cd : Byte
     {a b c d e : Solm.Ident}
     (hsmall : cd.size < 2 ^ 255)
     (hsz164 : 164 ≤ cd.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (calldataWord cd 132).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (calldataWord cd 132).toNat)
     (hlenWord : 4 + (calldataWord cd 132).toNat + 32 ≤ cd.size)
-    (hlenMax : ¬ solcMaxLen DecodeMode.solcV1Signed <
+    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 <
       (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat)
     (hpayload :
       (((cd.toList.drop 4).drop ((calldataWord cd 132).toNat + 32)).take
         (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat).length =
         (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [a, b, c, d, e]
+    decodeCalldataWithMode DecodeMode.legacySolc05 [a, b, c, d, e]
         [uint256, uint256, uint256, addr, bytesDyn] cd =
       some (clipperTakeDecodedStore cd a b c d e) := by
   have htlen : cd.toList.length = cd.size := by
@@ -225,7 +225,7 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_ok {cd : Byte
     readNat_drop4_at_eq_calldataWord (cd := cd) (calldataWord cd 132).toNat hlenWord
   have hdecodeBytes :
       decodeABIValue? bytesDyn (cd.toList.drop 4) (calldataWord cd 132).toNat
-          DecodeMode.solcV1Signed =
+          DecodeMode.legacySolc05 =
         some (.bytes (ByteArray.mk
             ((((cd.toList.drop 4).drop ((calldataWord cd 132).toNat + 32)).take
               (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat).toArray)),
@@ -260,7 +260,7 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_ok {cd : Byte
     native_decide
   have hvalues :
       decodeABIValues? [uint256, uint256, uint256, addr, bytesDyn] (cd.toList.drop 4)
-          0 0 160 160 DecodeMode.solcV1Signed =
+          0 0 160 160 DecodeMode.legacySolc05 =
         some ([Value.int (Int.ofNat (calldataWord cd 4).toNat),
           Value.int (Int.ofNat (calldataWord cd 36).toNat),
           Value.int (Int.ofNat (calldataWord cd 68).toNat),
@@ -309,7 +309,7 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_ok {cd : Byte
 theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_short
     {cd : ByteArray} {a b c d e : Solm.Ident} (hsz4 : 4 ≤ cd.size)
     (hshort : cd.size < 164) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [a, b, c, d, e]
+    decodeCalldataWithMode DecodeMode.legacySolc05 [a, b, c, d, e]
       [uint256, uint256, uint256, addr, bytesDyn] cd = none := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -330,16 +330,16 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_short
 theorem clipperDecode_take_ok (v : ClipperImmutables) {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
     (hsz164 : 164 ≤ I.calldata.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
     (hlenWord : 4 + (clipperTakeDataOffsetWord I).toNat + 32 ≤ I.calldata.size)
-    (hlenMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataLenWord I).toNat)
+    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat)
     (hpayload :
       (((I.calldata.toList.drop 4).drop ((clipperTakeDataOffsetWord I).toNat + 32)).take
         (clipperTakeDataLenWord I).toNat).length = (clipperTakeDataLenWord I).toNat) :
     decodeCalldataWithMode (config v).abiDecodeMode ((takeTransition v).params.map Param.name)
       (transitionSignature (takeTransition v)).paramTypes I.calldata =
         some (clipperTakeStore I) := by
-  change decodeCalldataWithMode DecodeMode.solcV1Signed ["id", "amt", "max", "who", "data"]
+  change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "amt", "max", "who", "data"]
     [uint256, uint256, uint256, addr, bytesDyn] I.calldata =
       some (clipperTakeDecodedStore I.calldata "id" "amt" "max" "who" "data")
   exact decodeCalldata_legacyUint256_uint256_uint256_address_bytes_ok
@@ -350,37 +350,11 @@ theorem clipperDecode_take_none_short (v : ClipperImmutables) {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 164) :
     decodeCalldataWithMode (config v).abiDecodeMode ((takeTransition v).params.map Param.name)
       (transitionSignature (takeTransition v)).paramTypes I.calldata = none := by
-  change decodeCalldataWithMode DecodeMode.solcV1Signed ["id", "amt", "max", "who", "data"]
+  change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "amt", "max", "who", "data"]
     [uint256, uint256, uint256, addr, bytesDyn] I.calldata = none
   exact decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_short
     (cd := I.calldata) (a := "id") (b := "amt") (c := "max") (d := "who") (e := "data")
     hsz4 hshort
-
--- LIBRARY CANDIDATE: dynamic ABI calldata decoding rejects signed-huge calldata.
-theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_huge
-    {cd : ByteArray} {a b c d e : Solm.Ident} (hhuge : 2 ^ 255 ≤ cd.size) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [a, b, c, d, e]
-      [uint256, uint256, uint256, addr, bytesDyn] cd = none := by
-  have htlen : cd.toList.length = cd.size := by
-    rw [byteArray_toList_eq, Array.length_toList]
-    rfl
-  unfold decodeCalldataWithMode decodeCalldata
-  rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
-  rw [if_pos (by
-    constructor
-    · native_decide
-    · rw [htlen]
-      exact hhuge)]
-
-theorem clipperDecode_take_none_huge (v : ClipperImmutables) {I : ExecutionEnv}
-    (hhuge : 2 ^ 255 ≤ I.calldata.size) :
-    decodeCalldataWithMode (config v).abiDecodeMode ((takeTransition v).params.map Param.name)
-      (transitionSignature (takeTransition v)).paramTypes I.calldata = none := by
-  change decodeCalldataWithMode DecodeMode.solcV1Signed ["id", "amt", "max", "who", "data"]
-    [uint256, uint256, uint256, addr, bytesDyn] I.calldata = none
-  exact decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_huge
-    (cd := I.calldata) (a := "id") (b := "amt") (c := "max") (d := "who") (e := "data")
-    hhuge
 
 -- LIBRARY CANDIDATE: legacy-solc05 dynamic `bytes` ABI calldata decoding rejects
 -- offsets above the solc-v1 dynamic data bound.
@@ -389,8 +363,8 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_offset_h
     {cd : ByteArray} {a b c d e : Solm.Ident}
     (hsmall : cd.size < 2 ^ 255)
     (hsz164 : 164 ≤ cd.size)
-    (hoff : solcMaxLen DecodeMode.solcV1Signed < (calldataWord cd 132).toNat) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [a, b, c, d, e]
+    (hoff : solcMaxLen DecodeMode.legacySolc05 < (calldataWord cd 132).toNat) :
+    decodeCalldataWithMode DecodeMode.legacySolc05 [a, b, c, d, e]
       [uint256, uint256, uint256, addr, bytesDyn] cd = none := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -470,10 +444,10 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_offset_h
 theorem clipperDecode_take_none_offset_huge (v : ClipperImmutables) {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
     (hsz164 : 164 ≤ I.calldata.size)
-    (hoff : solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat) :
+    (hoff : solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat) :
     decodeCalldataWithMode (config v).abiDecodeMode ((takeTransition v).params.map Param.name)
       (transitionSignature (takeTransition v)).paramTypes I.calldata = none := by
-  change decodeCalldataWithMode DecodeMode.solcV1Signed ["id", "amt", "max", "who", "data"]
+  change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "amt", "max", "who", "data"]
     [uint256, uint256, uint256, addr, bytesDyn] I.calldata = none
   exact decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_offset_huge
     (cd := I.calldata) (a := "id") (b := "amt") (c := "max") (d := "who") (e := "data")
@@ -483,7 +457,7 @@ theorem clipperDecode_take_none_offset_huge (v : ClipperImmutables) {I : Executi
 -- the dynamic length word cannot be read.
 theorem decodeABIValue_legacyBytes_none_length_short {bytes : List UInt8} {start : Nat}
     (hreadLen : readNat? bytes start = none) :
-    decodeABIValue? bytesDyn bytes start DecodeMode.solcV1Signed = none := by
+    decodeABIValue? bytesDyn bytes start DecodeMode.legacySolc05 = none := by
   unfold decodeABIValue?
   simp [bytesDyn, hreadLen, Option.bind, bind]
 
@@ -491,8 +465,8 @@ theorem decodeABIValue_legacyBytes_none_length_short {bytes : List UInt8} {start
 -- the decoded dynamic byte length is above solc's legacy bound.
 theorem decodeABIValue_legacyBytes_none_length_huge {bytes : List UInt8} {start len : Nat}
     (hreadLen : readNat? bytes start = some len)
-    (hlenHuge : solcMaxLen DecodeMode.solcV1Signed < len) :
-    decodeABIValue? bytesDyn bytes start DecodeMode.solcV1Signed = none := by
+    (hlenHuge : solcMaxLen DecodeMode.legacySolc05 < len) :
+    decodeABIValue? bytesDyn bytes start DecodeMode.legacySolc05 = none := by
   unfold decodeABIValue?
   simp [bytesDyn, hreadLen, Option.bind, bind, hlenHuge]
 
@@ -500,9 +474,9 @@ theorem decodeABIValue_legacyBytes_none_length_huge {bytes : List UInt8} {start 
 -- the declared payload length cannot be read from the calldata tail.
 theorem decodeABIValue_legacyBytes_none_payload_short {bytes : List UInt8} {start len : Nat}
     (hreadLen : readNat? bytes start = some len)
-    (hlenMax : ¬ solcMaxLen DecodeMode.solcV1Signed < len)
+    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 < len)
     (hpayloadShort : ((bytes.drop (start + 32)).take len).length ≠ len) :
-    decodeABIValue? bytesDyn bytes start DecodeMode.solcV1Signed = none := by
+    decodeABIValue? bytesDyn bytes start DecodeMode.legacySolc05 = none := by
   unfold decodeABIValue?
   simp only [bytesDyn, hreadLen, Option.bind, bind]
   rw [if_neg hlenMax]
@@ -516,9 +490,9 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_s
     {cd : ByteArray} {a b c d e : Solm.Ident}
     (hsmall : cd.size < 2 ^ 255)
     (hsz164 : 164 ≤ cd.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (calldataWord cd 132).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (calldataWord cd 132).toNat)
     (hshort : cd.size < 4 + (calldataWord cd 132).toNat + 32) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [a, b, c, d, e]
+    decodeCalldataWithMode DecodeMode.legacySolc05 [a, b, c, d, e]
       [uint256, uint256, uint256, addr, bytesDyn] cd = none := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -557,7 +531,7 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_s
     rfl
   have hdecodeBytes :
       decodeABIValue? bytesDyn (cd.toList.drop 4) (calldataWord cd 132).toNat
-          DecodeMode.solcV1Signed = none :=
+          DecodeMode.legacySolc05 = none :=
     decodeABIValue_legacyBytes_none_length_short hreadLen
   unfold decodeCalldataWithMode decodeCalldata
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
@@ -613,11 +587,11 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_s
 theorem clipperDecode_take_none_length_short (v : ClipperImmutables) {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
     (hsz164 : 164 ≤ I.calldata.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
     (hshort : I.calldata.size < 4 + (clipperTakeDataOffsetWord I).toNat + 32) :
     decodeCalldataWithMode (config v).abiDecodeMode ((takeTransition v).params.map Param.name)
       (transitionSignature (takeTransition v)).paramTypes I.calldata = none := by
-  change decodeCalldataWithMode DecodeMode.solcV1Signed ["id", "amt", "max", "who", "data"]
+  change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "amt", "max", "who", "data"]
     [uint256, uint256, uint256, addr, bytesDyn] I.calldata = none
   exact decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_short
     (cd := I.calldata) (a := "id") (b := "amt") (c := "max") (d := "who") (e := "data")
@@ -630,12 +604,12 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_h
     {cd : ByteArray} {a b c d e : Solm.Ident}
     (hsmall : cd.size < 2 ^ 255)
     (hsz164 : 164 ≤ cd.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (calldataWord cd 132).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (calldataWord cd 132).toNat)
     (hlenWord : 4 + (calldataWord cd 132).toNat + 32 ≤ cd.size)
     (hlenHuge :
-      solcMaxLen DecodeMode.solcV1Signed <
+      solcMaxLen DecodeMode.legacySolc05 <
         (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [a, b, c, d, e]
+    decodeCalldataWithMode DecodeMode.legacySolc05 [a, b, c, d, e]
       [uint256, uint256, uint256, addr, bytesDyn] cd = none := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -669,7 +643,7 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_h
     readNat_drop4_at_eq_calldataWord (cd := cd) (calldataWord cd 132).toNat hlenWord
   have hdecodeBytes :
       decodeABIValue? bytesDyn (cd.toList.drop 4) (calldataWord cd 132).toNat
-          DecodeMode.solcV1Signed = none :=
+          DecodeMode.legacySolc05 = none :=
     decodeABIValue_legacyBytes_none_length_huge hreadLen hlenHuge
   unfold decodeCalldataWithMode decodeCalldata
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
@@ -725,12 +699,12 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_h
 theorem clipperDecode_take_none_length_huge (v : ClipperImmutables) {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
     (hsz164 : 164 ≤ I.calldata.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
     (hlenWord : 4 + (clipperTakeDataOffsetWord I).toNat + 32 ≤ I.calldata.size)
-    (hlenHuge : solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataLenWord I).toNat) :
+    (hlenHuge : solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat) :
     decodeCalldataWithMode (config v).abiDecodeMode ((takeTransition v).params.map Param.name)
       (transitionSignature (takeTransition v)).paramTypes I.calldata = none := by
-  change decodeCalldataWithMode DecodeMode.solcV1Signed ["id", "amt", "max", "who", "data"]
+  change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "amt", "max", "who", "data"]
     [uint256, uint256, uint256, addr, bytesDyn] I.calldata = none
   exact decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_length_huge
     (cd := I.calldata) (a := "id") (b := "amt") (c := "max") (d := "who") (e := "data")
@@ -743,15 +717,15 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_payload_
     {cd : ByteArray} {a b c d e : Solm.Ident}
     (hsmall : cd.size < 2 ^ 255)
     (hsz164 : 164 ≤ cd.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (calldataWord cd 132).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (calldataWord cd 132).toNat)
     (hlenWord : 4 + (calldataWord cd 132).toNat + 32 ≤ cd.size)
-    (hlenMax : ¬ solcMaxLen DecodeMode.solcV1Signed <
+    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 <
       (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat)
     (hpayloadShort :
       (((cd.toList.drop 4).drop ((calldataWord cd 132).toNat + 32)).take
         (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat).length ≠
         (calldataWord cd (4 + (calldataWord cd 132).toNat)).toNat) :
-    decodeCalldataWithMode DecodeMode.solcV1Signed [a, b, c, d, e]
+    decodeCalldataWithMode DecodeMode.legacySolc05 [a, b, c, d, e]
       [uint256, uint256, uint256, addr, bytesDyn] cd = none := by
   have htlen : cd.toList.length = cd.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -785,7 +759,7 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_payload_
     readNat_drop4_at_eq_calldataWord (cd := cd) (calldataWord cd 132).toNat hlenWord
   have hdecodeBytes :
       decodeABIValue? bytesDyn (cd.toList.drop 4) (calldataWord cd 132).toNat
-          DecodeMode.solcV1Signed = none :=
+          DecodeMode.legacySolc05 = none :=
     decodeABIValue_legacyBytes_none_payload_short hreadLen hlenMax hpayloadShort
   unfold decodeCalldataWithMode decodeCalldata
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
@@ -841,15 +815,15 @@ theorem decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_payload_
 theorem clipperDecode_take_none_payload_short (v : ClipperImmutables) {I : ExecutionEnv}
     (hsmall : I.calldata.size < 2 ^ 255)
     (hsz164 : 164 ≤ I.calldata.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
     (hlenWord : 4 + (clipperTakeDataOffsetWord I).toNat + 32 ≤ I.calldata.size)
-    (hlenMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataLenWord I).toNat)
+    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat)
     (hpayloadShort :
       (((I.calldata.toList.drop 4).drop ((clipperTakeDataOffsetWord I).toNat + 32)).take
         (clipperTakeDataLenWord I).toNat).length ≠ (clipperTakeDataLenWord I).toNat) :
     decodeCalldataWithMode (config v).abiDecodeMode ((takeTransition v).params.map Param.name)
       (transitionSignature (takeTransition v)).paramTypes I.calldata = none := by
-  change decodeCalldataWithMode DecodeMode.solcV1Signed ["id", "amt", "max", "who", "data"]
+  change decodeCalldataWithMode DecodeMode.legacySolc05 ["id", "amt", "max", "who", "data"]
     [uint256, uint256, uint256, addr, bytesDyn] I.calldata = none
   exact decodeCalldata_legacyUint256_uint256_uint256_address_bytes_none_payload_short
     (cd := I.calldata) (a := "id") (b := "amt") (c := "max") (d := "who") (e := "data")
@@ -1084,7 +1058,7 @@ theorem clipperTakeX_head_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
 theorem clipperTakeLenWordGt_one {I : ExecutionEnv}
     (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
     (hshort : I.calldata.size < 4 + (clipperTakeDataOffsetWord I).toNat + 32) :
     UInt256.gt
       ((⟨4⟩ : UInt256) + (clipperTakeDataOffsetWord I + (⟨32⟩ : UInt256)))
@@ -1118,7 +1092,7 @@ theorem clipperTakeLenWordGt_one {I : ExecutionEnv}
 theorem clipperTakeLenWordGt_zero {I : ExecutionEnv}
     (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
     (hlenWord : 4 + (clipperTakeDataOffsetWord I).toNat + 32 ≤ I.calldata.size) :
     UInt256.gt
       ((⟨4⟩ : UInt256) + (clipperTakeDataOffsetWord I + (⟨32⟩ : UInt256)))
@@ -1150,7 +1124,7 @@ theorem clipperTakeLenWordGt_zero {I : ExecutionEnv}
   exact hlenWord
 
 theorem clipperTakeDataLenLoad_eq {I : ExecutionEnv}
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat) :
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat) :
     uInt256OfByteArray
         (I.calldata.readBytes (((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I).toNat) 32) =
       clipperTakeDataLenWord I := by
@@ -1166,14 +1140,14 @@ theorem clipperTakeDataLenLoad_eq {I : ExecutionEnv}
   simp [clipperTakeDataLenWord, calldataWord, hoff4]
 
 theorem clipperTakeDataLenGt_one {I : ExecutionEnv}
-    (hlenHuge : solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataLenWord I).toNat) :
+    (hlenHuge : solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat) :
     UInt256.gt (clipperTakeDataLenWord I) (⟨4294967296⟩ : UInt256) = ⟨1⟩ := by
   exact ugt_one (by
     rw [show (⟨4294967296⟩ : UInt256).toNat = 4294967296 from by decide]
     simpa [solcMaxLen, solcMaxLenV1] using hlenHuge)
 
 theorem clipperTakeDataLenGt_zero {I : ExecutionEnv}
-    (hlenMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataLenWord I).toNat) :
+    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat) :
     UInt256.gt (clipperTakeDataLenWord I) (⟨4294967296⟩ : UInt256) = ⟨0⟩ := by
   exact ugt_zero (by
     have hle : (clipperTakeDataLenWord I).toNat ≤ 4294967296 := by
@@ -1184,9 +1158,9 @@ theorem clipperTakeDataLenGt_zero {I : ExecutionEnv}
 theorem clipperTakePayloadGt_one {I : ExecutionEnv}
     (hsize : I.calldata.size < UInt256.size)
     (hsz4 : 4 ≤ I.calldata.size)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
     (hlenWord : 4 + (clipperTakeDataOffsetWord I).toNat + 32 ≤ I.calldata.size)
-    (hlenMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataLenWord I).toNat)
+    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat)
     (hpayloadShort :
       (((I.calldata.toList.drop 4).drop ((clipperTakeDataOffsetWord I).toNat + 32)).take
         (clipperTakeDataLenWord I).toNat).length ≠ (clipperTakeDataLenWord I).toNat) :
@@ -1677,8 +1651,8 @@ set_option maxRecDepth 2000 in
 theorem clipperTakeX_length_huge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat)
-    (hlenHuge : solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataLenWord I).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
+    (hlenHuge : solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat)
     (hreach : ∃ k C, RD code I g (initState cA gh bl σ σ₀ g A I) (⟨1012⟩ : UInt256)
       (((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I) ::
         ((⟨4⟩ : UInt256) + (⟨160⟩ : UInt256)) :: (⟨4⟩ : UInt256) ::
@@ -1778,8 +1752,8 @@ set_option maxRecDepth 2000 in
 theorem clipperTakeX_payload_short {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
-    (hoffMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat)
-    (hlenMax : ¬ solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataLenWord I).toNat)
+    (hoffMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat)
+    (hlenMax : ¬ solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat)
     (hpayloadGt :
       UInt256.gt
         (((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + clipperTakeDataOffsetWord I) +

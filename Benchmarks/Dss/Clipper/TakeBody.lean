@@ -33,7 +33,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
       (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
       (sel := clipperSelWord I) (v := v) hpatch hsz164 hsize hreach
     by_cases hoffHuge :
-        solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataOffsetWord I).toNat
+        solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataOffsetWord I).toNat
     · have hdec := clipperDecode_take_none_offset_huge v (I := I)
         hcalldataSmall hsz164 hoffHuge
       have hgtWord :
@@ -61,7 +61,7 @@ theorem clipperTakeBody (v : ClipperImmutables) {code : ByteArray}
           (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g)
           (sel := clipperSelWord I) (v := v) hpatch hgtLenOk hreachOffsetOk
         by_cases hlenHuge :
-            solcMaxLen DecodeMode.solcV1Signed < (clipperTakeDataLenWord I).toNat
+            solcMaxLen DecodeMode.legacySolc05 < (clipperTakeDataLenWord I).toNat
         · have hdec := clipperDecode_take_none_length_huge v (I := I)
             hcalldataSmall hsz164 hoffHuge hlenWord hlenHuge
           exact (clipperTakeX_length_huge (cA := cA) (gh := gh) (bl := bl)
