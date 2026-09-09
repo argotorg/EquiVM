@@ -86,14 +86,14 @@ theorem evalExpr_loadLiveEqZero_true (evm : EVM.State) (I : ExecutionEnv)
     · rw [cureStorageLocLoad_uint256]
       rw [hlive]
       simp only [evalExpr?, pure]
-      native_decide
+      decide +native
     · simp [loadLocals, liveRef]
     · simp [liveRef, evalStorageRef, evalStorageRefSteps, EvalResult.bind, pure, bind]
     · simp [storageTypeAt?, contract, storageDecls, uint256St]
     · funext evm'
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw]
-  · native_decide
-  · native_decide
+  · decide +native
+  · decide +native
 
 theorem evalExpr_loadLiveEqZero_false (evm : EVM.State) (I : ExecutionEnv)
     (hlive : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨1⟩ ≠ ⟨0⟩) :
@@ -122,8 +122,8 @@ theorem evalExpr_loadLiveEqZero_false (evm : EVM.State) (I : ExecutionEnv)
     · simp [storageTypeAt?, contract, storageDecls, uint256St]
     · funext evm'
       simp [config, storageLayout, solidityStorageLayout, storageLayoutRaw]
-  · native_decide
-  · native_decide
+  · decide +native
+  · decide +native
 
 theorem evalExpr_loadPosStorage (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := loadLocals I } evm
@@ -215,9 +215,9 @@ theorem evalExpr_loadLoadedEqZero_true {evm : EVM.State} {locals : Store} (I : E
     rw [evalExpr_loadLoadedStorage (evm := evm) (locals := locals) I hbase hsrc]
     rw [hloaded]
     simp [evalExpr?, pure]
-    native_decide
-  · native_decide
-  · native_decide
+    decide +native
+  · decide +native
+  · decide +native
 
 theorem evalExpr_loadLoadedEqZero_false {evm : EVM.State} {locals : Store} (I : ExecutionEnv)
     (hbase : locals.get? "loaded" = none)
@@ -241,8 +241,8 @@ theorem evalExpr_loadLoadedEqZero_false {evm : EVM.State} {locals : Store} (I : 
     apply hloaded
     apply u256_inj
     simpa using hbeq
-  · native_decide
-  · native_decide
+  · decide +native
+  · decide +native
 
 theorem evalExpr_loadLCountStorage {evm : EVM.State} {locals : Store}
     (hbase : locals.get? "lCount" = none) :
@@ -449,9 +449,9 @@ theorem evalExpr_loadPosGtZero_false (evm : EVM.State) (I : ExecutionEnv)
     rw [evalExpr_loadPosStorage evm I]
     rw [hpos]
     simp only [evalExpr?, pure]
-    native_decide
-  · native_decide
-  · native_decide
+    decide +native
+  · decide +native
+  · decide +native
 
 theorem evalExpr_loadPosGtZero_true (evm : EVM.State) (I : ExecutionEnv)
     (hpos : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (loadPosSlotFor I) ≠ ⟨0⟩) :
@@ -479,8 +479,8 @@ theorem evalExpr_loadPosGtZero_true (evm : EVM.State) (I : ExecutionEnv)
           exact decide_eq_true (show Int.ofNat
             (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (loadPosSlotFor I)).toNat >
               0 from hposInt)]
-  · native_decide
-  · native_decide
+  · decide +native
+  · decide +native
 
 theorem evalExpr_loadExtCodeSizeGtZero_false_of_src {cA gh bl σ σ₀ A I} {g : Sat256}
     {locals : Store}
@@ -523,9 +523,9 @@ theorem evalExpr_loadExtCodeSizeGtZero_false_of_src {cA gh bl σ σ₀ A I} {g :
   · simp only [EvalResult.bind, bind]
     rw [hext]
     simp only [evalExpr?, pure]
-    native_decide
-  · native_decide
-  · native_decide
+    decide +native
+  · decide +native
+  · decide +native
 
 theorem evalExpr_loadExtCodeSizeGtZero_false {cA gh bl σ σ₀ A I} {g : Sat256}
     (hnoCode : extCodeSizeWord σ (loadKey I) = ⟨0⟩) :
@@ -585,8 +585,8 @@ theorem evalExpr_loadExtCodeSizeGtZero_true_of_src {cA gh bl σ σ₀ A I} {g : 
     rw [hext]
     simp only [evalExpr?, pure]
     simp [evalBinaryOp?, hcodePos]
-  · native_decide
-  · native_decide
+  · decide +native
+  · decide +native
 
 abbrev sourceCureSelectorShifted : UInt256 :=
   UInt256.shiftLeft ⟨2215084781⟩ ⟨224⟩
@@ -598,7 +598,7 @@ theorem loadCureSelectorMem_size_of_size96 {mem : ByteArray} (hmem : mem.size = 
     (loadCureSelectorMem mem).size = 160 := by
   unfold loadCureSelectorMem
   exact toByteArray_write32_size_of_ge mem sourceCureSelectorShifted 128 96 160 hmem
-    (by omega) (by native_decide) (by omega)
+    (by omega) (by decide +native) (by omega)
 
 theorem loadCureSelectorMem_read64_of_size96 {mem : ByteArray} (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
@@ -612,16 +612,16 @@ theorem loadCureSelectorMem_read64_of_size96 {mem : ByteArray} (hmem : mem.size 
         mem.readWithPadding 64 32 :=
     toByteArray_write_read_below_of_gap sourceCureSelectorShifted mem 128 64
       (hread := hreadBound)
-      (hbelow := by native_decide)
-      (hgap := by rw [hmem]; native_decide)
+      (hbelow := by decide +native)
+      (hgap := by rw [hmem]; decide +native)
   rw [hpreserve, hread64]
 
 theorem loadCureSelectorMem_read128_4 {mem : ByteArray} (hmem : mem.size = 96) :
     (loadCureSelectorMem mem).readWithPadding 128 4 = sourceCureSelector := by
   unfold loadCureSelectorMem sourceCureSelector
   rw [toByteArray_write_read_window_of_gap sourceCureSelectorShifted mem 128 0 4
-    (by decide) (by decide) (by decide) (by rw [hmem]; native_decide)]
-  native_decide
+    (by decide) (by decide) (by decide) (by rw [hmem]; decide +native)]
+  decide +native
 
 theorem loadCureEncode_eq {mem : ByteArray} (hmem : mem.size = 96) :
     config.externalABI.encode? "cure" [] =

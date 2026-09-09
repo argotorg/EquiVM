@@ -92,7 +92,7 @@ theorem revokeRoleStore_account (I : ExecutionEnv) :
 theorem revokeRoleStore_roles (I : ExecutionEnv) :
     (revokeRoleStore I).get? "_roles" = none := by
   rw [revokeRoleStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
-  native_decide
+  decide +native
 
 theorem revokeRoleStoreWithAdmin_role (evm : EVM.State) (I : ExecutionEnv) :
     (revokeRoleStoreWithAdmin evm I).get? "role" = some (revokeRoleRoleValue I) := by
@@ -1077,7 +1077,7 @@ theorem revokeRoleUnauthorizedSelectorMemFrom_size {mem : ByteArray}
   (revokeRoleUnauthorizedSelectorMemFrom mem).size = 160 := by
   unfold revokeRoleUnauthorizedSelectorMemFrom
   rw [toByteArray_write_eq revokeRoleUnauthorizedSelector mem 128
-      (by rw [hmem]; omega) (by rw [hmem]; native_decide),
+      (by rw [hmem]; omega) (by rw [hmem]; decide +native),
     ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, hmem, toByteArray_size]
 
 theorem revokeRoleUnauthorizedAccountMemFrom_size {mem : ByteArray}
@@ -1132,7 +1132,7 @@ theorem revokeRoleUnauthorizedSelectorMemFrom_read64 {mem : ByteArray}
       UInt256.toByteArray ⟨128⟩ := by
   unfold revokeRoleUnauthorizedSelectorMemFrom
   rw [toByteArray_write_eq revokeRoleUnauthorizedSelector mem 128
-      (by rw [hmem]; omega) (by rw [hmem]; native_decide)]
+      (by rw [hmem]; omega) (by rw [hmem]; decide +native)]
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size, hmem, toByteArray_size]
       norm_num)]
@@ -1410,7 +1410,7 @@ theorem accessControlRevokeRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sa
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      native_decide)
+      decide +native)
     (by simp)
 
 theorem accessControlRevokeRoleX_revoke_noop {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1667,7 +1667,7 @@ theorem accessControlRevokeRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat25
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      native_decide)
+      decide +native)
     (by decide) (by simp)
   have rd233 := evm_run rd781 with [
     pop, push1 ⟨1⟩, push2 ⟨347⟩, jump (by jump_dest),
@@ -1771,7 +1771,7 @@ theorem accessControlRevokeRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
               (by simp only [evmS, initState]; exact hwv) hsz68 hadminSolm htargetSolm
             exact (accessControlRevokeRoleX_revoke_noop (g := Sat256.ofUInt256 g)
                 hsz68 hcanonAccount htarget rd517)
-              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.fallthrough rfl rfl (by native_decide))
+              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.fallthrough rfl rfl (by decide +native))
           · have htargetNonzero :
                 UInt256.land (revokeRoleTargetStorageWord σ_evm I) ⟨255⟩ ≠ ⟨0⟩ := htarget
             have htargetSolm :
@@ -1811,7 +1811,7 @@ theorem accessControlRevokeRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
                     Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                     revokeRoleTargetStorageWord, revokeRoleStorageWordAt]))
                 hσPost
-                (returnEquiv.fallthrough rfl rfl (by native_decide))
+                (returnEquiv.fallthrough rfl rfl (by decide +native))
       · have hdec := accessControlDecode_revokeRole_none_noncanon_account
           (I := I) hsz68 hbig hcanonAccount
         have hnc : UInt256.eq (revokeRoleAccountWord I)

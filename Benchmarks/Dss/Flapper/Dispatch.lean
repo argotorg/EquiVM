@@ -42,7 +42,7 @@ theorem flapperDispatchBeg {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some begTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchBids {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 1)) :
@@ -52,7 +52,7 @@ theorem flapperDispatchBids {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some bidsTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchCage {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 2)) :
@@ -62,7 +62,7 @@ theorem flapperDispatchCage {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some cageTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchDeal {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 3)) :
@@ -72,7 +72,7 @@ theorem flapperDispatchDeal {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some dealTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchDeny {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 4)) :
@@ -82,7 +82,7 @@ theorem flapperDispatchDeny {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some denyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchFile {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 5)) :
@@ -92,7 +92,7 @@ theorem flapperDispatchFile {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some fileTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchFill {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 6)) :
@@ -102,7 +102,7 @@ theorem flapperDispatchFill {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some fillTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchGem {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 7)) :
@@ -112,7 +112,7 @@ theorem flapperDispatchGem {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some gemTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchKick {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 8)) :
@@ -122,7 +122,7 @@ theorem flapperDispatchKick {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some kickTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchKicks {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 9)) :
@@ -132,7 +132,7 @@ theorem flapperDispatchKicks {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some kicksTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchLid {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 10)) :
@@ -142,7 +142,7 @@ theorem flapperDispatchLid {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some lidTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchLive {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 11)) :
@@ -152,7 +152,7 @@ theorem flapperDispatchLive {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some liveTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchRely {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 12)) :
@@ -162,7 +162,7 @@ theorem flapperDispatchRely {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some relyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchTau {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 13)) :
@@ -172,7 +172,7 @@ theorem flapperDispatchTau {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some tauTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchTend {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 14)) :
@@ -182,7 +182,7 @@ theorem flapperDispatchTend {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some tendTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchTick {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 15)) :
@@ -192,7 +192,7 @@ theorem flapperDispatchTick {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some tickTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchTtl {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 16)) :
@@ -202,7 +202,7 @@ theorem flapperDispatchTtl {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some ttlTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchVat {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 17)) :
@@ -212,7 +212,7 @@ theorem flapperDispatchVat {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some vatTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchWards {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 18)) :
@@ -222,7 +222,7 @@ theorem flapperDispatchWards {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some wardsTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatchYank {I : ExecutionEnv}
     (hsel : selIs I (flapperSelBytes 19)) :
@@ -232,7 +232,7 @@ theorem flapperDispatchYank {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some yankTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem flapperDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg contract cd = none := by
@@ -254,7 +254,7 @@ theorem flapperDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
         liveSelectorBytes, relySelectorBytes, tauSelectorBytes, tendSelectorBytes,
         tickSelectorBytes, ttlSelectorBytes, vatSelectorBytes, wardsSelectorBytes,
         yankSelectorBytes]
-      native_decide) h
+      decide +native) h
 
 theorem flapperDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 20 → (flapperSelBytes i == cd.extract 0 4) = false) :
@@ -360,17 +360,17 @@ def flapperHighHighSelBytes : ℕ → ByteArray
 theorem flapperRootSplitWellFormed :
     selectorSplitWellFormed flapperBytecode flapperRootSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem flapperHighSplitWellFormed :
     selectorSplitWellFormed flapperBytecode flapperHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem flapperLowSplitWellFormed :
     selectorSplitWellFormed flapperBytecode flapperLowSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem flapperLowLowArmsWellFormed :
@@ -379,7 +379,7 @@ theorem flapperLowLowArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem flapperLowHighArmsWellFormed :
@@ -388,7 +388,7 @@ theorem flapperLowHighArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem flapperHighLowArmsWellFormed :
@@ -397,7 +397,7 @@ theorem flapperHighLowArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem flapperHighHighArmsWellFormed :
@@ -406,7 +406,7 @@ theorem flapperHighHighArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 theorem flapperLowLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 5) :
@@ -414,7 +414,7 @@ theorem flapperLowLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperLowLowFirstArmPc j))
         (flapperSelWord I) =
       if (flapperLowLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem flapperLowHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 5) :
@@ -422,7 +422,7 @@ theorem flapperLowHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperLowHighFirstArmPc j))
         (flapperSelWord I) =
       if (flapperLowHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem flapperHighLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 5) :
@@ -430,7 +430,7 @@ theorem flapperHighLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperHighLowFirstArmPc j))
         (flapperSelWord I) =
       if (flapperHighLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem flapperHighHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 5) :
@@ -438,7 +438,7 @@ theorem flapperHighHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperHighHighFirstArmPc j))
         (flapperSelWord I) =
       if (flapperHighHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem flapperReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -454,13 +454,13 @@ theorem flapperReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (revertTgt := flapperDispatchRevertPc) (guardWidth := 2) (revertWidth := 2)
       (guardOp := .PUSH2) (revertOp := .PUSH2)
       hcode hwv hsz hsize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 theorem flapperReachLowSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -481,7 +481,7 @@ theorem flapperReachLowSplit {cA gh bl σ σ₀ A I} {g : Sat256}
   have h174 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
       flapperLowSplitPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [flapperLowSplitPc] using h173.jumpdest (by native_decide) (by simp)
+    simpa [flapperLowSplitPc] using h173.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h174⟩
 
 theorem flapperReachHighSplit {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -524,7 +524,7 @@ theorem flapperReachLowLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h245 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
       flapperLowLowFirstArmPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k174 + 5 + 1) (C174 + 22 + 1) := by
-    simpa [flapperLowLowFirstArmPc] using h244.jumpdest (by native_decide) (by simp)
+    simpa [flapperLowLowFirstArmPc] using h244.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h245⟩
 
 theorem flapperReachLowHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -569,7 +569,7 @@ theorem flapperReachHighLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h114 : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I)
       flapperHighLowFirstArmPc [flapperSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k43 + 5 + 1) (C43 + 22 + 1) := by
-    simpa [flapperHighLowFirstArmPc] using h113.jumpdest (by native_decide) (by simp)
+    simpa [flapperHighLowFirstArmPc] using h113.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h114⟩
 
 theorem flapperReachHighHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -598,13 +598,13 @@ theorem flapperX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
-  have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
+  have h12 := h0.push2 ⟨16⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h12 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 /-- Calldata shorter than a selector reverts at the shared dispatcher revert block. -/
 theorem flapperX_short {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -612,24 +612,24 @@ theorem flapperX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hsz : I.calldata.size < 4) :
     RDrev flapperBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt flapperBytecode)
     (opC := solcGuardTgtOp flapperBytecode)
     (wC := solcGuardTgtWidth flapperBytecode) h0 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest)
-  have h300 := h1.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.calldatasize (by native_decide) (by simp only [List.length]; omega)
-    |>.lt (by native_decide) (by simp only [List.length]; omega)
-    |>.push2 flapperDispatchRevertPc (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest)
+  have h300 := h1.push1 ⟨4⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.calldatasize (by decide +native) (by simp only [List.length]; omega)
+    |>.lt (by decide +native) (by simp only [List.length]; omega)
+    |>.push2 flapperDispatchRevertPc (by decide +native)
       (by simp only [List.length]; omega)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h300 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 /-- A fallthrough `PUSH2 300; JUMP` reaches the shared revert block. -/
 theorem flapperJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt256}
@@ -642,9 +642,9 @@ theorem flapperJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UI
   have h300 := h.push2 flapperDispatchRevertPc hpush
       (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h300 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem flapperLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) flapperLowLowFirstArmPc
@@ -665,9 +665,9 @@ theorem flapperLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
         (heq0 3 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (flapperLowLowArmsWellFormed 4 (by omega))
         (heq0 4 (by omega)) (by simp)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h300 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem flapperLowHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) flapperLowHighFirstArmPc
@@ -688,7 +688,7 @@ theorem flapperLowHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : 
         (heq0 3 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (flapperLowHighArmsWellFormed 4 (by omega))
         (heq0 4 (by omega)) (by simp)
-  exact flapperJumpToNoMatchRevert h240 (by native_decide) (by native_decide)
+  exact flapperJumpToNoMatchRevert h240 (by decide +native) (by decide +native)
 
 theorem flapperHighLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) flapperHighLowFirstArmPc
@@ -709,7 +709,7 @@ theorem flapperHighLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : 
         (heq0 3 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (flapperHighLowArmsWellFormed 4 (by omega))
         (heq0 4 (by omega)) (by simp)
-  exact flapperJumpToNoMatchRevert h169 (by native_decide) (by native_decide)
+  exact flapperJumpToNoMatchRevert h169 (by decide +native) (by decide +native)
 
 theorem flapperHighHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD flapperBytecode I g (initState cA gh bl σ σ₀ g A I) flapperHighHighFirstArmPc
@@ -730,7 +730,7 @@ theorem flapperHighHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C :
         (heq0 3 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (flapperHighHighArmsWellFormed 4 (by omega))
         (heq0 4 (by omega)) (by simp)
-  exact flapperJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
+  exact flapperJumpToNoMatchRevert h109 (by decide +native) (by decide +native)
 
 theorem flapperX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = flapperBytecode) (hwv : I.weiValue = ⟨0⟩)

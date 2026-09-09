@@ -54,7 +54,7 @@ theorem dripVowTargetWord_canonical (σ : AccountMap) (I : ExecutionEnv) :
 theorem dripThisWord_canonical (I : ExecutionEnv) :
     (dripThisWord I).toNat < EVM.addressModulus := by
   have hcw : I.codeOwner.val < EVM.addressModulus :=
-    Nat.lt_of_lt_of_le I.codeOwner.isLt (le_of_eq (by native_decide))
+    Nat.lt_of_lt_of_le I.codeOwner.isLt (le_of_eq (by decide +native))
   have hlt : I.codeOwner.val < UInt256.size := lt_trans hcw (by decide)
   show (UInt256.ofNat I.codeOwner.val).toNat < EVM.addressModulus
   rw [ulit_toNat' I.codeOwner.val hlt]
@@ -64,14 +64,14 @@ theorem dripVowTargetWord_mask_clean (σ : AccountMap) (I : ExecutionEnv) :
     UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
       (dripVowTargetWord σ I) = dripVowTargetWord σ I := by
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask from by
-    native_decide]
+    decide +native]
   exact solcAddrMask_clean_left (dripVowTargetWord_canonical σ I)
 
 theorem dripThisWord_mask_clean (I : ExecutionEnv) :
     UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
       (dripThisWord I) = dripThisWord I := by
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask from by
-    native_decide]
+    decide +native]
   exact solcAddrMask_clean_left (dripThisWord_canonical I)
 
 /-! ## Sizes -/
@@ -80,7 +80,7 @@ theorem potSuckSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
     (potSuckSelectorMem mem).size = 160 := by
   unfold potSuckSelectorMem
   exact toByteArray_write32_size_of_ge mem potSuckSelectorShifted 128 96 160 hmem
-    (by omega) (by native_decide) (by omega)
+    (by omega) (by decide +native) (by omega)
 
 theorem potSuckVowMem_size (σ : AccountMap) (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -119,7 +119,7 @@ theorem potSuckSelectorMem_read64 {mem : ByteArray} (hmem : mem.size = 96)
     (potSuckSelectorMem mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold potSuckSelectorMem
   rw [toByteArray_write_read_below_of_gap potSuckSelectorShifted mem 128 64
-    (by omega) (by omega) (by rw [hmem]; native_decide)]
+    (by omega) (by omega) (by rw [hmem]; decide +native)]
   exact hread64
 
 theorem potSuckVowMem_read64 (σ : AccountMap) (I : ExecutionEnv) {mem : ByteArray}
@@ -129,7 +129,7 @@ theorem potSuckVowMem_read64 (σ : AccountMap) (I : ExecutionEnv) {mem : ByteArr
   unfold potSuckVowMem
   rw [toByteArray_write_read_below_of_gap (dripVowTargetWord σ I) (potSuckSelectorMem mem) 132 64
     (by rw [potSuckSelectorMem_size hmem]; omega) (by omega)
-    (by rw [potSuckSelectorMem_size hmem]; native_decide)]
+    (by rw [potSuckSelectorMem_size hmem]; decide +native)]
   exact potSuckSelectorMem_read64 hmem hread64
 
 theorem potSuckThisMem_read64 (σ : AccountMap) (I : ExecutionEnv) {mem : ByteArray}
@@ -139,7 +139,7 @@ theorem potSuckThisMem_read64 (σ : AccountMap) (I : ExecutionEnv) {mem : ByteAr
   unfold potSuckThisMem
   rw [toByteArray_write_read_below_of_gap (dripThisWord I) (potSuckVowMem σ I mem) 164 64
     (by rw [potSuckVowMem_size σ I hmem]; omega) (by omega)
-    (by rw [potSuckVowMem_size σ I hmem]; native_decide)]
+    (by rw [potSuckVowMem_size σ I hmem]; decide +native)]
   exact potSuckVowMem_read64 σ I hmem hread64
 
 theorem potSuckCalldataMem_read64 (σ : AccountMap) (I : ExecutionEnv) (rad : UInt256)
@@ -149,7 +149,7 @@ theorem potSuckCalldataMem_read64 (σ : AccountMap) (I : ExecutionEnv) (rad : UI
   unfold potSuckCalldataMem
   rw [toByteArray_write_read_below_of_gap rad (potSuckThisMem σ I mem) 196 64
     (by rw [potSuckThisMem_size σ I hmem]; omega) (by omega)
-    (by rw [potSuckThisMem_size σ I hmem]; native_decide)]
+    (by rw [potSuckThisMem_size σ I hmem]; decide +native)]
   exact potSuckThisMem_read64 σ I hmem hread64
 
 theorem potSuckReturnMem_read64 {mem : ByteArray} (tmp : UInt256) (hmem : mem.size = 228)
@@ -157,14 +157,14 @@ theorem potSuckReturnMem_read64 {mem : ByteArray} (tmp : UInt256) (hmem : mem.si
     (potSuckReturnMem mem tmp).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold potSuckReturnMem
   rw [toByteArray_write_read_below_of_gap tmp mem 128 64
-    (by rw [hmem]; omega) (by omega) (by rw [hmem]; native_decide)]
+    (by rw [hmem]; omega) (by omega) (by rw [hmem]; decide +native)]
   exact hread64
 
 /-- The return word `tmp` read back at `0x80`. -/
 theorem potSuckReturnMem_read128 {mem : ByteArray} (tmp : UInt256) (hmem : mem.size = 228) :
     (potSuckReturnMem mem tmp).readWithPadding 128 32 = UInt256.toByteArray tmp := by
   unfold potSuckReturnMem
-  exact toByteArray_write_read_back_of_gap tmp mem 128 (by rw [hmem]; native_decide)
+  exact toByteArray_write_read_back_of_gap tmp mem 128 (by rw [hmem]; decide +native)
 
 /-! ## `MLOAD 0x40` values (free pointer) at the two active-word snapshots used in the trace -/
 

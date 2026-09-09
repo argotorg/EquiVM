@@ -798,7 +798,7 @@ theorem vatDecode_fold_none_short {I : ExecutionEnv}
   rw [if_neg (by simp [bytes32, addr, int256, isDynamicABIType])]
   simp only
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr, int256] = some 96 by native_decide]
+  rw [show abiTupleHeadSize? [bytes32, addr, int256] = some 96 by decide +native]
   simp only [bind, Option.bind]
   rw [if_pos (by rw [List.length_drop, htlen]; omega :
     (I.calldata.toList.drop 4).length < 96)]
@@ -813,7 +813,7 @@ theorem vatDispatchFold {I : ExecutionEnv}
   simp [dispatchList, selectorOf, hcd, LineSelectorBytes, cageSelectorBytes,
     canSelectorBytes, daiSelectorBytes, debtSelectorBytes, denySelectorBytes,
     fileIlkSelectorBytes, fileLineSelectorBytes, fluxSelectorBytes, foldSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachFoldBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -824,30 +824,30 @@ theorem vatReachFoldBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0xb65337df⟩ :=
     vatSelWord_eq_of_beq I hsz 0xb6 0x53 0x37 0xdf ⟨0xb65337df⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh :
       UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhighlow :
       UInt256.gt (armSelNat vatBytecode vatHighLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms163FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms163FirstPc 2))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms163Body 2 (by omega) ⟨1245⟩ hcode hwv hsz hsize
-    hroot hhigh hhighlow heq0 htake (by jump_dest) (by native_decide)
+    hroot hhigh hhighlow heq0 htake (by jump_dest) (by decide +native)
 
 theorem vatFoldX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 100)
@@ -865,10 +865,10 @@ theorem vatFoldX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨1245⟩) (ret := ⟨524⟩)
     (decoded := ⟨1267⟩) (need := ⟨96⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem vatFoldBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -894,9 +894,9 @@ theorem vatFoldX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨1245⟩) (ret := ⟨524⟩)
     (decoded := ⟨1267⟩) (need := ⟨96⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz100) hsize)
   obtain ⟨_, _, hroutine⟩ := RD.solcSlipExternalLoadAndJump
@@ -904,7 +904,7 @@ theorem vatFoldX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (R := [sel]) hdecoded
     (by
       unfold solcSlipExternalLoadAndJumpWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   exact ⟨_, _, by
     simpa [foldRateWord, foldUsrMaskedWord, foldUsrWord, foldIlkWord, calldataWord]

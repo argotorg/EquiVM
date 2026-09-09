@@ -50,7 +50,7 @@ abbrev relyAuthEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 theorem relyStore_wards (I : ExecutionEnv) :
     (relyStore I).get? "wards" = none := by
   unfold relyStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem relySourceWord_toNat (I : ExecutionEnv) :
@@ -259,7 +259,7 @@ theorem relyNotAuthorizedWord :
     UInt256.shiftLeft
         (⟨0x11185a529bda5b8bdb9bdd0b585d5d1a1bdc9a5e9959⟩ : UInt256) ⟨82⟩ =
       ⟨0x4461694a6f696e2f6e6f742d617574686f72697a656400000000000000000000⟩ := by
-  native_decide
+  decide +native
 
 theorem daiJoinReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -271,26 +271,26 @@ theorem daiJoinReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : daiJoinSelWord I = ⟨0x65fae35e⟩ :=
     daiJoinSelWord_eq_of_beq I hsz 0x65 0xfa 0xe3 0x5e ⟨0x65fae35e⟩
-      (by native_decide) (by simpa [daiJoinSelBytes] using hsel)
+      (by decide +native) (by simpa [daiJoinSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat daiJoinBytecode daiJoinRootSplitPc) (daiJoinSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 2 →
       UInt256.eq
         (armSelNat daiJoinBytecode
           (nthArmPc daiJoinBytecode daiJoinLowFirstArmPc j))
         (daiJoinSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq
         (armSelNat daiJoinBytecode
           (nthArmPc daiJoinBytecode daiJoinLowFirstArmPc 2))
         (daiJoinSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact daiJoinReachLowBody 2 (by omega) ⟨234⟩ hcode hwv hsz hsize hroot heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem daiJoinRelyX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -304,16 +304,16 @@ theorem daiJoinRelyX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := daiJoinBytecode) (sel := sel)
     (entry := ⟨234⟩) (ret := ⟨232⟩) (decoded := ⟨256⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcOneAddressExternalMaskAndJumpMasked
     (code := daiJoinBytecode) (decoded := ⟨256⟩) (ret := ⟨232⟩)
     (routine := ⟨774⟩) (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [relyUsrMaskedWord, relyUsrWord, calldataWord] using hroutine⟩
 
 theorem daiJoinRelyX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -333,10 +333,10 @@ theorem daiJoinRelyX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     (code := daiJoinBytecode) (sel := sel)
     (entry := ⟨234⟩) (ret := ⟨232⟩) (decoded := ⟨256⟩)
     (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 set_option maxHeartbeats 1000000 in
 theorem daiJoinRelyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -355,40 +355,40 @@ theorem daiJoinRelyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd775pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd781 := rd775pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd785pre := evm_run rd781 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd786 := rd785pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd789pre := evm_run rd786 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd790 := rd789pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k791, C791, rd791raw⟩ := rd790.sload (by native_decide) (by evm_ov)
+  obtain ⟨k791, C791, rd791raw⟩ := rd790.sload (by decide +native) (by evm_ov)
   have rd791 : RD daiJoinBytecode I g s0 ⟨791⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨232⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k791 C791 := by
     simpa [relyAuthWord, daiJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd791raw
   have rd794pre := evm_run rd791 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hauth, u256_eq_refl] at rd794pre
   have rd797 := rd794pre.pushConst (⟨867⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd797.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd797.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -406,42 +406,42 @@ theorem daiJoinRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd775pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd781 := rd775pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd785pre := evm_run rd781 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd786 := rd785pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd789pre := evm_run rd786 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd790 := rd789pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k791, C791, rd791raw⟩ := rd790.sload (by native_decide) (by evm_ov)
+  obtain ⟨k791, C791, rd791raw⟩ := rd790.sload (by decide +native) (by evm_ov)
   have rd791 : RD daiJoinBytecode I g s0 ⟨791⟩
       (relyAuthWord σ I :: relyUsrMaskedWord I :: ⟨232⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k791 C791 := by
     simpa [relyAuthWord, daiJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd791raw
   have rd794pre := evm_run rd791 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq : UInt256.eq (⟨1⟩ : UInt256) (relyAuthWord σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne (by intro hbad; exact hauth hbad.symm)
   rw [heq] at rd794pre
   have rd797 := rd794pre.pushConst (⟨867⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd798 := rd797.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd798 := rd797.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨798⟩)
     (len := ⟨22⟩)
@@ -453,7 +453,7 @@ theorem daiJoinRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     rd798
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide)
     relyNotAuthorizedWord
     (relyAuthHashMem_size I)
@@ -477,14 +477,14 @@ theorem daiJoinRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relyUsrMaskedWord I)
         (relyAuthHashMem_size I)
   have rd878pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hmask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -502,44 +502,44 @@ theorem daiJoinRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
     exact hmask
   rw [hmask'] at rd878pre
   have rd882pre := evm_run rd878pre with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd883 := rd882pre.mstore 0
     (wordAt0Mem (relyUsrMaskedWord I) (relyAuthHashMem I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd887pre := evm_run rd883 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd888 := rd887pre.mstore 0 (relyStoreHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd892pre := evm_run rd888 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
   have rd893 := rd892pre.keccak256 0 (mapSlot (relyUsrMaskedWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hstoreSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hstoreSlot (by decide +native)
     (by evm_ov)
   have rd896pre := evm_run rd893 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd897raw⟩ := rd896pre.sstore hperm (by native_decide)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd897raw⟩ := rd896pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd897 := by
     simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using rd897raw
-  have rd898 := rd897.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
+  have rd898 := rd897.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost
     (mloadFreePtrValue (by rw [relyStoreHashMem_size I]; decide) (by decide)
       (relyStoreHashMem_read64 I))
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd931 := rd898.pushConst
     (⟨0xdd0e34038ac38b2a1ce960229778ac48a8719bc900b6c4f8d0475c6e8b385a60⟩ : UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native) (by evm_ov)
   have rd933pre := evm_run rd931 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd934 := RD.log2
     (a := ⟨128⟩) (b := ⟨0⟩)
     (c := ⟨0xdd0e34038ac38b2a1ce960229778ac48a8719bc900b6c4f8d0475c6e8b385a60⟩)
@@ -548,15 +548,15 @@ theorem daiJoinRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 3).toNat (⟨128⟩ : UInt256).toNat
         (⟨0⟩ : UInt256).toNat))
-    rd933pre (by native_decide) hperm mem_cost (by native_decide)
+    rd933pre (by decide +native) hperm mem_cost (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd935pre := RD.pop (a := relyUsrMaskedWord I) (t := [⟨232⟩, sel]) rd934
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd232 := RD.jump (a := ⟨232⟩) (t := [sel]) rd935pre
-    (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) (by jump_dest) (by evm_ov)
   have rd232' := RD.jumpdest (pc := ⟨232⟩) (stk := [sel]) rd232
-    (by native_decide) (by evm_ov)
-  have hstop := RD.stop rd232' (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  have hstop := RD.stop rd232' (by decide +native) (by evm_ov)
   simpa [relyUsrStorageSlot_eq_mapSlot_masked I] using hstop
 
 theorem daiJoinX_rely_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -625,7 +625,7 @@ theorem daiJoinRelyBodyCoreOk
       (by
         simpa [relyTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-            (dvs := []) rfl (by native_decide) (by native_decide)))
+            (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem daiJoinRelyBodyCoreUnauthorized
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

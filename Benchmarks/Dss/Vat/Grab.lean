@@ -195,7 +195,7 @@ theorem grab_dtab_word_guard_true_of_rate_zero (I : ExecutionEnv) {rate : UInt25
   · exact Or.inl hdart
   · exact Or.inr (by
       rw [hrate, u256_mul_zero_right, u256_sdiv_zero_left, u256_eq_refl]
-      native_decide)
+      decide +native)
 
 theorem grab_dtab_word_guard_true_of_range_pos
     (I : ExecutionEnv) {rate : UInt256}
@@ -261,7 +261,7 @@ theorem grab_dtab_word_guard_true_of_range_pos
       · simpa [EVM.twoPow] using hdartLowNot
     · simpa [EVM.twoPow] using hmulLow
   rw [hsdiv, u256_eq_refl]
-  native_decide
+  decide +native
 
 theorem grab_dtab_word_high_toNat_of_range_neg
     (I : ExecutionEnv) {rate : UInt256}
@@ -378,7 +378,7 @@ theorem grab_dtab_word_guard_true_of_range_neg
     · exact hAbsDartToNat
     · exact hdabsPos
   rw [hsdiv, u256_eq_refl]
-  native_decide
+  decide +native
 
 theorem grabDartInt_eq_of_low (I : ExecutionEnv)
     (hlow : (grabDartWord I).toNat < EVM.twoPow 255) :
@@ -945,32 +945,32 @@ abbrev grabViceEvaledRef : EvaledStorageRef :=
 theorem grabStore_get_i (I : ExecutionEnv) :
     (grabStore I).get? "i" = some (grabIValue I) := by
   unfold grabStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   rw [store_get_self]
 
 theorem grabStore_get_u (I : ExecutionEnv) :
     (grabStore I).get? "u" = some (grabUValue I) := by
   unfold grabStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   rw [store_get_self]
 
 theorem grabStore_get_v (I : ExecutionEnv) :
     (grabStore I).get? "v" = some (grabVValue I) := by
   unfold grabStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   rw [store_get_self]
 
 theorem grabStore_get_w (I : ExecutionEnv) :
     (grabStore I).get? "w" = some (grabWValue I) := by
   unfold grabStore
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   rw [store_get_self]
 
 theorem grabStore_get_dink (I : ExecutionEnv) :
     (grabStore I).get? "dink" = some (grabDinkValue I) := by
   unfold grabStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   rw [store_get_self]
 
 theorem grabStore_get_dart (I : ExecutionEnv) :
@@ -986,9 +986,9 @@ theorem grabStoreIlkArtNew_get_i (I : ExecutionEnv)
     (grabStoreIlkArtNew I urnInkNew urnArtNew ilkArtNew).get? "i" =
       some (grabIValue I) := by
   unfold grabStoreIlkArtNew grabStoreUrnArtNew grabStoreUrnInkNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStore_get_i I
 
 theorem grabStoreIlkArtNew_get_dart (I : ExecutionEnv)
@@ -996,18 +996,18 @@ theorem grabStoreIlkArtNew_get_dart (I : ExecutionEnv)
     (grabStoreIlkArtNew I urnInkNew urnArtNew ilkArtNew).get? "dart" =
       some (grabDartValue I) := by
   unfold grabStoreIlkArtNew grabStoreUrnArtNew grabStoreUrnInkNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStore_get_dart I
 
 theorem grabStoreIlkArtNew_ilks (I : ExecutionEnv)
     (urnInkNew urnArtNew ilkArtNew : UInt256) :
     (grabStoreIlkArtNew I urnInkNew urnArtNew ilkArtNew).get? "ilks" = none := by
   unfold grabStoreIlkArtNew grabStoreUrnArtNew grabStoreUrnInkNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp [grabStore]
 
 theorem grabStoreDtab_get_i (I : ExecutionEnv)
@@ -1015,7 +1015,7 @@ theorem grabStoreDtab_get_i (I : ExecutionEnv)
     (grabStoreDtab I urnInkNew urnArtNew ilkArtNew dtab).get? "i" =
       some (grabIValue I) := by
   unfold grabStoreDtab
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStoreIlkArtNew_get_i I urnInkNew urnArtNew ilkArtNew
 
 theorem grabStoreDtab_get_dart (I : ExecutionEnv)
@@ -1023,7 +1023,7 @@ theorem grabStoreDtab_get_dart (I : ExecutionEnv)
     (grabStoreDtab I urnInkNew urnArtNew ilkArtNew dtab).get? "dart" =
       some (grabDartValue I) := by
   unfold grabStoreDtab
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStoreIlkArtNew_get_dart I urnInkNew urnArtNew ilkArtNew
 
 theorem grabStoreDtab_get_dtab (I : ExecutionEnv)
@@ -1036,7 +1036,7 @@ theorem grabStoreDtab_ilks (I : ExecutionEnv)
     (urnInkNew urnArtNew ilkArtNew : UInt256) (dtab : Int) :
     (grabStoreDtab I urnInkNew urnArtNew ilkArtNew dtab).get? "ilks" = none := by
   unfold grabStoreDtab
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStoreIlkArtNew_ilks I urnInkNew urnArtNew ilkArtNew
 
 theorem grabStoreDtab_get_v (I : ExecutionEnv)
@@ -1044,11 +1044,11 @@ theorem grabStoreDtab_get_v (I : ExecutionEnv)
     (grabStoreDtab I urnInkNew urnArtNew ilkArtNew dtab).get? "v" =
       some (grabVValue I) := by
   unfold grabStoreDtab
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   unfold grabStoreIlkArtNew grabStoreUrnArtNew grabStoreUrnInkNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStore_get_v I
 
 theorem grabStoreDtab_get_dink (I : ExecutionEnv)
@@ -1056,22 +1056,22 @@ theorem grabStoreDtab_get_dink (I : ExecutionEnv)
     (grabStoreDtab I urnInkNew urnArtNew ilkArtNew dtab).get? "dink" =
       some (grabDinkValue I) := by
   unfold grabStoreDtab
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   unfold grabStoreIlkArtNew grabStoreUrnArtNew grabStoreUrnInkNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStore_get_dink I
 
 theorem grabStoreDtab_gem (I : ExecutionEnv)
     (urnInkNew urnArtNew ilkArtNew : UInt256) (dtab : Int) :
     (grabStoreDtab I urnInkNew urnArtNew ilkArtNew dtab).get? "gem" = none := by
   unfold grabStoreDtab
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   unfold grabStoreIlkArtNew grabStoreUrnArtNew grabStoreUrnInkNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp [grabStore]
 
 theorem grabStoreGemNew_get_w (I : ExecutionEnv)
@@ -1079,12 +1079,12 @@ theorem grabStoreGemNew_get_w (I : ExecutionEnv)
     (grabStoreGemNew I urnInkNew urnArtNew ilkArtNew dtab gemNew).get? "w" =
       some (grabWValue I) := by
   unfold grabStoreGemNew
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   unfold grabStoreDtab grabStoreIlkArtNew grabStoreUrnArtNew grabStoreUrnInkNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStore_get_w I
 
 theorem grabStoreGemNew_get_dtab (I : ExecutionEnv)
@@ -1092,19 +1092,19 @@ theorem grabStoreGemNew_get_dtab (I : ExecutionEnv)
     (grabStoreGemNew I urnInkNew urnArtNew ilkArtNew dtab gemNew).get? "dtab" =
       some (.int dtab) := by
   unfold grabStoreGemNew
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStoreDtab_get_dtab I urnInkNew urnArtNew ilkArtNew dtab
 
 theorem grabStoreGemNew_sin (I : ExecutionEnv)
     (urnInkNew urnArtNew ilkArtNew : UInt256) (dtab : Int) (gemNew : UInt256) :
     (grabStoreGemNew I urnInkNew urnArtNew ilkArtNew dtab gemNew).get? "sin" = none := by
   unfold grabStoreGemNew
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   unfold grabStoreDtab grabStoreIlkArtNew grabStoreUrnArtNew grabStoreUrnInkNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp [grabStore]
 
 theorem grabStoreSinNew_get_dtab (I : ExecutionEnv)
@@ -1113,7 +1113,7 @@ theorem grabStoreSinNew_get_dtab (I : ExecutionEnv)
     (grabStoreSinNew I urnInkNew urnArtNew ilkArtNew dtab gemNew sinNew).get? "dtab" =
       some (.int dtab) := by
   unfold grabStoreSinNew
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStoreGemNew_get_dtab I urnInkNew urnArtNew ilkArtNew dtab gemNew
 
 theorem grabStoreSinNew_vice (I : ExecutionEnv)
@@ -1122,14 +1122,14 @@ theorem grabStoreSinNew_vice (I : ExecutionEnv)
     (grabStoreSinNew I urnInkNew urnArtNew ilkArtNew dtab gemNew sinNew).get? "vice" =
       none := by
   unfold grabStoreSinNew
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   unfold grabStoreGemNew grabStoreDtab grabStoreIlkArtNew grabStoreUrnArtNew
     grabStoreUrnInkNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp [grabStore]
 
 theorem evalExpr_grab_dtab_mul_guard_dart_zero_true
@@ -1147,7 +1147,7 @@ theorem evalExpr_grab_dtab_mul_guard_dart_zero_true
     have hget :
         (locals.insert "dtab" (.int dtab)).get? "dart" =
           some (grabDartValue I) := by
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact hdart
     simpa [grabDartValue, hzero] using vatEvalExpr_varInt hget
   have hleft :
@@ -1175,7 +1175,7 @@ theorem evalExpr_grab_dtab_mul_guard_exact_true
     have hget :
         (locals.insert "dtab" (.int dtab)).get? "dart" =
           some (grabDartValue I) := by
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact hdart
     exact vatEvalExpr_varInt (by simpa [grabDartValue] using hget)
   have hdtabEval :
@@ -1302,7 +1302,7 @@ theorem u256_add_one_ne_self (x : UInt256) : x + ⟨1⟩ ≠ x := by
       rw [show (⟨1⟩ : UInt256).toNat = 1 from by decide, hsum]
       exact Nat.mod_self UInt256.size
     rw [hmod] at ht
-    have hsize : 1 < UInt256.size := by native_decide
+    have hsize : 1 < UInt256.size := by decide +native
     omega
 
 theorem grabUrnArtSlot_ne_urnInkSlot (I : ExecutionEnv) :
@@ -2721,21 +2721,21 @@ theorem execGrabUrnInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "dink" =
         some (.int (grabDinkInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [grabDinkValue] using hdink)
   have hiAfter : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have huAfter : locals'.get? "u" = some (grabUValue I) := by
     change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "u" =
       some (grabUValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hu
   have hbaseAfter : locals'.get? "urns" = none := by
     change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "urns" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -2826,21 +2826,21 @@ theorem execGrabUrnInkCheckedOk {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "dink" =
         some (.int (grabDinkInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [grabDinkValue] using hdink)
   have hiAfter : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have huAfter : locals'.get? "u" = some (grabUValue I) := by
     change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "u" =
       some (grabUValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hu
   have hbaseAfter : locals'.get? "urns" = none := by
     change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "urns" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -2920,21 +2920,21 @@ theorem execGrabUrnInkCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "dink" =
         some (.int (grabDinkInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [grabDinkValue] using hdink)
   have hiAfter : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have huAfter : locals'.get? "u" = some (grabUValue I) := by
     change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "u" =
       some (grabUValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hu
   have hbaseAfter : locals'.get? "urns" = none := by
     change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "urns" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3007,21 +3007,21 @@ theorem execGrabUrnInkCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "dink" =
         some (.int (grabDinkInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [grabDinkValue] using hdink)
   have hiAfter : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have huAfter : locals'.get? "u" = some (grabUValue I) := by
     change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "u" =
       some (grabUValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hu
   have hbaseAfter : locals'.get? "urns" = none := by
     change (locals.insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "urns" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3105,21 +3105,21 @@ theorem execGrabUrnArtCheckedOk {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "dart" =
         some (.int (grabDartInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [grabDartValue] using hdart)
   have hiAfter : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have huAfter : locals'.get? "u" = some (grabUValue I) := by
     change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "u" =
       some (grabUValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hu
   have hbaseAfter : locals'.get? "urns" = none := by
     change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "urns" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3199,22 +3199,22 @@ theorem execGrabUrnArtCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "dart" =
         some (.int (grabDartInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [grabDartValue] using hdart)
   have hiAfter : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have huAfter : locals'.get? "u" = some (grabUValue I) := by
     change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "u" =
       some (grabUValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hu
   have hbaseAfter : locals'.get? "urns" = none := by
     change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "urns" =
       none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3287,22 +3287,22 @@ theorem execGrabUrnArtCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "dart" =
         some (.int (grabDartInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [grabDartValue] using hdart)
   have hiAfter : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have huAfter : locals'.get? "u" = some (grabUValue I) := by
     change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "u" =
       some (grabUValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hu
   have hbaseAfter : locals'.get? "urns" = none := by
     change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "urns" =
       none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3383,16 +3383,16 @@ theorem execGrabIlkArtCheckedOk {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "ilkArtNew" (.int (Int.ofNat ilkArtNew.toNat))).get? "dart" =
         some (.int (grabDartInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [grabDartValue] using hdart)
   have hiAfter : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "ilkArtNew" (.int (Int.ofNat ilkArtNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have hbaseAfter : locals'.get? "ilks" = none := by
     change (locals.insert "ilkArtNew" (.int (Int.ofNat ilkArtNew.toNat))).get? "ilks" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3604,10 +3604,10 @@ theorem execGrabDtabMulCheckedRevertMaxSlt {evm : EVM.State} {I : ExecutionEnv}
     rw [evalExpr_grab_ilk_rate_locals locals' hsz196]
     · rw [hload]
     · change (locals.insert "dtab" (.int dtab)).get? "i" = some (grabIValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact hi
     · change (locals.insert "dtab" (.int dtab)).get? "ilks" = none
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact hbase
   exact vatEvalExpr_le_int_false hrate (by simp [evalExpr?, pure])
     (uintWordGtMaxInt256_of_slt_ne_zero hmaxFail)
@@ -3709,17 +3709,17 @@ theorem execGrabIlkArtCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "ilkArtNew" (.int (Int.ofNat ilkArtNew.toNat))).get? "dart" =
         some (.int (grabDartInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [grabDartValue] using hdart)
   have hiAfter : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "ilkArtNew" (.int (Int.ofNat ilkArtNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have hbaseAfter : locals'.get? "ilks" = none := by
     change (locals.insert "ilkArtNew" (.int (Int.ofNat ilkArtNew.toNat))).get? "ilks" =
       none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3785,17 +3785,17 @@ theorem execGrabIlkArtCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "ilkArtNew" (.int (Int.ofNat ilkArtNew.toNat))).get? "dart" =
         some (.int (grabDartInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [grabDartValue] using hdart)
   have hiAfter : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "ilkArtNew" (.int (Int.ofNat ilkArtNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have hbaseAfter : locals'.get? "ilks" = none := by
     change (locals.insert "ilkArtNew" (.int (Int.ofNat ilkArtNew.toNat))).get? "ilks" =
       none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3875,21 +3875,21 @@ theorem execGrabGemSubCheckedOk {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "dink" =
         some (.int (grabDinkInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [grabDinkValue] using hdink)
   have hiAfter : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have hvAfter : locals'.get? "v" = some (grabVValue I) := by
     change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "v" =
       some (grabVValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hv
   have hbaseAfter : locals'.get? "gem" = none := by
     change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "gem" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -4052,21 +4052,21 @@ theorem execGrabGemSubCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "dink" =
         some (.int (grabDinkInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [grabDinkValue] using hdink)
   have hiAfter : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have hvAfter : locals'.get? "v" = some (grabVValue I) := by
     change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "v" =
       some (grabVValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hv
   have hbaseAfter : locals'.get? "gem" = none := by
     change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "gem" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -4122,21 +4122,21 @@ theorem execGrabGemSubCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "dink" =
         some (.int (grabDinkInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [grabDinkValue] using hdink)
   have hiAfter : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have hvAfter : locals'.get? "v" = some (grabVValue I) := by
     change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "v" =
       some (grabVValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hv
   have hbaseAfter : locals'.get? "gem" = none := by
     change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "gem" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -4204,16 +4204,16 @@ theorem execGrabSinSubCheckedOk {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "sinNew" (.int (Int.ofNat sinNew.toNat))).get? "dtab" =
         some (.int dtab)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact hdtab)
   have hwAfter : locals'.get? "w" = some (grabWValue I) := by
     change (locals.insert "sinNew" (.int (Int.ofNat sinNew.toNat))).get? "w" =
       some (grabWValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hw
   have hbaseAfter : locals'.get? "sin" = none := by
     change (locals.insert "sinNew" (.int (Int.ofNat sinNew.toNat))).get? "sin" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -4280,16 +4280,16 @@ theorem execGrabSinSubCheckedRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "sinNew" (.int (Int.ofNat sinNew.toNat))).get? "dtab" =
         some (.int dtab)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact hdtab)
   have hwAfter : locals'.get? "w" = some (grabWValue I) := by
     change (locals.insert "sinNew" (.int (Int.ofNat sinNew.toNat))).get? "w" =
       some (grabWValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hw
   have hbaseAfter : locals'.get? "sin" = none := by
     change (locals.insert "sinNew" (.int (Int.ofNat sinNew.toNat))).get? "sin" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -4345,16 +4345,16 @@ theorem execGrabSinSubCheckedRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "sinNew" (.int (Int.ofNat sinNew.toNat))).get? "dtab" =
         some (.int dtab)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact hdtab)
   have hwAfter : locals'.get? "w" = some (grabWValue I) := by
     change (locals.insert "sinNew" (.int (Int.ofNat sinNew.toNat))).get? "w" =
       some (grabWValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hw
   have hbaseAfter : locals'.get? "sin" = none := by
     change (locals.insert "sinNew" (.int (Int.ofNat sinNew.toNat))).get? "sin" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -4418,11 +4418,11 @@ theorem execGrabViceSubCheckedOk {evm : EVM.State}
     exact vatEvalExpr_varInt (by
       change (locals.insert "viceNew" (.int (Int.ofNat viceNew.toNat))).get? "dtab" =
         some (.int dtab)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact hdtab)
   have hbaseAfter : locals'.get? "vice" = none := by
     change (locals.insert "viceNew" (.int (Int.ofNat viceNew.toNat))).get? "vice" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm (.storage viceRef) =
@@ -4485,11 +4485,11 @@ theorem execGrabViceSubCheckedRevertGuardNeg {evm : EVM.State}
     exact vatEvalExpr_varInt (by
       change (locals.insert "viceNew" (.int (Int.ofNat viceNew.toNat))).get? "dtab" =
         some (.int dtab)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact hdtab)
   have hbaseAfter : locals'.get? "vice" = none := by
     change (locals.insert "viceNew" (.int (Int.ofNat viceNew.toNat))).get? "vice" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm (.storage viceRef) =
@@ -4541,11 +4541,11 @@ theorem execGrabViceSubCheckedRevertGuardPos {evm : EVM.State}
     exact vatEvalExpr_varInt (by
       change (locals.insert "viceNew" (.int (Int.ofNat viceNew.toNat))).get? "dtab" =
         some (.int dtab)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact hdtab)
   have hbaseAfter : locals'.get? "vice" = none := by
     change (locals.insert "viceNew" (.int (Int.ofNat viceNew.toNat))).get? "vice" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm (.storage viceRef) =
@@ -4601,17 +4601,17 @@ theorem execGrabUrnArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
   have hi' : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have hu' : locals'.get? "u" = some (grabUValue I) := by
     change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "u" =
       some (grabUValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hu
   have hbase' : locals'.get? "urns" = none := by
     change (locals.insert "urnArtNew" (.int (Int.ofNat urnArtNew.toNat))).get? "urns" =
       none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hassign :
       assignStorageRef? config { contract := contract, locals := locals' } evm .storage
@@ -4659,12 +4659,12 @@ theorem execGrabIlkArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
   have hi' : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "ilkArtNew" (.int (Int.ofNat ilkArtNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have hbase' : locals'.get? "ilks" = none := by
     change (locals.insert "ilkArtNew" (.int (Int.ofNat ilkArtNew.toNat))).get? "ilks" =
       none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hassign :
       assignStorageRef? config { contract := contract, locals := locals' } evm .storage
@@ -4713,16 +4713,16 @@ theorem execGrabGemUpdateOk {evm : EVM.State} {I : ExecutionEnv}
   have hi' : locals'.get? "i" = some (grabIValue I) := by
     change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hi
   have hv' : locals'.get? "v" = some (grabVValue I) := by
     change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "v" =
       some (grabVValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hv
   have hbase' : locals'.get? "gem" = none := by
     change (locals.insert "gemNew" (.int (Int.ofNat gemNew.toNat))).get? "gem" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hassign :
       assignStorageRef? config { contract := contract, locals := locals' } evm .storage
@@ -4769,11 +4769,11 @@ theorem execGrabSinUpdateOk {evm : EVM.State} {I : ExecutionEnv}
   have hw' : locals'.get? "w" = some (grabWValue I) := by
     change (locals.insert "sinNew" (.int (Int.ofNat sinNew.toNat))).get? "w" =
       some (grabWValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hw
   have hbase' : locals'.get? "sin" = none := by
     change (locals.insert "sinNew" (.int (Int.ofNat sinNew.toNat))).get? "sin" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hassign :
       assignStorageRef? config { contract := contract, locals := locals' } evm .storage
@@ -4816,7 +4816,7 @@ theorem execGrabViceUpdateOk {evm : EVM.State}
     vatEvalExpr_varUInt256 (by simp [locals'])
   have hbase' : locals'.get? "vice" = none := by
     change (locals.insert "viceNew" (.int (Int.ofNat viceNew.toNat))).get? "vice" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hbase
   have hassign :
       assignStorageRef? config { contract := contract, locals := locals' } evm .storage
@@ -4951,13 +4951,13 @@ theorem grabStoreViceNew_get_i (I : ExecutionEnv)
       some (grabIValue I) := by
   unfold grabStoreViceNew grabStoreSinNew grabStoreGemNew grabStoreDtab
     grabStoreIlkArtNew grabStoreUrnArtNew grabStoreUrnInkNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStore_get_i I
 
 theorem grabStoreViceNew_get_u (I : ExecutionEnv)
@@ -4967,13 +4967,13 @@ theorem grabStoreViceNew_get_u (I : ExecutionEnv)
       some (grabUValue I) := by
   unfold grabStoreViceNew grabStoreSinNew grabStoreGemNew grabStoreDtab
     grabStoreIlkArtNew grabStoreUrnArtNew grabStoreUrnInkNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStore_get_u I
 
 theorem grabStoreViceNew_get_v (I : ExecutionEnv)
@@ -4983,13 +4983,13 @@ theorem grabStoreViceNew_get_v (I : ExecutionEnv)
       some (grabVValue I) := by
   unfold grabStoreViceNew grabStoreSinNew grabStoreGemNew grabStoreDtab
     grabStoreIlkArtNew grabStoreUrnArtNew grabStoreUrnInkNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStore_get_v I
 
 theorem grabStoreViceNew_get_w (I : ExecutionEnv)
@@ -4999,13 +4999,13 @@ theorem grabStoreViceNew_get_w (I : ExecutionEnv)
       some (grabWValue I) := by
   unfold grabStoreViceNew grabStoreSinNew grabStoreGemNew grabStoreDtab
     grabStoreIlkArtNew grabStoreUrnArtNew grabStoreUrnInkNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact grabStore_get_w I
 
 theorem grabStoreViceNew_get_urnInkNew (I : ExecutionEnv)
@@ -5015,12 +5015,12 @@ theorem grabStoreViceNew_get_urnInkNew (I : ExecutionEnv)
       "urnInkNew" = some (.int (Int.ofNat urnInkNew.toNat)) := by
   unfold grabStoreViceNew grabStoreSinNew grabStoreGemNew grabStoreDtab
     grabStoreIlkArtNew grabStoreUrnArtNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   unfold grabStoreUrnInkNew
   rw [store_get_self]
 
@@ -5031,11 +5031,11 @@ theorem grabStoreViceNew_get_urnArtNew (I : ExecutionEnv)
       "urnArtNew" = some (.int (Int.ofNat urnArtNew.toNat)) := by
   unfold grabStoreViceNew grabStoreSinNew grabStoreGemNew grabStoreDtab
     grabStoreIlkArtNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   unfold grabStoreUrnArtNew
   rw [store_get_self]
 
@@ -5045,10 +5045,10 @@ theorem grabStoreViceNew_get_ilkArtNew (I : ExecutionEnv)
     (grabStoreViceNew I urnInkNew urnArtNew ilkArtNew dtab gemNew sinNew viceNew).get?
       "ilkArtNew" = some (.int (Int.ofNat ilkArtNew.toNat)) := by
   unfold grabStoreViceNew grabStoreSinNew grabStoreGemNew grabStoreDtab
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   unfold grabStoreIlkArtNew
   rw [store_get_self]
 
@@ -5058,8 +5058,8 @@ theorem grabStoreViceNew_get_gemNew (I : ExecutionEnv)
     (grabStoreViceNew I urnInkNew urnArtNew ilkArtNew dtab gemNew sinNew viceNew).get?
       "gemNew" = some (.int (Int.ofNat gemNew.toNat)) := by
   unfold grabStoreViceNew grabStoreSinNew
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   unfold grabStoreGemNew
   rw [store_get_self]
 
@@ -5069,7 +5069,7 @@ theorem grabStoreViceNew_get_sinNew (I : ExecutionEnv)
     (grabStoreViceNew I urnInkNew urnArtNew ilkArtNew dtab gemNew sinNew viceNew).get?
       "sinNew" = some (.int (Int.ofNat sinNew.toNat)) := by
   unfold grabStoreViceNew
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   unfold grabStoreSinNew
   rw [store_get_self]
 
@@ -5242,22 +5242,22 @@ theorem execGrabSourceOk {cA gh bl σ σ₀ A I} {g : UInt256}
   have hArt_i : localsInk.get? "i" = some (grabIValue I) := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_i I
   have hArt_u : localsInk.get? "u" = some (grabUValue I) := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "u" =
       some (grabUValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_u I
   have hArt_dart : localsInk.get? "dart" = some (grabDartValue I) := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "dart" = some (grabDartValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_dart I
   have hArt_urns : localsInk.get? "urns" = none := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "urns" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_urns I
   have hArtBlock :=
     execGrabUrnArtUpdateOk (evm := evm1) (I := I) (locals := localsInk)
@@ -5267,20 +5267,20 @@ theorem execGrabSourceOk {cA gh bl σ σ₀ A I} {g : UInt256}
   have hIlk_i : localsArt.get? "i" = some (grabIValue I) := by
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "i" = some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hArt_i
   have hIlk_dart : localsArt.get? "dart" = some (grabDartValue I) := by
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "dart" = some (grabDartValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hArt_dart
   have hIlk_ilks : localsArt.get? "ilks" = none := by
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "ilks" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "ilks" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     simp [grabStore]
   have hIlkBlock :=
     execGrabIlkArtUpdateOk (evm := evm2) (I := I) (locals := localsArt)
@@ -5291,17 +5291,17 @@ theorem execGrabSourceOk {cA gh bl σ σ₀ A I} {g : UInt256}
   have hDtab_i : localsIlk.get? "i" = some (grabIValue I) := by
     change ((grabStoreUrnArtNew I urnInkNew urnArtNew).insert "ilkArtNew"
       (.int (Int.ofNat ilkArtNew.toNat))).get? "i" = some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hIlk_i
   have hDtab_dart : localsIlk.get? "dart" = some (grabDartValue I) := by
     change ((grabStoreUrnArtNew I urnInkNew urnArtNew).insert "ilkArtNew"
       (.int (Int.ofNat ilkArtNew.toNat))).get? "dart" = some (grabDartValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hIlk_dart
   have hDtab_ilks : localsIlk.get? "ilks" = none := by
     change ((grabStoreUrnArtNew I urnInkNew urnArtNew).insert "ilkArtNew"
       (.int (Int.ofNat ilkArtNew.toNat))).get? "ilks" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hIlk_ilks
   have hDtabBlock :=
     execGrabDtabMulCheckedOk (evm := evm3) (I := I) (locals := localsIlk)
@@ -5313,49 +5313,49 @@ theorem execGrabSourceOk {cA gh bl σ σ₀ A I} {g : UInt256}
   have hGem_i : localsDtab.get? "i" = some (grabIValue I) := by
     change ((grabStoreIlkArtNew I urnInkNew urnArtNew ilkArtNew).insert "dtab"
       (.int dtab)).get? "i" = some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hDtab_i
   have hGem_v : localsDtab.get? "v" = some (grabVValue I) := by
     change ((grabStoreIlkArtNew I urnInkNew urnArtNew ilkArtNew).insert "dtab"
       (.int dtab)).get? "v" = some (grabVValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStoreUrnArtNew I urnInkNew urnArtNew).insert "ilkArtNew"
       (.int (Int.ofNat ilkArtNew.toNat))).get? "v" = some (grabVValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "v" = some (grabVValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "v" = some (grabVValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_v I
   have hGem_dink : localsDtab.get? "dink" = some (grabDinkValue I) := by
     change ((grabStoreIlkArtNew I urnInkNew urnArtNew ilkArtNew).insert "dtab"
       (.int dtab)).get? "dink" = some (grabDinkValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStoreUrnArtNew I urnInkNew urnArtNew).insert "ilkArtNew"
       (.int (Int.ofNat ilkArtNew.toNat))).get? "dink" = some (grabDinkValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "dink" = some (grabDinkValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "dink" = some (grabDinkValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_dink I
   have hGem_gem : localsDtab.get? "gem" = none := by
     change ((grabStoreIlkArtNew I urnInkNew urnArtNew ilkArtNew).insert "dtab"
       (.int dtab)).get? "gem" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStoreUrnArtNew I urnInkNew urnArtNew).insert "ilkArtNew"
       (.int (Int.ofNat ilkArtNew.toNat))).get? "gem" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "gem" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "gem" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     simp [grabStore]
   have hGemBlock :=
     execGrabGemUpdateOk (evm := evm3) (I := I) (locals := localsDtab)
@@ -5365,37 +5365,37 @@ theorem execGrabSourceOk {cA gh bl σ σ₀ A I} {g : UInt256}
   let localsGem := grabStoreGemNew I urnInkNew urnArtNew ilkArtNew dtab gemNew
   have hSin_w : localsGem.get? "w" = some (grabWValue I) := by
     unfold localsGem grabStoreGemNew
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     unfold grabStoreDtab
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     unfold grabStoreIlkArtNew
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     unfold grabStoreUrnArtNew
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     unfold grabStoreUrnInkNew
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_w I
   have hSin_dtab : localsGem.get? "dtab" = some (.int dtab) := by
     unfold localsGem grabStoreGemNew
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     unfold grabStoreDtab
     rw [store_get_self]
   have hSin_sin : localsGem.get? "sin" = none := by
     change ((grabStoreDtab I urnInkNew urnArtNew ilkArtNew dtab).insert "gemNew"
       (.int (Int.ofNat gemNew.toNat))).get? "sin" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStoreIlkArtNew I urnInkNew urnArtNew ilkArtNew).insert "dtab"
       (.int dtab)).get? "sin" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStoreUrnArtNew I urnInkNew urnArtNew).insert "ilkArtNew"
       (.int (Int.ofNat ilkArtNew.toNat))).get? "sin" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "sin" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "sin" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     simp [grabStore]
   have hSinBlock :=
     execGrabSinUpdateOk (evm := evm4) (I := I) (locals := localsGem)
@@ -5405,27 +5405,27 @@ theorem execGrabSourceOk {cA gh bl σ σ₀ A I} {g : UInt256}
   let localsSin := grabStoreSinNew I urnInkNew urnArtNew ilkArtNew dtab gemNew sinNew
   have hVice_dtab : localsSin.get? "dtab" = some (.int dtab) := by
     unfold localsSin grabStoreSinNew
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hSin_dtab
   have hVice_vice : localsSin.get? "vice" = none := by
     change ((grabStoreGemNew I urnInkNew urnArtNew ilkArtNew dtab gemNew).insert "sinNew"
       (.int (Int.ofNat sinNew.toNat))).get? "vice" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStoreDtab I urnInkNew urnArtNew ilkArtNew dtab).insert "gemNew"
       (.int (Int.ofNat gemNew.toNat))).get? "vice" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStoreIlkArtNew I urnInkNew urnArtNew ilkArtNew).insert "dtab"
       (.int dtab)).get? "vice" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStoreUrnArtNew I urnInkNew urnArtNew).insert "ilkArtNew"
       (.int (Int.ofNat ilkArtNew.toNat))).get? "vice" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "vice" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "vice" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     simp [grabStore]
   have hViceBlock :=
     execGrabViceUpdateOk (evm := evm5) (locals := localsSin)
@@ -5925,23 +5925,23 @@ theorem vatGrabSourceBodyUrnArtRevertGuardNeg
     (by
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "i" = some (grabIValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact grabStore_get_i I)
     (by
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "u" = some (grabUValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact grabStore_get_u I)
     (by
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "dart" =
         some (grabDartValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact grabStore_get_dart I)
     (by
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "urns" = none
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact grabStore_urns I)
     (by simpa [evm0, evm1] using
       (grabSourceLoad_urnArt_staged (cA := cA) (gh := gh) (bl := bl)
@@ -5982,23 +5982,23 @@ theorem vatGrabSourceBodyUrnArtRevertGuardPos
     (by
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "i" = some (grabIValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact grabStore_get_i I)
     (by
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "u" = some (grabUValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact grabStore_get_u I)
     (by
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "dart" =
         some (grabDartValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact grabStore_get_dart I)
     (by
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "urns" = none
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact grabStore_urns I)
     (by simpa [evm0, evm1] using
       (grabSourceLoad_urnArt_staged (cA := cA) (gh := gh) (bl := bl)
@@ -6083,22 +6083,22 @@ theorem vatGrabSourceBodyIlkArtRevertFromBlock
   have hArt_i : localsInk.get? "i" = some (grabIValue I) := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_i I
   have hArt_u : localsInk.get? "u" = some (grabUValue I) := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "u" =
       some (grabUValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_u I
   have hArt_dart : localsInk.get? "dart" = some (grabDartValue I) := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "dart" = some (grabDartValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_dart I
   have hArt_urns : localsInk.get? "urns" = none := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "urns" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_urns I
   have hArtBlock :
       ExecBlock config { contract := contract, locals := localsInk } evm1
@@ -6177,28 +6177,28 @@ theorem vatGrabSourceBodyIlkArtRevertGuardNeg
     (by
       change ((grabStoreUrnInkNew I (grabUrnInkNew σ I)).insert "urnArtNew"
         (.int (Int.ofNat (grabUrnArtNew σ I).toNat))).get? "i" = some (grabIValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "i" = some (grabIValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact grabStore_get_i I)
     (by
       change ((grabStoreUrnInkNew I (grabUrnInkNew σ I)).insert "urnArtNew"
         (.int (Int.ofNat (grabUrnArtNew σ I).toNat))).get? "dart" =
         some (grabDartValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "dart" =
         some (grabDartValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact grabStore_get_dart I)
     (by
       change ((grabStoreUrnInkNew I (grabUrnInkNew σ I)).insert "urnArtNew"
         (.int (Int.ofNat (grabUrnArtNew σ I).toNat))).get? "ilks" = none
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "ilks" = none
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simp [grabStore])
     (by simpa [evm0, evm1, evm2] using
       (grabSourceLoad_ilkArt_staged (cA := cA) (gh := gh) (bl := bl)
@@ -6247,28 +6247,28 @@ theorem vatGrabSourceBodyIlkArtRevertGuardPos
     (by
       change ((grabStoreUrnInkNew I (grabUrnInkNew σ I)).insert "urnArtNew"
         (.int (Int.ofNat (grabUrnArtNew σ I).toNat))).get? "i" = some (grabIValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "i" = some (grabIValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact grabStore_get_i I)
     (by
       change ((grabStoreUrnInkNew I (grabUrnInkNew σ I)).insert "urnArtNew"
         (.int (Int.ofNat (grabUrnArtNew σ I).toNat))).get? "dart" =
         some (grabDartValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "dart" =
         some (grabDartValue I)
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       exact grabStore_get_dart I)
     (by
       change ((grabStoreUrnInkNew I (grabUrnInkNew σ I)).insert "urnArtNew"
         (.int (Int.ofNat (grabUrnArtNew σ I).toNat))).get? "ilks" = none
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       change ((grabStore I).insert "urnInkNew"
         (.int (Int.ofNat (grabUrnInkNew σ I).toNat))).get? "ilks" = none
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simp [grabStore])
     (by simpa [evm0, evm1, evm2] using
       (grabSourceLoad_ilkArt_staged (cA := cA) (gh := gh) (bl := bl)
@@ -6367,22 +6367,22 @@ theorem vatGrabSourceBodyDtabRevertFromBlock
   have hArt_i : localsInk.get? "i" = some (grabIValue I) := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_i I
   have hArt_u : localsInk.get? "u" = some (grabUValue I) := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "u" =
       some (grabUValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_u I
   have hArt_dart : localsInk.get? "dart" = some (grabDartValue I) := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "dart" = some (grabDartValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_dart I
   have hArt_urns : localsInk.get? "urns" = none := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "urns" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_urns I
   have hArtBlock :
       ExecBlock config { contract := contract, locals := localsInk } evm1
@@ -6402,20 +6402,20 @@ theorem vatGrabSourceBodyDtabRevertFromBlock
   have hIlk_i : localsArt.get? "i" = some (grabIValue I) := by
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "i" = some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hArt_i
   have hIlk_dart : localsArt.get? "dart" = some (grabDartValue I) := by
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "dart" = some (grabDartValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hArt_dart
   have hIlk_ilks : localsArt.get? "ilks" = none := by
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "ilks" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "ilks" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     simp [grabStore]
   have hIlkBlock :
       ExecBlock config { contract := contract, locals := localsArt } evm2
@@ -6573,22 +6573,22 @@ theorem vatGrabSourceBodyPostDtabRevertFromBlock
   have hArt_i : localsInk.get? "i" = some (grabIValue I) := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "i" =
       some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_i I
   have hArt_u : localsInk.get? "u" = some (grabUValue I) := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get? "u" =
       some (grabUValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_u I
   have hArt_dart : localsInk.get? "dart" = some (grabDartValue I) := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "dart" = some (grabDartValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_get_dart I
   have hArt_urns : localsInk.get? "urns" = none := by
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "urns" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact grabStore_urns I
   have hArtBlock :
       ExecBlock config { contract := contract, locals := localsInk } evm1
@@ -6608,20 +6608,20 @@ theorem vatGrabSourceBodyPostDtabRevertFromBlock
   have hIlk_i : localsArt.get? "i" = some (grabIValue I) := by
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "i" = some (grabIValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hArt_i
   have hIlk_dart : localsArt.get? "dart" = some (grabDartValue I) := by
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "dart" = some (grabDartValue I)
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     exact hArt_dart
   have hIlk_ilks : localsArt.get? "ilks" = none := by
     change ((grabStoreUrnInkNew I urnInkNew).insert "urnArtNew"
       (.int (Int.ofNat urnArtNew.toNat))).get? "ilks" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     change ((grabStore I).insert "urnInkNew" (.int (Int.ofNat urnInkNew.toNat))).get?
       "ilks" = none
-    rw [store_get_ne _ _ (by native_decide)]
+    rw [store_get_ne _ _ (by decide +native)]
     simp [grabStore]
   have hIlkBlock :
       ExecBlock config { contract := contract, locals := localsArt } evm2
@@ -6811,7 +6811,7 @@ theorem vatDecode_grab_none_short {I : ExecutionEnv}
   simp only
   simp only [decodeCalldata.decodeArgs]
   rw [show abiTupleHeadSize? [bytes32, addr, addr, addr, int256, int256] =
-    some 192 by native_decide]
+    some 192 by decide +native]
   simp only [bind, Option.bind]
   rw [if_pos (by rw [List.length_drop, htlen]; omega :
     (I.calldata.toList.drop 4).length < 192)]
@@ -6838,7 +6838,7 @@ theorem vatDispatchGrab {I : ExecutionEnv}
     canSelectorBytes, daiSelectorBytes, debtSelectorBytes, denySelectorBytes,
     fileIlkSelectorBytes, fileLineSelectorBytes, fluxSelectorBytes, foldSelectorBytes,
     forkSelectorBytes, frobSelectorBytes, gemSelectorBytes, grabSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachGrabBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -6849,35 +6849,35 @@ theorem vatReachGrabBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0x7bab3f40⟩ :=
     vatSelWord_eq_of_beq I hsz 0x7b 0xab 0x3f 0x40 ⟨0x7bab3f40⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlowhigh :
       UInt256.gt (armSelNat vatBytecode vatLowHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms272FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
     · rw [hword]
-      native_decide
+      decide +native
     · rw [hword]
-      native_decide
+      decide +native
     · rw [hword]
-      native_decide
+      decide +native
   have htake :
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms272FirstPc 3))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms272Body 3 (by omega) ⟨973⟩ hcode hwv hsz hsize
-    hroot hlow hlowhigh heq0 htake (by jump_dest) (by native_decide)
+    hroot hlow hlowhigh heq0 htake (by jump_dest) (by decide +native)
 
 theorem vatGrabX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz196 : 196 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -6891,9 +6891,9 @@ theorem vatGrabX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨973⟩) (ret := ⟨524⟩)
     (decoded := ⟨995⟩) (need := ⟨192⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz196) hsize)
   obtain ⟨_, _, hroutine⟩ := RD.solcSixWordThreeAddressExternalLoadAndJump
@@ -6901,7 +6901,7 @@ theorem vatGrabX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (R := [sel]) hdecoded
     (by
       unfold solcSixWordThreeAddressExternalLoadAndJumpWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   exact ⟨_, _, by
     simpa [grabDartWord, grabDinkWord, grabWMaskedWord, grabWWord,
@@ -6924,10 +6924,10 @@ theorem vatGrabX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨973⟩) (ret := ⟨524⟩)
     (decoded := ⟨995⟩) (need := ⟨192⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem vatGrabBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -6979,8 +6979,8 @@ theorem vatGrabBodyCoreUnauthorized
     (key := grabDartWord I) (ret := grabDinkWord I)
     (R := [grabWMaskedWord I, grabVMaskedWord I, grabUMaskedWord I, grabIWord I, ⟨524⟩, sel])
     hdecoded
-    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
-    (by unfold vatAuthRevertTailWf vatAuthTailPc; repeat' first | apply And.intro | native_decide)
+    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | decide +native)
+    (by unfold vatAuthRevertTailWf vatAuthTailPc; repeat' first | apply And.intro | decide +native)
     hauthSolc (by simp)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -7012,35 +7012,35 @@ theorem RD.vatGrabUrnInkAddSuccess
   let urnBase := solcMappingSlot urnsIlk (grabUMaskedWord I)
   let ilkBase := solcMappingSlot ⟨2⟩ (grabIWord I)
   let urnInkOld := solcSlotWord σ I urnBase
-  have rd4287 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4289 := rd4287.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4290 := rd4289.dup7 (by native_decide) (by evm_ov)
-  have rd4291 := rd4290.dup2 (by native_decide) (by evm_ov)
+  have rd4287 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4289 := rd4287.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4290 := rd4289.dup7 (by decide +native) (by evm_ov)
+  have rd4291 := rd4290.dup2 (by decide +native) (by evm_ov)
   have rd4292 := rd4291.mstore 0 (wordAt0Mem (grabIWord I) mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4294 := rd4292.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  have rd4296 := rd4294.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4297 := rd4296.swap1 (by native_decide) (by evm_ov)
-  have rd4298 := rd4297.dup2 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4294 := rd4292.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  have rd4296 := rd4294.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4297 := rd4296.swap1 (by decide +native) (by evm_ov)
+  have rd4298 := rd4297.dup2 (by decide +native) (by evm_ov)
   have rd4299 := rd4298.mstore 0 (twoWordHashMem (grabIWord I) ⟨3⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4301 := rd4299.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4302 := rd4301.dup1 (by native_decide) (by evm_ov)
-  have rd4303 := rd4302.dup4 (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4301 := rd4299.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4302 := rd4301.dup1 (by decide +native) (by evm_ov)
+  have rd4303 := rd4302.dup4 (by decide +native) (by evm_ov)
   have hurnsIlk :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
         urnsIlk := by
     simpa [urnsIlk] using twoWordHashMem_solcMappingSlot ⟨3⟩ (grabIWord I) hmem
-  have rd4304 := rd4303.keccak256 0 urnsIlk (UInt256.ofNat 3) (by native_decide)
-    mem_cost hurnsIlk (by native_decide) (by evm_ov)
-  have rd4306 := rd4304.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4308 := rd4306.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4310 := rd4308.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4311 := rd4310.shl (by native_decide) (by evm_ov)
-  have rd4312 := rd4311.sub (by native_decide) (by evm_ov)
-  have rd4313 := rd4312.dup10 (by native_decide) (by evm_ov)
-  have rd4314 := rd4313.and (by native_decide) (by evm_ov)
+  have rd4304 := rd4303.keccak256 0 urnsIlk (UInt256.ofNat 3) (by decide +native)
+    mem_cost hurnsIlk (by decide +native) (by evm_ov)
+  have rd4306 := rd4304.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4308 := rd4306.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4310 := rd4308.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4311 := rd4310.shl (by decide +native) (by evm_ov)
+  have rd4312 := rd4311.sub (by decide +native) (by evm_ov)
+  have rd4313 := rd4312.dup10 (by decide +native) (by evm_ov)
+  have rd4314 := rd4313.and (by decide +native) (by evm_ov)
   have hmask :
       UInt256.land (grabUMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -7049,19 +7049,19 @@ theorem RD.vatGrabUrnInkAddSuccess
       solcAddrMask from by decide]
     exact grabUMaskedWord_clean I
   rw [hmask] at rd4314
-  have rd4315 := rd4314.dup5 (by native_decide) (by evm_ov)
+  have rd4315 := rd4314.dup5 (by decide +native) (by evm_ov)
   have rd4316 := rd4315.mstore 0
     (wordAt0Mem (grabUMaskedWord I) (twoWordHashMem (grabIWord I) ⟨3⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4317 := rd4316.dup3 (by native_decide) (by evm_ov)
+  have rd4317 := rd4316.dup3 (by decide +native) (by evm_ov)
   have rd4318 := rd4317.mstore 0
     (twoWordHashMem (grabUMaskedWord I) urnsIlk
       (twoWordHashMem (grabIWord I) ⟨3⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4319 := rd4318.dup1 (by native_decide) (by evm_ov)
-  have rd4320 := rd4319.dup4 (by native_decide) (by evm_ov)
+  have rd4319 := rd4318.dup1 (by decide +native) (by evm_ov)
+  have rd4320 := rd4319.dup4 (by decide +native) (by evm_ov)
   have hmemUrnsIlk : (twoWordHashMem (grabIWord I) ⟨3⟩ mem).size = 96 :=
     twoWordHashMem_size_96 (grabIWord I) ⟨3⟩ hmem
   have hurnBase :
@@ -7071,27 +7071,27 @@ theorem RD.vatGrabUrnInkAddSuccess
         urnBase := by
     simpa [urnBase] using
       twoWordHashMem_solcMappingSlot urnsIlk (grabUMaskedWord I) hmemUrnsIlk
-  have rd4321 := rd4320.keccak256 0 urnBase (UInt256.ofNat 3) (by native_decide)
-    mem_cost hurnBase (by native_decide) (by evm_ov)
-  have rd4322 := rd4321.dup10 (by native_decide) (by evm_ov)
-  have rd4323 := rd4322.dup5 (by native_decide) (by evm_ov)
+  have rd4321 := rd4320.keccak256 0 urnBase (UInt256.ofNat 3) (by decide +native)
+    mem_cost hurnBase (by decide +native) (by evm_ov)
+  have rd4322 := rd4321.dup10 (by decide +native) (by evm_ov)
+  have rd4323 := rd4322.dup5 (by decide +native) (by evm_ov)
   have rd4324 := rd4323.mstore 0
     (wordAt0Mem (grabIWord I)
       (twoWordHashMem (grabUMaskedWord I) urnsIlk
         (twoWordHashMem (grabIWord I) ⟨3⟩ mem)))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4326 := rd4324.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd4327 := rd4326.swap1 (by native_decide) (by evm_ov)
-  have rd4328 := rd4327.swap3 (by native_decide) (by evm_ov)
+  have rd4326 := rd4324.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd4327 := rd4326.swap1 (by decide +native) (by evm_ov)
+  have rd4328 := rd4327.swap3 (by decide +native) (by evm_ov)
   have rd4329 := rd4328.mstore 0
     (twoWordHashMem (grabIWord I) ⟨2⟩
       (twoWordHashMem (grabUMaskedWord I) urnsIlk
         (twoWordHashMem (grabIWord I) ⟨3⟩ mem)))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4330 := rd4329.swap1 (by native_decide) (by evm_ov)
-  have rd4331 := rd4330.swap2 (by native_decide) (by evm_ov)
+  have rd4330 := rd4329.swap1 (by decide +native) (by evm_ov)
+  have rd4331 := rd4330.swap2 (by decide +native) (by evm_ov)
   have hmemUrnBase :
       (twoWordHashMem (grabUMaskedWord I) urnsIlk
         (twoWordHashMem (grabIWord I) ⟨3⟩ mem)).size = 96 :=
@@ -7103,20 +7103,20 @@ theorem RD.vatGrabUrnInkAddSuccess
               (twoWordHashMem (grabIWord I) ⟨3⟩ mem))).readWithPadding 0 64))) =
         ilkBase := by
     simpa [ilkBase] using twoWordHashMem_solcMappingSlot ⟨2⟩ (grabIWord I) hmemUrnBase
-  have rd4332 := rd4331.keccak256 0 ilkBase (UInt256.ofNat 3) (by native_decide)
-    mem_cost hilkBase (by native_decide) (by evm_ov)
-  have rd4333 := rd4332.dup2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4334⟩ := rd4333.sload (by native_decide) (by evm_ov)
+  have rd4332 := rd4331.keccak256 0 ilkBase (UInt256.ofNat 3) (by decide +native)
+    mem_cost hilkBase (by decide +native) (by evm_ov)
+  have rd4333 := rd4332.dup2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4334⟩ := rd4333.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD urnBase ⟨0⟩)) =
         urnInkOld := by
     simp [urnInkOld, solcSlotWord]
   rw [hold] at rd4334
-  have rd4337 := rd4334.push2 ⟨4343⟩ (by native_decide) (by evm_ov)
-  have rd4338 := rd4337.swap1 (by native_decide) (by evm_ov)
-  have rd4339 := rd4338.dup6 (by native_decide) (by evm_ov)
-  have rd4342 := rd4339.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4342.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4337 := rd4334.push2 ⟨4343⟩ (by decide +native) (by evm_ov)
+  have rd4338 := rd4337.swap1 (by decide +native) (by evm_ov)
+  have rd4339 := rd4338.dup6 (by decide +native) (by evm_ov)
+  have rd4342 := rd4339.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4342.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4343⟩ := RD.vatSignedAddOk
     (x := urnInkOld) (y := grabDinkWord I) (ret := ⟨4343⟩)
     (R := ilkBase :: urnBase :: grabDartWord I :: grabDinkWord I :: grabWMaskedWord I ::
@@ -7152,35 +7152,35 @@ theorem RD.vatGrabUrnInkAddRevert
   let urnBase := solcMappingSlot urnsIlk (grabUMaskedWord I)
   let ilkBase := solcMappingSlot ⟨2⟩ (grabIWord I)
   let urnInkOld := solcSlotWord σ I urnBase
-  have rd4287 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4289 := rd4287.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4290 := rd4289.dup7 (by native_decide) (by evm_ov)
-  have rd4291 := rd4290.dup2 (by native_decide) (by evm_ov)
+  have rd4287 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4289 := rd4287.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4290 := rd4289.dup7 (by decide +native) (by evm_ov)
+  have rd4291 := rd4290.dup2 (by decide +native) (by evm_ov)
   have rd4292 := rd4291.mstore 0 (wordAt0Mem (grabIWord I) mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4294 := rd4292.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  have rd4296 := rd4294.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4297 := rd4296.swap1 (by native_decide) (by evm_ov)
-  have rd4298 := rd4297.dup2 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4294 := rd4292.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  have rd4296 := rd4294.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4297 := rd4296.swap1 (by decide +native) (by evm_ov)
+  have rd4298 := rd4297.dup2 (by decide +native) (by evm_ov)
   have rd4299 := rd4298.mstore 0 (twoWordHashMem (grabIWord I) ⟨3⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4301 := rd4299.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4302 := rd4301.dup1 (by native_decide) (by evm_ov)
-  have rd4303 := rd4302.dup4 (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4301 := rd4299.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4302 := rd4301.dup1 (by decide +native) (by evm_ov)
+  have rd4303 := rd4302.dup4 (by decide +native) (by evm_ov)
   have hurnsIlk :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
         urnsIlk := by
     simpa [urnsIlk] using twoWordHashMem_solcMappingSlot ⟨3⟩ (grabIWord I) hmem
-  have rd4304 := rd4303.keccak256 0 urnsIlk (UInt256.ofNat 3) (by native_decide)
-    mem_cost hurnsIlk (by native_decide) (by evm_ov)
-  have rd4306 := rd4304.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4308 := rd4306.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4310 := rd4308.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4311 := rd4310.shl (by native_decide) (by evm_ov)
-  have rd4312 := rd4311.sub (by native_decide) (by evm_ov)
-  have rd4313 := rd4312.dup10 (by native_decide) (by evm_ov)
-  have rd4314 := rd4313.and (by native_decide) (by evm_ov)
+  have rd4304 := rd4303.keccak256 0 urnsIlk (UInt256.ofNat 3) (by decide +native)
+    mem_cost hurnsIlk (by decide +native) (by evm_ov)
+  have rd4306 := rd4304.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4308 := rd4306.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4310 := rd4308.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4311 := rd4310.shl (by decide +native) (by evm_ov)
+  have rd4312 := rd4311.sub (by decide +native) (by evm_ov)
+  have rd4313 := rd4312.dup10 (by decide +native) (by evm_ov)
+  have rd4314 := rd4313.and (by decide +native) (by evm_ov)
   have hmask :
       UInt256.land (grabUMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -7189,19 +7189,19 @@ theorem RD.vatGrabUrnInkAddRevert
       solcAddrMask from by decide]
     exact grabUMaskedWord_clean I
   rw [hmask] at rd4314
-  have rd4315 := rd4314.dup5 (by native_decide) (by evm_ov)
+  have rd4315 := rd4314.dup5 (by decide +native) (by evm_ov)
   have rd4316 := rd4315.mstore 0
     (wordAt0Mem (grabUMaskedWord I) (twoWordHashMem (grabIWord I) ⟨3⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4317 := rd4316.dup3 (by native_decide) (by evm_ov)
+  have rd4317 := rd4316.dup3 (by decide +native) (by evm_ov)
   have rd4318 := rd4317.mstore 0
     (twoWordHashMem (grabUMaskedWord I) urnsIlk
       (twoWordHashMem (grabIWord I) ⟨3⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4319 := rd4318.dup1 (by native_decide) (by evm_ov)
-  have rd4320 := rd4319.dup4 (by native_decide) (by evm_ov)
+  have rd4319 := rd4318.dup1 (by decide +native) (by evm_ov)
+  have rd4320 := rd4319.dup4 (by decide +native) (by evm_ov)
   have hmemUrnsIlk : (twoWordHashMem (grabIWord I) ⟨3⟩ mem).size = 96 :=
     twoWordHashMem_size_96 (grabIWord I) ⟨3⟩ hmem
   have hurnBase :
@@ -7211,27 +7211,27 @@ theorem RD.vatGrabUrnInkAddRevert
         urnBase := by
     simpa [urnBase] using
       twoWordHashMem_solcMappingSlot urnsIlk (grabUMaskedWord I) hmemUrnsIlk
-  have rd4321 := rd4320.keccak256 0 urnBase (UInt256.ofNat 3) (by native_decide)
-    mem_cost hurnBase (by native_decide) (by evm_ov)
-  have rd4322 := rd4321.dup10 (by native_decide) (by evm_ov)
-  have rd4323 := rd4322.dup5 (by native_decide) (by evm_ov)
+  have rd4321 := rd4320.keccak256 0 urnBase (UInt256.ofNat 3) (by decide +native)
+    mem_cost hurnBase (by decide +native) (by evm_ov)
+  have rd4322 := rd4321.dup10 (by decide +native) (by evm_ov)
+  have rd4323 := rd4322.dup5 (by decide +native) (by evm_ov)
   have rd4324 := rd4323.mstore 0
     (wordAt0Mem (grabIWord I)
       (twoWordHashMem (grabUMaskedWord I) urnsIlk
         (twoWordHashMem (grabIWord I) ⟨3⟩ mem)))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4326 := rd4324.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd4327 := rd4326.swap1 (by native_decide) (by evm_ov)
-  have rd4328 := rd4327.swap3 (by native_decide) (by evm_ov)
+  have rd4326 := rd4324.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd4327 := rd4326.swap1 (by decide +native) (by evm_ov)
+  have rd4328 := rd4327.swap3 (by decide +native) (by evm_ov)
   have rd4329 := rd4328.mstore 0
     (twoWordHashMem (grabIWord I) ⟨2⟩
       (twoWordHashMem (grabUMaskedWord I) urnsIlk
         (twoWordHashMem (grabIWord I) ⟨3⟩ mem)))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4330 := rd4329.swap1 (by native_decide) (by evm_ov)
-  have rd4331 := rd4330.swap2 (by native_decide) (by evm_ov)
+  have rd4330 := rd4329.swap1 (by decide +native) (by evm_ov)
+  have rd4331 := rd4330.swap2 (by decide +native) (by evm_ov)
   have hmemUrnBase :
       (twoWordHashMem (grabUMaskedWord I) urnsIlk
         (twoWordHashMem (grabIWord I) ⟨3⟩ mem)).size = 96 :=
@@ -7243,20 +7243,20 @@ theorem RD.vatGrabUrnInkAddRevert
               (twoWordHashMem (grabIWord I) ⟨3⟩ mem))).readWithPadding 0 64))) =
         ilkBase := by
     simpa [ilkBase] using twoWordHashMem_solcMappingSlot ⟨2⟩ (grabIWord I) hmemUrnBase
-  have rd4332 := rd4331.keccak256 0 ilkBase (UInt256.ofNat 3) (by native_decide)
-    mem_cost hilkBase (by native_decide) (by evm_ov)
-  have rd4333 := rd4332.dup2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4334⟩ := rd4333.sload (by native_decide) (by evm_ov)
+  have rd4332 := rd4331.keccak256 0 ilkBase (UInt256.ofNat 3) (by decide +native)
+    mem_cost hilkBase (by decide +native) (by evm_ov)
+  have rd4333 := rd4332.dup2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4334⟩ := rd4333.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD urnBase ⟨0⟩)) =
         urnInkOld := by
     simp [urnInkOld, solcSlotWord]
   rw [hold] at rd4334
-  have rd4337 := rd4334.push2 ⟨4343⟩ (by native_decide) (by evm_ov)
-  have rd4338 := rd4337.swap1 (by native_decide) (by evm_ov)
-  have rd4339 := rd4338.dup6 (by native_decide) (by evm_ov)
-  have rd4342 := rd4339.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4342.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4337 := rd4334.push2 ⟨4343⟩ (by decide +native) (by evm_ov)
+  have rd4338 := rd4337.swap1 (by decide +native) (by evm_ov)
+  have rd4339 := rd4338.dup6 (by decide +native) (by evm_ov)
+  have rd4342 := rd4339.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4342.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedAddRevert
     (x := urnInkOld) (y := grabDinkWord I) (ret := ⟨4343⟩)
     (R := ilkBase :: urnBase :: grabDartWord I :: grabDinkWord I :: grabWMaskedWord I ::
@@ -7301,13 +7301,13 @@ theorem RD.vatGrabUrnArtAddSuccess
   let ilkBase := grabIlkBase I
   let σInk := sstoreAccountMap I.codeOwner σ (grabUrnInkSlot I) urnInkNew
   let urnArtOld := solcSlotWord σInk I (grabUrnArtSlot I)
-  have rd4344 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4345 := rd4344.dup3 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4346⟩ := rd4345.sstore hperm (by native_decide) (by evm_ov)
-  have rd4348 := rd4346.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4349 := rd4348.dup3 (by native_decide) (by evm_ov)
-  have rd4350 := rd4349.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4351⟩ := rd4350.sload (by native_decide) (by evm_ov)
+  have rd4344 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4345 := rd4344.dup3 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4346⟩ := rd4345.sstore hperm (by decide +native) (by evm_ov)
+  have rd4348 := rd4346.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4349 := rd4348.dup3 (by decide +native) (by evm_ov)
+  have rd4350 := rd4349.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4351⟩ := rd4350.sload (by decide +native) (by evm_ov)
   have hrd4351' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4351⟩
         [urnArtOld, grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -7316,11 +7316,11 @@ theorem RD.vatGrabUrnArtAddSuccess
     exact ⟨_, _, by
       simpa [urnArtOld, solcSlotWord, σInk, grabUrnArtSlot, grabUrnInkSlot] using rd4351⟩
   obtain ⟨_, _, rd4351'⟩ := hrd4351'
-  have rd4354 := rd4351'.push2 ⟨4360⟩ (by native_decide) (by evm_ov)
-  have rd4355 := rd4354.swap1 (by native_decide) (by evm_ov)
-  have rd4356 := rd4355.dup5 (by native_decide) (by evm_ov)
-  have rd4359 := rd4356.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4359.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4354 := rd4351'.push2 ⟨4360⟩ (by decide +native) (by evm_ov)
+  have rd4355 := rd4354.swap1 (by decide +native) (by evm_ov)
+  have rd4356 := rd4355.dup5 (by decide +native) (by evm_ov)
+  have rd4359 := rd4356.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4359.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4360⟩ := RD.vatSignedAddOk
     (x := urnArtOld) (y := grabDartWord I) (ret := ⟨4360⟩)
     (R := ilkBase :: urnBase :: grabDartWord I :: grabDinkWord I :: grabWMaskedWord I ::
@@ -7368,13 +7368,13 @@ theorem RD.vatGrabUrnArtAddRevert
   let ilkBase := grabIlkBase I
   let σInk := sstoreAccountMap I.codeOwner σ (grabUrnInkSlot I) urnInkNew
   let urnArtOld := solcSlotWord σInk I (grabUrnArtSlot I)
-  have rd4344 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4345 := rd4344.dup3 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4346⟩ := rd4345.sstore hperm (by native_decide) (by evm_ov)
-  have rd4348 := rd4346.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4349 := rd4348.dup3 (by native_decide) (by evm_ov)
-  have rd4350 := rd4349.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4351⟩ := rd4350.sload (by native_decide) (by evm_ov)
+  have rd4344 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4345 := rd4344.dup3 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4346⟩ := rd4345.sstore hperm (by decide +native) (by evm_ov)
+  have rd4348 := rd4346.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4349 := rd4348.dup3 (by decide +native) (by evm_ov)
+  have rd4350 := rd4349.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4351⟩ := rd4350.sload (by decide +native) (by evm_ov)
   have hrd4351' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4351⟩
         [urnArtOld, grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -7383,11 +7383,11 @@ theorem RD.vatGrabUrnArtAddRevert
     exact ⟨_, _, by
       simpa [urnArtOld, solcSlotWord, σInk, grabUrnArtSlot, grabUrnInkSlot] using rd4351⟩
   obtain ⟨_, _, rd4351'⟩ := hrd4351'
-  have rd4354 := rd4351'.push2 ⟨4360⟩ (by native_decide) (by evm_ov)
-  have rd4355 := rd4354.swap1 (by native_decide) (by evm_ov)
-  have rd4356 := rd4355.dup5 (by native_decide) (by evm_ov)
-  have rd4359 := rd4356.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4359.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4354 := rd4351'.push2 ⟨4360⟩ (by decide +native) (by evm_ov)
+  have rd4355 := rd4354.swap1 (by decide +native) (by evm_ov)
+  have rd4356 := rd4355.dup5 (by decide +native) (by evm_ov)
+  have rd4359 := rd4356.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4359.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedAddRevert
     (x := urnArtOld) (y := grabDartWord I) (ret := ⟨4360⟩)
     (R := ilkBase :: urnBase :: grabDartWord I :: grabDinkWord I :: grabWMaskedWord I ::
@@ -7432,11 +7432,11 @@ theorem RD.vatGrabIlkArtAddSuccess
   let ilkBase := grabIlkBase I
   let σArt := sstoreAccountMap I.codeOwner σ (grabUrnArtSlot I) urnArtNew
   let ilkArtOld := solcSlotWord σArt I (grabIlkArtSlot I)
-  have rd4361 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4363 := rd4361.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4364 := rd4363.dup4 (by native_decide) (by evm_ov)
-  have rd4365 := rd4364.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4366⟩ := rd4365.sstore hperm (by native_decide) (by evm_ov)
+  have rd4361 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4363 := rd4361.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4364 := rd4363.dup4 (by decide +native) (by evm_ov)
+  have rd4365 := rd4364.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4366⟩ := rd4365.sstore hperm (by decide +native) (by evm_ov)
   have hrd4366' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4366⟩
         [grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -7446,8 +7446,8 @@ theorem RD.vatGrabIlkArtAddSuccess
     exact ⟨_, _, by
       simpa [σArt, grabUrnArtSlot] using rd4366⟩
   obtain ⟨_, _, rd4366'⟩ := hrd4366'
-  have rd4367 := rd4366'.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4368⟩ := rd4367.sload (by native_decide) (by evm_ov)
+  have rd4367 := rd4366'.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4368⟩ := rd4367.sload (by decide +native) (by evm_ov)
   have hrd4368' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4368⟩
         [ilkArtOld, grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -7456,11 +7456,11 @@ theorem RD.vatGrabIlkArtAddSuccess
     exact ⟨_, _, by
       simpa [ilkArtOld, solcSlotWord, σArt, grabIlkArtSlot, grabIlkBase] using rd4368⟩
   obtain ⟨_, _, rd4368'⟩ := hrd4368'
-  have rd4371 := rd4368'.push2 ⟨4377⟩ (by native_decide) (by evm_ov)
-  have rd4372 := rd4371.swap1 (by native_decide) (by evm_ov)
-  have rd4373 := rd4372.dup5 (by native_decide) (by evm_ov)
-  have rd4376 := rd4373.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4376.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4371 := rd4368'.push2 ⟨4377⟩ (by decide +native) (by evm_ov)
+  have rd4372 := rd4371.swap1 (by decide +native) (by evm_ov)
+  have rd4373 := rd4372.dup5 (by decide +native) (by evm_ov)
+  have rd4376 := rd4373.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4376.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4377⟩ := RD.vatSignedAddOk
     (x := ilkArtOld) (y := grabDartWord I) (ret := ⟨4377⟩)
     (R := ilkBase :: urnBase :: grabDartWord I :: grabDinkWord I :: grabWMaskedWord I ::
@@ -7508,11 +7508,11 @@ theorem RD.vatGrabIlkArtAddRevert
   let ilkBase := grabIlkBase I
   let σArt := sstoreAccountMap I.codeOwner σ (grabUrnArtSlot I) urnArtNew
   let ilkArtOld := solcSlotWord σArt I (grabIlkArtSlot I)
-  have rd4361 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4363 := rd4361.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4364 := rd4363.dup4 (by native_decide) (by evm_ov)
-  have rd4365 := rd4364.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4366⟩ := rd4365.sstore hperm (by native_decide) (by evm_ov)
+  have rd4361 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4363 := rd4361.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4364 := rd4363.dup4 (by decide +native) (by evm_ov)
+  have rd4365 := rd4364.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4366⟩ := rd4365.sstore hperm (by decide +native) (by evm_ov)
   have hrd4366' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4366⟩
         [grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -7522,8 +7522,8 @@ theorem RD.vatGrabIlkArtAddRevert
     exact ⟨_, _, by
       simpa [σArt, grabUrnArtSlot] using rd4366⟩
   obtain ⟨_, _, rd4366'⟩ := hrd4366'
-  have rd4367 := rd4366'.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4368⟩ := rd4367.sload (by native_decide) (by evm_ov)
+  have rd4367 := rd4366'.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4368⟩ := rd4367.sload (by decide +native) (by evm_ov)
   have hrd4368' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4368⟩
         [ilkArtOld, grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -7532,11 +7532,11 @@ theorem RD.vatGrabIlkArtAddRevert
     exact ⟨_, _, by
       simpa [ilkArtOld, solcSlotWord, σArt, grabIlkArtSlot, grabIlkBase] using rd4368⟩
   obtain ⟨_, _, rd4368'⟩ := hrd4368'
-  have rd4371 := rd4368'.push2 ⟨4377⟩ (by native_decide) (by evm_ov)
-  have rd4372 := rd4371.swap1 (by native_decide) (by evm_ov)
-  have rd4373 := rd4372.dup5 (by native_decide) (by evm_ov)
-  have rd4376 := rd4373.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4376.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4371 := rd4368'.push2 ⟨4377⟩ (by decide +native) (by evm_ov)
+  have rd4372 := rd4371.swap1 (by decide +native) (by evm_ov)
+  have rd4373 := rd4372.dup5 (by decide +native) (by evm_ov)
+  have rd4376 := rd4373.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4376.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedAddRevert
     (x := ilkArtOld) (y := grabDartWord I) (ret := ⟨4377⟩)
     (R := ilkBase :: urnBase :: grabDartWord I :: grabDinkWord I :: grabWMaskedWord I ::
@@ -7580,9 +7580,9 @@ theorem RD.vatGrabDtabMulSuccess
   let ilkBase := grabIlkBase I
   let σIlkArt := sstoreAccountMap I.codeOwner σ (grabIlkArtSlot I) ilkArtNew
   let ilkRateOld := solcSlotWord σIlkArt I (grabIlkRateSlot I)
-  have rd4378 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4379 := rd4378.dup2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4380⟩ := rd4379.sstore hperm (by native_decide) (by evm_ov)
+  have rd4378 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4379 := rd4378.dup2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4380⟩ := rd4379.sstore hperm (by decide +native) (by evm_ov)
   have hrd4380' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4380⟩
         [grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -7592,10 +7592,10 @@ theorem RD.vatGrabDtabMulSuccess
     exact ⟨_, _, by
       simpa [σIlkArt, grabIlkArtSlot] using rd4380⟩
   obtain ⟨_, _, rd4380'⟩ := hrd4380'
-  have rd4382 := rd4380'.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4383 := rd4382.dup2 (by native_decide) (by evm_ov)
-  have rd4384 := rd4383.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4385⟩ := rd4384.sload (by native_decide) (by evm_ov)
+  have rd4382 := rd4380'.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4383 := rd4382.dup2 (by decide +native) (by evm_ov)
+  have rd4384 := rd4383.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4385⟩ := rd4384.sload (by decide +native) (by evm_ov)
   have hrd4385' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4385⟩
         [ilkRateOld, grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -7605,13 +7605,13 @@ theorem RD.vatGrabDtabMulSuccess
       simpa [ilkRateOld, solcSlotWord, σIlkArt, grabIlkRateSlot, grabIlkBase]
         using rd4385⟩
   obtain ⟨_, _, rd4385'⟩ := hrd4385'
-  have rd4387 := rd4385'.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4388 := rd4387.swap1 (by native_decide) (by evm_ov)
-  have rd4391 := rd4388.push2 ⟨4397⟩ (by native_decide) (by evm_ov)
-  have rd4392 := rd4391.swap1 (by native_decide) (by evm_ov)
-  have rd4393 := rd4392.dup6 (by native_decide) (by evm_ov)
-  have rd4396 := rd4393.push2 ⟨6706⟩ (by native_decide) (by evm_ov)
-  have rd6706 := rd4396.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4387 := rd4385'.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4388 := rd4387.swap1 (by decide +native) (by evm_ov)
+  have rd4391 := rd4388.push2 ⟨4397⟩ (by decide +native) (by evm_ov)
+  have rd4392 := rd4391.swap1 (by decide +native) (by evm_ov)
+  have rd4393 := rd4392.dup6 (by decide +native) (by evm_ov)
+  have rd4396 := rd4393.push2 ⟨6706⟩ (by decide +native) (by evm_ov)
+  have rd6706 := rd4396.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4397⟩ := RD.vatSignedMulOk
     (x := ilkRateOld) (y := grabDartWord I) (ret := ⟨4397⟩)
     (R := ⟨0⟩ :: ilkBase :: urnBase :: grabDartWord I :: grabDinkWord I ::
@@ -7656,9 +7656,9 @@ theorem RD.vatGrabDtabMulRevert
   let ilkBase := grabIlkBase I
   let σIlkArt := sstoreAccountMap I.codeOwner σ (grabIlkArtSlot I) ilkArtNew
   let ilkRateOld := solcSlotWord σIlkArt I (grabIlkRateSlot I)
-  have rd4378 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4379 := rd4378.dup2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4380⟩ := rd4379.sstore hperm (by native_decide) (by evm_ov)
+  have rd4378 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4379 := rd4378.dup2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4380⟩ := rd4379.sstore hperm (by decide +native) (by evm_ov)
   have hrd4380' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4380⟩
         [grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -7668,10 +7668,10 @@ theorem RD.vatGrabDtabMulRevert
     exact ⟨_, _, by
       simpa [σIlkArt, grabIlkArtSlot] using rd4380⟩
   obtain ⟨_, _, rd4380'⟩ := hrd4380'
-  have rd4382 := rd4380'.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4383 := rd4382.dup2 (by native_decide) (by evm_ov)
-  have rd4384 := rd4383.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4385⟩ := rd4384.sload (by native_decide) (by evm_ov)
+  have rd4382 := rd4380'.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4383 := rd4382.dup2 (by decide +native) (by evm_ov)
+  have rd4384 := rd4383.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4385⟩ := rd4384.sload (by decide +native) (by evm_ov)
   have hrd4385' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4385⟩
         [ilkRateOld, grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -7681,13 +7681,13 @@ theorem RD.vatGrabDtabMulRevert
       simpa [ilkRateOld, solcSlotWord, σIlkArt, grabIlkRateSlot, grabIlkBase]
         using rd4385⟩
   obtain ⟨_, _, rd4385'⟩ := hrd4385'
-  have rd4387 := rd4385'.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4388 := rd4387.swap1 (by native_decide) (by evm_ov)
-  have rd4391 := rd4388.push2 ⟨4397⟩ (by native_decide) (by evm_ov)
-  have rd4392 := rd4391.swap1 (by native_decide) (by evm_ov)
-  have rd4393 := rd4392.dup6 (by native_decide) (by evm_ov)
-  have rd4396 := rd4393.push2 ⟨6706⟩ (by native_decide) (by evm_ov)
-  have rd6706 := rd4396.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4387 := rd4385'.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4388 := rd4387.swap1 (by decide +native) (by evm_ov)
+  have rd4391 := rd4388.push2 ⟨4397⟩ (by decide +native) (by evm_ov)
+  have rd4392 := rd4391.swap1 (by decide +native) (by evm_ov)
+  have rd4393 := rd4392.dup6 (by decide +native) (by evm_ov)
+  have rd4396 := rd4393.push2 ⟨6706⟩ (by decide +native) (by evm_ov)
+  have rd6706 := rd4396.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedMulRevert
     (x := ilkRateOld) (y := grabDartWord I) (ret := ⟨4397⟩)
     (R := ⟨0⟩ :: ilkBase :: urnBase :: grabDartWord I :: grabDinkWord I ::
@@ -7725,37 +7725,37 @@ theorem RD.vatGrabGemSubSuccess
   let gemBase := grabGemBase I
   let gemSlot := grabGemVSlot I
   let gemOld := solcSlotWord σ I gemSlot
-  have rd4398 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4400 := rd4398.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4401 := rd4400.dup11 (by native_decide) (by evm_ov)
-  have rd4402 := rd4401.dup2 (by native_decide) (by evm_ov)
+  have rd4398 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4400 := rd4398.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4401 := rd4400.dup11 (by decide +native) (by evm_ov)
+  have rd4402 := rd4401.dup2 (by decide +native) (by evm_ov)
   have rd4403 := rd4402.mstore 0 (wordAt0Mem (grabIWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4405 := rd4403.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd4407 := rd4405.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4408 := rd4407.swap1 (by native_decide) (by evm_ov)
-  have rd4409 := rd4408.dup2 (by native_decide) (by evm_ov)
+  have rd4405 := rd4403.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd4407 := rd4405.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4408 := rd4407.swap1 (by decide +native) (by evm_ov)
+  have rd4409 := rd4408.dup2 (by decide +native) (by evm_ov)
   have rd4410 := rd4409.mstore 0 (twoWordHashMem (grabIWord I) ⟨4⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4412 := rd4410.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4413 := rd4412.dup1 (by native_decide) (by evm_ov)
-  have rd4414 := rd4413.dup4 (by native_decide) (by evm_ov)
+  have rd4412 := rd4410.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4413 := rd4412.dup1 (by decide +native) (by evm_ov)
+  have rd4414 := rd4413.dup4 (by decide +native) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     simpa [gemBase, grabGemBase] using twoWordHashMem_solcMappingSlot ⟨4⟩ (grabIWord I) hmem
-  have rd4415 := rd4414.keccak256 0 gemBase (UInt256.ofNat 3) (by native_decide)
-    mem_cost hgemBase (by native_decide) (by evm_ov)
-  have rd4417 := rd4415.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4419 := rd4417.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4421 := rd4419.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4422 := rd4421.shl (by native_decide) (by evm_ov)
-  have rd4423 := rd4422.sub (by native_decide) (by evm_ov)
-  have rd4424 := rd4423.dup13 (by native_decide) (by evm_ov)
-  have rd4425pre := rd4424.and (by native_decide) (by evm_ov)
+  have rd4415 := rd4414.keccak256 0 gemBase (UInt256.ofNat 3) (by decide +native)
+    mem_cost hgemBase (by decide +native) (by evm_ov)
+  have rd4417 := rd4415.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4419 := rd4417.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4421 := rd4419.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4422 := rd4421.shl (by decide +native) (by evm_ov)
+  have rd4423 := rd4422.sub (by decide +native) (by evm_ov)
+  have rd4424 := rd4423.dup13 (by decide +native) (by evm_ov)
+  have rd4425pre := rd4424.and (by decide +native) (by evm_ov)
   have hmask :
       UInt256.land (grabVMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -7764,18 +7764,18 @@ theorem RD.vatGrabGemSubSuccess
       solcAddrMask from by decide]
     exact grabVMaskedWord_clean I
   rw [hmask] at rd4425pre
-  have rd4426 := rd4425pre.dup5 (by native_decide) (by evm_ov)
+  have rd4426 := rd4425pre.dup5 (by decide +native) (by evm_ov)
   have rd4427 := rd4426.mstore 0
     (wordAt0Mem (grabVMaskedWord I) (twoWordHashMem (grabIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4428 := rd4427.swap1 (by native_decide) (by evm_ov)
-  have rd4429 := rd4428.swap2 (by native_decide) (by evm_ov)
+  have rd4428 := rd4427.swap1 (by decide +native) (by evm_ov)
+  have rd4429 := rd4428.swap2 (by decide +native) (by evm_ov)
   have rd4430 := rd4429.mstore 0
     (twoWordHashMem (grabVMaskedWord I) gemBase (twoWordHashMem (grabIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4431 := rd4430.swap1 (by native_decide) (by evm_ov)
+  have rd4431 := rd4430.swap1 (by decide +native) (by evm_ov)
   have hmemGemBase : (twoWordHashMem (grabIWord I) ⟨4⟩ mem).size = 96 :=
     twoWordHashMem_size_96 (grabIWord I) ⟨4⟩ hmem
   have hgemSlot :
@@ -7785,9 +7785,9 @@ theorem RD.vatGrabGemSubSuccess
         gemSlot := by
     simpa [gemSlot, grabGemVSlot, gemBase] using
       twoWordHashMem_solcMappingSlot gemBase (grabVMaskedWord I) hmemGemBase
-  have rd4432 := rd4431.keccak256 0 gemSlot (UInt256.ofNat 3) (by native_decide)
-    mem_cost hgemSlot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4433⟩ := rd4432.sload (by native_decide) (by evm_ov)
+  have rd4432 := rd4431.keccak256 0 gemSlot (UInt256.ofNat 3) (by decide +native)
+    mem_cost hgemSlot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4433⟩ := rd4432.sload (by decide +native) (by evm_ov)
   have hrd4433' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4433⟩
         [gemOld, dtab, ⟨0⟩, grabIlkBase I, grabUrnBase I, grabDartWord I,
@@ -7799,14 +7799,14 @@ theorem RD.vatGrabGemSubSuccess
     exact ⟨_, _, by
       simpa [gemOld, solcSlotWord, gemSlot] using rd4433⟩
   obtain ⟨_, _, rd4433'⟩ := hrd4433'
-  have rd4434 := rd4433'.swap1 (by native_decide) (by evm_ov)
-  have rd4435 := rd4434.swap2 (by native_decide) (by evm_ov)
-  have rd4436 := rd4435.pop (by native_decide) (by evm_ov)
-  have rd4439 := rd4436.push2 ⟨4445⟩ (by native_decide) (by evm_ov)
-  have rd4440 := rd4439.swap1 (by native_decide) (by evm_ov)
-  have rd4441 := rd4440.dup7 (by native_decide) (by evm_ov)
-  have rd4444 := rd4441.push2 ⟨6795⟩ (by native_decide) (by evm_ov)
-  have rd6795 := rd4444.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4434 := rd4433'.swap1 (by decide +native) (by evm_ov)
+  have rd4435 := rd4434.swap2 (by decide +native) (by evm_ov)
+  have rd4436 := rd4435.pop (by decide +native) (by evm_ov)
+  have rd4439 := rd4436.push2 ⟨4445⟩ (by decide +native) (by evm_ov)
+  have rd4440 := rd4439.swap1 (by decide +native) (by evm_ov)
+  have rd4441 := rd4440.dup7 (by decide +native) (by evm_ov)
+  have rd4444 := rd4441.push2 ⟨6795⟩ (by decide +native) (by evm_ov)
+  have rd6795 := rd4444.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4445⟩ := RD.vatSignedSubOk
     (x := gemOld) (y := grabDinkWord I) (ret := ⟨4445⟩)
     (R := dtab :: grabIlkBase I :: grabUrnBase I :: grabDartWord I ::
@@ -7844,37 +7844,37 @@ theorem RD.vatGrabGemSubRevert
   let gemBase := grabGemBase I
   let gemSlot := grabGemVSlot I
   let gemOld := solcSlotWord σ I gemSlot
-  have rd4398 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4400 := rd4398.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4401 := rd4400.dup11 (by native_decide) (by evm_ov)
-  have rd4402 := rd4401.dup2 (by native_decide) (by evm_ov)
+  have rd4398 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4400 := rd4398.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4401 := rd4400.dup11 (by decide +native) (by evm_ov)
+  have rd4402 := rd4401.dup2 (by decide +native) (by evm_ov)
   have rd4403 := rd4402.mstore 0 (wordAt0Mem (grabIWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4405 := rd4403.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd4407 := rd4405.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4408 := rd4407.swap1 (by native_decide) (by evm_ov)
-  have rd4409 := rd4408.dup2 (by native_decide) (by evm_ov)
+  have rd4405 := rd4403.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd4407 := rd4405.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4408 := rd4407.swap1 (by decide +native) (by evm_ov)
+  have rd4409 := rd4408.dup2 (by decide +native) (by evm_ov)
   have rd4410 := rd4409.mstore 0 (twoWordHashMem (grabIWord I) ⟨4⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4412 := rd4410.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4413 := rd4412.dup1 (by native_decide) (by evm_ov)
-  have rd4414 := rd4413.dup4 (by native_decide) (by evm_ov)
+  have rd4412 := rd4410.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4413 := rd4412.dup1 (by decide +native) (by evm_ov)
+  have rd4414 := rd4413.dup4 (by decide +native) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     simpa [gemBase, grabGemBase] using twoWordHashMem_solcMappingSlot ⟨4⟩ (grabIWord I) hmem
-  have rd4415 := rd4414.keccak256 0 gemBase (UInt256.ofNat 3) (by native_decide)
-    mem_cost hgemBase (by native_decide) (by evm_ov)
-  have rd4417 := rd4415.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4419 := rd4417.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4421 := rd4419.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4422 := rd4421.shl (by native_decide) (by evm_ov)
-  have rd4423 := rd4422.sub (by native_decide) (by evm_ov)
-  have rd4424 := rd4423.dup13 (by native_decide) (by evm_ov)
-  have rd4425pre := rd4424.and (by native_decide) (by evm_ov)
+  have rd4415 := rd4414.keccak256 0 gemBase (UInt256.ofNat 3) (by decide +native)
+    mem_cost hgemBase (by decide +native) (by evm_ov)
+  have rd4417 := rd4415.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4419 := rd4417.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4421 := rd4419.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4422 := rd4421.shl (by decide +native) (by evm_ov)
+  have rd4423 := rd4422.sub (by decide +native) (by evm_ov)
+  have rd4424 := rd4423.dup13 (by decide +native) (by evm_ov)
+  have rd4425pre := rd4424.and (by decide +native) (by evm_ov)
   have hmask :
       UInt256.land (grabVMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -7883,18 +7883,18 @@ theorem RD.vatGrabGemSubRevert
       solcAddrMask from by decide]
     exact grabVMaskedWord_clean I
   rw [hmask] at rd4425pre
-  have rd4426 := rd4425pre.dup5 (by native_decide) (by evm_ov)
+  have rd4426 := rd4425pre.dup5 (by decide +native) (by evm_ov)
   have rd4427 := rd4426.mstore 0
     (wordAt0Mem (grabVMaskedWord I) (twoWordHashMem (grabIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4428 := rd4427.swap1 (by native_decide) (by evm_ov)
-  have rd4429 := rd4428.swap2 (by native_decide) (by evm_ov)
+  have rd4428 := rd4427.swap1 (by decide +native) (by evm_ov)
+  have rd4429 := rd4428.swap2 (by decide +native) (by evm_ov)
   have rd4430 := rd4429.mstore 0
     (twoWordHashMem (grabVMaskedWord I) gemBase (twoWordHashMem (grabIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4431 := rd4430.swap1 (by native_decide) (by evm_ov)
+  have rd4431 := rd4430.swap1 (by decide +native) (by evm_ov)
   have hmemGemBase : (twoWordHashMem (grabIWord I) ⟨4⟩ mem).size = 96 :=
     twoWordHashMem_size_96 (grabIWord I) ⟨4⟩ hmem
   have hgemSlot :
@@ -7904,9 +7904,9 @@ theorem RD.vatGrabGemSubRevert
         gemSlot := by
     simpa [gemSlot, grabGemVSlot, gemBase] using
       twoWordHashMem_solcMappingSlot gemBase (grabVMaskedWord I) hmemGemBase
-  have rd4432 := rd4431.keccak256 0 gemSlot (UInt256.ofNat 3) (by native_decide)
-    mem_cost hgemSlot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4433⟩ := rd4432.sload (by native_decide) (by evm_ov)
+  have rd4432 := rd4431.keccak256 0 gemSlot (UInt256.ofNat 3) (by decide +native)
+    mem_cost hgemSlot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4433⟩ := rd4432.sload (by decide +native) (by evm_ov)
   have hrd4433' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4433⟩
         [gemOld, dtab, ⟨0⟩, grabIlkBase I, grabUrnBase I, grabDartWord I,
@@ -7918,14 +7918,14 @@ theorem RD.vatGrabGemSubRevert
     exact ⟨_, _, by
       simpa [gemOld, solcSlotWord, gemSlot] using rd4433⟩
   obtain ⟨_, _, rd4433'⟩ := hrd4433'
-  have rd4434 := rd4433'.swap1 (by native_decide) (by evm_ov)
-  have rd4435 := rd4434.swap2 (by native_decide) (by evm_ov)
-  have rd4436 := rd4435.pop (by native_decide) (by evm_ov)
-  have rd4439 := rd4436.push2 ⟨4445⟩ (by native_decide) (by evm_ov)
-  have rd4440 := rd4439.swap1 (by native_decide) (by evm_ov)
-  have rd4441 := rd4440.dup7 (by native_decide) (by evm_ov)
-  have rd4444 := rd4441.push2 ⟨6795⟩ (by native_decide) (by evm_ov)
-  have rd6795 := rd4444.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4434 := rd4433'.swap1 (by decide +native) (by evm_ov)
+  have rd4435 := rd4434.swap2 (by decide +native) (by evm_ov)
+  have rd4436 := rd4435.pop (by decide +native) (by evm_ov)
+  have rd4439 := rd4436.push2 ⟨4445⟩ (by decide +native) (by evm_ov)
+  have rd4440 := rd4439.swap1 (by decide +native) (by evm_ov)
+  have rd4441 := rd4440.dup7 (by decide +native) (by evm_ov)
+  have rd4444 := rd4441.push2 ⟨6795⟩ (by decide +native) (by evm_ov)
+  have rd6795 := rd4444.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedSubRevert
     (x := gemOld) (y := grabDinkWord I) (ret := ⟨4445⟩)
     (R := dtab :: grabIlkBase I :: grabUrnBase I :: grabDartWord I ::
@@ -7978,38 +7978,38 @@ theorem RD.vatGrabSinSubSuccess
   let gemSlot := grabGemVSlot I
   let σGem := sstoreAccountMap I.codeOwner σ gemSlot gemNew
   let sinOld := solcSlotWord σGem I (grabSinSlot I)
-  have rd4446 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4448 := rd4446.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4449 := rd4448.dup11 (by native_decide) (by evm_ov)
-  have rd4450 := rd4449.dup2 (by native_decide) (by evm_ov)
+  have rd4446 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4448 := rd4446.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4449 := rd4448.dup11 (by decide +native) (by evm_ov)
+  have rd4450 := rd4449.dup2 (by decide +native) (by evm_ov)
   have rd4451 := rd4450.mstore 0 (wordAt0Mem (grabIWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4453 := rd4451.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd4455 := rd4453.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4456 := rd4455.swap1 (by native_decide) (by evm_ov)
-  have rd4457 := rd4456.dup2 (by native_decide) (by evm_ov)
+  have rd4453 := rd4451.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd4455 := rd4453.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4456 := rd4455.swap1 (by decide +native) (by evm_ov)
+  have rd4457 := rd4456.dup2 (by decide +native) (by evm_ov)
   have rd4458 := rd4457.mstore 0 (twoWordHashMem (grabIWord I) ⟨4⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4460 := rd4458.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4461 := rd4460.dup1 (by native_decide) (by evm_ov)
-  have rd4462 := rd4461.dup4 (by native_decide) (by evm_ov)
+  have rd4460 := rd4458.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4461 := rd4460.dup1 (by decide +native) (by evm_ov)
+  have rd4462 := rd4461.dup4 (by decide +native) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     simpa [gemBase, grabGemBase] using twoWordHashMem_solcMappingSlot ⟨4⟩ (grabIWord I) hmem
-  have rd4463 := rd4462.keccak256 0 gemBase (UInt256.ofNat 3) (by native_decide)
-    mem_cost hgemBase (by native_decide) (by evm_ov)
-  have rd4465 := rd4463.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4467 := rd4465.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4469 := rd4467.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4470 := rd4469.shl (by native_decide) (by evm_ov)
-  have rd4471 := rd4470.sub (by native_decide) (by evm_ov)
-  have rd4472 := rd4471.dup1 (by native_decide) (by evm_ov)
-  have rd4473 := rd4472.dup14 (by native_decide) (by evm_ov)
-  have rd4474pre := rd4473.and (by native_decide) (by evm_ov)
+  have rd4463 := rd4462.keccak256 0 gemBase (UInt256.ofNat 3) (by decide +native)
+    mem_cost hgemBase (by decide +native) (by evm_ov)
+  have rd4465 := rd4463.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4467 := rd4465.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4469 := rd4467.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4470 := rd4469.shl (by decide +native) (by evm_ov)
+  have rd4471 := rd4470.sub (by decide +native) (by evm_ov)
+  have rd4472 := rd4471.dup1 (by decide +native) (by evm_ov)
+  have rd4473 := rd4472.dup14 (by decide +native) (by evm_ov)
+  have rd4474pre := rd4473.and (by decide +native) (by evm_ov)
   have hmaskV :
       UInt256.land (grabVMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -8018,19 +8018,19 @@ theorem RD.vatGrabSinSubSuccess
       solcAddrMask from by decide]
     exact grabVMaskedWord_clean I
   rw [hmaskV] at rd4474pre
-  have rd4475 := rd4474pre.dup6 (by native_decide) (by evm_ov)
+  have rd4475 := rd4474pre.dup6 (by decide +native) (by evm_ov)
   have rd4476 := rd4475.mstore 0
     (wordAt0Mem (grabVMaskedWord I) (twoWordHashMem (grabIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4477 := rd4476.swap1 (by native_decide) (by evm_ov)
-  have rd4478 := rd4477.dup4 (by native_decide) (by evm_ov)
+  have rd4477 := rd4476.swap1 (by decide +native) (by evm_ov)
+  have rd4478 := rd4477.dup4 (by decide +native) (by evm_ov)
   have rd4479 := rd4478.mstore 0
     (twoWordHashMem (grabVMaskedWord I) gemBase (twoWordHashMem (grabIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4480 := rd4479.dup2 (by native_decide) (by evm_ov)
-  have rd4481 := rd4480.dup5 (by native_decide) (by evm_ov)
+  have rd4480 := rd4479.dup2 (by decide +native) (by evm_ov)
+  have rd4481 := rd4480.dup5 (by decide +native) (by evm_ov)
   have hmemGemBase : (twoWordHashMem (grabIWord I) ⟨4⟩ mem).size = 96 :=
     twoWordHashMem_size_96 (grabIWord I) ⟨4⟩ hmem
   have hgemSlot :
@@ -8040,12 +8040,12 @@ theorem RD.vatGrabSinSubSuccess
         gemSlot := by
     simpa [gemSlot, grabGemVSlot, gemBase] using
       twoWordHashMem_solcMappingSlot gemBase (grabVMaskedWord I) hmemGemBase
-  have rd4482 := rd4481.keccak256 0 gemSlot (UInt256.ofNat 3) (by native_decide)
-    mem_cost hgemSlot (by native_decide) (by evm_ov)
-  have rd4483 := rd4482.swap5 (by native_decide) (by evm_ov)
-  have rd4484 := rd4483.swap1 (by native_decide) (by evm_ov)
-  have rd4485 := rd4484.swap5 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4486⟩ := rd4485.sstore hperm (by native_decide) (by evm_ov)
+  have rd4482 := rd4481.keccak256 0 gemSlot (UInt256.ofNat 3) (by decide +native)
+    mem_cost hgemSlot (by decide +native) (by evm_ov)
+  have rd4483 := rd4482.swap5 (by decide +native) (by evm_ov)
+  have rd4484 := rd4483.swap1 (by decide +native) (by evm_ov)
+  have rd4485 := rd4484.swap5 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4486⟩ := rd4485.sstore hperm (by decide +native) (by evm_ov)
   have hrd4486' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4486⟩
         [⟨64⟩, ⟨32⟩, ⟨0⟩,
@@ -8059,9 +8059,9 @@ theorem RD.vatGrabSinSubSuccess
     exact ⟨_, _, by
       simpa [σGem, gemSlot, grabGemVSlot, gemBase, grabGemBase] using rd4486⟩
   obtain ⟨_, _, rd4486'⟩ := hrd4486'
-  have rd4487 := rd4486'.swap3 (by native_decide) (by evm_ov)
-  have rd4488 := rd4487.dup10 (by native_decide) (by evm_ov)
-  have rd4489pre := rd4488.and (by native_decide) (by evm_ov)
+  have rd4487 := rd4486'.swap3 (by decide +native) (by evm_ov)
+  have rd4488 := rd4487.dup10 (by decide +native) (by evm_ov)
+  have rd4489pre := rd4488.and (by decide +native) (by evm_ov)
   have hmaskW :
       UInt256.land (grabWMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -8070,20 +8070,20 @@ theorem RD.vatGrabSinSubSuccess
       solcAddrMask from by decide]
     exact grabWMaskedWord_clean I
   rw [hmaskW] at rd4489pre
-  have rd4490 := rd4489pre.dup3 (by native_decide) (by evm_ov)
+  have rd4490 := rd4489pre.dup3 (by decide +native) (by evm_ov)
   have rd4491 := rd4490.mstore 0
     (wordAt0Mem (grabWMaskedWord I)
       (twoWordHashMem (grabVMaskedWord I) gemBase
         (twoWordHashMem (grabIWord I) ⟨4⟩ mem)))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4493 := rd4491.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  have rd4494 := rd4493.swap1 (by native_decide) (by evm_ov)
+  have rd4493 := rd4491.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  have rd4494 := rd4493.swap1 (by decide +native) (by evm_ov)
   have rd4495 := rd4494.mstore 0
     (twoWordHashMem (grabWMaskedWord I) ⟨6⟩
       (twoWordHashMem (grabVMaskedWord I) gemBase
         (twoWordHashMem (grabIWord I) ⟨4⟩ mem)))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have hmemGemSlot :
       (twoWordHashMem (grabVMaskedWord I) gemBase
@@ -8098,8 +8098,8 @@ theorem RD.vatGrabSinSubSuccess
     simpa [grabSinSlot] using
       twoWordHashMem_solcMappingSlot ⟨6⟩ (grabWMaskedWord I) hmemGemSlot
   have rd4496 := rd4495.keccak256 0 (grabSinSlot I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hsinSlot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4497⟩ := rd4496.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hsinSlot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4497⟩ := rd4496.sload (by decide +native) (by evm_ov)
   have hrd4497' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4497⟩
         [sinOld, dtab, grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -8111,11 +8111,11 @@ theorem RD.vatGrabSinSubSuccess
     exact ⟨_, _, by
       simpa [sinOld, solcSlotWord, σGem, gemSlot, grabSinSlot] using rd4497⟩
   obtain ⟨_, _, rd4497'⟩ := hrd4497'
-  have rd4500 := rd4497'.push2 ⟨4506⟩ (by native_decide) (by evm_ov)
-  have rd4501 := rd4500.swap1 (by native_decide) (by evm_ov)
-  have rd4502 := rd4501.dup3 (by native_decide) (by evm_ov)
-  have rd4505 := rd4502.push2 ⟨6795⟩ (by native_decide) (by evm_ov)
-  have rd6795 := rd4505.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4500 := rd4497'.push2 ⟨4506⟩ (by decide +native) (by evm_ov)
+  have rd4501 := rd4500.swap1 (by decide +native) (by evm_ov)
+  have rd4502 := rd4501.dup3 (by decide +native) (by evm_ov)
+  have rd4505 := rd4502.push2 ⟨6795⟩ (by decide +native) (by evm_ov)
+  have rd6795 := rd4505.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4506⟩ := RD.vatSignedSubOk
     (x := sinOld) (y := dtab) (ret := ⟨4506⟩)
     (R := dtab :: grabIlkBase I :: grabUrnBase I :: grabDartWord I ::
@@ -8168,38 +8168,38 @@ theorem RD.vatGrabSinSubRevert
   let gemSlot := grabGemVSlot I
   let σGem := sstoreAccountMap I.codeOwner σ gemSlot gemNew
   let sinOld := solcSlotWord σGem I (grabSinSlot I)
-  have rd4446 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4448 := rd4446.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4449 := rd4448.dup11 (by native_decide) (by evm_ov)
-  have rd4450 := rd4449.dup2 (by native_decide) (by evm_ov)
+  have rd4446 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4448 := rd4446.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4449 := rd4448.dup11 (by decide +native) (by evm_ov)
+  have rd4450 := rd4449.dup2 (by decide +native) (by evm_ov)
   have rd4451 := rd4450.mstore 0 (wordAt0Mem (grabIWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4453 := rd4451.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd4455 := rd4453.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4456 := rd4455.swap1 (by native_decide) (by evm_ov)
-  have rd4457 := rd4456.dup2 (by native_decide) (by evm_ov)
+  have rd4453 := rd4451.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd4455 := rd4453.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4456 := rd4455.swap1 (by decide +native) (by evm_ov)
+  have rd4457 := rd4456.dup2 (by decide +native) (by evm_ov)
   have rd4458 := rd4457.mstore 0 (twoWordHashMem (grabIWord I) ⟨4⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4460 := rd4458.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4461 := rd4460.dup1 (by native_decide) (by evm_ov)
-  have rd4462 := rd4461.dup4 (by native_decide) (by evm_ov)
+  have rd4460 := rd4458.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4461 := rd4460.dup1 (by decide +native) (by evm_ov)
+  have rd4462 := rd4461.dup4 (by decide +native) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (grabIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     simpa [gemBase, grabGemBase] using twoWordHashMem_solcMappingSlot ⟨4⟩ (grabIWord I) hmem
-  have rd4463 := rd4462.keccak256 0 gemBase (UInt256.ofNat 3) (by native_decide)
-    mem_cost hgemBase (by native_decide) (by evm_ov)
-  have rd4465 := rd4463.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4467 := rd4465.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4469 := rd4467.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4470 := rd4469.shl (by native_decide) (by evm_ov)
-  have rd4471 := rd4470.sub (by native_decide) (by evm_ov)
-  have rd4472 := rd4471.dup1 (by native_decide) (by evm_ov)
-  have rd4473 := rd4472.dup14 (by native_decide) (by evm_ov)
-  have rd4474pre := rd4473.and (by native_decide) (by evm_ov)
+  have rd4463 := rd4462.keccak256 0 gemBase (UInt256.ofNat 3) (by decide +native)
+    mem_cost hgemBase (by decide +native) (by evm_ov)
+  have rd4465 := rd4463.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4467 := rd4465.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4469 := rd4467.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4470 := rd4469.shl (by decide +native) (by evm_ov)
+  have rd4471 := rd4470.sub (by decide +native) (by evm_ov)
+  have rd4472 := rd4471.dup1 (by decide +native) (by evm_ov)
+  have rd4473 := rd4472.dup14 (by decide +native) (by evm_ov)
+  have rd4474pre := rd4473.and (by decide +native) (by evm_ov)
   have hmaskV :
       UInt256.land (grabVMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -8208,19 +8208,19 @@ theorem RD.vatGrabSinSubRevert
       solcAddrMask from by decide]
     exact grabVMaskedWord_clean I
   rw [hmaskV] at rd4474pre
-  have rd4475 := rd4474pre.dup6 (by native_decide) (by evm_ov)
+  have rd4475 := rd4474pre.dup6 (by decide +native) (by evm_ov)
   have rd4476 := rd4475.mstore 0
     (wordAt0Mem (grabVMaskedWord I) (twoWordHashMem (grabIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4477 := rd4476.swap1 (by native_decide) (by evm_ov)
-  have rd4478 := rd4477.dup4 (by native_decide) (by evm_ov)
+  have rd4477 := rd4476.swap1 (by decide +native) (by evm_ov)
+  have rd4478 := rd4477.dup4 (by decide +native) (by evm_ov)
   have rd4479 := rd4478.mstore 0
     (twoWordHashMem (grabVMaskedWord I) gemBase (twoWordHashMem (grabIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4480 := rd4479.dup2 (by native_decide) (by evm_ov)
-  have rd4481 := rd4480.dup5 (by native_decide) (by evm_ov)
+  have rd4480 := rd4479.dup2 (by decide +native) (by evm_ov)
+  have rd4481 := rd4480.dup5 (by decide +native) (by evm_ov)
   have hmemGemBase : (twoWordHashMem (grabIWord I) ⟨4⟩ mem).size = 96 :=
     twoWordHashMem_size_96 (grabIWord I) ⟨4⟩ hmem
   have hgemSlot :
@@ -8230,12 +8230,12 @@ theorem RD.vatGrabSinSubRevert
         gemSlot := by
     simpa [gemSlot, grabGemVSlot, gemBase] using
       twoWordHashMem_solcMappingSlot gemBase (grabVMaskedWord I) hmemGemBase
-  have rd4482 := rd4481.keccak256 0 gemSlot (UInt256.ofNat 3) (by native_decide)
-    mem_cost hgemSlot (by native_decide) (by evm_ov)
-  have rd4483 := rd4482.swap5 (by native_decide) (by evm_ov)
-  have rd4484 := rd4483.swap1 (by native_decide) (by evm_ov)
-  have rd4485 := rd4484.swap5 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4486⟩ := rd4485.sstore hperm (by native_decide) (by evm_ov)
+  have rd4482 := rd4481.keccak256 0 gemSlot (UInt256.ofNat 3) (by decide +native)
+    mem_cost hgemSlot (by decide +native) (by evm_ov)
+  have rd4483 := rd4482.swap5 (by decide +native) (by evm_ov)
+  have rd4484 := rd4483.swap1 (by decide +native) (by evm_ov)
+  have rd4485 := rd4484.swap5 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4486⟩ := rd4485.sstore hperm (by decide +native) (by evm_ov)
   have hrd4486' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4486⟩
         [⟨64⟩, ⟨32⟩, ⟨0⟩,
@@ -8249,9 +8249,9 @@ theorem RD.vatGrabSinSubRevert
     exact ⟨_, _, by
       simpa [σGem, gemSlot, grabGemVSlot, gemBase, grabGemBase] using rd4486⟩
   obtain ⟨_, _, rd4486'⟩ := hrd4486'
-  have rd4487 := rd4486'.swap3 (by native_decide) (by evm_ov)
-  have rd4488 := rd4487.dup10 (by native_decide) (by evm_ov)
-  have rd4489pre := rd4488.and (by native_decide) (by evm_ov)
+  have rd4487 := rd4486'.swap3 (by decide +native) (by evm_ov)
+  have rd4488 := rd4487.dup10 (by decide +native) (by evm_ov)
+  have rd4489pre := rd4488.and (by decide +native) (by evm_ov)
   have hmaskW :
       UInt256.land (grabWMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -8260,20 +8260,20 @@ theorem RD.vatGrabSinSubRevert
       solcAddrMask from by decide]
     exact grabWMaskedWord_clean I
   rw [hmaskW] at rd4489pre
-  have rd4490 := rd4489pre.dup3 (by native_decide) (by evm_ov)
+  have rd4490 := rd4489pre.dup3 (by decide +native) (by evm_ov)
   have rd4491 := rd4490.mstore 0
     (wordAt0Mem (grabWMaskedWord I)
       (twoWordHashMem (grabVMaskedWord I) gemBase
         (twoWordHashMem (grabIWord I) ⟨4⟩ mem)))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4493 := rd4491.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  have rd4494 := rd4493.swap1 (by native_decide) (by evm_ov)
+  have rd4493 := rd4491.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  have rd4494 := rd4493.swap1 (by decide +native) (by evm_ov)
   have rd4495 := rd4494.mstore 0
     (twoWordHashMem (grabWMaskedWord I) ⟨6⟩
       (twoWordHashMem (grabVMaskedWord I) gemBase
         (twoWordHashMem (grabIWord I) ⟨4⟩ mem)))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have hmemGemSlot :
       (twoWordHashMem (grabVMaskedWord I) gemBase
@@ -8288,8 +8288,8 @@ theorem RD.vatGrabSinSubRevert
     simpa [grabSinSlot] using
       twoWordHashMem_solcMappingSlot ⟨6⟩ (grabWMaskedWord I) hmemGemSlot
   have rd4496 := rd4495.keccak256 0 (grabSinSlot I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hsinSlot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4497⟩ := rd4496.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hsinSlot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4497⟩ := rd4496.sload (by decide +native) (by evm_ov)
   have hrd4497' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4497⟩
         [sinOld, dtab, grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -8301,11 +8301,11 @@ theorem RD.vatGrabSinSubRevert
     exact ⟨_, _, by
       simpa [sinOld, solcSlotWord, σGem, gemSlot, grabSinSlot] using rd4497⟩
   obtain ⟨_, _, rd4497'⟩ := hrd4497'
-  have rd4500 := rd4497'.push2 ⟨4506⟩ (by native_decide) (by evm_ov)
-  have rd4501 := rd4500.swap1 (by native_decide) (by evm_ov)
-  have rd4502 := rd4501.dup3 (by native_decide) (by evm_ov)
-  have rd4505 := rd4502.push2 ⟨6795⟩ (by native_decide) (by evm_ov)
-  have rd6795 := rd4505.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4500 := rd4497'.push2 ⟨4506⟩ (by decide +native) (by evm_ov)
+  have rd4501 := rd4500.swap1 (by decide +native) (by evm_ov)
+  have rd4502 := rd4501.dup3 (by decide +native) (by evm_ov)
+  have rd4505 := rd4502.push2 ⟨6795⟩ (by decide +native) (by evm_ov)
+  have rd6795 := rd4505.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedSubRevert
     (x := sinOld) (y := dtab) (ret := ⟨4506⟩)
     (R := dtab :: grabIlkBase I :: grabUrnBase I :: grabDartWord I ::
@@ -8353,14 +8353,14 @@ theorem RD.vatGrabViceSubSuccess
       (cA, sstoreAccountMap I.codeOwner σ (grabSinSlot I) sinNew) k' C' := by
   let σSin := sstoreAccountMap I.codeOwner σ (grabSinSlot I) sinNew
   let viceOld := solcSlotWord σSin I ⟨8⟩
-  have rd4507 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4509 := rd4507.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4511 := rd4509.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4513 := rd4511.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4514 := rd4513.shl (by native_decide) (by evm_ov)
-  have rd4515 := rd4514.sub (by native_decide) (by evm_ov)
-  have rd4516 := rd4515.dup8 (by native_decide) (by evm_ov)
-  have rd4517pre := rd4516.and (by native_decide) (by evm_ov)
+  have rd4507 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4509 := rd4507.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4511 := rd4509.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4513 := rd4511.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4514 := rd4513.shl (by decide +native) (by evm_ov)
+  have rd4515 := rd4514.sub (by decide +native) (by evm_ov)
+  have rd4516 := rd4515.dup8 (by decide +native) (by evm_ov)
+  have rd4517pre := rd4516.and (by decide +native) (by evm_ov)
   have hmaskW :
       UInt256.land (grabWMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -8369,20 +8369,20 @@ theorem RD.vatGrabViceSubSuccess
       solcAddrMask from by decide]
     exact grabWMaskedWord_clean I
   rw [hmaskW] at rd4517pre
-  have rd4519 := rd4517pre.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4520 := rd4519.swap1 (by native_decide) (by evm_ov)
-  have rd4521 := rd4520.dup2 (by native_decide) (by evm_ov)
+  have rd4519 := rd4517pre.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4520 := rd4519.swap1 (by decide +native) (by evm_ov)
+  have rd4521 := rd4520.dup2 (by decide +native) (by evm_ov)
   have rd4522 := rd4521.mstore 0
     (wordAt0Mem (grabWMaskedWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4524 := rd4522.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  have rd4526 := rd4524.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+  have rd4524 := rd4522.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  have rd4526 := rd4524.push1 ⟨32⟩ (by decide +native) (by evm_ov)
   have rd4527 := rd4526.mstore 0 (twoWordHashMem (grabWMaskedWord I) ⟨6⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4529 := rd4527.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4530 := rd4529.swap1 (by native_decide) (by evm_ov)
+  have rd4529 := rd4527.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4530 := rd4529.swap1 (by decide +native) (by evm_ov)
   have hsinSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (grabWMaskedWord I) ⟨6⟩ mem).readWithPadding 0 64))) =
@@ -8390,8 +8390,8 @@ theorem RD.vatGrabViceSubSuccess
     simpa [grabSinSlot] using
       twoWordHashMem_solcMappingSlot ⟨6⟩ (grabWMaskedWord I) hmem
   have rd4531 := rd4530.keccak256 0 (grabSinSlot I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hsinSlot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4532⟩ := rd4531.sstore hperm (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hsinSlot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4532⟩ := rd4531.sstore hperm (by decide +native) (by evm_ov)
   have hrd4532' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4532⟩
         [dtab, grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -8401,8 +8401,8 @@ theorem RD.vatGrabViceSubSuccess
     exact ⟨_, _, by
       simpa [σSin, grabSinSlot] using rd4532⟩
   obtain ⟨_, _, rd4532'⟩ := hrd4532'
-  have rd4534 := rd4532'.push1 ⟨8⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4535⟩ := rd4534.sload (by native_decide) (by evm_ov)
+  have rd4534 := rd4532'.push1 ⟨8⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4535⟩ := rd4534.sload (by decide +native) (by evm_ov)
   have hrd4535' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4535⟩
         [viceOld, dtab, grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -8412,11 +8412,11 @@ theorem RD.vatGrabViceSubSuccess
     exact ⟨_, _, by
       simpa [viceOld, solcSlotWord, σSin] using rd4535⟩
   obtain ⟨_, _, rd4535'⟩ := hrd4535'
-  have rd4538 := rd4535'.push2 ⟨4544⟩ (by native_decide) (by evm_ov)
-  have rd4539 := rd4538.swap1 (by native_decide) (by evm_ov)
-  have rd4540 := rd4539.dup3 (by native_decide) (by evm_ov)
-  have rd4543 := rd4540.push2 ⟨6795⟩ (by native_decide) (by evm_ov)
-  have rd6795 := rd4543.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4538 := rd4535'.push2 ⟨4544⟩ (by decide +native) (by evm_ov)
+  have rd4539 := rd4538.swap1 (by decide +native) (by evm_ov)
+  have rd4540 := rd4539.dup3 (by decide +native) (by evm_ov)
+  have rd4543 := rd4540.push2 ⟨6795⟩ (by decide +native) (by evm_ov)
+  have rd6795 := rd4543.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4544⟩ := RD.vatSignedSubOk
     (x := viceOld) (y := dtab) (ret := ⟨4544⟩)
     (R := dtab :: grabIlkBase I :: grabUrnBase I :: grabDartWord I ::
@@ -8465,14 +8465,14 @@ theorem RD.vatGrabViceSubRevert
     RDrev vatBytecode g (initState cA gh bl σInit σ₀ g A I) := by
   let σSin := sstoreAccountMap I.codeOwner σ (grabSinSlot I) sinNew
   let viceOld := solcSlotWord σSin I ⟨8⟩
-  have rd4507 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4509 := rd4507.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4511 := rd4509.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4513 := rd4511.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4514 := rd4513.shl (by native_decide) (by evm_ov)
-  have rd4515 := rd4514.sub (by native_decide) (by evm_ov)
-  have rd4516 := rd4515.dup8 (by native_decide) (by evm_ov)
-  have rd4517pre := rd4516.and (by native_decide) (by evm_ov)
+  have rd4507 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4509 := rd4507.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4511 := rd4509.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4513 := rd4511.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4514 := rd4513.shl (by decide +native) (by evm_ov)
+  have rd4515 := rd4514.sub (by decide +native) (by evm_ov)
+  have rd4516 := rd4515.dup8 (by decide +native) (by evm_ov)
+  have rd4517pre := rd4516.and (by decide +native) (by evm_ov)
   have hmaskW :
       UInt256.land (grabWMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -8481,20 +8481,20 @@ theorem RD.vatGrabViceSubRevert
       solcAddrMask from by decide]
     exact grabWMaskedWord_clean I
   rw [hmaskW] at rd4517pre
-  have rd4519 := rd4517pre.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4520 := rd4519.swap1 (by native_decide) (by evm_ov)
-  have rd4521 := rd4520.dup2 (by native_decide) (by evm_ov)
+  have rd4519 := rd4517pre.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4520 := rd4519.swap1 (by decide +native) (by evm_ov)
+  have rd4521 := rd4520.dup2 (by decide +native) (by evm_ov)
   have rd4522 := rd4521.mstore 0
     (wordAt0Mem (grabWMaskedWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4524 := rd4522.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  have rd4526 := rd4524.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+  have rd4524 := rd4522.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  have rd4526 := rd4524.push1 ⟨32⟩ (by decide +native) (by evm_ov)
   have rd4527 := rd4526.mstore 0 (twoWordHashMem (grabWMaskedWord I) ⟨6⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4529 := rd4527.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4530 := rd4529.swap1 (by native_decide) (by evm_ov)
+  have rd4529 := rd4527.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4530 := rd4529.swap1 (by decide +native) (by evm_ov)
   have hsinSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (grabWMaskedWord I) ⟨6⟩ mem).readWithPadding 0 64))) =
@@ -8502,8 +8502,8 @@ theorem RD.vatGrabViceSubRevert
     simpa [grabSinSlot] using
       twoWordHashMem_solcMappingSlot ⟨6⟩ (grabWMaskedWord I) hmem
   have rd4531 := rd4530.keccak256 0 (grabSinSlot I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hsinSlot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4532⟩ := rd4531.sstore hperm (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hsinSlot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4532⟩ := rd4531.sstore hperm (by decide +native) (by evm_ov)
   have hrd4532' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4532⟩
         [dtab, grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -8513,8 +8513,8 @@ theorem RD.vatGrabViceSubRevert
     exact ⟨_, _, by
       simpa [σSin, grabSinSlot] using rd4532⟩
   obtain ⟨_, _, rd4532'⟩ := hrd4532'
-  have rd4534 := rd4532'.push1 ⟨8⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4535⟩ := rd4534.sload (by native_decide) (by evm_ov)
+  have rd4534 := rd4532'.push1 ⟨8⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4535⟩ := rd4534.sload (by decide +native) (by evm_ov)
   have hrd4535' :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4535⟩
         [viceOld, dtab, grabIlkBase I, grabUrnBase I, grabDartWord I, grabDinkWord I,
@@ -8524,11 +8524,11 @@ theorem RD.vatGrabViceSubRevert
     exact ⟨_, _, by
       simpa [viceOld, solcSlotWord, σSin] using rd4535⟩
   obtain ⟨_, _, rd4535'⟩ := hrd4535'
-  have rd4538 := rd4535'.push2 ⟨4544⟩ (by native_decide) (by evm_ov)
-  have rd4539 := rd4538.swap1 (by native_decide) (by evm_ov)
-  have rd4540 := rd4539.dup3 (by native_decide) (by evm_ov)
-  have rd4543 := rd4540.push2 ⟨6795⟩ (by native_decide) (by evm_ov)
-  have rd6795 := rd4543.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4538 := rd4535'.push2 ⟨4544⟩ (by decide +native) (by evm_ov)
+  have rd4539 := rd4538.swap1 (by decide +native) (by evm_ov)
+  have rd4540 := rd4539.dup3 (by decide +native) (by evm_ov)
+  have rd4543 := rd4540.push2 ⟨6795⟩ (by decide +native) (by evm_ov)
+  have rd6795 := rd4543.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedSubRevert
     (x := viceOld) (y := dtab) (ret := ⟨4544⟩)
     (R := dtab :: grabIlkBase I :: grabUrnBase I :: grabDartWord I ::
@@ -8549,20 +8549,20 @@ theorem RD.vatGrabFinalizeSuccess
     ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨524⟩ [sel]
       mem (UInt256.ofNat 3) ByteArray.empty
       (cA, sstoreAccountMap I.codeOwner σ ⟨8⟩ viceNew) k' C' := by
-  have rd4545 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4547 := rd4545.push1 ⟨8⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4548⟩ := rd4547.sstore hperm (by native_decide) (by evm_ov)
-  have rd4549 := rd4548.pop (by native_decide) (by evm_ov)
-  have rd4550 := rd4549.pop (by native_decide) (by evm_ov)
-  have rd4551 := rd4550.pop (by native_decide) (by evm_ov)
-  have rd4552 := rd4551.pop (by native_decide) (by evm_ov)
-  have rd4553 := rd4552.pop (by native_decide) (by evm_ov)
-  have rd4554 := rd4553.pop (by native_decide) (by evm_ov)
-  have rd4555 := rd4554.pop (by native_decide) (by evm_ov)
-  have rd4556 := rd4555.pop (by native_decide) (by evm_ov)
-  have rd4557 := rd4556.pop (by native_decide) (by evm_ov)
+  have rd4545 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4547 := rd4545.push1 ⟨8⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4548⟩ := rd4547.sstore hperm (by decide +native) (by evm_ov)
+  have rd4549 := rd4548.pop (by decide +native) (by evm_ov)
+  have rd4550 := rd4549.pop (by decide +native) (by evm_ov)
+  have rd4551 := rd4550.pop (by decide +native) (by evm_ov)
+  have rd4552 := rd4551.pop (by decide +native) (by evm_ov)
+  have rd4553 := rd4552.pop (by decide +native) (by evm_ov)
+  have rd4554 := rd4553.pop (by decide +native) (by evm_ov)
+  have rd4555 := rd4554.pop (by decide +native) (by evm_ov)
+  have rd4556 := rd4555.pop (by decide +native) (by evm_ov)
+  have rd4557 := rd4556.pop (by decide +native) (by evm_ov)
   exact ⟨_, _, by
-    simpa using rd4557.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    simpa using rd4557.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vatGrabPrefixDtabSuccess
     {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
@@ -8724,8 +8724,8 @@ theorem RD.vatGrabViceFinishSuccess
     (UInt256.ofNat 3) ByteArray.empty (cA, grabAfterSin σ I) _ _ at hVice
   obtain ⟨_, _, h524⟩ := RD.vatGrabFinalizeSuccess
     (h := hVice) hperm
-  have h525 := h524.jumpdest (by native_decide) (by evm_ov)
-  simpa [grabAfterVice] using RD.stop h525 (by native_decide) (by simp)
+  have h525 := h524.jumpdest (by decide +native) (by evm_ov)
+  simpa [grabAfterVice] using RD.stop h525 (by decide +native) (by simp)
 
 theorem RD.vatGrabStoreSuccess
     {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
@@ -8865,7 +8865,7 @@ theorem vatGrabSuccessEquivFromFinalState
     accountMapEquiv.trans hruntimeAccounts hsourceAccounts
   have henc : returnEquiv ByteArray.empty none grabTransition.returnType := by
     rw [show grabTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody' hcreated
     haccounts henc
 
@@ -8889,7 +8889,7 @@ theorem vatGrabAuthOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (key := grabDartWord I) (ret := grabDinkWord I)
     (R := [grabWMaskedWord I, grabVMaskedWord I, grabUMaskedWord I, grabIWord I, ⟨524⟩, sel])
     hdecoded
-    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
 
 theorem vatGrabSuccessEquivFromSourceBodyAndRuntimeGuards

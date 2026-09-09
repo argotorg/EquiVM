@@ -55,6 +55,6 @@ def ownable2StepBenchBytecode : ByteArray :=
     Ethereum.EVM.D_J ownable2StepBenchBytecode 0
       = #[      ⟨15⟩, ⟨85⟩, ⟨89⟩, ⟨97⟩, ⟨99⟩, ⟨107⟩, ⟨119⟩, ⟨147⟩, ⟨164⟩, ⟨178⟩, ⟨183⟩, ⟨191⟩, ⟨200⟩, ⟨202⟩, ⟨254⟩,
       ⟨263⟩, ⟨272⟩, ⟨275⟩, ⟨283⟩, ⟨331⟩, ⟨387⟩, ⟨431⟩, ⟨530⟩, ⟨546⟩, ⟨568⟩]
-  := by native_decide
+  := by decide +native
 
 end OpenZeppelinBench.Ownable2Step

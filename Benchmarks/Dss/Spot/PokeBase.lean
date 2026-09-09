@@ -248,7 +248,7 @@ theorem pokePipHashMem_mload64 (I : ExecutionEnv) :
 
 theorem pokePeekSelectorWord_extract :
     (UInt256.toByteArray pokePeekSelectorWord).extract 0 4 = pipPeekSelector := by
-  native_decide
+  decide +native
 
 theorem pokePeekCalldataMem_read128_4 (I : ExecutionEnv) :
     (pokePeekCalldataMem I).readWithPadding 128 4 = pipPeekSelector := by
@@ -423,7 +423,7 @@ theorem pokePeekPostCallMem_mload128_long (I : ExecutionEnv) (out : ByteArray)
         UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))
     rw [pokePeekPostCallMem_read128_long I out hlo hout]
   · exact not_or.mpr
-      ⟨by rw [pokePeekPostCallMem_size_long I out hlo hout]; decide, by native_decide⟩
+      ⟨by rw [pokePeekPostCallMem_size_long I out hlo hout]; decide, by decide +native⟩
 
 theorem pokePeekPostCallMem_read160_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -472,7 +472,7 @@ theorem pokePeekPostCallMem_mload160_long (I : ExecutionEnv) (out : ByteArray)
         UInt256.ofNat (fromByteArrayBigEndian (out.extract 32 64))
     rw [pokePeekPostCallMem_read160_long I out hlo hout]
   · exact not_or.mpr
-      ⟨by rw [pokePeekPostCallMem_size_long I out hlo hout]; decide, by native_decide⟩
+      ⟨by rw [pokePeekPostCallMem_size_long I out hlo hout]; decide, by decide +native⟩
 
 theorem pokePeek_bytesToWord_drop32_eq_extract32_64 (out : ByteArray) :
     ABI.bytesToWord ((out.toList.drop 32).take 32) = pokePeekHasWord out := by
@@ -512,7 +512,7 @@ theorem pokePeekDecode_none_short_aux {out : ByteArray} (hshort : out.size < 64)
     rw [byteArray_toList_eq, Array.length_toList]
     rfl
   unfold ABI.decodeReturnValuesWithMode?
-  rw [show abiTupleHeadSize? [abiBytes32, abiBool] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiBool] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [pokePeekDecodeABIValues_legacy_none_short (bytes := out.toList) (by omega)]
 
@@ -567,7 +567,7 @@ theorem pokePeekDecode_ok_aux {out : ByteArray} (hlo : 64 ≤ out.size) :
     omega
   have hword1 := pokePeek_bytesToWord_drop32_eq_extract32_64 out
   unfold ABI.decodeReturnValuesWithMode?
-  rw [show abiTupleHeadSize? [abiBytes32, abiBool] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiBool] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [pokePeekDecodeABIValues_legacy_ok (bytes := out.toList) htake0 htake32]
   simp [pokePeekReturnValues, pokePeekValBytes, pokePeekHasBool, hword1, bytes32Width,
@@ -588,7 +588,7 @@ theorem pokeVatFileSelectorMem_size {mem : ByteArray} (hmem : mem.size = 192) :
 theorem pokeVatFileIlkMem_size (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 192) :
     (pokeVatFileIlkMem I mem).size = 192 := by
-  have hoff : (pokeVatFileOutPtr + ⟨4⟩).toNat = 132 := by native_decide
+  have hoff : (pokeVatFileOutPtr + ⟨4⟩).toNat = 132 := by decide +native
   unfold pokeVatFileIlkMem
   rw [hoff]
   exact toByteArray_write32_size_of_le (pokeVatFileSelectorMem mem) (pokeIlkWord I)
@@ -598,7 +598,7 @@ theorem pokeVatFileIlkMem_size (I : ExecutionEnv) {mem : ByteArray}
 theorem pokeVatFileWhatMem_size (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 192) :
     (pokeVatFileWhatMem I mem).size = 196 := by
-  have hoff : (pokeVatFileOutPtr + ⟨36⟩).toNat = 164 := by native_decide
+  have hoff : (pokeVatFileOutPtr + ⟨36⟩).toNat = 164 := by decide +native
   unfold pokeVatFileWhatMem
   rw [hoff]
   exact toByteArray_write32_size_of_le (pokeVatFileIlkMem I mem) pokeSpotParamWord
@@ -608,7 +608,7 @@ theorem pokeVatFileWhatMem_size (I : ExecutionEnv) {mem : ByteArray}
 theorem pokeVatFileCalldataMem_size (I : ExecutionEnv) (spot : UInt256) {mem : ByteArray}
     (hmem : mem.size = 192) :
     (pokeVatFileCalldataMem I spot mem).size = 228 := by
-  have hoff : (pokeVatFileOutPtr + ⟨68⟩).toNat = 196 := by native_decide
+  have hoff : (pokeVatFileOutPtr + ⟨68⟩).toNat = 196 := by decide +native
   unfold pokeVatFileCalldataMem
   rw [hoff]
   exact toByteArray_write32_size_of_le (pokeVatFileWhatMem I mem) spot 196 196 228
@@ -630,7 +630,7 @@ theorem pokeVatFileIlkMem_read64 (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (pokeVatFileIlkMem I mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  have hoff : (pokeVatFileOutPtr + ⟨4⟩).toNat = 132 := by native_decide
+  have hoff : (pokeVatFileOutPtr + ⟨4⟩).toNat = 132 := by decide +native
   unfold pokeVatFileIlkMem
   rw [hoff, write32_read_below _ _ 132 64 (by rw [toByteArray_size])
     (by rw [pokeVatFileSelectorMem_size hmem]; omega) (by omega)]
@@ -640,7 +640,7 @@ theorem pokeVatFileWhatMem_read64 (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (pokeVatFileWhatMem I mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  have hoff : (pokeVatFileOutPtr + ⟨36⟩).toNat = 164 := by native_decide
+  have hoff : (pokeVatFileOutPtr + ⟨36⟩).toNat = 164 := by decide +native
   unfold pokeVatFileWhatMem
   rw [hoff, write32_read_below _ _ 164 64 (by rw [toByteArray_size])
     (by rw [pokeVatFileIlkMem_size I hmem]; omega) (by omega)]
@@ -651,7 +651,7 @@ theorem pokeVatFileCalldataMem_read64 (I : ExecutionEnv) (spot : UInt256) {mem :
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (pokeVatFileCalldataMem I spot mem).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  have hoff : (pokeVatFileOutPtr + ⟨68⟩).toNat = 196 := by native_decide
+  have hoff : (pokeVatFileOutPtr + ⟨68⟩).toNat = 196 := by decide +native
   unfold pokeVatFileCalldataMem
   rw [hoff, write32_read_below _ _ 196 64 (by rw [toByteArray_size])
     (by rw [pokeVatFileWhatMem_size I hmem]) (by omega)]
@@ -681,7 +681,7 @@ theorem pokeEventIlkMem_size (I : ExecutionEnv) {mem : ByteArray}
 theorem pokeEventValMem_size (I : ExecutionEnv) (val : UInt256) {mem : ByteArray}
     (hmem : mem.size = 228) :
     (pokeEventValMem I val mem).size = 228 := by
-  have hoff : (pokeVatFileOutPtr + ⟨32⟩).toNat = 160 := by native_decide
+  have hoff : (pokeVatFileOutPtr + ⟨32⟩).toNat = 160 := by decide +native
   unfold pokeEventValMem
   rw [hoff]
   exact toByteArray_write32_size_of_le (pokeEventIlkMem I mem) val 160 228 228
@@ -691,7 +691,7 @@ theorem pokeEventValMem_size (I : ExecutionEnv) (val : UInt256) {mem : ByteArray
 theorem pokeEventSpotMem_size (I : ExecutionEnv) (val spot : UInt256) {mem : ByteArray}
     (hmem : mem.size = 228) :
     (pokeEventSpotMem I val spot mem).size = 228 := by
-  have hoff : (⟨64⟩ + pokeVatFileOutPtr).toNat = 192 := by native_decide
+  have hoff : (⟨64⟩ + pokeVatFileOutPtr).toNat = 192 := by decide +native
   unfold pokeEventSpotMem
   rw [hoff]
   exact toByteArray_write32_size_of_le (pokeEventValMem I val mem) spot 192 228 228
@@ -703,8 +703,8 @@ theorem pokeEventSpotMem_read64 (I : ExecutionEnv) (val spot : UInt256) {mem : B
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (pokeEventSpotMem I val spot mem).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  have hoff2 : (⟨64⟩ + pokeVatFileOutPtr).toNat = 192 := by native_decide
-  have hoff1 : (pokeVatFileOutPtr + ⟨32⟩).toNat = 160 := by native_decide
+  have hoff2 : (⟨64⟩ + pokeVatFileOutPtr).toNat = 192 := by decide +native
+  have hoff1 : (pokeVatFileOutPtr + ⟨32⟩).toNat = 160 := by decide +native
   unfold pokeEventSpotMem pokeEventValMem pokeEventIlkMem
   rw [hoff2, write32_read_below _ _ 192 64 (by rw [toByteArray_size])
     (by
@@ -842,9 +842,9 @@ theorem pokeVatFileCalldataMem_read128_100
   have hfinalSize : final.size = 228 := by
     dsimp [final]
     exact pokeVatFileCalldataMem_size I spot hmem
-  have h132 : (pokeVatFileOutPtr + ⟨4⟩).toNat = 132 := by native_decide
-  have h164 : (pokeVatFileOutPtr + ⟨36⟩).toNat = 164 := by native_decide
-  have h196 : (pokeVatFileOutPtr + ⟨68⟩).toNat = 196 := by native_decide
+  have h132 : (pokeVatFileOutPtr + ⟨4⟩).toNat = 132 := by decide +native
+  have h164 : (pokeVatFileOutPtr + ⟨36⟩).toNat = 164 := by decide +native
+  have h196 : (pokeVatFileOutPtr + ⟨68⟩).toNat = 196 := by decide +native
   have hselectorRead : final.readWithPadding 128 4 = vatFileSelector := by
     dsimp [final]
     unfold pokeVatFileCalldataMem
@@ -869,7 +869,7 @@ theorem pokeVatFileCalldataMem_read128_100
     rw [write32_read_prefix_len _ _ 128 4 (by rw [toByteArray_size])
       (by rw [hmem]; omega) (by omega) (by omega) (by norm_num)]
     unfold pokeVatFileSelectorShifted vatFileSelector selectorBytes
-    native_decide
+    decide +native
   have hilkRead : final.readWithPadding 132 32 = (pokeIlkWord I).toByteArray := by
     dsimp [final]
     unfold pokeVatFileCalldataMem

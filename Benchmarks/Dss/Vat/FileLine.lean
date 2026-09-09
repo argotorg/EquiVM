@@ -48,7 +48,7 @@ theorem fileLineBytes_length : fileLineBytes.length = 32 := by
   rfl
 
 theorem fileLineBytes_word : ABI.bytesToWord fileLineBytes = fileLineWord := by
-  native_decide
+  decide +native
 
 theorem fileLineWhat_eq_of_word_eq {I : ExecutionEnv}
     (hsz68 : 68 ≤ I.calldata.size) (hword : fileLineWhatWord I = fileLineWord) :
@@ -363,7 +363,7 @@ theorem decodeCalldata_legacyBytes32_uint256_ok {cd : ByteArray} {x y : Solm.Ide
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [bytes32, uint256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, uint256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [bytes32, uint256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [decodeABIValues_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -383,7 +383,7 @@ theorem decodeCalldata_legacyBytes32_uint256_none_short {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [bytes32, uint256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, uint256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [bytes32, uint256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64
   · rw [if_pos hbytes]
@@ -419,7 +419,7 @@ theorem vatDispatchFileLine {I : ExecutionEnv}
   simp [dispatchList, selectorOf, hcd, LineSelectorBytes, cageSelectorBytes,
     canSelectorBytes, daiSelectorBytes, debtSelectorBytes, denySelectorBytes,
     fileIlkSelectorBytes, fileLineSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachFileLineBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -430,31 +430,31 @@ theorem vatReachFileLineBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0x29ae8114⟩ :=
     vatSelWord_eq_of_beq I hsz 0x29 0xae 0x81 0x14 ⟨0x29ae8114⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlowlow :
       UInt256.gt (armSelNat vatBytecode vatLowLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms370FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
     rw [hword]
-    native_decide
+    decide +native
   have htake :
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms370FirstPc 1))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms370Body 1 (by omega) ⟨639⟩ hcode hwv hsz hsize
-    hroot hlow hlowlow heq0 htake (by jump_dest) (by native_decide)
+    hroot hlow hlowlow heq0 htake (by jump_dest) (by decide +native)
 
 @[reducible] def solcTwoWordExternalLoadAndJumpWf
     (code : ByteArray) (pc routine : UInt256) : Prop :=
@@ -515,9 +515,9 @@ theorem vatFileLineX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨639⟩) (ret := ⟨524⟩)
     (decoded := ⟨661⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz68) hsize)
   obtain ⟨_, _, hroutine⟩ := RD.solcTwoWordExternalLoadAndJump
@@ -525,7 +525,7 @@ theorem vatFileLineX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     (R := [sel]) hdecoded
     (by
       unfold solcTwoWordExternalLoadAndJumpWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [fileLineData, fileLineWhatWord] using hroutine⟩
 
@@ -604,56 +604,56 @@ theorem RD.vatFileUnrecognizedRevert {g : Sat256} {s0 : State}
     (hov : R.length + 8 ≤ 1024) :
     RDrev vatBytecode g s0 := by
   have rdMload := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨27⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨27⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 ⟨27⟩ mem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst vatFileUnrecognizedRawWord
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem3 ⟨27⟩ vatFileUnrecognizedRawWord mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨27⟩ vatFileUnrecognizedRawWord hmem hread64)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 theorem RD.vatFileLineStoreBad {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc data what ret : UInt256} {R : List UInt256}
@@ -709,10 +709,10 @@ theorem vatFileLineX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
   exact RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨639⟩) (ret := ⟨524⟩)
     (decoded := ⟨661⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem vatFileLineBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -763,7 +763,7 @@ theorem vatFileLineBodyCoreOk
     hdecoded
     (by
       unfold vatAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ_evm I ⟨10⟩ = ⟨1⟩ := by
     simpa [vatSlotWord] using hlive
@@ -773,7 +773,7 @@ theorem vatFileLineBodyCoreOk
     hafterAuth
     (by
       unfold vatLiveGuardWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hliveSolc (by jump_dest) (by simp)
   have hwhatWord : fileLineWhatWord I = fileLineWord :=
     fileLineWhatWord_eq_of_bytes_eq hsz68 hwhat
@@ -786,14 +786,14 @@ theorem vatFileLineBodyCoreOk
     hstorePc
     (by
       unfold vatFileLineStoreWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hwhatWord (by jump_dest) hperm (by simp)
-  have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+  have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (cA, sstoreAccountMap I.codeOwner σ_evm ⟨9⟩ (fileLineData I)) ByteArray.empty := by
-    simpa using RD.stop hretPc' (by native_decide) (by simp)
+    simpa using RD.stop hretPc' (by decide +native) (by simp)
   have haccounts :
       accountMapEquiv (sstoreAccountMap I.codeOwner σ_evm ⟨9⟩ (fileLineData I))
         evm1.accountMap := by
@@ -801,7 +801,7 @@ theorem vatFileLineBodyCoreOk
       accountMapEquiv_sstoreAccountMap I.codeOwner ⟨9⟩ (fileLineData I) hAccounts
   have henc : returnEquiv ByteArray.empty none fileLineTransition.returnType := by
     rw [show fileLineTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, storageStore_createdAccounts])
     haccounts henc
@@ -846,10 +846,10 @@ theorem vatFileLineBodyCoreUnauthorized
     hdecoded
     (by
       unfold vatAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold vatAuthRevertTailWf vatAuthTailPc
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by simp)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -900,7 +900,7 @@ theorem vatFileLineBodyCoreNotLive
     hdecoded
     (by
       unfold vatAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ_evm I ⟨10⟩ ≠ ⟨1⟩ := by
     simpa [vatSlotWord] using hlive
@@ -918,10 +918,10 @@ theorem vatFileLineBodyCoreNotLive
     hafterAuth
     (by
       unfold vatLiveGuardWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcErrorStringRevertTailWf vatLiveGuardTailPc vatNotLiveRawWord
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hliveSolc hmemAuth hreadAuth (by simp)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -973,7 +973,7 @@ theorem vatFileLineBodyCoreUnrecognized
     hdecoded
     (by
       unfold vatAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ_evm I ⟨10⟩ = ⟨1⟩ := by
     simpa [vatSlotWord] using hlive
@@ -983,7 +983,7 @@ theorem vatFileLineBodyCoreUnrecognized
     hafterAuth
     (by
       unfold vatLiveGuardWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hliveSolc (by jump_dest) (by simp)
   have hmemAuth :
       (twoWordHashMem (hopeSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -1001,7 +1001,7 @@ theorem vatFileLineBodyCoreUnrecognized
     hstorePc
     (by
       unfold vatFileLineStoreWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hwhatWord rfl hmemAuth hreadAuth (by simp)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

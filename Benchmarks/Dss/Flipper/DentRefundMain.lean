@@ -621,7 +621,7 @@ theorem flipperDentBodyFrom4733Refund
                   using accountMapEquiv_refl (tendStoreTicMap (dentAfterLotMap σ_flux I) I)
               have henc : returnEquiv ByteArray.empty none dentTransition.returnType := by
                 rw [show dentTransition.returnType = [] by rfl]
-                exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+                exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
               exact hret.reEquivExecutionGenEVMStateEquiv hcode hdispatch hdecode hbody
                 (by simp [evmTicEvm, evmLotEvm, evmFluxEvm, storageStore_createdAccounts])
                 hAccountsRet hTicStateEquiv henc

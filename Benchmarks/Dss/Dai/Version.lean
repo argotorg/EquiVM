@@ -19,7 +19,7 @@ def daiVersionReturnBytes : ByteArray :=
 
 theorem daiVersionReturnEncoding :
     encodeReturnValue? stringTy (.bytes daiVersionBytes) = some daiVersionReturnBytes := by
-  native_decide
+  decide +native
 
 /-- The Solm `version()` body returns `"1"` as a dynamic string value. -/
 theorem daiVersionBodyReturns (evm : EVM.State)
@@ -39,7 +39,7 @@ private def daiVersionLiteralWord : UInt256 :=
 private theorem daiVersionReturnRead :
     (daiStringAbiMem3 daiVersionLen daiVersionLiteralWord).readWithPadding 192 96 =
       daiVersionReturnBytes := by
-  native_decide
+  decide +native
 
 /-- Runtime-only `version()` slice from selector dispatch through dynamic string return. -/
 theorem daiX_version_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -53,57 +53,57 @@ theorem daiX_version_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     jumpdest, push2 ⟨335⟩, push2 ⟨2245⟩, jump (by jump_dest)]
   have h2255 := evm_run h2245 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     dup1, push1 ⟨64⟩, add, push1 ⟨64⟩]
   have h2256 := evm_run h2255 with [
-    raw mstore 0 daiStringObjectMem0 (UInt256.ofNat 3) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov)]
+    raw mstore 0 daiStringObjectMem0 (UInt256.ofNat 3) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov)]
   have h2260 := evm_run h2256 with [dup1, push1 daiVersionLen, dup2]
   have h2261 := evm_run h2260 with [
     raw mstore 6 (daiStringObjectMem1 daiVersionLen) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by native_decide) (by decide) (by evm_ov)]
+      (by decide +native) mem_cost (by decide +native) (by decide) (by evm_ov)]
   have h2264 := evm_run h2261 with [push1 ⟨32⟩, add]
   have h2266 := h2264.pushConst daiVersionRawWord
-    (width := 1) (op := .PUSH1) (by decide) (by native_decide) (by evm_ov)
+    (width := 1) (op := .PUSH1) (by decide) (by decide +native) (by evm_ov)
   have h2270 := evm_run h2266 with [push1 ⟨248⟩, shl, dup2]
   have h2271 := evm_run h2270 with [
     raw mstore 3 (daiStringObjectMem daiVersionLen daiVersionLiteralWord)
-      (UInt256.ofNat 6) (by native_decide) mem_cost
-      (by native_decide) (by decide) (by evm_ov)]
+      (UInt256.ofNat 6) (by decide +native) mem_cost
+      (by decide +native) (by decide) (by evm_ov)]
   have h335 := evm_run h2271 with [pop, dup2, jump (by jump_dest)]
   have h344 := evm_run h335 with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨192⟩ (UInt256.ofNat 6) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mload 0 ⟨192⟩ (UInt256.ofNat 6) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup1, dup3,
     raw mstore 3 (daiStringAbiMem0 daiVersionLen daiVersionLiteralWord)
-      (UInt256.ofNat 7) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov)]
   have h350 := evm_run h344 with [
     dup4,
-    raw mload 0 daiVersionLen (UInt256.ofNat 7) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mload 0 daiVersionLen (UInt256.ofNat 7) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     dup2, dup4, add,
     raw mstore 3 (daiStringAbiMem1 daiVersionLen daiVersionLiteralWord)
-      (UInt256.ofNat 8) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov)]
+      (UInt256.ofNat 8) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov)]
   have h367 := evm_run h350 with [
     dup4,
-    raw mload 0 daiVersionLen (UInt256.ofNat 8) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mload 0 daiVersionLen (UInt256.ofNat 8) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     swap2, swap3, dup4, swap3, swap1, dup4, add, swap2, dup6, add, swap1,
     dup1, dup4, dup4, push1 ⟨0⟩]
   have h378 := evm_run h367 with [
     jumpdest, dup4, dup2, lt, iszero, push2 ⟨393⟩, jumpiNT (by decide)]
   have h393a := evm_run h378 with [
     dup2, dup2, add,
-    raw mload 0 daiVersionLiteralWord (UInt256.ofNat 8) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mload 0 daiVersionLiteralWord (UInt256.ofNat 8) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     dup4, dup3, add,
     raw mstore 3 (daiStringAbiMem2 daiVersionLen daiVersionLiteralWord)
-      (UInt256.ofNat 9) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+      (UInt256.ofNat 9) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨369⟩, jump (by jump_dest)]
   have h393 := evm_run h393a with [
     jumpdest, dup4, dup2, lt, iszero, push2 ⟨393⟩, jumpiT (by decide) (by jump_dest)]
@@ -112,20 +112,20 @@ theorem daiX_version_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     push1 ⟨31⟩, and, dup1, iszero, push2 ⟨438⟩, jumpiNT (by decide)]
   have h438 := evm_run h413 with [
     dup1, dup3, sub, dup1,
-    raw mload 0 daiVersionLiteralWord (UInt256.ofNat 9) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mload 0 daiVersionLiteralWord (UInt256.ofNat 9) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub, not, and, dup2,
     raw mstore 0 (daiStringAbiMem3 daiVersionLen daiVersionLiteralWord)
-      (UInt256.ofNat 9) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+      (UInt256.ofNat 9) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, swap2, pop]
   have h451 := evm_run h438 with [
     jumpdest, pop, swap3, pop, pop, pop, push1 ⟨64⟩,
-    raw mload 0 ⟨192⟩ (UInt256.ofNat 9) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mload 0 ⟨192⟩ (UInt256.ofNat 9) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   exact evm_run h451 with [
-    raw ret 0 daiVersionReturnBytes (by native_decide)
+    raw ret 0 daiVersionReturnBytes (by decide +native)
       mem_cost daiVersionReturnRead (by evm_ov)]
 
 theorem daiVersionBodyCoreOk
@@ -176,7 +176,7 @@ theorem daiVersionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (daiSelBytes 20) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (daiSelBytes 20) (by decide +native) hsel
   have hdispatch : dispatchMsg contract I.calldata = some versionTransition :=
     daiDispatchVersion hsel
   have hreach := daiReachVersionBody (cA := cA) (gh := gh) (bl := bl)

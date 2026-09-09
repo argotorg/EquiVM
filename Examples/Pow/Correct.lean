@@ -934,45 +934,45 @@ noncomputable def powInitReturnMem : ByteArray :=
   (powInitcode).write 12 ByteArray.empty 0 290
 
 theorem powBytecode_size : powBytecode.size = 290 := by
-  native_decide
+  decide +native
 
 theorem powInitcode_runtime_window :
     (powInitcode).extract 12 (12 + 290) = powBytecode := by
-  native_decide
+  decide +native
 
 theorem powInitcodeDecode0 :
     decode powInitcode ⟨0⟩ = some (.Push .PUSH2, some (⟨290⟩, 2)) := by
-  native_decide
+  decide +native
 
 theorem powInitcodeDecode3 :
     decode powInitcode ⟨3⟩ = some (.Push .PUSH1, some (⟨12⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem powInitcodeDecode5 :
     decode powInitcode ⟨5⟩ = some (.PUSH0, .none) := by
-  native_decide
+  decide +native
 
 theorem powInitcodeDecode6 :
     decode powInitcode ⟨6⟩ = some (.CODECOPY, .none) := by
-  native_decide
+  decide +native
 
 theorem powInitcodeDecode7 :
     decode powInitcode ⟨7⟩ = some (.Push .PUSH2, some (⟨290⟩, 2)) := by
-  native_decide
+  decide +native
 
 theorem powInitcodeDecode10 :
     decode powInitcode ⟨10⟩ = some (.PUSH0, .none) := by
-  native_decide
+  decide +native
 
 theorem powInitcodeDecode11 :
     decode powInitcode ⟨11⟩ = some (.RETURN, .none) := by
-  native_decide
+  decide +native
 
 theorem powFinal_read :
     powInitReturnMem.readWithPadding 0 290 = powBytecode := by
   unfold powInitReturnMem
   rw [write0_read_back_from_gen powInitcode ByteArray.empty 12 290
-    (by decide) (by native_decide) (by decide)]
+    (by decide) (by decide +native) (by decide)]
   exact powInitcode_runtime_window
 
 set_option maxHeartbeats 400000 in

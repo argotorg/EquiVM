@@ -96,7 +96,7 @@ theorem mintStore_get_usr (I : ExecutionEnv) :
   unfold mintStore
   rw [store_get_ne
     (L := (∅ : Store).insert "usr" (mintUsrValue I))
-    (k := "wad") (a := "usr") (mintWadValue I) (by native_decide)]
+    (k := "wad") (a := "usr") (mintWadValue I) (by decide +native)]
   simp
 
 theorem mintStore_get_wad (I : ExecutionEnv) :
@@ -107,19 +107,19 @@ theorem mintStore_get_wad (I : ExecutionEnv) :
 theorem mintStore_balanceOf (I : ExecutionEnv) :
     (mintStore I).get? "balanceOf" = none := by
   unfold mintStore
-  rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native)]
   simp
 
 theorem mintStore_wards (I : ExecutionEnv) :
     (mintStore I).get? "wards" = none := by
   unfold mintStore
-  rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native)]
   simp
 
 theorem mintStore_totalSupply (I : ExecutionEnv) :
     (mintStore I).get? "totalSupply" = none := by
   unfold mintStore
-  rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native)]
   simp
 
 theorem mintStore_index_usr (I : ExecutionEnv) :
@@ -740,37 +740,37 @@ theorem daiMintX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (mintSourceWord I)
         solcFreePtrMem_size
   have rd2017pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2018 := rd2017pre.mstore 0 (wordAt0Mem (mintSourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2022pre := evm_run rd2018 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd2023 := rd2022pre.mstore 0 (mintAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2026pre := evm_run rd2023 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd2027 := rd2026pre.keccak256 0 (mapSlot (mintSourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k2028, C2028, rd2028raw⟩ := rd2027.sload (by native_decide) (by evm_ov)
+  obtain ⟨k2028, C2028, rd2028raw⟩ := rd2027.sload (by decide +native) (by evm_ov)
   have rd2028 : RD daiBytecode I g s0 ⟨2028⟩
       (mintAuthWord σ I :: mintWadWord I :: mintUsrMaskedWord I :: ⟨686⟩ :: [sel])
       (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2028 C2028 := by
     simpa [mintAuthWord, mintAuthStorageSlot_eq_mapSlot_source I] using rd2028raw
   have rd2031pre := evm_run rd2028 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hauth, u256_eq_refl] at rd2031pre
   have rd2034 := rd2031pre.pushConst (⟨2100⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd2034.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd2034.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -788,39 +788,39 @@ theorem daiMintX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (mintSourceWord I)
         solcFreePtrMem_size
   have rd2017pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2018 := rd2017pre.mstore 0 (wordAt0Mem (mintSourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2022pre := evm_run rd2018 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd2023 := rd2022pre.mstore 0 (mintAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2026pre := evm_run rd2023 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd2027 := rd2026pre.keccak256 0 (mapSlot (mintSourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k2028, C2028, rd2028raw⟩ := rd2027.sload (by native_decide) (by evm_ov)
+  obtain ⟨k2028, C2028, rd2028raw⟩ := rd2027.sload (by decide +native) (by evm_ov)
   have rd2028 : RD daiBytecode I g s0 ⟨2028⟩
       (mintAuthWord σ I :: mintWadWord I :: mintUsrMaskedWord I :: ⟨686⟩ :: [sel])
       (mintAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2028 C2028 := by
     simpa [mintAuthWord, mintAuthStorageSlot_eq_mapSlot_source I] using rd2028raw
   have rd2031pre := evm_run rd2028 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq : UInt256.eq (⟨1⟩ : UInt256) (mintAuthWord σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne (by intro hbad; exact hauth hbad.symm)
   rw [heq] at rd2031pre
   have rd2034 := rd2031pre.pushConst (⟨2100⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd2035 := rd2034.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd2035 := rd2034.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨2035⟩)
     (len := ⟨18⟩)
@@ -832,7 +832,7 @@ theorem daiMintX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     rd2035
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide)
     relyNotAuthorizedWord
     (mintAuthHashMem_size I)
@@ -867,47 +867,47 @@ theorem daiMintX_logAndJump {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     mloadFreePtrValue (by rw [mintUsrStoreHashMem_size I]; decide) (by decide)
       (mintUsrStoreHashMem_read64 I)
   have rd2180 := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov)]
   have rd2183pre := evm_run rd2180 with [
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2184 := rd2183pre.mstore 6 (mintStoreLogMem I) (UInt256.ofNat 5)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2196pre := evm_run rd2184 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide +native)
       mem_cost (mintStoreLogMem_mload64 I) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [husrMask] at rd2196pre
   have rd2200 := evm_run rd2196pre with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd2233 := rd2200.pushConst transferFromTransferTopic (width := 32) (op := .PUSH32)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd2241pre := evm_run rd2233 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  have rd2242 := rd2241pre.log3 0 (UInt256.ofNat 5) (by native_decide) hperm
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  have rd2242 := rd2241pre.log3 0 (UInt256.ofNat 5) (by decide +native) hperm
     mem_cost (by decide) (by simp only [List.length_cons, List.length_nil]; omega)
   have rdRet := evm_run rd2242 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) hretDest (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) hretDest (by evm_ov)]
   exact ⟨_, _, rdRet⟩
 
 set_option maxHeartbeats 2000000 in
@@ -935,47 +935,47 @@ theorem daiMintX_usrAddReady {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (mintUsrMaskedWord I)
         (mintAuthHashMem_size I)
   have rd2111 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [husrMaskLiteral] at rd2111
   have rd2115pre := evm_run rd2111 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2116 := rd2115pre.mstore 0
     (wordAt0Mem (mintUsrMaskedWord I) (mintAuthHashMem I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd2120pre := evm_run rd2116 with [
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd2121 := rd2120pre.mstore 0 (mintUsrHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd2124pre := evm_run rd2121 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd2125 := rd2124pre.keccak256 0 (mintEvmUsrSlot I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hUsrSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hUsrSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k2126, C2126, rd2126raw⟩ := rd2125.sload (by native_decide)
+  obtain ⟨k2126, C2126, rd2126raw⟩ := rd2125.sload (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd2126 : RD daiBytecode I g s0 ⟨2126⟩
       (mintEvmUsrBalanceWord σ I :: mintWadWord I :: mintUsrMaskedWord I :: ⟨686⟩ :: [sel])
       (mintUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2126 C2126 := by
     simpa [mintEvmUsrBalanceWord, mintEvmUsrSlot] using rd2126raw
   have rd2134pre := evm_run rd2126 with [
-    raw push2 ⟨2135⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨3982⟩ (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rd2134pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    raw push2 ⟨2135⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨3982⟩ (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rd2134pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem daiCheckedAddRevert0 {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -987,7 +987,7 @@ theorem daiCheckedAddRevert0 {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     RDrev daiBytecode g s0 := by
   have haddWf : solcCheckedAddSuccessWf daiBytecode ⟨3982⟩ ⟨1399⟩ := by
     unfold solcCheckedAddSuccessWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   rcases haddWf with
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd11, _, _, _, _, _, _⟩
   have hsum_lt2 : a.toNat + b.toNat < 2 * UInt256.size := by
@@ -1020,7 +1020,7 @@ theorem daiCheckedAddRevert0 {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   have rdTail := rdPush.jumpiNT hd11 (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by simp only [List.length_cons]; omega)
   exact RD.solcPush1Dup1Revert0 rdTail
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 4000000 in
@@ -1046,7 +1046,7 @@ theorem daiMintX_storeUsr_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   obtain ⟨_, _, rdAddUsr⟩ := daiMintX_usrAddReady (I := I) (sel := sel) h
   have haddWf : solcCheckedAddSuccessWf daiBytecode ⟨3982⟩ ⟨1399⟩ := by
     unfold solcCheckedAddSuccessWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   obtain ⟨k2135, C2135, rd2135raw⟩ := RD.solcCheckedAddSuccess
     (pc := ⟨3982⟩) (okPc := ⟨1399⟩)
     (a := mintEvmUsrBalanceWord σ I) (b := mintWadWord I)
@@ -1059,28 +1059,28 @@ theorem daiMintX_storeUsr_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       (mintUsrHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k2135 C2135 := by
     simpa [mintEvmUsrCreditWord] using rd2135raw
   have rd2146 := evm_run rd2135 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [husrMaskLiteral] at rd2146
   have rd2150pre := evm_run rd2146 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2151 := rd2150pre.mstore 0
     (wordAt0Mem (mintUsrMaskedWord I) (mintUsrHashMem I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd2155pre := evm_run rd2151 with [
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd2156 := rd2155pre.mstore 0 (mintUsrStoreHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have hUsrStoreSlot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -1090,12 +1090,12 @@ theorem daiMintX_storeUsr_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       twoWordHashMem_solcMappingSlot (⟨2⟩ : UInt256) (mintUsrMaskedWord I)
         (mintUsrHashMem_size I)
   have rd2159pre := evm_run rd2156 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd2160 := rd2159pre.keccak256 0 (mintEvmUsrSlot I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hUsrStoreSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hUsrStoreSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k2161, C2161, rd2161raw⟩ := rd2160.sstore hperm (by native_decide)
+  obtain ⟨k2161, C2161, rd2161raw⟩ := rd2160.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd2161 : RD daiBytecode I g s0 ⟨2161⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
@@ -1134,11 +1134,11 @@ theorem daiMintX_storeSupply_success {cA σ I} {g : Sat256} {s0 : State} {k C : 
       (cA, mintEvmPostAccountMap σ I) k' C' := by
   have haddWf : solcCheckedAddSuccessWf daiBytecode ⟨3982⟩ ⟨1399⟩ := by
     unfold solcCheckedAddSuccessWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   let rd2161 := h
   have rd2164pre := evm_run rd2161 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨k2164, C2164, rd2164raw⟩ := rd2164pre.sload (by native_decide)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨k2164, C2164, rd2164raw⟩ := rd2164pre.sload (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd2164 : RD daiBytecode I g s0 ⟨2164⟩
       (mintEvmTotalSupplyWord σ I :: mintWadWord I :: mintUsrMaskedWord I :: ⟨686⟩ :: [sel])
@@ -1146,11 +1146,11 @@ theorem daiMintX_storeSupply_success {cA σ I} {g : Sat256} {s0 : State} {k C : 
       (cA, mintEvmAfterUsrAccountMap σ I) k2164 C2164 := by
     simpa [mintEvmTotalSupplyWord, mintTotalSupplySlot] using rd2164raw
   have rd2172pre := evm_run rd2164 with [
-    raw push2 ⟨2173⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨3982⟩ (by native_decide) (by evm_ov)]
-  have rdAddSupply := rd2172pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨2173⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨3982⟩ (by decide +native) (by evm_ov)]
+  have rdAddSupply := rd2172pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨k2173, C2173, rd2173raw⟩ := RD.solcCheckedAddSuccess
     (pc := ⟨3982⟩) (okPc := ⟨1399⟩)
     (a := mintEvmTotalSupplyWord σ I) (b := mintWadWord I)
@@ -1164,9 +1164,9 @@ theorem daiMintX_storeSupply_success {cA σ I} {g : Sat256} {s0 : State} {k C : 
       (cA, mintEvmAfterUsrAccountMap σ I) k2173 C2173 := by
     simpa [mintEvmSupplyCreditWord] using rd2173raw
   have rd2176pre := evm_run rd2173 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨k2177, C2177, rd2177raw⟩ := rd2176pre.sstore hperm (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨k2177, C2177, rd2177raw⟩ := rd2176pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd2177 : RD daiBytecode I g s0 ⟨2177⟩
       [mintWadWord I, mintUsrMaskedWord I, ⟨686⟩, sel]
@@ -1185,8 +1185,8 @@ theorem daiMintX_supplyOverflowRevert {cA σ I} {g : Sat256} {s0 : State} {k C :
       (cA, mintEvmAfterUsrAccountMap σ I) k C) :
     RDrev daiBytecode g s0 := by
   have rd2164pre := evm_run h with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨k2164, C2164, rd2164raw⟩ := rd2164pre.sload (by native_decide)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨k2164, C2164, rd2164raw⟩ := rd2164pre.sload (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd2164 : RD daiBytecode I g s0 ⟨2164⟩
       (mintEvmTotalSupplyWord σ I :: mintWadWord I :: mintUsrMaskedWord I :: ⟨686⟩ :: [sel])
@@ -1194,11 +1194,11 @@ theorem daiMintX_supplyOverflowRevert {cA σ I} {g : Sat256} {s0 : State} {k C :
       (cA, mintEvmAfterUsrAccountMap σ I) k2164 C2164 := by
     simpa [mintEvmTotalSupplyWord, mintTotalSupplySlot] using rd2164raw
   have rd2172pre := evm_run rd2164 with [
-    raw push2 ⟨2173⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨3982⟩ (by native_decide) (by evm_ov)]
-  have rdAddSupply := rd2172pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨2173⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨3982⟩ (by decide +native) (by evm_ov)]
+  have rdAddSupply := rd2172pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact daiCheckedAddRevert0
     (a := mintEvmTotalSupplyWord σ I) (b := mintWadWord I) (ret := ⟨2173⟩)
     (R := mintWadWord I :: mintUsrMaskedWord I :: ⟨686⟩ :: [sel])
@@ -1224,8 +1224,8 @@ theorem daiMintX_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (I := I) (ret := ⟨686⟩) (S := [sel]) hperm
     (by simp only [List.length_cons, List.length_nil]; omega)
     (by jump_dest) rd2177
-  have rd687 := rd686.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd687 (by native_decide) (by evm_ov)
+  have rd687 := rd686.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd687 (by decide +native) (by evm_ov)
 
 theorem mintAfterUsrCredit_codeOwner (evm : EVM.State) (I : ExecutionEnv) :
     (mintAfterUsrCreditState evm I).executionEnv.codeOwner =
@@ -1333,7 +1333,7 @@ theorem daiMintBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (daiSelBytes 7) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (daiSelBytes 7) (by decide +native) hsel
   have hdispatch : dispatchMsg contract I.calldata = some mintTransition :=
     daiDispatchMint hsel
   have hreach := daiReachMintBody (cA := cA) (gh := gh) (bl := bl)
@@ -1412,7 +1412,7 @@ theorem daiMintBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (by
                 simpa [mintTransition] using
                   (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-                    (dvs := []) rfl (by native_decide) (by native_decide)))
+                    (dvs := []) rfl (by decide +native) (by decide +native)))
         · have hover :
               UInt256.size ≤
                 (mintEvmTotalSupplyWord σ_evm I).toNat + (mintWadWord I).toNat := by

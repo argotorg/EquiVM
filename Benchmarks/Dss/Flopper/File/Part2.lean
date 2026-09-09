@@ -15,89 +15,89 @@ theorem flopperFileX_unrecognized {cA σ I} {g : Sat256} {s0 : State}
       [fileData I, calldataWord I.calldata 4, ⟨334⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flopperBytecode g s0 := by
-  have rd1309 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1310 := rd1309.dup2 (by native_decide) (by evm_ov)
+  have rd1309 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1310 := rd1309.dup2 (by decide +native) (by evm_ov)
   have rd1314 := rd1310.pushConst (⟨0x626567⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1316 := rd1314.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd1317 := rd1316.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1316 := rd1314.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd1317 := rd1316.shl (by decide +native) (by evm_ov)
   have hbegConst : UInt256.shiftLeft (⟨0x626567⟩ : UInt256) ⟨232⟩ =
       ABI.bytesToWord fileBegBytes := by
-    native_decide
+    decide +native
   rw [hbegConst] at rd1317
-  have rd1318 := rd1317.eq (by native_decide) (by evm_ov)
+  have rd1318 := rd1317.eq (by decide +native) (by evm_ov)
   have hbegEq0 : UInt256.eq (ABI.bytesToWord fileBegBytes)
       (calldataWord I.calldata 4) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hbeg h.symm)
   rw [hbegEq0] at rd1318
-  have rd1319 := rd1318.iszero (by native_decide) (by evm_ov)
+  have rd1319 := rd1318.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1319
   have rd1322 := rd1319.pushConst (⟨1332⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1332 := rd1322.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1332 := rd1322.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
-  have rd1333 := rd1332.jumpdest (by native_decide) (by evm_ov)
-  have rd1334 := rd1333.dup2 (by native_decide) (by evm_ov)
+  have rd1333 := rd1332.jumpdest (by decide +native) (by evm_ov)
+  have rd1334 := rd1333.dup2 (by decide +native) (by evm_ov)
   have rd1338 := rd1334.pushConst (⟨0x1c1859⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1340 := rd1338.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd1341 := rd1340.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1340 := rd1338.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd1341 := rd1340.shl (by decide +native) (by evm_ov)
   have hpadConst : UInt256.shiftLeft (⟨0x1c1859⟩ : UInt256) ⟨234⟩ =
       ABI.bytesToWord filePadBytes := by
-    native_decide
+    decide +native
   rw [hpadConst] at rd1341
-  have rd1342 := rd1341.eq (by native_decide) (by evm_ov)
+  have rd1342 := rd1341.eq (by decide +native) (by evm_ov)
   have hpadEq0 : UInt256.eq (ABI.bytesToWord filePadBytes)
       (calldataWord I.calldata 4) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hpad h.symm)
   rw [hpadEq0] at rd1342
-  have rd1343 := rd1342.iszero (by native_decide) (by evm_ov)
+  have rd1343 := rd1342.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1343
   have rd1346 := rd1343.pushConst (⟨1356⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1356 := rd1346.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1356 := rd1346.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
-  have rd1357 := rd1356.jumpdest (by native_decide) (by evm_ov)
-  have rd1358 := rd1357.dup2 (by native_decide) (by evm_ov)
+  have rd1357 := rd1356.jumpdest (by decide +native) (by evm_ov)
+  have rd1358 := rd1357.dup2 (by decide +native) (by evm_ov)
   have rd1362 := rd1358.pushConst (⟨0x1d1d1b⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1364 := rd1362.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd1365 := rd1364.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1364 := rd1362.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd1365 := rd1364.shl (by decide +native) (by evm_ov)
   have httlConst : UInt256.shiftLeft (⟨0x1d1d1b⟩ : UInt256) ⟨234⟩ =
       ABI.bytesToWord fileTtlBytes := by
-    native_decide
+    decide +native
   rw [httlConst] at rd1365
-  have rd1366 := rd1365.eq (by native_decide) (by evm_ov)
+  have rd1366 := rd1365.eq (by decide +native) (by evm_ov)
   have httlEq0 : UInt256.eq (ABI.bytesToWord fileTtlBytes)
       (calldataWord I.calldata 4) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => httl h.symm)
   rw [httlEq0] at rd1366
-  have rd1367 := rd1366.iszero (by native_decide) (by evm_ov)
+  have rd1367 := rd1366.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1367
   have rd1370 := rd1367.pushConst (⟨1400⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1400 := rd1370.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1400 := rd1370.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
-  have rd1401 := rd1400.jumpdest (by native_decide) (by evm_ov)
-  have rd1402 := rd1401.dup2 (by native_decide) (by evm_ov)
+  have rd1401 := rd1400.jumpdest (by decide +native) (by evm_ov)
+  have rd1402 := rd1401.dup2 (by decide +native) (by evm_ov)
   have rd1406 := rd1402.pushConst (⟨0x746175⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1408 := rd1406.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd1409 := rd1408.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1408 := rd1406.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd1409 := rd1408.shl (by decide +native) (by evm_ov)
   have htauConst : UInt256.shiftLeft (⟨0x746175⟩ : UInt256) ⟨232⟩ =
       ABI.bytesToWord fileTauBytes := by
-    native_decide
+    decide +native
   rw [htauConst] at rd1409
-  have rd1410 := rd1409.eq (by native_decide) (by evm_ov)
+  have rd1410 := rd1409.eq (by decide +native) (by evm_ov)
   have htauEq0 : UInt256.eq (ABI.bytesToWord fileTauBytes)
       (calldataWord I.calldata 4) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => htau h.symm)
   rw [htauEq0] at rd1410
-  have rd1411 := rd1410.iszero (by native_decide) (by evm_ov)
+  have rd1411 := rd1410.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1411
   have rd1414 := rd1411.pushConst (⟨1456⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1456 := rd1414.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1456 := rd1414.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
   exact RD.flopperFileUnrecognizedRevert rd1456
     (relyAuthHashMem_size I)
@@ -149,7 +149,7 @@ theorem flopperFileBodyCoreBeg
     (by
       simpa [fileTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+          (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem flopperFileBodyCorePad
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -187,7 +187,7 @@ theorem flopperFileBodyCorePad
     hsz68 hsize hreach
   obtain ⟨_, _, hswitch⟩ := flopperFileX_authorized (I := I) hauth hdecoded
   have hbegWord : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileBegBytes :=
-    fileWhatWord_ne_of_bytes_ne (by omega) hbeg (by native_decide)
+    fileWhatWord_ne_of_bytes_ne (by omega) hbeg (by decide +native)
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord filePadBytes :=
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := flopperFileX_storePadAuthorized hperm hbegWord hmatch hswitch
@@ -199,7 +199,7 @@ theorem flopperFileBodyCorePad
     (by
       simpa [fileTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+          (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem flopperFileBodyCoreTtl
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -237,9 +237,9 @@ theorem flopperFileBodyCoreTtl
     hsz68 hsize hreach
   obtain ⟨_, _, hswitch⟩ := flopperFileX_authorized (I := I) hauth hdecoded
   have hbegWord : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileBegBytes :=
-    fileWhatWord_ne_of_bytes_ne (by omega) hbeg (by native_decide)
+    fileWhatWord_ne_of_bytes_ne (by omega) hbeg (by decide +native)
   have hpadWord : calldataWord I.calldata 4 ≠ ABI.bytesToWord filePadBytes :=
-    fileWhatWord_ne_of_bytes_ne (by omega) hpad (by native_decide)
+    fileWhatWord_ne_of_bytes_ne (by omega) hpad (by decide +native)
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileTtlBytes :=
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := flopperFileX_storeTtlAuthorized hperm hbegWord hpadWord hmatch hswitch
@@ -264,7 +264,7 @@ theorem flopperFileBodyCoreTtl
     (by
       simpa [fileTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+          (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem flopperFileBodyCoreTau
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -303,11 +303,11 @@ theorem flopperFileBodyCoreTau
     hsz68 hsize hreach
   obtain ⟨_, _, hswitch⟩ := flopperFileX_authorized (I := I) hauth hdecoded
   have hbegWord : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileBegBytes :=
-    fileWhatWord_ne_of_bytes_ne (by omega) hbeg (by native_decide)
+    fileWhatWord_ne_of_bytes_ne (by omega) hbeg (by decide +native)
   have hpadWord : calldataWord I.calldata 4 ≠ ABI.bytesToWord filePadBytes :=
-    fileWhatWord_ne_of_bytes_ne (by omega) hpad (by native_decide)
+    fileWhatWord_ne_of_bytes_ne (by omega) hpad (by decide +native)
   have httlWord : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileTtlBytes :=
-    fileWhatWord_ne_of_bytes_ne (by omega) httl (by native_decide)
+    fileWhatWord_ne_of_bytes_ne (by omega) httl (by decide +native)
   have hmatch : calldataWord I.calldata 4 = ABI.bytesToWord fileTauBytes :=
     fileWhatWord_eq_of_bytes_eq (by omega) hwhat
   have hret := flopperFileX_storeTauAuthorized hperm hbegWord hpadWord httlWord hmatch
@@ -333,7 +333,7 @@ theorem flopperFileBodyCoreTau
     (by
       simpa [fileTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+          (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem flopperFileBodyCoreUnauthorized
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -402,13 +402,13 @@ theorem flopperFileBodyCoreUnrecognized
     hsz68 hsize hreach
   obtain ⟨_, _, hswitch⟩ := flopperFileX_authorized (I := I) hauth hdecoded
   have hbegWord : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileBegBytes :=
-    fileWhatWord_ne_of_bytes_ne (by omega) hbeg (by native_decide)
+    fileWhatWord_ne_of_bytes_ne (by omega) hbeg (by decide +native)
   have hpadWord : calldataWord I.calldata 4 ≠ ABI.bytesToWord filePadBytes :=
-    fileWhatWord_ne_of_bytes_ne (by omega) hpad (by native_decide)
+    fileWhatWord_ne_of_bytes_ne (by omega) hpad (by decide +native)
   have httlWord : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileTtlBytes :=
-    fileWhatWord_ne_of_bytes_ne (by omega) httl (by native_decide)
+    fileWhatWord_ne_of_bytes_ne (by omega) httl (by decide +native)
   have htauWord : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileTauBytes :=
-    fileWhatWord_ne_of_bytes_ne (by omega) htau (by native_decide)
+    fileWhatWord_ne_of_bytes_ne (by omega) htau (by decide +native)
   exact (flopperFileX_unrecognized hbegWord hpadWord httlWord htauWord hswitch)
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

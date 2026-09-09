@@ -194,7 +194,7 @@ theorem decodeCalldata_legacyBytes32_bytes32_uint256_ok {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiBytes32, abiUInt256] = some 96 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiBytes32, abiUInt256] = some 96 by decide +native]
   simp only [bind, Option.bind]
   rw [decodeABIValues_bytes32_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -216,7 +216,7 @@ theorem decodeCalldata_legacyBytes32_bytes32_uint256_none_short {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiBytes32, abiUInt256] = some 96 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiBytes32, abiUInt256] = some 96 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 96
   · rw [if_pos hbytes]
@@ -245,7 +245,7 @@ theorem catDispatch_fileIlkUint {I : ExecutionEnv}
       simp [selectorOf, biteSelectorBytes, boxSelectorBytes, cageSelectorBytes,
         clawSelectorBytes, denySelectorBytes, fileAddressSelectorBytes,
         fileIlkFlipSelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, fileIlkUintSelectorBytes]
     exact hsel
 
@@ -582,13 +582,13 @@ theorem catReachFileIlkUintBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ⟨261⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         (cA, σ) k C := by
   have hword : catSelWord I = ⟨436938878⟩ :=
-    catSelWord_eq_of_beq I hsz 0x1a 0x0b 0x28 0x7e ⟨436938878⟩ (by native_decide) hsel
+    catSelWord_eq_of_beq I hsz 0x1a 0x0b 0x28 0x7e ⟨436938878⟩ (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat catBytecode catLowSplitPc) (catSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catLowLowFirstArmPc j))
         (catSelWord I) = ⟨0⟩ := by
@@ -598,9 +598,9 @@ theorem catReachFileIlkUintBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catLowLowFirstArmPc 0))
         (catSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact catReachLowLowBody 0 (by omega) ⟨261⟩ hcode hwv hsz hsize hroot hlow heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem RD.catFileIlkUintDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
@@ -615,25 +615,25 @@ theorem RD.catFileIlkUintDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : S
         calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
-  have rd284 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd285 := rd284.pop (by native_decide) (by evm_ov)
-  have rd286 := rd285.dup1 (by native_decide) (by evm_ov)
-  have rd287 := rd286.calldataload (by native_decide) (by evm_ov)
-  have rd288 := rd287.swap1 (by native_decide) (by evm_ov)
-  have rd290 := rd288.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd291 := rd290.dup2 (by native_decide) (by evm_ov)
-  have rd292 := rd291.add (by native_decide) (by evm_ov)
-  have rd293 := rd292.calldataload (by native_decide) (by evm_ov)
-  have rd294 := rd293.swap1 (by native_decide) (by evm_ov)
-  have rd296 := rd294.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd297 := rd296.add (by native_decide) (by evm_ov)
-  have rd298 := rd297.calldataload (by native_decide) (by evm_ov)
-  have rd301 := rd298.push2 ⟨783⟩ (by native_decide) (by evm_ov)
+  have rd284 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd285 := rd284.pop (by decide +native) (by evm_ov)
+  have rd286 := rd285.dup1 (by decide +native) (by evm_ov)
+  have rd287 := rd286.calldataload (by decide +native) (by evm_ov)
+  have rd288 := rd287.swap1 (by decide +native) (by evm_ov)
+  have rd290 := rd288.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd291 := rd290.dup2 (by decide +native) (by evm_ov)
+  have rd292 := rd291.add (by decide +native) (by evm_ov)
+  have rd293 := rd292.calldataload (by decide +native) (by evm_ov)
+  have rd294 := rd293.swap1 (by decide +native) (by evm_ov)
+  have rd296 := rd294.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd297 := rd296.add (by decide +native) (by evm_ov)
+  have rd298 := rd297.calldataload (by decide +native) (by evm_ov)
+  have rd301 := rd298.push2 ⟨783⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide,
       show (⟨36⟩ : UInt256).toNat = 36 from by decide,
       show (⟨68⟩ : UInt256).toNat = 68 from by decide]
-      using rd301.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd301.jump (by decide +native) hroutine (by evm_ov)⟩
 
 theorem RD.catFileIlkUintToSwitch {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
@@ -651,9 +651,9 @@ theorem RD.catFileIlkUintToSwitch {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := catBytecode) (sel := sel) (entry := ⟨261⟩) (ret := ⟨302⟩)
     (decoded := ⟨283⟩) (need := ⟨96⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hlt
   obtain ⟨_, _, hroutine⟩ := RD.catFileIlkUintDecodeToRoutine
     (code := catBytecode) (ret := ⟨302⟩) (sel := sel) (R := [])
@@ -665,7 +665,7 @@ theorem RD.catFileIlkUintToSwitch {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
     (by simpa [fileIlkUintData, fileIlkUintWhatWord, fileIlkUintIlkWord] using hroutine)
     (by
       unfold catAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauth (by jump_dest) (by simp)
   exact ⟨_, _, hafterAuth⟩
 
@@ -682,9 +682,9 @@ theorem RD.catFileIlkUintAuthRevert {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := catBytecode) (sel := sel) (entry := ⟨261⟩) (ret := ⟨302⟩)
     (decoded := ⟨283⟩) (need := ⟨96⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hlt
   obtain ⟨_, _, hroutine⟩ := RD.catFileIlkUintDecodeToRoutine
     (code := catBytecode) (ret := ⟨302⟩) (sel := sel) (R := [])
@@ -696,10 +696,10 @@ theorem RD.catFileIlkUintAuthRevert {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     (by simpa [fileIlkUintData, fileIlkUintWhatWord, fileIlkUintIlkWord] using hroutine)
     (by
       unfold catAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcErrorStringRevertTailWf catAuthTailPc catNotAuthorizedRawWord
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauth (by simp)
 
 /-! ### chop / dunk store + skip routines -/
@@ -722,47 +722,47 @@ theorem RD.catFileIlkStoreChop {g : Sat256} {s0 : State} {ee : ExecutionEnv}
           (ffi.KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ ilk :=
     twoWordHashMem_solcMappingSlot ⟨1⟩ ilk hmem
-  have rd873 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd874 := rd873.dup2 (by native_decide) (by evm_ov)
-  have rd879 := rd874.push4 ⟨104236791⟩ (by native_decide) (by evm_ov)
-  have rd881 := rd879.push1 ⟨228⟩ (by native_decide) (by evm_ov)
-  have rd882 := rd881.shl (by native_decide) (by evm_ov)
+  have rd873 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd874 := rd873.dup2 (by decide +native) (by evm_ov)
+  have rd879 := rd874.push4 ⟨104236791⟩ (by decide +native) (by evm_ov)
+  have rd881 := rd879.push1 ⟨228⟩ (by decide +native) (by evm_ov)
+  have rd882 := rd881.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft ⟨104236791⟩ ⟨228⟩ = ABI.bytesToWord fileIlkChopBytes := by
-    native_decide
+    decide +native
   rw [hmatch, ← hconst] at rd882
-  have rd883 := rd882.eq (by native_decide) (by evm_ov)
+  have rd883 := rd882.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd883
-  have rd884 := rd883.iszero (by native_decide) (by evm_ov)
+  have rd884 := rd883.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd884
-  have rd887 := rd884.push2 ⟨913⟩ (by native_decide) (by evm_ov)
-  have rd888 := rd887.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd890 := rd888.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd891 := rd890.dup4 (by native_decide) (by evm_ov)
-  have rd892 := rd891.dup2 (by native_decide) (by evm_ov)
+  have rd887 := rd884.push2 ⟨913⟩ (by decide +native) (by evm_ov)
+  have rd888 := rd887.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
+  have rd890 := rd888.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd891 := rd890.dup4 (by decide +native) (by evm_ov)
+  have rd892 := rd891.dup2 (by decide +native) (by evm_ov)
   have rd893 := rd892.mstore 0 (wordAt0Mem ilk mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd895 := rd893.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd897 := rd895.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd898 := rd897.dup2 (by native_decide) (by evm_ov)
-  have rd899 := rd898.swap1 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd895 := rd893.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd897 := rd895.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd898 := rd897.dup2 (by decide +native) (by evm_ov)
+  have rd899 := rd898.swap1 (by decide +native) (by evm_ov)
   have rd900 := rd899.mstore 0 (twoWordHashMem ilk ⟨1⟩ mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd902 := rd900.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd903 := rd902.swap1 (by native_decide) (by evm_ov)
-  have rd904 := rd903.swap2 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd902 := rd900.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd903 := rd902.swap1 (by decide +native) (by evm_ov)
+  have rd904 := rd903.swap2 (by decide +native) (by evm_ov)
   have rd905 := rd904.keccak256 0 (solcMappingSlot ⟨1⟩ ilk) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  have rd906 := rd905.add (by native_decide) (by evm_ov)
-  have rd907 := rd906.dup2 (by native_decide) (by evm_ov)
-  have rd908 := rd907.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd909⟩ := rd908.sstore hperm (by native_decide) (by evm_ov)
-  have rd912 := rd909.push2 ⟨1030⟩ (by native_decide) (by evm_ov)
-  have rd1030 := rd912.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd1031 := rd1030.jumpdest (by native_decide) (by evm_ov)
-  have rd1032 := rd1031.pop (by native_decide) (by evm_ov)
-  have rd1033 := rd1032.pop (by native_decide) (by evm_ov)
-  have rd1034 := rd1033.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1034.jump (by native_decide) hret (by evm_ov)⟩
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  have rd906 := rd905.add (by decide +native) (by evm_ov)
+  have rd907 := rd906.dup2 (by decide +native) (by evm_ov)
+  have rd908 := rd907.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd909⟩ := rd908.sstore hperm (by decide +native) (by evm_ov)
+  have rd912 := rd909.push2 ⟨1030⟩ (by decide +native) (by evm_ov)
+  have rd1030 := rd912.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd1031 := rd1030.jumpdest (by decide +native) (by evm_ov)
+  have rd1032 := rd1031.pop (by decide +native) (by evm_ov)
+  have rd1033 := rd1032.pop (by decide +native) (by evm_ov)
+  have rd1034 := rd1033.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1034.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem RD.catFileIlkSkipChop {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -773,22 +773,22 @@ theorem RD.catFileIlkSkipChop {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD catBytecode ee g s0 ⟨913⟩ (data :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd873 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd874 := rd873.dup2 (by native_decide) (by evm_ov)
-  have rd879 := rd874.push4 ⟨104236791⟩ (by native_decide) (by evm_ov)
-  have rd881 := rd879.push1 ⟨228⟩ (by native_decide) (by evm_ov)
-  have rd882 := rd881.shl (by native_decide) (by evm_ov)
+  have rd873 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd874 := rd873.dup2 (by decide +native) (by evm_ov)
+  have rd879 := rd874.push4 ⟨104236791⟩ (by decide +native) (by evm_ov)
+  have rd881 := rd879.push1 ⟨228⟩ (by decide +native) (by evm_ov)
+  have rd882 := rd881.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft ⟨104236791⟩ ⟨228⟩ = ABI.bytesToWord fileIlkChopBytes := by
-    native_decide
+    decide +native
   rw [hconst] at rd882
-  have rd883 := rd882.eq (by native_decide) (by evm_ov)
+  have rd883 := rd882.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord fileIlkChopBytes) what = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hneq h.symm)
   rw [heq0] at rd883
-  have rd884 := rd883.iszero (by native_decide) (by evm_ov)
+  have rd884 := rd883.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd884
-  have rd887 := rd884.push2 ⟨913⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd887.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+  have rd887 := rd884.push2 ⟨913⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd887.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 theorem RD.catFileIlkStoreDunk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -808,46 +808,46 @@ theorem RD.catFileIlkStoreDunk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
           (ffi.KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
         solcMappingSlot ⟨1⟩ ilk :=
     twoWordHashMem_solcMappingSlot ⟨1⟩ ilk hmem
-  have rd914 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd915 := rd914.dup2 (by native_decide) (by evm_ov)
-  have rd920 := rd915.push4 ⟨1685417579⟩ (by native_decide) (by evm_ov)
-  have rd922 := rd920.push1 ⟨224⟩ (by native_decide) (by evm_ov)
-  have rd923 := rd922.shl (by native_decide) (by evm_ov)
+  have rd914 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd915 := rd914.dup2 (by decide +native) (by evm_ov)
+  have rd920 := rd915.push4 ⟨1685417579⟩ (by decide +native) (by evm_ov)
+  have rd922 := rd920.push1 ⟨224⟩ (by decide +native) (by evm_ov)
+  have rd923 := rd922.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft ⟨1685417579⟩ ⟨224⟩ = ABI.bytesToWord fileIlkDunkBytes := by
-    native_decide
+    decide +native
   rw [hmatch, ← hconst] at rd923
-  have rd924 := rd923.eq (by native_decide) (by evm_ov)
+  have rd924 := rd923.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd924
-  have rd925 := rd924.iszero (by native_decide) (by evm_ov)
+  have rd925 := rd924.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd925
-  have rd928 := rd925.push2 ⟨953⟩ (by native_decide) (by evm_ov)
-  have rd929 := rd928.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd931 := rd929.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd932 := rd931.dup4 (by native_decide) (by evm_ov)
-  have rd933 := rd932.dup2 (by native_decide) (by evm_ov)
+  have rd928 := rd925.push2 ⟨953⟩ (by decide +native) (by evm_ov)
+  have rd929 := rd928.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
+  have rd931 := rd929.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd932 := rd931.dup4 (by decide +native) (by evm_ov)
+  have rd933 := rd932.dup2 (by decide +native) (by evm_ov)
   have rd934 := rd933.mstore 0 (wordAt0Mem ilk mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd936 := rd934.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd938 := rd936.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd936 := rd934.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd938 := rd936.push1 ⟨32⟩ (by decide +native) (by evm_ov)
   have rd939 := rd938.mstore 0 (twoWordHashMem ilk ⟨1⟩ mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd941 := rd939.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd942 := rd941.swap1 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd941 := rd939.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd942 := rd941.swap1 (by decide +native) (by evm_ov)
   have rd943 := rd942.keccak256 0 (solcMappingSlot ⟨1⟩ ilk) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  have rd945 := rd943.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd946 := rd945.add (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  have rd945 := rd943.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd946 := rd945.add (by decide +native) (by evm_ov)
   rw [u256_add_comm ⟨2⟩ (solcMappingSlot ⟨1⟩ ilk)] at rd946
-  have rd947 := rd946.dup2 (by native_decide) (by evm_ov)
-  have rd948 := rd947.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd949⟩ := rd948.sstore hperm (by native_decide) (by evm_ov)
-  have rd952 := rd949.push2 ⟨1030⟩ (by native_decide) (by evm_ov)
-  have rd1030 := rd952.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd1031 := rd1030.jumpdest (by native_decide) (by evm_ov)
-  have rd1032 := rd1031.pop (by native_decide) (by evm_ov)
-  have rd1033 := rd1032.pop (by native_decide) (by evm_ov)
-  have rd1034 := rd1033.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1034.jump (by native_decide) hret (by evm_ov)⟩
+  have rd947 := rd946.dup2 (by decide +native) (by evm_ov)
+  have rd948 := rd947.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd949⟩ := rd948.sstore hperm (by decide +native) (by evm_ov)
+  have rd952 := rd949.push2 ⟨1030⟩ (by decide +native) (by evm_ov)
+  have rd1030 := rd952.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd1031 := rd1030.jumpdest (by decide +native) (by evm_ov)
+  have rd1032 := rd1031.pop (by decide +native) (by evm_ov)
+  have rd1033 := rd1032.pop (by decide +native) (by evm_ov)
+  have rd1034 := rd1033.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1034.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem RD.catFileIlkSkipDunk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ilk ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -858,22 +858,22 @@ theorem RD.catFileIlkSkipDunk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hov : R.length + 16 ≤ 1024) :
     ∃ k' C', RD catBytecode ee g s0 ⟨953⟩ (data :: what :: ilk :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd914 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd915 := rd914.dup2 (by native_decide) (by evm_ov)
-  have rd920 := rd915.push4 ⟨1685417579⟩ (by native_decide) (by evm_ov)
-  have rd922 := rd920.push1 ⟨224⟩ (by native_decide) (by evm_ov)
-  have rd923 := rd922.shl (by native_decide) (by evm_ov)
+  have rd914 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd915 := rd914.dup2 (by decide +native) (by evm_ov)
+  have rd920 := rd915.push4 ⟨1685417579⟩ (by decide +native) (by evm_ov)
+  have rd922 := rd920.push1 ⟨224⟩ (by decide +native) (by evm_ov)
+  have rd923 := rd922.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft ⟨1685417579⟩ ⟨224⟩ = ABI.bytesToWord fileIlkDunkBytes := by
-    native_decide
+    decide +native
   rw [hconst] at rd923
-  have rd924 := rd923.eq (by native_decide) (by evm_ov)
+  have rd924 := rd923.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord fileIlkDunkBytes) what = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hneq h.symm)
   rw [heq0] at rd924
-  have rd925 := rd924.iszero (by native_decide) (by evm_ov)
+  have rd925 := rd924.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd925
-  have rd928 := rd925.push2 ⟨953⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd928.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+  have rd928 := rd925.push2 ⟨953⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd928.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 /-! ### unrecognized-param revert (byte-identical to Vow FileUint @2156) -/
 
@@ -889,56 +889,56 @@ theorem RD.catFileIlkUintUnrecognizedRevert {g : Sat256} {s0 : State} {ee : Exec
     (hov : stk.length + 5 ≤ 1024) :
     RDrev catBytecode g s0 := by
   have rdMload := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨27⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨27⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 ⟨27⟩ mem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst catFileIlkUintUnrecognizedRawWord
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem3 ⟨27⟩ catFileIlkUintUnrecognizedRawWord mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨27⟩ catFileIlkUintUnrecognizedRawWord hmem hread64)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 /-! ### success / revert wrappers -/
 
@@ -961,10 +961,10 @@ theorem RD.catFileIlkChopSuccess {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
   obtain ⟨_, _, hretPc⟩ := RD.catFileIlkStoreChop
     (data := fileIlkUintData I) (what := fileIlkUintWhatWord I) (ilk := fileIlkUintIlkWord I)
     (ret := ⟨302⟩) (sel := sel) (R := [])
-    hswitch hword hmemAuth (by native_decide) hperm (by simp)
-  have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+    hswitch hword hmemAuth (by decide +native) hperm (by simp)
+  have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
   simpa [fileIlkUintChopSlotFor_eq (by omega : 36 ≤ I.calldata.size)] using
-    RD.stop hretPc' (by native_decide) (by simp)
+    RD.stop hretPc' (by decide +native) (by simp)
 
 theorem RD.catFileIlkDunkSuccess {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
@@ -980,7 +980,7 @@ theorem RD.catFileIlkDunkSuccess {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
       ByteArray.empty := by
   obtain ⟨_, _, hswitch⟩ := RD.catFileIlkUintToSwitch hreach hsz100 hsize hauth
   have hchopNe : fileIlkUintWhatWord I ≠ ABI.bytesToWord fileIlkChopBytes :=
-    fileIlkUintWhatWord_ne_of_bytes_ne (by omega) hnotChop (by native_decide)
+    fileIlkUintWhatWord_ne_of_bytes_ne (by omega) hnotChop (by decide +native)
   obtain ⟨_, _, hdunkPc⟩ := RD.catFileIlkSkipChop
     (data := fileIlkUintData I) (what := fileIlkUintWhatWord I) (ilk := fileIlkUintIlkWord I)
     (ret := ⟨302⟩) (sel := sel) (R := []) hswitch hchopNe (by simp)
@@ -991,10 +991,10 @@ theorem RD.catFileIlkDunkSuccess {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
   obtain ⟨_, _, hretPc⟩ := RD.catFileIlkStoreDunk
     (data := fileIlkUintData I) (what := fileIlkUintWhatWord I) (ilk := fileIlkUintIlkWord I)
     (ret := ⟨302⟩) (sel := sel) (R := [])
-    hdunkPc hword hmemAuth (by native_decide) hperm (by simp)
-  have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+    hdunkPc hword hmemAuth (by decide +native) hperm (by simp)
+  have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
   simpa [fileIlkUintDunkSlotFor_eq (by omega : 36 ≤ I.calldata.size)] using
-    RD.stop hretPc' (by native_decide) (by simp)
+    RD.stop hretPc' (by decide +native) (by simp)
 
 theorem RD.catFileIlkUintUnrecognizedParamRevert {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
@@ -1007,12 +1007,12 @@ theorem RD.catFileIlkUintUnrecognizedParamRevert {cA gh bl σ σ₀ A I} {g : Sa
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, hswitch⟩ := RD.catFileIlkUintToSwitch hreach hsz100 hsize hauth
   have hchopNe : fileIlkUintWhatWord I ≠ ABI.bytesToWord fileIlkChopBytes :=
-    fileIlkUintWhatWord_ne_of_bytes_ne (by omega) hnotChop (by native_decide)
+    fileIlkUintWhatWord_ne_of_bytes_ne (by omega) hnotChop (by decide +native)
   obtain ⟨_, _, hdunkPc⟩ := RD.catFileIlkSkipChop
     (data := fileIlkUintData I) (what := fileIlkUintWhatWord I) (ilk := fileIlkUintIlkWord I)
     (ret := ⟨302⟩) (sel := sel) (R := []) hswitch hchopNe (by simp)
   have hdunkNe : fileIlkUintWhatWord I ≠ ABI.bytesToWord fileIlkDunkBytes :=
-    fileIlkUintWhatWord_ne_of_bytes_ne (by omega) hnotDunk (by native_decide)
+    fileIlkUintWhatWord_ne_of_bytes_ne (by omega) hnotDunk (by decide +native)
   obtain ⟨_, _, htailPc⟩ := RD.catFileIlkSkipDunk
     (data := fileIlkUintData I) (what := fileIlkUintWhatWord I) (ilk := fileIlkUintIlkWord I)
     (ret := ⟨302⟩) (sel := sel) (R := []) hdunkPc hdunkNe (by simp)
@@ -1047,7 +1047,7 @@ theorem catFileIlkUintBodyCore
     accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
   have henc : returnEquiv ByteArray.empty none fileIlkUintTransition.returnType := by
     rw [show fileIlkUintTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   by_cases hauthEvm : catSlotWord callerSlot σ_evm I = ⟨1⟩
   · have hauthSolm : catSlotWord callerSlot σ_solm I = ⟨1⟩ := by
       rw [← hcallerWord]; exact hauthEvm
@@ -1137,10 +1137,10 @@ theorem catFileIlkUintShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := catBytecode) (sel := catSelWord I) (entry := ⟨261⟩) (ret := ⟨302⟩)
     (decoded := ⟨283⟩) (need := ⟨96⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode (catDispatch_fileIlkUint hsel)
     (catDecode_fileIlkUint_none_short hsz4 hshort)
 
@@ -1153,7 +1153,7 @@ theorem catFileIlkUintBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0x1a, 0x0b, 0x28, 0x7e]⟩ (by native_decide) hsel
+    calldata_size_ge_of_selIs I ⟨#[0x1a, 0x0b, 0x28, 0x7e]⟩ (by decide +native) hsel
   by_cases hshort : I.calldata.size < 100
   · exact catFileIlkUintShort hcode hsize hperm hwv hsz hshort hsel hAccounts
   · have hsz100 : 100 ≤ I.calldata.size := by omega

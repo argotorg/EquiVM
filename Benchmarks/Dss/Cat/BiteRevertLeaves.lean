@@ -34,7 +34,7 @@ at the guard's `PUSH2 okPc` with the (already-computed) guard boolean `cond` on 
 `RD.solcErrorStringRevertTailGrown` (grown post-call memory). Reused by every `bite` `require`
 (live / spot / unsafe / litter / room / dart / dink / dartLimit / dinkLimit) — the leaf instantiates
 `guardPc` + the tail Wf. The bytecode facts `hpush2`/`hjumpi`/`htail` are discharged by
-`native_decide` at the concrete `guardPc`; the grown-memory facts by `omega` from the site state. -/
+`decide +native` at the concrete `guardPc`; the grown-memory facts by `omega` from the site state. -/
 theorem RD.catBiteGuardStringRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     {mem rdata : ByteArray} {aw : UInt256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -203,7 +203,7 @@ theorem catBiteFessFailLeaf {cA cA' gh bl σ_evm σ_solm σ' σ₀ A I} {g : UIn
 
 /-- **Generic require-false leaf**: covers all nine `bite` `require(cond, "msg")` reverts
 (live / spot / unsafe / litter / room / dart / dink / dartLimit / dinkLimit) — instantiate `guardPc`
-+ the guard/tail bytecode facts (by `native_decide`) and `hbody` with the matching
++ the guard/tail bytecode facts (by `decide +native`) and `hbody` with the matching
 `catBiteSource*Revert`. Fires the generic `RD.catBiteGuardStringRevert`. -/
 theorem catBiteRequireStringRevertLeaf {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     {mem rdata : ByteArray} {aw : UInt256}

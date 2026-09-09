@@ -92,7 +92,7 @@ theorem decodeCalldata_legacyBytes32_uint256_ok {cd : ByteArray} {x y : Solm.Ide
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [decodeABIValues_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -113,7 +113,7 @@ theorem decodeCalldata_legacyBytes32_uint256_none_short {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64
   · rw [if_pos hbytes]
@@ -299,7 +299,7 @@ theorem fileSetUint48Offset0Word_toNat (old data : UInt256) :
   rw [u256_lor_toNat]
   have hhighMask :
       UInt256.lnot flopperUint48Mask = UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ 48) := by
-    native_decide
+    decide +native
   rw [hhighMask]
   rw [u256_land_comm old (UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ 48))]
   rw [u256_land_high_mask_toNat old 48 (by norm_num)]
@@ -411,7 +411,7 @@ theorem fileSetUint48Offset6Word_toNat (old data : UInt256) :
   rw [u256_lor_toNat]
   have hnot : UInt256.lnot fileUint48Offset6Mask =
       UInt256.ofNat (Nat.lor (2 ^ 48 - 1) (((2 : Nat) ^ (256 - 96) - 1) <<< 96)) := by
-    native_decide
+    decide +native
   have hcleared : (UInt256.land old (UInt256.lnot fileUint48Offset6Mask)).toNat =
       Nat.lor (old.toNat % 2 ^ 48) ((old.toNat / 2 ^ 96) * 2 ^ 96) := by
     rw [hnot, u256_land_toNat]
@@ -421,7 +421,7 @@ theorem fileSetUint48Offset6Word_toNat (old data : UInt256) :
     have hmaskLt :
         Nat.lor (2 ^ 48 - 1) (((2 : Nat) ^ (256 - 96) - 1) <<< 96) <
           UInt256.size := by
-      native_decide
+      decide +native
     have hlandLt : Nat.land old.toNat
         (Nat.lor (2 ^ 48 - 1) (((2 : Nat) ^ (256 - 96) - 1) <<< 96)) <
           UInt256.size :=
@@ -435,7 +435,7 @@ theorem fileSetUint48Offset6Word_toNat (old data : UInt256) :
       (UInt256.ofNat (2 ^ 48))).toNat =
       (UInt256.land data flopperUint48Mask).toNat * 2 ^ 48 := by
     rw [u256_mul_toNat]
-    rw [show (UInt256.ofNat (2 ^ 48)).toNat = 2 ^ 48 by native_decide]
+    rw [show (UInt256.ofNat (2 ^ 48)).toNat = 2 ^ 48 by decide +native]
     apply Nat.mod_eq_of_lt
     have hlow : (UInt256.land data flopperUint48Mask).toNat < 2 ^ 48 := by
       simpa [flopperUint48Mask, EVM.twoPow] using flopperUint48Masked_lt data
@@ -1078,15 +1078,15 @@ theorem flopperReachFileBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : flopperSelWord I = ⟨0x29ae8114⟩ := by
     simpa [flopperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0x29 0xae 0x81 0x14 ⟨0x29ae8114⟩
-        (by native_decide) (by simpa [flopperSelBytes] using hsel)
+        (by decide +native) (by simpa [flopperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flopperBytecode flopperRootSplitPc)
       (flopperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat flopperBytecode flopperLowSplitPc)
       (flopperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   obtain ⟨_, _, hfirst⟩ :=
     flopperReachLowLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow
@@ -1097,16 +1097,16 @@ theorem flopperReachFileBody {cA gh bl σ σ₀ A I} {g : Sat256}
     intro j hj
     interval_cases j
     rw [hword]
-    native_decide
+    decide +native
   have htake :
       UInt256.eq
         (armSelNat flopperBytecode (nthArmPc flopperBytecode flopperLowLowFirstArmPc 1))
         (flopperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo ⟨336⟩ 1 hfirst
     (fun j hj => flopperLowLowArmsWellFormed j (le_trans hj (by omega)))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem RD.flopperFileDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
@@ -1120,19 +1120,19 @@ theorem RD.flopperFileDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : Stat
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
-  have rd359 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd360 := rd359.pop (by native_decide) (by evm_ov)
-  have rd361 := rd360.dup1 (by native_decide) (by evm_ov)
-  have rd362 := rd361.calldataload (by native_decide) (by evm_ov)
-  have rd363 := rd362.swap1 (by native_decide) (by evm_ov)
-  have rd365 := rd363.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd366 := rd365.add (by native_decide) (by evm_ov)
-  have rd367 := rd366.calldataload (by native_decide) (by evm_ov)
-  have rd370 := rd367.push2 ⟨1215⟩ (by native_decide) (by evm_ov)
+  have rd359 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd360 := rd359.pop (by decide +native) (by evm_ov)
+  have rd361 := rd360.dup1 (by decide +native) (by evm_ov)
+  have rd362 := rd361.calldataload (by decide +native) (by evm_ov)
+  have rd363 := rd362.swap1 (by decide +native) (by evm_ov)
+  have rd365 := rd363.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd366 := rd365.add (by decide +native) (by evm_ov)
+  have rd367 := rd366.calldataload (by decide +native) (by evm_ov)
+  have rd370 := rd367.push2 ⟨1215⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide,
       show (⟨36⟩ : UInt256).toNat = 36 from by decide]
-      using rd370.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd370.jump (by decide +native) hroutine (by evm_ov)⟩
 
 theorem flopperFileX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1145,9 +1145,9 @@ theorem flopperFileX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flopperBytecode) (sel := sel) (entry := ⟨336⟩) (ret := ⟨334⟩)
     (decoded := ⟨358⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz68) hsize)
   obtain ⟨_, _, hroutine⟩ := RD.flopperFileDecodeToRoutine
@@ -1172,38 +1172,38 @@ theorem flopperFileX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd1221pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1222 := rd1221pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1226pre := evm_run rd1222 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1227 := rd1226pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1230pre := evm_run rd1227 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1231 := rd1230pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k1232, C1232, rd1232raw⟩ := rd1231.sload (by native_decide) (by evm_ov)
+  obtain ⟨k1232, C1232, rd1232raw⟩ := rd1231.sload (by decide +native) (by evm_ov)
   have rd1232 : RD flopperBytecode I g s0 ⟨1232⟩
       (relyAuthWord σ I :: fileData I :: calldataWord I.calldata 4 :: ⟨334⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1232 C1232 := by
     simpa [relyAuthWord, flopperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using
       rd1232raw
   have rd1235pre := evm_run rd1232 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hauth, u256_eq_refl] at rd1235pre
   have rd1238 := rd1235pre.pushConst (⟨1308⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1238.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1238.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -1221,40 +1221,40 @@ theorem flopperFileX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd1221pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1222 := rd1221pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1226pre := evm_run rd1222 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1227 := rd1226pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1230pre := evm_run rd1227 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1231 := rd1230pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k1232, C1232, rd1232raw⟩ := rd1231.sload (by native_decide) (by evm_ov)
+  obtain ⟨k1232, C1232, rd1232raw⟩ := rd1231.sload (by decide +native) (by evm_ov)
   have rd1232 : RD flopperBytecode I g s0 ⟨1232⟩
       (relyAuthWord σ I :: fileData I :: calldataWord I.calldata 4 :: ⟨334⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1232 C1232 := by
     simpa [relyAuthWord, flopperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using
       rd1232raw
   have rd1235pre := evm_run rd1232 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq : UInt256.eq (⟨1⟩ : UInt256) (relyAuthWord σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne (by intro hbad; exact hauth hbad.symm)
   rw [heq] at rd1235pre
   have rd1238 := rd1235pre.pushConst (⟨1308⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1239 := rd1238.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1239 := rd1238.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨1239⟩)
     (len := ⟨22⟩)
@@ -1266,7 +1266,7 @@ theorem flopperFileX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     rd1239
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide)
     relyNotAuthorizedWord
     (relyAuthHashMem_size I)
@@ -1289,10 +1289,10 @@ theorem flopperFileX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
   exact RD.solcExternalStaticArgsShortReverts
     (code := flopperBytecode) (sel := sel) (entry := ⟨336⟩) (ret := ⟨334⟩)
     (decoded := ⟨358⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 abbrev flopperFileUnrecognizedRawWord : UInt256 :=
   ⟨0x466c6f707065722f66696c652d756e7265636f676e697a65642d706172616d00⟩
@@ -1306,56 +1306,56 @@ theorem RD.flopperFileUnrecognizedRevert {g : Sat256} {s0 : State}
     (hov : stk.length + 5 ≤ 1024) :
     RDrev flopperBytecode g s0 := by
   have rdMload := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨31⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨31⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 ⟨31⟩ mem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst flopperFileUnrecognizedRawWord
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem3 ⟨31⟩ flopperFileUnrecognizedRawWord mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨31⟩ flopperFileUnrecognizedRawWord hmem hread64)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 theorem flopperFileX_storeBegAuthorized {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
@@ -1366,36 +1366,36 @@ theorem flopperFileX_storeBegAuthorized {cA σ I} {g : Sat256} {s0 : State}
     RDret flopperBytecode g s0
       (cA, sstoreAccountMap I.codeOwner σ ⟨4⟩ (fileData I))
       ByteArray.empty := by
-  have rd1309 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1310 := rd1309.dup2 (by native_decide) (by evm_ov)
+  have rd1309 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1310 := rd1309.dup2 (by decide +native) (by evm_ov)
   have rd1314 := rd1310.pushConst (⟨0x626567⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1316 := rd1314.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd1317 := rd1316.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1316 := rd1314.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd1317 := rd1316.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft (⟨0x626567⟩ : UInt256) ⟨232⟩ =
       ABI.bytesToWord fileBegBytes := by
-    native_decide
+    decide +native
   rw [hmatch, ← hconst] at rd1317
-  have rd1318 := rd1317.eq (by native_decide) (by evm_ov)
+  have rd1318 := rd1317.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd1318
-  have rd1319 := rd1318.iszero (by native_decide) (by evm_ov)
+  have rd1319 := rd1318.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1319
   have rd1322 := rd1319.pushConst (⟨1332⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1323 := rd1322.jumpiNT (by native_decide)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1323 := rd1322.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd1325 := rd1323.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd1326 := rd1325.dup2 (by native_decide) (by evm_ov)
-  have rd1327 := rd1326.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1328raw⟩ := rd1327.sstore hperm (by native_decide) (by evm_ov)
-  have rd1331 := rd1328raw.push2 ⟨1533⟩ (by native_decide) (by evm_ov)
-  have rd1533 := rd1331.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd1534 := rd1533.jumpdest (by native_decide) (by evm_ov)
-  have rd1535 := rd1534.pop (by native_decide) (by evm_ov)
-  have rd1536 := rd1535.pop (by native_decide) (by evm_ov)
-  have rd334 := rd1536.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd335 := rd334.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd335 (by native_decide) (by evm_ov)
+  have rd1325 := rd1323.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd1326 := rd1325.dup2 (by decide +native) (by evm_ov)
+  have rd1327 := rd1326.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1328raw⟩ := rd1327.sstore hperm (by decide +native) (by evm_ov)
+  have rd1331 := rd1328raw.push2 ⟨1533⟩ (by decide +native) (by evm_ov)
+  have rd1533 := rd1331.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd1534 := rd1533.jumpdest (by decide +native) (by evm_ov)
+  have rd1535 := rd1534.pop (by decide +native) (by evm_ov)
+  have rd1536 := rd1535.pop (by decide +native) (by evm_ov)
+  have rd334 := rd1536.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd335 := rd334.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd335 (by decide +native) (by evm_ov)
 
 theorem flopperFileX_storePadAuthorized {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
@@ -1407,57 +1407,57 @@ theorem flopperFileX_storePadAuthorized {cA σ I} {g : Sat256} {s0 : State}
     RDret flopperBytecode g s0
       (cA, sstoreAccountMap I.codeOwner σ ⟨5⟩ (fileData I))
       ByteArray.empty := by
-  have rd1309 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1310 := rd1309.dup2 (by native_decide) (by evm_ov)
+  have rd1309 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1310 := rd1309.dup2 (by decide +native) (by evm_ov)
   have rd1314 := rd1310.pushConst (⟨0x626567⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1316 := rd1314.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd1317 := rd1316.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1316 := rd1314.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd1317 := rd1316.shl (by decide +native) (by evm_ov)
   have hbegConst : UInt256.shiftLeft (⟨0x626567⟩ : UInt256) ⟨232⟩ =
       ABI.bytesToWord fileBegBytes := by
-    native_decide
+    decide +native
   rw [hbegConst] at rd1317
-  have rd1318 := rd1317.eq (by native_decide) (by evm_ov)
+  have rd1318 := rd1317.eq (by decide +native) (by evm_ov)
   have hbegEq0 : UInt256.eq (ABI.bytesToWord fileBegBytes)
       (calldataWord I.calldata 4) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hbeg h.symm)
   rw [hbegEq0] at rd1318
-  have rd1319 := rd1318.iszero (by native_decide) (by evm_ov)
+  have rd1319 := rd1318.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1319
   have rd1322 := rd1319.pushConst (⟨1332⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1332 := rd1322.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1332 := rd1322.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
-  have rd1333 := rd1332.jumpdest (by native_decide) (by evm_ov)
-  have rd1334 := rd1333.dup2 (by native_decide) (by evm_ov)
+  have rd1333 := rd1332.jumpdest (by decide +native) (by evm_ov)
+  have rd1334 := rd1333.dup2 (by decide +native) (by evm_ov)
   have rd1338 := rd1334.pushConst (⟨0x1c1859⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1340 := rd1338.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd1341 := rd1340.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1340 := rd1338.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd1341 := rd1340.shl (by decide +native) (by evm_ov)
   have hpadConst : UInt256.shiftLeft (⟨0x1c1859⟩ : UInt256) ⟨234⟩ =
       ABI.bytesToWord filePadBytes := by
-    native_decide
+    decide +native
   rw [hmatch, ← hpadConst] at rd1341
-  have rd1342 := rd1341.eq (by native_decide) (by evm_ov)
+  have rd1342 := rd1341.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd1342
-  have rd1343 := rd1342.iszero (by native_decide) (by evm_ov)
+  have rd1343 := rd1342.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1343
   have rd1346 := rd1343.pushConst (⟨1356⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1347 := rd1346.jumpiNT (by native_decide)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1347 := rd1346.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd1349 := rd1347.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  have rd1350 := rd1349.dup2 (by native_decide) (by evm_ov)
-  have rd1351 := rd1350.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1352raw⟩ := rd1351.sstore hperm (by native_decide) (by evm_ov)
-  have rd1355 := rd1352raw.push2 ⟨1533⟩ (by native_decide) (by evm_ov)
-  have rd1533 := rd1355.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd1534 := rd1533.jumpdest (by native_decide) (by evm_ov)
-  have rd1535 := rd1534.pop (by native_decide) (by evm_ov)
-  have rd1536 := rd1535.pop (by native_decide) (by evm_ov)
-  have rd334 := rd1536.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd335 := rd334.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd335 (by native_decide) (by evm_ov)
+  have rd1349 := rd1347.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  have rd1350 := rd1349.dup2 (by decide +native) (by evm_ov)
+  have rd1351 := rd1350.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1352raw⟩ := rd1351.sstore hperm (by decide +native) (by evm_ov)
+  have rd1355 := rd1352raw.push2 ⟨1533⟩ (by decide +native) (by evm_ov)
+  have rd1533 := rd1355.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd1534 := rd1533.jumpdest (by decide +native) (by evm_ov)
+  have rd1535 := rd1534.pop (by decide +native) (by evm_ov)
+  have rd1536 := rd1535.pop (by decide +native) (by evm_ov)
+  have rd334 := rd1536.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd335 := rd334.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd335 (by decide +native) (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.flopperFileStoreTtlTail {cA σ I} {g : Sat256} {s0 : State}
@@ -1468,27 +1468,27 @@ theorem RD.flopperFileStoreTtlTail {cA σ I} {g : Sat256} {s0 : State}
     RDret flopperBytecode g s0
       (cA, fileTtlPostAccountMap I σ)
       ByteArray.empty := by
-  have rd1373 := h.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  have rd1374 := rd1373.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨k1375, C1375, rd1375raw⟩ := rd1374.sload (by native_decide) (by evm_ov)
+  have rd1373 := h.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  have rd1374 := rd1373.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨k1375, C1375, rd1375raw⟩ := rd1374.sload (by decide +native) (by evm_ov)
   have rd1375 : RD flopperBytecode I g s0 ⟨1375⟩
       ((σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨6⟩ ⟨0⟩)) ::
         ⟨6⟩ :: fileData I :: what :: ⟨334⟩ :: [sel])
       mem aw rdata (cA, σ) k1375 C1375 := by
     exact rd1375raw
   have rd1382 := rd1375.pushConst flopperUint48Mask
-    (width := 6) (op := .PUSH6) (by decide) (by native_decide) (by evm_ov)
+    (width := 6) (op := .PUSH6) (by decide) (by decide +native) (by evm_ov)
   have rd1384pre := evm_run rd1382 with [
-    raw not (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw not (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have rd1391 := rd1384pre.pushConst flopperUint48Mask
-    (width := 6) (op := .PUSH6) (by decide) (by native_decide) (by evm_ov)
+    (width := 6) (op := .PUSH6) (by decide) (by decide +native) (by evm_ov)
   have rd1393pre := evm_run rd1391 with [
-    raw dup4 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
-  have rd1394 := rd1393pre.or (by native_decide) (by evm_ov)
-  have rd1395 := rd1394.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1396raw⟩ := rd1395.sstore hperm (by native_decide) (by evm_ov)
+    raw dup4 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
+  have rd1394 := rd1393pre.or (by decide +native) (by evm_ov)
+  have rd1395 := rd1394.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1396raw⟩ := rd1395.sstore hperm (by decide +native) (by evm_ov)
   have hword :
       UInt256.lor (UInt256.land (fileData I) flopperUint48Mask)
           (UInt256.land
@@ -1498,14 +1498,14 @@ theorem RD.flopperFileStoreTtlTail {cA σ I} {g : Sat256} {s0 : State}
         fileTtlStoredWordMap I σ := by
     rw [u256_land_comm (UInt256.lnot flopperUint48Mask)]
     simp [fileTtlStoredWordMap, fileSetUint48Offset0Word, solcSlotWord, u256_lor_comm]
-  have rd1399 := rd1396raw.push2 ⟨1533⟩ (by native_decide) (by evm_ov)
-  have rd1533 := rd1399.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd1534 := rd1533.jumpdest (by native_decide) (by evm_ov)
-  have rd1535 := rd1534.pop (by native_decide) (by evm_ov)
-  have rd1536 := rd1535.pop (by native_decide) (by evm_ov)
-  have rd334 := rd1536.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd335 := rd334.jumpdest (by native_decide) (by evm_ov)
-  simpa [fileTtlPostAccountMap, hword] using RD.stop rd335 (by native_decide) (by evm_ov)
+  have rd1399 := rd1396raw.push2 ⟨1533⟩ (by decide +native) (by evm_ov)
+  have rd1533 := rd1399.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd1534 := rd1533.jumpdest (by decide +native) (by evm_ov)
+  have rd1535 := rd1534.pop (by decide +native) (by evm_ov)
+  have rd1536 := rd1535.pop (by decide +native) (by evm_ov)
+  have rd334 := rd1536.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd335 := rd334.jumpdest (by decide +native) (by evm_ov)
+  simpa [fileTtlPostAccountMap, hword] using RD.stop rd335 (by decide +native) (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.flopperFileStoreTauTail {cA σ I} {g : Sat256} {s0 : State}
@@ -1516,9 +1516,9 @@ theorem RD.flopperFileStoreTauTail {cA σ I} {g : Sat256} {s0 : State}
     RDret flopperBytecode g s0
       (cA, fileTauPostAccountMap I σ)
       ByteArray.empty := by
-  have rd1417 := h.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  have rd1418 := rd1417.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨k1419, C1419, rd1419raw⟩ := rd1418.sload (by native_decide) (by evm_ov)
+  have rd1417 := h.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  have rd1418 := rd1417.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨k1419, C1419, rd1419raw⟩ := rd1418.sload (by decide +native) (by evm_ov)
   have rd1419 : RD flopperBytecode I g s0 ⟨1419⟩
       ((σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨6⟩ ⟨0⟩)) ::
         ⟨6⟩ :: fileData I :: what :: ⟨334⟩ :: [sel])
@@ -1526,25 +1526,25 @@ theorem RD.flopperFileStoreTauTail {cA σ I} {g : Sat256} {s0 : State}
     exact rd1419raw
   have rd1433pre := evm_run
     (rd1419.pushConst fileUint48Offset6Mask
-      (width := 12) (op := .PUSH12) (by decide) (by native_decide) (by evm_ov)) with [
-    raw not (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
-  have rd1436 := rd1433pre.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd1438 := rd1436.push1 ⟨48⟩ (by native_decide) (by evm_ov)
-  have rd1439 := rd1438.shl (by native_decide) (by evm_ov)
+      (width := 12) (op := .PUSH12) (by decide) (by decide +native) (by evm_ov)) with [
+    raw not (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
+  have rd1436 := rd1433pre.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd1438 := rd1436.push1 ⟨48⟩ (by decide +native) (by evm_ov)
+  have rd1439 := rd1438.shl (by decide +native) (by evm_ov)
   have hfactor : UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨48⟩ =
       UInt256.ofNat (2 ^ 48) := by
-    native_decide
+    decide +native
   rw [hfactor] at rd1439
   have rd1446pre := evm_run
     (rd1439.pushConst flopperUint48Mask
-      (width := 6) (op := .PUSH6) (by decide) (by native_decide) (by evm_ov)) with [
-    raw dup5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov)]
-  have rd1449 := rd1446pre.or (by native_decide) (by evm_ov)
-  have rd1450 := rd1449.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1451raw⟩ := rd1450.sstore hperm (by native_decide) (by evm_ov)
+      (width := 6) (op := .PUSH6) (by decide) (by decide +native) (by evm_ov)) with [
+    raw dup5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov)]
+  have rd1449 := rd1446pre.or (by decide +native) (by evm_ov)
+  have rd1450 := rd1449.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1451raw⟩ := rd1450.sstore hperm (by decide +native) (by evm_ov)
   have hword :
       UInt256.lor
           (UInt256.mul (UInt256.land (fileData I) flopperUint48Mask)
@@ -1556,15 +1556,15 @@ theorem RD.flopperFileStoreTauTail {cA σ I} {g : Sat256} {s0 : State}
         fileTauStoredWordMap I σ := by
     rw [u256_land_comm (UInt256.lnot fileUint48Offset6Mask)]
     simp [fileTauStoredWordMap, fileSetUint48Offset6Word, solcSlotWord, u256_lor_comm]
-  have rd1455 := rd1451raw.push2 ⟨1533⟩ (by native_decide) (by evm_ov)
-  have rd1533 := rd1455.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd1534 := rd1533.jumpdest (by native_decide) (by evm_ov)
-  have rd1535 := rd1534.pop (by native_decide) (by evm_ov)
-  have rd1536 := rd1535.pop (by native_decide) (by evm_ov)
-  have rd334 := rd1536.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd335 := rd334.jumpdest (by native_decide) (by evm_ov)
+  have rd1455 := rd1451raw.push2 ⟨1533⟩ (by decide +native) (by evm_ov)
+  have rd1533 := rd1455.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd1534 := rd1533.jumpdest (by decide +native) (by evm_ov)
+  have rd1535 := rd1534.pop (by decide +native) (by evm_ov)
+  have rd1536 := rd1535.pop (by decide +native) (by evm_ov)
+  have rd334 := rd1536.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd335 := rd334.jumpdest (by decide +native) (by evm_ov)
   rw [hword] at rd335
-  simpa [fileTauPostAccountMap] using RD.stop rd335 (by native_decide) (by evm_ov)
+  simpa [fileTauPostAccountMap] using RD.stop rd335 (by decide +native) (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
 theorem flopperFileX_storeTtlAuthorized {cA σ I} {g : Sat256} {s0 : State}
@@ -1578,65 +1578,65 @@ theorem flopperFileX_storeTtlAuthorized {cA σ I} {g : Sat256} {s0 : State}
     RDret flopperBytecode g s0
       (cA, fileTtlPostAccountMap I σ)
       ByteArray.empty := by
-  have rd1309 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1310 := rd1309.dup2 (by native_decide) (by evm_ov)
+  have rd1309 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1310 := rd1309.dup2 (by decide +native) (by evm_ov)
   have rd1314 := rd1310.pushConst (⟨0x626567⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1316 := rd1314.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd1317 := rd1316.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1316 := rd1314.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd1317 := rd1316.shl (by decide +native) (by evm_ov)
   have hbegConst : UInt256.shiftLeft (⟨0x626567⟩ : UInt256) ⟨232⟩ =
       ABI.bytesToWord fileBegBytes := by
-    native_decide
+    decide +native
   rw [hbegConst] at rd1317
-  have rd1318 := rd1317.eq (by native_decide) (by evm_ov)
+  have rd1318 := rd1317.eq (by decide +native) (by evm_ov)
   have hbegEq0 : UInt256.eq (ABI.bytesToWord fileBegBytes)
       (calldataWord I.calldata 4) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hbeg h.symm)
   rw [hbegEq0] at rd1318
-  have rd1319 := rd1318.iszero (by native_decide) (by evm_ov)
+  have rd1319 := rd1318.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1319
   have rd1322 := rd1319.pushConst (⟨1332⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1332 := rd1322.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1332 := rd1322.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
-  have rd1333 := rd1332.jumpdest (by native_decide) (by evm_ov)
-  have rd1334 := rd1333.dup2 (by native_decide) (by evm_ov)
+  have rd1333 := rd1332.jumpdest (by decide +native) (by evm_ov)
+  have rd1334 := rd1333.dup2 (by decide +native) (by evm_ov)
   have rd1338 := rd1334.pushConst (⟨0x1c1859⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1340 := rd1338.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd1341 := rd1340.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1340 := rd1338.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd1341 := rd1340.shl (by decide +native) (by evm_ov)
   have hpadConst : UInt256.shiftLeft (⟨0x1c1859⟩ : UInt256) ⟨234⟩ =
       ABI.bytesToWord filePadBytes := by
-    native_decide
+    decide +native
   rw [hpadConst] at rd1341
-  have rd1342 := rd1341.eq (by native_decide) (by evm_ov)
+  have rd1342 := rd1341.eq (by decide +native) (by evm_ov)
   have hpadEq0 : UInt256.eq (ABI.bytesToWord filePadBytes)
       (calldataWord I.calldata 4) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hpad h.symm)
   rw [hpadEq0] at rd1342
-  have rd1343 := rd1342.iszero (by native_decide) (by evm_ov)
+  have rd1343 := rd1342.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1343
   have rd1346 := rd1343.pushConst (⟨1356⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1356 := rd1346.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1356 := rd1346.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
-  have rd1357 := rd1356.jumpdest (by native_decide) (by evm_ov)
-  have rd1358 := rd1357.dup2 (by native_decide) (by evm_ov)
+  have rd1357 := rd1356.jumpdest (by decide +native) (by evm_ov)
+  have rd1358 := rd1357.dup2 (by decide +native) (by evm_ov)
   have rd1362 := rd1358.pushConst (⟨0x1d1d1b⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1364 := rd1362.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd1365 := rd1364.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1364 := rd1362.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd1365 := rd1364.shl (by decide +native) (by evm_ov)
   have httlConst : UInt256.shiftLeft (⟨0x1d1d1b⟩ : UInt256) ⟨234⟩ =
       ABI.bytesToWord fileTtlBytes := by
-    native_decide
+    decide +native
   rw [hmatch, ← httlConst] at rd1365
-  have rd1366 := rd1365.eq (by native_decide) (by evm_ov)
+  have rd1366 := rd1365.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd1366
-  have rd1367 := rd1366.iszero (by native_decide) (by evm_ov)
+  have rd1367 := rd1366.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1367
   have rd1370 := rd1367.pushConst (⟨1400⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1371 := rd1370.jumpiNT (by native_decide)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1371 := rd1370.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.flopperFileStoreTtlTail hperm rd1371
 
@@ -1653,86 +1653,86 @@ theorem flopperFileX_storeTauAuthorized {cA σ I} {g : Sat256} {s0 : State}
     RDret flopperBytecode g s0
       (cA, fileTauPostAccountMap I σ)
       ByteArray.empty := by
-  have rd1309 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1310 := rd1309.dup2 (by native_decide) (by evm_ov)
+  have rd1309 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1310 := rd1309.dup2 (by decide +native) (by evm_ov)
   have rd1314 := rd1310.pushConst (⟨0x626567⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1316 := rd1314.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd1317 := rd1316.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1316 := rd1314.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd1317 := rd1316.shl (by decide +native) (by evm_ov)
   have hbegConst : UInt256.shiftLeft (⟨0x626567⟩ : UInt256) ⟨232⟩ =
       ABI.bytesToWord fileBegBytes := by
-    native_decide
+    decide +native
   rw [hbegConst] at rd1317
-  have rd1318 := rd1317.eq (by native_decide) (by evm_ov)
+  have rd1318 := rd1317.eq (by decide +native) (by evm_ov)
   have hbegEq0 : UInt256.eq (ABI.bytesToWord fileBegBytes)
       (calldataWord I.calldata 4) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hbeg h.symm)
   rw [hbegEq0] at rd1318
-  have rd1319 := rd1318.iszero (by native_decide) (by evm_ov)
+  have rd1319 := rd1318.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1319
   have rd1322 := rd1319.pushConst (⟨1332⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1332 := rd1322.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1332 := rd1322.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
-  have rd1333 := rd1332.jumpdest (by native_decide) (by evm_ov)
-  have rd1334 := rd1333.dup2 (by native_decide) (by evm_ov)
+  have rd1333 := rd1332.jumpdest (by decide +native) (by evm_ov)
+  have rd1334 := rd1333.dup2 (by decide +native) (by evm_ov)
   have rd1338 := rd1334.pushConst (⟨0x1c1859⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1340 := rd1338.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd1341 := rd1340.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1340 := rd1338.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd1341 := rd1340.shl (by decide +native) (by evm_ov)
   have hpadConst : UInt256.shiftLeft (⟨0x1c1859⟩ : UInt256) ⟨234⟩ =
       ABI.bytesToWord filePadBytes := by
-    native_decide
+    decide +native
   rw [hpadConst] at rd1341
-  have rd1342 := rd1341.eq (by native_decide) (by evm_ov)
+  have rd1342 := rd1341.eq (by decide +native) (by evm_ov)
   have hpadEq0 : UInt256.eq (ABI.bytesToWord filePadBytes)
       (calldataWord I.calldata 4) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hpad h.symm)
   rw [hpadEq0] at rd1342
-  have rd1343 := rd1342.iszero (by native_decide) (by evm_ov)
+  have rd1343 := rd1342.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1343
   have rd1346 := rd1343.pushConst (⟨1356⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1356 := rd1346.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1356 := rd1346.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
-  have rd1357 := rd1356.jumpdest (by native_decide) (by evm_ov)
-  have rd1358 := rd1357.dup2 (by native_decide) (by evm_ov)
+  have rd1357 := rd1356.jumpdest (by decide +native) (by evm_ov)
+  have rd1358 := rd1357.dup2 (by decide +native) (by evm_ov)
   have rd1362 := rd1358.pushConst (⟨0x1d1d1b⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1364 := rd1362.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd1365 := rd1364.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1364 := rd1362.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd1365 := rd1364.shl (by decide +native) (by evm_ov)
   have httlConst : UInt256.shiftLeft (⟨0x1d1d1b⟩ : UInt256) ⟨234⟩ =
       ABI.bytesToWord fileTtlBytes := by
-    native_decide
+    decide +native
   rw [httlConst] at rd1365
-  have rd1366 := rd1365.eq (by native_decide) (by evm_ov)
+  have rd1366 := rd1365.eq (by decide +native) (by evm_ov)
   have httlEq0 : UInt256.eq (ABI.bytesToWord fileTtlBytes)
       (calldataWord I.calldata 4) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => httl h.symm)
   rw [httlEq0] at rd1366
-  have rd1367 := rd1366.iszero (by native_decide) (by evm_ov)
+  have rd1367 := rd1366.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1367
   have rd1370 := rd1367.pushConst (⟨1400⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1400 := rd1370.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1400 := rd1370.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
-  have rd1401 := rd1400.jumpdest (by native_decide) (by evm_ov)
-  have rd1402 := rd1401.dup2 (by native_decide) (by evm_ov)
+  have rd1401 := rd1400.jumpdest (by decide +native) (by evm_ov)
+  have rd1402 := rd1401.dup2 (by decide +native) (by evm_ov)
   have rd1406 := rd1402.pushConst (⟨0x746175⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1408 := rd1406.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd1409 := rd1408.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1408 := rd1406.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd1409 := rd1408.shl (by decide +native) (by evm_ov)
   have htauConst : UInt256.shiftLeft (⟨0x746175⟩ : UInt256) ⟨232⟩ =
       ABI.bytesToWord fileTauBytes := by
-    native_decide
+    decide +native
   rw [hmatch, ← htauConst] at rd1409
-  have rd1410 := rd1409.eq (by native_decide) (by evm_ov)
+  have rd1410 := rd1409.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd1410
-  have rd1411 := rd1410.iszero (by native_decide) (by evm_ov)
+  have rd1411 := rd1410.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1411
   have rd1414 := rd1411.pushConst (⟨1456⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1415 := rd1414.jumpiNT (by native_decide)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1415 := rd1414.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.flopperFileStoreTauTail hperm rd1415
 

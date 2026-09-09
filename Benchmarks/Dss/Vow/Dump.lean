@@ -29,7 +29,7 @@ theorem vowDispatch_dump {I : ExecutionEnv} (hsel : selIs I ⟨#[0xe4, 0x33, 0x0
     all_goals
       simp [selectorOf, AshSelectorBytes, SinSelectorBytes, bumpSelectorBytes,
         cageSelectorBytes, denySelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, dumpSelectorBytes]
     exact hsel
 
@@ -48,25 +48,25 @@ theorem vowReachDumpBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vowSelWord I = ⟨3828548933⟩ :=
     vowSelWord_eq_of_beq I hsz 0xe4 0x33 0x05 0x45 ⟨3828548933⟩
-      (by native_decide) hsel
+      (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat vowBytecode vowHighSplitPc) (vowSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowHighHighFirstArmPc j))
         (vowSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowHighHighFirstArmPc 4))
         (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vowReachHighHighBody 4 (by omega) ⟨810⟩ hcode hwv hsz hsize hroot hhigh heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem vowDumpBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -99,10 +99,10 @@ theorem vowDumpBodyCore
     hcode hdispatch hdecode hreach hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcWordSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by rfl)
     (by simpa [dumpWord] using hbody)
 

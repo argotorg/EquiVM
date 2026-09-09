@@ -190,10 +190,10 @@ theorem dropLenAddLnotZero_eq_pred (len : UInt256) (hpos : 0 < len.toNat) :
   apply u256_inj
   rw [uadd_toNat]
   have hlnot : (UInt256.lnot (⟨0⟩ : UInt256)).toNat = UInt256.size - 1 := by
-    native_decide
+    decide +native
   have hmod :
       (len.toNat + (UInt256.size - 1)) % UInt256.size = len.toNat - 1 := by
-    have hsizePos : 0 < UInt256.size := by native_decide
+    have hsizePos : 0 < UInt256.size := by decide +native
     have hsum : len.toNat + (UInt256.size - 1) =
         UInt256.size + (len.toNat - 1) := by
       omega
@@ -328,7 +328,7 @@ theorem dropStorageLocStore_address_offset0_zero (evm : EVM.State) (slot : UInt2
         (setAddressOffset0Word
           (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) ⟨0⟩)) := by
   unfold storageLocStore storageLocWriteWord addressOffset0Loc
-  have hzeroWord : EVM.wordOfInt 0 = (⟨0⟩ : UInt256) := by native_decide
+  have hzeroWord : EVM.wordOfInt 0 = (⟨0⟩ : UInt256) := by decide +native
   simp only [valueToWord, hzeroWord, bind, Option.bind]
   have hvlen := (EVM.Word.toBytesLEWithSizeProof (⟨0⟩ : UInt256)).2
   congr 2
@@ -341,7 +341,7 @@ theorem dropStorageLocStore_address_offset0_zero (evm : EVM.State) (slot : UInt2
   rw [show (0 : Fin 32).val = 0 from rfl, show (20 : Fin 33).val = 20 from rfl,
     List.take_zero, List.nil_append]
   rw [fromBytes'_append, fromBytes'_take20_wordLE_solcAddrMask, fromBytes'_drop_wordLE]
-  have hclean : (UInt256.land (⟨0⟩ : UInt256) solcAddrMask).toNat = 0 := by native_decide
+  have hclean : (UInt256.land (⟨0⟩ : UInt256) solcAddrMask).toNat = 0 := by decide +native
   rw [hclean]
   have hlen20 : ((EVM.Word.toBytesLEWithSizeProof (⟨0⟩ : UInt256)).1.take 20).length = 20 := by
     rw [List.length_take, hvlen]
@@ -349,7 +349,7 @@ theorem dropStorageLocStore_address_offset0_zero (evm : EVM.State) (slot : UInt2
   rw [hlen20]
   rw [show 2 ^ (8 * 20) = 2 ^ 160 by norm_num]
   rw [show 256 ^ 20 = 2 ^ 160 by norm_num]
-  rw [setAddressOffset0Word_toNat _ _ (by native_decide)]
+  rw [setAddressOffset0Word_toNat _ _ (by decide +native)]
   rw [show ({ val := 0 } : UInt256).toNat = 0 from rfl]
   ring_nf
 
@@ -416,7 +416,7 @@ theorem evalExpr_dropPosGtZero_false (evm : EVM.State) (I : ExecutionEnv)
       evm (.binary .gt (.var "pos_") (.intLit 0)) = .ok (.bool false) := by
   rw [hpos]
   simp [evalExpr?, evalBinaryOp?, dropLocals, EvalResult.ofOption]
-  native_decide
+  decide +native
 
 theorem evalExpr_gt_uint256_true {evm : EVM.State} {locals : Store}
     {lhs rhs : Expr} {a b : UInt256}
@@ -1180,7 +1180,7 @@ theorem cureDropSourceBodyOkSwap {cA gh bl σ σ₀ A I} {g : UInt256}
         simp)
       (by exact store_get_self localsPos "last" (.int (Int.ofNat lenWord.toNat)))
       (by simpa [posWord, lenWord] using hswap)
-  have honeToNat : (⟨1⟩ : UInt256).toNat = 1 := by native_decide
+  have honeToNat : (⟨1⟩ : UInt256).toNat = 1 := by decide +native
   have hlastIndexExpr :
       evalExpr? config { contract := contract, locals := localsLast } evm0
         (sub256 (.var "last") (.intLit 1)) =
@@ -1458,7 +1458,7 @@ theorem cureDropSourceBodySwapPopZeroRevert {cA gh bl σ σ₀ A I} {g : UInt256
         simp)
       (by exact store_get_self localsPos "last" (.int (Int.ofNat lenWord.toNat)))
       (by simpa [posWord, lenWord] using hswap)
-  have honeToNat : (⟨1⟩ : UInt256).toNat = 1 := by native_decide
+  have honeToNat : (⟨1⟩ : UInt256).toNat = 1 := by decide +native
   have hlastIndexExpr :
       evalExpr? config { contract := contract, locals := localsLast } evm0
         (sub256 (.var "last") (.intLit 1)) =

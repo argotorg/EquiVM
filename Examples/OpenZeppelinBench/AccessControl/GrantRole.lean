@@ -94,7 +94,7 @@ theorem grantRoleStore_account (I : ExecutionEnv) :
 theorem grantRoleStore_roles (I : ExecutionEnv) :
     (grantRoleStore I).get? "_roles" = none := by
   rw [grantRoleStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
-  native_decide
+  decide +native
 
 theorem grantRoleStoreWithAdmin_role (evm : EVM.State) (I : ExecutionEnv) :
     (grantRoleStoreWithAdmin evm I).get? "role" = some (grantRoleRoleValue I) := by
@@ -879,7 +879,7 @@ theorem accessControlGrantRoleX_onlyRole_revert {cA gh bl σ σ₀ A I} {g : Sat
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      native_decide)
+      decide +native)
     (by simp)
 
 def grantRoleGrantedTopic : UInt256 :=
@@ -1158,7 +1158,7 @@ theorem accessControlGrantRoleX_grant_write {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      native_decide)
+      decide +native)
     (by decide) (by simp)
   have rd233 := evm_run rd669 with [
     pop, push1 ⟨1⟩, push2 ⟨347⟩, jump (by jump_dest),
@@ -1288,7 +1288,7 @@ theorem accessControlGrantRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
                     grantRoleTargetStorageWord, grantRoleStorageWordAt,
                     revokeRoleStorageWordAt]))
                 hσPost
-                (returnEquiv.fallthrough rfl rfl (by native_decide))
+                (returnEquiv.fallthrough rfl rfl (by decide +native))
           · have htargetNonzero :
                 UInt256.land (grantRoleTargetStorageWord σ_evm I) ⟨255⟩ ≠ ⟨0⟩ := htarget
             have htargetSolm :
@@ -1305,7 +1305,7 @@ theorem accessControlGrantRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
               (by simp only [evmS, initState]; exact hwv) hadminSolm htargetSolm
             exact (accessControlGrantRoleX_grant_noop (g := Sat256.ofUInt256 g)
                 hsz68 hcanonAccount htargetNonzero rd379)
-              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.fallthrough rfl rfl (by native_decide))
+              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.fallthrough rfl rfl (by decide +native))
       · have hdec := accessControlDecode_grantRole_none_noncanon_account
           (I := I) hsz68 hbig hcanonAccount
         have hnc : UInt256.eq (grantRoleAccountWord I)

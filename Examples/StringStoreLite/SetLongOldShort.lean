@@ -245,7 +245,7 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
           have hbase0 : clearCurrentBaseWord + UInt256.ofNat 0 = clearCurrentBaseWord := by
             simpa using uint256_add_zero_right clearCurrentBaseWord
           have hstride : UInt256.ofNat 32 = (⟨32⟩ : UInt256) := by
-            native_decide
+            decide +native
           rw [hsolmMap]
           simpa [hdataFuelEq, hbase0, hstride] using
             accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
@@ -377,7 +377,7 @@ theorem stringStoreLiteX_setLongValueShortValidPresentResidual
           have hbase0 : clearCurrentBaseWord + UInt256.ofNat 0 = clearCurrentBaseWord := by
             simpa using uint256_add_zero_right clearCurrentBaseWord
           have hstride : UInt256.ofNat 32 = (⟨32⟩ : UInt256) := by
-            native_decide
+            decide +native
           rw [hsolmMap]
           simpa [hdataFuelEq, hbase0, hstride] using
             accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header

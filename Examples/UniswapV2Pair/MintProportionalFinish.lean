@@ -953,12 +953,12 @@ theorem uniswapMintFeeOnKLastNonzeroNoMintCase
   have hfitSupplySource : mintFunctionTotalSupplyNewNat evmFeeS liquidity < UInt256.size := by
     simpa [mintFunctionTotalSupplyNewNat, htotalEq] using htotalFit
   have hbound0Source : Int.ofNat balance0.toNat ≤ maxUint112 := by
-    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
     have hnat : balance0.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound0
     norm_num [maxUint112]
     exact_mod_cast hnat
   have hbound1Source : Int.ofNat balance1.toNat ≤ maxUint112 := by
-    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
     have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound1
     norm_num [maxUint112]
     exact_mod_cast hnat
@@ -1265,12 +1265,12 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveNoLiquidityCase
   have hfitSupplySource : mintFunctionTotalSupplyNewNat evmFeeS liquidity < UInt256.size := by
     simpa [mintFunctionTotalSupplyNewNat, htotalEq] using htotalFit
   have hbound0Source : Int.ofNat balance0.toNat ≤ maxUint112 := by
-    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
     have hnat : balance0.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound0
     norm_num [maxUint112]
     exact_mod_cast hnat
   have hbound1Source : Int.ofNat balance1.toNat ≤ maxUint112 := by
-    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
     have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound1
     norm_num [maxUint112]
     exact_mod_cast hnat
@@ -1635,12 +1635,12 @@ theorem uniswapMintFeeOnKLastNonzeroPositiveWithLiquidityCase
   have hfitSupplySource : mintFunctionTotalSupplyNewNat evmAfterFee liquidity < UInt256.size := by
     simpa [mintFunctionTotalSupplyNewNat, htotalEqAfterFee] using htotalFit
   have hbound0Source : Int.ofNat balance0.toNat ≤ maxUint112 := by
-    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
     have hnat : balance0.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound0
     norm_num [maxUint112]
     exact_mod_cast hnat
   have hbound1Source : Int.ofNat balance1.toNat ≤ maxUint112 := by
-    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
     have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound1
     norm_num [maxUint112]
     exact_mod_cast hnat
@@ -1884,7 +1884,7 @@ theorem uniswapMintFeeOnKLastNonzeroSmallNoMintCase
       · exfalso
         have hbad : (⟨1⟩ : UInt256).toNat = 0 := by
           simpa [hp, hk] using hrootLeRuntime
-        exact (by native_decide : (⟨1⟩ : UInt256).toNat ≠ 0) hbad
+        exact (by decide +native : (⟨1⟩ : UInt256).toNat ≠ 0) hbad
       · simp [hp, hk]
   have hprodFitSource :
       mintFeeReserveProductNat (uniswapReserve0Word (uniswapLockEnteredState evmS))

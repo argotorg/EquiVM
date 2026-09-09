@@ -67,11 +67,11 @@ macro "flapper_ctor_decode" : tactic =>
   `(tactic|
     (first
       | rw [Reasoning.Theory.decode_append_left_window
-          flapperCreationBytecode _ _ (by native_decide) (by native_decide)]
+          flapperCreationBytecode _ _ (by decide +native) (by decide +native)]
       | (unfold flapperCtorCode
          rw [Reasoning.Theory.decode_append_left_window
-          flapperCreationBytecode _ _ (by native_decide) (by native_decide)]);
-     native_decide))
+          flapperCreationBytecode _ _ (by decide +native) (by decide +native)]);
+     decide +native))
 
 macro "flapper_ctor_jd" : tactic =>
   `(tactic|
@@ -98,10 +98,10 @@ macro "flapper_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => d
   return acc
 
 theorem flapperCreationBytecode_size : flapperCreationBytecode.size = 5216 := by
-  native_decide
+  decide +native
 
 theorem flapperBytecode_size : flapperBytecode.size = 5008 := by
-  native_decide
+  decide +native
 
 theorem flapperCtorArgsTail_size (vat gem : AccountAddress) :
     (flapperCtorArgsTail vat gem).size = 64 := by
@@ -121,11 +121,11 @@ theorem flapperCtorCode_size (vat gem : AccountAddress) :
 theorem flapperCtorArgLen_eq (vat gem : AccountAddress) :
     (UInt256.ofNat (flapperCtorCode vat gem).size).sub ⟨5216⟩ = (⟨64⟩ : UInt256) := by
   rw [flapperCtorCode_size]
-  native_decide
+  decide +native
 
 theorem flapperCreationBytecode_runtime_window :
     flapperCreationBytecode.extract 208 (208 + 5008) = flapperBytecode := by
-  native_decide
+  decide +native
 
 private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : ℕ)
     (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
@@ -182,7 +182,7 @@ theorem flapperCtorCopiedMem_eq (vat gem : AccountAddress) :
     · rw [solcFreePtrMem_size]
     · exact flapperCreationBytecode_size.symm
     · rw [flapperCtorArgsTail_size]
-      native_decide
+      decide +native
   · decide
   · rw [ByteArray.size_append, flapperCreationBytecode_size, flapperCtorArgsTail_size]
   · rw [solcFreePtrMem_size]
@@ -206,7 +206,7 @@ theorem flapperCtorArgsMem_size (vat gem : AccountAddress) :
   · exact flapperCtorArgsMem_base_size vat gem
   · rw [flapperCtorArgsMem_base_size]
     omega
-  · native_decide
+  · decide +native
 
 private theorem flapperCtorArgsTail_extract_first (vat gem : AccountAddress) :
     (flapperCtorArgsTail vat gem).extract 0 32 =

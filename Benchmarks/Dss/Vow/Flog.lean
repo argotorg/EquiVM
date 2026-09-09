@@ -690,7 +690,7 @@ theorem vowDispatch_flog {I : ExecutionEnv}
         cageSelectorBytes, denySelectorBytes, dumpSelectorBytes, fessSelectorBytes,
         fileUintSelectorBytes, fileAddressSelectorBytes, flapSelectorBytes, flapperSelectorBytes,
         hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, flogSelectorBytes]
     exact hsel
 
@@ -717,25 +717,25 @@ theorem vowReachFlogBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vowSelWord I = ⟨3622725451⟩ :=
     vowSelWord_eq_of_beq I hsz 0xd7 0xee 0x67 0x4b ⟨3622725451⟩
-      (by native_decide) hsel
+      (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat vowBytecode vowHighSplitPc) (vowSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowHighHighFirstArmPc j))
         (vowSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowHighHighFirstArmPc 3))
         (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vowReachHighHighBody 3 (by omega) ⟨781⟩ hcode hwv hsz hsize hroot hhigh heq0
-    htake (by jump_dest) (by native_decide)
+    htake (by jump_dest) (by decide +native)
 
 theorem RD.vowFlogDecodeToRoutine
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -752,17 +752,17 @@ theorem RD.vowFlogDecodeToRoutine
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := vowBytecode) (sel := sel) (entry := ⟨781⟩) (ret := ⟨412⟩)
     (decoded := ⟨803⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
-  have rd804 := hdecoded.jumpdest (by native_decide) (by evm_ov)
-  have rd805 := rd804.pop (by native_decide) (by evm_ov)
-  have rd806 := rd805.calldataload (by native_decide) (by evm_ov)
-  have rd809 := rd806.push2 ⟨4498⟩ (by native_decide) (by evm_ov)
+  have rd804 := hdecoded.jumpdest (by decide +native) (by evm_ov)
+  have rd805 := rd804.pop (by decide +native) (by evm_ov)
+  have rd806 := rd805.calldataload (by decide +native) (by evm_ov)
+  have rd809 := rd806.push2 ⟨4498⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [era, flogEra, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-      using rd809.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      using rd809.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vowFlogToFirstAdd
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -777,16 +777,16 @@ theorem RD.vowFlogToFirstAdd
         UInt256.ofNat I.header.timestamp :: flogEra I :: ⟨412⟩ :: sel :: [])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, htoRoutine⟩ := RD.vowFlogDecodeToRoutine hreach hsz36 hsize
-  have rd4499 := htoRoutine.jumpdest (by native_decide) (by evm_ov)
-  have rd4500 := rd4499.timestamp (by native_decide) (by evm_ov)
-  have rd4503 := rd4500.push2 ⟨4511⟩ (by native_decide) (by evm_ov)
-  have rd4504 := rd4503.dup3 (by native_decide) (by evm_ov)
-  have rd4506 := rd4504.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4507⟩ := rd4506.sload (by native_decide) (by evm_ov)
-  have rd4510 := rd4507.push2 ⟨5074⟩ (by native_decide) (by evm_ov)
+  have rd4499 := htoRoutine.jumpdest (by decide +native) (by evm_ov)
+  have rd4500 := rd4499.timestamp (by decide +native) (by evm_ov)
+  have rd4503 := rd4500.push2 ⟨4511⟩ (by decide +native) (by evm_ov)
+  have rd4504 := rd4503.dup3 (by decide +native) (by evm_ov)
+  have rd4506 := rd4504.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4507⟩ := rd4506.sload (by decide +native) (by evm_ov)
+  have rd4510 := rd4507.push2 ⟨5074⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [vowSlotWord, solcSlotWord] using
-      rd4510.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      rd4510.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vowFlogAfterWaitReady
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -811,22 +811,22 @@ theorem RD.vowFlogAfterWaitReady
     (by simpa [wait] using hfirstAdd)
     (by
       unfold solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [wait] using hfit)
     (by jump_dest) (by jump_dest) (by simp)
-  have rd4512 := hafterAdd.jumpdest (by native_decide) (by evm_ov)
-  have rd4513₀ := rd4512.gt (by native_decide) (by evm_ov)
+  have rd4512 := hafterAdd.jumpdest (by decide +native) (by evm_ov)
+  have rd4513₀ := rd4512.gt (by decide +native) (by evm_ov)
   have hgt : UInt256.gt (flogEra I + wait) (UInt256.ofNat I.header.timestamp) = ⟨0⟩ :=
     ugt_zero (by simpa [wait] using hready)
   have rd4513 := rd4513₀
   rw [hgt] at rd4513
-  have rd4514₀ := rd4513.iszero (by native_decide) (by evm_ov)
+  have rd4514₀ := rd4513.iszero (by decide +native) (by evm_ov)
   have rd4514 := rd4514₀
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd4514
-  have rd4517 := rd4514.push2 ⟨4586⟩ (by native_decide) (by evm_ov)
+  have rd4517 := rd4514.push2 ⟨4586⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [wait] using
-      rd4517.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+      rd4517.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vowFlogFirstAddOverflow
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -847,7 +847,7 @@ theorem RD.vowFlogFirstAddOverflow
     (by simpa [wait] using hfirstAdd)
     (by
       unfold solcCheckedAddEmptyRevertWf solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [wait] using hover)
     (by simp)
 
@@ -916,18 +916,18 @@ theorem RD.vowFlogToCheckedSub {code : ByteArray} {g : Sat256} {s0 : State}
     raw dup3 hd6 (by evm_ov),
     raw dup2 hd7 (by evm_ov)]
   have rdMem0 := rdMem0Prefix.mstore 0 (wordAt0Mem era mem)
-    (UInt256.ofNat 3) hd8 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd8 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMemSlotPrefix := evm_run rdMem0 with [
     raw push1 ⟨4⟩ hd9 (by evm_ov),
     raw push1 ⟨32⟩ hd11 (by evm_ov)]
   have rdHashMem := rdMemSlotPrefix.mstore 0 (twoWordHashMem era ⟨4⟩ mem)
-    (UInt256.ofNat 3) hd13 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd13 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩ hd14 (by evm_ov),
     raw swap1 hd16 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨4⟩ era hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨4⟩ era)
-    (UInt256.ofNat 3) hd17 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd17 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rdLoaded⟩ := rdSlot.sload hd18 (by evm_ov)
   have rdJump := evm_run rdLoaded with [
     raw push2 afterSubPc hd19 (by evm_ov),
@@ -996,18 +996,18 @@ theorem RD.vowFlogStoreSinAndClear {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd6 (by evm_ov),
     raw dup2 hd7 (by evm_ov)]
   have rdMem0 := rdMem0Prefix.mstore 0 (wordAt0Mem era mem)
-    (UInt256.ofNat 3) hd8 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd8 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMemSlotPrefix := evm_run rdMem0 with [
     raw push1 ⟨4⟩ hd9 (by evm_ov),
     raw push1 ⟨32⟩ hd11 (by evm_ov)]
   have rdHashMem := rdMemSlotPrefix.mstore 0 (twoWordHashMem era ⟨4⟩ mem)
-    (UInt256.ofNat 3) hd13 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd13 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩ hd14 (by evm_ov),
     raw dup2 hd16 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨4⟩ era hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨4⟩ era)
-    (UInt256.ofNat 3) hd17 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd17 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rdStoreZero⟩ := rdSlot.sstore hperm hd18 (by evm_ov)
   exact ⟨_, _, by simpa [σ1] using rdStoreZero.jump hd19 hret (by evm_ov)⟩
 
@@ -1041,7 +1041,7 @@ theorem RD.vowFlogSuccess
     (by simpa [era] using hafterReady)
     (by
       unfold vowFlogToCheckedSubWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     solcFreePtrMem_size (by jump_dest) (by simp)
   obtain ⟨_, _, hafterSub⟩ := RD.solcCheckedSubSuccess
     (code := vowBytecode) (pc := ⟨5096⟩) (okPc := ⟨5090⟩)
@@ -1050,7 +1050,7 @@ theorem RD.vowFlogSuccess
     (by simpa [era, eraSlot, sinEra] using htoSub)
     (by
       unfold solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [era, eraSlot, sinEra, flogEraSlot_eq, vowSlotWord] using hsub)
     (by jump_dest) (by jump_dest) (by simp)
   have hmem : (twoWordHashMem era ⟨4⟩ solcFreePtrMem).size = 96 :=
@@ -1061,11 +1061,11 @@ theorem RD.vowFlogSuccess
     (by simpa [SinNew, era, eraSlot, sinEra] using hafterSub)
     (by
       unfold vowFlogStoreSinAndClearWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hmem hperm (by jump_dest) (by simp)
-  have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+  have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
   simpa [era, eraSlot, sinEra, SinNew, flogEraSlot_eq, vowSlotWord] using
-    RD.stop hretPc' (by native_decide) (by simp)
+    RD.stop hretPc' (by decide +native) (by simp)
 
 theorem RD.vowFlogSubUnderflow
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -1090,7 +1090,7 @@ theorem RD.vowFlogSubUnderflow
     (by simpa [era] using hafterReady)
     (by
       unfold vowFlogToCheckedSubWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     solcFreePtrMem_size (by jump_dest) (by simp)
   exact RD.solcCheckedSubEmptyRevert
     (code := vowBytecode) (pc := ⟨5096⟩) (okPc := ⟨5090⟩)
@@ -1099,7 +1099,7 @@ theorem RD.vowFlogSubUnderflow
     (by simpa [era, eraSlot, sinEra] using htoSub)
     (by
       unfold solcCheckedSubEmptyRevertWf solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [era, eraSlot, sinEra, flogEraSlot_eq, vowSlotWord] using hlt)
     (by simp)
 
@@ -1127,20 +1127,20 @@ theorem RD.vowFlogWaitNotFinished
     (by simpa [wait] using hfirstAdd)
     (by
       unfold solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [wait] using hfit)
     (by jump_dest) (by jump_dest) (by simp)
-  have rd4512 := hafterAdd.jumpdest (by native_decide) (by evm_ov)
-  have rd4513₀ := rd4512.gt (by native_decide) (by evm_ov)
+  have rd4512 := hafterAdd.jumpdest (by decide +native) (by evm_ov)
+  have rd4513₀ := rd4512.gt (by decide +native) (by evm_ov)
   have hgt : UInt256.gt (flogEra I + wait) (UInt256.ofNat I.header.timestamp) = ⟨1⟩ :=
     ugt_one (by simpa [wait] using hnotReady)
   have rd4513 := rd4513₀
   rw [hgt] at rd4513
-  have rd4514₀ := rd4513.iszero (by native_decide) (by evm_ov)
+  have rd4514₀ := rd4513.iszero (by decide +native) (by evm_ov)
   have rd4514 := rd4514₀
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd4514
-  have rd4517 := rd4514.push2 ⟨4586⟩ (by native_decide) (by evm_ov)
-  have rdTail₀ := rd4517.jumpiNT (by native_decide)
+  have rd4517 := rd4514.push2 ⟨4586⟩ (by decide +native) (by evm_ov)
+  have rdTail₀ := rd4517.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨4518⟩) (len := ⟨21⟩) (rawWord := vowWaitNotFinishedRawWord)
@@ -1149,7 +1149,7 @@ theorem RD.vowFlogWaitNotFinished
     (by simpa [wait] using rdTail₀)
     (by
       unfold solcErrorStringRevertTailWf vowWaitNotFinishedRawWord
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) (by rfl) solcFreePtrMem_size solcFreePtrMem_read64 (by simp)
 
 theorem vowFlogBodyCore
@@ -1205,7 +1205,7 @@ theorem vowFlogBodyCore
               accountMapEquiv_sstoreAccountMap I.codeOwner (flogEraSlot I) ⟨0⟩ haccounts1
         have henc : returnEquiv ByteArray.empty none flogTransition.returnType := by
           rw [show flogTransition.returnType = [] by rfl]
-          exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+          exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
         have hret' :
             RDret vowBytecode (Sat256.ofUInt256 g)
               (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
@@ -1273,10 +1273,10 @@ theorem vowFlogShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := vowBytecode) (sel := vowSelWord I) (entry := ⟨781⟩) (ret := ⟨412⟩)
     (decoded := ⟨803⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode (vowDispatch_flog hsel)
     (vowDecode_flog_none_short hsz4 hshort)
 

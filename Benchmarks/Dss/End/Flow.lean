@@ -267,7 +267,7 @@ theorem endFlowVatIlksSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) 
     (endFlowVatIlksSelectorMem mem).size = 160 := by
   unfold endFlowVatIlksSelectorMem
   exact toByteArray_write32_size_of_ge mem endFlowVatIlksSelectorShifted
-    128 96 160 hmem (by omega) (by native_decide) (by omega)
+    128 96 160 hmem (by omega) (by decide +native) (by omega)
 
 theorem endFlowVatIlksSelectorMem_read64 {mem : ByteArray}
     (hmem : mem.size = 96)
@@ -278,7 +278,7 @@ theorem endFlowVatIlksSelectorMem_read64 {mem : ByteArray}
   change (endFlowVatIlksSelectorShifted.toByteArray.write 0 mem 128 32).readWithPadding
     64 32 = UInt256.toByteArray ⟨128⟩
   rw [toByteArray_write_read_below_of_gap endFlowVatIlksSelectorShifted mem 128 64
-    (by rw [hmem]) (by omega) (by rw [hmem]; native_decide), hread64]
+    (by rw [hmem]) (by omega) (by rw [hmem]; decide +native), hread64]
 
 theorem endFlowVatIlksArg0Mem_size (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -318,8 +318,8 @@ theorem endFlowVatIlksPostCallMem_size_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 160 ≤ out.size) :
     (endFlowVatIlksPostCallMem I out).size = 288 := by
   unfold endFlowVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   rw [Nat.min_eq_left hlo]
   change (out.write 0 (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)) 128 160).size =
     288
@@ -347,8 +347,8 @@ theorem endFlowVatIlksPostCallMem_read64_long (I : ExecutionEnv) (out : ByteArra
     (endFlowVatIlksPostCallMem I out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endFlowVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   rw [Nat.min_eq_left hlo]
   change ByteArray.readWithPadding
       (out.write 0 (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)) 128 160) 64 32 =
@@ -369,8 +369,8 @@ theorem endFlowVatIlksPostCallMem_read64_long (I : ExecutionEnv) (out : ByteArra
 theorem endFlowVatIlksPostCallMem_size_gt64 (I : ExecutionEnv) (out : ByteArray) :
     64 < (endFlowVatIlksPostCallMem I out).size := by
   unfold endFlowVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   by_cases hlen0 : min 160 out.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     rw [endFlowFixHashMem]
@@ -435,8 +435,8 @@ theorem endFlowVatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray) :
     (endFlowVatIlksPostCallMem I out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endFlowVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   by_cases hlen0 : min 160 out.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     exact endFlowVatIlksCalldataMem_read64 I
@@ -454,7 +454,7 @@ theorem endFlowVatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray) :
         rw [endFlowVatIlksCalldataMem_size I
           (twoWordHashMem_size_96 (endFlowIlkWord I) ⟨15⟩ solcFreePtrMem_size)]
         omega)
-      (by native_decide)]
+      (by decide +native)]
     exact endFlowVatIlksCalldataMem_read64 I
       (by
         rw [endFlowFixHashMem]
@@ -493,8 +493,8 @@ theorem endFlowVatIlksPostCallMem_read160_long (I : ExecutionEnv) (out : ByteArr
     (hlo : 160 ≤ out.size) :
     (endFlowVatIlksPostCallMem I out).readWithPadding 160 32 = out.extract 32 64 := by
   unfold endFlowVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   rw [Nat.min_eq_left hlo]
   rw [write_eq_gen_extend out (endFlowVatIlksCalldataMem I (endFlowFixHashMem I))
     128 160
@@ -551,15 +551,15 @@ theorem endFlowVatIlksPostCallMem_mload160_long (I : ExecutionEnv) (out : ByteAr
         UInt256.ofNat (fromByteArrayBigEndian (out.extract 32 64))
     rw [endFlowVatIlksPostCallMem_read160_long I out hlo]
   · exact not_or.mpr
-      ⟨by rw [endFlowVatIlksPostCallMem_size_long I out hlo]; decide, by native_decide⟩
+      ⟨by rw [endFlowVatIlksPostCallMem_size_long I out hlo]; decide, by decide +native⟩
 
 theorem endFlowVatIlksSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 96) :
     (endFlowVatIlksSelectorMem mem).extract 128 132 = ilksSelector := by
   unfold endFlowVatIlksSelectorMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native]
   have hgap : 128 - mem.size < USize.size := by
     rw [hmem]
-    native_decide
+    decide +native
   rw [toByteArray_write_eq endFlowVatIlksSelectorShifted mem 128 (by omega) hgap]
   have hprefix :
       (mem ++ ffi.ByteArray.zeroes (128 - mem.size)).size = 128 := by
@@ -567,7 +567,7 @@ theorem endFlowVatIlksSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 
   rw [extract_append_right_window _ _ 128 132 (by rw [hprefix]), hprefix,
     show 128 - 128 = 0 from rfl, show 132 - 128 = 4 from rfl,
     toByteArray_eq_toBytesBE]
-  native_decide
+  decide +native
 
 theorem endFlowVatIlksCalldataMem_read128_36 (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -576,7 +576,7 @@ theorem endFlowVatIlksCalldataMem_read128_36 (I : ExecutionEnv) {mem : ByteArray
   rw [readWithPadding_eq_extract' _ 128 36 (by norm_num) (by norm_num)
       (by rw [endFlowVatIlksCalldataMem_size I hmem])]
   unfold endFlowVatIlksCalldataMem endFlowVatIlksArg0Mem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide,
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native,
     write32_eq _ (endFlowVatIlksSelectorMem mem) 132 (by rw [toByteArray_size])
       (by rw [endFlowVatIlksSelectorMem_size hmem]; omega)]
   have hAsz : ((endFlowVatIlksSelectorMem mem).extract 0 132).size = 132 := by
@@ -797,55 +797,55 @@ theorem RD.endFlowFixDefinedRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hov : stk.length + 5 ≤ 1024) :
     RDrev endBytecode g s0 := by
   have rdMload := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨27⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨27⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 ⟨27⟩ mem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst endFlowFixDefinedRawWord
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem3 ⟨27⟩ endFlowFixDefinedRawWord mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨27⟩ endFlowFixDefinedRawWord hmem hread64)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 theorem endDecode_flow_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (flowTransition.params.map Param.name)
@@ -872,14 +872,14 @@ theorem endReachFlowBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : endSelWord I = ⟨0x4a10eaa6⟩ :=
     endSelWord_eq_of_beq I hsz 0x4a 0x10 0xea 0xa6 ⟨0x4a10eaa6⟩
-      (by native_decide)
+      (by decide +native)
       (by simpa [selIs, endFlowConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
     endReachGroup403FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-      (by rw [hword]; native_decide)
-      (by rw [hword]; native_decide)
-      (by rw [hword]; native_decide)
+      (by rw [hword]; decide +native)
+      (by rw [hword]; decide +native)
+      (by rw [hword]; decide +native)
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup403FirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
@@ -889,10 +889,10 @@ theorem endReachFlowBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup403FirstArmPc 0))
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo endFlowEntryPc 0 hfirst
     (fun j hj => endGroup403ArmsWellFormed j (by omega))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem endFlowX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -906,15 +906,15 @@ theorem endFlowX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := endBytecode) (sel := sel) (entry := endFlowEntryPc) (ret := endFlowReturnPc)
     (decoded := endFlowDecodedPc) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcOneWordExternalJump
     (code := endBytecode) (decoded := endFlowDecodedPc) (ret := endFlowReturnPc)
     (routine := endFlowBodyPc) (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [endFlowIlkWord, calldataWord] using hroutine⟩
 
 theorem endFlowX_debtZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -925,9 +925,9 @@ theorem endFlowX_debtZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have rd2721 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2722raw⟩ := rd2721.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨11⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2722raw⟩ := rd2721.sload (by decide +native) (by evm_ov)
   have hdebtRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨11⟩ ⟨0⟩)) =
         ⟨0⟩ := by
@@ -939,8 +939,8 @@ theorem endFlowX_debtZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         (⟨0⟩ :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [endFlowBodyPc] using rd2722zero⟩
-  have rd2725 := rd2722.push2 ⟨2786⟩ (by native_decide) (by evm_ov)
-  have rd2726 := rd2725.jumpiNT (by native_decide)
+  have rd2725 := rd2722.push2 ⟨2786⟩ (by decide +native) (by evm_ov)
+  have rd2726 := rd2725.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   obtain ⟨_, _, rdTail⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2726⟩
@@ -955,7 +955,7 @@ theorem endFlowX_debtZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rdTail
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) rfl
     solcFreePtrMem_size solcFreePtrMem_read64
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -973,46 +973,46 @@ theorem endFlowX_fixNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hslot : endFlowFixSlot I = solcMappingSlot ⟨15⟩ key := by
     simpa [key] using endFlowFixSlot_eq (I := I) hsz36
   have rd2721 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2722raw⟩ := rd2721.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨11⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2722raw⟩ := rd2721.sload (by decide +native) (by evm_ov)
   have rd2722 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2722⟩
         (endFlowDebtWord σ I :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [endFlowDebtWord, endSlotWord, solcSlotWord] using rd2722raw⟩
   obtain ⟨_, _, rd2722⟩ := rd2722
-  have rd2725 := rd2722.push2 ⟨2786⟩ (by native_decide) (by evm_ov)
-  have rd2786 := rd2725.jumpiT (by native_decide) hdebt (by jump_dest) (by evm_ov)
+  have rd2725 := rd2722.push2 ⟨2786⟩ (by decide +native) (by evm_ov)
+  have rd2786 := rd2725.jumpiT (by decide +native) hdebt (by jump_dest) (by evm_ov)
   have rd2790pre := evm_run rd2786 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2791 := rd2790pre.mstore 0 (wordAt0Mem key solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd2796pre := evm_run rd2791 with [
-    raw push1 ⟨15⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨15⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd2797 := rd2796pre.mstore 0 (twoWordHashMem key ⟨15⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd2800pre := evm_run rd2797 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((twoWordHashMem key ⟨15⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨15⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨15⟩ key solcFreePtrMem_size
   have rd2801pre := rd2800pre.keccak256 0 (solcMappingSlot ⟨15⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost
+    (UInt256.ofNat 3) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2802raw⟩ := rd2801pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2802raw⟩ := rd2801pre.sload (by decide +native) (by evm_ov)
   have rd2802 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2802⟩
         (endFlowFixWord σ I :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
@@ -1024,13 +1024,13 @@ theorem endFlowX_fixNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       simp [endFlowFixWord, endSlotWord]
     exact ⟨_, _, by simpa [hfixRaw] using rd2802raw⟩
   obtain ⟨_, _, rd2802⟩ := rd2802
-  have rd2803raw := rd2802.iszero (by native_decide) (by evm_ov)
+  have rd2803raw := rd2802.iszero (by decide +native) (by evm_ov)
   have hzero : UInt256.isZero (endFlowFixWord σ I) = ⟨0⟩ :=
     isZero_eq_zero_of_ne hfix
   have rd2803 := rd2803raw
   rw [hzero] at rd2803
-  have rd2806 := rd2803.push2 ⟨2883⟩ (by native_decide) (by evm_ov)
-  have rd2807 := rd2806.jumpiNT (by native_decide)
+  have rd2806 := rd2803.push2 ⟨2883⟩ (by decide +native) (by evm_ov)
+  have rd2807 := rd2806.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   obtain ⟨_, _, rdTail⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2807⟩
@@ -1093,57 +1093,57 @@ theorem endFlowX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
         endFlowVatIlksSelectorShifted := by
-    native_decide
+    decide +native
   have hvatMask :
       UInt256.land solcAddrMask (endSlotWord ⟨1⟩ σ I) = endPackVatWord σ I := by
     simpa [endPackVatWord, solcAddrMask] using
       u256_land_comm solcAddrMask (endSlotWord ⟨1⟩ σ I)
   have hinSize :
       (UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩) = endFlowVatIlksInSize := by
-    native_decide
+    decide +native
   have hendPtr : ((⟨128⟩ : UInt256) + ⟨36⟩) = endFlowVatIlksEndPtr := by
-    native_decide
+    decide +native
   have rd2721 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2722raw⟩ := rd2721.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨11⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2722raw⟩ := rd2721.sload (by decide +native) (by evm_ov)
   have rd2722 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2722⟩
         (endFlowDebtWord σ I :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [endFlowDebtWord, endSlotWord, solcSlotWord] using rd2722raw⟩
   obtain ⟨_, _, rd2722⟩ := rd2722
-  have rd2725 := rd2722.push2 ⟨2786⟩ (by native_decide) (by evm_ov)
-  have rd2786 := rd2725.jumpiT (by native_decide) hdebt (by jump_dest) (by evm_ov)
+  have rd2725 := rd2722.push2 ⟨2786⟩ (by decide +native) (by evm_ov)
+  have rd2786 := rd2725.jumpiT (by decide +native) hdebt (by jump_dest) (by evm_ov)
   have rd2790pre := evm_run rd2786 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2791 := rd2790pre.mstore 0 (wordAt0Mem key solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd2796pre := evm_run rd2791 with [
-    raw push1 ⟨15⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨15⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd2797 := rd2796pre.mstore 0 (twoWordHashMem key ⟨15⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd2800pre := evm_run rd2797 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((twoWordHashMem key ⟨15⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨15⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨15⟩ key solcFreePtrMem_size
   have rd2801pre := rd2800pre.keccak256 0 (solcMappingSlot ⟨15⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost
+    (UInt256.ofNat 3) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2802raw⟩ := rd2801pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2802raw⟩ := rd2801pre.sload (by decide +native) (by evm_ov)
   have rd2802 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2802⟩
         (endFlowFixWord σ I :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
@@ -1155,18 +1155,18 @@ theorem endFlowX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
       simp [endFlowFixWord, endSlotWord]
     exact ⟨_, _, by simpa [hfixRaw] using rd2802raw⟩
   obtain ⟨_, _, rd2802⟩ := rd2802
-  have rd2803raw := rd2802.iszero (by native_decide) (by evm_ov)
+  have rd2803raw := rd2802.iszero (by decide +native) (by evm_ov)
   have hzero : UInt256.isZero (endFlowFixWord σ I) = ⟨1⟩ := by
     rw [hfix]
-    native_decide
+    decide +native
   have rd2803 := rd2803raw
   rw [hzero] at rd2803
-  have rd2806 := rd2803.push2 ⟨2883⟩ (by native_decide) (by evm_ov)
-  have rd2883 := rd2806.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)
+  have rd2806 := rd2803.push2 ⟨2883⟩ (by decide +native) (by evm_ov)
+  have rd2883 := rd2806.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)
   have rd2886 := evm_run rd2883 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2887raw⟩ := rd2886.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2887raw⟩ := rd2886.sload (by decide +native) (by evm_ov)
   have rd2887 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2887⟩
         (endSlotWord ⟨1⟩ σ I :: endFlowIlkWord I :: endFlowReturnPc :: sel :: [])
@@ -1190,62 +1190,62 @@ theorem endFlowX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
         exact twoWordHashMem_read64 (endFlowIlkWord I) ⟨15⟩ solcFreePtrMem_size
           solcFreePtrMem_read64)
   have rd2948 := evm_run rd2887 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost hmload64Hash (by decide) (by evm_ov),
-    raw push4 ⟨0x6cb1c69b⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨225⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 ⟨0x6cb1c69b⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨225⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (endFlowVatIlksSelectorMem (endFlowFixHashMem I)) (UInt256.ofNat 5)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [endFlowVatIlksSelectorMem, endFlowVatIlksOutPtr, endFlowFixHashMem, key,
           hselectorShift])
       (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 3 (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)) (UInt256.ofNat 6)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [endFlowVatIlksCalldataMem, endFlowVatIlksArg0Mem, endFlowVatIlksOutPtr,
           endFlowFixHashMem, key])
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 endFlowVatIlksSelectorWord (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 endFlowVatIlksSelectorWord (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endFlowVatIlksSelectorMem, endFlowVatIlksArg0Mem, endFlowVatIlksCalldataMem,
       endFlowFixHashMem,
@@ -1269,9 +1269,9 @@ theorem endFlowX_vatIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd2948⟩ := endFlowX_vatIlksExtcodesizeGuard hsz36 hdebt hfix h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2948⟩) (okPc := ⟨2960⟩) rd2948
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endFlowX_vatIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
@@ -1294,9 +1294,9 @@ theorem endFlowX_vatIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨gasWord, k', C', rd2963⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2948⟩) (okPc := ⟨2960⟩) rd2948
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd2963⟩
 
 theorem endFlowX_vatIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1327,7 +1327,7 @@ theorem endFlowX_vatIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
           (endFlowVatIlksPostCallMem I out) (UInt256.ofNat 9) out (cA', σ') k' C'
       ∧ out.size < UInt256.size := by
   obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd2964raw, hout⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endFlowVatIlksWriteLen_eq (out := out) hout
@@ -1336,7 +1336,7 @@ theorem endFlowX_vatIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
           endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
           endFlowVatIlksOutPtr.toNat endFlowVatIlksOutSize.toNat) = UInt256.ofNat 9 := by
       unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endFlowVatIlksOutSize
-      native_decide
+      decide +native
     simpa [endFlowVatIlksPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endFlowVatIlksOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd2964raw
 
@@ -1356,7 +1356,7 @@ theorem endFlowX_vatIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
       (endFlowVatIlksCalldataMem I (endFlowFixHashMem I)) (UInt256.ofNat 9)
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨k', C', rd2964raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endFlowVatIlksOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -1366,7 +1366,7 @@ theorem endFlowX_vatIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
         endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
         endFlowVatIlksOutPtr.toNat endFlowVatIlksOutSize.toNat) = UInt256.ofNat 9 := by
     unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endFlowVatIlksOutSize
-    native_decide
+    decide +native
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endFlowVatIlksOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd2964raw
 
@@ -1380,9 +1380,9 @@ theorem endFlowX_vatIlksCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2964⟩) (okPc := ⟨2980⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endFlowX_vatIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
@@ -1397,8 +1397,8 @@ theorem endFlowX_vatIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat25
       mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨2964⟩) (okPc := ⟨2980⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp)
 
 theorem endFlowX_vatIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
@@ -1423,37 +1423,37 @@ theorem endFlowX_vatIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I} {g : Sat2
           ((endFlowVatIlksPostCallMem I out).readWithPadding
             ((⟨32⟩ : UInt256) + ⟨128⟩).toNat 32))) =
         endFlowVatIlkRateWord out := by
-    simpa [show ((⟨32⟩ : UInt256) + ⟨128⟩) = ⟨160⟩ by native_decide]
+    simpa [show ((⟨32⟩ : UInt256) + ⟨128⟩) = ⟨160⟩ by decide +native]
       using hmload160Raw
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨160⟩ : UInt256) = ⟨0⟩ := by
     apply Reasoning.Theory.ult_zero
     rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide, ulit_toNat' out.size hout]
     exact hlo
   have rd2994 := evm_run h with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨3002⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨3002⟩ (by decide +native) (by evm_ov)]
   have rdJump := rd2994
   rw [hlt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rdJump
   have rd3010 := evm_run rdJump with [
-    raw jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    raw jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mload 0 (endFlowVatIlkRateWord out) (UInt256.ofNat 9) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mload 0 (endFlowVatIlkRateWord out) (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload160 (by decide) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endFlowVatIlksEndPtr, endFlowVatIlksSelectorWord, endFlowVatIlksOutPtr,
@@ -1473,24 +1473,24 @@ theorem endFlowX_vatIlksReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I} {g : S
     rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide, ulit_toNat' out.size hout]
     exact hshort
   have rd2994 := evm_run h with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨3002⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨3002⟩ (by decide +native) (by evm_ov)]
   have rdShort := rd2994
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
-  have rdFall := rdShort.jumpiNT (by native_decide)
+  have rdFall := rdShort.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFall
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endFlowX_wad0RmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
@@ -1514,27 +1514,27 @@ theorem endFlowX_wad0RmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       (endFlowVatIlksPostCallMem I out).size = 288 :=
     endFlowVatIlksPostCallMem_size_long I out hlo
   have rd3014pre := evm_run h with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3015 := rd3014pre.mstore 0
     (wordAt0Mem key (endFlowVatIlksPostCallMem I out))
-    (UInt256.ofNat 9) (by native_decide) mem_cost
-    (by simp [wordAt0Mem, key]) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 9) (by decide +native) mem_cost
+    (by simp [wordAt0Mem, key]) (by decide +native) (by evm_ov)
   have rd3020pre := evm_run rd3015 with [
-    raw push1 ⟨14⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨14⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov)]
   have rd3020 := rd3020pre.mstore 0
     (twoWordHashMem key ⟨14⟩ (endFlowVatIlksPostCallMem I out))
-    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (UInt256.ofNat 9) (by decide +native) mem_cost
     (by
       change (⟨14⟩ : UInt256).toByteArray.write 0
           (wordAt0Mem key (endFlowVatIlksPostCallMem I out)) 32 32 =
         (⟨14⟩ : UInt256).toByteArray.write 0
           (wordAt0Mem key (endFlowVatIlksPostCallMem I out)) 32 32
       rfl)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC
@@ -1544,15 +1544,15 @@ theorem endFlowX_wad0RmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     endFlow_twoWordHashMem_solcMappingSlot_of_ge64 ⟨14⟩ key
       (by rw [hmemSize]; omega)
   have rd3023pre := evm_run rd3020 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
   have rd3024pre := rd3023pre.keccak256 0 (solcMappingSlot ⟨14⟩ key)
-    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (UInt256.ofNat 9) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3025raw⟩ := rd3024pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3025raw⟩ := rd3024pre.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd3025⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3025⟩
         (endFlowArtWord σ' I :: endFlowVatIlkRateWord out :: ⟨0⟩ :: ⟨0⟩ ::
@@ -1562,16 +1562,16 @@ theorem endFlowX_wad0RmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     exact ⟨_, _, by
       simpa [endFlowArtWord, endSlotWord, solcSlotWord, key, hslot] using rd3025raw⟩
   have rd10114 := evm_run rd3025 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push2 ⟨3061⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push2 ⟨3041⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw push2 ⟨10114⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push2 ⟨3061⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push2 ⟨3041⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw push2 ⟨10114⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [key] using rd10114⟩
 
 theorem endFlowX_wadRmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
@@ -1598,23 +1598,23 @@ theorem endFlowX_wadRmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
         have hbase := endFlowVatIlksPostCallMem_size_gt64 I out
         omega)
   have rd3046pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3047 := rd3046pre.mstore 0 (wordAt0Mem key mem14)
-    (UInt256.ofNat 9) (by native_decide) mem_cost
-    (by simp [wordAt0Mem, key, mem14]) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 9) (by decide +native) mem_cost
+    (by simp [wordAt0Mem, key, mem14]) (by decide +native) (by evm_ov)
   have rd3051pre := evm_run rd3047 with [
-    raw push1 ⟨12⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨12⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd3052 := rd3051pre.mstore 0 (twoWordHashMem key ⟨12⟩ mem14)
-    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (UInt256.ofNat 9) (by decide +native) mem_cost
     (by
       change (⟨12⟩ : UInt256).toByteArray.write 0 (wordAt0Mem key mem14) 32 32 =
         (⟨12⟩ : UInt256).toByteArray.write 0 (wordAt0Mem key mem14) 32 32
       rfl)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((twoWordHashMem key ⟨12⟩ mem14).readWithPadding 0 64))) =
@@ -1624,15 +1624,15 @@ theorem endFlowX_wadRmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
         rw [hmemSize]
         exact le_of_lt (endFlowVatIlksPostCallMem_size_gt64 I out))
   have rd3055pre := evm_run rd3052 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd3056pre := rd3055pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
-    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (UInt256.ofNat 9) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3057raw⟩ := rd3056pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3057raw⟩ := rd3056pre.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd3057⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3057⟩
         (endFlowTagWord σ' I :: endFlowWad0Word σ' I out :: ⟨3061⟩ :: ⟨0⟩ ::
@@ -1641,8 +1641,8 @@ theorem endFlowX_wadRmulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     exact ⟨_, _, by
       simpa [endFlowTagWord, endSlotWord, solcSlotWord, key, hslot, mem14] using rd3057raw⟩
   have rd10114 := evm_run rd3057 with [
-    raw push2 ⟨10114⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨10114⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [key, mem14] using rd10114⟩
 
 theorem endFlowX_mulHelperOverflow {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1667,39 +1667,39 @@ theorem endFlowX_mulHelperOverflow {cA gh bl σ σ₀ A I} {g : Sat256}
     have hsizePos : 0 < UInt256.size := by norm_num [UInt256.size]
     omega
   have rd10179 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨10197⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨10197⟩ (by decide +native) (by evm_ov)]
   have hyNonzero : UInt256.isZero y = ⟨0⟩ :=
     isZero_eq_zero_of_ne hyCond
-  have rd10180 := rd10179.jumpiNT (by native_decide) hyNonzero (by evm_ov)
+  have rd10180 := rd10179.jumpiNT (by decide +native) hyNonzero (by evm_ov)
   have rd10192 := evm_run rd10180 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨10194⟩ (by native_decide) (by evm_ov)]
-  have rd10194 := rd10192.jumpiT (by native_decide) hyCond (by jump_dest) (by evm_ov)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨10194⟩ (by decide +native) (by evm_ov)]
+  have rd10194 := rd10192.jumpiT (by decide +native) hyCond (by jump_dest) (by evm_ov)
   have rd10201 := evm_run rd10194 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨10108⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨10108⟩ (by decide +native) (by evm_ov)]
   have heqCond :
       UInt256.eq (UInt256.div (x * y) y) x = ⟨0⟩ :=
     u256_eq_of_ne hdivNe
-  have rdFallthrough := rd10201.jumpiNT (by native_decide) heqCond (by evm_ov)
+  have rdFallthrough := rd10201.jumpiNT (by decide +native) heqCond (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 theorem endFlowX_mulHelperReturns {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1727,44 +1727,44 @@ theorem endFlowX_mulHelperReturns {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [hprod]
     simpa [Nat.mul_comm] using Nat.mul_div_right x.toNat hyPos
   have rd10179 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨10197⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨10197⟩ (by decide +native) (by evm_ov)]
   have hyNonzero : UInt256.isZero y = ⟨0⟩ :=
     isZero_eq_zero_of_ne hy
-  have rd10180 := rd10179.jumpiNT (by native_decide) hyNonzero (by evm_ov)
+  have rd10180 := rd10179.jumpiNT (by decide +native) hyNonzero (by evm_ov)
   have rd10192 := evm_run rd10180 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨10194⟩ (by native_decide) (by evm_ov)]
-  have rd10194 := rd10192.jumpiT (by native_decide) hy (by jump_dest) (by evm_ov)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨10194⟩ (by decide +native) (by evm_ov)]
+  have rd10194 := rd10192.jumpiT (by decide +native) hy (by jump_dest) (by evm_ov)
   have rd10201 := evm_run rd10194 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨10108⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨10108⟩ (by decide +native) (by evm_ov)]
   have heqCond : UInt256.eq (UInt256.div (x * y) y) x ≠ ⟨0⟩ := by
     rw [hdiv, u256_eq_refl]
     exact one_ne_zero_uint
-  have rd10108 := rd10201.jumpiT (by native_decide) heqCond (by jump_dest) (by evm_ov)
+  have rd10108 := rd10201.jumpiT (by decide +native) heqCond (by jump_dest) (by evm_ov)
   have rdRet := evm_run rd10108 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) hret (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) hret (by evm_ov)]
   exact ⟨_, _, by simpa using rdRet⟩
 
 theorem endFlowX_mulHelperReturnsZero {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1779,26 +1779,26 @@ theorem endFlowX_mulHelperReturnsZero {cA gh bl σ σ₀ A I} {g : Sat256}
       (x * y :: R) mem aw rdata acc k' C' := by
   have hyZero : UInt256.isZero y ≠ ⟨0⟩ := by
     rw [hy]
-    native_decide
+    decide +native
   have rd10179 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨10197⟩ (by native_decide) (by evm_ov)]
-  have rd10197 := rd10179.jumpiT (by native_decide) hyZero (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨10197⟩ (by decide +native) (by evm_ov)]
+  have rd10197 := rd10179.jumpiT (by decide +native) hyZero (by jump_dest) (by evm_ov)
   have rd10108pre := evm_run rd10197 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨10108⟩ (by native_decide) (by evm_ov)]
-  have rd10108 := rd10108pre.jumpiT (by native_decide) hyZero (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨10108⟩ (by decide +native) (by evm_ov)]
+  have rd10108 := rd10108pre.jumpiT (by decide +native) hyZero (by jump_dest) (by evm_ov)
   have rdRet := evm_run rd10108 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) hret (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) hret (by evm_ov)]
   exact ⟨_, _, by simpa [hy] using rdRet⟩
 
 theorem endFlowX_rmulMulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
@@ -1810,23 +1810,23 @@ theorem endFlowX_rmulMulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       (y :: x :: ⟨10139⟩ :: endRayWord :: ⟨0⟩ :: y :: x :: ret :: R)
       mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
     have rd10130 := evm_run h with [
-      raw jumpdest (by native_decide)
+      raw jumpdest (by decide +native)
         (by simp; omega),
-      raw push1 ⟨0⟩ (by native_decide)
+      raw push1 ⟨0⟩ (by decide +native)
         (by simp; omega)]
     have rd10130ray := rd10130.pushConst endRayWord
-      (width := 12) (op := .PUSH12) (by decide) (by native_decide)
+      (width := 12) (op := .PUSH12) (by decide) (by decide +native)
       (by simp; omega)
     have rd10170 := evm_run rd10130ray with [
-      raw push2 ⟨10139⟩ (by native_decide)
+      raw push2 ⟨10139⟩ (by decide +native)
         (by simp; omega),
-      raw dup5 (by native_decide)
+      raw dup5 (by decide +native)
         (by simp; omega),
-      raw dup5 (by native_decide)
+      raw dup5 (by decide +native)
         (by simp; omega),
-      raw push2 ⟨10170⟩ (by native_decide)
+      raw push2 ⟨10170⟩ (by decide +native)
         (by simp; omega),
-      raw jump (by native_decide) (by jump_dest)
+      raw jump (by decide +native) (by jump_dest)
         (by simp; omega)]
     exact ⟨_, _, by simpa [endRayWord] using rd10170⟩
 
@@ -1863,32 +1863,32 @@ theorem endFlowX_rmulReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
         (mem := mem) hfit hy (by simpa using hmul) (by jump_dest)
         (by simp; omega)
   have hrayNonzero : endRayWord ≠ ⟨0⟩ := by
-    native_decide
+    decide +native
   have rd10146pre := evm_run hretMul with [
-    raw jumpdest (by native_decide)
+    raw jumpdest (by decide +native)
       (by simp; omega),
-    raw dup2 (by native_decide)
+    raw dup2 (by decide +native)
       (by simp; omega),
-    raw push2 ⟨10146⟩ (by native_decide)
+    raw push2 ⟨10146⟩ (by decide +native)
       (by simp; omega)]
-  have rd10146 := rd10146pre.jumpiT (by native_decide) hrayNonzero
+  have rd10146 := rd10146pre.jumpiT (by decide +native) hrayNonzero
     (by jump_dest) (by simp; omega)
   have rdRet := evm_run rd10146 with [
-    raw jumpdest (by native_decide)
+    raw jumpdest (by decide +native)
       (by simp; omega),
-    raw div (by native_decide)
+    raw div (by decide +native)
       (by simp; omega),
-    raw swap4 (by native_decide)
+    raw swap4 (by decide +native)
       (by simp; omega),
-    raw swap3 (by native_decide)
+    raw swap3 (by decide +native)
       (by simp; omega),
-    raw pop (by native_decide)
+    raw pop (by decide +native)
       (by simp; omega),
-    raw pop (by native_decide)
+    raw pop (by decide +native)
       (by simp; omega),
-    raw pop (by native_decide)
+    raw pop (by decide +native)
       (by simp; omega),
-    raw jump (by native_decide) hret
+    raw jump (by decide +native) hret
       (by simp; omega)]
   exact ⟨_, _, by simpa [endRayWord] using rdRet⟩
 
@@ -1910,32 +1910,32 @@ theorem endFlowX_rmulReturnsZero {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       (mem := mem) hy (by simpa using hmul) (by jump_dest)
       (by simp; omega)
   have hrayNonzero : endRayWord ≠ ⟨0⟩ := by
-    native_decide
+    decide +native
   have rd10146pre := evm_run hretMul with [
-    raw jumpdest (by native_decide)
+    raw jumpdest (by decide +native)
       (by simp; omega),
-    raw dup2 (by native_decide)
+    raw dup2 (by decide +native)
       (by simp; omega),
-    raw push2 ⟨10146⟩ (by native_decide)
+    raw push2 ⟨10146⟩ (by decide +native)
       (by simp; omega)]
-  have rd10146 := rd10146pre.jumpiT (by native_decide) hrayNonzero
+  have rd10146 := rd10146pre.jumpiT (by decide +native) hrayNonzero
     (by jump_dest) (by simp; omega)
   have rdRet := evm_run rd10146 with [
-    raw jumpdest (by native_decide)
+    raw jumpdest (by decide +native)
       (by simp; omega),
-    raw div (by native_decide)
+    raw div (by decide +native)
       (by simp; omega),
-    raw swap4 (by native_decide)
+    raw swap4 (by decide +native)
       (by simp; omega),
-    raw swap3 (by native_decide)
+    raw swap3 (by decide +native)
       (by simp; omega),
-    raw pop (by native_decide)
+    raw pop (by decide +native)
       (by simp; omega),
-    raw pop (by native_decide)
+    raw pop (by decide +native)
       (by simp; omega),
-    raw pop (by native_decide)
+    raw pop (by decide +native)
       (by simp; omega),
-    raw jump (by native_decide) hret
+    raw jump (by decide +native) hret
       (by simp; omega)]
   exact ⟨_, _, by simpa [endRayWord, hy] using rdRet⟩
 
@@ -1982,17 +1982,17 @@ theorem endFlowX_tailSubEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem12) ⟨13⟩ key
       (by rw [hmem12Size, hmem14Size, hpostSize]; omega)
   have hrayNonzero : endRayWord ≠ ⟨0⟩ := by
-    native_decide
+    decide +native
   have rd3064 := evm_run h0 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   have rd3077 := rd3064.pushConst endRayWord
-    (width := 12) (op := .PUSH12) (by decide) (by native_decide)
+    (width := 12) (op := .PUSH12) (by decide) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3079 := evm_run rd3077 with [
-    raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd3080raw⟩ := rd3079.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨11⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd3080raw⟩ := rd3079.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd3080⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3080⟩
         (endFlowDebtWord σ' I :: endRayWord :: endFlowWadWord σ' I out ::
@@ -2000,13 +2000,13 @@ theorem endFlowX_tailSubEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
         mem12 (UInt256.ofNat 9) out (cA', σ') k' C' := by
     exact ⟨_, _, by simpa [endFlowDebtWord, endSlotWord, solcSlotWord] using rd3080raw⟩
   have rd3084 := evm_run rd3080 with [
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨3086⟩ (by native_decide) (by evm_ov)]
-  have rd3086pre := rd3084.jumpiT (by native_decide) hrayNonzero
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨3086⟩ (by decide +native) (by evm_ov)]
+  have rd3086pre := rd3084.jumpiT (by decide +native) hrayNonzero
     (by jump_dest) (by evm_ov)
   have rd3088raw := evm_run rd3086pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov)]
   obtain ⟨_, _, rd3088⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3088⟩
         (endFlowDenWord σ' I :: endFlowWadWord σ' I out ::
@@ -2014,38 +2014,38 @@ theorem endFlowX_tailSubEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
         mem12 (UInt256.ofNat 9) out (cA', σ') k' C' := by
     exact ⟨_, _, by simpa [endFlowDenWord, endRayWord] using rd3088raw⟩
   have rd3094 := evm_run rd3088 with [
-    raw push2 ⟨3137⟩ (by native_decide) (by evm_ov),
-    raw push2 ⟨3119⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push2 ⟨3137⟩ (by decide +native) (by evm_ov),
+    raw push2 ⟨3119⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have rd3101pre := evm_run rd3094 with [
-    raw push1 ⟨13⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨13⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3102 := rd3101pre.mstore 0 (wordAt0Mem key mem12)
-    (UInt256.ofNat 9) (by native_decide) mem_cost
-    (by simp [wordAt0Mem, key, mem12]) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 9) (by decide +native) mem_cost
+    (by simp [wordAt0Mem, key, mem12]) (by decide +native) (by evm_ov)
   have rd3107pre := evm_run rd3102 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3108 := rd3107pre.mstore 0 mem13 (UInt256.ofNat 9)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (by
       change (⟨13⟩ : UInt256).toByteArray.write 0 (wordAt0Mem key mem12) 32 32 =
         mem13
       simp [mem13, twoWordHashMem, wordAt32Mem])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd3113 := evm_run rd3108 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov)]
   have rd3114pre := rd3113.keccak256 0 (endFlowGapSlot I)
-    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (UInt256.ofNat 9) (by decide +native) mem_cost
     (by simpa [mem13, key, hgapSlot] using hgapHash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3115raw⟩ := rd3114pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3115raw⟩ := rd3114pre.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd3115⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3115⟩
         (endFlowGapWord σ' I :: endFlowWadWord σ' I out :: ⟨3119⟩ ::
@@ -2055,8 +2055,8 @@ theorem endFlowX_tailSubEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     exact ⟨_, _, by
       simpa [endFlowGapWord, endSlotWord, solcSlotWord, key, hgapSlot] using rd3115raw⟩
   have rd10154 := evm_run rd3115 with [
-    raw push2 ⟨10154⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨10154⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [key, mem14, mem12, mem13] using rd10154⟩
 
 theorem endFlowX_tailSubUnderflow {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
@@ -2090,24 +2090,24 @@ theorem endFlowX_tailSubUnderflow {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
         (endFlowGapWord σ' I).val.isLt
       omega
   have rd10165pre := evm_run rd10154 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw gt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨10108⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw gt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨10108⟩ (by decide +native) (by evm_ov)]
   have rd10165 := rd10165pre
   rw [hgt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd10165
-  have rd10166 := rd10165.jumpiNT (by native_decide)
+  have rd10166 := rd10165.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact evm_run rd10166 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 theorem endFlowX_tailMulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
@@ -2143,7 +2143,7 @@ theorem endFlowX_tailMulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       (by simpa [key, mem14, mem12, mem13] using rd10154)
       (by
         unfold solcCheckedSubSuccessWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hleSub (by jump_dest) (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd3119⟩ : ∃ k' C',
@@ -2153,13 +2153,13 @@ theorem endFlowX_tailMulEntry {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
           endFlowReturnPc :: sel :: [])
         mem13 (UInt256.ofNat 9) out (cA', σ') k' C' := by
     exact ⟨_, _, by simpa [endFlowNum0Word] using rd3119raw⟩
-  have rd3120 := rd3119.jumpdest (by native_decide) (by evm_ov)
+  have rd3120 := rd3119.jumpdest (by decide +native) (by evm_ov)
   have rd3133 := rd3120.pushConst endRayWord
-    (width := 12) (op := .PUSH12) (by decide) (by native_decide)
+    (width := 12) (op := .PUSH12) (by decide) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd10170 := evm_run rd3133 with [
-    raw push2 ⟨10170⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨10170⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [key, mem14, mem12, mem13] using rd10170⟩
 
 theorem endFlowX_tailMulOverflow {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
@@ -2214,7 +2214,7 @@ theorem endFlowX_tailDenGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
   let mem13 := twoWordHashMem key ⟨13⟩ mem12
   obtain ⟨_, _, rd10170⟩ := endFlowX_tailMulEntry hsz36 hlo hleSub h
   have hrayNonzero : endRayWord ≠ ⟨0⟩ := by
-    native_decide
+    decide +native
   obtain ⟨_, _, rd3137raw⟩ :=
     endFlowX_mulHelperReturns
       (x := endFlowNum0Word σ' I out) (y := endRayWord)
@@ -2268,11 +2268,11 @@ theorem endFlowX_tailDenInvalid {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
         (initState cA gh bl σ σ₀ g A I) = .error .InvalidInstruction := by
   obtain ⟨_, _, rd3137⟩ := endFlowX_tailDenGuard hsz36 hlo hleSub hfitMul h
   have rd3142 := evm_run rd3137 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨3144⟩ (by native_decide) (by evm_ov)]
-  have rd3143 := rd3142.jumpiNT (by native_decide) (by simpa using hden) (by evm_ov)
-  exact endFlowInvalidError rd3143 (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨3144⟩ (by decide +native) (by evm_ov)]
+  have rd3143 := rd3142.jumpiNT (by decide +native) (by simpa using hden) (by evm_ov)
+  exact endFlowInvalidError rd3143 (by decide +native)
 
 theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {out : ByteArray} {k C : ℕ}
@@ -2346,17 +2346,17 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem13) ⟨15⟩ key
       (by rw [hmem13Size, hmem12Size, hmem14Size, hpostSize]; omega)
   have hrayNonzero : endRayWord ≠ ⟨0⟩ := by
-    native_decide
+    decide +native
   have rd3064 := evm_run h0 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   have rd3077 := rd3064.pushConst endRayWord
-    (width := 12) (op := .PUSH12) (by decide) (by native_decide)
+    (width := 12) (op := .PUSH12) (by decide) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3079 := evm_run rd3077 with [
-    raw push1 ⟨11⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd3080raw⟩ := rd3079.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨11⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd3080raw⟩ := rd3079.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd3080⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3080⟩
         (endFlowDebtWord σ' I :: endRayWord :: endFlowWadWord σ' I out ::
@@ -2364,13 +2364,13 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
         mem12 (UInt256.ofNat 9) out (cA', σ') k' C' := by
     exact ⟨_, _, by simpa [endFlowDebtWord, endSlotWord, solcSlotWord] using rd3080raw⟩
   have rd3084 := evm_run rd3080 with [
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨3086⟩ (by native_decide) (by evm_ov)]
-  have rd3086pre := rd3084.jumpiT (by native_decide) hrayNonzero
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨3086⟩ (by decide +native) (by evm_ov)]
+  have rd3086pre := rd3084.jumpiT (by decide +native) hrayNonzero
     (by jump_dest) (by evm_ov)
   have rd3088raw := evm_run rd3086pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov)]
   obtain ⟨_, _, rd3088⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3088⟩
         (endFlowDenWord σ' I :: endFlowWadWord σ' I out ::
@@ -2378,38 +2378,38 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
         mem12 (UInt256.ofNat 9) out (cA', σ') k' C' := by
     exact ⟨_, _, by simpa [endFlowDenWord, endRayWord] using rd3088raw⟩
   have rd3094 := evm_run rd3088 with [
-    raw push2 ⟨3137⟩ (by native_decide) (by evm_ov),
-    raw push2 ⟨3119⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push2 ⟨3137⟩ (by decide +native) (by evm_ov),
+    raw push2 ⟨3119⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have rd3101pre := evm_run rd3094 with [
-    raw push1 ⟨13⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨13⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3102 := rd3101pre.mstore 0 (wordAt0Mem key mem12)
-    (UInt256.ofNat 9) (by native_decide) mem_cost
-    (by simp [wordAt0Mem, key, mem12]) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 9) (by decide +native) mem_cost
+    (by simp [wordAt0Mem, key, mem12]) (by decide +native) (by evm_ov)
   have rd3107pre := evm_run rd3102 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3108 := rd3107pre.mstore 0 mem13 (UInt256.ofNat 9)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (by
       change (⟨13⟩ : UInt256).toByteArray.write 0 (wordAt0Mem key mem12) 32 32 =
         mem13
       simp [mem13, twoWordHashMem, wordAt32Mem])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd3113 := evm_run rd3108 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov)]
   have rd3114pre := rd3113.keccak256 0 (endFlowGapSlot I)
-    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (UInt256.ofNat 9) (by decide +native) mem_cost
     (by simpa [mem13, key, hgapSlot] using hgapHash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3115raw⟩ := rd3114pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3115raw⟩ := rd3114pre.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd3115⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3115⟩
         (endFlowGapWord σ' I :: endFlowWadWord σ' I out :: ⟨3119⟩ ::
@@ -2419,8 +2419,8 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     exact ⟨_, _, by
       simpa [endFlowGapWord, endSlotWord, solcSlotWord, key, hgapSlot] using rd3115raw⟩
   have rd10154 := evm_run rd3115 with [
-    raw push2 ⟨10154⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨10154⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   obtain ⟨_, _, rd3119raw⟩ :=
     RD.solcCheckedSubSuccess
       (pc := ⟨10154⟩) (okPc := ⟨10108⟩)
@@ -2431,7 +2431,7 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       rd10154
       (by
         unfold solcCheckedSubSuccessWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hleSub (by jump_dest) (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd3119⟩ : ∃ k' C',
@@ -2441,13 +2441,13 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
           endFlowReturnPc :: sel :: [])
         mem13 (UInt256.ofNat 9) out (cA', σ') k' C' := by
     exact ⟨_, _, by simpa [endFlowNum0Word] using rd3119raw⟩
-  have rd3120 := rd3119.jumpdest (by native_decide) (by evm_ov)
+  have rd3120 := rd3119.jumpdest (by decide +native) (by evm_ov)
   have rd3133 := rd3120.pushConst endRayWord
-    (width := 12) (op := .PUSH12) (by decide) (by native_decide)
+    (width := 12) (op := .PUSH12) (by decide) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd10170 := evm_run rd3133 with [
-    raw push2 ⟨10170⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨10170⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   obtain ⟨_, _, rd3137raw⟩ :=
     endFlowX_mulHelperReturns
       (x := endFlowNum0Word σ' I out) (y := endRayWord)
@@ -2464,43 +2464,43 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
         mem13 (UInt256.ofNat 9) out (cA', σ') k' C' := by
     exact ⟨_, _, by simpa [endFlowNumWord] using rd3137raw⟩
   have rd3142 := evm_run rd3137 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨3144⟩ (by native_decide) (by evm_ov)]
-  have rd3144pre := rd3142.jumpiT (by native_decide) hden (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨3144⟩ (by decide +native) (by evm_ov)]
+  have rd3144pre := rd3142.jumpiT (by decide +native) hden (by jump_dest) (by evm_ov)
   have rd3149pre := evm_run rd3144pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3150 := rd3149pre.mstore 0 (wordAt0Mem key mem13)
-    (UInt256.ofNat 9) (by native_decide) mem_cost
-    (by simp [wordAt0Mem, key, mem13]) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 9) (by decide +native) mem_cost
+    (by simp [wordAt0Mem, key, mem13]) (by decide +native) (by evm_ov)
   have rd3154pre := evm_run rd3150 with [
-    raw push1 ⟨15⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨15⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd3155 := rd3154pre.mstore 0 mem15 (UInt256.ofNat 9)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (by
       change (⟨15⟩ : UInt256).toByteArray.write 0 (wordAt0Mem key mem13) 32 32 =
         mem15
       simp [mem15, twoWordHashMem, wordAt32Mem])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd3159 := evm_run rd3155 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
   have rd3160pre := rd3159.keccak256 0 (endFlowFixSlot I)
-    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (UInt256.ofNat 9) (by decide +native) mem_cost
     (by simpa [mem15, key, hfixSlot] using hfixHash)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd3166raw := evm_run rd3160pre with [
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov)]
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov)]
   obtain ⟨_, _, rd3166⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3166⟩
         (endFlowFixSlot I :: endFlowFixVWord σ' I out :: ⟨64⟩ :: ⟨0⟩ ::
@@ -2508,7 +2508,7 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
           endFlowReturnPc :: sel :: [])
         mem15 (UInt256.ofNat 9) out (cA', σ') k' C' := by
     exact ⟨_, _, by simpa [endFlowFixVWord] using rd3166raw⟩
-  obtain ⟨_, _, rd3167raw⟩ := rd3166.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd3167raw⟩ := rd3166.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd3167⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3167⟩
@@ -2527,13 +2527,13 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
       (by rw [hmem15Size, hmem13Size, hmem12Size, hmem14Size, hpostSize]; decide)
       (by decide) hmem15Read64
   have rd3168 := rd3167.mload 0 ⟨128⟩ (UInt256.ofNat 9)
-    (by native_decide) mem_cost hmload64 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload64 (by decide +native) (by evm_ov)
   have rd3169 := evm_run rd3168 with [
-    raw dup5 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw dup5 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd3170 := rd3169.pushConst endFlowFixLogTopic
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
-  have rdLogPrefix := rd3170.swap2 (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native) (by evm_ov)
+  have rdLogPrefix := rd3170.swap2 (by decide +native) (by evm_ov)
   have rdLog := RD.log2
     (a := ⟨128⟩) (b := ⟨0⟩)
     (c := endFlowFixLogTopic) (d := key)
@@ -2543,16 +2543,16 @@ theorem endFlowX_tailReturns {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 9).toNat (⟨128⟩ : UInt256).toNat
         (⟨0⟩ : UInt256).toNat))
-    rdLogPrefix (by native_decide) hperm mem_cost (by native_decide)
+    rdLogPrefix (by decide +native) hperm mem_cost (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdJump := evm_run rdLog with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rdReturn := RD.jumpdest (pc := endFlowReturnPc) (stk := [sel]) rdJump
-    (by native_decide) (by evm_ov)
-  exact RD.stop rdReturn (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  exact RD.stop rdReturn (by decide +native) (by evm_ov)
 
 theorem endFlowCheckedVatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcodeSize :
@@ -3117,8 +3117,8 @@ theorem endFlowStmtWad0RmulReturns (evm : EVM.State) (I : ExecutionEnv)
     have hbase : (endFlowStoreRate I out).get? "Art" = none := by
       simp [endFlowStoreRate, endFlowStoreVatIlk, endFlowStore]
     have hget : (endFlowStoreRate I out).get? "ilk" = some (endFlowIlkValue I) := by
-      rw [endFlowStoreRate, store_get_ne _ _ (by native_decide),
-        endFlowStoreVatIlk, store_get_ne _ _ (by native_decide),
+      rw [endFlowStoreRate, store_get_ne _ _ (by decide +native),
+        endFlowStoreVatIlk, store_get_ne _ _ (by decide +native),
         endFlowStore, store_get_self]
     have hstorage := evalExpr_endFlow_Art_of_get evm I hbase hget hsz36
     simpa [hArtLoad] using hstorage
@@ -3182,9 +3182,9 @@ theorem endFlowStmtWadRmulReturns (evm : EVM.State) (I : ExecutionEnv)
     have hbase : (endFlowStoreWad0 σ I out).get? "tag" = none := by
       simp [endFlowStoreWad0, endFlowStoreRate, endFlowStoreVatIlk, endFlowStore]
     have hget : (endFlowStoreWad0 σ I out).get? "ilk" = some (endFlowIlkValue I) := by
-      rw [endFlowStoreWad0, store_get_ne _ _ (by native_decide),
-        endFlowStoreRate, store_get_ne _ _ (by native_decide),
-        endFlowStoreVatIlk, store_get_ne _ _ (by native_decide),
+      rw [endFlowStoreWad0, store_get_ne _ _ (by decide +native),
+        endFlowStoreRate, store_get_ne _ _ (by decide +native),
+        endFlowStoreVatIlk, store_get_ne _ _ (by decide +native),
         endFlowStore, store_get_self]
     have hstorage := evalExpr_endFlow_tag_of_get evm I hbase hget hsz36
     simpa [hTagLoad] using hstorage
@@ -3242,10 +3242,10 @@ theorem endFlowStmtNum0SubReturns (evm : EVM.State) (I : ExecutionEnv)
       simp [endFlowStoreWad, endFlowStoreWad0, endFlowStoreRate, endFlowStoreVatIlk,
         endFlowStore]
     have hget : (endFlowStoreWad σ I out).get? "ilk" = some (endFlowIlkValue I) := by
-      rw [endFlowStoreWad, store_get_ne _ _ (by native_decide),
-        endFlowStoreWad0, store_get_ne _ _ (by native_decide),
-        endFlowStoreRate, store_get_ne _ _ (by native_decide),
-        endFlowStoreVatIlk, store_get_ne _ _ (by native_decide),
+      rw [endFlowStoreWad, store_get_ne _ _ (by decide +native),
+        endFlowStoreWad0, store_get_ne _ _ (by decide +native),
+        endFlowStoreRate, store_get_ne _ _ (by decide +native),
+        endFlowStoreVatIlk, store_get_ne _ _ (by decide +native),
         endFlowStore, store_get_self]
     have hstorage := evalExpr_endFlow_gap_of_get evm I hbase hget hsz36
     simpa [hGapLoad] using hstorage
@@ -3294,7 +3294,7 @@ theorem endFlowStmtNumMulReturns (evm : EVM.State) (I : ExecutionEnv)
       evalExpr? config { contract := contract, locals := endFlowStoreNum0 σ I out } evm
         (.intLit RAY) = .ok (.int (Int.ofNat endRayWord.toNat)) := by
     have hRayEq : RAY = Int.ofNat endRayWord.toNat := by
-      native_decide
+      decide +native
     simp [evalExpr?, pure, hRayEq]
   have hargs :
       evalExprs? config { contract := contract, locals := endFlowStoreNum0 σ I out } evm
@@ -3344,13 +3344,13 @@ theorem endFlowStmtDenLet (evm : EVM.State) (I : ExecutionEnv)
       evalExpr? config { contract := contract, locals := endFlowStoreNum σ I out } evm
         (.intLit RAY) = .ok (.int (Int.ofNat endRayWord.toNat)) := by
     have hRayEq : RAY = Int.ofNat endRayWord.toNat := by
-      native_decide
+      decide +native
     simp [evalExpr?, pure, hRayEq]
   have hdiv :
       evalExpr? config { contract := contract, locals := endFlowStoreNum σ I out } evm
         (.binary .div (.storage debtRef) (.intLit RAY)) =
           .ok (.int (Int.ofNat (endFlowDenWord σ I).toNat)) :=
-    endEvalExpr_div_uint256_ok hdebt hRay (by native_decide) rfl
+    endEvalExpr_div_uint256_ok hdebt hRay (by decide +native) rfl
   simpa [endFlowStoreDen] using ExecStmt.letDecl hdiv
 
 theorem endFlowStmtFixVLet (evm : EVM.State) (I : ExecutionEnv)
@@ -3366,7 +3366,7 @@ theorem endFlowStmtFixVLet (evm : EVM.State) (I : ExecutionEnv)
       endEvalExpr_varUInt256 (evm := evm) (locals := endFlowStoreDen σ I out)
         (name := "num") (value := endFlowNumWord σ I out)
         (by
-          rw [endFlowStoreDen, store_get_ne _ _ (by native_decide),
+          rw [endFlowStoreDen, store_get_ne _ _ (by decide +native),
             endFlowStoreNum, store_get_self])
   have hdenExpr :
       evalExpr? config { contract := contract, locals := endFlowStoreDen σ I out } evm
@@ -3412,14 +3412,14 @@ theorem endFlowStmtAssignFixV (evm : EVM.State) (I : ExecutionEnv)
       (her := by
         have hget :
             (endFlowStoreFixV σ I out).get? "ilk" = some (endFlowIlkValue I) := by
-          rw [endFlowStoreFixV, store_get_ne _ _ (by native_decide),
-            endFlowStoreDen, store_get_ne _ _ (by native_decide),
-            endFlowStoreNum, store_get_ne _ _ (by native_decide),
-            endFlowStoreNum0, store_get_ne _ _ (by native_decide),
-            endFlowStoreWad, store_get_ne _ _ (by native_decide),
-            endFlowStoreWad0, store_get_ne _ _ (by native_decide),
-            endFlowStoreRate, store_get_ne _ _ (by native_decide),
-            endFlowStoreVatIlk, store_get_ne _ _ (by native_decide),
+          rw [endFlowStoreFixV, store_get_ne _ _ (by decide +native),
+            endFlowStoreDen, store_get_ne _ _ (by decide +native),
+            endFlowStoreNum, store_get_ne _ _ (by decide +native),
+            endFlowStoreNum0, store_get_ne _ _ (by decide +native),
+            endFlowStoreWad, store_get_ne _ _ (by decide +native),
+            endFlowStoreWad0, store_get_ne _ _ (by decide +native),
+            endFlowStoreRate, store_get_ne _ _ (by decide +native),
+            endFlowStoreVatIlk, store_get_ne _ _ (by decide +native),
             endFlowStore, store_get_self]
         exact evalStorageRef_endFlow_fix_of_get evm I hget hsz36)
       (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
@@ -3501,8 +3501,8 @@ theorem endFlowStmtWad0RmulReverts (evm : EVM.State) (I : ExecutionEnv)
     have hbase : (endFlowStoreRate I out).get? "Art" = none := by
       simp [endFlowStoreRate, endFlowStoreVatIlk, endFlowStore]
     have hget : (endFlowStoreRate I out).get? "ilk" = some (endFlowIlkValue I) := by
-      rw [endFlowStoreRate, store_get_ne _ _ (by native_decide),
-        endFlowStoreVatIlk, store_get_ne _ _ (by native_decide),
+      rw [endFlowStoreRate, store_get_ne _ _ (by decide +native),
+        endFlowStoreVatIlk, store_get_ne _ _ (by decide +native),
         endFlowStore, store_get_self]
     have hstorage := evalExpr_endFlow_Art_of_get evm I hbase hget hsz36
     simpa [hArtLoad] using hstorage
@@ -3564,9 +3564,9 @@ theorem endFlowStmtWadRmulReverts (evm : EVM.State) (I : ExecutionEnv)
     have hbase : (endFlowStoreWad0 σ I out).get? "tag" = none := by
       simp [endFlowStoreWad0, endFlowStoreRate, endFlowStoreVatIlk, endFlowStore]
     have hget : (endFlowStoreWad0 σ I out).get? "ilk" = some (endFlowIlkValue I) := by
-      rw [endFlowStoreWad0, store_get_ne _ _ (by native_decide),
-        endFlowStoreRate, store_get_ne _ _ (by native_decide),
-        endFlowStoreVatIlk, store_get_ne _ _ (by native_decide),
+      rw [endFlowStoreWad0, store_get_ne _ _ (by decide +native),
+        endFlowStoreRate, store_get_ne _ _ (by decide +native),
+        endFlowStoreVatIlk, store_get_ne _ _ (by decide +native),
         endFlowStore, store_get_self]
     have hstorage := evalExpr_endFlow_tag_of_get evm I hbase hget hsz36
     simpa [hTagLoad] using hstorage
@@ -3621,10 +3621,10 @@ theorem endFlowStmtNum0SubReverts (evm : EVM.State) (I : ExecutionEnv)
       simp [endFlowStoreWad, endFlowStoreWad0, endFlowStoreRate, endFlowStoreVatIlk,
         endFlowStore]
     have hget : (endFlowStoreWad σ I out).get? "ilk" = some (endFlowIlkValue I) := by
-      rw [endFlowStoreWad, store_get_ne _ _ (by native_decide),
-        endFlowStoreWad0, store_get_ne _ _ (by native_decide),
-        endFlowStoreRate, store_get_ne _ _ (by native_decide),
-        endFlowStoreVatIlk, store_get_ne _ _ (by native_decide),
+      rw [endFlowStoreWad, store_get_ne _ _ (by decide +native),
+        endFlowStoreWad0, store_get_ne _ _ (by decide +native),
+        endFlowStoreRate, store_get_ne _ _ (by decide +native),
+        endFlowStoreVatIlk, store_get_ne _ _ (by decide +native),
         endFlowStore, store_get_self]
     have hstorage := evalExpr_endFlow_gap_of_get evm I hbase hget hsz36
     simpa [hGapLoad] using hstorage
@@ -3671,7 +3671,7 @@ theorem endFlowStmtNumMulReverts (evm : EVM.State) (I : ExecutionEnv)
       evalExpr? config { contract := contract, locals := endFlowStoreNum0 σ I out } evm
         (.intLit RAY) = .ok (.int (Int.ofNat endRayWord.toNat)) := by
     have hRayEq : RAY = Int.ofNat endRayWord.toNat := by
-      native_decide
+      decide +native
     simp [evalExpr?, pure, hRayEq]
   have hargs :
       evalExprs? config { contract := contract, locals := endFlowStoreNum0 σ I out } evm
@@ -3712,7 +3712,7 @@ theorem endFlowStmtFixVLetReverts (evm : EVM.State) (I : ExecutionEnv)
       endEvalExpr_varUInt256 (evm := evm) (locals := endFlowStoreDen σ I out)
         (name := "num") (value := endFlowNumWord σ I out)
         (by
-          rw [endFlowStoreDen, store_get_ne _ _ (by native_decide),
+          rw [endFlowStoreDen, store_get_ne _ _ (by decide +native),
             endFlowStoreNum, store_get_self])
   have hdenExpr :
       evalExpr? config { contract := contract, locals := endFlowStoreDen σ I out } evm
@@ -4366,10 +4366,10 @@ theorem endFlowX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := endBytecode) (sel := sel) (entry := endFlowEntryPc) (ret := endFlowReturnPc)
     (decoded := endFlowDecodedPc) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem endFlowBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -4854,8 +4854,8 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                             (by
                               simpa [flowTransition] using
                                 (returnEquiv.fallthrough (o := ByteArray.empty) (r := none)
-                                  (t := []) (dvs := []) rfl (by native_decide)
-                                  (by native_decide)))
+                                  (t := []) (dvs := []) rfl (by decide +native)
+                                  (by decide +native)))
           · rw [not_lt] at hdepthLt
             have hdepthEq : I.depth = 1024 :=
               Fin.ext (by have := I.depth.isLt; omega)
@@ -4889,7 +4889,7 @@ theorem endFlowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   hwv hsz36 hdebtSolm hfixSolm hvatCodeSolmNE
                   (by simpa [evmSolm] using hcallSolm)
             exact (endFlowX_vatIlksCallFailed (g := Sat256.ofUInt256 g) rd2964
-              (by native_decide))
+              (by decide +native))
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hfixSolm : endFlowFixWord σ_solm I ≠ ⟨0⟩ := by
           intro hbad

@@ -113,14 +113,14 @@ theorem weth9StringStoreSubroutine
     UInt256.lor (len + len) (UInt256.land (UInt256.lnot ⟨255⟩) dataword) with hVdef
   -- Phase A: SLOAD the old header.
   have hA := evm_run h with [jumpdest, dup3, dup1]
-  obtain ⟨_, _, hSload⟩ := hA.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, hSload⟩ := hA.sload (by decide +native) (by evm_ov)
   -- Phase B: decode the old length; MSTORE the slot at mem[0].
   have hB := evm_run hSload with [
     push1 ⟨1⟩, dup2, push1 ⟨1⟩, and, iszero, push2 ⟨256⟩, mul, sub, and, push1 ⟨2⟩, swap1, div,
     swap1, push1 ⟨0⟩]
   have hMstore := hB.mstore
     (Cₘ (UInt256.ofNat (MachineState.M aw.toNat 0 32)) - Cₘ aw) mem1 aw
-    (by native_decide)
+    (by decide +native)
     (fun s haws hstks => by
       simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
         List.getElem!_cons_zero, show (⟨0⟩ : UInt256).toNat = 0 from rfl])
@@ -129,7 +129,7 @@ theorem weth9StringStoreSubroutine
   have hC := evm_run hMstore with [push1 ⟨32⟩, push1 ⟨0⟩]
   have hKecc := hC.keccak256
     (Cₘ (UInt256.ofNat (MachineState.M aw.toNat 0 32)) - Cₘ aw) K aw
-    (by native_decide) weth9KeccakCost
+    (by decide +native) weth9KeccakCost
     (by
       rw [show mem1.readWithPadding (⟨0⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat
             = UInt256.toByteArray slot from by
@@ -148,7 +148,7 @@ theorem weth9StringStoreSubroutine
     push2 ⟨187⟩, jumpiNT hcondBranch, dup1]
   have hMload := hD.mload
     (Cₘ (UInt256.ofNat (MachineState.M aw.toNat memPtr.toNat 32)) - Cₘ aw) dataword aw
-    (by native_decide) weth9MloadCost
+    (by decide +native) weth9MloadCost
     (by
       refine mloadWordValue_of_readWithPadding (mem := mem1) (aw := aw) (off := memPtr)
         (v := dataword) ?_ ?_ ?_
@@ -166,11 +166,11 @@ theorem weth9StringStoreSubroutine
     (weth9AwMemPtr_eq aw memPtr.toNat hawMem) (by evm_ov)
   -- Phase E: build the short word, SSTORE it at `slot`.
   have hE := evm_run hMload with [push1 ⟨255⟩, not, and, dup4, dup1, add, or, dup6]
-  obtain ⟨_, _, hSstore⟩ := hE.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, hSstore⟩ := hE.sstore hperm (by decide +native) (by evm_ov)
   -- Phase F: return-dance setup to the clear-loop head ⟨254⟩.
   have hF := evm_run hSstore with [
-    push2 ⟨232⟩, jump (by native_decide),
-    jumpdest, pop, push2 ⟨244⟩, swap3, swap2, pop, push2 ⟨248⟩, jump (by native_decide),
+    push2 ⟨232⟩, jump (by decide +native),
+    jumpdest, pop, push2 ⟨244⟩, swap3, swap2, pop, push2 ⟨248⟩, jump (by decide +native),
     jumpdest, push2 ⟨274⟩, swap2, swap1]
   -- Match the loop-head cursor to `K + ofNat ow` and run the loop + return dance.
   rw [weth9OldWordsWord_eq] at hF

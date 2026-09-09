@@ -22,11 +22,11 @@ set_option maxRecDepth 10000
   simpa using h
 
 @[simp] theorem tinyImmutableBytecode_size : tinyImmutableBytecode.size = 432 := by
-  native_decide +revert
+  decide +native +revert
 
 @[simp] theorem tinyImmutableCreationBytecode_size :
     tinyImmutableCreationBytecode.size = 634 := by
-  native_decide +revert
+  decide +native +revert
 
 def runtimeWrites (v : TinyImmutables) : List (Nat × UInt256) :=
   [ (186, EVM.wordOfInt (Int.ofNat v.scale.toNat)),
@@ -183,7 +183,7 @@ theorem code_eq_patchedRuntime_of_patch {v : TinyImmutables} {code : ByteArray}
 theorem patchedRuntime_size (v : TinyImmutables) : (patchedRuntime v).size = 432 := by
   unfold patchedRuntime
   exact writeCascade_size_of_base tinyImmutableBytecode (runtimeWrites v) (base := 432) (out := 432)
-    (by native_decide) (by simp [runtimeWrites, WriteGapsOk])
+    (by decide +native) (by simp [runtimeWrites, WriteGapsOk])
     (by simp [runtimeWrites, writeCascadeSize])
 
 theorem writeCascade_extract_preserved_len
@@ -325,43 +325,43 @@ theorem uInt256OfByteArray_toByteArray (w : UInt256) :
 macro "tiny_decode" : tactic =>
   `(tactic|
     (first
-      | native_decide
+      | decide +native
       | rw [patchedRuntime_decode_preserved_of_parse]
-        · native_decide
-        · native_decide
-        · native_decide
+        · decide +native
+        · decide +native
+        · decide +native
         · first
-          | native_decide
+          | decide +native
           | norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size]
         · first
-          | native_decide
+          | decide +native
           | norm_num [UInt256.toNat, UInt256.size]
         · first
-          | native_decide
+          | decide +native
           | norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size,
               argOnNBytesOfInstr]
         · first
-          | native_decide
+          | decide +native
           | norm_num [UInt256.toNat, UInt256.size, argOnNBytesOfInstr]
       | rw [patchedRuntime_decode_preserved]
-        · native_decide
+        · decide +native
         · first
-          | native_decide
+          | decide +native
           | norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size]
         · first
-          | native_decide
+          | decide +native
           | norm_num [UInt256.toNat, UInt256.size]
         · intro byte instr hbyte hinstr
           first
           | revert hbyte hinstr
-            native_decide
+            decide +native
           | have hle := argOnNBytesOfInstr_le_32 instr
             simp [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size]
             omega
         · intro byte instr hbyte hinstr
           first
           | revert hbyte hinstr
-            native_decide
+            decide +native
           | have hle := argOnNBytesOfInstr_le_32 instr
             simp [UInt256.toNat, UInt256.size]
             omega))
@@ -371,7 +371,7 @@ theorem patchedRuntime_word72 (v : TinyImmutables) :
       UInt256.toByteArray (EVM.Word.ofNat (↑v.owner : Nat)) := by
   unfold patchedRuntime runtimeWrites
   unfold ByteArray.extract'
-  rw [if_pos (by native_decide)]
+  rw [if_pos (by decide +native)]
   rw [← readWithPadding_eq_extract' _ 72 32 (by norm_num) (by norm_num)]
   · rw [writeCascade_cons, writeCascade_cons]
     refine writeCascade_read_word_of_head_of_base
@@ -383,7 +383,7 @@ theorem patchedRuntime_word72 (v : TinyImmutables) :
       [ (245, EVM.Word.ofNat (↑v.owner : Nat)) ] ?_ ?_ ?_
     · rw [writeWord_size]
       · rw [writeWord_size]
-        · native_decide
+        · decide +native
         · rw [tinyImmutableBytecode_size]
           norm_num
       · rw [writeWord_size]
@@ -402,7 +402,7 @@ theorem patchedRuntime_word245 (v : TinyImmutables) :
       UInt256.toByteArray (EVM.Word.ofNat (↑v.owner : Nat)) := by
   unfold patchedRuntime runtimeWrites
   unfold ByteArray.extract'
-  rw [if_pos (by native_decide)]
+  rw [if_pos (by decide +native)]
   rw [← readWithPadding_eq_extract' _ 245 32 (by norm_num) (by norm_num)]
   · rw [writeCascade_cons, writeCascade_cons, writeCascade_cons]
     refine writeCascade_read_word_of_head_of_base
@@ -417,7 +417,7 @@ theorem patchedRuntime_word245 (v : TinyImmutables) :
     · rw [writeWord_size]
       · rw [writeWord_size]
         · rw [writeWord_size]
-          · native_decide
+          · decide +native
           · rw [tinyImmutableBytecode_size]
             norm_num
         · rw [writeWord_size]
@@ -447,7 +447,7 @@ theorem patchedRuntime_word186 (v : TinyImmutables) :
       UInt256.toByteArray (EVM.wordOfInt (Int.ofNat v.scale.toNat)) := by
   unfold patchedRuntime runtimeWrites
   unfold ByteArray.extract'
-  rw [if_pos (by native_decide)]
+  rw [if_pos (by decide +native)]
   rw [← readWithPadding_eq_extract' _ 186 32 (by norm_num) (by norm_num)]
   · exact writeCascade_read_word_of_head_of_base tinyImmutableBytecode
       (base := 432)
@@ -455,7 +455,7 @@ theorem patchedRuntime_word186 (v : TinyImmutables) :
       [ (361, EVM.wordOfInt (Int.ofNat v.scale.toNat)),
         (72, EVM.Word.ofNat (↑v.owner : Nat)),
         (245, EVM.Word.ofNat (↑v.owner : Nat)) ]
-      (by native_decide) (by norm_num) (by simp [WindowDisjointFromWrites])
+      (by decide +native) (by norm_num) (by simp [WindowDisjointFromWrites])
   · change 186 + 32 ≤ (patchedRuntime v).size
     rw [patchedRuntime_size v]
     norm_num
@@ -465,7 +465,7 @@ theorem patchedRuntime_word361 (v : TinyImmutables) :
       UInt256.toByteArray (EVM.wordOfInt (Int.ofNat v.scale.toNat)) := by
   unfold patchedRuntime runtimeWrites
   unfold ByteArray.extract'
-  rw [if_pos (by native_decide)]
+  rw [if_pos (by decide +native)]
   rw [← readWithPadding_eq_extract' _ 361 32 (by norm_num) (by norm_num)]
   · rw [writeCascade_cons]
     refine writeCascade_read_word_of_head_of_base
@@ -475,7 +475,7 @@ theorem patchedRuntime_word361 (v : TinyImmutables) :
       [ (72, EVM.Word.ofNat (↑v.owner : Nat)),
         (245, EVM.Word.ofNat (↑v.owner : Nat)) ] ?_ ?_ ?_
     · rw [writeWord_size]
-      · native_decide
+      · decide +native
       · rw [tinyImmutableBytecode_size]
         norm_num
     · norm_num
@@ -488,9 +488,9 @@ theorem tinyDecodeOwnerWord1 (v : TinyImmutables) :
     decode (patchedRuntime v) ⟨71⟩ =
       some (.Push .PUSH32, some (EVM.Word.ofNat (↑v.owner : Nat), 32)) := by
   unfold decode
-  rw [show (⟨71⟩ : UInt256).toNat = 71 by native_decide]
+  rw [show (⟨71⟩ : UInt256).toNat = 71 by decide +native]
   rw [patchedRuntime_get?_preserved v 71]
-  · have hget : tinyImmutableBytecode.get? 71 = some 0x7f := by native_decide
+  · have hget : tinyImmutableBytecode.get? 71 = some 0x7f := by decide +native
     rw [hget]
     simp [parseInstr, argOnNBytesOfInstr]
     rw [patchedRuntime_word72 v]
@@ -502,9 +502,9 @@ theorem tinyDecodeOwnerWord2 (v : TinyImmutables) :
     decode (patchedRuntime v) ⟨244⟩ =
       some (.Push .PUSH32, some (EVM.Word.ofNat (↑v.owner : Nat), 32)) := by
   unfold decode
-  rw [show (⟨244⟩ : UInt256).toNat = 244 by native_decide]
+  rw [show (⟨244⟩ : UInt256).toNat = 244 by decide +native]
   rw [patchedRuntime_get?_preserved v 244]
-  · have hget : tinyImmutableBytecode.get? 244 = some 0x7f := by native_decide
+  · have hget : tinyImmutableBytecode.get? 244 = some 0x7f := by decide +native
     rw [hget]
     simp [parseInstr, argOnNBytesOfInstr]
     rw [patchedRuntime_word245 v]
@@ -516,9 +516,9 @@ theorem tinyDecodeScaleWord1 (v : TinyImmutables) :
     decode (patchedRuntime v) ⟨185⟩ =
       some (.Push .PUSH32, some (EVM.wordOfInt (Int.ofNat v.scale.toNat), 32)) := by
   unfold decode
-  rw [show (⟨185⟩ : UInt256).toNat = 185 by native_decide]
+  rw [show (⟨185⟩ : UInt256).toNat = 185 by decide +native]
   rw [patchedRuntime_get?_preserved v 185]
-  · have hget : tinyImmutableBytecode.get? 185 = some 0x7f := by native_decide
+  · have hget : tinyImmutableBytecode.get? 185 = some 0x7f := by decide +native
     rw [hget]
     simp [parseInstr, argOnNBytesOfInstr]
     rw [patchedRuntime_word186 v]
@@ -531,9 +531,9 @@ theorem tinyDecodeScaleWord2 (v : TinyImmutables) :
     decode (patchedRuntime v) ⟨360⟩ =
       some (.Push .PUSH32, some (EVM.wordOfInt (Int.ofNat v.scale.toNat), 32)) := by
   unfold decode
-  rw [show (⟨360⟩ : UInt256).toNat = 360 by native_decide]
+  rw [show (⟨360⟩ : UInt256).toNat = 360 by decide +native]
   rw [patchedRuntime_get?_preserved v 360]
-  · have hget : tinyImmutableBytecode.get? 360 = some 0x7f := by native_decide
+  · have hget : tinyImmutableBytecode.get? 360 = some 0x7f := by decide +native
     rw [hget]
     simp [parseInstr, argOnNBytesOfInstr]
     rw [patchedRuntime_word361 v]
@@ -660,13 +660,13 @@ macro_rules
       `(tactic|
         (change decode (patchedRuntime $varg) ($pc : UInt256) = _;
           rw [(patchedRuntime_decode_preserved_of_parse $varg ($pc : UInt256) ($byte : UInt8)
-            $instr (by native_decide) (by native_decide)
+            $instr (by decide +native) (by decide +native)
             (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size])
             (by norm_num [UInt256.toNat, UInt256.size])
             (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size,
               argOnNBytesOfInstr])
             (by norm_num [UInt256.toNat, UInt256.size, argOnNBytesOfInstr]))];
-          native_decide))
+          decide +native))
 
 theorem tinyPushAt8 (v : TinyImmutables) :
     pushAt (patchedRuntime v) ⟨8⟩ = (.PUSH2, (⟨15⟩ : UInt256), 2) := by
@@ -738,15 +738,15 @@ theorem tinyRuntimePrefixWf (v : TinyImmutables) :
   have hguardJumpi : solcGuardJumpiPc (patchedRuntime v) = (⟨11⟩ : UInt256) := by
     unfold solcGuardJumpiPc
     rw [hguardWidth]
-    native_decide
+    decide +native
   have hbody : solcDispatchBodyPc (patchedRuntime v) = (⟨17⟩ : UInt256) := by
     unfold solcDispatchBodyPc
     rw [hguardTgt]
-    native_decide
+    decide +native
   have hrevertPush : solcCalldataRevertPushPc (patchedRuntime v) = (⟨21⟩ : UInt256) := by
     unfold solcCalldataRevertPushPc
     rw [hbody]
-    native_decide
+    decide +native
   have hrevertOp : solcCalldataRevertTgtOp (patchedRuntime v) = .PUSH2 := by
     unfold solcCalldataRevertTgtOp
     rw [hrevertPush, tinyPushAt21 v]
@@ -759,15 +759,15 @@ theorem tinyRuntimePrefixWf (v : TinyImmutables) :
   have hcalldataJumpi : solcCalldataJumpiPc (patchedRuntime v) = (⟨24⟩ : UInt256) := by
     unfold solcCalldataJumpiPc
     rw [hrevertPush, hrevertWidth]
-    native_decide
+    decide +native
   have hselectorLoad : solcSelectorLoadPc (patchedRuntime v) = (⟨25⟩ : UInt256) := by
     unfold solcSelectorLoadPc
     rw [hcalldataJumpi]
-    native_decide
+    decide +native
   have hfirstArm : solcFirstArmPcFromPrefix (patchedRuntime v) = tinyFirstArmPc := by
     unfold solcFirstArmPcFromPrefix
     rw [hselectorLoad]
-    native_decide
+    decide +native
   unfold solcDispatchPrefixWellFormed
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
     ?_, ?_, ?_, ?_, ?_⟩
@@ -811,12 +811,12 @@ theorem tinyRuntimePrefixWf (v : TinyImmutables) :
 
 theorem tinyOwnerArmWellFormed (v : TinyImmutables) :
     armWellFormed (patchedRuntime v) ⟨30⟩ := by
-  have hpush4 : selArmPush4Pc (⟨30⟩ : UInt256) = (⟨31⟩ : UInt256) := by native_decide
-  have heq : selArmEqPc (⟨30⟩ : UInt256) = (⟨36⟩ : UInt256) := by native_decide
+  have hpush4 : selArmPush4Pc (⟨30⟩ : UInt256) = (⟨31⟩ : UInt256) := by decide +native
+  have heq : selArmEqPc (⟨30⟩ : UInt256) = (⟨36⟩ : UInt256) := by decide +native
   have hpushTgt : selArmPushTgtPc (⟨30⟩ : UInt256) = (⟨37⟩ : UInt256) := by
-    native_decide
+    decide +native
   have hjumpi : selArmJumpiPc (⟨30⟩ : UInt256) 2 = (⟨40⟩ : UInt256) := by
-    native_decide
+    decide +native
   unfold armWellFormed
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · tiny_decode_at v, ⟨30⟩, 0x80, .DUP1
@@ -839,12 +839,12 @@ theorem tinyOwnerArmWellFormed (v : TinyImmutables) :
 
 theorem tinyQuoteArmWellFormed (v : TinyImmutables) :
     armWellFormed (patchedRuntime v) ⟨41⟩ := by
-  have hpush4 : selArmPush4Pc (⟨41⟩ : UInt256) = (⟨42⟩ : UInt256) := by native_decide
-  have heq : selArmEqPc (⟨41⟩ : UInt256) = (⟨47⟩ : UInt256) := by native_decide
+  have hpush4 : selArmPush4Pc (⟨41⟩ : UInt256) = (⟨42⟩ : UInt256) := by decide +native
+  have heq : selArmEqPc (⟨41⟩ : UInt256) = (⟨47⟩ : UInt256) := by decide +native
   have hpushTgt : selArmPushTgtPc (⟨41⟩ : UInt256) = (⟨48⟩ : UInt256) := by
-    native_decide
+    decide +native
   have hjumpi : selArmJumpiPc (⟨41⟩ : UInt256) 2 = (⟨51⟩ : UInt256) := by
-    native_decide
+    decide +native
   unfold armWellFormed
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · tiny_decode_at v, ⟨41⟩, 0x80, .DUP1
@@ -867,12 +867,12 @@ theorem tinyQuoteArmWellFormed (v : TinyImmutables) :
 
 theorem tinyScaleArmWellFormed (v : TinyImmutables) :
     armWellFormed (patchedRuntime v) ⟨52⟩ := by
-  have hpush4 : selArmPush4Pc (⟨52⟩ : UInt256) = (⟨53⟩ : UInt256) := by native_decide
-  have heq : selArmEqPc (⟨52⟩ : UInt256) = (⟨58⟩ : UInt256) := by native_decide
+  have hpush4 : selArmPush4Pc (⟨52⟩ : UInt256) = (⟨53⟩ : UInt256) := by decide +native
+  have heq : selArmEqPc (⟨52⟩ : UInt256) = (⟨58⟩ : UInt256) := by decide +native
   have hpushTgt : selArmPushTgtPc (⟨52⟩ : UInt256) = (⟨59⟩ : UInt256) := by
-    native_decide
+    decide +native
   have hjumpi : selArmJumpiPc (⟨52⟩ : UInt256) 2 = (⟨62⟩ : UInt256) := by
-    native_decide
+    decide +native
   unfold armWellFormed
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · tiny_decode_at v, ⟨52⟩, 0x80, .DUP1
@@ -896,35 +896,35 @@ theorem tinyScaleArmWellFormed (v : TinyImmutables) :
 theorem tinyArmTgtWidth_ownerPc (v : TinyImmutables) :
     armTgtWidth (patchedRuntime v) tinyFirstArmPc = 2 := by
   unfold armTgtWidth
-  rw [show selArmPushTgtPc tinyFirstArmPc = (⟨37⟩ : UInt256) by native_decide,
+  rw [show selArmPushTgtPc tinyFirstArmPc = (⟨37⟩ : UInt256) by decide +native,
     tinyPushAt37 v]
 
 theorem tinyOwnerArmNextPc (v : TinyImmutables) :
     selArmNextPc tinyFirstArmPc (armTgtWidth (patchedRuntime v) tinyFirstArmPc) = ⟨41⟩ := by
   rw [tinyArmTgtWidth_ownerPc v]
-  native_decide
+  decide +native
 
 theorem tinyArmTgtWidth_quotePc (v : TinyImmutables) :
     armTgtWidth (patchedRuntime v) ⟨41⟩ = 2 := by
   unfold armTgtWidth
-  rw [show selArmPushTgtPc (⟨41⟩ : UInt256) = (⟨48⟩ : UInt256) by native_decide,
+  rw [show selArmPushTgtPc (⟨41⟩ : UInt256) = (⟨48⟩ : UInt256) by decide +native,
     tinyPushAt48 v]
 
 theorem tinyQuoteArmNextPc (v : TinyImmutables) :
     selArmNextPc ⟨41⟩ (armTgtWidth (patchedRuntime v) ⟨41⟩) = ⟨52⟩ := by
   rw [tinyArmTgtWidth_quotePc v]
-  native_decide
+  decide +native
 
 theorem tinyArmTgtWidth_scalePc (v : TinyImmutables) :
     armTgtWidth (patchedRuntime v) ⟨52⟩ = 2 := by
   unfold armTgtWidth
-  rw [show selArmPushTgtPc (⟨52⟩ : UInt256) = (⟨59⟩ : UInt256) by native_decide,
+  rw [show selArmPushTgtPc (⟨52⟩ : UInt256) = (⟨59⟩ : UInt256) by decide +native,
     tinyPushAt59 v]
 
 theorem tinyScaleArmNextPc (v : TinyImmutables) :
     selArmNextPc ⟨52⟩ (armTgtWidth (patchedRuntime v) ⟨52⟩) = ⟨63⟩ := by
   rw [tinyArmTgtWidth_scalePc v]
-  native_decide
+  decide +native
 
 theorem tinyNthArmPc0 (v : TinyImmutables) :
     nthArmPc (patchedRuntime v) tinyFirstArmPc 0 = tinyFirstArmPc := rfl
@@ -959,21 +959,21 @@ theorem tinyArmTgt_owner (v : TinyImmutables) :
     armTgt (patchedRuntime v) (nthArmPc (patchedRuntime v) tinyFirstArmPc 0) = ⟨67⟩ := by
   rw [tinyNthArmPc0 v]
   unfold armTgt
-  rw [show selArmPushTgtPc tinyFirstArmPc = (⟨37⟩ : UInt256) by native_decide,
+  rw [show selArmPushTgtPc tinyFirstArmPc = (⟨37⟩ : UInt256) by decide +native,
     tinyPushAt37 v]
 
 theorem tinyArmTgt_quote (v : TinyImmutables) :
     armTgt (patchedRuntime v) (nthArmPc (patchedRuntime v) tinyFirstArmPc 1) = ⟨148⟩ := by
   rw [tinyNthArmPc1 v]
   unfold armTgt
-  rw [show selArmPushTgtPc (⟨41⟩ : UInt256) = (⟨48⟩ : UInt256) by native_decide,
+  rw [show selArmPushTgtPc (⟨41⟩ : UInt256) = (⟨48⟩ : UInt256) by decide +native,
     tinyPushAt48 v]
 
 theorem tinyArmTgt_scale (v : TinyImmutables) :
     armTgt (patchedRuntime v) (nthArmPc (patchedRuntime v) tinyFirstArmPc 2) = ⟨181⟩ := by
   rw [tinyNthArmPc2 v]
   unfold armTgt
-  rw [show selArmPushTgtPc (⟨52⟩ : UInt256) = (⟨59⟩ : UInt256) by native_decide,
+  rw [show selArmPushTgtPc (⟨52⟩ : UInt256) = (⟨59⟩ : UInt256) by decide +native,
     tinyPushAt59 v]
 
 theorem tinyArmSelNat_owner (v : TinyImmutables) :
@@ -981,7 +981,7 @@ theorem tinyArmSelNat_owner (v : TinyImmutables) :
       ⟨2376452955⟩ := by
   rw [tinyNthArmPc0 v]
   unfold armSelNat
-  rw [show selArmPush4Pc tinyFirstArmPc = (⟨31⟩ : UInt256) by native_decide,
+  rw [show selArmPush4Pc tinyFirstArmPc = (⟨31⟩ : UInt256) by decide +native,
     tinyPushAt31 v]
 
 theorem tinyArmSelNat_quote (v : TinyImmutables) :
@@ -989,7 +989,7 @@ theorem tinyArmSelNat_quote (v : TinyImmutables) :
       ⟨3978024812⟩ := by
   rw [tinyNthArmPc1 v]
   unfold armSelNat
-  rw [show selArmPush4Pc (⟨41⟩ : UInt256) = (⟨42⟩ : UInt256) by native_decide,
+  rw [show selArmPush4Pc (⟨41⟩ : UInt256) = (⟨42⟩ : UInt256) by decide +native,
     tinyPushAt42 v]
 
 theorem tinyArmSelNat_scale (v : TinyImmutables) :
@@ -997,7 +997,7 @@ theorem tinyArmSelNat_scale (v : TinyImmutables) :
       ⟨4112390170⟩ := by
   rw [tinyNthArmPc2 v]
   unfold armSelNat
-  rw [show selArmPush4Pc (⟨52⟩ : UInt256) = (⟨53⟩ : UInt256) by native_decide,
+  rw [show selArmPush4Pc (⟨52⟩ : UInt256) = (⟨53⟩ : UInt256) by decide +native,
     tinyPushAt53 v]
 
 syntax "tiny_parse_at " term "," term : tactic
@@ -1007,7 +1007,7 @@ macro_rules
         (rw [patchedRuntime_get?_preserved $varg ($pc : Nat)
             (by norm_num [runtimeWrites, WindowDisjointFromWrites])
             (by norm_num)];
-          native_decide))
+          decide +native))
 
 syntax "tiny_dj_step " term "," term "," term : tactic
 macro_rules
@@ -1187,72 +1187,72 @@ theorem tinyPatchedValidJumps (v : TinyImmutables) :
   tiny_dj_step v, 430, .STOP
   tiny_dj_step v, 431, .EXP
   rw [D_J_aux_ge_size (patchedRuntime v) 432 _ (by rw [patchedRuntime_size v])]
-  native_decide
+  decide +native
 
 theorem tinyContains15 (v : TinyImmutables) :
     (D_J (patchedRuntime v) 0).contains ⟨15⟩ = true := by
   rw [tinyPatchedValidJumps v]
-  native_decide
+  decide +native
 
 theorem tinyContains63 (v : TinyImmutables) :
     (D_J (patchedRuntime v) 0).contains ⟨63⟩ = true := by
   rw [tinyPatchedValidJumps v]
-  native_decide
+  decide +native
 
 theorem tinyContains67 (v : TinyImmutables) :
     (D_J (patchedRuntime v) 0).contains ⟨67⟩ = true := by
   rw [tinyPatchedValidJumps v]
-  native_decide
+  decide +native
 
 theorem tinyContains106 (v : TinyImmutables) :
     (D_J (patchedRuntime v) 0).contains ⟨106⟩ = true := by
   rw [tinyPatchedValidJumps v]
-  native_decide
+  decide +native
 
 theorem tinyContains139 (v : TinyImmutables) :
     (D_J (patchedRuntime v) 0).contains ⟨139⟩ = true := by
   rw [tinyPatchedValidJumps v]
-  native_decide
+  decide +native
 
 theorem tinyContains148 (v : TinyImmutables) :
     (D_J (patchedRuntime v) 0).contains ⟨148⟩ = true := by
   rw [tinyPatchedValidJumps v]
-  native_decide
+  decide +native
 
 theorem tinyContains162 (v : TinyImmutables) :
     (D_J (patchedRuntime v) 0).contains ⟨162⟩ = true := by
   rw [tinyPatchedValidJumps v]
-  native_decide
+  decide +native
 
 theorem tinyContains167 (v : TinyImmutables) :
     (D_J (patchedRuntime v) 0).contains ⟨167⟩ = true := by
   rw [tinyPatchedValidJumps v]
-  native_decide
+  decide +native
 
 theorem tinyContains181 (v : TinyImmutables) :
     (D_J (patchedRuntime v) 0).contains ⟨181⟩ = true := by
   rw [tinyPatchedValidJumps v]
-  native_decide
+  decide +native
 
 theorem tinyContains220 (v : TinyImmutables) :
     (D_J (patchedRuntime v) 0).contains ⟨220⟩ = true := by
   rw [tinyPatchedValidJumps v]
-  native_decide
+  decide +native
 
 theorem tinyContains358 (v : TinyImmutables) :
     (D_J (patchedRuntime v) 0).contains ⟨358⟩ = true := by
   rw [tinyPatchedValidJumps v]
-  native_decide
+  decide +native
 
 theorem tinyContains396 (v : TinyImmutables) :
     (D_J (patchedRuntime v) 0).contains ⟨396⟩ = true := by
   rw [tinyPatchedValidJumps v]
-  native_decide
+  decide +native
 
 theorem tinyContains412 (v : TinyImmutables) :
     (D_J (patchedRuntime v) 0).contains ⟨412⟩ = true := by
   rw [tinyPatchedValidJumps v]
-  native_decide
+  decide +native
 
 theorem tinyOwnerEvmSelector {cd : ByteArray} (hsz : 4 ≤ cd.size) :
     UInt256.eq ⟨2376452955⟩
@@ -1286,7 +1286,7 @@ theorem tinyGuardJd (v : TinyImmutables) :
 theorem tinyArmSelNat_ownerPc (v : TinyImmutables) :
     armSelNat (patchedRuntime v) tinyFirstArmPc = ⟨2376452955⟩ := by
   unfold armSelNat pushAt selArmPush4Pc
-  have hpc : tinyFirstArmPc + ⟨1⟩ = (⟨31⟩ : UInt256) := by native_decide
+  have hpc : tinyFirstArmPc + ⟨1⟩ = (⟨31⟩ : UInt256) := by decide +native
   rw [hpc]
   rw [show decode (patchedRuntime v) ⟨31⟩ =
     some (.Push .PUSH4, some (⟨2376452955⟩, 4)) by tiny_decode]
@@ -1294,84 +1294,84 @@ theorem tinyArmSelNat_ownerPc (v : TinyImmutables) :
 theorem tinyArmSelNat_quotePc (v : TinyImmutables) :
     armSelNat (patchedRuntime v) ⟨41⟩ = ⟨3978024812⟩ := by
   unfold armSelNat pushAt selArmPush4Pc
-  have hpc : (⟨41⟩ : UInt256) + ⟨1⟩ = (⟨42⟩ : UInt256) := by native_decide
+  have hpc : (⟨41⟩ : UInt256) + ⟨1⟩ = (⟨42⟩ : UInt256) := by decide +native
   rw [hpc]
   rw [show decode (patchedRuntime v) ⟨42⟩ =
     some (.Push .PUSH4, some (⟨3978024812⟩, 4)) by
       have hpres := patchedRuntime_decode_preserved_of_parse v (⟨42⟩ : UInt256) 0x63
-        (.Push .PUSH4) (by native_decide) (by native_decide)
+        (.Push .PUSH4) (by decide +native) (by decide +native)
         (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size])
         (by norm_num [UInt256.toNat, UInt256.size])
         (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size,
           argOnNBytesOfInstr])
         (by norm_num [UInt256.toNat, UInt256.size, argOnNBytesOfInstr])
       rw [hpres]
-      native_decide]
+      decide +native]
 
 theorem tinyArmSelNat_scalePc (v : TinyImmutables) :
     armSelNat (patchedRuntime v) ⟨52⟩ = ⟨4112390170⟩ := by
   unfold armSelNat pushAt selArmPush4Pc
-  have hpc : (⟨52⟩ : UInt256) + ⟨1⟩ = (⟨53⟩ : UInt256) := by native_decide
+  have hpc : (⟨52⟩ : UInt256) + ⟨1⟩ = (⟨53⟩ : UInt256) := by decide +native
   rw [hpc]
   rw [show decode (patchedRuntime v) ⟨53⟩ =
     some (.Push .PUSH4, some (⟨4112390170⟩, 4)) by
       have hpres := patchedRuntime_decode_preserved_of_parse v (⟨53⟩ : UInt256) 0x63
-        (.Push .PUSH4) (by native_decide) (by native_decide)
+        (.Push .PUSH4) (by decide +native) (by decide +native)
         (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size])
         (by norm_num [UInt256.toNat, UInt256.size])
         (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size,
           argOnNBytesOfInstr])
         (by norm_num [UInt256.toNat, UInt256.size, argOnNBytesOfInstr])
       rw [hpres]
-      native_decide]
+      decide +native]
 
 theorem tinyDecodeJumpdest63 (v : TinyImmutables) :
     decode (patchedRuntime v) ⟨63⟩ = some (.JUMPDEST, .none) := by
   have hpres := patchedRuntime_decode_preserved_of_parse v (⟨63⟩ : UInt256) 0x5b
-    .JUMPDEST (by native_decide) (by native_decide)
+    .JUMPDEST (by decide +native) (by decide +native)
     (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size])
     (by norm_num [UInt256.toNat, UInt256.size])
     (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size,
       argOnNBytesOfInstr])
     (by norm_num [UInt256.toNat, UInt256.size, argOnNBytesOfInstr])
   rw [hpres]
-  native_decide
+  decide +native
 
 theorem tinyDecodePush0_64 (v : TinyImmutables) :
     decode (patchedRuntime v) ⟨64⟩ = some (.PUSH0, .none) := by
   have hpres := patchedRuntime_decode_preserved_of_parse v (⟨64⟩ : UInt256) 0x5f
-    .PUSH0 (by native_decide) (by native_decide)
+    .PUSH0 (by decide +native) (by decide +native)
     (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size])
     (by norm_num [UInt256.toNat, UInt256.size])
     (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size,
       argOnNBytesOfInstr])
     (by norm_num [UInt256.toNat, UInt256.size, argOnNBytesOfInstr])
   rw [hpres]
-  native_decide
+  decide +native
 
 theorem tinyDecodePush0_65 (v : TinyImmutables) :
     decode (patchedRuntime v) ⟨65⟩ = some (.PUSH0, .none) := by
   have hpres := patchedRuntime_decode_preserved_of_parse v (⟨65⟩ : UInt256) 0x5f
-    .PUSH0 (by native_decide) (by native_decide)
+    .PUSH0 (by decide +native) (by decide +native)
     (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size])
     (by norm_num [UInt256.toNat, UInt256.size])
     (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size,
       argOnNBytesOfInstr])
     (by norm_num [UInt256.toNat, UInt256.size, argOnNBytesOfInstr])
   rw [hpres]
-  native_decide
+  decide +native
 
 theorem tinyDecodeRevert66 (v : TinyImmutables) :
     decode (patchedRuntime v) ⟨66⟩ = some (.REVERT, .none) := by
   have hpres := patchedRuntime_decode_preserved_of_parse v (⟨66⟩ : UInt256) 0xfd
-    .REVERT (by native_decide) (by native_decide)
+    .REVERT (by decide +native) (by decide +native)
     (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size])
     (by norm_num [UInt256.toNat, UInt256.size])
     (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size,
       argOnNBytesOfInstr])
     (by norm_num [UInt256.toNat, UInt256.size, argOnNBytesOfInstr])
   rw [hpres]
-  native_decide
+  decide +native
 
 theorem tinyReachOwnerBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (hcode : I.code = patchedRuntime v) (hwv : I.weiValue = ⟨0⟩)
@@ -1523,48 +1523,48 @@ theorem tinyX_short {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)
     (by
       change decode (patchedRuntime v) (⟨63⟩ : UInt256) = some (.JUMPDEST, .none)
       have hpres := patchedRuntime_decode_preserved_of_parse v (⟨63⟩ : UInt256) 0x5b
-        .JUMPDEST (by native_decide) (by native_decide)
+        .JUMPDEST (by decide +native) (by decide +native)
         (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size])
         (by norm_num [UInt256.toNat, UInt256.size])
         (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size,
           argOnNBytesOfInstr])
         (by norm_num [UInt256.toNat, UInt256.size, argOnNBytesOfInstr])
       rw [hpres]
-      native_decide)
+      decide +native)
     (tinyContains63 v)
     (by
       change decode (patchedRuntime v) (⟨64⟩ : UInt256) = some (.PUSH0, .none)
       have hpres := patchedRuntime_decode_preserved_of_parse v (⟨64⟩ : UInt256) 0x5f
-        .PUSH0 (by native_decide) (by native_decide)
+        .PUSH0 (by decide +native) (by decide +native)
         (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size])
         (by norm_num [UInt256.toNat, UInt256.size])
         (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size,
           argOnNBytesOfInstr])
         (by norm_num [UInt256.toNat, UInt256.size, argOnNBytesOfInstr])
       rw [hpres]
-      native_decide)
+      decide +native)
     (by
       change decode (patchedRuntime v) (⟨65⟩ : UInt256) = some (.PUSH0, .none)
       have hpres := patchedRuntime_decode_preserved_of_parse v (⟨65⟩ : UInt256) 0x5f
-        .PUSH0 (by native_decide) (by native_decide)
+        .PUSH0 (by decide +native) (by decide +native)
         (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size])
         (by norm_num [UInt256.toNat, UInt256.size])
         (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size,
           argOnNBytesOfInstr])
         (by norm_num [UInt256.toNat, UInt256.size, argOnNBytesOfInstr])
       rw [hpres]
-      native_decide)
+      decide +native)
     (by
       change decode (patchedRuntime v) (⟨66⟩ : UInt256) = some (.REVERT, .none)
       have hpres := patchedRuntime_decode_preserved_of_parse v (⟨66⟩ : UInt256) 0xfd
-        .REVERT (by native_decide) (by native_decide)
+        .REVERT (by decide +native) (by decide +native)
         (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size])
         (by norm_num [UInt256.toNat, UInt256.size])
         (by norm_num [runtimeWrites, WindowDisjointFromWrites, UInt256.toNat, UInt256.size,
           argOnNBytesOfInstr])
         (by norm_num [UInt256.toNat, UInt256.size, argOnNBytesOfInstr])
       rw [hpres]
-      native_decide)
+      decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem tinyX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256} (v : TinyImmutables)

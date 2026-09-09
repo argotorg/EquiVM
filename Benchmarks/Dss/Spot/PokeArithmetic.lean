@@ -87,7 +87,7 @@ theorem execPokeTrueArithmeticReturns (evm : EVM.State) (I : ExecutionEnv) (out 
     have h := evalExpr_spot_div_uint256_ok (evm := evm) (locals := localsV)
       (x := .var "valScaled") (y := .intLit billion)
       (a := valScaled) (b := pokeBillion) (q := UInt256.div valScaled pokeBillion)
-      hValScaledVar hBillionLitV (by native_decide) rfl
+      hValScaledVar hBillionLitV (by decide +native) rfl
     simpa [hdivWord] using h
   have hRightCheck :
       evalExpr? config { contract := contract, locals := localsV } evm
@@ -313,7 +313,7 @@ theorem execPokeTrueRdivParMulOverflowReverts
     have h := evalExpr_spot_div_uint256_ok (evm := evm) (locals := localsV)
       (x := .var "valScaled") (y := .intLit billion)
       (a := valScaled) (b := pokeBillion) (q := UInt256.div valScaled pokeBillion)
-      hValScaledVar hBillionLitV (by native_decide) rfl
+      hValScaledVar hBillionLitV (by decide +native) rfl
     simpa [hdivWord] using h
   have hRightCheck :
       evalExpr? config { contract := contract, locals := localsV } evm
@@ -449,7 +449,7 @@ theorem execPokeTrueRdivParDivZeroReverts
     have h := evalExpr_spot_div_uint256_ok (evm := evm) (locals := localsV)
       (x := .var "valScaled") (y := .intLit billion)
       (a := valScaled) (b := pokeBillion) (q := UInt256.div valScaled pokeBillion)
-      hValScaledVar hBillionLitV (by native_decide) rfl
+      hValScaledVar hBillionLitV (by decide +native) rfl
     simpa [hdivWord] using h
   have hRightCheck :
       evalExpr? config { contract := contract, locals := localsV } evm
@@ -595,7 +595,7 @@ theorem execPokeTrueAfterRdivParThenRdivMatReverts
     have h := evalExpr_spot_div_uint256_ok (evm := evm) (locals := localsV)
       (x := .var "valScaled") (y := .intLit billion)
       (a := valScaled) (b := pokeBillion) (q := UInt256.div valScaled pokeBillion)
-      hValScaledVar hBillionLitV (by native_decide) rfl
+      hValScaledVar hBillionLitV (by decide +native) rfl
     simpa [hdivWord] using h
   have hRightCheck :
       evalExpr? config { contract := contract, locals := localsV } evm

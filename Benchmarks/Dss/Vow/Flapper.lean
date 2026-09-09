@@ -31,7 +31,7 @@ theorem vowDispatch_flapper {I : ExecutionEnv}
       simp [selectorOf, AshSelectorBytes, SinSelectorBytes, bumpSelectorBytes,
         cageSelectorBytes, denySelectorBytes, dumpSelectorBytes, fessSelectorBytes,
         fileUintSelectorBytes, fileAddressSelectorBytes, flapSelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, flapperSelectorBytes]
     exact hsel
 
@@ -50,25 +50,25 @@ theorem vowReachFlapperBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vowSelWord I = ⟨1554044707⟩ :=
     vowSelWord_eq_of_beq I hsz 0x5c 0xa0 0xd7 0x23 ⟨1554044707⟩
-      (by native_decide) hsel
+      (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat vowBytecode vowLowSplitPc) (vowSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowLowHighFirstArmPc j))
         (vowSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowLowHighFirstArmPc 1))
         (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vowReachLowHighBody 1 (by omega) ⟨501⟩ hcode hwv hsz hsize hroot hlow heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem vowFlapperBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -101,10 +101,10 @@ theorem vowFlapperBodyCore
     hcode hdispatch hdecode hreach hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcAddressSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by rfl)
     (by simpa [flapperWord] using hbody)
 

@@ -57,19 +57,19 @@ theorem tf_wordOfInt_sub (a b : UInt256) :
 
 theorem tfStore_get_balanceOf (I : ExecutionEnv) : (tfStore I).get? "balanceOf" = none := by
   unfold tfStore
-  rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
-    store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
+    store_get_ne _ _ (by decide +native)]
   simp
 
 theorem tfStore_get_allowance (I : ExecutionEnv) : (tfStore I).get? "allowance" = none := by
   unfold tfStore
-  rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
-    store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
+    store_get_ne _ _ (by decide +native)]
   simp
 
 theorem tfStore_get_src (I : ExecutionEnv) : (tfStore I).get? "src" = some (tfSrcVal I) := by
   unfold tfStore
-  rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native)]
   simp
 
 theorem tfStore_get_wad (I : ExecutionEnv) : (tfStore I).get? "wad" = some (tfWadVal I) := by

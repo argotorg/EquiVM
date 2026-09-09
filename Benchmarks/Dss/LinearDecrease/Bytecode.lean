@@ -136,7 +136,7 @@ def linearDecreaseBytecode : ByteArray :=
       ⟨571⟩, ⟨604⟩, ⟨611⟩, ⟨617⟩, ⟨620⟩, ⟨626⟩, ⟨726⟩, ⟨795⟩, ⟨895⟩, ⟨963⟩,
       ⟨981⟩, ⟨987⟩, ⟨1011⟩, ⟨1014⟩, ⟨1023⟩, ⟨1044⟩, ⟨1047⟩, ⟨1056⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def linearDecreaseCreationChunk0 : ByteArray :=
@@ -259,7 +259,7 @@ def linearDecreaseCreationBytecode : ByteArray :=
       ⟨641⟩, ⟨660⟩, ⟨693⟩, ⟨700⟩, ⟨706⟩, ⟨709⟩, ⟨715⟩, ⟨815⟩, ⟨884⟩, ⟨984⟩,
       ⟨1052⟩, ⟨1070⟩, ⟨1076⟩, ⟨1100⟩, ⟨1103⟩, ⟨1112⟩, ⟨1133⟩, ⟨1136⟩, ⟨1145⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.LinearDecrease

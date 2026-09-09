@@ -20,7 +20,7 @@ theorem cureDispatchLive {I : ExecutionEnv}
     cureAmtSelectorBytes, cureCageSelectorBytes, cureDenySelectorBytes,
     cureDropSelectorBytes, cureFileSelectorBytes, cureLCountSelectorBytes,
     cureLiftSelectorBytes, cureListSelectorBytes, cureLiveSelectorBytes]
-  native_decide
+  decide +native
 
 theorem cureDecode_live {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (liveTransition.params.map Param.name)
@@ -59,15 +59,15 @@ theorem cureLiveBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (cureReachLiveBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcWordSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [liveWord] using hbody)
 
 end Benchmarks.Dss.Cure

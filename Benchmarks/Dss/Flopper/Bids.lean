@@ -433,12 +433,12 @@ theorem RD.flopperBidsStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
   have rd6 := rd5.dup2 hd5 (by evm_ov)
   have rd7 := rd6.swap1 hd6 (by evm_ov)
   have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨1⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd10 := rd8.push1 ⟨0⟩ hd8 (by evm_ov)
   have rd11 := rd10.swap2 hd10 (by evm_ov)
   have rd12 := rd11.dup3 hd11 (by evm_ov)
   have rd13 := rd12.mstore 0 (solcMappingHashMem ⟨1⟩ key)
-    (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := rd13.push1 ⟨64⟩ hd13 (by evm_ov)
   have rd16 := rd15.swap1 hd15 (by evm_ov)
   have rd17 := rd16.swap2 hd16 (by evm_ov)
@@ -447,7 +447,7 @@ theorem RD.flopperBidsStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     (UInt256.ofNat 3) hd17 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd19 := rd18.dup1 hd18 (by evm_ov)
   obtain ⟨_, _, rd20⟩ := rd19.sload hd19 (by evm_ov)
   have rd21 := rd20.swap2 hd20 (by evm_ov)
@@ -488,10 +488,10 @@ theorem RD.flopperBidsStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
   have rd67 := rd66.dup6 hd66 (by evm_ov)
   have hshift160 :
       UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩ = UInt256.ofNat (256 ^ 20) := by
-    native_decide
+    decide +native
   have hshift208 :
       UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨208⟩ = UInt256.ofNat (256 ^ 26) := by
-    native_decide
+    decide +native
   exact ⟨_, _, by
     simpa [solcSlotWord, hshift160, hshift208, u256_add_comm] using
       rd67.jump hd67 hret (by evm_ov)⟩
@@ -695,28 +695,28 @@ theorem flopperBidsReturnEncoding (bid lot guy tic endw : UInt256) :
       (UInt256.land endw flopperUint48Mask)).symm]
   unfold encodeReturnValues? encodeABIValues?
   rw [show abiTupleHeadSize? [uint256, uint256, addr, uint48, uint48] = some 160
-    by native_decide]
+    by decide +native]
   simp only [bind, Option.bind]
   unfold encodeABIValuesFrom?
   rw [hencBid]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
+  rw [show isDynamicABIType uint256 = false by decide +native]
   unfold encodeABIValuesFrom?
   rw [hencLot]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
+  rw [show isDynamicABIType uint256 = false by decide +native]
   unfold encodeABIValuesFrom?
   rw [hencGuy]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType addr = false by native_decide]
+  rw [show isDynamicABIType addr = false by decide +native]
   unfold encodeABIValuesFrom?
   rw [hencTic]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint48 = false by native_decide]
+  rw [show isDynamicABIType uint48 = false by decide +native]
   unfold encodeABIValuesFrom?
   rw [hencEnd]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint48 = false by native_decide]
+  rw [show isDynamicABIType uint48 = false by decide +native]
   unfold encodeABIValuesFrom?
   simp only [Bool.false_eq_true, if_false, List.nil_append, List.append_nil]
   apply congrArg some
@@ -955,15 +955,15 @@ theorem flopperReachBidsBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : flopperSelWord I = ⟨0x4423c5f1⟩ := by
     simpa [flopperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0x44 0x23 0xc5 0xf1 ⟨0x4423c5f1⟩
-        (by native_decide) (by simpa [flopperSelBytes] using hsel)
+        (by decide +native) (by simpa [flopperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flopperBytecode flopperRootSplitPc)
       (flopperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat flopperBytecode flopperLowSplitPc)
       (flopperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   obtain ⟨_, _, hfirst⟩ :=
     flopperReachLowLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow
@@ -972,16 +972,16 @@ theorem flopperReachBidsBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (armSelNat flopperBytecode (nthArmPc flopperBytecode flopperLowLowFirstArmPc j))
         (flopperSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq
         (armSelNat flopperBytecode (nthArmPc flopperBytecode flopperLowLowFirstArmPc 3))
         (flopperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo ⟨407⟩ 3 hfirst
     (fun j hj => flopperLowLowArmsWellFormed j (le_trans hj (by omega)))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem flopperBidsBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -1036,9 +1036,9 @@ theorem flopperBidsBodyCoreOk
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flopperBytecode) (sel := sel) (entry := ⟨407⟩) (ret := ⟨436⟩)
     (decoded := ⟨429⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by
       exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
@@ -1046,20 +1046,20 @@ theorem flopperBidsBodyCoreOk
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1552⟩
       (bidsArgWord I :: ⟨436⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C := by
-    have rd430 := hdecoded.jumpdest (by native_decide) (by evm_ov)
-    have rd431 := rd430.pop (by native_decide) (by evm_ov)
-    have rd432 := rd431.calldataload (by native_decide) (by evm_ov)
-    have rd435 := rd432.push2 ⟨1552⟩ (by native_decide) (by evm_ov)
+    have rd430 := hdecoded.jumpdest (by decide +native) (by evm_ov)
+    have rd431 := rd430.pop (by decide +native) (by evm_ov)
+    have rd432 := rd431.calldataload (by decide +native) (by evm_ov)
+    have rd435 := rd432.push2 ⟨1552⟩ (by decide +native) (by evm_ov)
     exact ⟨_, _, by
       simpa [bidsArgWord, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-        using rd435.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+        using rd435.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
   obtain ⟨_, _, htoRoutineRd⟩ := htoRoutine
   obtain ⟨_, _, hretPc⟩ := RD.flopperBidsStructGetter
     (code := flopperBytecode) (pc := ⟨1552⟩) (key := bidsArgWord I) (ret := ⟨436⟩)
     (R := [sel]) (by simpa using htoRoutineRd)
     (by
       unfold flopperBidsStructGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   have hret :
       RDret flopperBytecode (Sat256.ofUInt256 g)
@@ -1076,7 +1076,7 @@ theorem flopperBidsBodyCoreOk
           packedSlot, baseSlot, key, flopperSlotWord] using hretPc)
       (by
         unfold flopperBidsReturnFromMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (solcMappingHashMem_size ⟨1⟩ (bidsArgWord I))
       (solcMappingHashMem_read64 ⟨1⟩ (bidsArgWord I))
       (by simp)
@@ -1150,10 +1150,10 @@ theorem flopperBidsBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := flopperBytecode) (sel := sel) (entry := ⟨407⟩) (ret := ⟨436⟩)
     (decoded := ⟨429⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (flopperDecode_bids_none_short hsz4 hshort)
 

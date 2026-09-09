@@ -55,7 +55,7 @@ theorem flapperCtorArgCopyTrace
     simpa [show (⟨79⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 3 +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ = ⟨99⟩
-        from by native_decide] using rd99⟩
+        from by decide +native] using rd99⟩
 
 set_option maxHeartbeats 1000000 in
 theorem flapperCtorArgSizeGuardTrace
@@ -85,7 +85,7 @@ theorem flapperCtorArgSizeGuardTrace
   exact ⟨_, _, by
     simpa [show (⟨112⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨122⟩
-        from by native_decide] using rd122⟩
+        from by decide +native] using rd122⟩
 
 theorem flapperCtorArgsReach
     {createdAccounts : Batteries.RBSet AccountAddress compare}

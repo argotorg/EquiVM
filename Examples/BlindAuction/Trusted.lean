@@ -8,7 +8,7 @@ namespace BlindAuction
 # BlindAuction trusted bytecode facts
 
 These Phase 0 facts are kept out of `Bytecode.lean`.  The selector facts are trusted because
-`ffi.KEC` is opaque to Lean; the valid jump table is computed from the byte array by `native_decide`.
+`ffi.KEC` is opaque to Lean; the valid jump table is computed from the byte array by `decide +native`.
 -/
 
 /-- `keccak("bid(bytes32)")[0:4] = 0x957bb1e0`. -/
@@ -82,6 +82,6 @@ axiom blindAuctionBidsSelectorBytes :
         ⟨1778⟩, ⟨1785⟩, ⟨1806⟩, ⟨1828⟩, ⟨1840⟩, ⟨1871⟩, ⟨1883⟩,
         ⟨1914⟩, ⟨1926⟩, ⟨1944⟩, ⟨1960⟩, ⟨1967⟩, ⟨1987⟩, ⟨2003⟩,
         ⟨2018⟩, ⟨2025⟩, ⟨2045⟩, ⟨2064⟩] := by
-  native_decide
+  decide +native
 
 end BlindAuction

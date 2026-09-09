@@ -31,7 +31,7 @@ theorem spotCtorVatMaskJoinReach
     swap3, swap1, swap3, or, swap1, swap2]
   have hpc108 :
       (⟨102⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨108⟩ := by
-    native_decide
+    decide +native
   rw [hpc108] at rd108
   exact ⟨_, _, by
     simpa [spotCtorVatStored, setAddressOffset0Word] using rd108⟩

@@ -341,17 +341,17 @@ theorem vowSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 theorem vowRootSplitWellFormed :
     selectorSplitWellFormed vowBytecode vowRootSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem vowHighSplitWellFormed :
     selectorSplitWellFormed vowBytecode vowHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem vowLowSplitWellFormed :
     selectorSplitWellFormed vowBytecode vowLowSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem vowLowLowArmsWellFormed :
@@ -360,7 +360,7 @@ theorem vowLowLowArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem vowLowHighArmsWellFormed :
@@ -369,7 +369,7 @@ theorem vowLowHighArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem vowHighLowArmsWellFormed :
@@ -378,7 +378,7 @@ theorem vowHighLowArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem vowHighHighArmsWellFormed :
@@ -387,7 +387,7 @@ theorem vowHighHighArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 theorem vowLowLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 6) :
@@ -395,7 +395,7 @@ theorem vowLowLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat vowBytecode (nthArmPc vowBytecode vowLowLowFirstArmPc j))
         (vowSelWord I) =
       if (vowLowLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem vowLowHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 6) :
@@ -403,7 +403,7 @@ theorem vowLowHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat vowBytecode (nthArmPc vowBytecode vowLowHighFirstArmPc j))
         (vowSelWord I) =
       if (vowLowHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem vowHighLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 6) :
@@ -411,7 +411,7 @@ theorem vowHighLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat vowBytecode (nthArmPc vowBytecode vowHighLowFirstArmPc j))
         (vowSelWord I) =
       if (vowHighLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem vowHighHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 6) :
@@ -419,7 +419,7 @@ theorem vowHighHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat vowBytecode (nthArmPc vowBytecode vowHighHighFirstArmPc j))
         (vowSelWord I) =
       if (vowHighHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem vowReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -435,13 +435,13 @@ theorem vowReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (revertTgt := vowDispatchRevertPc) (guardWidth := 2) (revertWidth := 2)
       (guardOp := .PUSH2) (revertOp := .PUSH2)
       hcode hwv hsz hsize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 theorem vowReachLowSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -461,7 +461,7 @@ theorem vowReachLowSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       vowLowSplitPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [vowLowSplitPc, vowLowJumpdestPc, vowRootSplitPc, armTgt, pushAt]
-      using h195.jumpdest (by native_decide) (by simp)
+      using h195.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h196⟩
 
 theorem vowReachHighSplit {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -501,7 +501,7 @@ theorem vowReachLowLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
       vowLowLowFirstArmPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k196 + 5 + 1) (C196 + 22 + 1) := by
     simpa [vowLowLowFirstArmPc, vowLowLowJumpdestPc, vowLowSplitPc, armTgt, pushAt]
-      using h277.jumpdest (by native_decide) (by simp)
+      using h277.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h278⟩
 
 theorem vowReachLowHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -542,7 +542,7 @@ theorem vowReachHighLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
       vowHighLowFirstArmPc [vowSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k43 + 5 + 1) (C43 + 22 + 1) := by
     simpa [vowHighLowFirstArmPc, vowHighLowJumpdestPc, vowHighSplitPc, armTgt, pushAt]
-      using h124.jumpdest (by native_decide) (by simp)
+      using h124.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h125⟩
 
 theorem vowReachHighHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -669,9 +669,9 @@ theorem vowJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt25
     RDrev vowBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h344 := h.push2 vowDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h344 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h344 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem vowLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD vowBytecode I g (initState cA gh bl σ σ₀ g A I) vowLowLowFirstArmPc
@@ -693,9 +693,9 @@ theorem vowLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 4 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (vowLowLowArmsWellFormed 5 (by omega))
         (heq0 5 (by omega)) (by simp)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h344 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h344 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem vowLowHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD vowBytecode I g (initState cA gh bl σ σ₀ g A I) vowLowHighFirstArmPc
@@ -717,7 +717,7 @@ theorem vowLowHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 4 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (vowLowHighArmsWellFormed 5 (by omega))
         (heq0 5 (by omega)) (by simp)
-  exact vowJumpToNoMatchRevert h273 (by native_decide) (by native_decide)
+  exact vowJumpToNoMatchRevert h273 (by decide +native) (by decide +native)
 
 theorem vowHighLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD vowBytecode I g (initState cA gh bl σ σ₀ g A I) vowHighLowFirstArmPc
@@ -739,7 +739,7 @@ theorem vowHighLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 4 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (vowHighLowArmsWellFormed 5 (by omega))
         (heq0 5 (by omega)) (by simp)
-  exact vowJumpToNoMatchRevert h191 (by native_decide) (by native_decide)
+  exact vowJumpToNoMatchRevert h191 (by decide +native) (by decide +native)
 
 theorem vowHighHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD vowBytecode I g (initState cA gh bl σ σ₀ g A I) vowHighHighFirstArmPc
@@ -761,7 +761,7 @@ theorem vowHighHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 4 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (vowHighHighArmsWellFormed 5 (by omega))
         (heq0 5 (by omega)) (by simp)
-  exact vowJumpToNoMatchRevert h120 (by native_decide) (by native_decide)
+  exact vowJumpToNoMatchRevert h120 (by decide +native) (by decide +native)
 
 theorem vowX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -997,7 +997,7 @@ theorem vowAddressGetterBodyCore
     hreach hentry hgetter hroutine (by jump_dest)
     (by
       unfold solcReturnAddressFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
   have hret' :
       RDret vowBytecode (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
@@ -1046,7 +1046,7 @@ theorem vowUint256GetterBodyCore
     hreach hentry hgetter hroutine (by jump_dest)
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
   have hret' :
       RDret vowBytecode (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
@@ -1077,7 +1077,7 @@ theorem vowDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
         healSelectorBytes, humpSelectorBytes, kissSelectorBytes, liveSelectorBytes,
         relySelectorBytes, sinSelectorBytes, sumpSelectorBytes, vatSelectorBytes,
         waitSelectorBytes, wardsSelectorBytes]
-      native_decide) h
+      decide +native) h
 
 theorem vowDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 24 → (vowSelBytes i == cd.extract 0 4) = false) :
@@ -1149,35 +1149,35 @@ theorem vowX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     RDrev vowBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide)
-  have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native)
+  have h12 := h0.push2 ⟨16⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h12 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem vowX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vowBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
     RDrev vowBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt vowBytecode)
     (opC := solcGuardTgtOp vowBytecode)
     (wC := solcGuardTgtWidth vowBytecode) h0 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest)
-  have h344 := h1.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.calldatasize (by native_decide) (by simp only [List.length]; omega)
-    |>.lt (by native_decide) (by simp only [List.length]; omega)
-    |>.push2 ⟨344⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest)
+  have h344 := h1.push1 ⟨4⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.calldatasize (by decide +native) (by simp only [List.length]; omega)
+    |>.lt (by decide +native) (by simp only [List.length]; omega)
+    |>.push2 ⟨344⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h344 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h344 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 end Benchmarks.Dss.Vow

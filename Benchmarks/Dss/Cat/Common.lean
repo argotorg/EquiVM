@@ -267,7 +267,7 @@ theorem catUint256GetterBodyCore
     hreach hentry hgetter hroutine (by jump_dest)
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
   have hret' :
       RDret catBytecode (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
@@ -319,7 +319,7 @@ theorem catAddressGetterBodyCore
     hreach hentry hgetter hroutine (by jump_dest)
     (by
       unfold solcReturnAddressFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
   have hret' :
       RDret catBytecode (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) (cA, σ_evm)
@@ -340,17 +340,17 @@ theorem catSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 theorem catRootSplitWellFormed :
     selectorSplitWellFormed catBytecode catRootSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem catHighSplitWellFormed :
     selectorSplitWellFormed catBytecode catHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem catLowSplitWellFormed :
     selectorSplitWellFormed catBytecode catLowSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem catLowLowArmsWellFormed :
@@ -359,7 +359,7 @@ theorem catLowLowArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem catLowHighArmsWellFormed :
@@ -368,7 +368,7 @@ theorem catLowHighArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem catHighLowArmsWellFormed :
@@ -377,7 +377,7 @@ theorem catHighLowArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem catHighHighArmsWellFormed :
@@ -386,7 +386,7 @@ theorem catHighHighArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 theorem catLowLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -394,7 +394,7 @@ theorem catLowLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat catBytecode (nthArmPc catBytecode catLowLowFirstArmPc j))
         (catSelWord I) =
       if (catLowLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem catLowHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -402,7 +402,7 @@ theorem catLowHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat catBytecode (nthArmPc catBytecode catLowHighFirstArmPc j))
         (catSelWord I) =
       if (catLowHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem catHighLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -410,7 +410,7 @@ theorem catHighLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat catBytecode (nthArmPc catBytecode catHighLowFirstArmPc j))
         (catSelWord I) =
       if (catHighLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem catHighHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -418,7 +418,7 @@ theorem catHighHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat catBytecode (nthArmPc catBytecode catHighHighFirstArmPc j))
         (catSelWord I) =
       if (catHighHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 /-! ## Dispatcher navigation (reach the selected arm group / body) -/
 
@@ -436,13 +436,13 @@ theorem catReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (revertTgt := catDispatchRevertPc) (guardWidth := 2) (revertWidth := 2)
       (guardOp := .PUSH2) (revertOp := .PUSH2)
       hcode hwv hsz hsize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 theorem catReachLowSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -462,7 +462,7 @@ theorem catReachLowSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       catLowSplitPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [catLowSplitPc, catLowJumpdestPc, catRootSplitPc, armTgt, pushAt]
-      using h151.jumpdest (by native_decide) (by simp)
+      using h151.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h152⟩
 
 theorem catReachHighSplit {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -502,7 +502,7 @@ theorem catReachLowLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
       catLowLowFirstArmPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k152 + 5 + 1) (C152 + 22 + 1) := by
     simpa [catLowLowFirstArmPc, catLowLowJumpdestPc, catLowSplitPc, armTgt, pushAt]
-      using h211.jumpdest (by native_decide) (by simp)
+      using h211.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h212⟩
 
 theorem catReachLowHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -543,7 +543,7 @@ theorem catReachHighLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
       catHighLowFirstArmPc [catSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k43 + 5 + 1) (C43 + 22 + 1) := by
     simpa [catHighLowFirstArmPc, catHighLowJumpdestPc, catHighSplitPc, armTgt, pushAt]
-      using h102.jumpdest (by native_decide) (by simp)
+      using h102.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h103⟩
 
 theorem catReachHighHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -668,36 +668,36 @@ theorem catX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide)
-  have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native)
+  have h12 := h0.push2 ⟨16⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h12 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem catX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt catBytecode)
     (opC := solcGuardTgtOp catBytecode)
     (wC := solcGuardTgtWidth catBytecode) h0 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest)
-  have h256 := h1.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.calldatasize (by native_decide) (by simp only [List.length]; omega)
-    |>.lt (by native_decide) (by simp only [List.length]; omega)
-    |>.push2 ⟨256⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest)
+  have h256 := h1.push1 ⟨4⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.calldatasize (by decide +native) (by simp only [List.length]; omega)
+    |>.lt (by decide +native) (by simp only [List.length]; omega)
+    |>.push2 ⟨256⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h256 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h256 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 /-! ## Dispatch-failure (`dispatchMsg = none`) and non-payable body facts -/
 
@@ -720,7 +720,7 @@ theorem catDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
         fileIlkFlipSelectorBytes, fileIlkUintSelectorBytes, fileUintSelectorBytes,
         ilksSelectorBytes, litterSelectorBytes, liveSelectorBytes, relySelectorBytes,
         vatSelectorBytes, vowSelectorBytes, wardsSelectorBytes]
-      native_decide) h
+      decide +native) h
 
 theorem catDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 16 → (catSelBytes i == cd.extract 0 4) = false) :
@@ -782,9 +782,9 @@ theorem catJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt25
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h256 := h.push2 catDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h256 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h256 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem catLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) catLowLowFirstArmPc
@@ -798,9 +798,9 @@ theorem catLowLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     |>.selectorArmNotTakenAuto (catLowLowArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (catLowLowArmsWellFormed 2 (by omega)) (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (catLowLowArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h256 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h256 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem catLowHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) catLowHighFirstArmPc
@@ -814,7 +814,7 @@ theorem catLowHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     |>.selectorArmNotTakenAuto (catLowHighArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (catLowHighArmsWellFormed 2 (by omega)) (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (catLowHighArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
-  exact catJumpToNoMatchRevert htail (by native_decide) (by native_decide)
+  exact catJumpToNoMatchRevert htail (by decide +native) (by decide +native)
 
 theorem catHighLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) catHighLowFirstArmPc
@@ -828,7 +828,7 @@ theorem catHighLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     |>.selectorArmNotTakenAuto (catHighLowArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (catHighLowArmsWellFormed 2 (by omega)) (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (catHighLowArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
-  exact catJumpToNoMatchRevert htail (by native_decide) (by native_decide)
+  exact catJumpToNoMatchRevert htail (by decide +native) (by decide +native)
 
 theorem catHighHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) catHighHighFirstArmPc
@@ -842,7 +842,7 @@ theorem catHighHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
     |>.selectorArmNotTakenAuto (catHighHighArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (catHighHighArmsWellFormed 2 (by omega)) (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (catHighHighArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
-  exact catJumpToNoMatchRevert htail (by native_decide) (by native_decide)
+  exact catJumpToNoMatchRevert htail (by decide +native) (by decide +native)
 
 theorem catX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = catBytecode) (hwv : I.weiValue = ⟨0⟩)

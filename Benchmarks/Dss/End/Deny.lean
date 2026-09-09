@@ -100,12 +100,12 @@ abbrev endDenyStorePc : UInt256 := ⟨7589⟩
 theorem endDenyHighSplitWellFormed :
     selectorSplitWellFormed endBytecode endDenyHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endDenyMidSplitWellFormed :
     selectorSplitWellFormed endBytecode endDenyMidSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem endDenyArmsWellFormed :
@@ -113,7 +113,7 @@ theorem endDenyArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 theorem endReachDenyBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -124,7 +124,7 @@ theorem endReachDenyBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : endSelWord I = ⟨0x9c52a7f1⟩ :=
     endSelWord_eq_of_beq I hsz 0x9c 0x52 0xa7 0xf1 ⟨0x9c52a7f1⟩
-      (by native_decide) (by simpa [selIs, endDenyConcreteSelector, selectorBytes] using hsel)
+      (by decide +native) (by simpa [selIs, endDenyConcreteSelector, selectorBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
     endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
@@ -134,41 +134,41 @@ theorem endReachDenyBody {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [endRootSplitPc, endDenyHighSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+        (by rw [hword]; decide +native) (by simp)
   have h162 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endDenyHighJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [endDenyHighSplitPc, endDenyHighJumpdestPc] using
       RD.selectorSplitTakenAuto h43 endDenyHighSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
+        (by rw [hword]; decide +native) (by jump_dest) (by simp)
   have h163 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endDenyMidSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
-    simpa [endDenyMidSplitPc] using h162.jumpdest (by native_decide) (by simp)
+    simpa [endDenyMidSplitPc] using h162.jumpdest (by decide +native) (by simp)
   have h222 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endDenyGroupJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
     simpa [endDenyMidSplitPc, endDenyGroupJumpdestPc] using
       RD.selectorSplitTakenAuto h163 endDenyMidSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
+        (by rw [hword]; decide +native) (by jump_dest) (by simp)
   have h223 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endDenyFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5 + 1)
         (C32 + 22 + 22 + 1 + 22 + 1) := by
-    simpa [endDenyFirstArmPc] using h222.jumpdest (by native_decide) (by simp)
+    simpa [endDenyFirstArmPc] using h222.jumpdest (by decide +native) (by simp)
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endDenyFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endDenyFirstArmPc 3))
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo endDenyEntryPc 3 h223
     (fun j hj => endDenyArmsWellFormed j (le_trans hj (by omega)))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 /-! ### Runtime trace -/
 
@@ -184,16 +184,16 @@ theorem endDenyX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := endBytecode) (sel := sel)
     (entry := endDenyEntryPc) (ret := endRelyReturnPc) (decoded := endDenyDecodedPc) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcOneAddressExternalMaskAndJumpMasked
     (code := endBytecode) (decoded := endDenyDecodedPc) (ret := endRelyReturnPc)
     (routine := endDenyAuthPc) (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [endRelyUsrMaskedWord, endRelyUsrWord, calldataWord] using hroutine⟩
 
 theorem endDenyX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -213,10 +213,10 @@ theorem endDenyX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (code := endBytecode) (sel := sel)
     (entry := endDenyEntryPc) (ret := endRelyReturnPc) (decoded := endDenyDecodedPc)
     (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem endDenyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : endRelyAuthWord σ I = ⟨1⟩)
@@ -237,7 +237,7 @@ theorem endDenyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       h
       (by
         unfold endAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by jump_dest) (by simp)
 
 theorem endDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -256,10 +256,10 @@ theorem endDenyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     h
     (by
       unfold endAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcErrorStringRevertTailWf endAuthTailPc endNotAuthorizedRawWord
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by simp)
 
 theorem endDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -278,14 +278,14 @@ theorem endDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (endRelyUsrMaskedWord I)
         (endRelyAuthHashMem_size I)
   have rdMasked := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hmask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -303,45 +303,45 @@ theorem endDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     exact hmask
   rw [hmask'] at rdMasked
   have rdMstoreKeyPrefix := evm_run rdMasked with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rdKeyMem := rdMstoreKeyPrefix.mstore 0
     (wordAt0Mem (endRelyUsrMaskedWord I) (endRelyAuthHashMem I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdKeyMem with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rdHashMem := rdMstoreSlotPrefix.mstore 0 (endRelyStoreHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
   have rdSlot := rdKeccakPrefix.keccak256 0 (mapSlot (endRelyUsrMaskedWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hstoreSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hstoreSlot (by decide +native)
     (by evm_ov)
   have rdSstorePrefix := evm_run rdSlot with [
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rdStoredRaw⟩ := rdSstorePrefix.sstore hperm (by native_decide)
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rdStoredRaw⟩ := rdSstorePrefix.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdStored := by
     simpa [endRelyUsrStorageSlot_eq_mapSlot_masked I] using rdStoredRaw
-  have rdMload := rdStored.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
+  have rdMload := rdStored.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost
     (mloadFreePtrValue (by rw [endRelyStoreHashMem_size I]; decide) (by decide)
       (endRelyStoreHashMem_read64 I))
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rdTopic := rdMload.pushConst
     (⟨0x184450df2e323acec0ed3b5c7531b81f9b4cdef7914dfd4c0a4317416bb5251b⟩ :
       UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native) (by evm_ov)
   have rdLogPrefix := evm_run rdTopic with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rdLog := RD.log2
     (a := ⟨128⟩) (b := ⟨0⟩)
     (c := ⟨0x184450df2e323acec0ed3b5c7531b81f9b4cdef7914dfd4c0a4317416bb5251b⟩)
@@ -351,15 +351,15 @@ theorem endDenyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 3).toNat (⟨128⟩ : UInt256).toNat
         (⟨0⟩ : UInt256).toNat))
-    rdLogPrefix (by native_decide) hperm mem_cost (by native_decide)
+    rdLogPrefix (by decide +native) hperm mem_cost (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdPop := RD.pop (a := endRelyUsrMaskedWord I) (t := [endRelyReturnPc, sel]) rdLog
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rdRet := RD.jump (a := endRelyReturnPc) (t := [sel]) rdPop
-    (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) (by jump_dest) (by evm_ov)
   have rdStopPc := RD.jumpdest (pc := endRelyReturnPc) (stk := [sel]) rdRet
-    (by native_decide) (by evm_ov)
-  have hstop := RD.stop rdStopPc (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  have hstop := RD.stop rdStopPc (by decide +native) (by evm_ov)
   simpa [endRelyUsrStorageSlot_eq_mapSlot_masked I] using hstop
 
 theorem endX_deny_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -430,7 +430,7 @@ theorem endDenyBodyCoreOk
       (by
         simpa [denyTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-            (dvs := []) rfl (by native_decide) (by native_decide)))
+            (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem endDenyBodyCoreUnauthorized
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

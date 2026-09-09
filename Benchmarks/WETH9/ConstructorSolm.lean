@@ -27,7 +27,7 @@ theorem weth9DecimalsStoreWord (w : UInt256) :
   unfold UInt256.lor UInt256.land UInt256.toNat Fin.lor Fin.land
   change (Nat.lor ((Nat.land w.val.val (UInt256.lnot (⟨255⟩ : UInt256)).toNat) % UInt256.size) 18) %
       UInt256.size = (18 + 256 * (w.toNat / 256)) % UInt256.size
-  have hlnot : (UInt256.lnot (⟨255⟩ : UInt256)).toNat = 2 ^ 256 - 2 ^ 8 := by native_decide
+  have hlnot : (UInt256.lnot (⟨255⟩ : UInt256)).toNat = 2 ^ 256 - 2 ^ 8 := by decide +native
   rw [hlnot]
   change (Nat.lor ((Nat.land w.toNat (2 ^ 256 - 2 ^ 8)) % UInt256.size) 18) % UInt256.size =
       (18 + 256 * (w.toNat / 256)) % UInt256.size
@@ -69,7 +69,7 @@ theorem weth9DecimalsStore (evm : EVM.State) :
   rw [show (0 : Fin 32).val = 0 from rfl, show (1 : Fin 33).val = 1 from rfl,
     List.take_zero, List.nil_append]
   rw [show List.take 1 (EVM.Word.toBytesLEWithSizeProof (EVM.word (18 : Int).toNat)).1 = [18] by
-    native_decide]
+    decide +native]
   rw [fromBytes'_append, fromBytes'_drop_wordLE]
   simp only [fromBytes']
   rw [weth9DecimalsStoreWord_toNat]
@@ -168,13 +168,13 @@ theorem weth9SolmCtorBodyReturns (evm : EVM.State) (hwv : evm.executionEnv.weiVa
       (weth9SolmAssignBytes evm { contract := contract, locals := ∅ } nameRef ⟨0⟩
         (String.toByteArray "Wrapped Ether")
         (by simp) (by simp [evalStorageRef, nameRef, EvalResult.bind, bind, pure])
-        (by simp [storageTypeAt?, contract, storageDecls, nameRef]) rfl (by native_decide))) ?_
+        (by simp [storageTypeAt?, contract, storageDecls, nameRef]) rfl (by decide +native))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (value := .bytes (String.toByteArray "WETH")) (by unfold evalExpr?; rfl)
       (weth9SolmAssignBytes (weth9SolmNameState evm) { contract := contract, locals := ∅ }
         symbolRef ⟨1⟩ (String.toByteArray "WETH")
         (by simp) (by simp [evalStorageRef, symbolRef, EvalResult.bind, bind, pure])
-        (by simp [storageTypeAt?, contract, storageDecls, symbolRef]) rfl (by native_decide))) ?_
+        (by simp [storageTypeAt?, contract, storageDecls, symbolRef]) rfl (by decide +native))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.assign (value := .int 18) (by unfold evalExpr?; rfl)
       (assignStorageRef_storage_scalar (er := { base := "decimals", steps := [] })

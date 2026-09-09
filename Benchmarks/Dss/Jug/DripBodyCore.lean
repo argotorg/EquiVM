@@ -22,10 +22,10 @@ theorem jugDripBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := jugBytecode) (sel := sel) (entry := ⟨328⟩) (ret := ⟨357⟩)
     (decoded := ⟨350⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (jugDecode_drip_none_short hsz4 hshort)
 
@@ -299,7 +299,7 @@ theorem jugDripBodyCoreVatIlksCallDepthLimit
         (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         (evmVat := { evmS with substate := A_vat }) (out := ByteArray.empty)
         hwv hsz36 hleSolm hvatCodeSolm (by simpa [evmS] using hcallSolm))
-  have hrev := RD.jugDripVatIlksCallFailed rd1400 (by native_decide)
+  have hrev := RD.jugDripVatIlksCallFailed rd1400 (by decide +native)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem jugDripBodyCoreVatIlksReturnDecodeShort

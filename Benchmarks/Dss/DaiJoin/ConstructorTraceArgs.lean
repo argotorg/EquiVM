@@ -87,7 +87,7 @@ theorem daiJoinCtorArgCopyTrace
       show (⟨18⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 3 +
             ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
             ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ = ⟨38⟩
-        from by native_decide] using rd38
+        from by decide +native] using rd38
   exact ⟨_, _, rd38'⟩
 
 set_option maxHeartbeats 1000000 in
@@ -122,7 +122,7 @@ theorem daiJoinCtorArgSizeGuardTrace
       (C + 3 + 3 + 3 + 3 + 3 + 10 + 1 + 2 + 3 + (0 + 3) +
         3 + 3 + 3 + 3 + (0 + 3)) := by
     simpa [show (⟨51⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
-        UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨61⟩ from by native_decide]
+        UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨61⟩ from by decide +native]
       using rd61
   exact ⟨_, _, rd61'⟩
 
@@ -155,7 +155,7 @@ theorem daiJoinCtorArgsReach
       RD (daiJoinCtorCode vat dai) I g
         (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨18⟩
         [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σ) k18 C18 := by
-    simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by native_decide]
+    simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by decide +native]
       using rd18
   obtain ⟨_, _, rd38⟩ := daiJoinCtorArgCopyTrace vat dai rd18'
   exact daiJoinCtorArgSizeGuardTrace vat dai rd38

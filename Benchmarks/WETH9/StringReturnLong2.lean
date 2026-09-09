@@ -516,7 +516,7 @@ theorem weth9NameLong2ReachLoopHead {cA gh bl σ σ₀ A I} {g : Sat256}
   have h221 := evm_run h187 with [
     jumpdest, push1 ⟨64⟩, dup1,
     raw mload _ (weth9StringNewFp (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat (6 + weth9LongWC σ I))
-      (by native_decide) weth9MloadCostSpec
+      (by decide +native) weth9MloadCostSpec
       (mloadWordValue_of_readWithPadding
         (by rw [weth9LongFinalMem_size', show (⟨64⟩ : UInt256).toNat = 64 from by decide]; omega)
         (wordMul32_not_ge_of_lt (by rw [weth9LongFinalAw_toNat, show (⟨64⟩ : UInt256).toNat = 64 from by decide]; omega)
@@ -527,13 +527,13 @@ theorem weth9NameLong2ReachLoopHead {cA gh bl σ σ₀ A I} {g : Sat256}
       (by evm_ov),
     push1 ⟨32⟩, dup1, dup3,
     raw mstore _ (weth9LongEncMemA σ I) (UInt256.ofNat (7 + weth9LongWC σ I))
-      (by native_decide) weth9MstoreCostSpec rfl
+      (by decide +native) weth9MstoreCostSpec rfl
       (by rw [ulit_toNat' _ (by omega), hfpN,
         show (192 + 32 * weth9LongWC σ I : Nat) = 32 * (6 + weth9LongWC σ I) from by ring,
         machineState_M_endWrite]; congr 1; omega) (by evm_ov),
     dup4,
     raw mload _ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat (7 + weth9LongWC σ I))
-      (by native_decide) weth9MloadCostSpec
+      (by decide +native) weth9MloadCostSpec
       (mloadWordValue_of_readWithPadding
         (by rw [weth9LongEncMemA_size hpos, hfpN, show (⟨128⟩ : UInt256).toNat = 128 from by decide]; omega)
         (wordMul32_not_ge_of_lt (by rw [ulit_toNat' _ (by omega), show (⟨128⟩ : UInt256).toNat = 128 from by decide]; omega)
@@ -544,14 +544,14 @@ theorem weth9NameLong2ReachLoopHead {cA gh bl σ σ₀ A I} {g : Sat256}
       (by evm_ov),
     dup2, dup4, add,
     raw mstore _ (weth9LongEncMemB σ I) (UInt256.ofNat (8 + weth9LongWC σ I))
-      (by native_decide) weth9MstoreCostSpec
+      (by decide +native) weth9MstoreCostSpec
       (by rw [weth9LongEncMemB, Reasoning.Theory.writeWord, haddr32])
       (by rw [ulit_toNat' _ (by omega), haddr32, hfpN,
         show (192 + 32 * weth9LongWC σ I + 32 : Nat) = 32 * (7 + weth9LongWC σ I) from by ring,
         machineState_M_endWrite]; congr 1; omega) (by evm_ov),
     dup4,
     raw mload _ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat (8 + weth9LongWC σ I))
-      (by native_decide) weth9MloadCostSpec
+      (by decide +native) weth9MloadCostSpec
       (mloadWordValue_of_readWithPadding
         (by rw [weth9LongEncMemB_size hpos, hfpN, show (⟨128⟩ : UInt256).toNat = 128 from by decide]; omega)
         (wordMul32_not_ge_of_lt (by rw [ulit_toNat' _ (by omega), show (⟨128⟩ : UInt256).toNat = 128 from by decide]; omega)
@@ -610,7 +610,7 @@ theorem weth9NameLong2Continue {cA gh bl σ σ₀ A I} {g : Sat256} (j : Nat)
     jumpdest, dup4, dup2, lt, iszero, push2 ⟨245⟩, jumpiNT hcont,
     dup2, dup2, add,
     raw mload _ (weth9LongDataWordAt σ I j) (UInt256.ofNat (8 + weth9LongWC σ I + j))
-      (by native_decide) weth9MloadCostSpec
+      (by decide +native) weth9MloadCostSpec
       (mloadWordValue_of_readWithPadding
         (by rw [hsrc, weth9Long2Mem_size hpos]; omega)
         (wordMul32_not_ge_of_lt (by rw [hsrc, ulit_toNat' _ (by omega)]; omega)
@@ -621,7 +621,7 @@ theorem weth9NameLong2Continue {cA gh bl σ σ₀ A I} {g : Sat256} (j : Nat)
       (by evm_ov),
     dup4, dup3, add,
     raw mstore _ (weth9Long2Mem σ I (j + 1)) (UInt256.ofNat (8 + weth9LongWC σ I + (j + 1)))
-      (by native_decide) weth9MstoreCostSpec
+      (by decide +native) weth9MstoreCostSpec
       (by rw [weth9Long2Mem_succ, Reasoning.Theory.writeWord, hdst])
       (by rw [ulit_toNat' _ (by omega), hdst,
         show (256 + 32 * weth9LongWC σ I + 32 * j : Nat) = 32 * (8 + weth9LongWC σ I + j) from by ring,
@@ -895,7 +895,7 @@ theorem weth9NameStringLongReturns {cA gh bl σ σ₀ A I} {g : Sat256}
       jumpiT hcond (by jump_dest),
       jumpdest, pop, swap3, pop, pop, pop, push1 ⟨64⟩,
       raw mload _ (weth9StringNewFp (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat (9 + 2 * weth9LongWC σ I))
-        (by native_decide) weth9MloadCostSpec
+        (by decide +native) weth9MloadCostSpec
         (mloadWordValue_of_readWithPadding
           (by rw [weth9Long2Mem_size hpos, show (⟨64⟩ : UInt256).toNat = 64 from by decide]; omega)
           (wordMul32_not_ge_of_lt (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, ulit_toNat' _ (by omega)]; omega)
@@ -904,7 +904,7 @@ theorem weth9NameStringLongReturns {cA gh bl σ σ₀ A I} {g : Sat256}
         (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, ulit_toNat' _ (by omega), hawnorm,
           machineState_M_inBounds (show (64 : Nat) + 32 ≤ 32 * (9 + 2 * weth9LongWC σ I) from by omega)]) (by evm_ov),
       dup1, swap2, sub, swap1,
-      raw ret _ (weth9LongStringAbi σ I) (by native_decide) weth9ReturnCostSpec
+      raw ret _ (weth9LongStringAbi σ I) (by decide +native) weth9ReturnCostSpec
         (by rw [hmem, hretlen]; exact weth9Long2FinalMem_readAbi hpos hfit) (by evm_ov)]
   · -- len not a multiple of 32: apply the trailing-word mask.
     have hcond : UInt256.isZero (UInt256.land ⟨31⟩ (weth9StringLen (weth9StringSlotWord σ I ⟨0⟩))) = ⟨0⟩ :=
@@ -939,7 +939,7 @@ theorem weth9NameStringLongReturns {cA gh bl σ σ₀ A I} {g : Sat256}
       jumpiNT hcond,
       dup1, dup3, sub, dup1,
       raw mload _ (weth9LongDataWordAt σ I (weth9LongWC σ I)) (UInt256.ofNat (9 + 2 * weth9LongWC σ I))
-        (by native_decide) weth9MloadCostSpec
+        (by decide +native) weth9MloadCostSpec
         (mloadWordValue_of_readWithPadding
           (by rw [hmaskAddr, weth9Long2Mem_size hpos]; omega)
           (wordMul32_not_ge_of_lt (by rw [hmaskAddr, ulit_toNat' _ (by omega)]; omega)
@@ -952,7 +952,7 @@ theorem weth9NameStringLongReturns {cA gh bl σ σ₀ A I} {g : Sat256}
         (by evm_ov),
       push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub, not, and, dup2,
       raw mstore _ (weth9Long2FinalMem σ I) (UInt256.ofNat (9 + 2 * weth9LongWC σ I))
-        (by native_decide) weth9MstoreCostSpec
+        (by decide +native) weth9MstoreCostSpec
         (by rw [hmaskAddr, hmaskVal]; exact hmemMask)
         (by rw [hmaskAddr, ulit_toNat' _ (by omega),
           machineState_M_inBounds (show (256 + 64 * weth9LongWC σ I) + 32 ≤ 32 * (9 + 2 * weth9LongWC σ I) from by omega)])
@@ -960,7 +960,7 @@ theorem weth9NameStringLongReturns {cA gh bl σ σ₀ A I} {g : Sat256}
       push1 ⟨32⟩, add, swap2, pop,
       jumpdest, pop, swap3, pop, pop, pop, push1 ⟨64⟩,
       raw mload _ (weth9StringNewFp (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat (9 + 2 * weth9LongWC σ I))
-        (by native_decide) weth9MloadCostSpec
+        (by decide +native) weth9MloadCostSpec
         (mloadWordValue_of_readWithPadding
           (by rw [weth9Long2FinalMem_size hpos, show (⟨64⟩ : UInt256).toNat = 64 from by decide]; omega)
           (wordMul32_not_ge_of_lt (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, ulit_toNat' _ (by omega)]; omega)
@@ -969,7 +969,7 @@ theorem weth9NameStringLongReturns {cA gh bl σ σ₀ A I} {g : Sat256}
         (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, ulit_toNat' _ (by omega),
           machineState_M_inBounds (show (64 : Nat) + 32 ≤ 32 * (9 + 2 * weth9LongWC σ I) from by omega)]) (by evm_ov),
       dup1, swap2, sub, swap1,
-      raw ret _ (weth9LongStringAbi σ I) (by native_decide) weth9ReturnCostSpec
+      raw ret _ (weth9LongStringAbi σ I) (by decide +native) weth9ReturnCostSpec
         (by rw [hretlen]; exact weth9Long2FinalMem_readAbi hpos hfit) (by evm_ov)]
 
 end Benchmarks.WETH9

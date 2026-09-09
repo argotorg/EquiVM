@@ -25,7 +25,7 @@ theorem weth9WithdrawBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (weth9SelBytes 4) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (weth9SelBytes 4) (by decide +native) hsel
   have hdisp := weth9SelectorDispatchWithdraw hsel
   -- shared balance-word equality
   have hbaleq : solcSlotWord σ_evm I (callerBalSlot I) = solcSlotWord σ_solm I (callerBalSlot I) :=
@@ -137,7 +137,7 @@ theorem weth9WithdrawBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               have hbody := weth9WithdrawBodyReturns_success evmS evmSCall I o
                 hsrcS (by rw [hwvS']; exact hwv) hleLoadS (by rw [← hevmSZero]; exact hcallS)
               refine weth9ReEquivExecGen hcode (weth9WithdrawSuccessTail hperm rd1470) hdisp hdec
-                hbody ?_ ?_ (returnEquiv.fallthrough (dvs := []) rfl rfl (by native_decide))
+                hbody ?_ ?_ (returnEquiv.fallthrough (dvs := []) rfl rfl (by decide +native))
               · simp only [hevmSCall, hevmECall]
               · simpa [hevmSCall, hevmECall] using hPostAccounts
           · -- insufficient balance: the call fails, `require(success)` reverts

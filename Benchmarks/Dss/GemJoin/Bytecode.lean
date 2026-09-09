@@ -215,7 +215,7 @@ def gemJoinBytecode : ByteArray :=
       ⟨1514⟩, ⟨1520⟩, ⟨1538⟩, ⟨1544⟩, ⟨1620⟩, ⟨1713⟩, ⟨1733⟩, ⟨1823⟩, ⟨1843⟩, ⟨1865⟩,
       ⟨1942⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def gemJoinCreationChunk0 : ByteArray :=
@@ -437,7 +437,7 @@ def gemJoinCreationBytecode : ByteArray :=
       ⟨1588⟩, ⟨1636⟩, ⟨1651⟩, ⟨1657⟩, ⟨1750⟩, ⟨1818⟩, ⟨1824⟩, ⟨1842⟩, ⟨1848⟩, ⟨1924⟩,
       ⟨2017⟩, ⟨2037⟩, ⟨2127⟩, ⟨2147⟩, ⟨2169⟩, ⟨2246⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.GemJoin

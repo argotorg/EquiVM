@@ -25,15 +25,15 @@ theorem flapperReachVatBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : flapperSelWord I = ⟨0x36569e77⟩ := by
     simpa [flapperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0x36 0x56 0x9e 0x77 ⟨0x36569e77⟩
-        (by native_decide) (by simpa [flapperSelBytes] using hsel)
+        (by decide +native) (by simpa [flapperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flapperBytecode flapperRootSplitPc)
       (flapperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat flapperBytecode flapperLowSplitPc)
       (flapperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   obtain ⟨_, _, hfirst⟩ :=
     flapperReachLowLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow
@@ -42,16 +42,16 @@ theorem flapperReachVatBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperLowLowFirstArmPc j))
         (flapperSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperLowLowFirstArmPc 3))
         (flapperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo ⟨397⟩ 3 hfirst
     (fun j hj => flapperLowLowArmsWellFormed j (le_trans hj (by omega)))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem flapperVatBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
@@ -85,15 +85,15 @@ theorem flapperVatBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcAddressSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnAddressFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [vatWord] using hbody)
 
 end Benchmarks.Dss.Flapper

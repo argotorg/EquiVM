@@ -32,29 +32,29 @@ theorem flipperReachDealBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : flipperSelWord I = ⟨0xc959c42b⟩ :=
     flipperSelWord_eq_of_beq I hsz 0xc9 0x59 0xc4 0x2b ⟨0xc959c42b⟩
-      (by native_decide) (by simpa [flipperSelBytes] using hsel)
+      (by decide +native) (by simpa [flipperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flipperBytecode flipperRootSplitPc)
       (flipperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat flipperBytecode flipperLowSplitPc)
       (flipperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperLowLowFirstArmPc j))
         (flipperSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperLowLowFirstArmPc 4))
         (flipperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact flipperReachLowLowBody 4 (by omega) ⟨841⟩ hcode hwv hsz hsize hroot hlow
-    heq0 htake (by jump_dest) (by native_decide)
+    heq0 htake (by jump_dest) (by decide +native)
 
 theorem flipperDealBodyCoreShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
@@ -770,7 +770,7 @@ theorem flipperDealBodyCoreCatPostCall {cA gh bl σ_evm σ_solm σ₀ A I}
           haccounts
           (by
             rw [show dealTransition.returnType = [] by rfl]
-            exact returnEquiv.fallthrough rfl (by rfl) (by native_decide))
+            exact returnEquiv.fallthrough rfl (by rfl) (by decide +native))
 
 theorem flipperDealBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)

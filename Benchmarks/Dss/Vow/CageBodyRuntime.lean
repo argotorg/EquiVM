@@ -245,12 +245,12 @@ theorem RD.vowCageFirstDaiCallDepthLimit
   obtain ⟨_, _, _, rd2753⟩ :=
     RD.vowCageFirstDaiStaticcallSetup rd hmem hread64 hcodeSizeRaw hov
   obtain ⟨k2754, C2754, rd2754raw⟩ :=
-    RD.solcStaticcallDepthLimit rd2753 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcallDepthLimit rd2753 (by decide +native) hdepth (by evm_ov)
   have haw :
       UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
         (⟨128⟩ : UInt256).toNat (⟨36⟩ : UInt256).toNat)
         (⟨128⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat) = UInt256.ofNat 6 := by
-    native_decide
+    decide +native
   have hmin :
       (min (⟨32⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     rfl
@@ -403,7 +403,7 @@ theorem vowCageFirstDaiCallDepthLimitBody
     (evmDai := { evmAsh with substate := A_dai }) (outDai := ByteArray.empty)
     hcode hwv hauthSolm hliveSolm hdispatch hdecode
     (by simpa [σClearedEvm] using rd2754)
-    (by native_decide) (by simp) hvatCode hcallDai
+    (by decide +native) (by simp) hvatCode hcallDai
 
 set_option maxHeartbeats 0 in
 theorem vowCageBodyToFlapperCage
@@ -1496,7 +1496,7 @@ theorem vowCageBodyToVatSin
             ¬ ((⟨128⟩ : UInt256).toNat ≥ memDai2.size
                 ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
           rw [hmemDai2]
-          native_decide
+          decide +native
         rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide]
         simpa [memDai2] using
           congrArg (fun bytes => UInt256.ofNat (fromByteArrayBigEndian bytes))

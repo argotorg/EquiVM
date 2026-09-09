@@ -26,7 +26,7 @@ theorem uniswapMintRuntimeAfterMintFeeTotalSupplyZero
         toWord, ⟨861⟩, sel]
       mem aw rdata (cAFee, σFee) k' C' := by
   have rd3704pre := evm_run rd3701 with [jumpdest, push1 ⟨0⟩]
-  obtain ⟨k3705, C3705, rd3705₀⟩ := rd3704pre.sload (by native_decide) (by evm_ov)
+  obtain ⟨k3705, C3705, rd3705₀⟩ := rd3704pre.sload (by decide +native) (by evm_ov)
   have rd3705 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3705⟩
       [uniswapSlotWord ⟨0⟩ σFee I, feeOn, ⟨0⟩, amount1, amount0, balance1, balance0,
@@ -35,7 +35,7 @@ theorem uniswapMintRuntimeAfterMintFeeTotalSupplyZero
     simpa [uniswapSlotWord] using rd3705₀
   have rd3712pre := evm_run rd3705 with [swap1, swap2, pop, dup1, push2 ⟨3762⟩]
   rw [htotalZero] at rd3712pre
-  have rd3713 := evm_run rd3712pre with [jumpiNT (by native_decide)]
+  have rd3713 := evm_run rd3712pre with [jumpiNT (by decide +native)]
   exact ⟨_, _, by simpa using rd3713⟩
 
 set_option maxHeartbeats 1000000 in
@@ -60,7 +60,7 @@ theorem uniswapMintRuntimeAfterMintFeeTotalSupplyNonzero
         toWord, ⟨861⟩, sel]
       mem aw rdata (cAFee, σFee) k' C' := by
   have rd3704pre := evm_run rd3701 with [jumpdest, push1 ⟨0⟩]
-  obtain ⟨k3705, C3705, rd3705₀⟩ := rd3704pre.sload (by native_decide) (by evm_ov)
+  obtain ⟨k3705, C3705, rd3705₀⟩ := rd3704pre.sload (by decide +native) (by evm_ov)
   have rd3705 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3705⟩
       [uniswapSlotWord ⟨0⟩ σFee I, feeOn, ⟨0⟩, amount1, amount0, balance1, balance0,
@@ -96,7 +96,7 @@ theorem uniswapMintRuntimeInitialLiquidityRootEntry
     dup8, push4 ⟨0xffffffff⟩, push2 ⟨6780⟩, and]
   rw [show UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ from by decide]
     at rd6780pre
-  have rd6780 := rd6780pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd6780 := rd6780pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3737⟩ := RD.uniswapSafeMathMulSuccess
     (a := amount0) (b := amount1) rd6780 hfit (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -130,15 +130,15 @@ theorem uniswapMintRuntimeInitialLiquiditySmallRootReverts
     jumpdest, swap1, push4 ⟨0xffffffff⟩, push2 ⟨6879⟩, and]
   rw [show UInt256.land (⟨6879⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6879⟩ from by decide]
     at rd6879pre
-  have rd6879 := rd6879pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd6879 := rd6879pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   have hrootLt :
       ((if UInt256.mul amount0 amount1 = ⟨0⟩ then ⟨0⟩ else ⟨1⟩) : UInt256).toNat <
         (⟨1000⟩ : UInt256).toNat := by
     by_cases hzero : UInt256.mul amount0 amount1 = ⟨0⟩
     · simp [hzero]
-      native_decide
+      decide +native
     · simp [hzero]
-      native_decide
+      decide +native
   exact RD.uniswapSafeMathSubUnderflow_aw6_size164_shared
     (by simpa [feeToStaticcallActiveWords, balanceOfThisStaticcallActiveWords] using rd6879)
     hrootLt hmem hmem64
@@ -222,12 +222,12 @@ theorem uniswapMintRuntimeInitialMinimumMintEntry
     jumpdest, swap1, push4 ⟨0xffffffff⟩, push2 ⟨6879⟩, and]
   rw [show UInt256.land (⟨6879⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6879⟩ from by decide]
     at rd6879pre
-  have rd6879 := rd6879pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd6879 := rd6879pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3742⟩ :=
     RD.uniswapSafeMathSubSuccess rd6879 hrootGeMin (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3743 := evm_run rd3742 with [jumpdest]
-  have rd3744 := RD.uniswapSwap9 rd3743 (by native_decide)
+  have rd3744 := RD.uniswapSwap9 rd3743 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd8128pre := evm_run rd3744 with [
     pop, push2 ⟨3757⟩, push1 ⟨0⟩, push2 ⟨1000⟩,
@@ -339,7 +339,7 @@ theorem uniswapMintRuntimeProportionalLiquidity0Entry
     hclean0,
     show UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ from by decide]
     at rd6780pre
-  have rd6780 := rd6780pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd6780 := rd6780pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3791⟩ := RD.uniswapSafeMathMulSuccess
     (a := amount0) (b := totalSupply) rd6780 hfit (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -378,7 +378,7 @@ theorem uniswapMintRuntimeProportionalLiquidity1MinEntry
     hclean1,
     show UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ from by decide]
     at rd6780pre
-  have rd6780 := rd6780pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd6780 := rd6780pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3825⟩ := RD.uniswapSafeMathMulSuccess
     (a := amount1) (b := totalSupply) rd6780 hfit (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -410,7 +410,7 @@ theorem uniswapMinRuntimeReturns {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     exact ⟨_, _, by simpa [minFunctionResultWord, hlt] using rdRet⟩
   · have hle : y.toNat ≤ x.toNat := by omega
     rw [ult_zero hle] at rd8287pre
-    have rd8288 := evm_run rd8287pre with [jumpiNT (by native_decide)]
+    have rd8288 := evm_run rd8287pre with [jumpiNT (by decide +native)]
     have rd8295 := evm_run rd8288 with [dup2, push2 ⟨8295⟩, jump (by jump_dest)]
     have rdRet := evm_run rd8295 with [
       jumpdest, swap4, swap3, pop, pop, pop, jump hret]
@@ -535,7 +535,7 @@ theorem uniswapMintRuntimeProportionalLiquidityEntry
   obtain ⟨_, _, rd3838⟩ := uniswapMinRuntimeReturns rd8278 (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3839 := evm_run rd3838 with [jumpdest]
-  have rd3840 := RD.uniswapSwap9 rd3839 (by native_decide)
+  have rd3840 := RD.uniswapSwap9 rd3839 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, evm_run rd3840 with [pop]⟩
 
@@ -846,9 +846,9 @@ theorem uniswapMintRuntimeAfterUpdateFeeOn
   let packedReserve1 := UInt256.land (UInt256.div slot8 reserve112Shift) reserve112Mask
   have rd3932pre := evm_run rd3926 with [jumpdest, dup2, iszero, push2 ⟨3974⟩]
   rw [isZero_eq_zero_of_ne hfeeOn] at rd3932pre
-  have rd3933 := evm_run rd3932pre with [jumpiNT (by native_decide)]
+  have rd3933 := evm_run rd3932pre with [jumpiNT (by decide +native)]
   have rd3935pre := evm_run rd3933 with [push1 ⟨8⟩]
-  obtain ⟨k3936, C3936, rd3936₀⟩ := rd3935pre.sload (by native_decide) (by evm_ov)
+  obtain ⟨k3936, C3936, rd3936₀⟩ := rd3935pre.sload (by decide +native) (by evm_ov)
   have rd3936 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3936⟩
       [slot8, totalSupply, feeOn, amount1, amount0, balance1, balance0, reserve1,
@@ -866,13 +866,13 @@ theorem uniswapMintRuntimeAfterUpdateFeeOn
     at rd6780pre
   have rd6780 := by
     simpa [slot8, packedReserve0, packedReserve1] using
-      rd6780pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+      rd6780pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3970⟩ := RD.uniswapSafeMathMulSuccess
     (a := packedReserve0) (b := packedReserve1) rd6780
     (by simpa [packedReserve0, packedReserve1, slot8] using hfit) (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3973 := evm_run rd3970 with [jumpdest, push1 ⟨11⟩]
-  obtain ⟨_, _, rd3974⟩ := rd3973.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd3974⟩ := rd3973.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [slot8, packedReserve0, packedReserve1] using rd3974⟩
 
@@ -930,7 +930,7 @@ theorem uniswapMintLogMem_mload64
       ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [uniswapMintLogMem_size amount0 amount1 hmem]; decide)
-    (by native_decide)
+    (by decide +native)
     (uniswapMintLogMem_read64 amount0 amount1 hmem hmem64)
 
 theorem uniswapMintReturnMem_size
@@ -966,7 +966,7 @@ theorem uniswapMintReturnMem_mload64
       ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [uniswapMintReturnMem_size liquidity amount0 amount1 hmem]; decide)
-    (by native_decide)
+    (by decide +native)
     (uniswapMintReturnMem_read64 liquidity amount0 amount1 hmem hmem64)
 
 theorem uniswapMintReturnMem_read128
@@ -1019,35 +1019,35 @@ theorem uniswapMintRuntimeFinalizeToReturnWrapper
   let memAmount0 := (UInt256.toByteArray amount0).write 0 mem 128 32
   have rd3978 := evm_run rd3974 with [jumpdest, push1 ⟨64⟩, dup1]
   have rd3979 := rd3978.mload 0 ⟨128⟩ feeToStaticcallActiveWords
-    (by native_decide) mem_cost hmload64 (by native_decide)
+    (by decide +native) mem_cost hmload64 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3981 := evm_run rd3979 with [dup6, dup2]
   have rd3982 := rd3981.mstore 0 memAmount0 feeToStaticcallActiveWords
-    (by native_decide) mem_cost (by unfold memAmount0; rfl) (by native_decide)
+    (by decide +native) mem_cost (by unfold memAmount0; rfl) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3988pre := evm_run rd3982 with [push1 ⟨32⟩, dup2, add, dup6, swap1]
   have rd3989 := rd3988pre.mstore 0 (uniswapMintLogMem amount0 amount1 mem)
-    feeToStaticcallActiveWords (by native_decide) mem_cost
-    (by unfold uniswapMintLogMem memAmount0; rfl) (by native_decide)
+    feeToStaticcallActiveWords (by decide +native) mem_cost
+    (by unfold uniswapMintLogMem memAmount0; rfl) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3992 := evm_run rd3989 with [
     dup2,
-    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
-      mem_cost hlogMload64 (by native_decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by decide +native)
+      mem_cost hlogMload64 (by decide +native) (by evm_ov),
     caller, swap3]
   have rd4026 := rd3992.pushConst uniswapMintTopic (width := 32) (op := .PUSH32)
-    (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd4032 := evm_run rd4026 with [swap3, dup3, swap1, sub, add, swap1]
   have rd4033 := RD.uniswapLog2 0 feeToStaticcallActiveWords rd4032
-    (by native_decide) hperm mem_cost (by native_decide)
+    (by decide +native) hperm mem_cost (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd4039pre := evm_run rd4033 with [pop, pop, push1 ⟨1⟩, push1 ⟨12⟩]
-  obtain ⟨_, _, rd4040⟩ := rd4039pre.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd4040⟩ := rd4039pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd4050 := evm_run rd4040 with [
     pop, swap5, swap7, swap6, pop, pop, pop, pop, pop, pop]
-  exact ⟨_, _, rd4050.jump (by native_decide) (by jump_dest)
+  exact ⟨_, _, rd4050.jump (by decide +native) (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)⟩
 
 theorem RD.uniswapReturnWord861FromFeeMem {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -1072,25 +1072,25 @@ theorem RD.uniswapReturnWord861FromFeeMem {g : Sat256} {s0 : State} {ee : Execut
     (hov : R.length + 5 ≤ 1024) :
     RDret UniswapV2Pair.uniswapV2PairBytecode g s0 acc (UInt256.toByteArray val) := by
   exact evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
-      mem_cost hmload64 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mstore 0 memout feeToStaticcallActiveWords (by native_decide)
-      mem_cost hmemout (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
-      mem_cost hmemoutLoad64 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw ret 0 (UInt256.toByteArray val) (by native_decide) mem_cost
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by decide +native)
+      mem_cost hmload64 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mstore 0 memout feeToStaticcallActiveWords (by decide +native)
+      mem_cost hmemout (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by decide +native)
+      mem_cost hmemoutLoad64 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw ret 0 (UInt256.toByteArray val) (by decide +native) mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
           show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat =
@@ -1178,7 +1178,7 @@ theorem uniswapMintRuntimeAfterUpdateFeeOffReturns
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by native_decide) hmem64
+    mloadFreePtrValue (by rw [hmem]; decide) (by decide +native) hmem64
   exact uniswapMintRuntimeFinalizeReturns rd3974 hmload64
     (uniswapMintLogMem_mload64 amount0 amount1 hmem hmem64)
     (uniswapMintReturnMem_mload64 liquidity amount0 amount1 hmem hmem64)
@@ -1220,7 +1220,7 @@ theorem uniswapMintRuntimeAfterUpdateFeeOnReturns
        else UInt256.ofNat
         (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by rw [hmem]; decide) (by native_decide) hmem64
+    mloadFreePtrValue (by rw [hmem]; decide) (by decide +native) hmem64
   exact uniswapMintRuntimeFinalizeReturns rd3974 hmload64
     (uniswapMintLogMem_mload64 amount0 amount1 hmem hmem64)
     (uniswapMintReturnMem_mload64 liquidity amount0 amount1 hmem hmem64)

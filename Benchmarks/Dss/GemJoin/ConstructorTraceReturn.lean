@@ -34,14 +34,14 @@ theorem gemJoinCtorReturnTrace
   have rd249pre := gem_ctor_run rd244 with [
     push1 ⟨64⟩,
     raw mload 0 ⟨224⟩ (UInt256.ofNat 8) (by gem_ctor_decode) mem_cost
-      hMload64Value (by native_decide) (by evm_ov),
+      hMload64Value (by decide +native) (by evm_ov),
     caller, swap1]
   have rd282 := rd249pre.pushConst
     (⟨0xdd0e34038ac38b2a1ce960229778ac48a8719bc900b6c4f8d0475c6e8b385a60⟩ : UInt256)
     (width := 32) (op := .PUSH32) (by decide) (by gem_ctor_decode) (by evm_ov)
   have rd286 := gem_ctor_run rd282 with [swap1, push1 ⟨0⟩, swap1]
   have rd287raw := RD.log2 0 (UInt256.ofNat 8) rd286
-    (by gem_ctor_decode) hperm mem_cost (by native_decide)
+    (by gem_ctor_decode) hperm mem_cost (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd290 := gem_ctor_run rd287raw with [pop, pop, pop]
   let retMem := gemJoinCtorRuntimeReturnMem vat ilk gem mem
@@ -54,7 +54,7 @@ theorem gemJoinCtorReturnTrace
       (Cₘ (UInt256.ofNat (MachineState.M (UInt256.ofNat 8).toNat 0 2022)) -
         Cₘ (UInt256.ofNat 8))
       retMem (UInt256.ofNat (MachineState.M (UInt256.ofNat 8).toNat 0 2022))
-      (by gem_ctor_decode) mem_cost hcopy (by native_decide) (by evm_ov),
+      (by gem_ctor_decode) mem_cost hcopy (by decide +native) (by evm_ov),
     push1 ⟨0⟩]
   exact rd300.ret 0 gemJoinBytecode
     (by gem_ctor_decode) mem_cost

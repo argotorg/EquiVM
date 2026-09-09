@@ -25,26 +25,26 @@ theorem RD.flopperKickReturnWordFromMem7 {cA σ I} {g : Sat256} {s0 : State}
     (hread128 : memout.readWithPadding 128 32 = UInt256.toByteArray id) :
     RDret flopperBytecode g s0 (cA, σ) (UInt256.toByteArray id) := by
   exact evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mstore 0 memout (UInt256.ofNat 7) (by native_decide) mem_cost
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mstore 0 memout (UInt256.ofNat 7) (by decide +native) mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; exact hmemout)
       (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide +native)
       mem_cost hmemoutLoad64 (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw ret 0 (UInt256.toByteArray id) (by native_decide) mem_cost
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw ret 0 (UInt256.toByteArray id) (by decide +native) mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
           show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 32
@@ -74,24 +74,24 @@ theorem flopperKickX_toEndStoreStart {cA σ I} {g : Sat256} {s0 : State} {k C : 
   let timestamp := UInt256.ofNat I.header.timestamp
   let addWord := kickRuntimeAddWord I.codeOwner σ I
   have rd4744 := evm_run rd4740 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
   have rd4751 := rd4744.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
     (by decide : Operation.POp.PUSH6 ≠ .PUSH0)
-    (by native_decide)
+    (by decide +native)
     (by simp)
   have rd4759 := evm_run rd4751 with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨4710⟩ (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨4710⟩ (by decide +native) (by evm_ov)]
   have hltFalse :
       UInt256.lt (UInt256.land (timestamp + tau) flopperUint48Mask)
           (UInt256.land timestamp flopperUint48Mask) = ⟨0⟩ := by
@@ -102,14 +102,14 @@ theorem flopperKickX_toEndStoreStart {cA σ I} {g : Sat256} {s0 : State} {k C : 
             (UInt256.land timestamp flopperUint48Mask)) ≠ ⟨0⟩ := by
     rw [hltFalse]
     decide
-  have rd4710 := rd4759.jumpiT (by native_decide) hcond (by jump_dest) (by evm_ov)
+  have rd4710 := rd4759.jumpiT (by decide +native) hcond (by jump_dest) (by evm_ov)
   have rd4715 := evm_run rd4710 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  have rd3737 := rd4715.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  have rd3737 := rd4715.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by
     simpa [timestamp, tau, addWord, kickRuntimeAddWord, id, memStore, σGuy] using rd3737⟩
 
@@ -127,24 +127,24 @@ theorem flopperKickX_addOverflow {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
   let tau := kickRuntimeTauWord I.codeOwner σ I
   let timestamp := UInt256.ofNat I.header.timestamp
   have rd4744 := evm_run rd4740 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
   have rd4751 := rd4744.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
     (by decide : Operation.POp.PUSH6 ≠ .PUSH0)
-    (by native_decide)
+    (by decide +native)
     (by simp)
   have rd4759 := evm_run rd4751 with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨4710⟩ (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨4710⟩ (by decide +native) (by evm_ov)]
   have htauLt : tau.toNat < 2 ^ 48 := by
     simpa [tau] using kickRuntimeTauWord_lt I.codeOwner σ I
   have hltTrue :
@@ -157,10 +157,10 @@ theorem flopperKickX_addOverflow {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
           (UInt256.lt (UInt256.land (timestamp + tau) flopperUint48Mask)
             (UInt256.land timestamp flopperUint48Mask)) = ⟨0⟩ := by
     rw [hltTrue]
-    native_decide
-  have rd4763 := rd4759.jumpiNT (by native_decide) hcond (by evm_ov)
+    decide +native
+  have rd4763 := rd4759.jumpiNT (by decide +native) hcond (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rd4763
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp)
 
 set_option maxHeartbeats 1000000 in
@@ -188,63 +188,63 @@ theorem flopperKickX_toEventStart {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
   obtain ⟨_, _, rd3737⟩ := flopperKickX_toEndStoreStart hperm haddFit h
   let memKey := wordAt0Mem id memStore
   have rd3742pre := evm_run rd3737 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3743 := rd3742pre.mstore 0 memKey (UInt256.ofNat 3)
-    (by native_decide)
+    (by decide +native)
     (by
       intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      exact mstoreCost_of_stack haw hstk (by decide +native))
     (by simp [memKey, memStore, id, wordAt0Mem])
-    (by native_decide)
+    (by decide +native)
     (by evm_ov)
   have rd3749pre := evm_run rd3743 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3750 := rd3749pre.mstore 0 memEndStore (UInt256.ofNat 3)
-    (by native_decide)
+    (by decide +native)
     (by
       intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      exact mstoreCost_of_stack haw hstk (by decide +native))
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memEndStore, memStore, id, twoWordHashMem, wordAt32Mem])
-    (by native_decide)
+    (by decide +native)
     (by evm_ov)
   have rd3755pre := evm_run rd3750 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC (memEndStore.readWithPadding 0 64))) = base := by
     simpa [base, memEndStore, memStore, id] using
       twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStore
   have rd3756 := rd3755pre.keccak256 0 base (UInt256.ofNat 3)
-    (by native_decide)
+    (by decide +native)
     (by
       intro s haw hstk
       simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+      decide +native)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
-    (by native_decide)
+    (by decide +native)
     (by evm_ov)
   have rd3759pre := evm_run rd3756 with [
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
   have hpackedSlot : ⟨2⟩ + base = packedSlot := by
     rw [u256_add_comm]
     simp [packedSlot, base, auctionPackedSlot_eq, id]
   rw [hpackedSlot] at rd3759pre
-  have rd3760 := rd3759pre.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨k3761, C3761, rd3761raw⟩ := rd3760.sload (by native_decide) (by evm_ov)
+  have rd3760 := rd3759pre.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨k3761, C3761, rd3761raw⟩ := rd3760.sload (by decide +native) (by evm_ov)
   have rd3761 : RD flopperBytecode I g s0 ⟨3761⟩
       [oldPacked, packedSlot, ⟨32⟩, ⟨64⟩, addWord, id, kickBidWord I, kickLotWord I,
         kickGalMaskedWord I, ⟨644⟩, sel]
@@ -252,40 +252,40 @@ theorem flopperKickX_toEventStart {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     simpa [oldPacked, packedSlot, solcSlotWord, addWord] using rd3761raw
   have rd3795pre := rd3761.pushConst flopperUint48Mask (width := 6) (op := .PUSH6)
     (by decide : Operation.POp.PUSH6 ≠ .PUSH0)
-    (by native_decide)
+    (by decide +native)
     (by simp)
   have rd3795pre' := evm_run rd3795pre with [
-    raw swap5 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨208⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨208⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov)]
+    raw swap5 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨208⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨208⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov)]
   obtain ⟨k3796, C3796, rd3796raw⟩ := rd3795pre'.sstore hperm
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have hpc3796 :
       (⟨3761⟩ : UInt256) + UInt256.ofNat 7 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
           UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨3796⟩ := by
-    native_decide
+    decide +native
   rw [hpc3796] at rd3796raw
   have hstoredRaw :
       UInt256.lor
@@ -343,46 +343,46 @@ theorem flopperKickX_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         = ⟨128⟩ :=
     mloadFreePtrValue (by rw [hmemEnd]; decide) (by decide) hreadEnd
   have rd3799pre := evm_run rd3796 with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost
       hmload64End (by decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3800 := rd3799pre.mstore 6 memEvent0 (UInt256.ofNat 5)
-    (by native_decide)
+    (by decide +native)
     (by
       intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      exact mstoreCost_of_stack haw hstk (by decide +native))
     (by rfl)
-    (by native_decide)
+    (by decide +native)
     (by evm_ov)
   have rd3805pre := evm_run rd3800 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd3806 := rd3805pre.mstore 3 memEvent1 (UInt256.ofNat 6)
-    (by native_decide)
+    (by decide +native)
     (by
       intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      exact mstoreCost_of_stack haw hstk (by decide +native))
     (by rfl)
-    (by native_decide)
+    (by decide +native)
     (by evm_ov)
   have rd3811pre := evm_run rd3806 with [
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd3812 := rd3811pre.mstore 3 memEvent (UInt256.ofNat 7)
-    (by native_decide)
+    (by decide +native)
     (by
       intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      exact mstoreCost_of_stack haw hstk (by decide +native))
     (by rfl)
-    (by native_decide)
+    (by decide +native)
     (by evm_ov)
   have hmload64Event :
       (if (⟨64⟩ : UInt256).toNat ≥ memEvent.size
@@ -393,43 +393,43 @@ theorem flopperKickX_success {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     simpa [memEvent] using kickEventMem_mload64 id (kickLotWord I) (kickBidWord I)
       hmemEnd hreadEnd
   have rd3824 := evm_run rd3812 with [
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by native_decide) mem_cost
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide +native) mem_cost
       hmload64Event (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   let kickTopic : UInt256 :=
     ⟨57232600449834081365935232875560862584875913243754734604176407410798957956598⟩
   have rd3858 := rd3824.pushConst kickTopic (width := 32) (op := .PUSH32)
     (by decide : Operation.POp.PUSH32 ≠ .PUSH0)
-    (by native_decide)
+    (by decide +native)
     (by simp)
   have rd3867 := evm_run rd3858 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨96⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  have rd3868 := RD.log2 0 (UInt256.ofNat 7) rd3867 (by native_decide) hperm
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨96⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  have rd3868 := RD.log2 0 (UInt256.ofNat 7) rd3867 (by decide +native) hperm
     mem_cost (by decide)
     (by
       simp only [List.length_cons, List.length_nil]
       omega)
   have rd644 := evm_run rd3868 with [
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact RD.flopperKickReturnWordFromMem7 rd644
     (by simpa [memEvent] using
       (kickEventMem_mload64 id (kickLotWord I) (kickBidWord I) hmemEnd hreadEnd))

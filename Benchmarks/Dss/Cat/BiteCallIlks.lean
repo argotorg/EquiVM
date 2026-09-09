@@ -63,14 +63,14 @@ theorem catBiteIlksSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
     (catBiteIlksSelectorMem mem).size = 160 := by
   unfold catBiteIlksSelectorMem
   exact toByteArray_write32_size_of_ge mem catBiteIlksSelectorShifted 128 96 160 hmem
-    (by omega) (by native_decide) (by omega)
+    (by omega) (by decide +native) (by omega)
 
 theorem catBiteIlksSelectorMem_read64 {mem : ByteArray} (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (catBiteIlksSelectorMem mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold catBiteIlksSelectorMem
   rw [toByteArray_write_read_below_of_gap catBiteIlksSelectorShifted mem 128 64
-    (by rw [hmem]) (by omega) (by rw [hmem]; native_decide), hread64]
+    (by rw [hmem]) (by omega) (by rw [hmem]; decide +native), hread64]
 
 theorem catBiteIlksCalldataMem_size (ilk : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -93,7 +93,7 @@ theorem catBiteIlksSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 96)
     (catBiteIlksSelectorMem mem).extract 128 132 = vatIlksSelector := by
   unfold catBiteIlksSelectorMem
   have hgap : 128 - mem.size < USize.size := by
-    rw [hmem]; native_decide
+    rw [hmem]; decide +native
   rw [toByteArray_write_eq catBiteIlksSelectorShifted mem 128 (by omega) hgap]
   have hprefix :
       (mem ++ ffi.ByteArray.zeroes (128 - mem.size)).size = 128 := by
@@ -101,7 +101,7 @@ theorem catBiteIlksSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 96)
   rw [extract_append_right_window _ _ 128 132 (by rw [hprefix]), hprefix,
     show 128 - 128 = 0 from rfl, show 132 - 128 = 4 from rfl,
     toByteArray_eq_toBytesBE]
-  native_decide
+  decide +native
 
 theorem catBiteIlksCalldataMem_read128_36 (ilk : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -169,7 +169,7 @@ theorem RD.catBiteIlksToStaticcallGuard
         (catSlotWord ⟨3⟩ σ I) = catBiteVatTargetWord σ I := by
     have hmask :
         UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-      native_decide
+      decide +native
     show UInt256.land _ (catSlotWord ⟨3⟩ σ I) =
       UInt256.land (catSlotWord ⟨3⟩ σ I) solcAddrMask
     rw [u256_land_comm, hmask]
@@ -195,9 +195,9 @@ theorem RD.catBiteIlksToStaticcallGuard
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
     mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
-  have rd1164 := rd1163.jumpdest (by native_decide) (by evm_ov)
-  have rd1166 := rd1164.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1167, C1167, rd1167raw⟩ := rd1166.sload (by native_decide) (by evm_ov)
+  have rd1164 := rd1163.jumpdest (by decide +native) (by evm_ov)
+  have rd1166 := rd1164.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1167, C1167, rd1167raw⟩ := rd1166.sload (by decide +native) (by evm_ov)
   have rd1167 : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1167⟩
       (catSlotWord ⟨3⟩ σ I :: urn :: ilk :: R)
@@ -206,23 +206,23 @@ theorem RD.catBiteIlksToStaticcallGuard
   have rd1233 := evm_run rd1167 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     push4 ⟨1823590043⟩,
     push1 ⟨225⟩,
     shl,
     dup2,
     raw mstore 6 (catBiteIlksSelectorMem solcFreePtrMem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩,
     dup2,
     add,
     dup6,
     swap1,
     raw mstore 3 (catBiteIlksCalldataMem ilk solcFreePtrMem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
     push1 ⟨0⟩,
     swap3,

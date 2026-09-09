@@ -22,7 +22,7 @@ theorem rpowShiftRight128_zero_of_square_fit (x : UInt256)
   have hxlt : x.toNat < 2 ^ 128 := by
     by_contra hnot
     have hxge : 2 ^ 128 ≤ x.toNat := Nat.le_of_not_lt hnot
-    have hsize : UInt256.size = 2 ^ 256 := by native_decide
+    have hsize : UInt256.size = 2 ^ 256 := by decide +native
     have hsqge : 2 ^ 256 ≤ x.toNat * x.toNat := by
       nlinarith [hxge]
     omega
@@ -41,7 +41,7 @@ theorem rpowShiftRight128_ne_zero_of_square_overflow (x : UInt256)
   change x.toNat / 2 ^ 128 = 0 at hnat
   have hxlt : x.toNat < 2 ^ 128 :=
     Nat.lt_of_div_eq_zero (by norm_num : 0 < 2 ^ 128) hnat
-  have hsize : UInt256.size = 2 ^ 256 := by native_decide
+  have hsize : UInt256.size = 2 ^ 256 := by decide +native
   have hsq : x.toNat * x.toNat < UInt256.size := by
     rw [hsize]
     nlinarith [hxlt]
@@ -51,7 +51,7 @@ theorem uInt256_land_one_eq_zero_of_even {n : UInt256} (heven : n.toNat % 2 = 0)
     UInt256.land n ⟨1⟩ = ⟨0⟩ := by
   apply u256_inj
   rw [uInt256_land_one_toNat, heven]
-  native_decide
+  decide +native
 
 theorem uInt256_land_one_eq_one_of_odd {n : UInt256} (hodd : n.toNat % 2 ≠ 0) :
     UInt256.land n ⟨1⟩ = ⟨1⟩ := by
@@ -73,40 +73,40 @@ theorem RD.stairstepRpowXZeroNNonzeroReturns
     ∃ k' C', RD stairstepExponentialDecreaseBytecode I g s0 ⟨707⟩ (⟨0⟩ :: R)
       mem aw out acc k' C' := by
   have rd1051pre := evm_run rd1042 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1220⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1220⟩ (by decide +native) (by evm_ov)]
   have hnNonzero : UInt256.isZero n = ⟨0⟩ := isZero_eq_zero_of_ne hnz
-  have rd1052 := rd1051pre.jumpiNT (by native_decide) hnNonzero (by evm_ov)
+  have rd1052 := rd1051pre.jumpiNT (by decide +native) hnNonzero (by evm_ov)
   have rd1058pre := evm_run rd1052 with [
-    raw dup5 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1209⟩ (by native_decide) (by evm_ov)]
+    raw dup5 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1209⟩ (by decide +native) (by evm_ov)]
   have hxZero : UInt256.isZero (⟨0⟩ : UInt256) ≠ ⟨0⟩ := by decide
-  have rd1209 := rd1058pre.jumpiT (by native_decide) hxZero (by jump_dest) (by evm_ov)
+  have rd1209 := rd1058pre.jumpiT (by decide +native) hxZero (by jump_dest) (by evm_ov)
   have rd1214pre := evm_run rd1209 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   have rd1224pre := evm_run rd1214pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push2 ⟨1224⟩ (by native_decide) (by evm_ov)]
-  have rd1224 := rd1224pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push2 ⟨1224⟩ (by decide +native) (by evm_ov)]
+  have rd1224 := rd1224pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rdret := evm_run rd1224 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rdret.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rdret.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowToLoop
@@ -128,72 +128,72 @@ theorem RD.stairstepRpowToLoop
         mem aw out acc k' C' := by
   intro half z n'
   have rd1051pre := evm_run rd1042 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1220⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1220⟩ (by decide +native) (by evm_ov)]
   have hnNonzero : UInt256.isZero n = ⟨0⟩ := isZero_eq_zero_of_ne hnz
-  have rd1052 := rd1051pre.jumpiNT (by native_decide) hnNonzero (by evm_ov)
+  have rd1052 := rd1051pre.jumpiNT (by decide +native) hnNonzero (by evm_ov)
   have rd1058pre := evm_run rd1052 with [
-    raw dup5 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1209⟩ (by native_decide) (by evm_ov)]
+    raw dup5 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1209⟩ (by decide +native) (by evm_ov)]
   have hxNonzero : UInt256.isZero x = ⟨0⟩ := isZero_eq_zero_of_ne hx
-  have rd1059 := rd1058pre.jumpiNT (by native_decide) hxNonzero (by evm_ov)
+  have rd1059 := rd1058pre.jumpiNT (by decide +native) hxNonzero (by evm_ov)
   have rd1068pre := evm_run rd1059 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1076⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1076⟩ (by decide +native) (by evm_ov)]
   by_cases heven : n.toNat % 2 = 0
   · have hland : UInt256.land n ⟨1⟩ = ⟨0⟩ := uInt256_land_one_eq_zero_of_even heven
     have hoddZero : UInt256.isZero (UInt256.land n ⟨1⟩) ≠ ⟨0⟩ := by
       rw [hland]
       decide
-    have rd1076 := rd1068pre.jumpiT (by native_decide) hoddZero (by jump_dest) (by evm_ov)
+    have rd1076 := rd1068pre.jumpiT (by decide +native) hoddZero (by jump_dest) (by evm_ov)
     have rd1092 := evm_run rd1076 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw dup5 (by native_decide) (by evm_ov),
-      raw swap4 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-      raw dup5 (by native_decide) (by evm_ov),
-      raw div (by native_decide) (by evm_ov),
-      raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-      raw dup7 (by native_decide) (by evm_ov),
-      raw div (by native_decide) (by evm_ov),
-      raw swap6 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov)]
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw dup5 (by decide +native) (by evm_ov),
+      raw swap4 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+      raw dup5 (by decide +native) (by evm_ov),
+      raw div (by decide +native) (by evm_ov),
+      raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+      raw dup7 (by decide +native) (by evm_ov),
+      raw div (by decide +native) (by evm_ov),
+      raw swap6 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov)]
     exact ⟨x, n, _, _, by simpa [half, z, n', heven] using rd1092⟩
   · have hland : UInt256.land n ⟨1⟩ = ⟨1⟩ := uInt256_land_one_eq_one_of_odd heven
     have hoddNonzero : UInt256.isZero (UInt256.land n ⟨1⟩) = ⟨0⟩ := by
       rw [hland]
       decide
-    have rd1069 := rd1068pre.jumpiNT (by native_decide) hoddNonzero (by evm_ov)
+    have rd1069 := rd1068pre.jumpiNT (by decide +native) hoddNonzero (by evm_ov)
     have rd1080pre := evm_run rd1069 with [
-      raw dup7 (by native_decide) (by evm_ov),
-      raw swap4 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw push2 ⟨1080⟩ (by native_decide) (by evm_ov)]
-    have rd1080 := rd1080pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+      raw dup7 (by decide +native) (by evm_ov),
+      raw swap4 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw push2 ⟨1080⟩ (by decide +native) (by evm_ov)]
+    have rd1080 := rd1080pre.jump (by decide +native) (by jump_dest) (by evm_ov)
     have rd1092 := evm_run rd1080 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-      raw dup5 (by native_decide) (by evm_ov),
-      raw div (by native_decide) (by evm_ov),
-      raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-      raw dup7 (by native_decide) (by evm_ov),
-      raw div (by native_decide) (by evm_ov),
-      raw swap6 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov)]
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+      raw dup5 (by decide +native) (by evm_ov),
+      raw div (by decide +native) (by evm_ov),
+      raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+      raw dup7 (by decide +native) (by evm_ov),
+      raw div (by decide +native) (by evm_ov),
+      raw swap6 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov)]
     exact ⟨x, n, _, _, by simpa [half, z, n', heven] using rd1092⟩
 
 set_option maxHeartbeats 1000000 in
@@ -209,31 +209,31 @@ theorem RD.stairstepRpowLoopExit
     ∃ k' C', RD stairstepExponentialDecreaseBytecode I g s0 ⟨707⟩
       (z :: R) mem aw out acc k' C' := by
   have rd1098pre := evm_run rd1092 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1203⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1203⟩ (by decide +native) (by evm_ov)]
   have hnDone : UInt256.isZero (⟨0⟩ : UInt256) ≠ ⟨0⟩ := by decide
-  have rd1203 := rd1098pre.jumpiT (by native_decide) hnDone (by jump_dest) (by evm_ov)
+  have rd1203 := rd1098pre.jumpiT (by decide +native) hnDone (by jump_dest) (by evm_ov)
   have rd1214pre := evm_run rd1203 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push2 ⟨1214⟩ (by native_decide) (by evm_ov)]
-  have rd1214 := rd1214pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push2 ⟨1214⟩ (by decide +native) (by evm_ov)]
+  have rd1214 := rd1214pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd1224pre := evm_run rd1214 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push2 ⟨1224⟩ (by native_decide) (by evm_ov)]
-  have rd1224 := rd1224pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push2 ⟨1224⟩ (by decide +native) (by evm_ov)]
+  have rd1224 := rd1224pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rdret := evm_run rd1224 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rdret.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rdret.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowLoopBodyEntry
@@ -250,12 +250,12 @@ theorem RD.stairstepRpowLoopBodyEntry
       (half :: scratch₁ :: scratch₂ :: z :: b :: n :: x :: ⟨707⟩ :: R)
       mem aw out acc k' C' := by
   have rd1098pre := evm_run rd1092 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1203⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1203⟩ (by decide +native) (by evm_ov)]
   have hnNonzero : UInt256.isZero n = ⟨0⟩ := isZero_eq_zero_of_ne hnz
-  exact ⟨_, _, rd1098pre.jumpiNT (by native_decide) hnNonzero (by evm_ov)⟩
+  exact ⟨_, _, rd1098pre.jumpiNT (by decide +native) hnNonzero (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.stairstepRpowLoopRevertXX
@@ -270,19 +270,19 @@ theorem RD.stairstepRpowLoopRevertXX
       mem aw out acc k C) :
     RDrev stairstepExponentialDecreaseBytecode g s0 := by
   have rd1110pre := evm_run rd1099 with [
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw push1 ⟨128⟩ (by native_decide) (by evm_ov),
-    raw shr (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1115⟩ (by native_decide) (by evm_ov)]
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw push1 ⟨128⟩ (by decide +native) (by evm_ov),
+    raw shr (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1115⟩ (by decide +native) (by evm_ov)]
   have hcond : UInt256.isZero (UInt256.shiftRight x (⟨128⟩ : UInt256)) = ⟨0⟩ :=
     isZero_eq_zero_of_ne (rpowShiftRight128_ne_zero_of_square_overflow x hover)
-  have rdFallthrough := rd1110pre.jumpiNT (by native_decide) hcond (by evm_ov)
+  have rdFallthrough := rd1110pre.jumpiNT (by decide +native) hcond (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
@@ -301,35 +301,35 @@ theorem RD.stairstepRpowLoopRevertXXRound
   let xx := x * x
   have hshiftZero : UInt256.isZero (UInt256.shiftRight x (⟨128⟩ : UInt256)) ≠ ⟨0⟩ := by
     rw [rpowShiftRight128_zero_of_square_fit x hfit]
-    native_decide
+    decide +native
   have rd1115pre := evm_run rd1099 with [
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw push1 ⟨128⟩ (by native_decide) (by evm_ov),
-    raw shr (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1115⟩ (by native_decide) (by evm_ov)]
-  have rd1115 := rd1115pre.jumpiT (by native_decide) hshiftZero (by jump_dest) (by evm_ov)
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw push1 ⟨128⟩ (by decide +native) (by evm_ov),
+    raw shr (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1115⟩ (by decide +native) (by evm_ov)]
+  have rd1115 := rd1115pre.jumpiT (by decide +native) hshiftZero (by jump_dest) (by evm_ov)
   have hlt : UInt256.lt (xx + half) xx = ⟨1⟩ :=
     u256_add_overflow_lt xx half (by simpa [xx] using hover)
   have rd1126pre := evm_run rd1115 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1131⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1131⟩ (by decide +native) (by evm_ov)]
   have hcond : UInt256.isZero (UInt256.lt (xx + half) xx) = ⟨0⟩ := by
     rw [hlt]
-    native_decide
-  have rdFallthrough := rd1126pre.jumpiNT (by native_decide) hcond (by evm_ov)
+    decide +native
+  have rdFallthrough := rd1126pre.jumpiNT (by decide +native) hcond (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
@@ -354,17 +354,17 @@ theorem RD.stairstepRpowLoopOddTailEntry
   intro xx xxRound x'
   have hshiftZero : UInt256.isZero (UInt256.shiftRight x (⟨128⟩ : UInt256)) ≠ ⟨0⟩ := by
     rw [rpowShiftRight128_zero_of_square_fit x hfitXX]
-    native_decide
+    decide +native
   have rd1115pre := evm_run rd1099 with [
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw push1 ⟨128⟩ (by native_decide) (by evm_ov),
-    raw shr (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1115⟩ (by native_decide) (by evm_ov)]
-  have rd1115 := rd1115pre.jumpiT (by native_decide) hshiftZero (by jump_dest) (by evm_ov)
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw push1 ⟨128⟩ (by decide +native) (by evm_ov),
+    raw shr (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1115⟩ (by decide +native) (by evm_ov)]
+  have rd1115 := rd1115pre.jumpiT (by decide +native) hshiftZero (by jump_dest) (by evm_ov)
   have hxxRoundNat : xxRound.toNat = xx.toNat + half.toNat := by
     change (xx + half).toNat = xx.toNat + half.toNat
     rw [uadd_toNat, Nat.mod_eq_of_lt (by simpa [xx] using hfitXXRound)]
@@ -373,40 +373,40 @@ theorem RD.stairstepRpowLoopOddTailEntry
     rw [hxxRoundNat]
     omega
   have rd1131pre := evm_run rd1115 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1131⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1131⟩ (by decide +native) (by evm_ov)]
   have hcondXXAdd : UInt256.isZero (UInt256.lt xxRound xx) ≠ ⟨0⟩ := by
     rw [hltXX]
-    native_decide
-  have rd1131 := rd1131pre.jumpiT (by native_decide) hcondXXAdd (by jump_dest) (by evm_ov)
+    decide +native
+  have rd1131 := rd1131pre.jumpiT (by decide +native) hcondXXAdd (by jump_dest) (by evm_ov)
   have rd1146pre := evm_run rd1131 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw swap8 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1192⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw swap8 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1192⟩ (by decide +native) (by evm_ov)]
   have hlandNe : UInt256.land n ⟨1⟩ ≠ ⟨0⟩ := by
     intro hland
     apply hodd
     rw [← uInt256_land_one_toNat n, hland]
-    native_decide
+    decide +native
   have hcondOdd : UInt256.isZero (UInt256.land n ⟨1⟩) = ⟨0⟩ :=
     isZero_eq_zero_of_ne hlandNe
-  have rd1147 := rd1146pre.jumpiNT (by native_decide) hcondOdd (by evm_ov)
+  have rd1147 := rd1146pre.jumpiNT (by decide +native) hcondOdd (by evm_ov)
   exact ⟨_, _, by simpa [xx, xxRound, x'] using rd1147⟩
 
 set_option maxHeartbeats 1000000 in
@@ -455,32 +455,32 @@ theorem RD.stairstepRpowLoopRevertZX
         ⟨0⟩ := by
     have hleft : UInt256.isZero (UInt256.isZero x') = ⟨1⟩ := by
       rw [isZero_eq_zero_of_ne hxNe]
-      native_decide
+      decide +native
     have hright :
         UInt256.isZero (UInt256.eq (UInt256.div zx x') z) = ⟨1⟩ := by
       rw [u256_eq_of_ne hdivNe]
-      native_decide
+      decide +native
     rw [hleft, hright]
-    native_decide
+    decide +native
   have rd1164pre := evm_run rd1147 with [
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1169⟩ (by native_decide) (by evm_ov)]
-  have rdFallthrough := rd1164pre.jumpiNT (by native_decide) hmulGuardFail (by evm_ov)
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1169⟩ (by decide +native) (by evm_ov)]
+  have rdFallthrough := rd1164pre.jumpiNT (by decide +native) hmulGuardFail (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
@@ -518,9 +518,9 @@ theorem RD.stairstepRpowLoopRevertZXRound
     by_cases hx0 : x' = ⟨0⟩
     · have hleft : UInt256.isZero (UInt256.isZero x') = ⟨0⟩ := by
         rw [hx0]
-        native_decide
+        decide +native
       rw [hleft, u256_land_zero_left]
-      native_decide
+      decide +native
     · have hdivZXWord : UInt256.div zx x' = z := by
         apply u256_inj
         rw [udiv_toNat]
@@ -535,44 +535,44 @@ theorem RD.stairstepRpowLoopRevertZXRound
       have hright :
           UInt256.isZero (UInt256.eq (UInt256.div zx x') z) = ⟨0⟩ := by
         rw [show UInt256.div zx x' = z by exact hdivZXWord, u256_eq_refl]
-        native_decide
+        decide +native
       rw [hright, u256_land_zero_right]
-      native_decide
+      decide +native
   have rd1164pre := evm_run rd1147 with [
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1169⟩ (by native_decide) (by evm_ov)]
-  have rd1169 := rd1164pre.jumpiT (by native_decide) hmulGuard (by jump_dest) (by evm_ov)
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1169⟩ (by decide +native) (by evm_ov)]
+  have rd1169 := rd1164pre.jumpiT (by decide +native) hmulGuard (by jump_dest) (by evm_ov)
   have hlt : UInt256.lt (zx + half) zx = ⟨1⟩ :=
     u256_add_overflow_lt zx half (by simpa [zx, x', xxRound, xx] using hover)
   have rd1180pre := evm_run rd1169 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1185⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1185⟩ (by decide +native) (by evm_ov)]
   have hcond : UInt256.isZero (UInt256.lt (zx + half) zx) = ⟨0⟩ := by
     rw [hlt]
-    native_decide
-  have rdFallthrough := rd1180pre.jumpiNT (by native_decide) hcond (by evm_ov)
+    decide +native
+  have rdFallthrough := rd1180pre.jumpiNT (by decide +native) hcond (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
@@ -598,17 +598,17 @@ theorem RD.stairstepRpowLoopStepEven
   intro xx xxRound x' n'
   have hshiftZero : UInt256.isZero (UInt256.shiftRight x (⟨128⟩ : UInt256)) ≠ ⟨0⟩ := by
     rw [rpowShiftRight128_zero_of_square_fit x hfitXX]
-    native_decide
+    decide +native
   have rd1115pre := evm_run rd1099 with [
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw push1 ⟨128⟩ (by native_decide) (by evm_ov),
-    raw shr (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1115⟩ (by native_decide) (by evm_ov)]
-  have rd1115 := rd1115pre.jumpiT (by native_decide) hshiftZero (by jump_dest) (by evm_ov)
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw push1 ⟨128⟩ (by decide +native) (by evm_ov),
+    raw shr (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1115⟩ (by decide +native) (by evm_ov)]
+  have rd1115 := rd1115pre.jumpiT (by decide +native) hshiftZero (by jump_dest) (by evm_ov)
   have hxxRoundNat : xxRound.toNat = xx.toNat + half.toNat := by
     change (xx + half).toNat = xx.toNat + half.toNat
     rw [uadd_toNat, Nat.mod_eq_of_lt (by simpa [xx] using hfitXXRound)]
@@ -617,46 +617,46 @@ theorem RD.stairstepRpowLoopStepEven
     rw [hxxRoundNat]
     omega
   have rd1131pre := evm_run rd1115 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1131⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1131⟩ (by decide +native) (by evm_ov)]
   have hcondXXAdd : UInt256.isZero (UInt256.lt xxRound xx) ≠ ⟨0⟩ := by
     rw [hltXX]
-    native_decide
-  have rd1131 := rd1131pre.jumpiT (by native_decide) hcondXXAdd (by jump_dest) (by evm_ov)
+    decide +native
+  have rd1131 := rd1131pre.jumpiT (by decide +native) hcondXXAdd (by jump_dest) (by evm_ov)
   have rd1146pre := evm_run rd1131 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw swap8 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1192⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw swap8 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1192⟩ (by decide +native) (by evm_ov)]
   have hland : UInt256.land n ⟨1⟩ = ⟨0⟩ := uInt256_land_one_eq_zero_of_even heven
   have hcondEven : UInt256.isZero (UInt256.land n ⟨1⟩) ≠ ⟨0⟩ := by
     rw [hland]
-    native_decide
-  have rd1192 := rd1146pre.jumpiT (by native_decide) hcondEven (by jump_dest) (by evm_ov)
+    decide +native
+  have rd1192 := rd1146pre.jumpiT (by decide +native) hcondEven (by jump_dest) (by evm_ov)
   have rd1202pre := evm_run rd1192 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push2 ⟨1092⟩ (by native_decide) (by evm_ov)]
-  have rd1092 := rd1202pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push2 ⟨1092⟩ (by decide +native) (by evm_ov)]
+  have rd1092 := rd1202pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa [xx, xxRound, x', n', hland] using rd1092⟩
 
 set_option maxHeartbeats 1000000 in
@@ -699,9 +699,9 @@ theorem RD.stairstepRpowLoopStepOdd
     by_cases hx0 : x' = ⟨0⟩
     · have hleft : UInt256.isZero (UInt256.isZero x') = ⟨0⟩ := by
         rw [hx0]
-        native_decide
+        decide +native
       rw [hleft, u256_land_zero_left]
-      native_decide
+      decide +native
     · have hdivZXWord : UInt256.div zx x' = z := by
         apply u256_inj
         rw [udiv_toNat]
@@ -716,26 +716,26 @@ theorem RD.stairstepRpowLoopStepOdd
       have hright :
           UInt256.isZero (UInt256.eq (UInt256.div zx x') z) = ⟨0⟩ := by
         rw [show UInt256.div zx x' = z by exact hdivZXWord, u256_eq_refl]
-        native_decide
+        decide +native
       rw [hright, u256_land_zero_right]
-      native_decide
+      decide +native
   have rd1164pre := evm_run rd1147 with [
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1169⟩ (by native_decide) (by evm_ov)]
-  have rd1169 := rd1164pre.jumpiT (by native_decide) hmulGuard (by jump_dest) (by evm_ov)
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1169⟩ (by decide +native) (by evm_ov)]
+  have rd1169 := rd1164pre.jumpiT (by decide +native) hmulGuard (by jump_dest) (by evm_ov)
   have hzxRoundNat : zxRound.toNat = zx.toNat + half.toNat := by
     change (zx + half).toNat = zx.toNat + half.toNat
     rw [uadd_toNat, Nat.mod_eq_of_lt (by simpa [zx, x', xxRound, xx] using hfitZXRound)]
@@ -744,36 +744,36 @@ theorem RD.stairstepRpowLoopStepOdd
     rw [hzxRoundNat]
     omega
   have rd1185pre := evm_run rd1169 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1185⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1185⟩ (by decide +native) (by evm_ov)]
   have hcondZXAdd : UInt256.isZero (UInt256.lt zxRound zx) ≠ ⟨0⟩ := by
     rw [hltZX]
-    native_decide
-  have rd1185 := rd1185pre.jumpiT (by native_decide) hcondZXAdd (by jump_dest) (by evm_ov)
+    decide +native
+  have rd1185 := rd1185pre.jumpiT (by decide +native) hcondZXAdd (by jump_dest) (by evm_ov)
   have rd1192 := evm_run rd1185 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   have rd1202pre := evm_run rd1192 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push2 ⟨1092⟩ (by native_decide) (by evm_ov)]
-  have rd1092 := rd1202pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push2 ⟨1092⟩ (by decide +native) (by evm_ov)]
+  have rd1092 := rd1202pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa [xx, xxRound, x', zx, zxRound, z', n'] using rd1092⟩
 
 set_option maxHeartbeats 4000000 in

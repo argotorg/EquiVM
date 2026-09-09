@@ -17,16 +17,16 @@ set_option maxRecDepth 2000000
 
 theorem stairstepCreationBytecode_size :
     exponentialDecreaseCreationBytecode.size = 1410 := by
-  native_decide
+  decide +native
 
 theorem stairstepBytecode_size :
     exponentialDecreaseBytecode.size = 1321 := by
-  native_decide
+  decide +native
 
 theorem stairstepCreationBytecode_runtime_window :
     exponentialDecreaseCreationBytecode.extract 89 (89 + 1321) =
       exponentialDecreaseBytecode := by
-  native_decide
+  decide +native
 
 theorem stairstep_selfDeployment_eq :
     config.selfDeployment = genSolidityConstructorDeployment contract.ctor.params := rfl
@@ -195,14 +195,14 @@ theorem stairstepCtorInitcodeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd12 := evm_run rd0 with [
     push1 ⟨128⟩, push1 ⟨64⟩,
     raw mstore 9 solcFreePtrMem (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov),
     callvalue, dup1, iszero, push2 ⟨16⟩,
     jumpiNT (isZero_eq_zero_of_ne hwv)]
   exact evm_run rd12 with [
     push1 ⟨0⟩, dup1,
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 4000000 in
 theorem stairstepCtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -221,48 +221,48 @@ theorem stairstepCtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd16 := evm_run rd0 with [
     push1 ⟨128⟩, push1 ⟨64⟩,
     raw mstore 9 solcFreePtrMem (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov),
     callvalue, dup1, iszero, push2 ⟨16⟩,
-    jumpiT (by rw [hwv]; decide) (by native_decide)]
+    jumpiT (by rw [hwv]; decide) (by decide +native)]
   have rd23pre := evm_run rd16 with [
     jumpdest, pop, caller, push1 ⟨0⟩, dup2, dup2]
   have rd24 := rd23pre.mstore 0
     (wordAt0Mem (solcSourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd28pre := evm_run rd24 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd29 := rd28pre.mstore 0 (stairstepCtorWardsHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd33pre := evm_run rd29 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
   have rd34 := rd33pre.keccak256 0 (stairstepCtorCallerWardsSlot I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (stairstepCtorWardsHashSlot I)
-    (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (stairstepCtorWardsHashSlot I)
+    (by decide +native) (by evm_ov)
   have rd36pre := evm_run rd34 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd38raw⟩ := rd36pre.sstore hperm (by native_decide)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd38raw⟩ := rd36pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd38 := by
     simpa using rd38raw
-  have rd39 := rd38.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
+  have rd39 := rd38.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost
     (mloadFreePtrValue (by rw [stairstepCtorWardsHashMem_size I]; decide) (by decide)
       (stairstepCtorWardsHashMem_read64 I))
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd72 := rd39.pushConst
     (⟨0xdd0e34038ac38b2a1ce960229778ac48a8719bc900b6c4f8d0475c6e8b385a60⟩ : UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native) (by evm_ov)
   have rd74pre := evm_run rd72 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd75 := RD.log2
     (a := ⟨128⟩) (b := ⟨0⟩)
     (c := ⟨0xdd0e34038ac38b2a1ce960229778ac48a8719bc900b6c4f8d0475c6e8b385a60⟩)
@@ -271,7 +271,7 @@ theorem stairstepCtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 3).toNat (⟨128⟩ : UInt256).toNat
         (⟨0⟩ : UInt256).toNat))
-    rd74pre (by native_decide) hperm mem_cost (by native_decide)
+    rd74pre (by decide +native) hperm mem_cost (by decide +native)
     (by simp only [List.length_nil]; omega)
   have hcopy :
       exponentialDecreaseCreationBytecode.write 89
@@ -279,18 +279,18 @@ theorem stairstepCtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
         stairstepCtorReturnMem I := by
     rfl
   have rd85pre := evm_run rd75 with [
-    raw push2 ⟨1321⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨89⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
+    raw push2 ⟨1321⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨89⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
     raw codecopy
       (Cₘ (UInt256.ofNat (MachineState.M (UInt256.ofNat 3).toNat 0 1321)) -
         Cₘ (UInt256.ofNat 3))
       (stairstepCtorReturnMem I) (UInt256.ofNat 42)
-      (by native_decide) mem_cost hcopy (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost hcopy (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov)]
   exact rd85pre.ret 0 exponentialDecreaseBytecode
-    (by native_decide) mem_cost (stairstepCtorReturnMem_read I) (by evm_ov)
+    (by decide +native) mem_cost (stairstepCtorReturnMem_read I) (by evm_ov)
 
 /-! ## Constructor equivalence -/
 

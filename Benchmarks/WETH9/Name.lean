@@ -208,7 +208,7 @@ theorem weth9SelectorDispatchName {I : ExecutionEnv} (hsel : selIs I (weth9SelBy
   simp only [contract, dispatchList, selectorOf, hcd,
     weth9NameSelectorBytes, weth9ApproveSelectorBytes, weth9TotalSupplySelectorBytes,
     weth9TransferFromSelectorBytes, weth9WithdrawSelectorBytes, weth9DecimalsSelectorBytes]
-  native_decide
+  decide +native
 
 /-- `name()` has no parameters: its ABI decode yields the empty store. -/
 theorem weth9Decode_name_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
@@ -223,7 +223,7 @@ theorem weth9NameBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (weth9SelBytes 0) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (weth9SelBytes 0) (by decide +native) hsel
   by_cases hwv : I.weiValue = ⟨0⟩
   · -- string return: the Solm `.return [.storage nameRef]` body ABI-encodes to the EVM encoder's
     -- output (`StringReturnLong2.lean`); `weth9NameReturnSizeBound` handles the ≥2^64-byte regime.
@@ -269,8 +269,8 @@ theorem weth9NameBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     obtain ⟨_, _, h166⟩ := weth9ReachName (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := weth9GuardPeelRev (gt := ⟨178⟩) h166 hwv
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     exact weth9NonpayableRevert hcode hrev (weth9SelectorDispatchName hsel)
       (fun callargs _ => bodyReverts_nonPayable (by simp only [initState]; exact hwv))
 

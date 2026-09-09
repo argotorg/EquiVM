@@ -143,7 +143,7 @@ def allowanceDispatchMem : ByteArray :=
   vyperERC20Bytecode.write 817 ByteArray.empty 30 2
 
 theorem allowanceDispatchMem_size : allowanceDispatchMem.size = 32 := by
-  native_decide
+  decide +native
 
 def allowanceOwnerArgMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray owner).write 0 allowanceDispatchMem 64 32
@@ -407,7 +407,7 @@ theorem allowanceReturnMem_read128 (owner spender val : UInt256) :
     (by rw [allowanceOuterHashMem_size]; exact lt_usize 0 (by norm_num))
 
 macro "vyper_erc20_allowance_decode" : tactic =>
-  `(tactic| native_decide)
+  `(tactic| decide +native)
 
 theorem calldataSizeGuard68 {n : Nat} (hsz68 : 68 ≤ n) (hsize : n < UInt256.size) :
     UInt256.lt (UInt256.ofNat n) ⟨68⟩ = ⟨0⟩ := by
@@ -424,7 +424,7 @@ theorem calldataSizeGuard68 {n : Nat} (hsz68 : 68 ≤ n) (hsize : n < UInt256.si
   unfold UInt256.lt UInt256.fromBool Bool.toUInt256
   rw [show decide (UInt256.ofNat n < (⟨68⟩ : UInt256)) = false from by
     exact decide_eq_false hnot]
-  native_decide
+  decide +native
 
 theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -449,7 +449,7 @@ theorem erc20X_allowanceFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     dup2,
     xor,
     push2 ⟨797⟩,
-    jumpiNT (by native_decide),
+    jumpiNT (by decide +native),
     push1 ⟨68⟩,
     calldatasize,
     lt,
@@ -591,7 +591,7 @@ theorem erc20AllowanceX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     dup2,
     xor,
     push2 ⟨797⟩,
-    jumpiNT (by native_decide),
+    jumpiNT (by decide +native),
     push1 ⟨68⟩,
     calldatasize,
     lt,
@@ -621,7 +621,7 @@ theorem erc20AllowanceX_noncanon_owner {cA gh bl σ σ₀ A I} {g : Sat256}
     dup2,
     xor,
     push2 ⟨797⟩,
-    jumpiNT (by native_decide),
+    jumpiNT (by decide +native),
     push1 ⟨68⟩,
     calldatasize,
     lt,
@@ -663,7 +663,7 @@ theorem erc20AllowanceX_noncanon_spender {cA gh bl σ σ₀ A I} {g : Sat256}
     dup2,
     xor,
     push2 ⟨797⟩,
-    jumpiNT (by native_decide),
+    jumpiNT (by decide +native),
     push1 ⟨68⟩,
     calldatasize,
     lt,
@@ -709,7 +709,7 @@ theorem allowanceSelectorWord_of_calldata {I : ExecutionEnv}
     (hsel : ((⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ =
       allowanceSelectorWord := by
-  have h := evmSelectorDecode hsz 0xdd 0x62 0xed 0x3e allowanceSelectorWord (by native_decide)
+  have h := evmSelectorDecode hsz 0xdd 0x62 0xed 0x3e allowanceSelectorWord (by decide +native)
   rw [hsel] at h
   unfold UInt256.eq at h
   by_cases heq :
@@ -727,7 +727,7 @@ theorem allowanceDispatchMem_mload0 :
       else UInt256.ofNat
         (fromByteArrayBigEndian (allowanceDispatchMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))
       = (⟨681⟩ : UInt256) := by
-  native_decide
+  decide +native
 
 theorem erc20X_allowanceReach {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
@@ -758,7 +758,7 @@ theorem erc20X_allowanceReach {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdAfterCopy := rdBeforeCopy.codecopy 3 allowanceDispatchMem (UInt256.ofNat 1)
     (by vyper_erc20_allowance_decode)
     mem_cost
-    (by native_decide)
+    (by decide +native)
     (by decide)
     (by evm_ov)
   have rdBeforeJump := evm_run rdAfterCopy with [
@@ -768,7 +768,7 @@ theorem erc20X_allowanceReach {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       allowanceDispatchMem_mload0
       (by decide) (by evm_ov)]
-  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_allowance_decode) (by native_decide) (by evm_ov)⟩
+  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_allowance_decode) (by decide +native) (by evm_ov)⟩
 
 theorem erc20Dispatch_allowance {cd : ByteArray}
     (hsel : ((⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) == cd.extract 0 4) = true) :

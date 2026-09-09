@@ -224,7 +224,7 @@ theorem flopKickCalldataMem_read128_4 (I : ExecutionEnv) (dump sump : UInt256)
       (by omega) (by omega) (by omega)
       (by
         rw [hDumpSize]
-        native_decide)]
+        decide +native)]
   unfold flopKickDumpMem
   rw [toByteArray_write_read_below_len_of_gap dump (flopKickAddressMem I mem) 164 128 4
       (by
@@ -233,7 +233,7 @@ theorem flopKickCalldataMem_read128_4 (I : ExecutionEnv) (dump sump : UInt256)
       (by omega) (by omega) (by omega)
       (by
         rw [hAddressSize]
-        native_decide)]
+        decide +native)]
   unfold flopKickAddressMem
   rw [toByteArray_write_read_below_len_of_gap (UInt256.ofNat I.codeOwner.val)
       (flopKickSelectorMem mem) 132 128 4
@@ -243,14 +243,14 @@ theorem flopKickCalldataMem_read128_4 (I : ExecutionEnv) (dump sump : UInt256)
       (by omega) (by omega) (by omega)
       (by
         rw [hSelectorSize]
-        native_decide)]
+        decide +native)]
   unfold flopKickSelectorMem
   rw [toByteArray_write_read_window_of_gap flopKickSelectorShifted mem 128 0 4
       (by omega) (by omega) (by omega)
       (by
         rw [hmem]
-        native_decide)]
-  native_decide
+        decide +native)]
+  decide +native
 
 theorem flopKickCalldataMem_read132_32 (I : ExecutionEnv) (dump sump : UInt256)
     {mem : ByteArray} (hmem : mem.size = 164) :
@@ -267,20 +267,20 @@ theorem flopKickCalldataMem_read132_32 (I : ExecutionEnv) (dump sump : UInt256)
       (by omega) (by omega) (by omega)
       (by
         rw [hDumpSize]
-        native_decide)]
+        decide +native)]
   unfold flopKickDumpMem
   rw [toByteArray_write_read_below_len_of_gap dump (flopKickAddressMem I mem) 164 132 32
       (by rw [hAddressSize])
       (by omega) (by omega) (by omega)
       (by
         rw [hAddressSize]
-        native_decide)]
+        decide +native)]
   unfold flopKickAddressMem
   rw [toByteArray_write_read_back_of_gap (UInt256.ofNat I.codeOwner.val)
       (flopKickSelectorMem mem) 132
       (by
         rw [hSelectorSize]
-        native_decide)]
+        decide +native)]
 
 theorem flopKickCalldataMem_read164_32 (I : ExecutionEnv) (dump sump : UInt256)
     {mem : ByteArray} (hmem : mem.size = 164) :
@@ -294,12 +294,12 @@ theorem flopKickCalldataMem_read164_32 (I : ExecutionEnv) (dump sump : UInt256)
       (by omega) (by omega) (by omega)
       (by
         rw [hDumpSize]
-        native_decide)]
+        decide +native)]
   unfold flopKickDumpMem
   rw [toByteArray_write_read_back_of_gap dump (flopKickAddressMem I mem) 164
       (by
         rw [hAddressSize]
-        native_decide)]
+        decide +native)]
 
 theorem flopKickCalldataMem_read196_32 (I : ExecutionEnv) (dump sump : UInt256)
     {mem : ByteArray} (hmem : mem.size = 164) :
@@ -310,7 +310,7 @@ theorem flopKickCalldataMem_read196_32 (I : ExecutionEnv) (dump sump : UInt256)
   rw [toByteArray_write_read_back_of_gap sump (flopKickDumpMem I dump mem) 196
       (by
         rw [hDumpSize]
-        native_decide)]
+        decide +native)]
 
 theorem flopKickCalldataMem_read128_100 (I : ExecutionEnv) (dump sump : UInt256)
     {mem : ByteArray} (hmem : mem.size = 164) :
@@ -950,7 +950,7 @@ theorem vowFlopAshAddOverflowBodyCore
               (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size
             ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
       rw [hmemWrite]
-      native_decide
+      decide +native
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
       vatDaiWrite_read128_32 I outDai hmem ho32]
   obtain ⟨_, _, rd3873⟩ :=
@@ -998,30 +998,30 @@ theorem RD.vowFlopAshAddSuccess
       mem (UInt256.ofNat 6) o acc k' C' := by
   let AshVal := vowSlotWord ⟨6⟩ acc.2 I
   let SumpVal := vowSlotWord ⟨9⟩ acc.2 I
-  have rd3874₀ := rd.iszero (by native_decide) (by evm_ov)
+  have rd3874₀ := rd.iszero (by decide +native) (by evm_ov)
   have rd3874 := rd3874₀
   rw [hvatDaiZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd3874
-  have rd3877 := rd3874.push2 ⟨3945⟩ (by native_decide) (by evm_ov)
-  have rd3945 := rd3877.jumpiT (by native_decide)
+  have rd3877 := rd3874.push2 ⟨3945⟩ (by decide +native) (by evm_ov)
+  have rd3945 := rd3877.jumpiT (by decide +native)
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
-  have rd3946 := rd3945.jumpdest (by native_decide) (by evm_ov)
-  have rd3949 := rd3946.push2 ⟨3959⟩ (by native_decide) (by evm_ov)
-  have rd3951 := rd3949.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k3952, C3952, rd3952Raw⟩ := rd3951.sload (by native_decide) (by evm_ov)
+  have rd3946 := rd3945.jumpdest (by decide +native) (by evm_ov)
+  have rd3949 := rd3946.push2 ⟨3959⟩ (by decide +native) (by evm_ov)
+  have rd3951 := rd3949.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k3952, C3952, rd3952Raw⟩ := rd3951.sload (by decide +native) (by evm_ov)
   have rd3952 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3952⟩
       (AshVal :: ⟨3959⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k3952 C3952 := by
     simpa [AshVal, vowSlotWord, solcSlotWord] using rd3952Raw
-  have rd3954 := rd3952.push1 ⟨9⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k3955, C3955, rd3955Raw⟩ := rd3954.sload (by native_decide) (by evm_ov)
+  have rd3954 := rd3952.push1 ⟨9⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k3955, C3955, rd3955Raw⟩ := rd3954.sload (by decide +native) (by evm_ov)
   have rd3955 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3955⟩
       (SumpVal :: AshVal :: ⟨3959⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k3955 C3955 := by
     simpa [SumpVal, vowSlotWord, solcSlotWord] using rd3955Raw
-  have rd3958 := rd3955.push2 ⟨5074⟩ (by native_decide) (by evm_ov)
-  have rd5074 := rd3958.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3958 := rd3955.push2 ⟨5074⟩ (by decide +native) (by evm_ov)
+  have rd5074 := rd3958.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨k', C', rd3959⟩ :=
     RD.solcCheckedAddSuccess
       (pc := ⟨5074⟩) (okPc := ⟨5090⟩) (a := AshVal) (b := SumpVal)
@@ -1029,7 +1029,7 @@ theorem RD.vowFlopAshAddSuccess
       (by simpa [AshVal, SumpVal] using rd5074)
       (by
         unfold solcCheckedAddSuccessWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by simpa [AshVal, SumpVal] using hfit)
       (by jump_dest) (by jump_dest) (by simp)
   exact ⟨k', C', by simpa [AshVal, SumpVal] using rd3959⟩
@@ -1080,31 +1080,31 @@ theorem RD.vowFlopToKickExtcodesizeGuard
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
     mloadFreePtrValue (by rw [hKickMem]; decide) (by decide) hKickRead64
-  have rd3960 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd3962 := rd3960.push1 ⟨6⟩ (by native_decide) (by evm_ov)
+  have rd3960 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd3962 := rd3960.push1 ⟨6⟩ (by decide +native) (by evm_ov)
   obtain ⟨k3963, C3963, rd3963Raw⟩ :=
-    rd3962.sstore hperm (by native_decide) (by evm_ov)
+    rd3962.sstore hperm (by decide +native) (by evm_ov)
   have rd3963 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3963⟩
       (⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o (acc.1, σAsh) k3963 C3963 := by
     simpa [σAsh] using rd3963Raw
-  have rd3965 := rd3963.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k3966, C3966, rd3966Raw⟩ := rd3965.sload (by native_decide) (by evm_ov)
+  have rd3965 := rd3963.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k3966, C3966, rd3966Raw⟩ := rd3965.sload (by decide +native) (by evm_ov)
   have rd3966 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3966⟩
       (vowSlotWord ⟨3⟩ σAsh I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o (acc.1, σAsh) k3966 C3966 := by
     simpa [σAsh, vowSlotWord, solcSlotWord] using rd3966Raw
-  have rd3968 := rd3966.push1 ⟨8⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k3969, C3969, rd3969Raw⟩ := rd3968.sload (by native_decide) (by evm_ov)
+  have rd3968 := rd3966.push1 ⟨8⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k3969, C3969, rd3969Raw⟩ := rd3968.sload (by decide +native) (by evm_ov)
   have rd3969 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3969⟩
       (dump :: vowSlotWord ⟨3⟩ σAsh I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o (acc.1, σAsh) k3969 C3969 := by
     simpa [dump, σAsh, vowSlotWord, solcSlotWord] using rd3969Raw
-  have rd3971 := rd3969.push1 ⟨9⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k3972, C3972, rd3972Raw⟩ := rd3971.sload (by native_decide) (by evm_ov)
+  have rd3971 := rd3969.push1 ⟨9⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k3972, C3972, rd3972Raw⟩ := rd3971.sload (by decide +native) (by evm_ov)
   have rd3972 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3972⟩
       (sump :: dump :: vowSlotWord ⟨3⟩ σAsh I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
@@ -1113,19 +1113,19 @@ theorem RD.vowFlopToKickExtcodesizeGuard
   have rd4048 := evm_run rd3972 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     push4 ⟨771388233⟩,
     push1 ⟨226⟩,
     shl,
     dup2,
-    raw mstore 0 (flopKickSelectorMem mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (flopKickSelectorMem mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     address,
     push1 ⟨4⟩,
     dup3,
     add,
-    raw mstore 0 (flopKickAddressMem I mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (flopKickAddressMem I mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨36⟩,
     dup2,
@@ -1133,7 +1133,7 @@ theorem RD.vowFlopToKickExtcodesizeGuard
     swap4,
     swap1,
     swap4,
-    raw mstore 3 (flopKickDumpMem I dump mem) (UInt256.ofNat 7) (by native_decide)
+    raw mstore 3 (flopKickDumpMem I dump mem) (UInt256.ofNat 7) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨68⟩,
     dup4,
@@ -1142,8 +1142,8 @@ theorem RD.vowFlopToKickExtcodesizeGuard
     swap1,
     swap2,
     raw mstore 3 (flopKickCalldataMem I dump sump mem) (UInt256.ofNat 8)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost hmload64Kick (by decide) (by evm_ov),
     push1 ⟨1⟩,
     push1 ⟨1⟩,
@@ -1187,7 +1187,7 @@ theorem RD.vowFlopToKickExtcodesizeGuard
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ =
         ⟨4048⟩ := by
-    native_decide
+    decide +native
   rw [hpc4048] at rd4048
   exact ⟨_, _, by
     simpa [target, dump, sump, σAsh, flopKickSelectorShifted, flopKickSelectorWord,
@@ -1233,9 +1233,9 @@ theorem RD.vowFlopKickNoCode
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4048⟩) (okPc := ⟨1494⟩)
     (by simpa [σAsh, target, dump, sump] using rd4048)
     (by simpa [σAsh, target] using hcodeSize)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.vowFlopKickCall
     {cA gh bl σ σ₀ A I} {g sel AshNew : UInt256}
@@ -1270,9 +1270,9 @@ theorem RD.vowFlopKickCall
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4048⟩) (okPc := ⟨1494⟩)
       (by simpa [σAsh, target, dump, sump] using rd4048)
       (by simpa [σAsh, target] using hcodeSize)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by evm_ov)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by evm_ov)
   exact ⟨gasWord, k', C', by simpa [σAsh, target, dump, sump] using rd1497⟩
 
 theorem RD.vowFlopKickPostCall
@@ -1316,7 +1316,7 @@ theorem RD.vowFlopKickPostCall
   obtain ⟨gasWord, _, _, rd1497⟩ :=
     RD.vowFlopKickCall rd hperm hmem hread64 hcodeSize
   obtain ⟨cA', σ', z, out, A_in, callGas, k1498, C1498, hΘpack, rd1498raw, houtsz⟩ :=
-    RD.call rd1497 (by native_decide) hdepth (by evm_ov)
+    RD.call rd1497 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, out, A', k1498, C1498, ?_, ?_, houtsz⟩
   · have haw :
@@ -1324,7 +1324,7 @@ theorem RD.vowFlopKickPostCall
           flopKickOutPtr.toNat flopKickInSize.toNat)
           flopKickOutPtr.toNat flopKickOutSize.toNat) = UInt256.ofNat 8 := by
       unfold flopKickOutPtr flopKickInSize flopKickOutSize
-      native_decide
+      decide +native
     exact haw ▸ rd1498raw
   · refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
       (callPerm := true) (targetWord := target)
@@ -1387,9 +1387,9 @@ theorem RD.vowFlopKickCallFailure
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) hosz hov
 
 theorem RD.vowFlopKickCallSuccessToDecode
     {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -1405,8 +1405,8 @@ theorem RD.vowFlopKickCallSuccessToDecode
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simpa only [List.length_cons] using hov)
 
 theorem RD.vowFlopKickReturnDecodeShortReverts
@@ -1430,10 +1430,10 @@ theorem RD.vowFlopKickReturnDecodeShortReverts
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨1516⟩) (okPc := ⟨1536⟩) rd
     hshort hhi
     mem_cost (by decide) hMload64Value
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by simp)
 
 theorem RD.vowFlopKickReturnDecodeOk
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
@@ -1464,10 +1464,10 @@ theorem RD.vowFlopKickReturnDecodeOk
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨1516⟩) (okPc := ⟨1536⟩) rd
     hlo hhi
     mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by jump_dest) (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by jump_dest) (by decide +native) (by decide +native) (by decide +native) (by evm_ov)
 
 theorem RD.vowFlopKickDecodedToPublicReturn
     {cA gh bl σ σ₀ A I} {g sel id : UInt256}
@@ -1480,10 +1480,10 @@ theorem RD.vowFlopKickDecodedToPublicReturn
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨357⟩
       (id :: sel :: []) mem (UInt256.ofNat 8) o acc k' C' := by
-  have rd1540 := rd.swap2 (by native_decide) (by evm_ov)
-  have rd1541 := rd1540.swap1 (by native_decide) (by evm_ov)
-  have rd1542 := rd1541.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1542.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  have rd1540 := rd.swap2 (by decide +native) (by evm_ov)
+  have rd1541 := rd1540.swap1 (by decide +native) (by evm_ov)
+  have rd1542 := rd1541.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1542.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 -- GENERALIZES Reasoning.Solc.RD.solcReturnWordFromMem — active words are already 8.
 theorem RD.vowFlopKickPublicReturn
@@ -1511,26 +1511,26 @@ theorem RD.vowFlopKickPublicReturn
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) acc
       (UInt256.toByteArray id) := by
   exact evm_run rd with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mstore 0 memout (UInt256.ofNat 8) (by native_decide) mem_cost
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mstore 0 memout (UInt256.ofNat 8) (by decide +native) mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; exact hmemout)
       (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost hmemoutLoad64 (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw ret 0 (UInt256.toByteArray id) (by native_decide) mem_cost
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw ret 0 (UInt256.toByteArray id) (by decide +native) mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
           show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 32
@@ -1560,7 +1560,7 @@ theorem RD.vowFlopKickSuccess
   have hmin : (min flopKickOutSize (UInt256.ofNat out.size)).toNat = 32 := by
     simpa [flopKickOutSize] using kissDaiMin32_toNat_of_ge ho32 hosz
   have rd1498 := rd
-  rw [hmin, show flopKickOutPtr.toNat = 128 from by native_decide] at rd1498
+  rw [hmin, show flopKickOutPtr.toNat = 128 from by decide +native] at rd1498
   obtain ⟨_, _, rd1516⟩ :=
     RD.vowFlopKickCallSuccessToDecode rd1498 (by simp)
   have hmemWrite : (out.write 0 (flopKickCalldataMem I dump sump mem) 128 32).size =
@@ -1594,7 +1594,7 @@ theorem RD.vowFlopKickSuccess
               (out.write 0 (flopKickCalldataMem I dump sump mem) 128 32).size
             ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩) := by
       rw [hmemWrite]
-      native_decide
+      decide +native
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
       flopKickWrite_read128_32 I dump sump out hmem ho32]
   obtain ⟨_, _, rd1539Raw⟩ :=

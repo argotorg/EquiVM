@@ -226,7 +226,7 @@ macro "uniswap_single_mapping_getter_wf" : term =>
   `(by
     unfold Reasoning.Reach.uniswapSingleMappingGetterWf
       Reasoning.Reach.solcSingleMappingGetterWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 /-! ## Shared nested-mapping getter routine -/
 
@@ -251,7 +251,7 @@ macro "uniswap_nested_mapping_getter_wf" : term =>
   `(by
     unfold Reasoning.Reach.uniswapNestedMappingGetterWf
       Reasoning.Reach.solcNestedMappingGetterWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 /-! ## Shared one-address external getter entry -/
 
@@ -344,7 +344,7 @@ to a mapping getter routine with return wrapper pc `861`.
 macro "uniswap_one_address_getter_entry_wf" : term =>
   `(by
     unfold Reasoning.Reach.uniswapOneAddressGetterEntryWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapOneAddressGetterLenOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -515,7 +515,7 @@ nested-mapping getter routine with return wrapper pc `861`.
 macro "uniswap_two_address_getter_entry_wf" : term =>
   `(by
     unfold Reasoning.Reach.uniswapTwoAddressGetterEntryWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTwoAddressGetterLenOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}

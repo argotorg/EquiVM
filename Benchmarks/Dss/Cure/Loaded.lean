@@ -35,7 +35,7 @@ theorem cureDispatchLoaded {I : ExecutionEnv}
     cureDropSelectorBytes, cureFileSelectorBytes, cureLCountSelectorBytes,
     cureLiftSelectorBytes, cureListSelectorBytes, cureLiveSelectorBytes,
     cureLoadSelectorBytes, cureLoadedSelectorBytes]
-  native_decide
+  decide +native
 
 theorem cureDecode_loaded_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (loadedTransition.params.map Param.name)
@@ -92,23 +92,23 @@ theorem cureLoadedBodyCoreOk
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := cureBytecode) (sel := sel) (entry := ⟨873⟩) (ret := ⟨343⟩)
     (decoded := ⟨895⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcOneAddressExternalMaskAndJumpMasked
     (code := cureBytecode) (decoded := ⟨895⟩) (ret := ⟨343⟩) (routine := ⟨3648⟩)
     (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by jump_dest) (by simp)
   obtain ⟨_, _, hretPc⟩ := RD.solcSingleMappingGetter
     (code := cureBytecode) (pc := ⟨3648⟩) (baseSlot := ⟨7⟩) (key := key)
     (ret := ⟨343⟩) (R := [sel])
     (by simpa [key, loadedMappingKey] using hroutine)
     (by
       unfold solcSingleMappingGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   have hret :
       RDret cureBytecode (Sat256.ofUInt256 g)
@@ -121,7 +121,7 @@ theorem cureLoadedBodyCoreOk
       (by simpa [slot, cureSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨7⟩ key)
       (by rfl)
       (by
@@ -165,10 +165,10 @@ theorem cureLoadedBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := cureBytecode) (sel := sel) (entry := ⟨873⟩) (ret := ⟨343⟩)
     (decoded := ⟨895⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (cureDecode_loaded_none_short hsz4 hshort)
 

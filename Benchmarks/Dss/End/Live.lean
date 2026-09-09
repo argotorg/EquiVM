@@ -31,12 +31,12 @@ abbrev endLiveRoutinePc : UInt256 := ⟨7494⟩
 theorem endLiveHighSplitWellFormed :
     selectorSplitWellFormed endBytecode endLiveHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endLiveMidSplitWellFormed :
     selectorSplitWellFormed endBytecode endLiveMidSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem endLiveArmsWellFormed :
@@ -44,7 +44,7 @@ theorem endLiveArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 theorem endReachLiveBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -55,7 +55,7 @@ theorem endReachLiveBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : endSelWord I = ⟨0x957aa58c⟩ :=
     endSelWord_eq_of_beq I hsz 0x95 0x7a 0xa5 0x8c ⟨0x957aa58c⟩
-      (by native_decide) (by simpa [selIs, endLiveConcreteSelector, selectorBytes] using hsel)
+      (by decide +native) (by simpa [selIs, endLiveConcreteSelector, selectorBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
     endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
@@ -65,41 +65,41 @@ theorem endReachLiveBody {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [endRootSplitPc, endLiveHighSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+        (by rw [hword]; decide +native) (by simp)
   have h162 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLiveHighJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [endLiveHighSplitPc, endLiveHighJumpdestPc] using
       RD.selectorSplitTakenAuto h43 endLiveHighSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
+        (by rw [hword]; decide +native) (by jump_dest) (by simp)
   have h163 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLiveMidSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
-    simpa [endLiveMidSplitPc] using h162.jumpdest (by native_decide) (by simp)
+    simpa [endLiveMidSplitPc] using h162.jumpdest (by decide +native) (by simp)
   have h222 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLiveGroupJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
     simpa [endLiveMidSplitPc, endLiveGroupJumpdestPc] using
       RD.selectorSplitTakenAuto h163 endLiveMidSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
+        (by rw [hword]; decide +native) (by jump_dest) (by simp)
   have h223 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLiveFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5 + 1)
         (C32 + 22 + 22 + 1 + 22 + 1) := by
-    simpa [endLiveFirstArmPc] using h222.jumpdest (by native_decide) (by simp)
+    simpa [endLiveFirstArmPc] using h222.jumpdest (by decide +native) (by simp)
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endLiveFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endLiveFirstArmPc 2))
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo endLiveEntryPc 2 h223
     (fun j hj => endLiveArmsWellFormed j (le_trans hj (by omega)))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem endLiveBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -134,15 +134,15 @@ theorem endLiveBodyCore
     hcode hdispatch hdecode hreach hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcWordSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [liveWord] using hbody)
 
 theorem endLiveBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}

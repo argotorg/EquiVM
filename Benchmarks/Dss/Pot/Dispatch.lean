@@ -39,7 +39,7 @@ theorem potDispatchPie {I : ExecutionEnv} (hsel : selIs I (potSelBytes 0)) :
   change dispatchList transitions I.calldata = some PieTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchCage {I : ExecutionEnv} (hsel : selIs I (potSelBytes 1)) :
     dispatchMsg contract I.calldata = some cageTransition := by
@@ -48,7 +48,7 @@ theorem potDispatchCage {I : ExecutionEnv} (hsel : selIs I (potSelBytes 1)) :
   change dispatchList transitions I.calldata = some cageTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchChi {I : ExecutionEnv} (hsel : selIs I (potSelBytes 2)) :
     dispatchMsg contract I.calldata = some chiTransition := by
@@ -57,7 +57,7 @@ theorem potDispatchChi {I : ExecutionEnv} (hsel : selIs I (potSelBytes 2)) :
   change dispatchList transitions I.calldata = some chiTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchDeny {I : ExecutionEnv} (hsel : selIs I (potSelBytes 3)) :
     dispatchMsg contract I.calldata = some denyTransition := by
@@ -66,7 +66,7 @@ theorem potDispatchDeny {I : ExecutionEnv} (hsel : selIs I (potSelBytes 3)) :
   change dispatchList transitions I.calldata = some denyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchDrip {I : ExecutionEnv} (hsel : selIs I (potSelBytes 4)) :
     dispatchMsg contract I.calldata = some dripTransition := by
@@ -75,7 +75,7 @@ theorem potDispatchDrip {I : ExecutionEnv} (hsel : selIs I (potSelBytes 4)) :
   change dispatchList transitions I.calldata = some dripTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchDsr {I : ExecutionEnv} (hsel : selIs I (potSelBytes 5)) :
     dispatchMsg contract I.calldata = some dsrTransition := by
@@ -84,7 +84,7 @@ theorem potDispatchDsr {I : ExecutionEnv} (hsel : selIs I (potSelBytes 5)) :
   change dispatchList transitions I.calldata = some dsrTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchExit {I : ExecutionEnv} (hsel : selIs I (potSelBytes 6)) :
     dispatchMsg contract I.calldata = some exitTransition := by
@@ -93,7 +93,7 @@ theorem potDispatchExit {I : ExecutionEnv} (hsel : selIs I (potSelBytes 6)) :
   change dispatchList transitions I.calldata = some exitTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchFileDsr {I : ExecutionEnv} (hsel : selIs I (potSelBytes 7)) :
     dispatchMsg contract I.calldata = some fileDsrTransition := by
@@ -102,7 +102,7 @@ theorem potDispatchFileDsr {I : ExecutionEnv} (hsel : selIs I (potSelBytes 7)) :
   change dispatchList transitions I.calldata = some fileDsrTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchFileVow {I : ExecutionEnv} (hsel : selIs I (potSelBytes 8)) :
     dispatchMsg contract I.calldata = some fileVowTransition := by
@@ -111,7 +111,7 @@ theorem potDispatchFileVow {I : ExecutionEnv} (hsel : selIs I (potSelBytes 8)) :
   change dispatchList transitions I.calldata = some fileVowTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchJoin {I : ExecutionEnv} (hsel : selIs I (potSelBytes 9)) :
     dispatchMsg contract I.calldata = some joinTransition := by
@@ -120,7 +120,7 @@ theorem potDispatchJoin {I : ExecutionEnv} (hsel : selIs I (potSelBytes 9)) :
   change dispatchList transitions I.calldata = some joinTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchLive {I : ExecutionEnv} (hsel : selIs I (potSelBytes 10)) :
     dispatchMsg contract I.calldata = some liveTransition := by
@@ -129,7 +129,7 @@ theorem potDispatchLive {I : ExecutionEnv} (hsel : selIs I (potSelBytes 10)) :
   change dispatchList transitions I.calldata = some liveTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchPieMap {I : ExecutionEnv} (hsel : selIs I (potSelBytes 11)) :
     dispatchMsg contract I.calldata = some pieTransition := by
@@ -138,7 +138,7 @@ theorem potDispatchPieMap {I : ExecutionEnv} (hsel : selIs I (potSelBytes 11)) :
   change dispatchList transitions I.calldata = some pieTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchRely {I : ExecutionEnv} (hsel : selIs I (potSelBytes 12)) :
     dispatchMsg contract I.calldata = some relyTransition := by
@@ -147,7 +147,7 @@ theorem potDispatchRely {I : ExecutionEnv} (hsel : selIs I (potSelBytes 12)) :
   change dispatchList transitions I.calldata = some relyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchRho {I : ExecutionEnv} (hsel : selIs I (potSelBytes 13)) :
     dispatchMsg contract I.calldata = some rhoTransition := by
@@ -156,7 +156,7 @@ theorem potDispatchRho {I : ExecutionEnv} (hsel : selIs I (potSelBytes 13)) :
   change dispatchList transitions I.calldata = some rhoTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchVat {I : ExecutionEnv} (hsel : selIs I (potSelBytes 14)) :
     dispatchMsg contract I.calldata = some vatTransition := by
@@ -165,7 +165,7 @@ theorem potDispatchVat {I : ExecutionEnv} (hsel : selIs I (potSelBytes 14)) :
   change dispatchList transitions I.calldata = some vatTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchVow {I : ExecutionEnv} (hsel : selIs I (potSelBytes 15)) :
     dispatchMsg contract I.calldata = some vowTransition := by
@@ -174,7 +174,7 @@ theorem potDispatchVow {I : ExecutionEnv} (hsel : selIs I (potSelBytes 15)) :
   change dispatchList transitions I.calldata = some vowTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatchWards {I : ExecutionEnv} (hsel : selIs I (potSelBytes 16)) :
     dispatchMsg contract I.calldata = some wardsTransition := by
@@ -183,7 +183,7 @@ theorem potDispatchWards {I : ExecutionEnv} (hsel : selIs I (potSelBytes 16)) :
   change dispatchList transitions I.calldata = some wardsTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem potDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg contract cd = none := by
@@ -204,7 +204,7 @@ theorem potDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
         fileVowSelectorBytes, joinSelectorBytes, liveSelectorBytes, pieSelectorBytes,
         relySelectorBytes, rhoSelectorBytes, vatSelectorBytes, vowSelectorBytes,
         wardsSelectorBytes]
-      native_decide) h
+      decide +native) h
 
 theorem potDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 17 → (potSelBytes i == cd.extract 0 4) = false) :
@@ -266,39 +266,39 @@ theorem potSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 
 theorem potRootSplitWellFormed : selectorSplitWellFormed potBytecode potRootSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem potSplit43WellFormed : selectorSplitWellFormed potBytecode potSplit43Pc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem potSplit163WellFormed : selectorSplitWellFormed potBytecode potSplit163Pc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem potG223ArmsWellFormed :
     ∀ j, j ≤ 3 → armWellFormed potBytecode (nthArmPc potBytecode potG223FirstArmPc j) := by
   intro j hj
-  interval_cases j <;> (dsimp [armWellFormed]; repeat' first | apply And.intro | native_decide)
+  interval_cases j <;> (dsimp [armWellFormed]; repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem potG174ArmsWellFormed :
     ∀ j, j ≤ 3 → armWellFormed potBytecode (nthArmPc potBytecode potG174FirstArmPc j) := by
   intro j hj
-  interval_cases j <;> (dsimp [armWellFormed]; repeat' first | apply And.intro | native_decide)
+  interval_cases j <;> (dsimp [armWellFormed]; repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem potG114ArmsWellFormed :
     ∀ j, j ≤ 3 → armWellFormed potBytecode (nthArmPc potBytecode potG114FirstArmPc j) := by
   intro j hj
-  interval_cases j <;> (dsimp [armWellFormed]; repeat' first | apply And.intro | native_decide)
+  interval_cases j <;> (dsimp [armWellFormed]; repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem potG54ArmsWellFormed :
     ∀ j, j ≤ 4 → armWellFormed potBytecode (nthArmPc potBytecode potG54FirstArmPc j) := by
   intro j hj
-  interval_cases j <;> (dsimp [armWellFormed]; repeat' first | apply And.intro | native_decide)
+  interval_cases j <;> (dsimp [armWellFormed]; repeat' first | apply And.intro | decide +native)
 
 /-- Reach the root split `@32` from the prologue. -/
 theorem potReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -315,13 +315,13 @@ theorem potReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (revertTgt := potDispatchRevertPc) (guardWidth := 2) (revertWidth := 2)
       (guardOp := .PUSH2) (revertOp := .PUSH2)
       hcode hwv hsz hsize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 /-- Root split not taken (`sel ≥ 0x65fae35e`): fall through to split `@43`. -/
 theorem potReach43 {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -361,7 +361,7 @@ theorem potReach163 {cA gh bl σ σ₀ A I} {g : Sat256}
   have h163 : RD potBytecode I g (initState cA gh bl σ σ₀ g A I)
       potSplit163Pc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k0 + 5 + 1) (C0 + 22 + 1) := by
-    simpa [potSplit163Pc, potJumpdest162Pc] using h162.jumpdest (by native_decide) (by simp)
+    simpa [potSplit163Pc, potJumpdest162Pc] using h162.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h163⟩
 
 /-- Split `@43` taken (`sel < 0x9c52a7f1`): jump 113, step jumpdest to arms `@114`. -/
@@ -384,7 +384,7 @@ theorem potReachG114First {cA gh bl σ σ₀ A I} {g : Sat256}
   have h114 : RD potBytecode I g (initState cA gh bl σ σ₀ g A I)
       potG114FirstArmPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k1 + 5 + 1) (C1 + 22 + 1) := by
-    simpa [potG114FirstArmPc, potG114JumpdestPc] using h113.jumpdest (by native_decide) (by simp)
+    simpa [potG114FirstArmPc, potG114JumpdestPc] using h113.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h114⟩
 
 /-- Split `@43` not taken (`sel ≥ 0x9c52a7f1`): fall through to arms `@54`. -/
@@ -427,7 +427,7 @@ theorem potReachG223First {cA gh bl σ σ₀ A I} {g : Sat256}
   have h223 : RD potBytecode I g (initState cA gh bl σ σ₀ g A I)
       potG223FirstArmPc [potSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k2 + 5 + 1) (C2 + 22 + 1) := by
-    simpa [potG223FirstArmPc, potG223JumpdestPc] using h222.jumpdest (by native_decide) (by simp)
+    simpa [potG223FirstArmPc, potG223JumpdestPc] using h222.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h223⟩
 
 /-- Split `@163` not taken (`sel ≥ 0x2c69ed58`): fall through to arms `@174`. -/
@@ -574,22 +574,22 @@ def potG54SelBytes : ℕ → ByteArray
 theorem potG223ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size) (j : ℕ) (hj : j < 4) :
     UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG223FirstArmPc j)) (potSelWord I) =
       if (potG223SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem potG174ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size) (j : ℕ) (hj : j < 4) :
     UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG174FirstArmPc j)) (potSelWord I) =
       if (potG174SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem potG114ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size) (j : ℕ) (hj : j < 4) :
     UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG114FirstArmPc j)) (potSelWord I) =
       if (potG114SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem potG54ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size) (j : ℕ) (hj : j < 5) :
     UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG54FirstArmPc j)) (potSelWord I) =
       if (potG54SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 /-! ## Revert paths -/
 
@@ -602,9 +602,9 @@ theorem potJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt25
     RDrev potBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h267 := h.push2 potDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h267 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h267 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem potG223NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD potBytecode I g (initState cA gh bl σ σ₀ g A I) potG223FirstArmPc
@@ -618,9 +618,9 @@ theorem potG223NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     |>.selectorArmNotTakenAuto (potG223ArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (potG223ArmsWellFormed 2 (by omega)) (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (potG223ArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h267 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h267 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem potG174NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD potBytecode I g (initState cA gh bl σ σ₀ g A I) potG174FirstArmPc
@@ -634,7 +634,7 @@ theorem potG174NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     |>.selectorArmNotTakenAuto (potG174ArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (potG174ArmsWellFormed 2 (by omega)) (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (potG174ArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
-  exact potJumpToNoMatchRevert hend (by native_decide) (by native_decide)
+  exact potJumpToNoMatchRevert hend (by decide +native) (by decide +native)
 
 theorem potG114NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD potBytecode I g (initState cA gh bl σ σ₀ g A I) potG114FirstArmPc
@@ -648,7 +648,7 @@ theorem potG114NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     |>.selectorArmNotTakenAuto (potG114ArmsWellFormed 1 (by omega)) (heq0 1 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (potG114ArmsWellFormed 2 (by omega)) (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (potG114ArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
-  exact potJumpToNoMatchRevert hend (by native_decide) (by native_decide)
+  exact potJumpToNoMatchRevert hend (by decide +native) (by decide +native)
 
 theorem potG54NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD potBytecode I g (initState cA gh bl σ σ₀ g A I) potG54FirstArmPc
@@ -663,20 +663,20 @@ theorem potG54NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     |>.selectorArmNotTakenAuto (potG54ArmsWellFormed 2 (by omega)) (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (potG54ArmsWellFormed 3 (by omega)) (heq0 3 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (potG54ArmsWellFormed 4 (by omega)) (heq0 4 (by omega)) (by simp)
-  exact potJumpToNoMatchRevert hend (by native_decide) (by native_decide)
+  exact potJumpToNoMatchRevert hend (by decide +native) (by decide +native)
 
 /-- `callvalue ≠ 0`: the non-payable prologue guard reverts. -/
 theorem potX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = potBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev potBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
-  have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
+  have h12 := h0.push2 ⟨16⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h12 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 /-- `calldatasize < 4`: the selector guard reverts. -/
 theorem potX_short {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -684,23 +684,23 @@ theorem potX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hsz : I.calldata.size < 4) :
     RDrev potBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt potBytecode)
     (opC := solcGuardTgtOp potBytecode)
     (wC := solcGuardTgtWidth potBytecode) h0 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest)
-  have h267 := h1.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.calldatasize (by native_decide) (by simp only [List.length]; omega)
-    |>.lt (by native_decide) (by simp only [List.length]; omega)
-    |>.push2 potDispatchRevertPc (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest)
+  have h267 := h1.push1 ⟨4⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.calldatasize (by decide +native) (by simp only [List.length]; omega)
+    |>.lt (by decide +native) (by simp only [List.length]; omega)
+    |>.push2 potDispatchRevertPc (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h267 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h267 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 /-- No selector matches: the dispatcher routes to some group, scans all arms, and reverts. -/
 theorem potX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}

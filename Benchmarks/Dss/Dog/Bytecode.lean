@@ -460,7 +460,7 @@ def dogBytecode : ByteArray :=
       ⟨4424⟩, ⟨4536⟩, ⟨4542⟩, ⟨4558⟩, ⟨4564⟩, ⟨4588⟩, ⟨4591⟩, ⟨4600⟩, ⟨4616⟩, ⟨4618⟩,
       ⟨4625⟩, ⟨4641⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def dogCreationChunk0 : ByteArray :=
@@ -911,7 +911,7 @@ def dogCreationBytecode : ByteArray :=
       ⟨4564⟩, ⟨4584⟩, ⟨4606⟩, ⟨4718⟩, ⟨4724⟩, ⟨4740⟩, ⟨4746⟩, ⟨4770⟩, ⟨4773⟩, ⟨4782⟩,
       ⟨4798⟩, ⟨4800⟩, ⟨4807⟩, ⟨4823⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.Dog

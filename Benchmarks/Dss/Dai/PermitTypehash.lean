@@ -15,7 +15,7 @@ abbrev permitTypehashWord : UInt256 :=
 
 theorem permitTypehashBytes_eq_word :
     permitTypehashBytes = EVM.Word.toBytesBE permitTypehashWord := by
-  native_decide
+  decide +native
 
 theorem daiDecode_permitTypehash_ok {I : ExecutionEnv}
     (hsz4 : 4 ≤ I.calldata.size) :
@@ -98,7 +98,7 @@ theorem daiPermitTypehashBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (daiSelBytes 12) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (daiSelBytes 12) (by decide +native) hsel
   have hdispatch : dispatchMsg contract I.calldata = some permitTypehashTransition :=
     daiDispatchPermitTypehash hsel
   have hreach := daiReachPermitTypehashBody (cA := cA) (gh := gh) (bl := bl)

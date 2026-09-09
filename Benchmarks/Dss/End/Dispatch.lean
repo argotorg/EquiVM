@@ -56,7 +56,7 @@ theorem endDispatchWards {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some wardsTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchVat {I : ExecutionEnv}
     (hsel : selIs I (selectorOf vatTransition)) :
@@ -69,7 +69,7 @@ theorem endDispatchVat {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some vatTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchCat {I : ExecutionEnv}
     (hsel : selIs I (selectorOf catTransition)) :
@@ -82,7 +82,7 @@ theorem endDispatchCat {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some catTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchDog {I : ExecutionEnv}
     (hsel : selIs I (selectorOf dogTransition)) :
@@ -95,7 +95,7 @@ theorem endDispatchDog {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some dogTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchVow {I : ExecutionEnv}
     (hsel : selIs I (selectorOf vowTransition)) :
@@ -108,7 +108,7 @@ theorem endDispatchVow {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some vowTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchPot {I : ExecutionEnv}
     (hsel : selIs I (selectorOf potTransition)) :
@@ -121,7 +121,7 @@ theorem endDispatchPot {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some potTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchSpot {I : ExecutionEnv}
     (hsel : selIs I (selectorOf spotTransition)) :
@@ -134,7 +134,7 @@ theorem endDispatchSpot {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some spotTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchCure {I : ExecutionEnv}
     (hsel : selIs I (selectorOf cureTransition)) :
@@ -147,7 +147,7 @@ theorem endDispatchCure {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some cureTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchLive {I : ExecutionEnv}
     (hsel : selIs I (selectorOf liveTransition)) :
@@ -160,7 +160,7 @@ theorem endDispatchLive {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some liveTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchWhen {I : ExecutionEnv}
     (hsel : selIs I (selectorOf whenTransition)) :
@@ -173,7 +173,7 @@ theorem endDispatchWhen {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some whenTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchWait {I : ExecutionEnv}
     (hsel : selIs I (selectorOf waitTransition)) :
@@ -186,7 +186,7 @@ theorem endDispatchWait {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some waitTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchDebt {I : ExecutionEnv}
     (hsel : selIs I (selectorOf debtTransition)) :
@@ -198,7 +198,7 @@ theorem endDispatchDebt {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some debtTransition
   unfold transitions
   simp [dispatchList, hcd, debtSelector, selectorBytes]
-  native_decide
+  decide +native
 
 theorem endDispatchTag {I : ExecutionEnv}
     (hsel : selIs I (selectorOf tagTransition)) :
@@ -211,7 +211,7 @@ theorem endDispatchTag {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some tagTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchGap {I : ExecutionEnv}
     (hsel : selIs I (selectorOf gapTransition)) :
@@ -224,7 +224,7 @@ theorem endDispatchGap {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some gapTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchArt {I : ExecutionEnv}
     (hsel : selIs I (selectorOf ArtTransition)) :
@@ -237,7 +237,7 @@ theorem endDispatchArt {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some ArtTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchFix {I : ExecutionEnv}
     (hsel : selIs I (selectorOf fixTransition)) :
@@ -250,7 +250,7 @@ theorem endDispatchFix {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some fixTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchBag {I : ExecutionEnv}
     (hsel : selIs I (selectorOf bagTransition)) :
@@ -263,7 +263,7 @@ theorem endDispatchBag {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some bagTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchOut {I : ExecutionEnv}
     (hsel : selIs I (selectorOf outTransition)) :
@@ -276,7 +276,7 @@ theorem endDispatchOut {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some outTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchRely {I : ExecutionEnv}
     (hsel : selIs I (selectorOf relyTransition)) :
@@ -289,7 +289,7 @@ theorem endDispatchRely {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some relyTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchDeny {I : ExecutionEnv}
     (hsel : selIs I (selectorOf denyTransition)) :
@@ -302,7 +302,7 @@ theorem endDispatchDeny {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some denyTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchFileUint {I : ExecutionEnv}
     (hsel : selIs I (selectorOf fileUintTransition)) :
@@ -315,7 +315,7 @@ theorem endDispatchFileUint {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some fileUintTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchFileAddress {I : ExecutionEnv}
     (hsel : selIs I (selectorOf fileAddressTransition)) :
@@ -328,7 +328,7 @@ theorem endDispatchFileAddress {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some fileAddressTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchCageIlk {I : ExecutionEnv}
     (hsel : selIs I (selectorOf cageIlkTransition)) :
@@ -341,7 +341,7 @@ theorem endDispatchCageIlk {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some cageIlkTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchSnip {I : ExecutionEnv}
     (hsel : selIs I (selectorOf snipTransition)) :
@@ -354,7 +354,7 @@ theorem endDispatchSnip {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some snipTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchSkip {I : ExecutionEnv}
     (hsel : selIs I (selectorOf skipTransition)) :
@@ -367,7 +367,7 @@ theorem endDispatchSkip {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some skipTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchSkim {I : ExecutionEnv}
     (hsel : selIs I (selectorOf skimTransition)) :
@@ -380,7 +380,7 @@ theorem endDispatchSkim {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some skimTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchThaw {I : ExecutionEnv}
     (hsel : selIs I (selectorOf thawTransition)) :
@@ -393,7 +393,7 @@ theorem endDispatchThaw {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some thawTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchFlow {I : ExecutionEnv}
     (hsel : selIs I (selectorOf flowTransition)) :
@@ -406,7 +406,7 @@ theorem endDispatchFlow {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some flowTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endDispatchCash {I : ExecutionEnv}
     (hsel : selIs I (selectorOf cashTransition)) :
@@ -419,7 +419,7 @@ theorem endDispatchCash {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some cashTransition
   unfold transitions
   simp [dispatchList, hcd]
-  native_decide
+  decide +native
 
 theorem endSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (c0 c1 c2 c3 : UInt8) (sel : UInt256)
@@ -482,69 +482,69 @@ theorem endDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
     rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · rw [endWardsSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endVatSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endCatSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endDogSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endVowSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endPotSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endSpotSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endCureSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endLiveSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endWhenSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endWaitSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endDebtSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endTagSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endGapSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endArtSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endFixSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endBagSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endOutSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endRelySelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endDenySelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endFileAddressSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endFileUintSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endCageSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endCageIlkSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endSnipSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endSkipSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endSkimSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endFreeSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endThawSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endFlowSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endPackSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
   · rw [endCashSelectorBytes]
-    exact hmiss _ (by native_decide)
+    exact hmiss _ (by decide +native)
 
 theorem endDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 32 → (endSelBytes i == cd.extract 0 4) = false) :
@@ -727,37 +727,37 @@ abbrev endDispatchRevertPc : UInt256 := ⟨496⟩
 theorem endRootSplitWellFormed :
     selectorSplitWellFormed endBytecode endRootSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endHighSplitWellFormed :
     selectorSplitWellFormed endBytecode endHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endHigh2SplitWellFormed :
     selectorSplitWellFormed endBytecode endHigh2SplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endHighMidSplitWellFormed :
     selectorSplitWellFormed endBytecode endHighMidSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endLow1SplitWellFormed :
     selectorSplitWellFormed endBytecode endLow1SplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endLowHighSplitWellFormed :
     selectorSplitWellFormed endBytecode endLowHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endLow2SplitWellFormed :
     selectorSplitWellFormed endBytecode endLow2SplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endRootSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -769,8 +769,8 @@ theorem endRootSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD endBytecode ee g s0 endLow1JumpdestPc (selWord :: rest) mem aw rdata acc
       (k + 5) (C + 22) := by
   exact RD.selectorSplitTakenResolved (tgt := endLow1JumpdestPc) (width := 2)
-    (op := .PUSH2) h endRootSplitWellFormed (by native_decide) (by native_decide)
-    (by native_decide) hb (by jump_dest) hov
+    (op := .PUSH2) h endRootSplitWellFormed (by decide +native) (by decide +native)
+    (by decide +native) hb (by jump_dest) hov
 
 theorem endRootSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -782,8 +782,8 @@ theorem endRootSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD endBytecode ee g s0 endHighSplitPc (selWord :: rest) mem aw rdata acc
       (k + 5) (C + 22) := by
   exact RD.selectorSplitNotTakenResolved (tgt := endLow1JumpdestPc) (nextPc := endHighSplitPc)
-    (width := 2) (op := .PUSH2) h endRootSplitWellFormed (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hb hov
+    (width := 2) (op := .PUSH2) h endRootSplitWellFormed (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hb hov
 
 theorem endHighSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -795,8 +795,8 @@ theorem endHighSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD endBytecode ee g s0 endHighJumpdestPc (selWord :: rest) mem aw rdata acc
       (k + 5) (C + 22) := by
   exact RD.selectorSplitTakenResolved (tgt := endHighJumpdestPc) (width := 2)
-    (op := .PUSH2) h endHighSplitWellFormed (by native_decide) (by native_decide)
-    (by native_decide) hb (by jump_dest) hov
+    (op := .PUSH2) h endHighSplitWellFormed (by decide +native) (by decide +native)
+    (by decide +native) hb (by jump_dest) hov
 
 theorem endHighSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -808,8 +808,8 @@ theorem endHighSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD endBytecode ee g s0 endHigh2SplitPc (selWord :: rest) mem aw rdata acc
       (k + 5) (C + 22) := by
   exact RD.selectorSplitNotTakenResolved (tgt := endHighJumpdestPc) (nextPc := endHigh2SplitPc)
-    (width := 2) (op := .PUSH2) h endHighSplitWellFormed (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hb hov
+    (width := 2) (op := .PUSH2) h endHighSplitWellFormed (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hb hov
 
 theorem endHigh2SplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -821,8 +821,8 @@ theorem endHigh2SplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD endBytecode ee g s0 endGroup114JumpdestPc (selWord :: rest) mem aw rdata acc
       (k + 5) (C + 22) := by
   exact RD.selectorSplitTakenResolved (tgt := endGroup114JumpdestPc) (width := 2)
-    (op := .PUSH2) h endHigh2SplitWellFormed (by native_decide) (by native_decide)
-    (by native_decide) hb (by jump_dest) hov
+    (op := .PUSH2) h endHigh2SplitWellFormed (by decide +native) (by decide +native)
+    (by decide +native) hb (by jump_dest) hov
 
 theorem endHigh2SplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -835,8 +835,8 @@ theorem endHigh2SplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       (k + 5) (C + 22) := by
   exact RD.selectorSplitNotTakenResolved (tgt := endGroup114JumpdestPc)
     (nextPc := endGroup65FirstArmPc) (width := 2) (op := .PUSH2) h
-    endHigh2SplitWellFormed (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) hb hov
+    endHigh2SplitWellFormed (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) hb hov
 
 theorem endHighMidSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -848,8 +848,8 @@ theorem endHighMidSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD endBytecode ee g s0 endGroup223JumpdestPc (selWord :: rest) mem aw rdata acc
       (k + 5) (C + 22) := by
   exact RD.selectorSplitTakenResolved (tgt := endGroup223JumpdestPc) (width := 2)
-    (op := .PUSH2) h endHighMidSplitWellFormed (by native_decide) (by native_decide)
-    (by native_decide) hb (by jump_dest) hov
+    (op := .PUSH2) h endHighMidSplitWellFormed (by decide +native) (by decide +native)
+    (by decide +native) hb (by jump_dest) hov
 
 theorem endHighMidSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -862,8 +862,8 @@ theorem endHighMidSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       (k + 5) (C + 22) := by
   exact RD.selectorSplitNotTakenResolved (tgt := endGroup223JumpdestPc)
     (nextPc := endGroup174FirstArmPc) (width := 2) (op := .PUSH2) h
-    endHighMidSplitWellFormed (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) hb hov
+    endHighMidSplitWellFormed (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) hb hov
 
 theorem endLow1SplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -875,8 +875,8 @@ theorem endLow1SplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD endBytecode ee g s0 endLow2JumpdestPc (selWord :: rest) mem aw rdata acc
       (k + 5) (C + 22) := by
   exact RD.selectorSplitTakenResolved (tgt := endLow2JumpdestPc) (width := 2)
-    (op := .PUSH2) h endLow1SplitWellFormed (by native_decide) (by native_decide)
-    (by native_decide) hb (by jump_dest) hov
+    (op := .PUSH2) h endLow1SplitWellFormed (by decide +native) (by decide +native)
+    (by decide +native) hb (by jump_dest) hov
 
 theorem endLow1SplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -889,7 +889,7 @@ theorem endLow1SplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       (k + 5) (C + 22) := by
   exact RD.selectorSplitNotTakenResolved (tgt := endLow2JumpdestPc)
     (nextPc := endLowHighSplitPc) (width := 2) (op := .PUSH2) h endLow1SplitWellFormed
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) hb hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) hb hov
 
 theorem endLowHighSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -901,8 +901,8 @@ theorem endLowHighSplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD endBytecode ee g s0 endGroup343JumpdestPc (selWord :: rest) mem aw rdata acc
       (k + 5) (C + 22) := by
   exact RD.selectorSplitTakenResolved (tgt := endGroup343JumpdestPc) (width := 2)
-    (op := .PUSH2) h endLowHighSplitWellFormed (by native_decide) (by native_decide)
-    (by native_decide) hb (by jump_dest) hov
+    (op := .PUSH2) h endLowHighSplitWellFormed (by decide +native) (by decide +native)
+    (by decide +native) hb (by jump_dest) hov
 
 theorem endLowHighSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -915,8 +915,8 @@ theorem endLowHighSplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       (k + 5) (C + 22) := by
   exact RD.selectorSplitNotTakenResolved (tgt := endGroup343JumpdestPc)
     (nextPc := endGroup294FirstArmPc) (width := 2) (op := .PUSH2) h
-    endLowHighSplitWellFormed (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) hb hov
+    endLowHighSplitWellFormed (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) hb hov
 
 theorem endLow2SplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -928,8 +928,8 @@ theorem endLow2SplitTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     RD endBytecode ee g s0 endVeryLowJumpdestPc (selWord :: rest) mem aw rdata acc
       (k + 5) (C + 22) := by
   exact RD.selectorSplitTakenResolved (tgt := endVeryLowJumpdestPc) (width := 2)
-    (op := .PUSH2) h endLow2SplitWellFormed (by native_decide) (by native_decide)
-    (by native_decide) hb (by jump_dest) hov
+    (op := .PUSH2) h endLow2SplitWellFormed (by decide +native) (by decide +native)
+    (by decide +native) hb (by jump_dest) hov
 
 theorem endLow2SplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {selWord : UInt256} {mem : ByteArray} {aw : UInt256} {rdata : ByteArray}
@@ -942,7 +942,7 @@ theorem endLow2SplitNotTaken {ee : ExecutionEnv} {g : Sat256} {s0 : State}
       (k + 5) (C + 22) := by
   exact RD.selectorSplitNotTakenResolved (tgt := endVeryLowJumpdestPc)
     (nextPc := endGroup403FirstArmPc) (width := 2) (op := .PUSH2) h endLow2SplitWellFormed
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) hb hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) hb hov
 
 set_option maxHeartbeats 1000000 in
 theorem endGroup65ArmsWellFormed :
@@ -950,7 +950,7 @@ theorem endGroup65ArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem endGroup114ArmsWellFormed :
@@ -958,7 +958,7 @@ theorem endGroup114ArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem endGroup174ArmsWellFormed :
@@ -966,7 +966,7 @@ theorem endGroup174ArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem endGroup223ArmsWellFormed :
@@ -974,7 +974,7 @@ theorem endGroup223ArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem endGroup294ArmsWellFormed :
@@ -982,7 +982,7 @@ theorem endGroup294ArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem endGroup343ArmsWellFormed :
@@ -990,7 +990,7 @@ theorem endGroup343ArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem endGroup403ArmsWellFormed :
@@ -998,7 +998,7 @@ theorem endGroup403ArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem endGroup452ArmsWellFormed :
@@ -1006,7 +1006,7 @@ theorem endGroup452ArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem endDebtArmsWellFormed :
@@ -1014,7 +1014,7 @@ theorem endDebtArmsWellFormed :
   intro j hj
   interval_cases j
   dsimp [armWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 def endGroup65SelBytes : ℕ → ByteArray
   | 0 => selectorBytes 0xe4 0x88 0x18 0x13
@@ -1070,7 +1070,7 @@ theorem endGroup65ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat endBytecode (nthArmPc endBytecode endGroup65FirstArmPc j))
         (endSelWord I) =
       if (endGroup65SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem endGroup114ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -1078,7 +1078,7 @@ theorem endGroup114ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat endBytecode (nthArmPc endBytecode endGroup114FirstArmPc j))
         (endSelWord I) =
       if (endGroup114SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem endGroup174ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -1086,7 +1086,7 @@ theorem endGroup174ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat endBytecode (nthArmPc endBytecode endGroup174FirstArmPc j))
         (endSelWord I) =
       if (endGroup174SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem endGroup223ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -1094,7 +1094,7 @@ theorem endGroup223ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat endBytecode (nthArmPc endBytecode endGroup223FirstArmPc j))
         (endSelWord I) =
       if (endGroup223SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem endGroup294ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -1102,7 +1102,7 @@ theorem endGroup294ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat endBytecode (nthArmPc endBytecode endGroup294FirstArmPc j))
         (endSelWord I) =
       if (endGroup294SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem endGroup343ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -1110,7 +1110,7 @@ theorem endGroup343ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat endBytecode (nthArmPc endBytecode endGroup343FirstArmPc j))
         (endSelWord I) =
       if (endGroup343SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem endGroup403ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -1118,7 +1118,7 @@ theorem endGroup403ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat endBytecode (nthArmPc endBytecode endGroup403FirstArmPc j))
         (endSelWord I) =
       if (endGroup403SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem endGroup452ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -1126,7 +1126,7 @@ theorem endGroup452ArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat endBytecode (nthArmPc endBytecode endDebtFirstArmPc j))
         (endSelWord I) =
       if (endGroup452SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem endReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -1142,13 +1142,13 @@ theorem endReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (revertTgt := endDispatchRevertPc) (guardWidth := 2) (revertWidth := 2)
       (guardOp := .PUSH2) (revertOp := .PUSH2)
       hcode hwv hsz hsize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 theorem endReachDebtFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -1169,7 +1169,7 @@ theorem endReachDebtFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [endLow1SplitPc] using h271.jumpdest (by native_decide) (by simp)
+    simpa [endLow1SplitPc] using h271.jumpdest (by decide +native) (by simp)
   have h391 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow2JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
@@ -1177,7 +1177,7 @@ theorem endReachDebtFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h392 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
-    simpa [endLow2SplitPc] using h391.jumpdest (by native_decide) (by simp)
+    simpa [endLow2SplitPc] using h391.jumpdest (by decide +native) (by simp)
   have h451 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endVeryLowJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1 + 5)
@@ -1187,7 +1187,7 @@ theorem endReachDebtFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
       endDebtFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1 + 5 + 1)
         (C32 + 22 + 1 + 22 + 1 + 22 + 1) := by
-    simpa [endDebtFirstArmPc] using h451.jumpdest (by native_decide) (by simp)
+    simpa [endDebtFirstArmPc] using h451.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h452⟩
 
 theorem endReachDebtBody {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1199,19 +1199,19 @@ theorem endReachDebtBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : endSelWord I = ⟨0x0dca59c1⟩ :=
     endSelWord_eq_of_beq I hsz 0x0d 0xca 0x59 0xc1 ⟨0x0dca59c1⟩
-      (by native_decide) (by simpa [selIs, debtSelector, selectorBytes] using hsel)
+      (by decide +native) (by simpa [selIs, debtSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
     endReachDebtFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-      (by rw [hword]; native_decide)
-      (by rw [hword]; native_decide)
-      (by rw [hword]; native_decide)
+      (by rw [hword]; decide +native)
+      (by rw [hword]; decide +native)
+      (by rw [hword]; decide +native)
   exact RD.dispatchTo endDebtEntryPc 0 hfirst
     (fun j hj => endDebtArmsWellFormed j (by omega))
     (by intro j hj; omega)
-    (by rw [hword]; native_decide)
+    (by rw [hword]; decide +native)
     (by jump_dest)
-    (by native_decide)
+    (by decide +native)
     (by simp)
 
 theorem endReachGroup65FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1267,7 +1267,7 @@ theorem endReachGroup114FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h114 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endGroup114FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5 + 1) (C32 + 22 + 22 + 22 + 1) := by
-    simpa [endGroup114FirstArmPc] using h113.jumpdest (by native_decide) (by simp)
+    simpa [endGroup114FirstArmPc] using h113.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h114⟩
 
 theorem endReachGroup174FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1293,7 +1293,7 @@ theorem endReachGroup174FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h163 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endHighMidSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
-    simpa [endHighMidSplitPc] using h162.jumpdest (by native_decide) (by simp)
+    simpa [endHighMidSplitPc] using h162.jumpdest (by decide +native) (by simp)
   have h174 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endGroup174FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
@@ -1323,7 +1323,7 @@ theorem endReachGroup223FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h163 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endHighMidSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
-    simpa [endHighMidSplitPc] using h162.jumpdest (by native_decide) (by simp)
+    simpa [endHighMidSplitPc] using h162.jumpdest (by decide +native) (by simp)
   have h222 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endGroup223JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
@@ -1332,7 +1332,7 @@ theorem endReachGroup223FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
       endGroup223FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5 + 1)
         (C32 + 22 + 22 + 1 + 22 + 1) := by
-    simpa [endGroup223FirstArmPc] using h222.jumpdest (by native_decide) (by simp)
+    simpa [endGroup223FirstArmPc] using h222.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h223⟩
 
 theorem endReachGroup294FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1354,7 +1354,7 @@ theorem endReachGroup294FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [endLow1SplitPc] using h271.jumpdest (by native_decide) (by simp)
+    simpa [endLow1SplitPc] using h271.jumpdest (by decide +native) (by simp)
   have h283 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLowHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
@@ -1384,7 +1384,7 @@ theorem endReachGroup343FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [endLow1SplitPc] using h271.jumpdest (by native_decide) (by simp)
+    simpa [endLow1SplitPc] using h271.jumpdest (by decide +native) (by simp)
   have h283 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLowHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
@@ -1397,7 +1397,7 @@ theorem endReachGroup343FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
       endGroup343FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 5 + 1)
         (C32 + 22 + 1 + 22 + 22 + 1) := by
-    simpa [endGroup343FirstArmPc] using h342.jumpdest (by native_decide) (by simp)
+    simpa [endGroup343FirstArmPc] using h342.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h343⟩
 
 theorem endReachGroup403FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1419,7 +1419,7 @@ theorem endReachGroup403FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [endLow1SplitPc] using h271.jumpdest (by native_decide) (by simp)
+    simpa [endLow1SplitPc] using h271.jumpdest (by decide +native) (by simp)
   have h391 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow2JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
@@ -1427,7 +1427,7 @@ theorem endReachGroup403FirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h392 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
-    simpa [endLow2SplitPc] using h391.jumpdest (by native_decide) (by simp)
+    simpa [endLow2SplitPc] using h391.jumpdest (by decide +native) (by simp)
   have h403 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endGroup403FirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1 + 5)
@@ -1444,9 +1444,9 @@ theorem endJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt25
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h496 := h.push2 endDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h496 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h496 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem endGroup65NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup65FirstArmPc
@@ -1464,7 +1464,7 @@ theorem endGroup65NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (endGroup65ArmsWellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
-  exact endJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
+  exact endJumpToNoMatchRevert h109 (by decide +native) (by decide +native)
 
 theorem endGroup114NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup114FirstArmPc
@@ -1482,7 +1482,7 @@ theorem endGroup114NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (endGroup114ArmsWellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
-  exact endJumpToNoMatchRevert h158 (by native_decide) (by native_decide)
+  exact endJumpToNoMatchRevert h158 (by decide +native) (by decide +native)
 
 theorem endGroup174NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup174FirstArmPc
@@ -1500,7 +1500,7 @@ theorem endGroup174NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (endGroup174ArmsWellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
-  exact endJumpToNoMatchRevert h218 (by native_decide) (by native_decide)
+  exact endJumpToNoMatchRevert h218 (by decide +native) (by decide +native)
 
 theorem endGroup223NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup223FirstArmPc
@@ -1518,7 +1518,7 @@ theorem endGroup223NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (endGroup223ArmsWellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
-  exact endJumpToNoMatchRevert h267 (by native_decide) (by native_decide)
+  exact endJumpToNoMatchRevert h267 (by decide +native) (by decide +native)
 
 theorem endGroup294NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup294FirstArmPc
@@ -1536,7 +1536,7 @@ theorem endGroup294NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (endGroup294ArmsWellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
-  exact endJumpToNoMatchRevert h338 (by native_decide) (by native_decide)
+  exact endJumpToNoMatchRevert h338 (by decide +native) (by decide +native)
 
 theorem endGroup343NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup343FirstArmPc
@@ -1554,7 +1554,7 @@ theorem endGroup343NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (endGroup343ArmsWellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
-  exact endJumpToNoMatchRevert h387 (by native_decide) (by native_decide)
+  exact endJumpToNoMatchRevert h387 (by decide +native) (by decide +native)
 
 theorem endGroup403NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endGroup403FirstArmPc
@@ -1572,7 +1572,7 @@ theorem endGroup403NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (endGroup403ArmsWellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
-  exact endJumpToNoMatchRevert h447 (by native_decide) (by native_decide)
+  exact endJumpToNoMatchRevert h447 (by decide +native) (by decide +native)
 
 theorem endGroup452NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) endDebtFirstArmPc
@@ -1590,9 +1590,9 @@ theorem endGroup452NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (endGroup452ArmsWellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h496 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h496 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem endBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.transitions)
     (evm : EVM.State) (locals : Store) (h : evm.executionEnv.weiValue ≠ ⟨0⟩) :
@@ -1608,36 +1608,36 @@ theorem endX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
-  have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
+  have h12 := h0.push2 ⟨16⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h12 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem endX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt endBytecode)
     (opC := solcGuardTgtOp endBytecode)
     (wC := solcGuardTgtWidth endBytecode) h0 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest)
-  have h496 := h1.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.calldatasize (by native_decide) (by simp only [List.length]; omega)
-    |>.lt (by native_decide) (by simp only [List.length]; omega)
-    |>.push2 endDispatchRevertPc (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest)
+  have h496 := h1.push1 ⟨4⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.calldatasize (by decide +native) (by simp only [List.length]; omega)
+    |>.lt (by decide +native) (by simp only [List.length]; omega)
+    |>.push2 endDispatchRevertPc (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h496 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h496 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem endX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)

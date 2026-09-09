@@ -30,11 +30,11 @@ macro "gem_ctor_decode" : tactic =>
   `(tactic|
     (first
       | rw [Reasoning.Theory.decode_append_left_window
-          gemJoinCreationBytecode _ _ (by native_decide) (by native_decide)]
+          gemJoinCreationBytecode _ _ (by decide +native) (by decide +native)]
       | (unfold gemJoinCtorCode
          rw [Reasoning.Theory.decode_append_left_window
-          gemJoinCreationBytecode _ _ (by native_decide) (by native_decide)]);
-     native_decide))
+          gemJoinCreationBytecode _ _ (by decide +native) (by decide +native)]);
+     decide +native))
 
 macro "gem_ctor_jd" : tactic =>
   `(tactic|
@@ -125,14 +125,14 @@ theorem gemJoin_word_toBytesBE_length_32 (w : UInt256) :
   simpa using word_toBytesBE_toByteArray_size w
 
 theorem gemJoinCreationBytecode_size : gemJoinCreationBytecode.size = 2326 := by
-  native_decide
+  decide +native
 
 theorem gemJoinBytecode_size : gemJoinBytecode.size = 2022 := by
-  native_decide
+  decide +native
 
 theorem gemJoinCreationBytecode_runtime_window :
     gemJoinCreationBytecode.extract 304 (304 + 2022) = gemJoinBytecode := by
-  native_decide
+  decide +native
 
 theorem gemJoinCtorArgsTail_size (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) :
@@ -160,7 +160,7 @@ theorem gemJoinCtorRuntimeReturnMem_read (vat : AccountAddress) (ilk : UInt256)
     (by norm_num)]
   unfold gemJoinCtorCode
   rw [extract_append_left gemJoinCreationBytecode (gemJoinCtorArgsTail vat ilk gem)
-    304 (304 + 2022) (by native_decide)]
+    304 (304 + 2022) (by decide +native)]
   exact gemJoinCreationBytecode_runtime_window
 
 theorem gemJoinCtorArgLen_eq (vat : AccountAddress) (ilk : UInt256)
@@ -168,7 +168,7 @@ theorem gemJoinCtorArgLen_eq (vat : AccountAddress) (ilk : UInt256)
     (UInt256.ofNat (gemJoinCtorCode vat ilk gem).size).sub ⟨2326⟩ =
       (⟨96⟩ : UInt256) := by
   rw [gemJoinCtorCode_size]
-  native_decide
+  decide +native
 
 -- LIBRARY CANDIDATE: a generic `ByteArray.write` normalization when a copy extends a base.
 private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : ℕ)
@@ -268,7 +268,7 @@ theorem gemJoinCtorArgMem_eq (vat : AccountAddress) (ilk : UInt256)
     · rw [solcFreePtrMem_size]
     · exact gemJoinCreationBytecode_size.symm
     · rw [gemJoinCtorArgsTail_size]
-      native_decide
+      decide +native
   · decide
   · rw [ByteArray.size_append, gemJoinCreationBytecode_size, gemJoinCtorArgsTail_size]
   · rw [solcFreePtrMem_size]
@@ -295,7 +295,7 @@ theorem gemJoinCtorArgFreeMem_read64 (vat : AccountAddress) (ilk : UInt256)
       UInt256.toByteArray ⟨224⟩ := by
   unfold gemJoinCtorArgFreeMem
   exact toByteArray_write_read_back_of_gap ⟨224⟩ (gemJoinCtorArgMem vat ilk gem) 64
-    (by rw [gemJoinCtorArgMem_size]; native_decide)
+    (by rw [gemJoinCtorArgMem_size]; decide +native)
 
 theorem gemJoinCtorArgFreeMem_mload64 (vat : AccountAddress) (ilk : UInt256)
     (gem : AccountAddress) :
@@ -523,7 +523,7 @@ private theorem twoWordHashMem_read32_224 {mem : ByteArray} (key slot : UInt256)
       UInt256.toByteArray slot := by
   unfold twoWordHashMem wordAt32Mem
   exact toByteArray_write_read_back_of_gap slot (wordAt0Mem key mem) 32
-    (by rw [wordAt0Mem_size_224 key hmem]; native_decide)
+    (by rw [wordAt0Mem_size_224 key hmem]; decide +native)
 
 private theorem twoWordHashMem_read0_64_224 {mem : ByteArray} (key slot : UInt256)
     (hmem : mem.size = 224) :
@@ -630,7 +630,7 @@ theorem gemJoinCtorDecimalsCalldataMem_read64 (I : ExecutionEnv) (vat : AccountA
     (gemJoinCtorWardsHashMem I vat ilk gem) 224 64
     (by rw [gemJoinCtorWardsHashMem_size]; omega)
     (by omega)
-    (by rw [gemJoinCtorWardsHashMem_size]; native_decide)]
+    (by rw [gemJoinCtorWardsHashMem_size]; decide +native)]
   exact gemJoinCtorWardsHashMem_read64 I vat ilk gem
 
 theorem gemJoinCtorDecimalsCalldataMem_read224_4 (I : ExecutionEnv)
@@ -641,8 +641,8 @@ theorem gemJoinCtorDecimalsCalldataMem_read224_4 (I : ExecutionEnv)
   rw [toByteArray_write_read_window_of_gap gemJoinCtorDecimalsSelectorShifted
     (gemJoinCtorWardsHashMem I vat ilk gem) 224 0 4
     (by norm_num) (by norm_num) (by norm_num)
-    (by rw [gemJoinCtorWardsHashMem_size]; native_decide)]
-  native_decide
+    (by rw [gemJoinCtorWardsHashMem_size]; decide +native)]
+  decide +native
 
 theorem gemJoinCtorDecimalsCalldataMem_encode (I : ExecutionEnv)
     (vat : AccountAddress) (ilk : UInt256) (gem : AccountAddress) :
@@ -694,7 +694,7 @@ theorem gemJoinCtorSetAddressOffset0Word_low_address (old : UInt256)
       EVM.word a.val := by
   apply u256_inj
   rw [u256_land_toNat, setAddressOffset0Word_toNat]
-  · rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by native_decide]
+  · rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide +native]
     rw [nat_land_comm]
     rw [nat_land_mask_eq_mod]
     have ha : (EVM.word a.val).toNat = a.val := by

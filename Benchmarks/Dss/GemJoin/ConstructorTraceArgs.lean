@@ -89,7 +89,7 @@ theorem gemJoinCtorArgCopyTrace
       show (⟨18⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 3 +
             ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
             ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ = ⟨38⟩
-        from by native_decide] using rd38
+        from by decide +native] using rd38
   exact ⟨_, _, rd38'⟩
 
 set_option maxHeartbeats 1000000 in
@@ -113,7 +113,7 @@ theorem gemJoinCtorArgDecodeTrace
        else UInt256.ofNat
          (fromByteArrayBigEndian ((gemJoinCtorArgFreeMem vat ilk gem).readWithPadding
            (((⟨32⟩ : UInt256) + ⟨128⟩).toNat) 32))) = ilk := by
-    simpa [show ((⟨32⟩ : UInt256) + ⟨128⟩) = ⟨160⟩ from by native_decide]
+    simpa [show ((⟨32⟩ : UInt256) + ⟨128⟩) = ⟨160⟩ from by decide +native]
       using gemJoinCtorArgFreeMem_mload160 vat ilk gem
   have h192 :
       (if ((⟨64⟩ : UInt256) + ⟨128⟩).toNat ≥ (gemJoinCtorArgFreeMem vat ilk gem).size ∨
@@ -121,7 +121,7 @@ theorem gemJoinCtorArgDecodeTrace
        else UInt256.ofNat
          (fromByteArrayBigEndian ((gemJoinCtorArgFreeMem vat ilk gem).readWithPadding
            (((⟨64⟩ : UInt256) + ⟨128⟩).toNat) 32))) = EVM.word gem.val := by
-    simpa [show ((⟨64⟩ : UInt256) + ⟨128⟩) = ⟨192⟩ from by native_decide]
+    simpa [show ((⟨64⟩ : UInt256) + ⟨128⟩) = ⟨192⟩ from by decide +native]
       using gemJoinCtorArgFreeMem_mload192 vat ilk gem
   have rd68 := gem_ctor_run rd51 with [
     raw jumpdest (by gem_ctor_decode) (by evm_ov),
@@ -151,7 +151,7 @@ theorem gemJoinCtorArgDecodeTrace
       show (⟨51⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
             ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
             UInt256.ofNat 2 + ⟨1⟩ = ⟨68⟩
-        from by native_decide] using rd68
+        from by decide +native] using rd68
   exact rd68'
 
 theorem gemJoinCtorArgsReach
@@ -183,7 +183,7 @@ theorem gemJoinCtorArgsReach
       RD (gemJoinCtorCode vat ilk gem) I g0
         (initState createdAccounts genesisBlockHeader blocks σ σ₀ g0 A I) ⟨18⟩
         [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σ) k18 C18 := by
-    simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by native_decide]
+    simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by decide +native]
       using rd18
   obtain ⟨_, _, rd38⟩ := gemJoinCtorArgCopyTrace vat ilk gem rd18'
   exact gemJoinCtorArgDecodeTrace vat ilk gem rd38

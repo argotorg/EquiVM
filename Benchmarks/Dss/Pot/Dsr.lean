@@ -23,19 +23,19 @@ theorem potReachDsrBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : potSelWord I = ⟨0x487bf082⟩ :=
     potSelWord_eq_of_beq I hsz 0x48 0x7b 0xf0 0x82 ⟨0x487bf082⟩
-      (by native_decide) (by simpa [potSelBytes] using hsel)
+      (by decide +native) (by simpa [potSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat potBytecode potRootSplitPc) (potSelWord I) ≠ ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   have h163 : UInt256.gt (armSelNat potBytecode potSplit163Pc) (potSelWord I) = ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG174FirstArmPc j))
-        (potSelWord I) = ⟨0⟩ := by intro j hj; interval_cases j <;> rw [hword] <;> native_decide
+        (potSelWord I) = ⟨0⟩ := by intro j hj; interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG174FirstArmPc 2))
-        (potSelWord I) ≠ ⟨0⟩ := by rw [hword]; native_decide
+        (potSelWord I) ≠ ⟨0⟩ := by rw [hword]; decide +native
   exact potReachG174Body 2 (by omega) ⟨446⟩ hcode hwv hsz hsize hroot h163 heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem potDsrBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -67,10 +67,10 @@ theorem potDsrBodyCore
   exact potUint256GetterBodyCore (entry := ⟨446⟩) (returnPc := ⟨341⟩)
     (routine := ⟨1351⟩) (slot := ⟨3⟩)
     hcode hdispatch hdecode hreach hAccounts
-    (by unfold solcGetterEntryWf; repeat' first | apply And.intro | native_decide)
-    (by unfold solcWordSlotGetterWf; repeat' first | apply And.intro | native_decide)
+    (by unfold solcGetterEntryWf; repeat' first | apply And.intro | decide +native)
+    (by unfold solcWordSlotGetterWf; repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by jump_dest)
-    (by unfold solcReturnWordFromMemWf; repeat' first | apply And.intro | native_decide)
+    (by unfold solcReturnWordFromMemWf; repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [dsrWord] using hbody)
 
 theorem potDsrBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}

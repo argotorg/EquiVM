@@ -68,7 +68,7 @@ theorem vowAuthGuardEval_true {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Sto
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
-  all_goals native_decide
+  all_goals decide +native
 
 theorem vowAuthGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
@@ -102,7 +102,7 @@ theorem vowAuthGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256} {locals : St
     apply hload
     apply u256_inj
     simpa using hnat
-  all_goals native_decide
+  all_goals decide +native
 
 /-! ### Auth and store bytecode helpers -/
 
@@ -188,19 +188,19 @@ theorem RD.vowAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := rd6.mstore 0 (wordAt0Mem (solcSourceWord ee) solcFreePtrMem)
-    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd11 := evm_run rd7 with [
     raw push1 ⟨32⟩ hd7 (by evm_ov),
     raw dup2 hd9 (by evm_ov),
     raw swap1 hd10 (by evm_ov)]
   have rd12 := rd11.mstore 0 (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := evm_run rd12 with [
     raw push1 ⟨64⟩ hd12 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ (solcSourceWord ee) solcFreePtrMem_size
   have rd16 := rd15.keccak256 0 (solcMappingSlot ⟨0⟩ (solcSourceWord ee))
-    (UInt256.ofNat 3) hd15 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd15 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd17⟩ := rd16.sload hd16 (by evm_ov)
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
@@ -234,19 +234,19 @@ theorem RD.vowAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := rd6.mstore 0 (wordAt0Mem (solcSourceWord ee) solcFreePtrMem)
-    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd11 := evm_run rd7 with [
     raw push1 ⟨32⟩ hd7 (by evm_ov),
     raw dup2 hd9 (by evm_ov),
     raw swap1 hd10 (by evm_ov)]
   have rd12 := rd11.mstore 0 (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := evm_run rd12 with [
     raw push1 ⟨64⟩ hd12 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ (solcSourceWord ee) solcFreePtrMem_size
   have rd16 := rd15.keccak256 0 (solcMappingSlot ⟨0⟩ (solcSourceWord ee))
-    (UInt256.ofNat 3) hd15 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd15 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd17⟩ := rd16.sload hd16 (by evm_ov)
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
@@ -347,19 +347,19 @@ theorem RD.vowDenyStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd12 (by evm_ov),
     raw dup2 hd13 (by evm_ov)]
   have rdAfterKey := rdMstore0Prefix.mstore 0 (wordAt0Mem key mem)
-    (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
     raw push1 ⟨32⟩ hd15 (by evm_ov),
     raw dup2 hd17 (by evm_ov),
     raw swap1 hd18 (by evm_ov)]
   have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem key ⟨0⟩ mem)
-    (UInt256.ofNat 3) hd19 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd19 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩ hd20 (by evm_ov),
     raw dup2 hd22 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ key hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨0⟩ key)
-    (UInt256.ofNat 3) hd23 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd23 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rdOut⟩ := rdSlot.sstore hperm hd24 (by evm_ov)
   exact ⟨_, _, rdOut.jump hd25 hret (by evm_ov)⟩
 
@@ -384,7 +384,7 @@ theorem vowDispatch_deny {I : ExecutionEnv}
     all_goals
       simp [selectorOf, AshSelectorBytes, SinSelectorBytes, bumpSelectorBytes,
         cageSelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, denySelectorBytes]
     exact hsel
 
@@ -411,25 +411,25 @@ theorem vowReachDenyBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vowSelWord I = ⟨2622662641⟩ :=
     vowSelWord_eq_of_beq I hsz 0x9c 0x52 0xa7 0xf1 ⟨2622662641⟩
-      (by native_decide) hsel
+      (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat vowBytecode vowHighSplitPc) (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowHighLowFirstArmPc j))
         (vowSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowHighLowFirstArmPc 2))
         (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vowReachHighLowBody 2 (by omega) ⟨608⟩ hcode hwv hsz hsize hroot hhigh heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem vowDenyBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -457,16 +457,16 @@ theorem vowDenyBodyCore
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := vowBytecode) (sel := sel) (entry := ⟨608⟩) (ret := ⟨412⟩)
     (decoded := ⟨630⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcOneAddressExternalMaskAndJumpMasked
     (code := vowBytecode) (decoded := ⟨630⟩) (ret := ⟨412⟩) (routine := ⟨3474⟩)
     (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by jump_dest) (by simp)
   by_cases hauthEvm : vowSlotWord callerSlot σ_evm I = ⟨1⟩
   · have hauthSolm : vowSlotWord callerSlot σ_solm I = ⟨1⟩ := by
       rw [← hcallerWord]
@@ -520,7 +520,7 @@ theorem vowDenyBodyCore
       (by simpa [key, denyKey] using hroutine)
       (by
         unfold vowAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by jump_dest) (by simp)
     have hmemAuth :
         (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -534,14 +534,14 @@ theorem vowDenyBodyCore
       hokPc
       (by
         unfold vowDenyStoreZeroWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by jump_dest) hperm hmemAuth hcanonKey (by simp)
-    have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+    have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
     have hret :
         RDret vowBytecode (Sat256.ofUInt256 g)
           (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
           (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨0⟩) ByteArray.empty := by
-      simpa [slot] using RD.stop hretPc' (by native_decide) (by simp)
+      simpa [slot] using RD.stop hretPc' (by decide +native) (by simp)
     have hcreated :
         (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨0⟩).1 = evm1.createdAccounts := by
       simp [evm1, evm0, initState, storageStore_createdAccounts]
@@ -552,7 +552,7 @@ theorem vowDenyBodyCore
         accountMapEquiv_sstoreAccountMap I.codeOwner slot ⟨0⟩ hAccounts
     have henc : returnEquiv ByteArray.empty none denyTransition.returnType := by
       rw [show denyTransition.returnType = [] by rfl]
-      exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+      exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
     exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
       hcreated haccounts henc
   · have hauthSolm : vowSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
@@ -581,10 +581,10 @@ theorem vowDenyBodyCore
       (by simpa [key, denyKey] using hroutine)
       (by
         unfold vowAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by
         unfold solcErrorStringRevertTailWf vowAuthTailPc vowNotAuthorizedRawWord
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -621,10 +621,10 @@ theorem vowDenyShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := vowBytecode) (sel := vowSelWord I) (entry := ⟨608⟩) (ret := ⟨412⟩)
     (decoded := ⟨630⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode (vowDispatch_deny hsel)
     (vowDecode_deny_none_short hsz4 hshort)
 

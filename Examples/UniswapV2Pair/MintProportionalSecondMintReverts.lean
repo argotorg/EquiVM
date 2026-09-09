@@ -187,7 +187,7 @@ theorem uniswapMintProportionalUpdateFirstBoundFromAfterFeeCase
         some (.int (Int.ofNat reserve1.toNat))
     rw [store_get_ne _ _ (by decide), hreserve1]
   have hfail0Source : maxUint112 < Int.ofNat balance0.toNat := by
-    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
     have hnat : 2 ^ 112 - 1 < balance0.toNat := by simpa [hmask] using hfail0
     norm_num [maxUint112]
     exact_mod_cast hnat
@@ -424,12 +424,12 @@ theorem uniswapMintProportionalUpdateSecondBoundFromAfterFeeCase
         some (.int (Int.ofNat reserve1.toNat))
     rw [store_get_ne _ _ (by decide), hreserve1]
   have hfit0Source : Int.ofNat balance0.toNat ≤ maxUint112 := by
-    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
     have hnat : balance0.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hfit0
     norm_num [maxUint112]
     exact_mod_cast hnat
   have hfail1Source : maxUint112 < Int.ofNat balance1.toNat := by
-    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+    have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
     have hnat : 2 ^ 112 - 1 < balance1.toNat := by simpa [hmask] using hfail1
     norm_num [maxUint112]
     exact_mod_cast hnat

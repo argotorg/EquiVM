@@ -4,7 +4,7 @@
 `Correct.lean` builds; `catContractCorrect = contractEquivalence.intro catConstructorCorrect catCorrect`.
 Proved: getters `live box litter vat vow wards ilks`; auth setters `rely deny cage claw`;
 file setters `file(bytes32,uint256) file(bytes32,address) file(bytes32,bytes32,uint256)`; the constructor.
-Axiom footprint of each = `propext`/`Classical.choice`/`Quot.sound` + trusted `*SelectorBytes` + `native_decide`
+Axiom footprint of each = `propext`/`Classical.choice`/`Quot.sound` + trusted `*SelectorBytes` + `decide +native`
 (`ofReduceBool`); no `sorryAx`, no custom axioms. `ByteArray_zeroes_size` not even needed by the ctor.
 
 Shared infra (frozen, reusable): `Common` (binary-dispatch reach lemmas `catReach{LowLow,LowHigh,HighLow,HighHigh}Body`,
@@ -63,7 +63,7 @@ guard→3694 CALL→3711→1030→302 STOP.
   5. the 2-Θ connect (same untemplated step as bite #4, but 2 calls) — TEMPLATE `KissSuccess`.
 
 ## Practical constraints for a resume session
-- Fresh compiles of the heavy `native_decide`-dense EVM-trace files are **~40 s each** (measured:
+- Fresh compiles of the heavy `decide +native`-dense EVM-trace files are **~40 s each** (measured:
   BiteCallKick 442L = 42 s fresh, under concurrent load). NOT slow — an earlier note claiming ~30 min was
   wrong (a subagent misattributed its proof-DEVELOPMENT time to compile time). The real cost is the
   DIFFICULTY of getting the intricate trace/connect proofs right, not compile time — iterate freely.

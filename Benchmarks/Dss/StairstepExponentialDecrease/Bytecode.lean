@@ -168,7 +168,7 @@ def stairstepExponentialDecreaseBytecode : ByteArray :=
       ⟨1169⟩, ⟨1185⟩, ⟨1192⟩, ⟨1203⟩, ⟨1209⟩, ⟨1214⟩, ⟨1220⟩, ⟨1224⟩, ⟨1232⟩, ⟨1253⟩,
       ⟨1256⟩, ⟨1265⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def stairstepExponentialDecreaseCreationChunk0 : ByteArray :=
@@ -317,7 +317,7 @@ def stairstepExponentialDecreaseCreationBytecode : ByteArray :=
       ⟨1220⟩, ⟨1258⟩, ⟨1274⟩, ⟨1281⟩, ⟨1292⟩, ⟨1298⟩, ⟨1303⟩, ⟨1309⟩, ⟨1313⟩, ⟨1321⟩,
       ⟨1342⟩, ⟨1345⟩, ⟨1354⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.StairstepExponentialDecrease

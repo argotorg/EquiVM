@@ -574,10 +574,10 @@ theorem ballotVotersReturnEncoding (weight packed vote : UInt256) :
         some (EVM.Word.toBytesBE vote) := by
     simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hvote, hvoteLt]
   have hhead :
-      abiTupleHeadSize? [uint256, boolTy, addr, uint256] = some 128 := by native_decide
-  have hdynUint : isDynamicABIType uint256 = false := by native_decide
-  have hdynBool : isDynamicABIType boolTy = false := by native_decide
-  have hdynAddr : isDynamicABIType addr = false := by native_decide
+      abiTupleHeadSize? [uint256, boolTy, addr, uint256] = some 128 := by decide +native
+  have hdynUint : isDynamicABIType uint256 = false := by decide +native
+  have hdynBool : isDynamicABIType boolTy = false := by decide +native
+  have hdynAddr : isDynamicABIType addr = false := by decide +native
   rw [toByteArray_eq_toBytesBE weight,
     toByteArray_eq_toBytesBE (UInt256.isZero (UInt256.isZero (UInt256.land packed ⟨255⟩))),
     toByteArray_eq_toBytesBE (UInt256.land (UInt256.div packed ⟨256⟩) solcAddrMask),

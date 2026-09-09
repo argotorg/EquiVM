@@ -30,7 +30,7 @@ theorem spotCtorParStoreReach
   have rd124 := rd122.push1 ⟨3⟩ (by spot_ctor_decode) (by evm_ov)
   obtain ⟨k', C', rd125⟩ := rd124.sstore hperm (by spot_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [show (⟨124⟩ : UInt256) + ⟨1⟩ = ⟨125⟩ from by native_decide] using rd125⟩
+    simpa [show (⟨124⟩ : UInt256) + ⟨1⟩ = ⟨125⟩ from by decide +native] using rd125⟩
 
 theorem spotCtorLiveStoreReach
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -50,7 +50,7 @@ theorem spotCtorLiveStoreReach
   have rd127 := rd125.push1 ⟨4⟩ (by spot_ctor_decode) (by evm_ov)
   obtain ⟨k', C', rd128⟩ := rd127.sstore hperm (by spot_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [show (⟨127⟩ : UInt256) + ⟨1⟩ = ⟨128⟩ from by native_decide] using rd128⟩
+    simpa [show (⟨127⟩ : UInt256) + ⟨1⟩ = ⟨128⟩ from by decide +native] using rd128⟩
 
 theorem spotCtorTailStoresReach
     {createdAccounts : Batteries.RBSet AccountAddress compare}

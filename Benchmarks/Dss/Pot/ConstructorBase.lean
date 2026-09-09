@@ -51,11 +51,11 @@ macro "pot_ctor_decode" : tactic =>
   `(tactic|
     (first
       | rw [Reasoning.Theory.decode_append_left_window
-          potCreationBytecode _ _ (by native_decide) (by native_decide)]
+          potCreationBytecode _ _ (by decide +native) (by decide +native)]
       | (unfold potCtorCode
          rw [Reasoning.Theory.decode_append_left_window
-          potCreationBytecode _ _ (by native_decide) (by native_decide)]);
-     native_decide))
+          potCreationBytecode _ _ (by decide +native) (by decide +native)]);
+     decide +native))
 
 macro "pot_ctor_jd" : tactic =>
   `(tactic|
@@ -82,10 +82,10 @@ macro "pot_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do
   return acc
 
 theorem potCreationBytecode_size : potCreationBytecode.size = 2746 := by
-  native_decide
+  decide +native
 
 theorem potBytecode_size : potBytecode.size = 2595 := by
-  native_decide
+  decide +native
 
 theorem potCtorArgsTail_size (vat : AccountAddress) : (potCtorArgsTail vat).size = 32 := by
   simpa [potCtorArgsTail] using word_toBytesBE_toByteArray_size (EVM.word vat.val)
@@ -97,11 +97,11 @@ theorem potCtorCode_size (vat : AccountAddress) : (potCtorCode vat).size = 2778 
 theorem potCtorArgLen_eq (vat : AccountAddress) :
     (UInt256.ofNat (potCtorCode vat).size).sub ⟨2746⟩ = (⟨32⟩ : UInt256) := by
   rw [potCtorCode_size]
-  native_decide
+  decide +native
 
 theorem potCreationBytecode_runtime_window :
     potCreationBytecode.extract 151 (151 + 2595) = potBytecode := by
-  native_decide
+  decide +native
 
 -- LIBRARY CANDIDATE: a generic `ByteArray.write` normalization when a copy extends a base.
 private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : ℕ)
@@ -195,7 +195,7 @@ theorem potCtorArgMem_eq (vat : AccountAddress) :
     · rw [solcFreePtrMem_size]
     · exact potCreationBytecode_size.symm
     · rw [potCtorArgsTail_size]
-      native_decide
+      decide +native
   · decide
   · rw [ByteArray.size_append, potCreationBytecode_size, potCtorArgsTail_size]
   · rw [solcFreePtrMem_size]
@@ -371,6 +371,6 @@ abbrev potCtorVatStored (σ : AccountMap) (I : ExecutionEnv) (vat : AccountAddre
 abbrev potCtorOne : UInt256 := ⟨1000000000000000000000000000⟩
 
 theorem potCtorOne_eq_one : (one : Int) = Int.ofNat potCtorOne.toNat := by
-  native_decide
+  decide +native
 
 end Benchmarks.Dss.Pot

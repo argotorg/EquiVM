@@ -9,7 +9,7 @@ namespace OpenZeppelinBench.Ownable2Step
 # Ownable2StepBench trusted bytecode facts
 
 The selector facts are trusted because `ffi.KEC` is opaque to Lean.  The jump-destination table is
-computed from the deployed runtime byte array by `native_decide` in `Bytecode.lean`; this file gives
+computed from the deployed runtime byte array by `decide +native` in `Bytecode.lean`; this file gives
 it the Phase-0 benchmark name used by the proof.
 -/
 

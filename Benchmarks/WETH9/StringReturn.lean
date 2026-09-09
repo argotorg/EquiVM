@@ -63,7 +63,7 @@ def weth9EmptyStringAbi : ByteArray :=
 
 theorem weth9StringNewFp_zero {header : UInt256} (h : weth9StringLen header = ⟨0⟩) :
     weth9StringNewFp header = ⟨160⟩ := by
-  unfold weth9StringNewFp weth9StringWC; rw [h]; native_decide
+  unfold weth9StringNewFp weth9StringWC; rw [h]; decide +native
 
 theorem weth9RoutineMem_zero {header : UInt256} (h : weth9StringLen header = ⟨0⟩) :
     weth9RoutineMem header =
@@ -110,7 +110,7 @@ theorem weth9StringWC_short {header : UInt256} (hne : weth9StringLen header ≠ 
 theorem weth9StringNewFp_short {header : UInt256} (hne : weth9StringLen header ≠ ⟨0⟩)
     (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen header) = ⟨0⟩) :
     weth9StringNewFp header = ⟨192⟩ := by
-  unfold weth9StringNewFp; rw [weth9StringWC_short hne hlt31]; native_decide
+  unfold weth9StringNewFp; rw [weth9StringWC_short hne hlt31]; decide +native
 
 theorem weth9RoutineMem_short {header : UInt256} (hne : weth9StringLen header ≠ ⟨0⟩)
     (hlt31 : UInt256.lt ⟨31⟩ (weth9StringLen header) = ⟨0⟩) :
@@ -132,7 +132,7 @@ def weth9ShortObjMem (header : UInt256) : ByteArray :=
 /-! ### Read-back lemmas for `weth9ShortObjMem`
 
 The short encoder's `MLOAD`s read symbolic words (length at `0x80`, data at `0xa0`) from a memory
-tower with a zero gap `[0x60, 0x80)`.  `native_decide` cannot discharge these (free header); instead
+tower with a zero gap `[0x60, 0x80)`.  `decide +native` cannot discharge these (free header); instead
 we view each `.write` layer as a `Reasoning.Theory.writeWord` and read back with
 `writeWord_read_preserved` (disjoint upper writes) / `writeWord_read_back` (both gap-tolerant). -/
 
@@ -193,11 +193,11 @@ theorem weth9ReachName839 {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h166⟩ := weth9ReachName (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h180⟩ := weth9GuardPeelOk (gt := ⟨178⟩) h166 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
-  have h839 := h180.push2 ⟨187⟩ (by native_decide) (by simp)
-    |>.push2 ⟨839⟩ (by native_decide) (by simp)
-    |>.jump (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
+  have h839 := h180.push2 ⟨187⟩ (by decide +native) (by simp)
+    |>.push2 ⟨839⟩ (by decide +native) (by simp)
+    |>.jump (by decide +native) (by jump_dest) (by simp)
   exact ⟨_, _, h839⟩
 
 /-! ## Shared string-load routine prefix (pc 839 → 897)
@@ -219,10 +219,10 @@ theorem weth9NameRoutineReach897 {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h839⟩ := weth9ReachName839 (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
   obtain ⟨_, _, h844⟩ := (evm_run h839 with [jumpdest, push1 ⟨0⟩, dup1]).sload
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have h886 := evm_run h844 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost
       solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨2⟩, push1 ⟨1⟩, dup6, and, iszero, push2 ⟨256⟩, mul,
     push1 ⟨0⟩, not, add, swap1, swap5, and, swap4, swap1, swap4, div,
@@ -230,10 +230,10 @@ theorem weth9NameRoutineReach897 {cA gh bl σ σ₀ A I} {g : Sat256}
   have h897 := evm_run h886 with [
     raw mstore 0 ((UInt256.toByteArray (weth9StringNewFp (weth9StringSlotWord σ I ⟨0⟩))).write 0
         solcFreePtrMem (⟨64⟩ : UInt256).toNat 32) (UInt256.ofNat 3)
-      (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost rfl (by decide +native) (by evm_ov),
     dup2, dup2,
     raw mstore 6 (weth9RoutineMem (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat 5)
-      (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost rfl (by decide +native) (by evm_ov),
     swap3, swap2, dup4, add, dup3, dup3]
   exact ⟨_, _, h897⟩
 
@@ -254,21 +254,21 @@ theorem weth9NameStringEmptyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, pop, pop, pop, pop, pop, dup2, jump (by jump_dest)]
   have h196 := evm_run h187 with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨160⟩ (UInt256.ofNat 5) (by native_decide) mem_cost
-      (by native_decide) (by native_decide) (by evm_ov),
+    raw mload 0 ⟨160⟩ (UInt256.ofNat 5) (by decide +native) mem_cost
+      (by decide +native) (by decide +native) (by evm_ov),
     push1 ⟨32⟩, dup1, dup3,
-    raw mstore 3 _ (UInt256.ofNat 6) (by native_decide) mem_cost rfl
-      (by native_decide) (by evm_ov)]
+    raw mstore 3 _ (UInt256.ofNat 6) (by decide +native) mem_cost rfl
+      (by decide +native) (by evm_ov)]
   have h221 := evm_run h196 with [
     dup4,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by native_decide) mem_cost
-      (by native_decide) (by native_decide) (by evm_ov),
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by decide +native) mem_cost
+      (by decide +native) (by decide +native) (by evm_ov),
     dup2, dup4, add,
-    raw mstore 3 _ (UInt256.ofNat 7) (by native_decide) mem_cost rfl
-      (by native_decide) (by evm_ov),
+    raw mstore 3 _ (UInt256.ofNat 7) (by decide +native) mem_cost rfl
+      (by decide +native) (by evm_ov),
     dup4,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 7) (by native_decide) mem_cost
-      (by native_decide) (by native_decide) (by evm_ov),
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 7) (by decide +native) mem_cost
+      (by decide +native) (by decide +native) (by evm_ov),
     swap2, swap3, dup4, swap3, swap1, dup4, add, swap2, dup6, add, swap1,
     dup1, dup4, dup4, push1 ⟨0⟩]
   have hret := evm_run h221 with [
@@ -276,11 +276,11 @@ theorem weth9NameStringEmptyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, pop, pop, pop, pop, swap1, pop, swap1, dup2, add, swap1,
     push1 ⟨31⟩, and, dup1, iszero, push2 ⟨290⟩, jumpiT (by decide) (by jump_dest),
     jumpdest, pop, swap3, pop, pop, pop, push1 ⟨64⟩,
-    raw mload 0 ⟨160⟩ (UInt256.ofNat 7) (by native_decide) mem_cost
-      (by native_decide) (by native_decide) (by evm_ov),
+    raw mload 0 ⟨160⟩ (UInt256.ofNat 7) (by decide +native) mem_cost
+      (by decide +native) (by decide +native) (by evm_ov),
     dup1, swap2, sub, swap1]
   exact evm_run hret with [
-    raw ret 0 weth9EmptyStringAbi (by native_decide) mem_cost (by native_decide) (by evm_ov)]
+    raw ret 0 weth9EmptyStringAbi (by decide +native) mem_cost (by decide +native) (by evm_ov)]
 
 /-! ## Short-string load routine (pc 897 → encoder entry 187) -/
 
@@ -302,11 +302,11 @@ theorem weth9NameShortLoadReach187 {cA gh bl σ σ₀ A I} {g : Sat256}
     dup1, iszero, push2 ⟨973⟩, jumpiNT (isZero_eq_zero_of_ne hne),
     dup1, push1 ⟨31⟩, lt, push2 ⟨930⟩, jumpiNT hlt31,
     push2 ⟨256⟩, dup1, dup4]
-  obtain ⟨_, _, h916⟩ := h915.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, h916⟩ := h915.sload (by decide +native) (by evm_ov)
   have h187 := evm_run h916 with [
     div, mul, dup4,
     raw mstore 3 (weth9ShortObjMem (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat 6)
-      (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost rfl (by decide +native) (by evm_ov),
     swap2, push1 ⟨32⟩, add, swap2, push2 ⟨973⟩, jump (by jump_dest),
     jumpdest, pop, pop, pop, pop, pop, dup2, jump (by jump_dest)]
   exact ⟨_, _, h187⟩
@@ -522,35 +522,35 @@ theorem weth9NameShortEncoder {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} (
     RDret weth9Bytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ) (weth9ShortStringAbi H) := by
   have h196 := evm_run h with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨192⟩ (UInt256.ofNat 6) (by native_decide) mem_cost
+    raw mload 0 ⟨192⟩ (UInt256.ofNat 6) (by decide +native) mem_cost
       (mloadWordValue_of_readWithPadding (by rw [weth9ShortObjMem_size]; decide)
-        (by decide) (weth9ShortObjMem_read64 H)) (by native_decide) (by evm_ov),
+        (by decide) (weth9ShortObjMem_read64 H)) (by decide +native) (by evm_ov),
     push1 ⟨32⟩, dup1, dup3,
     raw mstore 3 (weth9ShortMemA H) (UInt256.ofNat 7)
-      (by native_decide) mem_cost rfl (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost rfl (by decide +native) (by evm_ov)]
   have h221 := evm_run h196 with [
     dup4,
-    raw mload 0 (weth9StringLen H) (UInt256.ofNat 7) (by native_decide) mem_cost
+    raw mload 0 (weth9StringLen H) (UInt256.ofNat 7) (by decide +native) mem_cost
       (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemA_size]; decide) (by decide)
-        (weth9ShortMemA_read128 H)) (by native_decide) (by evm_ov),
+        (weth9ShortMemA_read128 H)) (by decide +native) (by evm_ov),
     dup2, dup4, add,
     raw mstore 3 (weth9ShortMemB H) (UInt256.ofNat 8)
-      (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost rfl (by decide +native) (by evm_ov),
     dup4,
-    raw mload 0 (weth9StringLen H) (UInt256.ofNat 8) (by native_decide) mem_cost
+    raw mload 0 (weth9StringLen H) (UInt256.ofNat 8) (by decide +native) mem_cost
       (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemB_size]; decide) (by decide)
-        (weth9ShortMemB_read128 H)) (by native_decide) (by evm_ov),
+        (weth9ShortMemB_read128 H)) (by decide +native) (by evm_ov),
     swap2, swap3, dup4, swap3, swap1, dup4, add, swap2, dup6, add, swap1,
     dup1, dup4, dup4, push1 ⟨0⟩]
   have h245 := evm_run h221 with [
     jumpdest, dup4, dup2, lt, iszero, push2 ⟨245⟩, jumpiNT (weth9ShortLtEnter hne),
     dup2, dup2, add,
-    raw mload 0 (weth9StringShortDataWord H) (UInt256.ofNat 8) (by native_decide) mem_cost
+    raw mload 0 (weth9StringShortDataWord H) (UInt256.ofNat 8) (by decide +native) mem_cost
       (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemB_size]; decide) (by decide)
-        (weth9ShortMemB_read160 H)) (by native_decide) (by evm_ov),
+        (weth9ShortMemB_read160 H)) (by decide +native) (by evm_ov),
     dup4, dup3, add,
-    raw mstore 3 (weth9ShortMemC H) (UInt256.ofNat 9) (by native_decide) mem_cost rfl
-      (by native_decide) (by evm_ov),
+    raw mstore 3 (weth9ShortMemC H) (UInt256.ofNat 9) (by decide +native) mem_cost rfl
+      (by decide +native) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨221⟩, jump (by jump_dest),
     jumpdest, dup4, dup2, lt, iszero, push2 ⟨245⟩, jumpiT (weth9ShortLtExit hlt31) (by jump_dest)]
   have h267 := evm_run h245 with [
@@ -560,21 +560,21 @@ theorem weth9NameShortEncoder {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} (
   rw [weth9ShortMaskAddr hlt31] at h267
   have h295 := evm_run h267 with [
     dup1,
-    raw mload 0 (weth9StringShortDataWord H) (UInt256.ofNat 9) (by native_decide) mem_cost
+    raw mload 0 (weth9StringShortDataWord H) (UInt256.ofNat 9) (by decide +native) mem_cost
       (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemC_size]; decide) (by decide)
-        (weth9ShortMemC_read256 H)) (by native_decide) (by evm_ov),
+        (weth9ShortMemC_read256 H)) (by decide +native) (by evm_ov),
     push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub, not, and, dup2,
-    raw mstore 0 (weth9ShortMemD H) (UInt256.ofNat 9) (by native_decide) mem_cost rfl
-      (by native_decide) (by evm_ov),
+    raw mstore 0 (weth9ShortMemD H) (UInt256.ofNat 9) (by decide +native) mem_cost rfl
+      (by decide +native) (by evm_ov),
     push1 ⟨32⟩, add, swap2, pop,
     jumpdest, pop, swap3, pop, pop, pop]
   exact evm_run h295 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨192⟩ (UInt256.ofNat 9) (by native_decide) mem_cost
+    raw mload 0 ⟨192⟩ (UInt256.ofNat 9) (by decide +native) mem_cost
       (mloadWordValue_of_readWithPadding (by rw [weth9ShortMemD_size]; decide) (by decide)
-        (weth9ShortMemD_read64 H)) (by native_decide) (by evm_ov),
+        (weth9ShortMemD_read64 H)) (by decide +native) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (weth9ShortStringAbi H) (by native_decide) mem_cost
+    raw ret 0 (weth9ShortStringAbi H) (by decide +native) mem_cost
       (weth9ShortMemD_readAbi H) (by evm_ov)]
 
 /-- **Full short-string `name()` getter** (`0 < len < 32`): from the getter entry, reach the routine,

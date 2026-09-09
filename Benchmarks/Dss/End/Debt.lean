@@ -51,15 +51,15 @@ theorem endDebtBodyCore
     hcode hdispatch hdecode hreach hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcWordSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [debtWord] using hbody)
 
 theorem endDebtBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}

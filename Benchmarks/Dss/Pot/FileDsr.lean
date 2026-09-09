@@ -116,7 +116,7 @@ theorem decodeCalldata_legacyBytes32_uint256_ok {cd : ByteArray} {x y : Solm.Ide
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [decodeABIValues_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -136,7 +136,7 @@ theorem decodeCalldata_legacyBytes32_uint256_none_short {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64
   · rw [if_pos hbytes]
@@ -698,20 +698,20 @@ theorem potReachFileDsrBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : potSelWord I = ⟨0x29ae8114⟩ :=
     potSelWord_eq_of_beq I hsz 0x29 0xae 0x81 0x14 ⟨0x29ae8114⟩
-      (by native_decide) (by simpa [potSelBytes] using hsel)
+      (by decide +native) (by simpa [potSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat potBytecode potRootSplitPc) (potSelWord I) ≠ ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   have h163 : UInt256.gt (armSelNat potBytecode potSplit163Pc) (potSelWord I) ≠ ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG223FirstArmPc j))
         (potSelWord I) = ⟨0⟩ := by
-    intro j hj; interval_cases j <;> rw [hword] <;> native_decide
+    intro j hj; interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG223FirstArmPc 3))
-        (potSelWord I) ≠ ⟨0⟩ := by rw [hword]; native_decide
+        (potSelWord I) ≠ ⟨0⟩ := by rw [hword]; decide +native
   exact potReachG223Body 3 (by omega) ⟨367⟩ hcode hwv hsz hsize hroot h163 heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem RD.potFileDsrDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
@@ -725,19 +725,19 @@ theorem RD.potFileDsrDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
-  have rd390 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd391 := rd390.pop (by native_decide) (by evm_ov)
-  have rd392 := rd391.dup1 (by native_decide) (by evm_ov)
-  have rd393 := rd392.calldataload (by native_decide) (by evm_ov)
-  have rd394 := rd393.swap1 (by native_decide) (by evm_ov)
-  have rd396 := rd394.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd397 := rd396.add (by native_decide) (by evm_ov)
-  have rd398 := rd397.calldataload (by native_decide) (by evm_ov)
-  have rd401 := rd398.push2 ⟨990⟩ (by native_decide) (by evm_ov)
+  have rd390 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd391 := rd390.pop (by decide +native) (by evm_ov)
+  have rd392 := rd391.dup1 (by decide +native) (by evm_ov)
+  have rd393 := rd392.calldataload (by decide +native) (by evm_ov)
+  have rd394 := rd393.swap1 (by decide +native) (by evm_ov)
+  have rd396 := rd394.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd397 := rd396.add (by decide +native) (by evm_ov)
+  have rd398 := rd397.calldataload (by decide +native) (by evm_ov)
+  have rd401 := rd398.push2 ⟨990⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide,
       show (⟨36⟩ : UInt256).toNat = 36 from by decide]
-      using rd401.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd401.jump (by decide +native) hroutine (by evm_ov)⟩
 
 theorem potFileDsrX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -750,9 +750,9 @@ theorem potFileDsrX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := potBytecode) (sel := sel) (entry := ⟨367⟩) (ret := ⟨301⟩)
     (decoded := ⟨389⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz68) hsize)
   obtain ⟨_, _, hroutine⟩ := RD.potFileDsrDecodeToRoutine
@@ -777,37 +777,37 @@ theorem potFileDsrX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd996pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd997 := rd996pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1001pre := evm_run rd997 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1002 := rd1001pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1005pre := evm_run rd1002 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1006 := rd1005pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k1007, C1007, rd1007raw⟩ := rd1006.sload (by native_decide) (by evm_ov)
+  obtain ⟨k1007, C1007, rd1007raw⟩ := rd1006.sload (by decide +native) (by evm_ov)
   have rd1007 : RD potBytecode I g s0 ⟨1007⟩
       (relyAuthWord σ I :: data :: what :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1007 C1007 := by
     simpa [relyAuthWord, potSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1007raw
   have rd1010pre := evm_run rd1007 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hauth, u256_eq_refl] at rd1010pre
   have rd1013 := rd1010pre.pushConst (⟨1079⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1013.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1013.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -825,39 +825,39 @@ theorem potFileDsrX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd996pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd997 := rd996pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1001pre := evm_run rd997 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1002 := rd1001pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1005pre := evm_run rd1002 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1006 := rd1005pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k1007, C1007, rd1007raw⟩ := rd1006.sload (by native_decide) (by evm_ov)
+  obtain ⟨k1007, C1007, rd1007raw⟩ := rd1006.sload (by decide +native) (by evm_ov)
   have rd1007 : RD potBytecode I g s0 ⟨1007⟩
       (relyAuthWord σ I :: data :: what :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1007 C1007 := by
     simpa [relyAuthWord, potSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1007raw
   have rd1010pre := evm_run rd1007 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq : UInt256.eq (⟨1⟩ : UInt256) (relyAuthWord σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne (by intro hbad; exact hauth hbad.symm)
   rw [heq] at rd1010pre
   have rd1013 := rd1010pre.pushConst (⟨1079⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1014 := rd1013.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1014 := rd1013.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨1014⟩)
     (len := ⟨18⟩)
@@ -869,7 +869,7 @@ theorem potFileDsrX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     rd1014
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide)
     relyNotAuthorizedWord
     (relyAuthHashMem_size I)
@@ -885,20 +885,20 @@ theorem potFileDsrX_liveOK {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     ∃ k' C', RD potBytecode I g s0 ⟨1149⟩
       [data, what, ⟨301⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
-  have rd1080 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1082 := rd1080.push1 ⟨8⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1083, C1083, rd1083raw⟩ := rd1082.sload (by native_decide) (by evm_ov)
+  have rd1080 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1082 := rd1080.push1 ⟨8⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1083, C1083, rd1083raw⟩ := rd1082.sload (by decide +native) (by evm_ov)
   have rd1083 : RD potBytecode I g s0 ⟨1083⟩
       (potSlotWord ⟨8⟩ σ I :: data :: what :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1083 C1083 := by
     simpa [potSlotWord] using rd1083raw
   have rd1085pre := evm_run rd1083 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hlive, u256_eq_refl] at rd1085pre
   have rd1088 := rd1085pre.pushConst (⟨1149⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1088.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1088.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -908,22 +908,22 @@ theorem potFileDsrX_liveRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [data, what, ⟨301⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev potBytecode g s0 := by
-  have rd1080 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1082 := rd1080.push1 ⟨8⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1083, C1083, rd1083raw⟩ := rd1082.sload (by native_decide) (by evm_ov)
+  have rd1080 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1082 := rd1080.push1 ⟨8⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1083, C1083, rd1083raw⟩ := rd1082.sload (by decide +native) (by evm_ov)
   have rd1083 : RD potBytecode I g s0 ⟨1083⟩
       (potSlotWord ⟨8⟩ σ I :: data :: what :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1083 C1083 := by
     simpa [potSlotWord] using rd1083raw
   have rd1085pre := evm_run rd1083 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq : UInt256.eq (⟨1⟩ : UInt256) (potSlotWord ⟨8⟩ σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne (by intro hbad; exact hlive hbad.symm)
   rw [heq] at rd1085pre
   have rd1088 := rd1085pre.pushConst (⟨1149⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1089 := rd1088.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1089 := rd1088.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨1090⟩)
     (len := ⟨12⟩)
@@ -935,9 +935,9 @@ theorem potFileDsrX_liveRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     rd1089
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide)
-    (by native_decide)
+    (by decide +native)
     (relyAuthHashMem_size I)
     (relyAuthHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -952,19 +952,19 @@ theorem potFileDsrX_rhoOK {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     ∃ k' C', RD potBytecode I g s0 ⟨1225⟩
       [data, what, ⟨301⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
-  have rd1150 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1152 := rd1150.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1153, C1153, rd1153raw⟩ := rd1152.sload (by native_decide) (by evm_ov)
+  have rd1150 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1152 := rd1150.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1153, C1153, rd1153raw⟩ := rd1152.sload (by decide +native) (by evm_ov)
   have rd1153 : RD potBytecode I g s0 ⟨1153⟩
       (potSlotWord ⟨7⟩ σ I :: data :: what :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1153 C1153 := by
     simpa [potSlotWord] using rd1153raw
-  have rd1154 := rd1153.timestamp (by native_decide) (by evm_ov)
-  have rd1155 := rd1154.eq (by native_decide) (by evm_ov)
+  have rd1154 := rd1153.timestamp (by decide +native) (by evm_ov)
+  have rd1155 := rd1154.eq (by decide +native) (by evm_ov)
   rw [htime, u256_eq_refl] at rd1155
   have rd1158 := rd1155.pushConst (⟨1225⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1158.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1158.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -975,21 +975,21 @@ theorem potFileDsrX_rhoRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [data, what, ⟨301⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev potBytecode g s0 := by
-  have rd1150 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1152 := rd1150.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1153, C1153, rd1153raw⟩ := rd1152.sload (by native_decide) (by evm_ov)
+  have rd1150 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1152 := rd1150.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1153, C1153, rd1153raw⟩ := rd1152.sload (by decide +native) (by evm_ov)
   have rd1153 : RD potBytecode I g s0 ⟨1153⟩
       (potSlotWord ⟨7⟩ σ I :: data :: what :: ⟨301⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1153 C1153 := by
     simpa [potSlotWord] using rd1153raw
-  have rd1154 := rd1153.timestamp (by native_decide) (by evm_ov)
-  have rd1155 := rd1154.eq (by native_decide) (by evm_ov)
+  have rd1154 := rd1153.timestamp (by decide +native) (by evm_ov)
+  have rd1155 := rd1154.eq (by decide +native) (by evm_ov)
   have heq : UInt256.eq (UInt256.ofNat I.header.timestamp) (potSlotWord ⟨7⟩ σ I) = ⟨0⟩ :=
     u256_eq_of_ne htime
   rw [heq] at rd1155
   have rd1158 := rd1155.pushConst (⟨1225⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1159 := rd1158.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1159 := rd1158.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨1159⟩)
     (len := ⟨19⟩)
@@ -1001,9 +1001,9 @@ theorem potFileDsrX_rhoRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     rd1159
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide)
-    (by native_decide)
+    (by decide +native)
     (relyAuthHashMem_size I)
     (relyAuthHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1022,56 +1022,56 @@ theorem RD.potFileUnrecognizedRevert {g : Sat256} {s0 : State} {ee : ExecutionEn
     (hov : stk.length + 5 ≤ 1024) :
     RDrev potBytecode g s0 := by
   have rdMload := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨27⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨27⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 ⟨27⟩ mem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst potFileUnrecognizedRawWord
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem3 ⟨27⟩ potFileUnrecognizedRawWord mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨27⟩ potFileUnrecognizedRawWord hmem hread64)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
 theorem potFileDsrX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -1083,35 +1083,35 @@ theorem potFileDsrX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : �
     RDret potBytecode g s0
       (cA, sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileDsrData I))
       ByteArray.empty := by
-  have rd1226 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1227 := rd1226.dup2 (by native_decide) (by evm_ov)
+  have rd1226 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1227 := rd1226.dup2 (by decide +native) (by evm_ov)
   have rd1231 := rd1227.pushConst (⟨0x3239b9⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1233 := rd1231.push1 ⟨233⟩ (by native_decide) (by evm_ov)
-  have rd1234 := rd1233.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1233 := rd1231.push1 ⟨233⟩ (by decide +native) (by evm_ov)
+  have rd1234 := rd1233.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft (⟨0x3239b9⟩ : UInt256) ⟨233⟩ =
-      ABI.bytesToWord fileDsrBytes := by native_decide
+      ABI.bytesToWord fileDsrBytes := by decide +native
   rw [hmatch, ← hconst] at rd1234
-  have rd1235 := rd1234.eq (by native_decide) (by evm_ov)
+  have rd1235 := rd1234.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd1235
-  have rd1236 := rd1235.iszero (by native_decide) (by evm_ov)
+  have rd1236 := rd1235.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1236
   have rd1239 := rd1236.pushConst (⟨1249⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1240 := rd1239.jumpiNT (by native_decide)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1240 := rd1239.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd1242 := rd1240.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  have rd1243 := rd1242.dup2 (by native_decide) (by evm_ov)
-  have rd1244 := rd1243.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1245raw⟩ := rd1244.sstore hperm (by native_decide) (by evm_ov)
-  have rd1248 := rd1245raw.push2 ⟨1326⟩ (by native_decide) (by evm_ov)
-  have rd1326 := rd1248.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd1327 := rd1326.jumpdest (by native_decide) (by evm_ov)
-  have rd1328 := rd1327.pop (by native_decide) (by evm_ov)
-  have rd1329 := rd1328.pop (by native_decide) (by evm_ov)
-  have rd301 := rd1329.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd302 := rd301.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd302 (by native_decide) (by evm_ov)
+  have rd1242 := rd1240.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  have rd1243 := rd1242.dup2 (by decide +native) (by evm_ov)
+  have rd1244 := rd1243.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1245raw⟩ := rd1244.sstore hperm (by decide +native) (by evm_ov)
+  have rd1248 := rd1245raw.push2 ⟨1326⟩ (by decide +native) (by evm_ov)
+  have rd1326 := rd1248.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd1327 := rd1326.jumpdest (by decide +native) (by evm_ov)
+  have rd1328 := rd1327.pop (by decide +native) (by evm_ov)
+  have rd1329 := rd1328.pop (by decide +native) (by evm_ov)
+  have rd301 := rd1329.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd302 := rd301.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd302 (by decide +native) (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
 theorem potFileDsrX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -1121,24 +1121,24 @@ theorem potFileDsrX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [fileDsrData I, calldataWord I.calldata 4, ⟨301⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev potBytecode g s0 := by
-  have rd1226 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1227 := rd1226.dup2 (by native_decide) (by evm_ov)
+  have rd1226 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1227 := rd1226.dup2 (by decide +native) (by evm_ov)
   have rd1231 := rd1227.pushConst (⟨0x3239b9⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1233 := rd1231.push1 ⟨233⟩ (by native_decide) (by evm_ov)
-  have rd1234 := rd1233.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1233 := rd1231.push1 ⟨233⟩ (by decide +native) (by evm_ov)
+  have rd1234 := rd1233.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft (⟨0x3239b9⟩ : UInt256) ⟨233⟩ =
-      ABI.bytesToWord fileDsrBytes := by native_decide
+      ABI.bytesToWord fileDsrBytes := by decide +native
   rw [hconst] at rd1234
-  have rd1235 := rd1234.eq (by native_decide) (by evm_ov)
+  have rd1235 := rd1234.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord fileDsrBytes) (calldataWord I.calldata 4) = ⟨0⟩ :=
     u256_eq_of_ne (fun h => hneq h.symm)
   rw [heq0] at rd1235
-  have rd1236 := rd1235.iszero (by native_decide) (by evm_ov)
+  have rd1236 := rd1235.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1236
   have rd1239 := rd1236.pushConst (⟨1249⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1249 := rd1239.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1249 := rd1239.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
   exact RD.potFileUnrecognizedRevert rd1249
     (relyAuthHashMem_size I)
@@ -1161,10 +1161,10 @@ theorem potFileDsrX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   exact RD.solcExternalStaticArgsShortReverts
     (code := potBytecode) (sel := sel) (entry := ⟨367⟩) (ret := ⟨301⟩)
     (decoded := ⟨389⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 /-! ### Body core lemmas -/
 
@@ -1223,7 +1223,7 @@ theorem potFileDsrBodyCoreOk
     (by
       simpa [fileDsrTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+          (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem potFileDsrBodyCoreUnauthorized
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -1375,7 +1375,7 @@ theorem potFileDsrBodyCoreUnrecognized
   obtain ⟨_, _, hlived⟩ := potFileDsrX_liveOK (I := I) hlive hauthd
   obtain ⟨_, _, hrhod⟩ := potFileDsrX_rhoOK (I := I) htime hlived
   have hneq : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileDsrBytes :=
-    fileDsrWhatWord_ne_of_bytes_ne (by omega) hwhat (by native_decide)
+    fileDsrWhatWord_ne_of_bytes_ne (by omega) hwhat (by decide +native)
   exact (potFileDsrX_unrecognized (I := I) hneq hrhod)
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

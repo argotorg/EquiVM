@@ -223,7 +223,7 @@ def potBytecode : ByteArray :=
       ⟨2352⟩, ⟨2379⟩, ⟨2383⟩, ⟨2395⟩, ⟨2418⟩, ⟨2434⟩, ⟨2472⟩, ⟨2488⟩, ⟨2495⟩, ⟨2506⟩,
       ⟨2512⟩, ⟨2528⟩, ⟨2532⟩, ⟨2534⟩, ⟨2542⟩, ⟨2567⟩, ⟨2574⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def potCreationChunk0 : ByteArray :=
@@ -436,7 +436,7 @@ def potCreationBytecode : ByteArray :=
       ⟨2478⟩, ⟨2487⟩, ⟨2503⟩, ⟨2530⟩, ⟨2534⟩, ⟨2546⟩, ⟨2569⟩, ⟨2585⟩, ⟨2623⟩, ⟨2639⟩,
       ⟨2646⟩, ⟨2657⟩, ⟨2663⟩, ⟨2679⟩, ⟨2683⟩, ⟨2685⟩, ⟨2693⟩, ⟨2718⟩, ⟨2725⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.Pot

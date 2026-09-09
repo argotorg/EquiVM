@@ -596,7 +596,7 @@ def flipperBytecode : ByteArray :=
       ⟨5650⟩, ⟨5670⟩, ⟨5794⟩, ⟨5815⟩, ⟨5821⟩, ⟨5903⟩, ⟨5949⟩, ⟨5964⟩, ⟨6072⟩, ⟨6187⟩,
       ⟨6216⟩, ⟨6272⟩, ⟨6299⟩, ⟨6305⟩, ⟨6329⟩, ⟨6332⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def flipperCreationChunk0 : ByteArray :=
@@ -1190,7 +1190,7 @@ def flipperCreationBytecode : ByteArray :=
       ⟨5696⟩, ⟨5768⟩, ⟨5860⟩, ⟨5880⟩, ⟨6004⟩, ⟨6025⟩, ⟨6031⟩, ⟨6113⟩, ⟨6159⟩, ⟨6174⟩,
       ⟨6282⟩, ⟨6397⟩, ⟨6426⟩, ⟨6482⟩, ⟨6509⟩, ⟨6515⟩, ⟨6539⟩, ⟨6542⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.Flipper

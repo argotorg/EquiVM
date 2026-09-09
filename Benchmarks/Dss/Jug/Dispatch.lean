@@ -34,7 +34,7 @@ theorem jugDispatchBase {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some baseTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem jugDispatchDeny {I : ExecutionEnv}
     (hsel : selIs I (jugSelBytes 1)) :
@@ -44,7 +44,7 @@ theorem jugDispatchDeny {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some denyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem jugDispatchDrip {I : ExecutionEnv}
     (hsel : selIs I (jugSelBytes 2)) :
@@ -54,7 +54,7 @@ theorem jugDispatchDrip {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some dripTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem jugDispatchFileBase {I : ExecutionEnv}
     (hsel : selIs I (jugSelBytes 3)) :
@@ -64,7 +64,7 @@ theorem jugDispatchFileBase {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some fileBaseTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem jugDispatchFileDuty {I : ExecutionEnv}
     (hsel : selIs I (jugSelBytes 4)) :
@@ -74,7 +74,7 @@ theorem jugDispatchFileDuty {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some fileDutyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem jugDispatchFileVow {I : ExecutionEnv}
     (hsel : selIs I (jugSelBytes 5)) :
@@ -84,7 +84,7 @@ theorem jugDispatchFileVow {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some fileVowTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem jugDispatchIlks {I : ExecutionEnv}
     (hsel : selIs I (jugSelBytes 6)) :
@@ -94,7 +94,7 @@ theorem jugDispatchIlks {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some ilksTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem jugDispatchInit {I : ExecutionEnv}
     (hsel : selIs I (jugSelBytes 7)) :
@@ -104,7 +104,7 @@ theorem jugDispatchInit {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some initTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem jugDispatchRely {I : ExecutionEnv}
     (hsel : selIs I (jugSelBytes 8)) :
@@ -114,7 +114,7 @@ theorem jugDispatchRely {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some relyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem jugDispatchVat {I : ExecutionEnv}
     (hsel : selIs I (jugSelBytes 9)) :
@@ -124,7 +124,7 @@ theorem jugDispatchVat {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some vatTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem jugDispatchVow {I : ExecutionEnv}
     (hsel : selIs I (jugSelBytes 10)) :
@@ -134,7 +134,7 @@ theorem jugDispatchVow {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some vowTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem jugDispatchWards {I : ExecutionEnv}
     (hsel : selIs I (jugSelBytes 11)) :
@@ -144,7 +144,7 @@ theorem jugDispatchWards {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some wardsTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem jugDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg contract cd = none := by
@@ -162,7 +162,7 @@ theorem jugDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
         fileBaseSelectorBytes, fileDutySelectorBytes, fileVowSelectorBytes, ilksSelectorBytes,
         initSelectorBytes, relySelectorBytes, vatSelectorBytes, vowSelectorBytes,
         wardsSelectorBytes]
-      native_decide) h
+      decide +native) h
 
 theorem jugDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 12 → (jugSelBytes i == cd.extract 0 4) = false) :
@@ -240,7 +240,7 @@ theorem jugSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 theorem jugRootSplitWellFormed :
     selectorSplitWellFormed jugBytecode jugRootSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem jugLowArmsWellFormed :
@@ -249,7 +249,7 @@ theorem jugLowArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem jugHighArmsWellFormed :
@@ -258,7 +258,7 @@ theorem jugHighArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 theorem jugLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 6) :
@@ -266,7 +266,7 @@ theorem jugLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat jugBytecode (nthArmPc jugBytecode jugLowFirstArmPc j))
         (jugSelWord I) =
       if (jugLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem jugHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 6) :
@@ -274,7 +274,7 @@ theorem jugHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat jugBytecode (nthArmPc jugBytecode jugHighFirstArmPc j))
         (jugSelWord I) =
       if (jugHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem jugReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -290,13 +290,13 @@ theorem jugReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (revertTgt := jugDispatchRevertPc) (guardWidth := 2) (revertWidth := 2)
       (guardOp := .PUSH2) (revertOp := .PUSH2)
       hcode hwv hsz hsize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 theorem jugReachLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -316,7 +316,7 @@ theorem jugReachLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h114 : RD jugBytecode I g (initState cA gh bl σ σ₀ g A I)
       jugLowFirstArmPc [jugSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [jugLowFirstArmPc] using h113.jumpdest (by native_decide) (by simp)
+    simpa [jugLowFirstArmPc] using h113.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h114⟩
 
 theorem jugReachHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -392,9 +392,9 @@ theorem jugJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt25
     RDrev jugBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h180 := h.push2 jugDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h180 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h180 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem jugLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD jugBytecode I g (initState cA gh bl σ σ₀ g A I) jugLowFirstArmPc
@@ -416,9 +416,9 @@ theorem jugLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 4 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (jugLowArmsWellFormed 5 (by omega))
         (heq0 5 (by omega)) (by simp)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h180 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h180 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem jugHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD jugBytecode I g (initState cA gh bl σ σ₀ g A I) jugHighFirstArmPc
@@ -440,42 +440,42 @@ theorem jugHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 4 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (jugHighArmsWellFormed 5 (by omega))
         (heq0 5 (by omega)) (by simp)
-  exact jugJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
+  exact jugJumpToNoMatchRevert h109 (by decide +native) (by decide +native)
 
 theorem jugX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev jugBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
-  have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
+  have h12 := h0.push2 ⟨16⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h12 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem jugX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
     RDrev jugBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt jugBytecode)
     (opC := solcGuardTgtOp jugBytecode)
     (wC := solcGuardTgtWidth jugBytecode) h0 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest)
-  have h180 := h1.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.calldatasize (by native_decide) (by simp only [List.length]; omega)
-    |>.lt (by native_decide) (by simp only [List.length]; omega)
-    |>.push2 jugDispatchRevertPc (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest)
+  have h180 := h1.push1 ⟨4⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.calldatasize (by decide +native) (by simp only [List.length]; omega)
+    |>.lt (by decide +native) (by simp only [List.length]; omega)
+    |>.push2 jugDispatchRevertPc (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h180 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h180 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem jugX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = jugBytecode) (hwv : I.weiValue = ⟨0⟩)

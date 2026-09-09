@@ -28,7 +28,7 @@ theorem stairstepDispatchCut {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some cutTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem stairstepDispatchDeny {I : ExecutionEnv}
     (hsel : selIs I (stairstepSelBytes 1)) :
@@ -38,7 +38,7 @@ theorem stairstepDispatchDeny {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some denyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem stairstepDispatchFile {I : ExecutionEnv}
     (hsel : selIs I (stairstepSelBytes 2)) :
@@ -48,7 +48,7 @@ theorem stairstepDispatchFile {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some fileTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem stairstepDispatchPrice {I : ExecutionEnv}
     (hsel : selIs I (stairstepSelBytes 3)) :
@@ -58,7 +58,7 @@ theorem stairstepDispatchPrice {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some priceTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem stairstepDispatchRely {I : ExecutionEnv}
     (hsel : selIs I (stairstepSelBytes 4)) :
@@ -68,7 +68,7 @@ theorem stairstepDispatchRely {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some relyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem stairstepDispatchWards {I : ExecutionEnv}
     (hsel : selIs I (stairstepSelBytes 5)) :
@@ -78,7 +78,7 @@ theorem stairstepDispatchWards {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some wardsTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem stairstepDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg contract cd = none := by
@@ -93,7 +93,7 @@ theorem stairstepDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     all_goals
       simp [selectorOf, cutSelectorBytes, denySelectorBytes, fileSelectorBytes,
         priceSelectorBytes, relySelectorBytes, wardsSelectorBytes]
-      native_decide) h
+      decide +native) h
 
 theorem stairstepDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 6 → (stairstepSelBytes i == cd.extract 0 4) = false) :
@@ -180,7 +180,7 @@ theorem stairstepArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 theorem stairstepArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 6) :
@@ -189,7 +189,7 @@ theorem stairstepArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
           (nthArmPc exponentialDecreaseBytecode stairstepFirstArmPc j))
         (stairstepSelWord I) =
       if (stairstepArmSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem stairstepReachFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = exponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -205,13 +205,13 @@ theorem stairstepReachFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
       (revertTgt := stairstepDispatchRevertPc) (guardWidth := 2) (revertWidth := 2)
       (guardOp := .PUSH2) (revertOp := .PUSH2)
       hcode hwv hsz hsize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 theorem stairstepReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (i : ℕ) (hi : i ≤ 5) (bodyPC : UInt256)
@@ -264,44 +264,44 @@ theorem stairstepNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 4 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (stairstepArmsWellFormed 5 (by omega))
         (heq0 5 (by omega)) (by simp)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h98 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h98 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem stairstepX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = exponentialDecreaseBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev exponentialDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
-  have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
+  have h12 := h0.push2 ⟨16⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h12 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem stairstepX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = exponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
     RDrev exponentialDecreaseBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt exponentialDecreaseBytecode)
     (opC := solcGuardTgtOp exponentialDecreaseBytecode)
     (wC := solcGuardTgtWidth exponentialDecreaseBytecode) h0 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest)
-  have h98 := h1.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.calldatasize (by native_decide) (by simp only [List.length]; omega)
-    |>.lt (by native_decide) (by simp only [List.length]; omega)
-    |>.push2 stairstepDispatchRevertPc (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest)
+  have h98 := h1.push1 ⟨4⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.calldatasize (by decide +native) (by simp only [List.length]; omega)
+    |>.lt (by decide +native) (by simp only [List.length]; omega)
+    |>.push2 stairstepDispatchRevertPc (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h98 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h98 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem stairstepX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = exponentialDecreaseBytecode) (hwv : I.weiValue = ⟨0⟩)

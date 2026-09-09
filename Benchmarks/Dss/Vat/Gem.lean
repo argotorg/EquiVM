@@ -105,7 +105,7 @@ theorem decodeCalldata_legacyBytes32_legacyAddress_ok {cd : ByteArray} {x y : So
   rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
   simp only
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [if_neg (by rw [List.length_drop, htlen]; omega :
     ¬ (cd.toList.drop 4).length < 64)]
@@ -130,7 +130,7 @@ theorem decodeCalldata_legacyBytes32_legacyAddress_none_short {cd : ByteArray}
   rw [if_neg (by simp [bytes32, addr, isDynamicABIType])]
   simp only
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [bytes32, addr] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [if_pos (by rw [List.length_drop, htlen]; omega :
     (cd.toList.drop 4).length < 64)]
@@ -164,7 +164,7 @@ theorem vatDispatchGem {I : ExecutionEnv}
     canSelectorBytes, daiSelectorBytes, debtSelectorBytes, denySelectorBytes,
     fileIlkSelectorBytes, fileLineSelectorBytes, fluxSelectorBytes, foldSelectorBytes,
     forkSelectorBytes, frobSelectorBytes, gemSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachGemBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -175,29 +175,29 @@ theorem vatReachGemBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0x214414d5⟩ :=
     vatSelWord_eq_of_beq I hsz 0x21 0x44 0x14 0xd5 ⟨0x214414d5⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlowlow :
       UInt256.gt (armSelNat vatBytecode vatLowLowSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms419FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms419FirstPc 2))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms419Body 2 (by omega) ⟨526⟩ hcode hwv hsz hsize
-    hroot hlow hlowlow heq0 htake (by jump_dest) (by native_decide)
+    hroot hlow hlowlow heq0 htake (by jump_dest) (by decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.solcBytes32AddressExternalMaskAndJump {code : ByteArray} {g : Sat256}
@@ -327,17 +327,17 @@ theorem vatGemBodyCoreOk
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨526⟩) (ret := ⟨465⟩)
     (decoded := ⟨548⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz68 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcBytes32AddressExternalMaskAndJump
     (code := vatBytecode) (decoded := ⟨548⟩) (ret := ⟨465⟩) (routine := ⟨1987⟩)
     (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) (by simp)
   obtain ⟨_, _, hretPc⟩ := RD.solcNestedMappingGetter
     (code := vatBytecode) (pc := ⟨1987⟩) (baseSlot := ⟨4⟩)
@@ -346,7 +346,7 @@ theorem vatGemBodyCoreOk
     (by simpa [gemIlkWord, gemUsrMaskedWord, gemUsrWord] using hroutine)
     (by
       unfold solcNestedMappingGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
@@ -360,7 +360,7 @@ theorem vatGemBodyCoreOk
       (by simpa [slot, vatSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by
         simpa [slot] using
           solcNestedMappingHashMem_mload64 ⟨4⟩ (gemIlkWord I) (gemUsrMaskedWord I))
@@ -409,10 +409,10 @@ theorem vatGemBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨526⟩) (ret := ⟨465⟩)
     (decoded := ⟨548⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch hdec
 
 theorem vatGemBodyCore : VatBodyTheorem 12 := by

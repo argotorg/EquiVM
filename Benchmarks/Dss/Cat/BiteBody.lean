@@ -65,7 +65,7 @@ theorem catBiteVatCodeZero_of_uniswap {cA gh bl σ_evm σ_solm σ₀ A I} {g : U
   rw [haddr]
   simp only [initState, State.lookupAccount]
   cases hacc : σ_solm.find? (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_solm I)) with
-  | none => native_decide
+  | none => decide +native
   | some acc => rw [hacc] at hSolm; simpa [Option.option] using congrArg UInt256.toNat hSolm
 
 /-- Bridge (dual of `catBiteVatCodeZero_of_uniswap`): the EVM `EXTCODESIZE(vat)` word being nonzero on
@@ -91,7 +91,7 @@ theorem catBiteVatCodePos_of_uniswap {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
   rw [haddr]
   simp only [initState, State.lookupAccount]
   cases hacc : σ_solm.find? (AccountAddress.ofUInt256 (catBiteVatTargetWord σ_solm I)) with
-  | none => exfalso; apply hSolm; rw [hacc]; native_decide
+  | none => exfalso; apply hSolm; rw [hacc]; decide +native
   | some acc =>
       rw [hacc] at hSolm
       have hne : (UInt256.ofNat acc.code.size) ≠ ⟨0⟩ := by simpa [Option.option] using hSolm
@@ -238,13 +238,13 @@ theorem catBiteReachGrabAw {cA gh bl σ σ₀ A I} {g : UInt256}
     (solcSlotWord σ' I ⟨4⟩) dink dart hp96 hpmem (by omega) hthisCanon hdink hdart
   obtain ⟨gasWord, _, _, rd2192⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177 hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   obtain ⟨cA'', σ'', z, o', A_in, callGas, k', C', hΘpack, rd2193raw, hosz⟩ :=
-    RD.call rd2192 (by native_decide) hdepth (by simp)
+    RD.call rd2192 (by decide +native) hdepth (by simp)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  have hpc : ((⟨2189⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨2193⟩ : UInt256) := by native_decide
+  have hpc : ((⟨2189⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨2193⟩ : UInt256) := by decide +native
   rw [hpc] at rd2193raw
   have hz : (min (⟨0⟩ : UInt256) (UInt256.ofNat o'.size)).toNat = 0 := by
     have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o'.size := by
@@ -333,11 +333,11 @@ theorem catBiteReachFessAw {cA gh bl σ σ₀ A I} {g : UInt256}
   have hencode := catBiteFessEncode_eq p2 dartRate hpmem (by omega)
   obtain ⟨gasWord, _, _, rd2299⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd2284 hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   obtain ⟨cA'', σ'', z, o', A_in, callGas, k', C', hΘpack, rd2300, hosz⟩ :=
-    RD.call (pc := ⟨2299⟩) rd2299 (by native_decide) hdepth (by simp)
+    RD.call (pc := ⟨2299⟩) rd2299 (by decide +native) hdepth (by simp)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   have hz : (min (⟨0⟩ : UInt256) (UInt256.ofNat o'.size)).toNat = 0 := by
     have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o'.size := by

@@ -132,7 +132,7 @@ theorem feeToSelectorMem_read128_4_of_rebuiltStaticcallMem
       omega)
     (by norm_num) (by norm_num) (by norm_num)]
   unfold feeToSelectorShifted feeToSelectorWord feeToSelector selectorBytes
-  native_decide
+  decide +native
 
 theorem feeToSelectorMem_mload64_of_rebuiltStaticcallMem
     (self : UInt256) (oPrev o : ByteArray)
@@ -627,7 +627,7 @@ theorem accountAddress_ofNat_eq_zero_of_land_solcAddrMask_eq_zero {n : Nat}
       show solcAddrMask.toNat = 2 ^ 160 - 1 from by decide] at htoNat
     have hlandLt : Nat.land n (2 ^ 160 - 1) < UInt256.size := by
       exact lt_of_le_of_lt (nat_land_le_right n (2 ^ 160 - 1))
-        (by native_decide : 2 ^ 160 - 1 < UInt256.size)
+        (by decide +native : 2 ^ 160 - 1 < UInt256.size)
     have hlandLt' :
         Nat.land n 1461501637330902918203684832716283019655932542975 < UInt256.size := by
       simpa using hlandLt
@@ -699,11 +699,11 @@ theorem u256_land_solcAddrMask_idem (w : UInt256) :
     have hmodlt : w.toNat % 2 ^ 160 < 2 ^ 160 :=
       Nat.mod_lt _ (by norm_num : 0 < 2 ^ 160)
     have hmodSize : w.toNat % 2 ^ 160 < UInt256.size :=
-      lt_trans hmodlt (by native_decide : 2 ^ 160 < UInt256.size)
+      lt_trans hmodlt (by decide +native : 2 ^ 160 < UInt256.size)
     rw [Nat.mod_eq_of_lt hmodSize]
     exact hmodlt
   rw [hmask, land_mask160 _ hlt]
-  exact Nat.mod_eq_of_lt (lt_trans hlt (by native_decide : 2 ^ 160 < UInt256.size))
+  exact Nat.mod_eq_of_lt (lt_trans hlt (by decide +native : 2 ^ 160 < UInt256.size))
 
 theorem u256_land_solcAddrMask_idem_left (w : UInt256) :
     UInt256.land solcAddrMask (UInt256.land solcAddrMask w) =

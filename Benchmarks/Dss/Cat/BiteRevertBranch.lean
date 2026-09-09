@@ -134,7 +134,7 @@ theorem catBiteMapUrns {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (biteVatAddr { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
               accountMap := σs, substate := As, createdAccounts := cA' })).option 0
           (fun acc => acc.code.size))).toNat := by
-  have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
+  have hmask : biteAddrMaskWord = solcAddrMask := by decide +native
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have addrId : ∀ a : AccountAddress, EVM.address a.val = a := by
@@ -278,7 +278,7 @@ theorem catBiteRevertGrabFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
-  have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
+  have hmask : biteAddrMaskWord = solcAddrMask := by decide +native
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have addrId : ∀ a : AccountAddress, EVM.address a.val = a := by
@@ -326,10 +326,10 @@ theorem catBiteRevertGrabFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     by_cases h : a.toNat ≤ b.toNat
     · rw [if_pos (ugt_zero h), if_pos h]
     · rw [if_neg (by rw [ugt_one (by omega)]; decide), if_neg h]
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hsl : (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat =
       57896044618658097711785492504343953926634992332820282019728792003956564819968 := by
-    native_decide
+    decide +native
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
       ABI.bytesToWord ((o.toList.drop k).take 32) =
         UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
@@ -586,7 +586,7 @@ theorem catBiteRevertFessFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
-  have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
+  have hmask : biteAddrMaskWord = solcAddrMask := by decide +native
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
@@ -634,10 +634,10 @@ theorem catBiteRevertFessFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     by_cases h : a.toNat ≤ b.toNat
     · rw [if_pos (ugt_zero h), if_pos h]
     · rw [if_neg (by rw [ugt_one (by omega)]; decide), if_neg h]
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hsl : (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat =
       57896044618658097711785492504343953926634992332820282019728792003956564819968 := by
-    native_decide
+    decide +native
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
       ABI.bytesToWord ((o.toList.drop k).take 32) =
         UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
@@ -940,7 +940,7 @@ theorem catBiteRevertKickFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
-  have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
+  have hmask : biteAddrMaskWord = solcAddrMask := by decide +native
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
@@ -988,10 +988,10 @@ theorem catBiteRevertKickFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     by_cases h : a.toNat ≤ b.toNat
     · rw [if_pos (ugt_zero h), if_pos h]
     · rw [if_neg (by rw [ugt_one (by omega)]; decide), if_neg h]
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hsl : (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat =
       57896044618658097711785492504343953926634992332820282019728792003956564819968 := by
-    native_decide
+    decide +native
   have storeFlat : ∀ (ev : EVM.State) (aa : AccountAddress) (k v : UInt256),
       Solm.EVM.storageStore ev aa k v =
         { ev with accountMap := sstoreAccountMap aa ev.accountMap k v } := by
@@ -1202,10 +1202,10 @@ theorem catBiteRevertKickFail {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have htgtK : EVM.address (biteFlipAddrV I eUrnS).val =
       AccountAddress.ofUInt256 (biteAddrMaskWord.land flipW) := by
     rw [addrId]; exact hflipAddrS
-  have hexp : UInt256.exp (⟨256⟩ : UInt256) ⟨0⟩ = ⟨1⟩ := by native_decide
+  have hexp : UInt256.exp (⟨256⟩ : UInt256) ⟨0⟩ = ⟨1⟩ := by decide +native
   have hdiv1 : ∀ y : UInt256, UInt256.div y ⟨1⟩ = y := fun y => by
     apply u256_inj
-    rw [udiv_toNat, show (⟨1⟩ : UInt256).toNat = 1 from by native_decide,
+    rw [udiv_toNat, show (⟨1⟩ : UInt256).toNat = 1 from by decide +native,
       Nat.div_one]
   have hvowW : ∀ σx : AccountMap,
       UInt256.land (solcSlotWord σx I ⟨4⟩) solcAddrMask = seg8VowM σx I := by
@@ -1408,7 +1408,7 @@ theorem catBiteRevertKickDecode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
-  have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
+  have hmask : biteAddrMaskWord = solcAddrMask := by decide +native
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
@@ -1456,10 +1456,10 @@ theorem catBiteRevertKickDecode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     by_cases h : a.toNat ≤ b.toNat
     · rw [if_pos (ugt_zero h), if_pos h]
     · rw [if_neg (by rw [ugt_one (by omega)]; decide), if_neg h]
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hsl : (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat =
       57896044618658097711785492504343953926634992332820282019728792003956564819968 := by
-    native_decide
+    decide +native
   have storeFlat : ∀ (ev : EVM.State) (aa : AccountAddress) (k v : UInt256),
       Solm.EVM.storageStore ev aa k v =
         { ev with accountMap := sstoreAccountMap aa ev.accountMap k v } := by
@@ -1670,10 +1670,10 @@ theorem catBiteRevertKickDecode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
   have htgtK : EVM.address (biteFlipAddrV I eUrnS).val =
       AccountAddress.ofUInt256 (biteAddrMaskWord.land flipW) := by
     rw [addrId]; exact hflipAddrS
-  have hexp : UInt256.exp (⟨256⟩ : UInt256) ⟨0⟩ = ⟨1⟩ := by native_decide
+  have hexp : UInt256.exp (⟨256⟩ : UInt256) ⟨0⟩ = ⟨1⟩ := by decide +native
   have hdiv1 : ∀ y : UInt256, UInt256.div y ⟨1⟩ = y := fun y => by
     apply u256_inj
-    rw [udiv_toNat, show (⟨1⟩ : UInt256).toNat = 1 from by native_decide,
+    rw [udiv_toNat, show (⟨1⟩ : UInt256).toNat = 1 from by decide +native,
       Nat.div_one]
   have hvowW : ∀ σx : AccountMap,
       UInt256.land (solcSlotWord σx I ⟨4⟩) solcAddrMask = seg8VowM σx I := by
@@ -1884,10 +1884,10 @@ theorem catBiteRevertKickDecodeW {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hMloadFreeAw : UInt256.ofNat (MachineState.M (⟨17⟩ : UInt256).toNat 64 32) = ⟨17⟩ := by
-    native_decide
+    decide +native
   have hMloadFreeValue := catBiteKickPostCallMemP_mload64_short p
     (biteAddrMaskWord.land (biteAddrMaskWord.land (calldataWord I.calldata 36))) kvow tab dink ok
-    (aw8 := ⟨17⟩) hp96 hpmem hpsz hshort hread64 hp160aw (by native_decide)
+    (aw8 := ⟨17⟩) hp96 hpmem hpsz hshort hread64 hp160aw (by decide +native)
   exact catBiteRevertKickDecode hcode hdispatch hdecode hAccounts hwv hperm hsz36 hdepth hurn
     hilkslen hurnslen hlive hvatCode hUrnsVatCode hGrabCode hFessCode hKickCode hIlksCall
     hUrnsCall hGrabCall hFessCall hKickCall rd2532 hoszk hov3 hzk hstatus hshort
@@ -1934,7 +1934,7 @@ theorem catBiteReachGuardRoomSubAw {cA gh bl σ σ₀ A I} {g : UInt256}
         (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩))
         (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩)))
       ⟨10⟩ o (cA', σ') k' C' := by
-  have h9 : (⟨9⟩ : UInt256).toNat = 9 := by native_decide
+  have h9 : (⟨9⟩ : UInt256).toNat = 9 := by decide +native
   -- offset arithmetic
   have e32fp : (⟨32⟩ + fp).toNat = fp.toNat + 32 := uadd_lit32_toNat fp (by omega)
   have e64fp : (⟨32⟩ + (⟨32⟩ + fp)).toNat = fp.toNat + 64 := by
@@ -1956,144 +1956,144 @@ theorem catBiteReachGuardRoomSubAw {cA gh bl σ σ₀ A I} {g : UInt256}
     catBiteAwMInv32 ⟨9⟩ (by omega)
   have hMkec : UInt256.ofNat (MachineState.M (⟨9⟩ : UInt256).toNat 0 64) = ⟨9⟩ := catBiteAwMInv64 ⟨9⟩ (by omega)
   have hmask0 : UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) ⟨0⟩ = ⟨0⟩ :=
-    by native_decide
+    by decide +native
   have hDunkOff : (q + ⟨64⟩).toNat = 288 := by rw [eq64, hqNat]
   -- 1620 → 3818 (call the 96-byte allocator)
-  have rd1621 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd1624 := rd1621.push2 ⟨1628⟩ (by native_decide) (by evm_ov)
-  have rd1627 := rd1624.push2 ⟨3818⟩ (by native_decide) (by evm_ov)
-  have rd3818 := rd1627.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd3819 := rd3818.jumpdest (by native_decide) (by evm_ov)
-  have rd3821 := rd3819.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd3822 := RD.mload 0 fp ⟨9⟩ rd3821 (by native_decide) (catBiteMloadCost0 hM64) hFp hM64
+  have rd1621 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd1624 := rd1621.push2 ⟨1628⟩ (by decide +native) (by evm_ov)
+  have rd1627 := rd1624.push2 ⟨3818⟩ (by decide +native) (by evm_ov)
+  have rd3818 := rd1627.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd3819 := rd3818.jumpdest (by decide +native) (by evm_ov)
+  have rd3821 := rd3819.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd3822 := RD.mload 0 fp ⟨9⟩ rd3821 (by decide +native) (catBiteMloadCost0 hM64) hFp hM64
     (by evm_ov)
-  have rd3823 := rd3822.dup1 (by native_decide) (by evm_ov)
-  have rd3825 := rd3823.push1 ⟨96⟩ (by native_decide) (by evm_ov)
-  have rd3826 := rd3825.add (by native_decide) (by evm_ov)
-  have rd3828 := rd3826.push1 ⟨64⟩ (by native_decide) (by evm_ov)
+  have rd3823 := rd3822.dup1 (by decide +native) (by evm_ov)
+  have rd3825 := rd3823.push1 ⟨96⟩ (by decide +native) (by evm_ov)
+  have rd3826 := rd3825.add (by decide +native) (by evm_ov)
+  have rd3828 := rd3826.push1 ⟨64⟩ (by decide +native) (by evm_ov)
   have rd3829 := RD.mstore 0 ((UInt256.toByteArray (⟨96⟩ + fp)).write 0 mem 64 32) ⟨9⟩ rd3828
-    (by native_decide) (catBiteMstoreCost0 hM64) (by rfl) hM64 (by evm_ov)
-  have rd3830 := rd3829.dup1 (by native_decide) (by evm_ov)
-  have rd3832 := rd3830.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3834 := rd3832.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3836 := rd3834.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3838 := rd3836.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd3839 := rd3838.shl (by native_decide) (by evm_ov)
-  have rd3840 := rd3839.sub (by native_decide) (by evm_ov)
-  have rd3841 := rd3840.and (by native_decide) (by evm_ov)
+    (by decide +native) (catBiteMstoreCost0 hM64) (by rfl) hM64 (by evm_ov)
+  have rd3830 := rd3829.dup1 (by decide +native) (by evm_ov)
+  have rd3832 := rd3830.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3834 := rd3832.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3836 := rd3834.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3838 := rd3836.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd3839 := rd3838.shl (by decide +native) (by evm_ov)
+  have rd3840 := rd3839.sub (by decide +native) (by evm_ov)
+  have rd3841 := rd3840.and (by decide +native) (by evm_ov)
   rw [hmask0] at rd3841
-  have rd3842 := rd3841.dup2 (by native_decide) (by evm_ov)
+  have rd3842 := rd3841.dup2 (by decide +native) (by evm_ov)
   have rd3843 := RD.mstore 0 ((UInt256.toByteArray ⟨0⟩).write 0
       ((UInt256.toByteArray (⟨96⟩ + fp)).write 0 mem 64 32) fp.toNat 32) ⟨9⟩ rd3842
-    (by native_decide) (catBiteMstoreCost0 hMfp) (by rfl) hMfp (by evm_ov)
-  have rd3845 := rd3843.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3846 := rd3845.add (by native_decide) (by evm_ov)
-  have rd3848 := rd3846.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3849 := rd3848.dup2 (by native_decide) (by evm_ov)
+    (by decide +native) (catBiteMstoreCost0 hMfp) (by rfl) hMfp (by evm_ov)
+  have rd3845 := rd3843.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3846 := rd3845.add (by decide +native) (by evm_ov)
+  have rd3848 := rd3846.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3849 := rd3848.dup2 (by decide +native) (by evm_ov)
   have rd3850 := RD.mstore 0 ((UInt256.toByteArray ⟨0⟩).write 0
       ((UInt256.toByteArray ⟨0⟩).write 0
         ((UInt256.toByteArray (⟨96⟩ + fp)).write 0 mem 64 32) fp.toNat 32)
       (⟨32⟩ + fp).toNat 32) ⟨9⟩ rd3849
-    (by native_decide) (catBiteMstoreCost0 hM32fp) (by rfl) hM32fp (by evm_ov)
-  have rd3852 := rd3850.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3853 := rd3852.add (by native_decide) (by evm_ov)
-  have rd3855 := rd3853.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3856 := rd3855.dup2 (by native_decide) (by evm_ov)
+    (by decide +native) (catBiteMstoreCost0 hM32fp) (by rfl) hM32fp (by evm_ov)
+  have rd3852 := rd3850.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3853 := rd3852.add (by decide +native) (by evm_ov)
+  have rd3855 := rd3853.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3856 := rd3855.dup2 (by decide +native) (by evm_ov)
   have rd3857 := RD.mstore 0 (catBiteHelperMem mem fp) ⟨9⟩ rd3856
-    (by native_decide) (catBiteMstoreCost0 hM64fp) (by rfl) hM64fp (by evm_ov)
-  have rd3858 := rd3857.pop (by native_decide) (by evm_ov)
-  have rd3859 := rd3858.swap1 (by native_decide) (by evm_ov)
-  have rd1628 := rd3859.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd1629 := rd1628.jumpdest (by native_decide) (by evm_ov)
-  have rd1630 := rd1629.pop (by native_decide) (by evm_ov)
-  have rd1632 := rd1630.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd1633 := rd1632.dup9 (by native_decide) (by evm_ov)
-  have rd1634 := rd1633.dup2 (by native_decide) (by evm_ov)
+    (by decide +native) (catBiteMstoreCost0 hM64fp) (by rfl) hM64fp (by evm_ov)
+  have rd3858 := rd3857.pop (by decide +native) (by evm_ov)
+  have rd3859 := rd3858.swap1 (by decide +native) (by evm_ov)
+  have rd1628 := rd3859.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd1629 := rd1628.jumpdest (by decide +native) (by evm_ov)
+  have rd1630 := rd1629.pop (by decide +native) (by evm_ov)
+  have rd1632 := rd1630.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd1633 := rd1632.dup9 (by decide +native) (by evm_ov)
+  have rd1634 := rd1633.dup2 (by decide +native) (by evm_ov)
   have rd1635 := RD.mstore 0 ((UInt256.toByteArray ilk).write 0 (catBiteHelperMem mem fp) 0 32)
-    ⟨9⟩ rd1634 (by native_decide) (catBiteMstoreCost0 hM0) (by rfl) hM0 (by evm_ov)
-  have rd1637 := rd1635.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd1639 := rd1637.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd1640 := rd1639.dup2 (by native_decide) (by evm_ov)
-  have rd1641 := rd1640.dup2 (by native_decide) (by evm_ov)
+    ⟨9⟩ rd1634 (by decide +native) (catBiteMstoreCost0 hM0) (by rfl) hM0 (by evm_ov)
+  have rd1637 := rd1635.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd1639 := rd1637.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd1640 := rd1639.dup2 (by decide +native) (by evm_ov)
+  have rd1641 := rd1640.dup2 (by decide +native) (by evm_ov)
   have rd1642 := RD.mstore 0 (catBiteScratchMem mem fp ilk) ⟨9⟩ rd1641
-    (by native_decide) (catBiteMstoreCost0 hM32) (by rfl) hM32 (by evm_ov)
-  have rd1644 := rd1642.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd1645 := rd1644.dup1 (by native_decide) (by evm_ov)
-  have rd1646 := rd1645.dup5 (by native_decide) (by evm_ov)
-  have rd1647 := rd1646.keccak256 0 (solcMappingSlot ⟨1⟩ ilk) ⟨9⟩ (by native_decide)
+    (by decide +native) (catBiteMstoreCost0 hM32) (by rfl) hM32 (by evm_ov)
+  have rd1644 := rd1642.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd1645 := rd1644.dup1 (by decide +native) (by evm_ov)
+  have rd1646 := rd1645.dup5 (by decide +native) (by evm_ov)
+  have rd1647 := rd1646.keccak256 0 (solcMappingSlot ⟨1⟩ ilk) ⟨9⟩ (by decide +native)
     (catBiteKeccakCost0 hMkec)
     (by simp only [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide, hKec]; exact mappingSlot_single ilk ⟨1⟩)
     hMkec (by evm_ov)
-  have rd1648 := rd1647.dup2 (by native_decide) (by evm_ov)
-  have rd1649 := RD.mload 0 q ⟨9⟩ rd1648 (by native_decide) (catBiteMloadCost0 hM64) hQ hM64
+  have rd1648 := rd1647.dup2 (by decide +native) (by evm_ov)
+  have rd1649 := RD.mload 0 q ⟨9⟩ rd1648 (by decide +native) (catBiteMloadCost0 hM64) hQ hM64
     (by evm_ov)
-  have rd1651 := rd1649.push1 ⟨96⟩ (by native_decide) (by evm_ov)
-  have rd1652 := rd1651.dup2 (by native_decide) (by evm_ov)
-  have rd1653 := rd1652.add (by native_decide) (by evm_ov)
-  have rd1654 := rd1653.dup4 (by native_decide) (by evm_ov)
+  have rd1651 := rd1649.push1 ⟨96⟩ (by decide +native) (by evm_ov)
+  have rd1652 := rd1651.dup2 (by decide +native) (by evm_ov)
+  have rd1653 := rd1652.add (by decide +native) (by evm_ov)
+  have rd1654 := rd1653.dup4 (by decide +native) (by evm_ov)
   have rd1655 := RD.mstore 0 ((UInt256.toByteArray (q + ⟨96⟩)).write 0
       (catBiteScratchMem mem fp ilk) 64 32) ⟨9⟩ rd1654
-    (by native_decide) (catBiteMstoreCost0 hM64) (by rfl) hM64 (by evm_ov)
-  have rd1656 := rd1655.dup2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1657⟩ := rd1656.sload (by native_decide) (by evm_ov)
-  have rd1659 := rd1657.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd1661 := rd1659.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd1663 := rd1661.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd1664 := rd1663.shl (by native_decide) (by evm_ov)
-  have rd1665 := rd1664.sub (by native_decide) (by evm_ov)
-  have rd1666 := rd1665.and (by native_decide) (by evm_ov)
-  have rd1667 := rd1666.dup2 (by native_decide) (by evm_ov)
+    (by decide +native) (catBiteMstoreCost0 hM64) (by rfl) hM64 (by evm_ov)
+  have rd1656 := rd1655.dup2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1657⟩ := rd1656.sload (by decide +native) (by evm_ov)
+  have rd1659 := rd1657.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd1661 := rd1659.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd1663 := rd1661.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd1664 := rd1663.shl (by decide +native) (by evm_ov)
+  have rd1665 := rd1664.sub (by decide +native) (by evm_ov)
+  have rd1666 := rd1665.and (by decide +native) (by evm_ov)
+  have rd1667 := rd1666.dup2 (by decide +native) (by evm_ov)
   have rd1668 := RD.mstore 0 ((UInt256.toByteArray
       (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))).write 0
       ((UInt256.toByteArray (q + ⟨96⟩)).write 0 (catBiteScratchMem mem fp ilk) 64 32) q.toNat 32)
-    ⟨9⟩ rd1667 (by native_decide) (catBiteMstoreCost0 hMq) (by rfl) hMq (by evm_ov)
-  have rd1669 := rd1668.swap4 (by native_decide) (by evm_ov)
-  have rd1670 := rd1669.dup2 (by native_decide) (by evm_ov)
-  have rd1671 := rd1670.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1672⟩ := rd1671.sload (by native_decide) (by evm_ov)
-  have rd1673 := rd1672.swap3 (by native_decide) (by evm_ov)
-  have rd1674 := rd1673.dup5 (by native_decide) (by evm_ov)
-  have rd1675 := rd1674.add (by native_decide) (by evm_ov)
-  have rd1676 := rd1675.swap3 (by native_decide) (by evm_ov)
-  have rd1677 := rd1676.swap1 (by native_decide) (by evm_ov)
-  have rd1678 := rd1677.swap3 (by native_decide) (by evm_ov)
+    ⟨9⟩ rd1667 (by decide +native) (catBiteMstoreCost0 hMq) (by rfl) hMq (by evm_ov)
+  have rd1669 := rd1668.swap4 (by decide +native) (by evm_ov)
+  have rd1670 := rd1669.dup2 (by decide +native) (by evm_ov)
+  have rd1671 := rd1670.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1672⟩ := rd1671.sload (by decide +native) (by evm_ov)
+  have rd1673 := rd1672.swap3 (by decide +native) (by evm_ov)
+  have rd1674 := rd1673.dup5 (by decide +native) (by evm_ov)
+  have rd1675 := rd1674.add (by decide +native) (by evm_ov)
+  have rd1676 := rd1675.swap3 (by decide +native) (by evm_ov)
+  have rd1677 := rd1676.swap1 (by decide +native) (by evm_ov)
+  have rd1678 := rd1677.swap3 (by decide +native) (by evm_ov)
   have rd1679 := RD.mstore 0 ((UInt256.toByteArray
       (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩))).write 0
       ((UInt256.toByteArray
         (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))).write 0
         ((UInt256.toByteArray (q + ⟨96⟩)).write 0 (catBiteScratchMem mem fp ilk) 64 32) q.toNat 32)
       (q + ⟨32⟩).toNat 32) ⟨9⟩ rd1678
-    (by native_decide) (catBiteMstoreCost0 hMq32) (by rfl) hMq32 (by evm_ov)
-  have rd1681 := rd1679.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd1682 := rd1681.swap1 (by native_decide) (by evm_ov)
-  have rd1683 := rd1682.swap2 (by native_decide) (by evm_ov)
-  have rd1684 := rd1683.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1685⟩ := rd1684.sload (by native_decide) (by evm_ov)
-  have rd1686 := rd1685.swap1 (by native_decide) (by evm_ov)
-  have rd1687 := rd1686.dup3 (by native_decide) (by evm_ov)
-  have rd1688 := rd1687.add (by native_decide) (by evm_ov)
+    (by decide +native) (catBiteMstoreCost0 hMq32) (by rfl) hMq32 (by evm_ov)
+  have rd1681 := rd1679.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd1682 := rd1681.swap1 (by decide +native) (by evm_ov)
+  have rd1683 := rd1682.swap2 (by decide +native) (by evm_ov)
+  have rd1684 := rd1683.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1685⟩ := rd1684.sload (by decide +native) (by evm_ov)
+  have rd1686 := rd1685.swap1 (by decide +native) (by evm_ov)
+  have rd1687 := rd1686.dup3 (by decide +native) (by evm_ov)
+  have rd1688 := rd1687.add (by decide +native) (by evm_ov)
   -- the `dunk` MSTORE @q+64=288 GROWS aw 9 → 10 (write [288,320) extends past aw=9's [0,288))
   have rd1689 := RD.mstore 3 (catBiteMilkMem mem fp ilk q
       (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))
       (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩))
       (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩))) ⟨10⟩ rd1688
-    (by native_decide)
-    (fun s hs hst => mstoreCost_of_stack hs hst (by rw [hDunkOff]; native_decide))
-    (by rfl) (by rw [hDunkOff]; native_decide) (by evm_ov)
-  have rd1691 := rd1689.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1692⟩ := rd1691.sload (by native_decide) (by evm_ov)
-  have rd1694 := rd1692.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1695⟩ := rd1694.sload (by native_decide) (by evm_ov)
-  have rd1696 := rd1695.swap2 (by native_decide) (by evm_ov)
-  have rd1697 := rd1696.swap3 (by native_decide) (by evm_ov)
-  have rd1698 := rd1697.swap2 (by native_decide) (by evm_ov)
-  have rd1699 := rd1698.dup3 (by native_decide) (by evm_ov)
-  have rd1700 := rd1699.swap2 (by native_decide) (by evm_ov)
-  have rd1703 := rd1700.push2 ⟨1708⟩ (by native_decide) (by evm_ov)
-  have rd1704 := rd1703.swap2 (by native_decide) (by evm_ov)
-  have rd1707 := rd1704.push2 ⟨3762⟩ (by native_decide) (by evm_ov)
-  have rd3762 := rd1707.jump (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native)
+    (fun s hs hst => mstoreCost_of_stack hs hst (by rw [hDunkOff]; decide +native))
+    (by rfl) (by rw [hDunkOff]; decide +native) (by evm_ov)
+  have rd1691 := rd1689.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1692⟩ := rd1691.sload (by decide +native) (by evm_ov)
+  have rd1694 := rd1692.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1695⟩ := rd1694.sload (by decide +native) (by evm_ov)
+  have rd1696 := rd1695.swap2 (by decide +native) (by evm_ov)
+  have rd1697 := rd1696.swap3 (by decide +native) (by evm_ov)
+  have rd1698 := rd1697.swap2 (by decide +native) (by evm_ov)
+  have rd1699 := rd1698.dup3 (by decide +native) (by evm_ov)
+  have rd1700 := rd1699.swap2 (by decide +native) (by evm_ov)
+  have rd1703 := rd1700.push2 ⟨1708⟩ (by decide +native) (by evm_ov)
+  have rd1704 := rd1703.swap2 (by decide +native) (by evm_ov)
+  have rd1707 := rd1704.push2 ⟨3762⟩ (by decide +native) (by evm_ov)
+  have rd3762 := rd1707.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact ⟨_, _, rd3762⟩
 
 /-! ## checked-`sub` EMPTY-revert (DSMath `sub` underflow → `revert(0,0)`) -/
@@ -2167,8 +2167,8 @@ theorem catBiteRoomUnderflowEmptyRevertLeaf {cA gh bl σ_evm σ_solm σ₀ A I} 
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (biteLocals I)
         biteTransition.body .reverted) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
-  have hrev := RD.solcCheckedSubEmptyRevert rd hsub (by native_decide) (by native_decide)
-    (by native_decide) hlt hov
+  have hrev := RD.solcCheckedSubEmptyRevert rd hsub (by decide +native) (by decide +native)
+    (by decide +native) hlt hov
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 
@@ -2227,21 +2227,21 @@ theorem catBiteRevertRoomSub {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160))) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
-  have h64 : (⟨64⟩ : UInt256).toNat = 64 := by native_decide
-  have h128 : (⟨128⟩ : UInt256).toNat = 128 := by native_decide
+  have h64 : (⟨64⟩ : UInt256).toNat = 64 := by decide +native
+  have h128 : (⟨128⟩ : UInt256).toNat = 128 := by decide +native
   -- reach the room-`sub` subroutine at pc 3762 (aw grows 9→10)
   obtain ⟨_, _, rd3762⟩ := catBiteReachGuardRoomSubAw (fp := ⟨128⟩) rd1620
-    (by native_decide)
+    (by decide +native)
     (mloadWordValue_of_readWithPadding (off := ⟨64⟩) (v := ⟨128⟩)
-      (by rw [h64]; have := hmemUsz; omega) (by native_decide)
+      (by rw [h64]; have := hmemUsz; omega) (by decide +native)
       (catBiteUrnsPostCallMem_read64 I ou hmemI
         (catBiteIlksPostCallMem_read64 I o' hilkslen hosz) hurnslen hoszu))
     (catBiteScratchMem_mload64 (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou)
-      ⟨128⟩ (biteIlkWord I) (by rw [h128]; have := hmemUsz; omega) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide))
+      ⟨128⟩ (biteIlkWord I) (by rw [h128]; have := hmemUsz; omega) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native))
     (catBiteScratchMem_read0_64 (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou)
-      ⟨128⟩ (biteIlkWord I) (by rw [h128]; have := hmemUsz; omega) (by native_decide))
-    (by native_decide) (by native_decide) (by native_decide) (by simp)
+      ⟨128⟩ (biteIlkWord I) (by rw [h128]; have := hmemUsz; omega) (by decide +native))
+    (by decide +native) (by decide +native) (by decide +native) (by simp)
   -- Solm-side ilks+urns calls
   obtain ⟨σs, As, σus, Aus, hIlksSolm, hUrnsSolm, hAmEq, hvatCodeIlkS⟩ :=
     catBiteMapUrns hAccounts hdepthNe hUrnsVatCode hIlksCall hUrnsCall
@@ -2290,7 +2290,7 @@ theorem catBiteRevertRoomSub {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm hIlksDec hvatCodeIlkS
     hUrnsSolm hUrnsDec hlive' hsz36 hfitInkSpot hfitArtRate hspotPos hratePos hunsafe hlitGtBox
   exact catBiteRoomUnderflowEmptyRevertLeaf (okPc := ⟨3756⟩) hcode hdispatch hdecode rd3762
-    (by unfold solcCheckedSubSuccessWf; repeat' first | apply And.intro | native_decide)
+    (by unfold solcCheckedSubSuccessWf; repeat' first | apply And.intro | decide +native)
     (by omega) (by simp only [List.length_cons, List.length_nil]; omega) hbody
 
 
@@ -2375,7 +2375,7 @@ theorem catBiteRevertDunkRoomWad {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
   have hdepthNe : I.depth ≠ 1024 := by omega
   obtain ⟨_, _, rd1810⟩ := catBiteTraceSeg7a rd1708 hlitterbox hroomdust (by simp)
   obtain ⟨_, _, rd3720⟩ := catBiteReachGuardDunkRoomWad rd1810 hChop hDunk
-    (by rw [hqNat]; native_decide) (by rw [hqNat]; native_decide) hdunkRoomDef.symm (by simp)
+    (by rw [hqNat]; decide +native) (by rw [hqNat]; decide +native) hdunkRoomDef.symm (by simp)
   obtain ⟨σs, As, σus, Aus, hIlksSolm, hUrnsSolm, hAmEq, hvatCodeIlkS⟩ :=
     catBiteMapUrns hAccounts hdepthNe hUrnsVatCode hIlksCall hUrnsCall
   set eUrnS := { initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I with
@@ -2436,7 +2436,7 @@ theorem catBiteRevertDunkRoomWad {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
   have hlitLtBox : (biteLitW eUrnS).toNat < (biteBoxW eUrnS).toNat := by
     rw [hlitB, hboxB]; exact hlitterbox
   have hroomGeDust : iDust.toNat ≤ (biteRoomV eUrnS).toNat := by rw [hroomB]; exact hroomdust
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hbody := catBiteSourceDunkRoomWadOverflowRevert hwv
     (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm hIlksDec hvatCodeIlkS
     hUrnsSolm hUrnsDec hlive' hsz36 hfitInkSpot hfitArtRate hspotPos hratePos hunsafe hlitLtBox
@@ -2530,7 +2530,7 @@ theorem catBiteRevertMilkChopZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
   have hdepthNe : I.depth ≠ 1024 := by omega
   obtain ⟨_, _, rd1810⟩ := catBiteTraceSeg7a rd1708 hlitterbox hroomdust (by simp)
   obtain ⟨_, _, rd1865⟩ := catBiteReachGuardMilkChopZero rd1810 hChop hDunk
-    (by rw [hqNat]; native_decide) (by rw [hqNat]; native_decide) hRatePos hdunkRoomDef.symm
+    (by rw [hqNat]; decide +native) (by rw [hqNat]; decide +native) hRatePos hdunkRoomDef.symm
     hFitWad hdunkRoomWadDef.symm hdartDenomDef.symm hChopZero (by simp)
   obtain ⟨σs, As, σus, Aus, hIlksSolm, hUrnsSolm, hAmEq, hvatCodeIlkS⟩ :=
     catBiteMapUrns hAccounts hdepthNe hUrnsVatCode hIlksCall hUrnsCall
@@ -2596,13 +2596,13 @@ theorem catBiteRevertMilkChopZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
   have hlitLtBox : (biteLitW eUrnS).toNat < (biteBoxW eUrnS).toNat := by
     rw [hlitB, hboxB]; exact hlitterbox
   have hroomGeDust : iDust.toNat ≤ (biteRoomV eUrnS).toNat := by rw [hroomB]; exact hroomdust
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hbody := catBiteSourceMilkChopZeroRevert hwv
     (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm hIlksDec hvatCodeIlkS
     hUrnsSolm hUrnsDec hlive' hsz36 hfitInkSpot hfitArtRate hspotPos hratePos hunsafe hlitLtBox
     hroomGeDust (by rw [hdunkroomB, hwad, Nat.mul_comm]; exact hFitWad)
     (by rw [hchopBS, hChopZero]; rfl)
-  exact catBiteMilkChopZeroRevertLeaf hcode hdispatch hdecode rd1865 (by native_decide) hbody
+  exact catBiteMilkChopZeroRevertLeaf hcode hdispatch hdecode rd1865 (by decide +native) hbody
 
 
 set_option maxHeartbeats 2000000 in
@@ -2759,7 +2759,7 @@ theorem catBiteRevertLive {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     umin_ofNat_right_toNat_of_ge (c := 64) (n := ou.size) (by decide) hurnslen hoszu
   have hmemsz : 228 ≤ (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou).size := by
     unfold catBiteUrnsPostCallMem
-    rw [hlen64, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+    rw [hlen64, show (⟨128⟩ : UInt256).toNat = 128 from by decide +native,
       write_eq_gen ou _ 128 64 (by decide) (by omega) (by rw [hbaseSz]; omega),
       ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
       ByteArray.size_extract, ByteArray.size_extract, hbaseSz]
@@ -2858,8 +2858,8 @@ theorem catBiteRevertLive {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     hUrnsSolm hUrnsDec hliveS
   exact catBiteRequireStringRevertLeaf (okPc := ⟨1521⟩) (len := ⟨12⟩)
     (rawWord := ⟨0x4361742f6e6f742d6c697665⟩) (shift := ⟨160⟩) (op := .PUSH12) (width := 12)
-    hcode hdispatch hdecode rd1458 hcond (by native_decide) (by native_decide)
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
+    hcode hdispatch hdecode rd1458 hcond (by decide +native) (by decide +native)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
     (by decide) rfl hmemsz (by omega) hawsz hFree64
     (by simp only [List.length_cons, List.length_nil]; omega) hbody
 
@@ -2927,7 +2927,7 @@ theorem catBiteRevertUnsafe {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     umin_ofNat_right_toNat_of_ge (c := 64) (n := ou.size) (by decide) hurnslen hoszu
   have hmemsz : 228 ≤ (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou).size := by
     unfold catBiteUrnsPostCallMem
-    rw [hlen64, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+    rw [hlen64, show (⟨128⟩ : UInt256).toNat = 128 from by decide +native,
       write_eq_gen ou _ 128 64 (by decide) (by omega) (by rw [hbaseSz]; omega),
       ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
       ByteArray.size_extract, ByteArray.size_extract, hbaseSz]
@@ -2985,8 +2985,8 @@ theorem catBiteRevertUnsafe {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         hUrnsSolm hUrnsDec hlive' hfitInkSpot hfitArtRate hspotPos (by omega) hge
   exact catBiteRequireStringRevertLeaf (okPc := ⟨1620⟩) (len := ⟨14⟩)
     (rawWord := ⟨0x4361742f6e6f742d756e73616665⟩) (shift := ⟨144⟩) (op := .PUSH14) (width := 14)
-    hcode hdispatch hdecode rd1555 hcond (by native_decide) (by native_decide)
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
+    hcode hdispatch hdecode rd1555 hcond (by decide +native) (by decide +native)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
     (by decide) rfl hmemsz (by omega) hawsz hFree64
     (by simp only [List.length_cons, List.length_nil]; omega) hbody
 
@@ -3043,7 +3043,7 @@ theorem catBiteRevertSpotZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hiDust : iDust = UInt256.ofNat (fromByteArrayBigEndian (o'.extract 128 160))) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
-  have hspot0N : iSpot.toNat = 0 := by rw [hspot0]; native_decide
+  have hspot0N : iSpot.toNat = 0 := by rw [hspot0]; decide +native
   have hmemI : 196 ≤ (catBiteIlksPostCallMem I o').size := by
     have h := catBiteIlksPostCallMem_size I o' hilkslen hosz; omega
   have hbaseSz : (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I)
@@ -3053,7 +3053,7 @@ theorem catBiteRevertSpotZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     umin_ofNat_right_toNat_of_ge (c := 64) (n := ou.size) (by decide) hurnslen hoszu
   have hmemsz : 228 ≤ (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou).size := by
     unfold catBiteUrnsPostCallMem
-    rw [hlen64, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+    rw [hlen64, show (⟨128⟩ : UInt256).toNat = 128 from by decide +native,
       write_eq_gen ou _ 128 64 (by decide) (by omega) (by rw [hbaseSz]; omega),
       ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
       ByteArray.size_extract, ByteArray.size_extract, hbaseSz]
@@ -3109,8 +3109,8 @@ theorem catBiteRevertSpotZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         hUrnsSolm hUrnsDec hlive' hfitInkSpot hfitArtRate (by omega) hspot0N
   exact catBiteRequireStringRevertLeaf (okPc := ⟨1620⟩) (len := ⟨14⟩)
     (rawWord := ⟨0x4361742f6e6f742d756e73616665⟩) (shift := ⟨144⟩) (op := .PUSH14) (width := 14)
-    hcode hdispatch hdecode rd1555 rfl (by native_decide) (by native_decide)
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
+    hcode hdispatch hdecode rd1555 rfl (by decide +native) (by decide +native)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
     (by decide) rfl hmemsz (by omega) hawsz hFree64
     (by simp only [List.length_cons, List.length_nil]; omega) hbody
 
@@ -3230,7 +3230,7 @@ theorem catBiteRevertArtRate {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       umin_ofNat_right_toNat_of_ge (c := 64) (n := ou.size) (by decide) hurnslen hoszu
     have hmemsz : 228 ≤ (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou).size := by
       unfold catBiteUrnsPostCallMem
-      rw [hlen64, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+      rw [hlen64, show (⟨128⟩ : UInt256).toNat = 128 from by decide +native,
         write_eq_gen ou _ 128 64 (by decide) (by omega) (by rw [hbaseSz]; omega),
         ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
         ByteArray.size_extract, ByteArray.size_extract, hbaseSz]
@@ -3245,8 +3245,8 @@ theorem catBiteRevertArtRate {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       hUrnsSolm hUrnsDec hlive' hfitInkSpot0 hspot0N hover
     exact catBiteRequireStringRevertLeaf (okPc := ⟨1620⟩) (len := ⟨14⟩)
       (rawWord := ⟨0x4361742f6e6f742d756e73616665⟩) (shift := ⟨144⟩) (op := .PUSH14) (width := 14)
-      hcode hdispatch hdecode rd1555 rfl (by native_decide) (by native_decide)
-      (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
+      hcode hdispatch hdecode rd1555 rfl (by decide +native) (by decide +native)
+      (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
       (by decide) rfl hmemsz (by omega) hawsz hFree64
       (by simp only [List.length_cons, List.length_nil]; omega) hbody
 
@@ -3340,8 +3340,8 @@ theorem catBiteRevertInkDart {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   obtain ⟨_, _, rd1810⟩ := catBiteTraceSeg7a rd1708 hlitterbox hroomdust (by simp)
-  obtain ⟨_, _, rd1872⟩ := catBiteTraceSeg7b rd1810 hChop hDunk (by rw [hqNat]; native_decide)
-    (by rw [hqNat]; native_decide) hRatePos hChopPos hdunkRoomDef.symm hFitWad hdunkRoomWadDef.symm
+  obtain ⟨_, _, rd1872⟩ := catBiteTraceSeg7b rd1810 hChop hDunk (by rw [hqNat]; decide +native)
+    (by rw [hqNat]; decide +native) hRatePos hChopPos hdunkRoomDef.symm hFitWad hdunkRoomWadDef.symm
     hdartDenomDef.symm hdartCandDef.symm hdartDef.symm (by simp)
   obtain ⟨_, _, rd3720⟩ := catBiteReachGuardInkDart rd1872 (by simp)
   obtain ⟨σs, As, σus, Aus, hIlksSolm, hUrnsSolm, hAmEq, hvatCodeIlkS⟩ :=
@@ -3405,7 +3405,7 @@ theorem catBiteRevertInkDart {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hdunkroomB : biteDunkRoomV I eUrnS = dunkRoom := by
     rw [hdunkRoomDef, uminEq milkDunk room]
     simp only [biteDunkRoomV, hdunkB, hroomB]
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hdartvB : biteDartV I eUrnS iRate art = dart := by
     have hcand : biteDartCandV I eUrnS iRate = dartCandidate := by
       simp only [biteDartCandV, biteDartDenomV, biteDunkRoomWadV, hchopB, hdunkroomB, hwad,
@@ -3531,7 +3531,7 @@ theorem catBiteRevertTabBase {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hChopNofit : ¬ milkChop.toNat * dartRate.toNat < UInt256.size) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
-  have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
+  have hmask : biteAddrMaskWord = solcAddrMask := by decide +native
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
@@ -3579,10 +3579,10 @@ theorem catBiteRevertTabBase {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     by_cases h : a.toNat ≤ b.toNat
     · rw [if_pos (ugt_zero h), if_pos h]
     · rw [if_neg (by rw [ugt_one (by omega)]; decide), if_neg h]
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hsl : (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat =
       57896044618658097711785492504343953926634992332820282019728792003956564819968 := by
-    native_decide
+    decide +native
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
       ABI.bytesToWord ((o.toList.drop k).take 32) =
         UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
@@ -3826,7 +3826,7 @@ private theorem catBiteIlksPostCallMem_mload64_short (I : ExecutionEnv) (o : Byt
     umin_ofNat_right_toNat_of_lt (c := 160) (n := o.size) (by decide) hoLt hout
   have hread : (catBiteIlksPostCallMem I o).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
     unfold catBiteIlksPostCallMem
-    rw [hlen, show catBiteIlksOutPtr.toNat = 128 from by native_decide]
+    rw [hlen, show catBiteIlksOutPtr.toNat = 128 from by decide +native]
     rcases Nat.eq_zero_or_pos o.size with h0 | h0
     · rw [h0, byteArray_write_len_zero]; exact hbaseRead
     · rw [write_read_below_gen_extend o (catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem)
@@ -3834,7 +3834,7 @@ private theorem catBiteIlksPostCallMem_mload64_short (I : ExecutionEnv) (o : Byt
       exact hbaseRead
   have hsz : 64 < (catBiteIlksPostCallMem I o).size := by
     unfold catBiteIlksPostCallMem
-    rw [hlen, show catBiteIlksOutPtr.toNat = 128 from by native_decide]
+    rw [hlen, show catBiteIlksOutPtr.toNat = 128 from by decide +native]
     rcases Nat.eq_zero_or_pos o.size with h0 | h0
     · rw [h0, byteArray_write_len_zero, hbaseSz]; omega
     · by_cases hext : (catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem).size < 128 + o.size
@@ -3896,9 +3896,9 @@ theorem catBiteRevertIlksDecode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     rw [htw]; exact (catBiteVatEvmAddr_eq_target).symm
   rw [htgt] at hIlksSolm
   exact catBiteIlksDecodeShortLeaf hcode hdispatch hdecode rd1249 hstatus (by omega) hosz
-    (catBiteIlksPostCallMem_mload64_short I o' (by omega) hosz (by native_decide) (by native_decide))
-    (catBiteMloadCost0 (catBiteAwMInv32 (⟨9⟩ : UInt256) (by native_decide)))
-    (catBiteAwMInv32 (⟨9⟩ : UInt256) (by native_decide))
+    (catBiteIlksPostCallMem_mload64_short I o' (by omega) hosz (by decide +native) (by decide +native))
+    (catBiteMloadCost0 (catBiteAwMInv32 (⟨9⟩ : UInt256) (by decide +native)))
+    (catBiteAwMInv32 (⟨9⟩ : UInt256) (by decide +native))
     (by simp only [List.length_cons, List.length_nil]; omega)
     (catBiteSourceIlksDecodeRevert hwv (catBiteVatCodePos_of_uniswap hAccounts hvatCode)
       hIlksSolm (catBiteIlksDecode_none (by omega)))
@@ -3924,7 +3924,7 @@ theorem catBiteUrnsPostCallMem_size288 {I : ExecutionEnv} {o' ou : ByteArray}
   have hlen64 : ((⟨64⟩ : UInt256) ⊓ UInt256.ofNat ou.size).toNat = 64 :=
     umin_ofNat_right_toNat_of_ge (c := 64) (n := ou.size) (by decide) hurnslen hoszu
   unfold catBiteUrnsPostCallMem
-  rw [hlen64, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+  rw [hlen64, show (⟨128⟩ : UInt256).toNat = 128 from by decide +native,
     write_eq_gen ou _ 128 64 (by decide) (by omega) (by rw [hbaseSz]; omega),
     ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
     ByteArray.size_extract, ByteArray.size_extract, hbaseSz]
@@ -3940,9 +3940,9 @@ theorem catBiteMilkSize320 {I : ExecutionEnv} {o' ou : ByteArray} {q flip chop d
       (biteIlkWord I) q flip chop dunk).size = 320 := by
   have hurnsSz := catBiteUrnsPostCallMem_size288 (I := I) hilkslen hosz hurnslen hoszu
   rw [catBiteMilkMem_size (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨128⟩
-      (biteIlkWord I) q flip chop dunk (by rw [hurnsSz]; native_decide) hqfp (by native_decide)
-      (by rw [hqfp]; native_decide), hurnsSz, hqfp]
-  native_decide
+      (biteIlkWord I) q flip chop dunk (by rw [hurnsSz]; decide +native) hqfp (by decide +native)
+      (by rw [hqfp]; decide +native), hurnsSz, hqfp]
+  decide +native
 
 /-- The post-milk free pointer `mem[0x40] = q + 96 = 320` survives (needed as the `hread64`
 obligation of `RD.catBiteMilkErrorStringRevertTail`). -/
@@ -3954,8 +3954,8 @@ theorem catBiteMilkRead64_320 {I : ExecutionEnv} {o' ou : ByteArray} {q flip cho
       (biteIlkWord I) q flip chop dunk).readWithPadding 64 32 = UInt256.toByteArray ⟨320⟩ := by
   have hurnsSz := catBiteUrnsPostCallMem_size288 (I := I) hilkslen hosz hurnslen hoszu
   rw [catBiteMilkMem_read64 (catBiteUrnsPostCallMem I (catBiteIlksPostCallMem I o') ou) ⟨128⟩
-      (biteIlkWord I) q flip chop dunk (by rw [hurnsSz]; native_decide) hqfp (by native_decide)
-      (by rw [hqfp]; native_decide), hqfp]
+      (biteIlkWord I) q flip chop dunk (by rw [hurnsSz]; decide +native) hqfp (by decide +native)
+      (by rw [hqfp]; decide +native), hqfp]
   congr 1
 
 /-- **Post-milk generic `require(cond, "msg")`-false → `Error(string)` revert leaf.** fp=320 / `aw=⟨10⟩`
@@ -4086,11 +4086,11 @@ theorem catBiteRevertDartZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
-  have hqNat : q.toNat = 224 := by rw [hqfp]; native_decide
+  have hqNat : q.toNat = 224 := by rw [hqfp]; decide +native
   have hDartZero : dart = ⟨0⟩ := uint256_toNat_eq_zero (by omega)
   obtain ⟨_, _, rd1810⟩ := catBiteTraceSeg7a rd1708 hlitterbox hroomdust (by simp)
-  obtain ⟨_, _, rd1872⟩ := catBiteTraceSeg7b rd1810 hChop hDunk (by rw [hqNat]; native_decide)
-    (by rw [hqNat]; native_decide) hRatePos hChopPos hdunkRoomDef.symm hFitWad hdunkRoomWadDef.symm
+  obtain ⟨_, _, rd1872⟩ := catBiteTraceSeg7b rd1810 hChop hDunk (by rw [hqNat]; decide +native)
+    (by rw [hqNat]; decide +native) hRatePos hChopPos hdunkRoomDef.symm hFitWad hdunkRoomWadDef.symm
     hdartDenomDef.symm hdartCandDef.symm hdartDef.symm (by simp)
   obtain ⟨_, _, rd1918⟩ := catBiteReachGuardDartPos rd1872 hArtPos hFitInkDart hinkDartDef.symm
     hdinkCandDef.symm hdinkDef.symm hDartZero (by simp)
@@ -4155,7 +4155,7 @@ theorem catBiteRevertDartZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hdunkroomB : biteDunkRoomV I eUrnS = dunkRoom := by
     rw [hdunkRoomDef, uminEq milkDunk room]
     simp only [biteDunkRoomV, hdunkB, hroomB]
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hdartvB : biteDartV I eUrnS iRate art = dart := by
     have hcand : biteDartCandV I eUrnS iRate = dartCandidate := by
       simp only [biteDartCandV, biteDartDenomV, biteDunkRoomWadV, hchopB, hdunkroomB, hwad,
@@ -4175,8 +4175,8 @@ theorem catBiteRevertDartZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (by rw [hdartvB]; omega)
   exact catBiteMilkRequireStringRevertLeaf (okPc := ⟨1985⟩) (len := ⟨16⟩)
     (rawWord := ⟨0x21b0ba17b73ab63616b0bab1ba34b7b7⟩) (shift := ⟨129⟩) (op := .PUSH16) (width := 16)
-    hcode hdispatch hdecode rd1918 rfl (by native_decide) (by native_decide)
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
+    hcode hdispatch hdecode rd1918 rfl (by decide +native) (by decide +native)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
     (by decide) rfl (catBiteMilkSize320 hqfp hilkslen hosz hurnslen hoszu)
     (catBiteMilkRead64_320 hqfp hilkslen hosz hurnslen hoszu)
     (by simp only [List.length_cons, List.length_nil]; omega) hbody
@@ -4274,10 +4274,10 @@ theorem catBiteRevertDinkZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
-  have hqNat : q.toNat = 224 := by rw [hqfp]; native_decide
+  have hqNat : q.toNat = 224 := by rw [hqfp]; decide +native
   obtain ⟨_, _, rd1810⟩ := catBiteTraceSeg7a rd1708 hlitterbox hroomdust (by simp)
-  obtain ⟨_, _, rd1872⟩ := catBiteTraceSeg7b rd1810 hChop hDunk (by rw [hqNat]; native_decide)
-    (by rw [hqNat]; native_decide) hRatePos hChopPos hdunkRoomDef.symm hFitWad hdunkRoomWadDef.symm
+  obtain ⟨_, _, rd1872⟩ := catBiteTraceSeg7b rd1810 hChop hDunk (by rw [hqNat]; decide +native)
+    (by rw [hqNat]; decide +native) hRatePos hChopPos hdunkRoomDef.symm hFitWad hdunkRoomWadDef.symm
     hdartDenomDef.symm hdartCandDef.symm hdartDef.symm (by simp)
   obtain ⟨_, _, rd1918⟩ := catBiteReachGuardDinkPos rd1872 hArtPos hFitInkDart hinkDartDef.symm
     hdinkCandDef.symm hdinkDef.symm hDartPos (by simp)
@@ -4342,7 +4342,7 @@ theorem catBiteRevertDinkZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hdunkroomB : biteDunkRoomV I eUrnS = dunkRoom := by
     rw [hdunkRoomDef, uminEq milkDunk room]
     simp only [biteDunkRoomV, hdunkB, hroomB]
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hdartvB : biteDartV I eUrnS iRate art = dart := by
     have hcand : biteDartCandV I eUrnS iRate = dartCandidate := by
       simp only [biteDartCandV, biteDartDenomV, biteDunkRoomWadV, hchopB, hdunkroomB, hwad,
@@ -4361,7 +4361,7 @@ theorem catBiteRevertDinkZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hroomGeDust : iDust.toNat ≤ (biteRoomV eUrnS).toNat := by rw [hroomB]; exact hroomdust
   have hcondDink : UInt256.gt dink ⟨0⟩ = ⟨0⟩ := by
     refine ugt_zero ?_
-    have h0 : (⟨0⟩ : UInt256).toNat = 0 := by native_decide
+    have h0 : (⟨0⟩ : UInt256).toNat = 0 := by decide +native
     omega
   have hbody := catBiteSourceDinkZeroRevert hwv
     (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm hIlksDec hvatCodeIlkS
@@ -4372,8 +4372,8 @@ theorem catBiteRevertDinkZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (by rw [hdartvB]; exact hDartPos) (by rw [hdinkvB]; omega)
   exact catBiteMilkRequireStringRevertLeaf (okPc := ⟨1985⟩) (len := ⟨16⟩)
     (rawWord := ⟨0x21b0ba17b73ab63616b0bab1ba34b7b7⟩) (shift := ⟨129⟩) (op := .PUSH16) (width := 16)
-    hcode hdispatch hdecode rd1918 hcondDink (by native_decide) (by native_decide)
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
+    hcode hdispatch hdecode rd1918 hcondDink (by decide +native) (by decide +native)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
     (by decide) rfl (catBiteMilkSize320 hqfp hilkslen hosz hurnslen hoszu)
     (catBiteMilkRead64_320 hqfp hilkslen hosz hurnslen hoszu)
     (by simp only [List.length_cons, List.length_nil]; omega) hbody
@@ -4472,12 +4472,12 @@ theorem catBiteRevertDartLimit {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
-  have hqNat : q.toNat = 224 := by rw [hqfp]; native_decide
+  have hqNat : q.toNat = 224 := by rw [hqfp]; decide +native
   have hlimEq : int256Limit = Int.ofNat ((UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) := by
-    native_decide
+    decide +native
   obtain ⟨_, _, rd1810⟩ := catBiteTraceSeg7a rd1708 hlitterbox hroomdust (by simp)
-  obtain ⟨_, _, rd1872⟩ := catBiteTraceSeg7b rd1810 hChop hDunk (by rw [hqNat]; native_decide)
-    (by rw [hqNat]; native_decide) hRatePos hChopPos hdunkRoomDef.symm hFitWad hdunkRoomWadDef.symm
+  obtain ⟨_, _, rd1872⟩ := catBiteTraceSeg7b rd1810 hChop hDunk (by rw [hqNat]; decide +native)
+    (by rw [hqNat]; decide +native) hRatePos hChopPos hdunkRoomDef.symm hFitWad hdunkRoomWadDef.symm
     hdartDenomDef.symm hdartCandDef.symm hdartDef.symm (by simp)
   obtain ⟨_, _, rd1985⟩ := catBiteTraceSeg7c rd1872 hArtPos hFitInkDart hinkDartDef.symm
     hdinkCandDef.symm hdinkDef.symm hDartPos hDinkPos (by simp)
@@ -4543,7 +4543,7 @@ theorem catBiteRevertDartLimit {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hdunkroomB : biteDunkRoomV I eUrnS = dunkRoom := by
     rw [hdunkRoomDef, uminEq milkDunk room]
     simp only [biteDunkRoomV, hdunkB, hroomB]
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hdartvB : biteDartV I eUrnS iRate art = dart := by
     have hcand : biteDartCandV I eUrnS iRate = dartCandidate := by
       simp only [biteDartCandV, biteDartDenomV, biteDunkRoomWadV, hchopB, hdunkroomB, hwad,
@@ -4570,8 +4570,8 @@ theorem catBiteRevertDartLimit {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (by rw [hdartvB, hlimEq]; exact Int.ofNat_lt.mpr (by omega))
   exact catBiteMilkRequireStringRevertLeaf (okPc := ⟨2073⟩) (len := ⟨12⟩)
     (rawWord := ⟨0x4361742f6f766572666c6f77⟩) (shift := ⟨160⟩) (op := .PUSH12) (width := 12)
-    hcode hdispatch hdecode rd2010 rfl (by native_decide) (by native_decide)
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
+    hcode hdispatch hdecode rd2010 rfl (by decide +native) (by decide +native)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
     (by decide) rfl (catBiteMilkSize320 hqfp hilkslen hosz hurnslen hoszu)
     (catBiteMilkRead64_320 hqfp hilkslen hosz hurnslen hoszu)
     (by simp only [List.length_cons, List.length_nil]; omega) hbody
@@ -4672,12 +4672,12 @@ theorem catBiteRevertDinkLimit {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hdepthNe : I.depth ≠ 1024 := by omega
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
-  have hqNat : q.toNat = 224 := by rw [hqfp]; native_decide
+  have hqNat : q.toNat = 224 := by rw [hqfp]; decide +native
   have hlimEq : int256Limit = Int.ofNat ((UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) := by
-    native_decide
+    decide +native
   obtain ⟨_, _, rd1810⟩ := catBiteTraceSeg7a rd1708 hlitterbox hroomdust (by simp)
-  obtain ⟨_, _, rd1872⟩ := catBiteTraceSeg7b rd1810 hChop hDunk (by rw [hqNat]; native_decide)
-    (by rw [hqNat]; native_decide) hRatePos hChopPos hdunkRoomDef.symm hFitWad hdunkRoomWadDef.symm
+  obtain ⟨_, _, rd1872⟩ := catBiteTraceSeg7b rd1810 hChop hDunk (by rw [hqNat]; decide +native)
+    (by rw [hqNat]; decide +native) hRatePos hChopPos hdunkRoomDef.symm hFitWad hdunkRoomWadDef.symm
     hdartDenomDef.symm hdartCandDef.symm hdartDef.symm (by simp)
   obtain ⟨_, _, rd1985⟩ := catBiteTraceSeg7c rd1872 hArtPos hFitInkDart hinkDartDef.symm
     hdinkCandDef.symm hdinkDef.symm hDartPos hDinkPos (by simp)
@@ -4743,7 +4743,7 @@ theorem catBiteRevertDinkLimit {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hdunkroomB : biteDunkRoomV I eUrnS = dunkRoom := by
     rw [hdunkRoomDef, uminEq milkDunk room]
     simp only [biteDunkRoomV, hdunkB, hroomB]
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hdartvB : biteDartV I eUrnS iRate art = dart := by
     have hcand : biteDartCandV I eUrnS iRate = dartCandidate := by
       simp only [biteDartCandV, biteDartDenomV, biteDunkRoomWadV, hchopB, hdunkroomB, hwad,
@@ -4763,7 +4763,7 @@ theorem catBiteRevertDinkLimit {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hcondDinkLim : UInt256.isZero (UInt256.gt dink (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩))
       = ⟨0⟩ := by
     rw [ugt_one (show (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat < dink.toNat from by omega)]
-    native_decide
+    decide +native
   have hbody := catBiteSourceDinkLimitRevert hwv
     (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm hIlksDec hvatCodeIlkS
     hUrnsSolm hUrnsDec hlive' hsz36 hfitInkSpot hfitArtRate hspotPos hratePos hunsafe hlitLtBox
@@ -4775,8 +4775,8 @@ theorem catBiteRevertDinkLimit {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (by rw [hdinkvB, hlimEq]; exact Int.ofNat_lt.mpr (by omega))
   exact catBiteMilkRequireStringRevertLeaf (okPc := ⟨2073⟩) (len := ⟨12⟩)
     (rawWord := ⟨0x4361742f6f766572666c6f77⟩) (shift := ⟨160⟩) (op := .PUSH12) (width := 12)
-    hcode hdispatch hdecode rd2010 hcondDinkLim (by native_decide) (by native_decide)
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
+    hcode hdispatch hdecode rd2010 hcondDinkLim (by decide +native) (by decide +native)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
     (by decide) rfl (catBiteMilkSize320 hqfp hilkslen hosz hurnslen hoszu)
     (catBiteMilkRead64_320 hqfp hilkslen hosz hurnslen hoszu)
     (by simp only [List.length_cons, List.length_nil]; omega) hbody
@@ -5068,8 +5068,8 @@ theorem catBiteRevertLitterGeBox {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
     hUrnsSolm hUrnsDec hlive' hsz36 hfitInkSpot hfitArtRate hspotPos hratePos hunsafe hlitEqBox
   exact catBiteMilkRequireStringFullWordRevertLeaf (okPc := ⟨1810⟩) (len := ⟨25⟩)
     (word := ⟨0x4361742f6c69717569646174696f6e2d6c696d69742d68697400000000000000⟩)
-    hcode hdispatch hdecode rd1730 rfl (by native_decide) (by native_decide)
-    (by unfold catBiteMilkFullWordRevertTailWf; repeat' first | apply And.intro | native_decide)
+    hcode hdispatch hdecode rd1730 rfl (by decide +native) (by decide +native)
+    (by unfold catBiteMilkFullWordRevertTailWf; repeat' first | apply And.intro | decide +native)
     (catBiteMilkSize320 hqfp hilkslen hosz hurnslen hoszu)
     (catBiteMilkRead64_320 hqfp hilkslen hosz hurnslen hoszu)
     (by simp only [List.length_cons, List.length_nil]; omega) hbody
@@ -5185,15 +5185,15 @@ theorem catBiteRevertRoomDust {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hlitLtBox : (biteLitW eUrnS).toNat < (biteBoxW eUrnS).toNat := by rw [hlitB, hboxB]; exact hlitterbox
   have hroomLtDust : (biteRoomV eUrnS).toNat < iDust.toNat := by rw [hroomB]; omega
   have hcond : UInt256.isZero (UInt256.lt room iDust) = ⟨0⟩ := by
-    rw [ult_one (show room.toNat < iDust.toNat from by omega)]; native_decide
+    rw [ult_one (show room.toNat < iDust.toNat from by omega)]; decide +native
   have hbody := catBiteSourceRoomLtDustRevert hwv
     (catBiteVatCodePos_of_uniswap hAccounts hvatCode) hIlksSolm hIlksDec hvatCodeIlkS
     hUrnsSolm hUrnsDec hlive' hsz36 hfitInkSpot hfitArtRate hspotPos hratePos hunsafe hlitLtBox
     hroomLtDust
   exact catBiteMilkRequireStringFullWordRevertLeaf (okPc := ⟨1810⟩) (len := ⟨25⟩)
     (word := ⟨0x4361742f6c69717569646174696f6e2d6c696d69742d68697400000000000000⟩)
-    hcode hdispatch hdecode rd1730 hcond (by native_decide) (by native_decide)
-    (by unfold catBiteMilkFullWordRevertTailWf; repeat' first | apply And.intro | native_decide)
+    hcode hdispatch hdecode rd1730 hcond (by decide +native) (by decide +native)
+    (by unfold catBiteMilkFullWordRevertTailWf; repeat' first | apply And.intro | decide +native)
     (catBiteMilkSize320 hqfp hilkslen hosz hurnslen hoszu)
     (catBiteMilkRead64_320 hqfp hilkslen hosz hurnslen hoszu)
     (by simp only [List.length_cons, List.length_nil]; omega) hbody
@@ -5289,7 +5289,7 @@ theorem catBiteRevertFessNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
-  have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
+  have hmask : biteAddrMaskWord = solcAddrMask := by decide +native
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
@@ -5337,10 +5337,10 @@ theorem catBiteRevertFessNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     by_cases h : a.toNat ≤ b.toNat
     · rw [if_pos (ugt_zero h), if_pos h]
     · rw [if_neg (by rw [ugt_one (by omega)]; decide), if_neg h]
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hsl : (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat =
       57896044618658097711785492504343953926634992332820282019728792003956564819968 := by
-    native_decide
+    decide +native
   have hbr : ∀ (o : ByteArray) (k : ℕ), k + 32 ≤ o.size →
       ABI.bytesToWord ((o.toList.drop k).take 32) =
         UInt256.ofNat (fromByteArrayBigEndian (o.extract k (k + 32))) := by
@@ -5474,7 +5474,7 @@ theorem catBiteRevertFessNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
     cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
-    | none => native_decide
+    | none => decide +native
     | some acc =>
         rw [hf] at hw
         simpa [Option.option] using congrArg UInt256.toNat hw
@@ -5525,9 +5525,9 @@ theorem catBiteRevertFessNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
   have hrev : RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.solcExtcodesizeGuardMissing (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd2284 hFessCode
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) hov2
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) hov2
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 
@@ -5642,7 +5642,7 @@ theorem catBiteRevertKickNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
-  have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
+  have hmask : biteAddrMaskWord = solcAddrMask := by decide +native
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
@@ -5690,10 +5690,10 @@ theorem catBiteRevertKickNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     by_cases h : a.toNat ≤ b.toNat
     · rw [if_pos (ugt_zero h), if_pos h]
     · rw [if_neg (by rw [ugt_one (by omega)]; decide), if_neg h]
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hsl : (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat =
       57896044618658097711785492504343953926634992332820282019728792003956564819968 := by
-    native_decide
+    decide +native
   have storeFlat : ∀ (ev : EVM.State) (aa : AccountAddress) (k v : UInt256),
       Solm.EVM.storageStore ev aa k v =
         { ev with accountMap := sstoreAccountMap aa ev.accountMap k v } := by
@@ -5880,7 +5880,7 @@ theorem catBiteRevertKickNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     unfold extCodeSizeWord at hw
     simp only [State.lookupAccount]
     cases hf : e.accountMap.find? (AccountAddress.ofUInt256 w) with
-    | none => native_decide
+    | none => decide +native
     | some acc =>
         rw [hf] at hw
         simpa [Option.option] using congrArg UInt256.toNat hw
@@ -5959,9 +5959,9 @@ theorem catBiteRevertKickNoCode {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
   have hrev : RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
     RD.solcExtcodesizeGuardMissing (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd2516 hKickCode
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) hov3
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) hov3
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 set_option maxHeartbeats 1000000 in
@@ -5983,20 +5983,20 @@ theorem RD.catBiteCheckedAddRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [uadd_toNat, Nat.mod_eq_sub_mod hover, Nat.mod_eq_of_lt (by omega)]
   have hlt : UInt256.lt (a + b) a = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one; rw [haddNat]; omega
-  have rd3803 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd3804 := rd3803.dup1 (by native_decide) (by evm_ov)
-  have rd3805 := rd3804.dup3 (by native_decide) (by evm_ov)
-  have rd3806 := rd3805.add (by native_decide) (by evm_ov)
-  have rd3807 := rd3806.dup3 (by native_decide) (by evm_ov)
-  have rd3808 := rd3807.dup2 (by native_decide) (by evm_ov)
-  have rd3809 := rd3808.lt (by native_decide) (by evm_ov)
+  have rd3803 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd3804 := rd3803.dup1 (by decide +native) (by evm_ov)
+  have rd3805 := rd3804.dup3 (by decide +native) (by evm_ov)
+  have rd3806 := rd3805.add (by decide +native) (by evm_ov)
+  have rd3807 := rd3806.dup3 (by decide +native) (by evm_ov)
+  have rd3808 := rd3807.dup2 (by decide +native) (by evm_ov)
+  have rd3809 := rd3808.lt (by decide +native) (by evm_ov)
   rw [hlt] at rd3809
-  have rd3810 := rd3809.iszero (by native_decide) (by evm_ov)
+  have rd3810 := rd3809.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd3810
-  have rd3813 := rd3810.push2 ⟨3756⟩ (by native_decide) (by evm_ov)
-  have rd3814 := rd3813.jumpiNT (by native_decide) rfl (by evm_ov)
+  have rd3813 := rd3810.push2 ⟨3756⟩ (by decide +native) (by evm_ov)
+  have rd3814 := rd3813.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rd3814
-    (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by decide +native) (by evm_ov)
 
 set_option maxHeartbeats 4000000 in
 /-- **`litter + tab` checked-add overflow branch (extracted).** grab+fess succeed and `tab` is
@@ -6107,7 +6107,7 @@ theorem catBiteRevertLitterAdd {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hDinkLim : dink.toNat ≤ (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hdepthNe : I.depth ≠ 1024 := by omega
-  have hmask : biteAddrMaskWord = solcAddrMask := by native_decide
+  have hmask : biteAddrMaskWord = solcAddrMask := by decide +native
   have hposNe : ∀ w : UInt256, w ≠ ⟨0⟩ → 0 < w.toNat :=
     fun w hw => Nat.pos_of_ne_zero (fun h => hw (uint256_toNat_eq_zero h))
   have codePos : ∀ (e : EVM.State) (w : UInt256),
@@ -6155,10 +6155,10 @@ theorem catBiteRevertLitterAdd {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     by_cases h : a.toNat ≤ b.toNat
     · rw [if_pos (ugt_zero h), if_pos h]
     · rw [if_neg (by rw [ugt_one (by omega)]; decide), if_neg h]
-  have hwad : wadU = ⟨1000000000000000000⟩ := by native_decide
+  have hwad : wadU = ⟨1000000000000000000⟩ := by decide +native
   have hsl : (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩).toNat =
       57896044618658097711785492504343953926634992332820282019728792003956564819968 := by
-    native_decide
+    decide +native
   have storeFlat : ∀ (ev : EVM.State) (aa : AccountAddress) (k v : UInt256),
       Solm.EVM.storageStore ev aa k v =
         { ev with accountMap := sstoreAccountMap aa ev.accountMap k v } := by
@@ -6430,41 +6430,41 @@ theorem catBiteRevertLitterAdd {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have e32q : (⟨32⟩ + q).toNat = q.toNat + 32 := uadd_lit32_toNat q (by omega)
   have hChopAw : UInt256.ofNat (MachineState.M aw2.toNat (⟨32⟩ + q).toNat 32) = aw2 :=
     catBiteAwMInv32 aw2 (by rw [e32q]; omega)
-  have rd2321 := rd2321f.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd2323 := RD.push8 rd2321 ⟨1000000000000000000⟩ (by native_decide) (by evm_ov)
-  have rd2332 := rd2323.push2 ⟨2354⟩ (by native_decide) (by evm_ov)
-  have rd2335 := rd2332.push2 ⟨2344⟩ (by native_decide) (by evm_ov)
-  have rd2338 := rd2335.dup6 (by native_decide) (by evm_ov)
-  have rd2339 := rd2338.dup13 (by native_decide) (by evm_ov)
-  have rd2340 := rd2339.push2 ⟨3720⟩ (by native_decide) (by evm_ov)
-  have rd3720a := rd2340.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd2344⟩ := RD.catBiteCheckedMul rd3720a hRateFit (by native_decide) (by evm_ov)
+  have rd2321 := rd2321f.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd2323 := RD.push8 rd2321 ⟨1000000000000000000⟩ (by decide +native) (by evm_ov)
+  have rd2332 := rd2323.push2 ⟨2354⟩ (by decide +native) (by evm_ov)
+  have rd2335 := rd2332.push2 ⟨2344⟩ (by decide +native) (by evm_ov)
+  have rd2338 := rd2335.dup6 (by decide +native) (by evm_ov)
+  have rd2339 := rd2338.dup13 (by decide +native) (by evm_ov)
+  have rd2340 := rd2339.push2 ⟨3720⟩ (by decide +native) (by evm_ov)
+  have rd3720a := rd2340.jump (by decide +native) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd2344⟩ := RD.catBiteCheckedMul rd3720a hRateFit (by decide +native) (by evm_ov)
   rw [hDartRate] at rd2344
-  have rd2344j := rd2344.jumpdest (by native_decide) (by evm_ov)
-  have rd2345 := rd2344j.dup7 (by native_decide) (by evm_ov)
-  have rd2346 := rd2345.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd2348 := rd2346.add (by native_decide) (by evm_ov)
-  have rd2349 := RD.mload 0 milkChop aw2 rd2348 (by native_decide) (catBiteMloadCost0 hChopAw)
+  have rd2344j := rd2344.jumpdest (by decide +native) (by evm_ov)
+  have rd2345 := rd2344j.dup7 (by decide +native) (by evm_ov)
+  have rd2346 := rd2345.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd2348 := rd2346.add (by decide +native) (by evm_ov)
+  have rd2349 := RD.mload 0 milkChop aw2 rd2348 (by decide +native) (catBiteMloadCost0 hChopAw)
     hChop hChopAw (by evm_ov)
-  have rd2350 := rd2349.push2 ⟨3720⟩ (by native_decide) (by evm_ov)
-  have rd3720b := rd2350.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd2354⟩ := RD.catBiteCheckedMul rd3720b hChopFit (by native_decide) (by evm_ov)
+  have rd2350 := rd2349.push2 ⟨3720⟩ (by decide +native) (by evm_ov)
+  have rd3720b := rd2350.jump (by decide +native) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd2354⟩ := RD.catBiteCheckedMul rd3720b hChopFit (by decide +native) (by evm_ov)
   rw [hTabBase] at rd2354
-  have rd2354j := rd2354.jumpdest (by native_decide) (by evm_ov)
-  have rd2355 := rd2354j.dup2 (by native_decide) (by evm_ov)
-  have rd2356 := rd2355.push2 ⟨2361⟩ (by native_decide) (by evm_ov)
-  have rd2361 := rd2356.jumpiT (by native_decide) (by decide) (by jump_dest) (by evm_ov)
-  have rd2361j := rd2361.jumpdest (by native_decide) (by evm_ov)
-  have rd2362 := rd2361j.div (by native_decide) (by evm_ov)
+  have rd2354j := rd2354.jumpdest (by decide +native) (by evm_ov)
+  have rd2355 := rd2354j.dup2 (by decide +native) (by evm_ov)
+  have rd2356 := rd2355.push2 ⟨2361⟩ (by decide +native) (by evm_ov)
+  have rd2361 := rd2356.jumpiT (by decide +native) (by decide) (by jump_dest) (by evm_ov)
+  have rd2361j := rd2361.jumpdest (by decide +native) (by evm_ov)
+  have rd2362 := rd2361j.div (by decide +native) (by evm_ov)
   rw [hTab] at rd2362
-  have rd2363 := rd2362.swap1 (by native_decide) (by evm_ov)
-  have rd2364 := rd2363.pop (by native_decide) (by evm_ov)
-  have rd2365 := rd2364.push2 ⟨2376⟩ (by native_decide) (by evm_ov)
-  have rd2368 := rd2365.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2370raw⟩ := rd2368.sload (by native_decide) (by evm_ov)
-  have rd2371 := rd2370raw.dup3 (by native_decide) (by evm_ov)
-  have rd2372 := rd2371.push2 ⟨3802⟩ (by native_decide) (by evm_ov)
-  have rd3802 := rd2372.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd2363 := rd2362.swap1 (by decide +native) (by evm_ov)
+  have rd2364 := rd2363.pop (by decide +native) (by evm_ov)
+  have rd2365 := rd2364.push2 ⟨2376⟩ (by decide +native) (by evm_ov)
+  have rd2368 := rd2365.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2370raw⟩ := rd2368.sload (by decide +native) (by evm_ov)
+  have rd2371 := rd2370raw.dup3 (by decide +native) (by evm_ov)
+  have rd2372 := rd2371.push2 ⟨3802⟩ (by decide +native) (by evm_ov)
+  have rd3802 := rd2372.jump (by decide +native) (by jump_dest) (by evm_ov)
   have hrev := RD.catBiteCheckedAddRevert rd3802 (Nat.le_of_not_lt hLitNofit)
     (by simp only [List.length_cons, List.length_nil]; omega)
   simpa using hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody

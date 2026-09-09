@@ -102,7 +102,7 @@ macro "dai_single_mapping_getter_wf" : term =>
   `(by
     unfold Reasoning.Reach.daiSingleMappingGetterWf
       Reasoning.Reach.solcSingleMappingGetterWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 theorem RD.daiSingleMappingGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc baseSlot key ret : UInt256} {R : List UInt256} {rdata : ByteArray}
@@ -161,7 +161,7 @@ theorem RD.daiSingleMappingGetter {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
 macro "dai_zero_slot_single_mapping_getter_wf" : term =>
   `(by
     unfold Reasoning.Reach.daiZeroSlotSingleMappingGetterWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 theorem RD.daiZeroSlotSingleMappingGetter {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc key ret : UInt256} {R : List UInt256}
@@ -186,11 +186,11 @@ theorem RD.daiZeroSlotSingleMappingGetter {g : Sat256} {s0 : State}
   have rd6 := rd5.dup2 hd5 (by simp only [List.length_cons]; omega)
   have rd7 := rd6.swap1 hd6 (by simp only [List.length_cons]; omega)
   have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨0⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd9 := rd8.swap1 hd8 (by evm_ov)
   have rd10 := rd9.dup2 hd9 (by evm_ov)
   have rd11 := rd10.mstore 0 (solcMappingHashMem ⟨0⟩ key)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd13 := rd11.push1 ⟨64⟩ hd11 (by evm_ov)
   have rd14 := rd13.swap1 hd13 (by evm_ov)
   have hslot := solcMappingKeccakSlot ⟨0⟩ key
@@ -198,7 +198,7 @@ theorem RD.daiZeroSlotSingleMappingGetter {g : Sat256} {s0 : State}
     (UInt256.ofNat 3) hd14 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   obtain ⟨k16, C16, rd16⟩ := rd15.sload hd15 (by evm_ov)
   have rd17 := rd16.dup2 hd16 (by evm_ov)
   have rd18 := rd17.jump hd17 hret (by evm_ov)
@@ -215,7 +215,7 @@ macro "dai_nested_mapping_getter_wf" : term =>
   `(by
     unfold Reasoning.Reach.daiNestedMappingGetterWf
       Reasoning.Reach.solcNestedMappingGetterWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 theorem RD.daiNestedMappingInnerHash {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ}
@@ -381,7 +381,7 @@ macro "dai_one_address_external_entry_wf" : term =>
   `(by
     unfold Reasoning.Reach.daiOneAddressExternalEntryWf
       Reasoning.Reach.daiOneAddressExternalDecodedPc
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.daiOneAddressExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -550,7 +550,7 @@ macro "dai_two_address_external_entry_wf" : term =>
   `(by
     unfold Reasoning.Reach.daiTwoAddressExternalEntryWf
       Reasoning.Reach.daiTwoAddressExternalDecodedPc
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.daiTwoAddressExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -718,7 +718,7 @@ macro "dai_address_uint256_external_entry_wf" : term =>
   `(by
     unfold Reasoning.Reach.daiAddressUint256ExternalEntryWf
       Reasoning.Reach.daiAddressUint256ExternalDecodedPc
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.daiAddressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -904,7 +904,7 @@ macro "dai_address_address_uint256_external_entry_wf" : term =>
   `(by
     unfold Reasoning.Reach.daiAddressAddressUint256ExternalEntryWf
       Reasoning.Reach.daiAddressAddressUint256ExternalDecodedPc
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.daiAddressAddressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -991,7 +991,7 @@ macro "dai_return_word_from_mem_wf" : term =>
   `(by
     unfold Reasoning.Reach.daiReturnWordFromMemWf
       Reasoning.Reach.solcReturnWordFromMemWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 theorem RD.daiReturnWordFromMem {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
     {pc val ret : UInt256} {R : List UInt256} {mem memout rdata : ByteArray}
@@ -1026,7 +1026,7 @@ macro "dai_getter_entry_wf" : term =>
   `(by
     unfold Reasoning.Reach.daiGetterEntryWf
       Reasoning.Reach.solcGetterEntryWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 @[reducible] def daiWordSlotGetterWf (pc slot : UInt256) : Prop :=
   solcWordSlotGetterWf Benchmarks.Dss.Dai.daiBytecode pc slot
@@ -1035,7 +1035,7 @@ macro "dai_word_slot_getter_wf" : term =>
   `(by
     unfold Reasoning.Reach.daiWordSlotGetterWf
       Reasoning.Reach.solcWordSlotGetterWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 @[reducible] def daiConstGetterWf
     (pc val : UInt256) (width : Nat) (op : Operation.POp) : Prop :=
@@ -1045,7 +1045,7 @@ macro "dai_const_getter_wf" : term =>
   `(by
     unfold Reasoning.Reach.daiConstGetterWf
       Reasoning.Reach.solcConstGetterWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 @[reducible] def daiReturnUint8FromMemWf (pc : UInt256) : Prop :=
   solcReturnUint8FromMemWf Benchmarks.Dss.Dai.daiBytecode pc
@@ -1054,7 +1054,7 @@ macro "dai_return_uint8_from_mem_wf" : term =>
   `(by
     unfold Reasoning.Reach.daiReturnUint8FromMemWf
       Reasoning.Reach.solcReturnUint8FromMemWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 theorem RD.daiWordGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel entry routine slot returnPc : UInt256}

@@ -1106,7 +1106,7 @@ theorem cReEquiv_callvalueZero {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 (by rw [storageStore_createdAccounts]; simp [initState])
                 (accountMapEquiv.of_eq (by rw [storageStore_accountMap]; simp [initState]))
                 hσPost
-                (returnEquiv.fallthrough rfl rfl (by native_decide))
+                (returnEquiv.fallthrough rfl rfl (by decide +native))
             · have hover : UInt256.size ≤ 2 * (cArgWord I).toNat + 1 := by omega
               have hbody := cGBodyReverts_overflow
                 (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
@@ -1142,45 +1142,45 @@ noncomputable def cInitReturnMem : ByteArray :=
   (cInitcode).write 12 ByteArray.empty 0 271
 
 theorem cBytecode_size : cBytecode.size = 271 := by
-  native_decide
+  decide +native
 
 theorem cInitcode_runtime_window :
     (cInitcode).extract 12 (12 + 271) = cBytecode := by
-  native_decide
+  decide +native
 
 theorem cInitcodeDecode0 :
     decode cInitcode ⟨0⟩ = some (.Push .PUSH2, some (⟨271⟩, 2)) := by
-  native_decide
+  decide +native
 
 theorem cInitcodeDecode3 :
     decode cInitcode ⟨3⟩ = some (.Push .PUSH1, some (⟨12⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem cInitcodeDecode5 :
     decode cInitcode ⟨5⟩ = some (.PUSH0, .none) := by
-  native_decide
+  decide +native
 
 theorem cInitcodeDecode6 :
     decode cInitcode ⟨6⟩ = some (.CODECOPY, .none) := by
-  native_decide
+  decide +native
 
 theorem cInitcodeDecode7 :
     decode cInitcode ⟨7⟩ = some (.Push .PUSH2, some (⟨271⟩, 2)) := by
-  native_decide
+  decide +native
 
 theorem cInitcodeDecode10 :
     decode cInitcode ⟨10⟩ = some (.PUSH0, .none) := by
-  native_decide
+  decide +native
 
 theorem cInitcodeDecode11 :
     decode cInitcode ⟨11⟩ = some (.RETURN, .none) := by
-  native_decide
+  decide +native
 
 theorem cFinal_read :
     cInitReturnMem.readWithPadding 0 271 = cBytecode := by
   unfold cInitReturnMem
   rw [write0_read_back_from_gen cInitcode ByteArray.empty 12 271
-    (by decide) (by native_decide) (by decide)]
+    (by decide) (by decide +native) (by decide)]
   exact cInitcode_runtime_window
 
 set_option maxHeartbeats 400000 in

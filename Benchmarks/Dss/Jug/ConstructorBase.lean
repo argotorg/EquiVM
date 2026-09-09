@@ -49,11 +49,11 @@ macro "jug_ctor_decode" : tactic =>
   `(tactic|
     (first
       | rw [Reasoning.Theory.decode_append_left_window
-          jugCreationBytecode _ _ (by native_decide) (by native_decide)]
+          jugCreationBytecode _ _ (by decide +native) (by decide +native)]
       | (unfold jugCtorCode
          rw [Reasoning.Theory.decode_append_left_window
-          jugCreationBytecode _ _ (by native_decide) (by native_decide)]);
-     native_decide))
+          jugCreationBytecode _ _ (by decide +native) (by decide +native)]);
+     decide +native))
 
 macro "jug_ctor_jd" : tactic =>
   `(tactic|
@@ -80,10 +80,10 @@ macro "jug_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do
   return acc
 
 theorem jugCreationBytecode_size : jugCreationBytecode.size = 2560 := by
-  native_decide
+  decide +native
 
 theorem jugBytecode_size : jugBytecode.size = 2440 := by
-  native_decide
+  decide +native
 
 theorem jugCtorArgsTail_size (vat : AccountAddress) : (jugCtorArgsTail vat).size = 32 := by
   simpa [jugCtorArgsTail] using word_toBytesBE_toByteArray_size (EVM.word vat.val)
@@ -95,11 +95,11 @@ theorem jugCtorCode_size (vat : AccountAddress) : (jugCtorCode vat).size = 2592 
 theorem jugCtorArgLen_eq (vat : AccountAddress) :
     (UInt256.ofNat (jugCtorCode vat).size).sub ⟨2560⟩ = (⟨32⟩ : UInt256) := by
   rw [jugCtorCode_size]
-  native_decide
+  decide +native
 
 theorem jugCreationBytecode_runtime_window :
     jugCreationBytecode.extract 120 (120 + 2440) = jugBytecode := by
-  native_decide
+  decide +native
 
 -- LIBRARY CANDIDATE: a generic `ByteArray.write` normalization when a copy extends a base.
 private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : ℕ)
@@ -193,7 +193,7 @@ theorem jugCtorArgMem_eq (vat : AccountAddress) :
     · rw [solcFreePtrMem_size]
     · exact jugCreationBytecode_size.symm
     · rw [jugCtorArgsTail_size]
-      native_decide
+      decide +native
   · decide
   · rw [ByteArray.size_append, jugCreationBytecode_size, jugCtorArgsTail_size]
   · rw [solcFreePtrMem_size]

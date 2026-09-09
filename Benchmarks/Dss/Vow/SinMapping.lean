@@ -45,7 +45,7 @@ theorem vowDispatch_sin {I : ExecutionEnv} (hsel : selIs I ⟨#[0xcb, 0x5c, 0xc1
         fileUintSelectorBytes, fileAddressSelectorBytes, flapSelectorBytes, flapperSelectorBytes,
         flogSelectorBytes, flopSelectorBytes, flopperSelectorBytes, healSelectorBytes,
         humpSelectorBytes, kissSelectorBytes, liveSelectorBytes, relySelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, sinSelectorBytes]
     exact hsel
 
@@ -72,13 +72,13 @@ theorem vowReachSinMappingBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vowSelWord I = ⟨3411853577⟩ :=
     vowSelWord_eq_of_beq I hsz 0xcb 0x5c 0xc1 0x09 ⟨3411853577⟩
-      (by native_decide) hsel
+      (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat vowBytecode vowHighSplitPc) (vowSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowHighHighFirstArmPc j))
         (vowSelWord I) = ⟨0⟩ := by
@@ -88,9 +88,9 @@ theorem vowReachSinMappingBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowHighHighFirstArmPc 0))
         (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vowReachHighHighBody 0 (by omega) ⟨700⟩ hcode hwv hsz hsize hroot hhigh heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem vowSinMappingBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -133,28 +133,28 @@ theorem vowSinMappingBodyCore
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := vowBytecode) (sel := sel) (entry := ⟨700⟩) (ret := ⟨357⟩)
     (decoded := ⟨722⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ :
       ∃ k C, RD vowBytecode I (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨4084⟩
         [key, ⟨357⟩, sel] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         (cA, σ_evm) k C := by
-    have rd723 := hdecoded.jumpdest (by native_decide) (by evm_ov)
-    have rd724 := rd723.pop (by native_decide) (by evm_ov)
-    have rd725 := rd724.calldataload (by native_decide) (by evm_ov)
-    have rd728 := rd725.push2 ⟨4084⟩ (by native_decide) (by evm_ov)
+    have rd723 := hdecoded.jumpdest (by decide +native) (by evm_ov)
+    have rd724 := rd723.pop (by decide +native) (by evm_ov)
+    have rd725 := rd724.calldataload (by decide +native) (by evm_ov)
+    have rd728 := rd725.push2 ⟨4084⟩ (by decide +native) (by evm_ov)
     exact ⟨_, _, by
       simpa [key, sinMappingKey, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-        using rd728.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+        using rd728.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
   obtain ⟨_, _, hretPc⟩ := RD.solcSingleMappingGetter
     (code := vowBytecode) (pc := ⟨4084⟩) (baseSlot := ⟨4⟩) (key := key)
     (ret := ⟨357⟩) (R := [sel]) hroutine
     (by
       unfold solcSingleMappingGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   have hret :
       RDret vowBytecode (Sat256.ofUInt256 g)
@@ -167,7 +167,7 @@ theorem vowSinMappingBodyCore
       (by simpa [slot, vowSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨4⟩ key)
       (by rfl)
       (by
@@ -226,10 +226,10 @@ theorem vowSinMappingShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := vowBytecode) (sel := vowSelWord I) (entry := ⟨700⟩) (ret := ⟨357⟩)
     (decoded := ⟨722⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode (vowDispatch_sin hsel)
     (vowDecode_sin_none_short hsz4 hshort)
 

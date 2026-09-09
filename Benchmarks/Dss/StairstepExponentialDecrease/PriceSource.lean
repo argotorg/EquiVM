@@ -33,13 +33,13 @@ def priceN (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem stairstepRay_toNat : stairstepRay.toNat = 1000000000000000000000000000 := by
   change (UInt256.ofNat 1000000000000000000000000000).toNat =
     1000000000000000000000000000
-  exact ulit_toNat' _ (by native_decide)
+  exact ulit_toNat' _ (by decide +native)
 
 theorem RAY_eq_stairstepRay_toNat : RAY = Int.ofNat stairstepRay.toNat := by
   simp [RAY, stairstepRay_toNat]
 
 theorem stairstepUInt256Zero_toNat : (⟨0⟩ : UInt256).toNat = 0 := by
-  native_decide
+  decide +native
 
 -- GENERALIZES Benchmarks.Dss.Jug.u256_mul_div_overflow_ne.
 theorem price_u256_mul_div_overflow_ne (x y : UInt256)
@@ -159,7 +159,7 @@ theorem priceLocals_get_step_none (I : ExecutionEnv) :
   rw [priceLocals]
   rw [store_get_ne, store_get_ne]
   · simp
-  all_goals native_decide
+  all_goals decide +native
 
 theorem priceLocalsN_get_top (σ : AccountMap) (I : ExecutionEnv) :
     (priceLocalsN σ I).get? "top" = some (.int (Int.ofNat (priceTop I).toNat)) := by
@@ -174,7 +174,7 @@ theorem priceLocalsN_get_cut_none (σ : AccountMap) (I : ExecutionEnv) :
   rw [priceLocalsN, store_get_ne _ _ (by decide), priceLocals]
   rw [store_get_ne, store_get_ne]
   · simp
-  all_goals native_decide
+  all_goals decide +native
 
 theorem priceLocalsPow_get_top (σ : AccountMap) (I : ExecutionEnv) (pow : UInt256) :
     (priceLocalsPow σ I pow).get? "top" =
@@ -309,7 +309,7 @@ theorem evalExpr_priceStep_zero {evm : EVM.State} {I : ExecutionEnv}
       .ok (.int 0) := by
   have hload : storageLocLoad evm (wordLoc ⟨1⟩) = .int 0 := by
     rw [stairstepStorageLocLoad_uint256, hstep]
-    native_decide
+    decide +native
   exact evalExpr_storage_scalar_value
     (cfg := config) (solm := { contract := contract, locals := priceLocals I }) (evm := evm)
     (slot := stepRef) (er := ({ base := "step", steps := [] } : EvaledStorageRef))
@@ -531,7 +531,7 @@ theorem stairstepExecRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
   have hDivRay :
       evalExpr? config { contract := contract, locals := localsZ } evm
         (.binary .div (.var "z") (.intLit RAY)) = .ok (.int (Int.ofNat q.toNat)) :=
-    evalExpr_price_div_uint256_ok hzZ hRayLit (by native_decide) hq
+    evalExpr_price_div_uint256_ok hzZ hRayLit (by decide +native) hq
   have hAssign :
       assignStorageRef? config { contract := contract, locals := localsZ } evm .localVar
           { base := "z" } (.int (Int.ofNat q.toNat)) =

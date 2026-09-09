@@ -140,7 +140,7 @@ theorem kickSelectorMem_selector {mem : ByteArray} (hmem : 292 ≤ mem.size) :
     rw [write32_read_prefix_len _ _ 128 4 (by rw [toByteArray_size]) (by omega)
       (by omega) (by omega) (by norm_num)]
     unfold kickSelectorShifted kickerKickSelector selectorBytes
-    native_decide
+    decide +native
   rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
       (by rw [kickSelectorMem_size hmem]; omega)] at hread
   simpa using hread
@@ -300,8 +300,8 @@ theorem kickEncode_eq (urn vow tab dink : UInt256) {mem : ByteArray}
     show UInt256.ofNat tab.toNat = tab; exact u256_ofNat_toNat tab
   have hdinkWord : EVM.word dink.toNat = dink := by
     show UInt256.ofNat dink.toNat = dink; exact u256_ofNat_toNat dink
-  have hsizeEq : EVM.twoPow 256 = UInt256.size := by native_decide
-  have hzeroLt : 0 < EVM.twoPow 256 := by native_decide
+  have hsizeEq : EVM.twoPow 256 = UInt256.size := by decide +native
+  have hzeroLt : 0 < EVM.twoPow 256 := by decide +native
   have htabLt : tab.toNat < EVM.twoPow 256 := by rw [hsizeEq]; exact tab.val.isLt
   have hdinkLt : dink.toNat < EVM.twoPow 256 := by rw [hsizeEq]; exact dink.val.isLt
   simp [config, externalABI, ABI.encodeCallWithSelector?, ABI.encodeABIValues?,
@@ -332,9 +332,9 @@ theorem RD.catBiteKickGuardMissing {cA gh bl σ σ₀ A I} {g target : UInt256} 
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons]; omega)
 
 /-- Present-code branch: step the guard to the `GAS`, reaching the `CALL` at pc `2531`. -/
 theorem RD.catBiteKickGuardOk {cA gh bl σ σ₀ A I} {g target : UInt256} {mem : ByteArray}
@@ -352,9 +352,9 @@ theorem RD.catBiteKickGuardOk {cA gh bl σ σ₀ A I} {g target : UInt256} {mem 
       mem aw rdata (cAx, σx) k' C' := by
   obtain ⟨gasWord, k', C', rd'⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2516⟩) (okPc := ⟨2528⟩) rd hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp only [List.length_cons]; omega)
   exact ⟨gasWord, k', C', by simpa using rd'⟩
 
 /-- Execute the `CALL` (`perm := true`, value `0`, `depth < 1024`): the `Θ` witness plus the RD at
@@ -383,7 +383,7 @@ theorem RD.catBiteKickPostCall {cA gh bl σ σ₀ A I} {g target gasWord : UInt2
           o (cA', σ') k' C'
       ∧ o.size < UInt256.size := by
   obtain ⟨cA', σ', z, o, Ain, callGas, k', C', hΘ, rd2532, hout⟩ :=
-    RD.call rd (by native_decide) hdepth (by simpa using hov)
+    RD.call rd (by decide +native) hdepth (by simpa using hov)
   refine ⟨cA', σ', z, o, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · simpa using rd2532
@@ -402,7 +402,7 @@ theorem RD.catBiteKickCallDepthLimit {cA gh bl σ σ₀ A I} {g target gasWord :
       (ByteArray.empty.write 0 mem 128 (min (⟨32⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat)
       (UInt256.ofNat (MachineState.M (MachineState.M aw.toNat 128 164) 128 32))
       ByteArray.empty (cAx, σx) k' C' := by
-  obtain ⟨k', C', rd'⟩ := RD.callDepthLimit rd (by native_decide) hdepth (by simpa using hov)
+  obtain ⟨k', C', rd'⟩ := RD.callDepthLimit rd (by decide +native) hdepth (by simpa using hov)
   exact ⟨k', C', by simpa using rd'⟩
 
 /-- Success guard, failure branch: status `0` bubbles the return data and reverts. -/
@@ -417,9 +417,9 @@ theorem RD.catBiteKickCallFailed {cA gh bl σ σ₀ A I} {g : UInt256} {mem : By
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2532⟩) (okPc := ⟨2548⟩) rd rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize hov
 
 /-- Success guard, ok branch: status `≠ 0` reaches the first return-decode instruction (pc `2550`)
@@ -436,7 +436,7 @@ theorem RD.catBiteKickCallSucceeded {cA gh bl σ σ₀ A I} {g status : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2550⟩ R
       mem aw rdata acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨2532⟩) (okPc := ⟨2548⟩) rd hstatus
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide) hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native) hov
 
 end Benchmarks.Dss.Cat

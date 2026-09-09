@@ -427,13 +427,13 @@ theorem uniswapSyncRuntimeFirstBalanceOfStaticcallDepthReverts
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd6176⟩ :=
-    RD.solcStaticcallDepthLimit rd6175 (by native_decide) hdepth hovStatic
+    RD.solcStaticcallDepthLimit rd6175 (by decide +native) hdepth hovStatic
   have rdRev :=
     RD.solcCallSuccessGuardMissing (okPc := ⟨6192⟩) rd6176 rfl
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide)
       hovGuard
   simpa using rdRev
 
@@ -757,10 +757,10 @@ theorem uniswapSyncBody
           have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
             simp [hz]
           exact RD.solcCallSuccessGuardMissing (okPc := ⟨6192⟩) rd6176 hstatus
-            (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-            (by native_decide) (by native_decide) (by native_decide)
-            (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-            (by native_decide) hoSize
+            (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+            (by decide +native) (by decide +native) (by decide +native)
+            (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+            (by decide +native) hoSize
             (by simp only [List.length_cons, List.length_nil]; omega)
         have hrevShort :
             z = true → o.size < 32 →
@@ -772,16 +772,16 @@ theorem uniswapSyncBody
             decide
           obtain ⟨_, _, rd6194⟩ :=
             RD.solcCallSuccessGuardOk (okPc := ⟨6192⟩) rd6176 hstatus
-              (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-              (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+              (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+              (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
               (by simp only [List.length_cons, List.length_nil]; omega)
           exact RD.uniswapBalanceOfReturnWordDecodeShortReverts
             (pc := ⟨6194⟩) (okPc := ⟨6214⟩) (self := UInt256.ofNat I.codeOwner.val)
             rd6194 hshort hoSize
-            (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-            (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-            (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-            (by native_decide) (by native_decide) (by native_decide)
+            (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+            (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+            (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+            (by decide +native) (by decide +native) (by decide +native)
             (by simp only [List.length_cons, List.length_nil]; omega)
         obtain ⟨evm0S, hcallAll, hPostAccounts0, hcreated0, hσ0, hgenesis0,
             hblocks0, henv0⟩ :=
@@ -854,9 +854,9 @@ theorem uniswapSyncBody
                 (UInt256.land solcAddrMask (uniswapSlotWord ⟨7⟩ σ' I)) = ⟨0⟩
             · have rdRev :=
                 RD.solcExtcodesizeGuardMissing (okPc := ⟨6291⟩) rd6279 htoken1NoCode
-                  (by native_decide) (by native_decide) (by native_decide)
-                  (by native_decide) (by native_decide) (by native_decide)
-                  (by native_decide) (by native_decide) (by native_decide)
+                  (by decide +native) (by decide +native) (by decide +native)
+                  (by decide +native) (by decide +native) (by decide +native)
+                  (by decide +native) (by decide +native) (by decide +native)
                   (by simp only [List.length_cons, List.length_nil]; omega)
               have hguard1 :
                   evalExpr? config
@@ -877,14 +877,14 @@ theorem uniswapSyncBody
                 syncToken1GuardTrue_of_code hPostAccounts0 henv0I htoken1NoCode
               obtain ⟨_, _, _, rd6294⟩ :=
                 RD.solcExtcodesizeGuardOkGas (okPc := ⟨6291⟩) rd6279 htoken1NoCode
-                  (by native_decide) (by native_decide) (by native_decide)
-                  (by native_decide) (by native_decide) (by native_decide)
-                  (by jump_dest) (by native_decide) (by native_decide)
-                  (by native_decide)
+                  (by decide +native) (by decide +native) (by decide +native)
+                  (by decide +native) (by decide +native) (by decide +native)
+                  (by jump_dest) (by decide +native) (by decide +native)
+                  (by decide +native)
                   (by simp only [List.length_cons, List.length_nil]; omega)
               obtain ⟨cA'', σ'', z1, o1, A_in1, callGas1, _, _, hΘ1, rd6295,
                   ho1Size⟩ :=
-                RD.solcStaticcall rd6294 (by native_decide) hdepth
+                RD.solcStaticcall rd6294 (by decide +native) hdepth
                   (by simp only [List.length_cons, List.length_nil]; omega)
               obtain ⟨evm1S, hcall1All, hPostAccounts1, hcreated1, hσ01,
                   hgenesis1, hblocks1, henv1⟩ :=
@@ -957,7 +957,7 @@ theorem uniswapSyncBody
                     exact balanceOfThisRebuiltStaticcallMem_read64_of_size_ge
                       (UInt256.ofNat I.codeOwner.val) o o1 ho32 hoSize ho132 ho1Size
                   have hreserve112MaskNat : reserve112Mask.toNat = 2 ^ 112 - 1 := by
-                    native_decide
+                    decide +native
                   by_cases hfit0 : balance0.toNat ≤ reserve112Mask.toNat
                   · by_cases hfit1 : balance1.toNat ≤ reserve112Mask.toNat
                     · have hbound0 : Int.ofNat balance0.toNat ≤ maxUint112 := by
@@ -1046,41 +1046,41 @@ theorem uniswapSyncBody
                               intro s haw hstk
                               simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                 hstk]
-                              native_decide)
+                              decide +native)
                             (by
                               simpa [mem0] using
                                 balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
                                   (UInt256.ofNat I.codeOwner.val) o o1 ho32 hoSize ho132
                                   ho1Size)
-                            (by native_decide)
+                            (by decide +native)
                             (by
                               intro s haw hstk
                               simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                 hstk]
-                              native_decide)
-                            (by native_decide)
+                              decide +native)
+                            (by decide +native)
                             (by
                               intro s haw hstk
                               simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                 hstk]
-                              native_decide)
-                            (by native_decide)
+                              decide +native)
+                            (by decide +native)
                             (by
                               intro s haw hstk
                               simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                 hstk]
-                              native_decide)
+                              decide +native)
                             (by
                               simpa [mem0] using
                                 uniswapSyncLogMem_mload64 packed mem0 hmemSize128
                                   hmemRead64Local)
-                            (by native_decide)
+                            (by decide +native)
                             (by
                               intro s haw hstk
                               simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                 hstk]
-                              native_decide)
-                            (by native_decide) hperm (by jump_dest)
+                              decide +native)
+                            (by decide +native) hperm (by jump_dest)
                             (by simp only [List.length_cons, List.length_nil]; omega)
                         have rdRet := RD.uniswapSyncAfterUpdateToReturn rd6363 hperm
                         have hCreatedRet :
@@ -1206,7 +1206,7 @@ theorem uniswapSyncBody
                             syncUpdatePackedReserveState, henv1I] using hs
                         exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
                           (uniswapDecode_sync hsz4) hbody hCreatedRet hAccountsRet
-                          (returnEquiv.fallthrough rfl rfl (by native_decide))
+                          (returnEquiv.fallthrough rfl rfl (by decide +native))
                       · have helapsedNe :
                             UInt256.land
                               (uniswapUpdateElapsedWord (uniswapSlotWord ⟨8⟩ σ'' I) I)
@@ -1271,41 +1271,41 @@ theorem uniswapSyncBody
                                 intro s haw hstk
                                 simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                   hstk]
-                                native_decide)
+                                decide +native)
                               (by
                                 simpa [mem0] using
                                   balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
                                     (UInt256.ofNat I.codeOwner.val) o o1 ho32 hoSize ho132
                                     ho1Size)
-                              (by native_decide)
+                              (by decide +native)
                               (by
                                 intro s haw hstk
                                 simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                   hstk]
-                                native_decide)
-                              (by native_decide)
+                                decide +native)
+                              (by decide +native)
                               (by
                                 intro s haw hstk
                                 simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                   hstk]
-                                native_decide)
-                              (by native_decide)
+                                decide +native)
+                              (by decide +native)
                               (by
                                 intro s haw hstk
                                 simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                   hstk]
-                                native_decide)
+                                decide +native)
                               (by
                                 simpa [mem0] using
                                   uniswapSyncLogMem_mload64 packed mem0 hmemSize128
                                     hmemRead64Local)
-                              (by native_decide)
+                              (by decide +native)
                               (by
                                 intro s haw hstk
                                 simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                   hstk]
-                                native_decide)
-                              (by native_decide) hperm (by jump_dest)
+                                decide +native)
+                              (by decide +native) hperm (by jump_dest)
                               (by simp only [List.length_cons, List.length_nil]; omega)
                           have rdRet := RD.uniswapSyncAfterUpdateToReturn rd6363 hperm
                           have hCreatedRet :
@@ -1335,7 +1335,7 @@ theorem uniswapSyncBody
                               syncUpdatePackedReserveState, henv1I] using hs
                           exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
                             (uniswapDecode_sync hsz4) hbody hCreatedRet hAccountsRet
-                            (returnEquiv.fallthrough rfl rfl (by native_decide))
+                            (returnEquiv.fallthrough rfl rfl (by decide +native))
                         let reserve0Word : UInt256 :=
                           UInt256.land (uniswapSlotWord ⟨8⟩ σ'' I) reserve112Mask
                         let reserve1Word : UInt256 :=
@@ -1373,7 +1373,7 @@ theorem uniswapSyncBody
                               (by
                                 dsimp [reserve0Word] at hreserve0Zero
                                 rw [hreserve0Zero]
-                                native_decide)
+                                decide +native)
                               (by simp only [List.length_cons, List.length_nil]; omega)
                           exact finishPacked
                             (by
@@ -1421,7 +1421,7 @@ theorem uniswapSyncBody
                                 (by
                                   dsimp [reserve1Word] at hreserve1Zero
                                   rw [hreserve1Zero]
-                                  native_decide)
+                                  decide +native)
                                 (by simp only [List.length_cons, List.length_nil]; omega)
                             exact finishPacked
                               (by
@@ -1567,41 +1567,41 @@ theorem uniswapSyncBody
                                   intro s haw hstk
                                   simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                     hstk]
-                                  native_decide)
+                                  decide +native)
                                 (by
                                   simpa [mem0] using
                                     balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
                                       (UInt256.ofNat I.codeOwner.val) o o1 ho32 hoSize ho132
                                       ho1Size)
-                                (by native_decide)
+                                (by decide +native)
                                 (by
                                   intro s haw hstk
                                   simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                     hstk]
-                                  native_decide)
-                                (by native_decide)
+                                  decide +native)
+                                (by decide +native)
                                 (by
                                   intro s haw hstk
                                   simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                     hstk]
-                                  native_decide)
-                                (by native_decide)
+                                  decide +native)
+                                (by decide +native)
                                 (by
                                   intro s haw hstk
                                   simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                     hstk]
-                                  native_decide)
+                                  decide +native)
                                 (by
                                   simpa [mem0] using
                                     uniswapSyncLogMem_mload64 packedCumulative mem0 hmemSize128
                                       hmemRead64Local)
-                                (by native_decide)
+                                (by decide +native)
                                 (by
                                   intro s haw hstk
                                   simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw,
                                     hstk]
-                                  native_decide)
-                                (by native_decide) hperm (by jump_dest)
+                                  decide +native)
+                                (by decide +native) hperm (by jump_dest)
                                 (by simp only [List.length_cons, List.length_nil]; omega)
                             have rdRet := RD.uniswapSyncAfterUpdateToReturn rd6363 hperm
                             let evmP0 :=
@@ -1737,7 +1737,7 @@ theorem uniswapSyncBody
                                 syncUpdateCumulativePackedReserveState, henv1I] using hs
                             exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
                               (uniswapDecode_sync hsz4) hbody hCreatedRet hAccountsRet
-                              (returnEquiv.fallthrough rfl rfl (by native_decide))
+                              (returnEquiv.fallthrough rfl rfl (by decide +native))
 -/
                     · have hfail1 : reserve112Mask.toNat < balance1.toNat := by omega
                       have hbound0 : Int.ofNat balance0.toNat ≤ maxUint112 := by

@@ -32,29 +32,29 @@ theorem flipperReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : flipperSelWord I = ⟨0x65fae35e⟩ :=
     flipperSelWord_eq_of_beq I hsz 0x65 0xfa 0xe3 0x5e ⟨0x65fae35e⟩
-      (by native_decide) (by simpa [flipperSelBytes] using hsel)
+      (by decide +native) (by simpa [flipperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flipperBytecode flipperRootSplitPc)
       (flipperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat flipperBytecode flipperHighSplitPc)
       (flipperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperHighHighFirstArmPc j))
         (flipperSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperHighHighFirstArmPc 4))
         (flipperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact flipperReachHighHighBody 4 (by omega) ⟨711⟩ hcode hwv hsz hsize hroot hhigh
-    heq0 htake (by jump_dest) (by native_decide)
+    heq0 htake (by jump_dest) (by decide +native)
 
 theorem flipperRelyBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -81,16 +81,16 @@ theorem flipperRelyBodyCoreOk
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := flipperBytecode) (sel := sel) (entry := ⟨711⟩) (ret := ⟨323⟩)
     (decoded := ⟨733⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcOneAddressExternalMaskAndJumpMasked
     (code := flipperBytecode) (decoded := ⟨733⟩) (ret := ⟨323⟩) (routine := ⟨5116⟩)
     (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by jump_dest) (by simp)
   by_cases hauthEvm : flipperSlotWord callerSlot σ_evm I = ⟨1⟩
   · have hauthSolm : flipperSlotWord callerSlot σ_solm I = ⟨1⟩ := by
       rw [← hcallerWord]
@@ -144,7 +144,7 @@ theorem flipperRelyBodyCoreOk
       (by simpa [key, flipperUsrKey] using hroutine)
       (by
         unfold flipperAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by jump_dest) (by simp)
     have hmemAuth :
         (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -158,14 +158,14 @@ theorem flipperRelyBodyCoreOk
       hafterAuth
       (by
         unfold flipperMappingStoreOneWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by jump_dest) hperm hmemAuth hcanonKey (by simp)
-    have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+    have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
     have hret :
         RDret flipperBytecode (Sat256.ofUInt256 g)
           (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
           (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨1⟩) ByteArray.empty := by
-      simpa [slot] using RD.stop hretPc' (by native_decide) (by simp)
+      simpa [slot] using RD.stop hretPc' (by decide +native) (by simp)
     have hcreated :
         (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨1⟩).1 = evm1.createdAccounts := by
       simp [evm1, evm0, initState, storageStore_createdAccounts]
@@ -176,7 +176,7 @@ theorem flipperRelyBodyCoreOk
         accountMapEquiv_sstoreAccountMap I.codeOwner slot ⟨1⟩ hAccounts
     have henc : returnEquiv ByteArray.empty none relyTransition.returnType := by
       rw [show relyTransition.returnType = [] by rfl]
-      exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+      exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
     exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
       hcreated haccounts henc
   · have hauthSolm : flipperSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
@@ -204,10 +204,10 @@ theorem flipperRelyBodyCoreOk
       (by simpa [key, flipperUsrKey] using hroutine)
       (by
         unfold flipperAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by
         unfold flipperAuthCodecopyRevertTailWf flipperAuthTailPc
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -229,10 +229,10 @@ theorem flipperRelyBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := flipperBytecode) (sel := sel) (entry := ⟨711⟩) (ret := ⟨323⟩)
     (decoded := ⟨733⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (flipperDecode_rely_none_short hsz4 hshort)
 

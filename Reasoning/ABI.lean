@@ -1747,7 +1747,7 @@ theorem decodeCalldata_bytes32_address_ok {cd : ByteArray} {x y : Solm.Ident}
   rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [if_neg (by simp [solcTotalSizeDynamicGuard])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, .elem .address] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, .elem .address] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [decodeABIValues_bytes32_address_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -1773,7 +1773,7 @@ theorem decodeCalldata_bytes32_address_none_short {cd : ByteArray} {x y : Solm.I
   rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [if_neg (by simp [solcTotalSizeDynamicGuard])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, .elem .address] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, .elem .address] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [decodeABIValues_bytes32_address_none_short (bytes := cd.toList.drop 4) (by
     rw [List.length_drop, htlen]
@@ -1813,7 +1813,7 @@ theorem decodeCalldata_bytes32_address_none_noncanon {cd : ByteArray} {x y : Sol
   rw [if_neg (by rintro ⟨_, hc⟩; rw [List.length_drop, htlen] at hc; omega)]
   rw [if_neg (by simp [solcTotalSizeDynamicGuard])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, .elem .address] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, .elem .address] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [decodeABIValues_bytes32_address_none_noncanon (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -4398,8 +4398,8 @@ theorem bytes32ReturnEncoding (w : UInt256) :
       some (UInt256.toByteArray w) := by
   have hlen : (EVM.Word.toBytesBE w).length = 32 := by
     simpa using word_toBytesBE_toByteArray_size w
-  refine scalarReturnEncoding (t := .bytes ⟨31, by decide⟩) (w := w) (by native_decide) ?_ ?_
-  · native_decide
+  refine scalarReturnEncoding (t := .bytes ⟨31, by decide⟩) (w := w) (by decide +native) ?_ ?_
+  · decide +native
   · simp [encodeABIValue?, hlen, zeroBytes]
 
 /-- ABI encoding of a single dynamic-array (static element type) constructor/calldata argument:

@@ -6,7 +6,7 @@ import Solm.Semantics
 
 `selectorOf` goes through the opaque `ffi.KEC`, so as in the completed examples we record the
 four-byte Solidity selector facts as trusted bytecode/ABI facts.  The jump-destination fact remains
-in `Bytecode.lean` and is proved by `native_decide` from the byte array.
+in `Bytecode.lean` and is proved by `decide +native` from the byte array.
 -/
 
 namespace OpenZeppelinBench.ERC6909

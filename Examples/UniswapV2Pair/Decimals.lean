@@ -36,7 +36,7 @@ theorem uniswapX_decimals {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
       uniswap_getter_entry_wf
       (by
         unfold decimalsWord Reasoning.Reach.uniswapConstGetterWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by jump_dest) (by jump_dest)
 
 theorem uniswapDecode_decimals {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
@@ -73,13 +73,13 @@ theorem uniswapDecimalsBodyCore
     rw [decimalsTransition]
     exact returnEquiv_of_encode
       (by
-        simpa [uint8] using uint8ReturnEncoding decimalsReturnWord (by native_decide))
+        simpa [uint8] using uint8ReturnEncoding decimalsReturnWord (by decide +native))
   exact (RD.uniswapUint8ConstGetterExternal (g := Sat256.ofUInt256 g)
       (entry := ⟨941⟩) (routine := ⟨3128⟩) (val := decimalsWord)
       (width := 1) (op := .PUSH1) hreach uniswap_getter_entry_wf
       (by
         unfold decimalsWord Reasoning.Reach.uniswapConstGetterWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by jump_dest) (by jump_dest)).reEquivExecutionTransport
     hcode hdispatch hdecode hbody rfl hAccounts henc
 

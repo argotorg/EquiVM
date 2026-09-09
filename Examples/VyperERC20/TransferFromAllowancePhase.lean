@@ -33,7 +33,7 @@ theorem erc20X_transferFromAfterAllowanceSLoad {cA gh bl σ σ₀ A I} {g : Sat2
   have rd412 := evm_run rd331 with [
     jumpdest,
     raw push4 transferFromSelectorWord (by vyper_erc20_transferFrom_decode) (by evm_ov),
-    dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
+    dup2, xor, push2 ⟨797⟩, jumpiNT (by decide +native),
     push1 ⟨100⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiNT (by rw [u256_lor_comm, hwv, u256_lor_zero]; exact hsizeGuard),
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,

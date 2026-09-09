@@ -46,7 +46,7 @@ theorem hopeStore_get_usr (I : ExecutionEnv) :
 theorem hopeStore_can (I : ExecutionEnv) :
     (hopeStore I).get? "can" = none := by
   unfold hopeStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem hopeStore_index_usr (I : ExecutionEnv) :
@@ -128,7 +128,7 @@ theorem vatDispatchHope {I : ExecutionEnv}
     fileIlkSelectorBytes, fileLineSelectorBytes, fluxSelectorBytes, foldSelectorBytes,
     forkSelectorBytes, frobSelectorBytes, gemSelectorBytes, grabSelectorBytes,
     healSelectorBytes, hopeSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachHopeBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -139,31 +139,31 @@ theorem vatReachHopeBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0xa3b22fc4⟩ :=
     vatSelWord_eq_of_beq I hsz 0xa3 0xb2 0x2f 0xc4 ⟨0xa3b22fc4⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhighlow :
       UInt256.gt (armSelNat vatBytecode vatHighLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms163FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
     rw [hword]
-    native_decide
+    decide +native
   have htake :
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms163FirstPc 1))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms163Body 1 (by omega) ⟨1207⟩ hcode hwv hsz hsize
-    hroot hhigh hhighlow heq0 htake (by jump_dest) (by native_decide)
+    hroot hhigh hhighlow heq0 htake (by jump_dest) (by decide +native)
 
 noncomputable abbrev hopeInnerMem (I : ExecutionEnv) : ByteArray :=
   twoWordHashMem (hopeSourceWord I) ⟨1⟩ solcFreePtrMem
@@ -200,16 +200,16 @@ theorem vatHopeX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨1207⟩) (ret := ⟨524⟩)
     (decoded := ⟨1229⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcOneAddressExternalMaskAndJumpMasked
     (code := vatBytecode) (decoded := ⟨1229⟩) (ret := ⟨524⟩) (routine := ⟨5540⟩)
     (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [hopeUsrMaskedWord, hopeUsrWord, calldataWord] using hroutine⟩
 
 theorem vatHopeX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -228,10 +228,10 @@ theorem vatHopeX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨1207⟩) (ret := ⟨524⟩)
     (decoded := ⟨1229⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 set_option maxHeartbeats 1000000 in
 theorem vatHopeX_storeOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -257,37 +257,37 @@ theorem vatHopeX_storeOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (hopeInnerSlot I) (hopeUsrMaskedWord I)
         (hopeInnerMem_size I)
   have rd5546pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd5547 := rd5546pre.mstore 0 (wordAt0Mem (hopeSourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd5553pre := evm_run rd5547 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd5554 := rd5553pre.mstore 0 (hopeInnerMem I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd5558pre := evm_run rd5554 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have rd5559 := rd5558pre.keccak256 0 (hopeInnerSlot I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hinnerSlot (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hinnerSlot (by decide +native) (by evm_ov)
   have rd5572pre := evm_run rd5559 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have hmask :
       UInt256.land (hopeUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -304,23 +304,23 @@ theorem vatHopeX_storeOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     exact hmask
   rw [hmask'] at rd5572pre
   have rd5573 := rd5572pre.mstore 0 (wordAt0Mem (hopeUsrMaskedWord I) (hopeInnerMem I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd5575pre := evm_run rd5573 with [
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd5576 := rd5575pre.mstore 0 (hopeHashMem I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd5578pre := evm_run rd5576 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd5579 := rd5578pre.keccak256 0
     (mapSlot (hopeUsrMaskedWord I) (hopeInnerSlot I)) (UInt256.ofNat 3)
-    (by native_decide) mem_cost houterSlot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5580raw⟩ := rd5579.sstore hperm (by native_decide) (by evm_ov)
-  have rd524 := rd5580raw.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd525 := rd524.jumpdest (by native_decide) (by evm_ov)
-  simpa [hopeStorageSlot_eq_innerSlot I] using RD.stop rd525 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost houterSlot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5580raw⟩ := rd5579.sstore hperm (by decide +native) (by evm_ov)
+  have rd524 := rd5580raw.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd525 := rd524.jumpdest (by decide +native) (by evm_ov)
+  simpa [hopeStorageSlot_eq_innerSlot I] using RD.stop rd525 (by decide +native) (by evm_ov)
 
 theorem vatHopeBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -357,7 +357,7 @@ theorem vatHopeBodyCoreOk
       (by
         simpa [hopeTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-            (dvs := []) rfl (by native_decide) (by native_decide)))
+            (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem vatHopeBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

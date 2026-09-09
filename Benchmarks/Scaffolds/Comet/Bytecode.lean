@@ -1318,7 +1318,7 @@ def cometBytecode : ByteArray :=
       ⟨18374⟩, ⟨18392⟩, ⟨18412⟩, ⟨18430⟩, ⟨18459⟩, ⟨18477⟩, ⟨18494⟩, ⟨18512⟩, ⟨18535⟩, ⟨18553⟩,
       ⟨18564⟩
       ] := by
-  native_decide
+  decide +native
 
 private def cometCreationChunk0 : ByteArray :=
   ⟨#[
@@ -2809,6 +2809,6 @@ def cometCreationBytecode : ByteArray :=
       ⟨21148⟩, ⟨21158⟩, ⟨21163⟩, ⟨21171⟩, ⟨21176⟩, ⟨21184⟩, ⟨21189⟩, ⟨21209⟩, ⟨21227⟩, ⟨21247⟩,
       ⟨21265⟩, ⟨21285⟩, ⟨21303⟩, ⟨21332⟩, ⟨21350⟩, ⟨21367⟩, ⟨21385⟩, ⟨21408⟩, ⟨21426⟩, ⟨21437⟩
       ] := by
-  native_decide
+  decide +native
 
 end Benchmarks.CompoundIII.Comet

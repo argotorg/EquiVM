@@ -138,7 +138,7 @@ have hfeeEqSolm :
 have rd2153Generic := by
   simpa [fee, age] using _rd2153
 have hRayNZ : jugRay ≠ ⟨0⟩ := by
-  native_decide
+  decide +native
 have hrpowCoupled :=
   rpowFunctionCoupled
     (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)

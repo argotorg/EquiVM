@@ -24,22 +24,22 @@ theorem jugReachBaseBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : jugSelWord I = ⟨0x5001f3b5⟩ :=
     jugSelWord_eq_of_beq I hsz 0x50 0x01 0xf3 0xb5 ⟨0x5001f3b5⟩
-      (by native_decide) (by simpa [jugSelBytes] using hsel)
+      (by decide +native) (by simpa [jugSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat jugBytecode jugRootSplitPc) (jugSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 5 →
       UInt256.eq (armSelNat jugBytecode (nthArmPc jugBytecode jugLowFirstArmPc j))
         (jugSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat jugBytecode (nthArmPc jugBytecode jugLowFirstArmPc 5))
         (jugSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact jugReachLowBody 5 (by omega) ⟨375⟩ hcode hwv hsz hsize hroot heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem jugBaseBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -73,15 +73,15 @@ theorem jugBaseBodyCore
     hcode hdispatch hdecode hreach hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcWordSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [baseWord] using hbody)
 
 theorem jugBaseBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}

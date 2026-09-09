@@ -672,7 +672,7 @@ theorem uniswapMintBody
                                           Int.ofNat balance0.toNat ≤ maxUint112 := by
                                         have hmask :
                                             reserve112Mask.toNat = 2 ^ 112 - 1 := by
-                                          native_decide
+                                          decide +native
                                         have hnat : balance0.toNat ≤ 2 ^ 112 - 1 := by
                                           simpa [hmask] using hbound0
                                         norm_num [maxUint112]
@@ -681,7 +681,7 @@ theorem uniswapMintBody
                                           Int.ofNat balance1.toNat ≤ maxUint112 := by
                                         have hmask :
                                             reserve112Mask.toNat = 2 ^ 112 - 1 := by
-                                          native_decide
+                                          decide +native
                                         have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by
                                           simpa [hmask] using hbound1
                                         norm_num [maxUint112]
@@ -1005,7 +1005,7 @@ theorem uniswapMintBody
                                             Int.ofNat balance0.toNat ≤ maxUint112 := by
                                           have hmask :
                                               reserve112Mask.toNat = 2 ^ 112 - 1 := by
-                                            native_decide
+                                            decide +native
                                           have hnat : balance0.toNat ≤ 2 ^ 112 - 1 := by
                                             simpa [hmask] using hbound0
                                           norm_num [maxUint112]
@@ -1014,7 +1014,7 @@ theorem uniswapMintBody
                                             Int.ofNat balance1.toNat ≤ maxUint112 := by
                                           have hmask :
                                               reserve112Mask.toNat = 2 ^ 112 - 1 := by
-                                            native_decide
+                                            decide +native
                                           have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by
                                             simpa [hmask] using hbound1
                                           norm_num [maxUint112]
@@ -1228,7 +1228,7 @@ theorem uniswapMintBody
                                               Int.ofNat balance0.toNat ≤ maxUint112 := by
                                             have hmask :
                                                 reserve112Mask.toNat = 2 ^ 112 - 1 := by
-                                              native_decide
+                                              decide +native
                                             have hnat : balance0.toNat ≤ 2 ^ 112 - 1 := by
                                               simpa [hmask] using hbound0
                                             norm_num [maxUint112]
@@ -1237,7 +1237,7 @@ theorem uniswapMintBody
                                               Int.ofNat balance1.toNat ≤ maxUint112 := by
                                             have hmask :
                                                 reserve112Mask.toNat = 2 ^ 112 - 1 := by
-                                              native_decide
+                                              decide +native
                                             have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by
                                               simpa [hmask] using hbound1
                                             norm_num [maxUint112]
@@ -1546,7 +1546,7 @@ theorem uniswapMintBody
                                                 Int.ofNat balance0.toNat ≤ maxUint112 := by
                                               have hmask :
                                                   reserve112Mask.toNat = 2 ^ 112 - 1 := by
-                                                native_decide
+                                                decide +native
                                               have hnat : balance0.toNat ≤ 2 ^ 112 - 1 := by
                                                 simpa [hmask] using hbound0
                                               norm_num [maxUint112]
@@ -1555,7 +1555,7 @@ theorem uniswapMintBody
                                                 Int.ofNat balance1.toNat ≤ maxUint112 := by
                                               have hmask :
                                                   reserve112Mask.toNat = 2 ^ 112 - 1 := by
-                                                native_decide
+                                                decide +native
                                               have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by
                                                 simpa [hmask] using hbound1
                                               norm_num [maxUint112]
@@ -1828,7 +1828,7 @@ theorem uniswapMintBody
                                                   Int.ofNat balance0.toNat ≤ maxUint112 := by
                                                 have hmask :
                                                     reserve112Mask.toNat = 2 ^ 112 - 1 := by
-                                                  native_decide
+                                                  decide +native
                                                 have hnat : balance0.toNat ≤ 2 ^ 112 - 1 := by
                                                   simpa [hmask] using hbound0
                                                 norm_num [maxUint112]
@@ -1837,7 +1837,7 @@ theorem uniswapMintBody
                                                   Int.ofNat balance1.toNat ≤ maxUint112 := by
                                                 have hmask :
                                                     reserve112Mask.toNat = 2 ^ 112 - 1 := by
-                                                  native_decide
+                                                  decide +native
                                                 have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by
                                                   simpa [hmask] using hbound1
                                                 norm_num [maxUint112]
@@ -2135,7 +2135,7 @@ theorem uniswapMintBody
                                                     Int.ofNat balance0.toNat ≤ maxUint112 := by
                                                   have hmask :
                                                       reserve112Mask.toNat = 2 ^ 112 - 1 := by
-                                                    native_decide
+                                                    decide +native
                                                   have hnat : balance0.toNat ≤ 2 ^ 112 - 1 := by
                                                     simpa [hmask] using hbound0
                                                   norm_num [maxUint112]
@@ -2144,7 +2144,7 @@ theorem uniswapMintBody
                                                     Int.ofNat balance1.toNat ≤ maxUint112 := by
                                                   have hmask :
                                                       reserve112Mask.toNat = 2 ^ 112 - 1 := by
-                                                    native_decide
+                                                    decide +native
                                                   have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by
                                                     simpa [hmask] using hbound1
                                                   norm_num [maxUint112]

@@ -29,6 +29,6 @@ theorem jugCtorVatStoreReach
   obtain ⟨_, _, rd105⟩ := jugCtorVatBeforeStoreReach vat rd73
   obtain ⟨k', C', rd106⟩ := rd105.sstore hperm (by jug_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [show (⟨105⟩ : UInt256) + ⟨1⟩ = ⟨106⟩ from by native_decide] using rd106⟩
+    simpa [show (⟨105⟩ : UInt256) + ⟨1⟩ = ⟨106⟩ from by decide +native] using rd106⟩
 
 end Benchmarks.Dss.Jug

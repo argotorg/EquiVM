@@ -13,7 +13,7 @@ See `Benchmarks/Dss/Pot/Dispatch.lean` (`potReachG54Body` etc.) and
 
 - `xxxSelWord_eq_of_beq` — from `selIs I (xxxSelBytes k)` to the concrete selector word;
 - `armSelNat`/`nthArmPc` bookkeeping over the arm list;
-- `native_decide` for the concrete word comparisons;
+- `decide +native` for the concrete word comparisons;
 - `xxxDispatch_none_nomatch` / `xxxDispatch_none_short` — Solm-side `dispatchMsg … = none`
   facts used by the no-dispatch branch of `Correct.lean`.
 -/

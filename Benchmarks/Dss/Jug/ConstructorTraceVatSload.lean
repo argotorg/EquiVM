@@ -33,7 +33,7 @@ theorem jugCtorVatSloadReach
     rfl
   rw [hload] at rd77
   have hpc77 : (⟨73⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ = ⟨77⟩ := by
-    native_decide
+    decide +native
   rw [hpc77] at rd77
   exact ⟨_, _, rd77⟩
 

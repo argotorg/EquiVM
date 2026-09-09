@@ -116,7 +116,7 @@ theorem blindAuctionRevealDecodeArrays1806_to_413
   have rd1847 := evm_run rd1845 with [pop, pop]
   have rd1852 := evm_run rd1847 with [push1 ⟨32⟩, dup8, add, calldataload]
   have rd1861 := RD.pushConst rd1852 revealMaxU64 (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1871 := evm_run rd1861 with [
     dup2, gt, iszero, push2 ⟨1871⟩, jumpiT
       (by
@@ -142,7 +142,7 @@ theorem blindAuctionRevealDecodeArrays1806_to_413
   have rd1886 := evm_run rd1885 with [pop, swap4, pop, pop]
   have rd1895 := evm_run rd1886 with [push1 ⟨64⟩, dup8, add, calldataload]
   have rd1904 := RD.pushConst rd1895 revealMaxU64 (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1914 := evm_run rd1904 with [
     dup2, gt, iszero, push2 ⟨1914⟩, jumpiT
       (by
@@ -1211,7 +1211,7 @@ theorem blindAuctionRevealX_from963_empty_toCall {cA σ I} {g : Sat256}
             ⟨1⟩ +
           ⟨1⟩ +
         ⟨1⟩ : UInt256) = ⟨979⟩ := by
-      native_decide
+      decide +native
     have hload0 :
         Option.option (⟨0⟩ : UInt256)
           (fun ac => Batteries.RBMap.findD ac.storage (revealScratchBidsLengthSlot I) ⟨0⟩)
@@ -1691,19 +1691,19 @@ def revealCallStore (refund i : UInt256) (success : Bool) (out : ByteArray) : St
 
 theorem revealEmptyStore_values :
     revealEmptyStore.get? "values" = some (.array []) := by
-  native_decide
+  decide +native
 
 theorem revealEmptyStore_fakes :
     revealEmptyStore.get? "fakes" = some (.array []) := by
-  native_decide
+  decide +native
 
 theorem revealEmptyStore_secrets :
     revealEmptyStore.get? "secrets" = some (.array []) := by
-  native_decide
+  decide +native
 
 theorem revealEmptyStore_bids_none :
     revealEmptyStore.get? "bids" = none := by
-  native_decide
+  decide +native
 
 theorem evalExpr_reveal_empty_values_length (evm : EVM.State) :
     evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := revealEmptyStore } evm
@@ -1980,10 +1980,10 @@ theorem blindAuctionRevealBodyReturns_empty_callSuccess
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
-      (evalExpr_reveal_afterBiddingEnd_true evm revealEmptyStore (by native_decide) hafter)) ?_
+      (evalExpr_reveal_afterBiddingEnd_true evm revealEmptyStore (by decide +native) hafter)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
-      (evalExpr_reveal_beforeRevealEnd_true evm revealEmptyStore (by native_decide) hbefore)) ?_
+      (evalExpr_reveal_beforeRevealEnd_true evm revealEmptyStore (by decide +native) hbefore)) ?_
   have hlengthEval :
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := revealEmptyStore }
         evm (.arrayLength .storage (bidsRef sender)) = .ok (.int 0) := by
@@ -2024,15 +2024,15 @@ theorem blindAuctionRevealBodyReturns_empty_callSuccess
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_reveal_local_empty_length_eq_zero_var evm revealLengthStore "values"
-        (by native_decide) (by native_decide))) ?_
+        (by decide +native) (by decide +native))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_reveal_local_empty_length_eq_zero_var evm revealLengthStore "fakes"
-        (by native_decide) (by native_decide))) ?_
+        (by decide +native) (by decide +native))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_reveal_local_empty_length_eq_zero_var evm revealLengthStore "secrets"
-        (by native_decide) (by native_decide))) ?_
+        (by decide +native) (by decide +native))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
   change ExecBlock blindAuctionConfig
@@ -2124,13 +2124,13 @@ theorem blindAuctionRevealBodyReturns_empty_callSuccess
           (.ok { contract := blindAuctionContract, locals := revealLoopStore ⟨0⟩ ⟨0⟩ } evm) := by
       exact ExecForLoop.falseDone
         (evalExpr_reveal_loop_cond_false evm (revealLoopStore ⟨0⟩ ⟨0⟩)
-          (by native_decide) (by native_decide))
+          (by decide +native) (by decide +native))
     exact ExecStmt.for hinit hloop
   refine ExecBlock.consNormal hfor ?_
   refine ExecBlock.consNormal
     (ExecStmt.lowLevelCallSuccess
       (evalExpr_reveal_sender evm (revealLoopStore ⟨0⟩ ⟨0⟩))
-      (evalExpr_reveal_refund evm (revealLoopStore ⟨0⟩ ⟨0⟩) ⟨0⟩ (by native_decide))
+      (evalExpr_reveal_refund evm (revealLoopStore ⟨0⟩ ⟨0⟩) ⟨0⟩ (by decide +native))
       (evalExpr_reveal_emptyBytes evm (revealLoopStore ⟨0⟩ ⟨0⟩))
       hcall) ?_
   exact ExecBlock.consNormal
@@ -2159,10 +2159,10 @@ theorem blindAuctionRevealBodyReverts_empty_callFailure
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
-      (evalExpr_reveal_afterBiddingEnd_true evm revealEmptyStore (by native_decide) hafter)) ?_
+      (evalExpr_reveal_afterBiddingEnd_true evm revealEmptyStore (by decide +native) hafter)) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
-      (evalExpr_reveal_beforeRevealEnd_true evm revealEmptyStore (by native_decide) hbefore)) ?_
+      (evalExpr_reveal_beforeRevealEnd_true evm revealEmptyStore (by decide +native) hbefore)) ?_
   have hlengthEval :
       evalExpr? blindAuctionConfig { contract := blindAuctionContract, locals := revealEmptyStore }
         evm (.arrayLength .storage (bidsRef sender)) = .ok (.int 0) := by
@@ -2174,15 +2174,15 @@ theorem blindAuctionRevealBodyReverts_empty_callFailure
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_reveal_local_empty_length_eq_zero_var evm revealLengthStore "values"
-        (by native_decide) (by native_decide))) ?_
+        (by decide +native) (by decide +native))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_reveal_local_empty_length_eq_zero_var evm revealLengthStore "fakes"
-        (by native_decide) (by native_decide))) ?_
+        (by decide +native) (by decide +native))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.requireTrue
       (evalExpr_reveal_local_empty_length_eq_zero_var evm revealLengthStore "secrets"
-        (by native_decide) (by native_decide))) ?_
+        (by decide +native) (by decide +native))) ?_
   refine ExecBlock.consNormal
     (ExecStmt.letDecl (value := .int 0) (by simp [evalExpr?, pure])) ?_
   change ExecBlock blindAuctionConfig
@@ -2249,13 +2249,13 @@ theorem blindAuctionRevealBodyReverts_empty_callFailure
           (.ok { contract := blindAuctionContract, locals := revealLoopStore ⟨0⟩ ⟨0⟩ } evm) := by
       exact ExecForLoop.falseDone
         (evalExpr_reveal_loop_cond_false evm (revealLoopStore ⟨0⟩ ⟨0⟩)
-          (by native_decide) (by native_decide))
+          (by decide +native) (by decide +native))
     exact ExecStmt.for hinit hloop
   refine ExecBlock.consNormal hfor ?_
   refine ExecBlock.consNormal
     (ExecStmt.lowLevelCallFailure
       (evalExpr_reveal_sender evm (revealLoopStore ⟨0⟩ ⟨0⟩))
-      (evalExpr_reveal_refund evm (revealLoopStore ⟨0⟩ ⟨0⟩) ⟨0⟩ (by native_decide))
+      (evalExpr_reveal_refund evm (revealLoopStore ⟨0⟩ ⟨0⟩) ⟨0⟩ (by decide +native))
       (evalExpr_reveal_emptyBytes evm (revealLoopStore ⟨0⟩ ⟨0⟩))
       hcall) ?_
   exact ExecBlock.consRevert
@@ -2870,7 +2870,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
     raw mstore 0 mem2 aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
-        rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
+        rw [show (⟨32⟩ : UInt256).toNat = 32 by decide +native]
         rw [haw32]
         simp)
       (by rfl) haw32 (by evm_ov),
@@ -2878,7 +2878,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
     raw keccak256 0 (revealScratchBidsLengthSlot I) aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
-        rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
+        rw [show (⟨64⟩ : UInt256).toNat = 64 by decide +native]
         rw [haw64]
         simp)
       (by simpa [mem2, mem1, revealScratchSenderWord] using hbaseHash) haw64
@@ -2910,7 +2910,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
       aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
-        rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
+        rw [show (⟨32⟩ : UInt256).toNat = 32 by decide +native]
         rw [haw0]
         simp)
       (by simpa [mem3, mem2, mem1, revealScratchSenderWord] using hdataHash) haw0
@@ -2931,7 +2931,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot {I} {g : Sat256} {s0 : S
       (⟨1054⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ :
           UInt256) = ⟨1069⟩ := by
-    native_decide
+    decide +native
   exact ⟨mem3, aw, _, _, by simpa [hslot, hpc1069] using rd1069⟩
 
 theorem scratch_RD_decodeRawBool_zero {g : Sat256} {s0 : State} {I : ExecutionEnv}
@@ -3539,7 +3539,7 @@ theorem scratch_word_le_solcMax_of_ugt_zero {w : UInt256}
   by_contra hle
   have hgt : UInt256.gt w revealMaxU64 = ⟨1⟩ := by
     apply ugt_one
-    rw [show revealMaxU64.toNat = solcMaxU64 by native_decide]
+    rw [show revealMaxU64.toNat = solcMaxU64 by decide +native]
     omega
   rw [h] at hgt
   have hnat := congrArg UInt256.toNat hgt

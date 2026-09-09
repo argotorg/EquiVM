@@ -89,8 +89,8 @@ theorem clipperStorageLocLoad_uint96 (evm : EVM.State) (slot : UInt256) :
   have h := storageLocLoad_uint_offset (evm := evm) (slot := slot)
     (offset := ⟨20, by decide⟩) (size := ⟨12, by decide⟩)
     (width := ⟨96, by decide⟩) (hbound := by decide) (by decide) (by decide)
-  simpa [uint96Loc, uint96Int, show (256 ^ 20 = 2 ^ 160) by native_decide,
-    show (256 ^ 12 = 2 ^ 96) by native_decide, UInt256.ofNat] using h
+  simpa [uint96Loc, uint96Int, show (256 ^ 20 = 2 ^ 160) by decide +native,
+    show (256 ^ 12 = 2 ^ 96) by decide +native, UInt256.ofNat] using h
 
 theorem clipperSalesBaseSlot_eq (I : ExecutionEnv) :
     clipperSalesBaseSlot I = solcMappingSlot ⟨12⟩ (clipperSalesArgWord I) := by
@@ -102,7 +102,7 @@ theorem clipperSalesSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size
     clipperSelWord I = clipperSelNat 18 := by
   simpa [clipperSelWord, solcSelectorWord, clipperSelNat] using
     solcSelectorWord_eq_of_beq I hsz 0xb5 0xf5 0x22 0xf7 (clipperSelNat 18)
-      (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
+      (by decide +native) (by simpa [clipperSelBytes, selIs] using hsel)
 
 theorem clipperDispatch_sales (v : ClipperImmutables) {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 18)) :
@@ -123,41 +123,41 @@ theorem clipperDispatch_sales (v : ClipperImmutables) {I : ExecutionEnv}
     rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
       | rfl | rfl | rfl | rfl | rfl | rfl | rfl | hfalse
     · rw [selectorOf, activeSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, bufSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, calcSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, chipSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, chostSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, countSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, cuspSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, denySelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, dogSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, fileUintSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, fileAddressSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, getStatusSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, ilkSelectorBytes v, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, kickSelectorBytes v, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, kicksSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, listSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, redoSelectorBytes v, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, relySelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · cases hfalse
   · rw [selectorOf, salesSelectorBytes]
     simpa [clipperSelBytes] using hsel
@@ -373,7 +373,7 @@ theorem clipperSalesReturnEncoding (pos tab lot usr tic top : UInt256)
   have hencTop := clipperEncodeABIValue_uint256 top
   have hhead : abiTupleHeadSize? [uint256, uint256, uint256, addr, uint96, uint256] =
       some 192 := by
-    native_decide
+    decide +native
   have hdu : isDynamicABIType uint256 = false := by rfl
   have hda : isDynamicABIType addr = false := by rfl
   have hd96 : isDynamicABIType uint96 = false := by rfl
@@ -456,7 +456,7 @@ theorem clipperSalesReturnMem_readWord160 {scratch : ByteArray}
     · rw [hscratch]
       norm_num
     · rw [hscratch]
-      native_decide
+      decide +native
   exact writeCascade_read_word_of_head_of_base (writeWord scratch 128 pos) tab
     [(192, lot), (224, UInt256.land usr solcAddrMask), (256, tic), (288, top)]
     hbase (by exact lt_usize _ (by norm_num)) (by
@@ -473,13 +473,13 @@ theorem clipperSalesReturnMem_readWord192 {scratch : ByteArray}
     · rw [hscratch]
       norm_num
     · rw [hscratch]
-      native_decide
+      decide +native
   have hbase1 : (writeWord (writeWord scratch 128 pos) 160 tab).size = 192 := by
     rw [writeWord_size]
     · rw [hbase0]
       norm_num
     · rw [hbase0]
-      native_decide
+      decide +native
   exact writeCascade_read_word_of_head_of_base (writeWord (writeWord scratch 128 pos) 160 tab)
     lot [(224, UInt256.land usr solcAddrMask), (256, tic), (288, top)]
     hbase1 (by exact lt_usize _ (by norm_num)) (by
@@ -496,20 +496,20 @@ theorem clipperSalesReturnMem_readWord224 {scratch : ByteArray}
     · rw [hscratch]
       norm_num
     · rw [hscratch]
-      native_decide
+      decide +native
   have hbase1 : (writeWord (writeWord scratch 128 pos) 160 tab).size = 192 := by
     rw [writeWord_size]
     · rw [hbase0]
       norm_num
     · rw [hbase0]
-      native_decide
+      decide +native
   have hbase2 :
       (writeWord (writeWord (writeWord scratch 128 pos) 160 tab) 192 lot).size = 224 := by
     rw [writeWord_size]
     · rw [hbase1]
       norm_num
     · rw [hbase1]
-      native_decide
+      decide +native
   exact writeCascade_read_word_of_head_of_base
     (writeWord (writeWord (writeWord scratch 128 pos) 160 tab) 192 lot)
     (UInt256.land usr solcAddrMask) [(256, tic), (288, top)]
@@ -527,20 +527,20 @@ theorem clipperSalesReturnMem_readWord256 {scratch : ByteArray}
     · rw [hscratch]
       norm_num
     · rw [hscratch]
-      native_decide
+      decide +native
   have hbase1 : (writeWord (writeWord scratch 128 pos) 160 tab).size = 192 := by
     rw [writeWord_size]
     · rw [hbase0]
       norm_num
     · rw [hbase0]
-      native_decide
+      decide +native
   have hbase2 :
       (writeWord (writeWord (writeWord scratch 128 pos) 160 tab) 192 lot).size = 224 := by
     rw [writeWord_size]
     · rw [hbase1]
       norm_num
     · rw [hbase1]
-      native_decide
+      decide +native
   have hbase3 :
       (writeWord (writeWord (writeWord (writeWord scratch 128 pos) 160 tab) 192 lot) 224
         (UInt256.land usr solcAddrMask)).size = 256 := by
@@ -548,7 +548,7 @@ theorem clipperSalesReturnMem_readWord256 {scratch : ByteArray}
     · rw [hbase2]
       norm_num
     · rw [hbase2]
-      native_decide
+      decide +native
   exact writeCascade_read_word_of_head_of_base
     (writeWord (writeWord (writeWord (writeWord scratch 128 pos) 160 tab) 192 lot) 224
       (UInt256.land usr solcAddrMask))
@@ -567,20 +567,20 @@ theorem clipperSalesReturnMem_readWord288 {scratch : ByteArray}
     · rw [hscratch]
       norm_num
     · rw [hscratch]
-      native_decide
+      decide +native
   have hbase1 : (writeWord (writeWord scratch 128 pos) 160 tab).size = 192 := by
     rw [writeWord_size]
     · rw [hbase0]
       norm_num
     · rw [hbase0]
-      native_decide
+      decide +native
   have hbase2 :
       (writeWord (writeWord (writeWord scratch 128 pos) 160 tab) 192 lot).size = 224 := by
     rw [writeWord_size]
     · rw [hbase1]
       norm_num
     · rw [hbase1]
-      native_decide
+      decide +native
   have hbase3 :
       (writeWord (writeWord (writeWord (writeWord scratch 128 pos) 160 tab) 192 lot) 224
         (UInt256.land usr solcAddrMask)).size = 256 := by
@@ -588,7 +588,7 @@ theorem clipperSalesReturnMem_readWord288 {scratch : ByteArray}
     · rw [hbase2]
       norm_num
     · rw [hbase2]
-      native_decide
+      decide +native
   have hbase4 :
       (writeWord
         (writeWord (writeWord (writeWord (writeWord scratch 128 pos) 160 tab) 192 lot) 224
@@ -598,7 +598,7 @@ theorem clipperSalesReturnMem_readWord288 {scratch : ByteArray}
     · rw [hbase3]
       norm_num
     · rw [hbase3]
-      native_decide
+      decide +native
   exact writeCascade_read_word_of_head_of_base
     (writeWord
       (writeWord (writeWord (writeWord (writeWord scratch 128 pos) 160 tab) 192 lot) 224
@@ -666,8 +666,8 @@ theorem clipperReachSalesBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperI
     (by
       change decode code (selArmJumpiPc (⟨32⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h162 := clipperSplitTaken (pc := (⟨43⟩ : UInt256)) (pivot := clipperSelNat 3)
     (tgt := (⟨162⟩ : UInt256)) h43
@@ -685,8 +685,8 @@ theorem clipperReachSalesBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperI
     (by
       change decode code (selArmJumpiPc (⟨43⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (clipperJumpDestBeforeFirstPatch v hpatch (⟨162⟩ : UInt256) (by native_decide))
+    (by rw [hword]; decide +native)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨162⟩ : UInt256) (by decide +native))
     (by simp)
   have h163 := h162.jumpdest
     (by
@@ -710,8 +710,8 @@ theorem clipperReachSalesBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperI
     (by
       change decode code (selArmJumpiPc (⟨163⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h185 := clipperArmNotTaken (pc := (⟨174⟩ : UInt256))
     (next := (⟨185⟩ : UInt256)) (sel := clipperSelNat 13)
@@ -730,8 +730,8 @@ theorem clipperReachSalesBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperI
     (by
       change decode code (selArmJumpiPc (⟨174⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h196 := clipperArmNotTaken (pc := (⟨185⟩ : UInt256))
     (next := (⟨196⟩ : UInt256)) (sel := clipperSelNat 2)
@@ -750,8 +750,8 @@ theorem clipperReachSalesBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperI
     (by
       change decode code (selArmJumpiPc (⟨185⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h207 := clipperArmNotTaken (pc := (⟨196⟩ : UInt256))
     (next := (⟨207⟩ : UInt256)) (sel := clipperSelNat 7)
@@ -770,8 +770,8 @@ theorem clipperReachSalesBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperI
     (by
       change decode code (selArmJumpiPc (⟨196⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h1161 := clipperArmTaken (pc := (⟨207⟩ : UInt256)) (sel := clipperSelNat 18)
     (tgt := (⟨1161⟩ : UInt256)) h207
@@ -789,8 +789,8 @@ theorem clipperReachSalesBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperI
     (by
       change decode code (selArmJumpiPc (⟨207⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (clipperJumpDestBeforeFirstPatch v hpatch (⟨1161⟩ : UInt256) (by native_decide))
+    (by rw [hword]; decide +native)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨1161⟩ : UInt256) (by decide +native))
     (by simp)
   exact ⟨_, _, h1161⟩
 
@@ -884,12 +884,12 @@ theorem RD.clipperSalesStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
   have rd6671 := rd6669.push1 ⟨12⟩ hd6669 (by evm_ov)
   have rd6673 := rd6671.push1 ⟨32⟩ hd6671 (by evm_ov)
   have rd6674 := rd6673.mstore 0 (solcMappingBaseSlotMem ⟨12⟩)
-    (UInt256.ofNat 3) hd6673 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6673 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6676 := rd6674.push1 ⟨0⟩ hd6674 (by evm_ov)
   have rd6677 := rd6676.swap1 hd6676 (by evm_ov)
   have rd6678 := rd6677.dup2 hd6677 (by evm_ov)
   have rd6679 := rd6678.mstore 0 (solcMappingHashMem ⟨12⟩ key)
-    (UInt256.ofNat 3) hd6678 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6678 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6681 := rd6679.push1 ⟨64⟩ hd6679 (by evm_ov)
   have rd6682 := rd6681.swap1 hd6681 (by evm_ov)
   have rd6683 := rd6682.keccak256 0 (solcMappingSlot ⟨12⟩ key)
@@ -897,7 +897,7 @@ theorem RD.clipperSalesStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       solcMappingKeccakSlot ⟨12⟩ key)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd6684 := rd6683.dup1 hd6683 (by evm_ov)
   obtain ⟨_, _, rd6685⟩ := rd6684.sload hd6684 (by evm_ov)
   have rd6687 := rd6685.push1 ⟨1⟩ hd6685 (by evm_ov)
@@ -971,11 +971,11 @@ theorem clipperSalesStructGetterWfPatched (v : ClipperImmutables) {code : ByteAr
   repeat' first | apply And.intro
   all_goals
     exact patchRuntime_decode_disjoint_of_decode_res hpatch
-      (by apply clipperSalesPatchesWindowDisjoint32 v <;> native_decide)
-      (by apply clipperSalesPatchesWindowDisjoint32 v <;> native_decide)
-      (by native_decide)
-      (by native_decide)
-      (by native_decide)
+      (by apply clipperSalesPatchesWindowDisjoint32 v <;> decide +native)
+      (by apply clipperSalesPatchesWindowDisjoint32 v <;> decide +native)
+      (by decide +native)
+      (by decide +native)
+      (by decide +native)
 
 theorem clipperJumpDest6668 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
@@ -986,10 +986,10 @@ theorem clipperJumpDest6668 (v : ClipperImmutables) {code : ByteArray}
   cases hIlk : wordBytes? v.ilk with
   | none =>
       simp [hIlk]
-      native_decide
+      decide +native
   | some bs =>
       simp [hIlk]
-      native_decide
+      decide +native
 
 theorem clipperSalesX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
@@ -1031,7 +1031,7 @@ theorem clipperSalesX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
         some (.Push .PUSH2, some (⟨1183⟩, 2))
       clipper_decode)
     (by change decode code (⟨1178⟩ : UInt256) = some (.JUMPI, .none); clipper_decode)
-    (clipperJumpDestBeforeFirstPatch v hpatch (⟨1183⟩ : UInt256) (by native_decide))
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨1183⟩ : UInt256) (by decide +native))
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
   have rd1184 := hdecoded.jumpdest
     (by
@@ -1249,8 +1249,8 @@ theorem clipperSalesReturnFromMemWfPatched (v : ClipperImmutables) {code : ByteA
   unfold clipperSalesReturnFromMemWf
   repeat' first | apply And.intro
   all_goals
-    rw [clipperDecodeBeforeFirstPatch v hpatch _ (by native_decide)]
-    native_decide
+    rw [clipperDecodeBeforeFirstPatch v hpatch _ (by decide +native)]
+    decide +native
 
 theorem clipperSalesX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
@@ -1331,7 +1331,7 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (clipperSelBytes 18) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (clipperSelBytes 18) (by decide +native) hsel
   have hdispatch : dispatchMsg (contract v) I.calldata = some salesTransition :=
     clipperDispatch_sales v hsel
   have hreach := clipperReachSalesBody (cA := cA) (gh := gh) (bl := bl)
@@ -1352,7 +1352,7 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
     obtain ⟨_, _, rd1190⟩ := RD.clipperSalesStructGetter
       (key := key) (ret := (⟨1190⟩ : UInt256)) (R := [clipperSelWord I])
       rd6668 (clipperSalesStructGetterWfPatched v hpatch)
-      (clipperJumpDestBeforeFirstPatch v hpatch (⟨1190⟩ : UInt256) (by native_decide))
+      (clipperJumpDestBeforeFirstPatch v hpatch (⟨1190⟩ : UInt256) (by decide +native))
       (by simp)
     have hretRaw :
         RDret code (Sat256.ofUInt256 g)
@@ -1366,13 +1366,13 @@ theorem clipperSalesBody (v : ClipperImmutables) {code : ByteArray}
           (solcMappingHashMem_read64 ⟨12⟩ key)
           (by simp)
     have hmask160 : solcAddrMask.toNat = 2 ^ 160 - 1 := by
-      native_decide
+      decide +native
     have husrLt : usrE.toNat < EVM.twoPow 160 := by
       simpa [usrE] using u256LandMaskToNatLtOfToNat packedE solcAddrMask hmask160
     have husrClean : UInt256.land usrE solcAddrMask = usrE := by
       exact u256LandMaskCleanOfToNat usrE solcAddrMask hmask160 husrLt
     have hmask96 : clipperSalesUint96Mask.toNat = 2 ^ 96 - 1 := by
-      native_decide
+      decide +native
     have hticLt : ticE.toNat < EVM.twoPow 96 := by
       simpa [ticE, clipperSalesPackedTicWord, clipperSalesUint96Mask] using
         u256LandMaskToNatLtOfToNat

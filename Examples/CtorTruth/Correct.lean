@@ -105,23 +105,23 @@ noncomputable def ctorTruthInitReturnMem : ByteArray :=
   ctorTruthRuntimeBytecode.write 0 solcFreePtrMem 0 123
 
 theorem ctorTruthRuntime_size : ctorTruthRuntimeBytecode.size = 123 := by
-  native_decide
+  decide +native
 
 theorem ctorTruthRuntime_extract_all :
     ctorTruthRuntimeBytecode.extract 0 123 = ctorTruthRuntimeBytecode := by
   apply ByteArray.ext
   rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by native_decide)
+  exact Array.extract_eq_self_of_le (by decide +native)
 
 theorem ctorTruthInitcode_runtime_window :
     ctorTruthInitcode.extract 15 (15 + 123) = ctorTruthRuntimeBytecode := by
-  native_decide
+  decide +native
 
 theorem ctorTruthInitcode_codecopy_mem :
     ctorTruthInitcode.write 15 solcFreePtrMem 0 123 = ctorTruthInitReturnMem := by
   unfold ctorTruthInitReturnMem
   apply ByteArray.ext
-  rw [write0_data_from ctorTruthInitcode solcFreePtrMem 15 123 (by decide) (by native_decide)]
+  rw [write0_data_from ctorTruthInitcode solcFreePtrMem 15 123 (by decide) (by decide +native)]
   rw [write0_data ctorTruthRuntimeBytecode solcFreePtrMem 123 (by decide)
     (by rw [ctorTruthRuntime_size])]
   have hwindow :

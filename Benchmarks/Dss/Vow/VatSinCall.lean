@@ -39,7 +39,7 @@ theorem initialHealSinSelectorMem_selector :
     extract_append_right_window _ _ _ _ (by rw [solcFreePtrMem_pad_size]),
     solcFreePtrMem_pad_size, show (128 : ℕ) - 128 = 0 from rfl,
     show (132 : ℕ) - 128 = 4 from rfl, toByteArray_eq_toBytesBE]
-  native_decide
+  decide +native
 
 theorem initialHealSinCalldataMem_read128_36 (I : ExecutionEnv) :
     (healSinCalldataMem I solcFreePtrMem).readWithPadding 128 36 =

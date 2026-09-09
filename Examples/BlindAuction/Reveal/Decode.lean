@@ -32,7 +32,7 @@ theorem RD.blindAuctionRevealDecodeEmptyArray1713 {g : Sat256} {s0 : State}
     push2 ⟨1729⟩, jumpiT (by rw [hstart]; decide) (by jump_dest)]
   have rd1733 := evm_run rd1729 with [jumpdest, pop, dup2, calldataload]
   have rd1742 := RD.pushConst rd1733 ⟨18446744073709551615⟩ (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1752 := evm_run rd1742 with [
     dup2, gt, iszero, push2 ⟨1752⟩, jumpiT (by rw [hlen]; decide) (by jump_dest)]
   obtain ⟨_, _, rd1752z⟩ : ∃ k' C', RD blindAuctionBytecode ee g s0 ⟨1752⟩
@@ -68,7 +68,7 @@ theorem RD.blindAuctionRevealDecodeArray1713 {g : Sat256} {s0 : State}
     push2 ⟨1729⟩, jumpiT (by rw [hstart]; decide) (by jump_dest)]
   have rd1733 := evm_run rd1729 with [jumpdest, pop, dup2, calldataload]
   have rd1742 := RD.pushConst rd1733 ⟨18446744073709551615⟩ (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1752 := evm_run rd1742 with [
     dup2, gt, iszero, push2 ⟨1752⟩, jumpiT
       (by
@@ -129,7 +129,7 @@ theorem RD.blindAuctionRevealDecodeArray1713_lengthRevert {g : Sat256} {s0 : Sta
       (by jump_dest)]
   have rd1733 := evm_run rd1729 with [jumpdest, pop, dup2, calldataload]
   have rd1742 := RD.pushConst rd1733 ⟨18446744073709551615⟩ (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1751 := evm_run rd1742 with [
     dup2, gt, iszero, push2 ⟨1752⟩, jumpiNT
       (by
@@ -162,7 +162,7 @@ theorem RD.blindAuctionRevealDecodeArray1713_endRevert {g : Sat256} {s0 : State}
       (by jump_dest)]
   have rd1733 := evm_run rd1729 with [jumpdest, pop, dup2, calldataload]
   have rd1742 := RD.pushConst rd1733 ⟨18446744073709551615⟩ (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1752 := evm_run rd1742 with [
     dup2, gt, iszero, push2 ⟨1752⟩, jumpiT
       (by
@@ -300,7 +300,7 @@ theorem blindAuctionRevealX_decode_valuesOffset_revert {cA gh bl σ σ₀ A I} {
   obtain ⟨_, _, rd1806⟩ := hhead
   have rd1809 := evm_run rd1806 with [jumpdest, dup7, calldataload]
   have rd1818 := RD.pushConst rd1809 revealMaxU64 (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   exact evm_run rd1818 with [
     dup2, gt, iszero, push2 ⟨1828⟩, jumpiNT (by
       have hgt' :
@@ -326,7 +326,7 @@ theorem blindAuctionRevealX_decode_valuesOffset_ok {cA gh bl σ σ₀ A I} {g : 
   obtain ⟨_, _, rd1806⟩ := hhead
   have rd1809 := evm_run rd1806 with [jumpdest, dup7, calldataload]
   have rd1818 := RD.pushConst rd1809 revealMaxU64 (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1828 := evm_run rd1818 with [
     dup2, gt, iszero, push2 ⟨1828⟩, jumpiT (by
       have hgt' :
@@ -362,7 +362,7 @@ theorem blindAuctionRevealDecodeValuesCall1806_to_1713
       mem aw rdata acc k' C' := by
   have rd1809 := evm_run rd with [jumpdest, dup7, calldataload]
   have rd1818 := RD.pushConst rd1809 revealMaxU64 (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1828 := evm_run rd1818 with [
     dup2, gt, iszero, push2 ⟨1828⟩, jumpiT
       (by
@@ -403,7 +403,7 @@ theorem blindAuctionRevealDecodeFakesOffset1840_reverts
   have rd1847 := evm_run rd1845 with [pop, pop]
   have rd1852 := evm_run rd1847 with [push1 ⟨32⟩, dup8, add, calldataload]
   have rd1861 := RD.pushConst rd1852 revealMaxU64 (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   exact evm_run rd1861 with [
     dup2, gt, iszero, push2 ⟨1871⟩, jumpiNT
       (by
@@ -439,7 +439,7 @@ theorem blindAuctionRevealDecodeFakesCall1840_to_1713
   have rd1847 := evm_run rd1845 with [pop, pop]
   have rd1852 := evm_run rd1847 with [push1 ⟨32⟩, dup8, add, calldataload]
   have rd1861 := RD.pushConst rd1852 revealMaxU64 (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1871 := evm_run rd1861 with [
     dup2, gt, iszero, push2 ⟨1871⟩, jumpiT
       (by
@@ -475,7 +475,7 @@ theorem blindAuctionRevealDecodeSecretsOffset1883_reverts
   have rd1886 := evm_run rd1885 with [pop, swap4, pop, pop]
   have rd1895 := evm_run rd1886 with [push1 ⟨64⟩, dup8, add, calldataload]
   have rd1904 := RD.pushConst rd1895 revealMaxU64 (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   exact evm_run rd1904 with [
     dup2, gt, iszero, push2 ⟨1914⟩, jumpiNT
       (by
@@ -510,7 +510,7 @@ theorem blindAuctionRevealDecodeSecretsCall1883_to_1713
   have rd1886 := evm_run rd1885 with [pop, swap4, pop, pop]
   have rd1895 := evm_run rd1886 with [push1 ⟨64⟩, dup8, add, calldataload]
   have rd1904 := RD.pushConst rd1895 revealMaxU64 (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1914 := evm_run rd1904 with [
     dup2, gt, iszero, push2 ⟨1914⟩, jumpiT
       (by
@@ -638,7 +638,7 @@ theorem blindAuctionRevealDecodeEmptyArrays1806_to_413
   have rd1847 := evm_run rd1845 with [pop, pop]
   have rd1852 := evm_run rd1847 with [push1 ⟨32⟩, dup8, add, calldataload]
   have rd1861 := RD.pushConst rd1852 revealMaxU64 (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1871 := evm_run rd1861 with [
     dup2, gt, iszero, push2 ⟨1871⟩, jumpiT
       (by
@@ -664,7 +664,7 @@ theorem blindAuctionRevealDecodeEmptyArrays1806_to_413
   have rd1886 := evm_run rd1885 with [pop, swap4, pop, pop]
   have rd1895 := evm_run rd1886 with [push1 ⟨64⟩, dup8, add, calldataload]
   have rd1904 := RD.pushConst rd1895 revealMaxU64 (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1914 := evm_run rd1904 with [
     dup2, gt, iszero, push2 ⟨1914⟩, jumpiT
       (by
@@ -1079,7 +1079,7 @@ theorem revealArrayGuards_of_decode_elem32 {I : ExecutionEnv} {headOff off : Nat
   · rw [hword]
     apply ugt_zero
     rw [ulit_toNat' off (lt_size_of_lt_sign (by omega : off < 2 ^ 255))]
-    rw [show revealMaxU64.toNat = solcMaxU64 by native_decide]
+    rw [show revealMaxU64.toNat = solcMaxU64 by decide +native]
     unfold solcMaxU64 at hoffMax ⊢
     omega
   · have hstart31ToNat :
@@ -1098,7 +1098,7 @@ theorem revealArrayGuards_of_decode_elem32 {I : ExecutionEnv} {headOff off : Nat
       omega
   · apply ugt_zero
     rw [ulit_toNat' len (lt_size_of_lt_sign (by omega : len < 2 ^ 255))]
-    rw [show revealMaxU64.toNat = solcMaxU64 by native_decide]
+    rw [show revealMaxU64.toNat = solcMaxU64 by decide +native]
     unfold solcMaxU64 at hlenMax ⊢
     omega
   · have hendToNat :

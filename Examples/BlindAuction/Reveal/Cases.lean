@@ -629,7 +629,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
     raw mstore 0 mem2 aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
-        rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
+        rw [show (⟨32⟩ : UInt256).toNat = 32 by decide +native]
         rw [haw32]
         simp)
       (by rfl) haw32 (by evm_ov),
@@ -637,7 +637,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
     raw keccak256 0 (revealScratchBidsLengthSlot I) aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
-        rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
+        rw [show (⟨64⟩ : UInt256).toNat = 64 by decide +native]
         rw [haw64]
         simp)
       (by
@@ -680,7 +680,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
       aw (by decide)
       (fun s haws hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstk]
-        rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
+        rw [show (⟨32⟩ : UInt256).toNat = 32 by decide +native]
         rw [haw0]
         simp)
       (by simpa [mem3, mem2, mem1, revealScratchSenderWord] using hdataHash) haw0
@@ -701,7 +701,7 @@ theorem scratch_blindAuctionRevealX_loopBody_toElemSlot_curLen_concrete {I} {g :
       (⟨1054⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ :
           UInt256) = ⟨1069⟩ := by
-    native_decide
+    decide +native
   exact ⟨_, _, by simpa [hslot, hpc1069] using rd1069⟩
 
 theorem scratch_blindAuctionDecode_reveal_fakes_slt {I : ExecutionEnv} {callargs : Store}
@@ -760,7 +760,7 @@ theorem scratch_blindAuctionDecode_reveal_fakes_slt {I : ExecutionEnv} {callargs
     rfl
   change UInt256.slt (UInt256.sub (start + ⟨32⟩) start) ⟨32⟩ = ⟨0⟩
   rw [hsubEq]
-  native_decide
+  decide +native
 
 theorem scratch_blindAuctionDecode_reveal_fakes_word_toNat {I : ExecutionEnv}
     {callargs : Store} {values fakes secrets : List Value} {i : UInt256} {word : Nat}

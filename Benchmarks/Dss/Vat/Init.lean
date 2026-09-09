@@ -194,7 +194,7 @@ theorem vatInitSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
     have htoNat : initRayWord.toNat = 1000000000000000000000000000 := by
       change (UInt256.ofNat 1000000000000000000000000000).toNat =
         1000000000000000000000000000
-      exact ulit_toNat' _ (by native_decide)
+      exact ulit_toNat' _ (by decide +native)
     simp [evalExpr?, ray, initRayWord, pure, htoNat]
   have hassign :
       assignStorageRef? config { contract := contract, locals := locals } evm0
@@ -352,7 +352,7 @@ theorem vatDispatchInit {I : ExecutionEnv}
     fileIlkSelectorBytes, fileLineSelectorBytes, fluxSelectorBytes, foldSelectorBytes,
     forkSelectorBytes, frobSelectorBytes, gemSelectorBytes, grabSelectorBytes,
     healSelectorBytes, hopeSelectorBytes, ilksSelectorBytes, initSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachInitBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -363,29 +363,29 @@ theorem vatReachInitBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0x3b663195⟩ :=
     vatSelWord_eq_of_beq I hsz 0x3b 0x66 0x31 0x95 ⟨0x3b663195⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlowlow :
       UInt256.gt (armSelNat vatBytecode vatLowLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms370FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms370FirstPc 3))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms370Body 3 (by omega) ⟨682⟩ hcode hwv hsz hsize
-    hroot hlow hlowlow heq0 htake (by jump_dest) (by native_decide)
+    hroot hlow hlowlow heq0 htake (by jump_dest) (by decide +native)
 
 @[reducible] def solcOneWordExternalLoadAndJumpWf
     (code : ByteArray) (pc routine : UInt256) : Prop :=
@@ -429,9 +429,9 @@ theorem vatInitX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨682⟩) (ret := ⟨524⟩)
     (decoded := ⟨704⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
   obtain ⟨_, _, hroutine⟩ := RD.solcOneWordExternalLoadAndJump
@@ -439,7 +439,7 @@ theorem vatInitX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (R := [sel]) hdecoded
     (by
       unfold solcOneWordExternalLoadAndJumpWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [initIlkWord] using hroutine⟩
 
@@ -517,18 +517,18 @@ theorem RD.vatInitRateGuardOk {code : ByteArray} {g : Sat256} {s0 : State}
   have rd4 := h.jumpdest hd0 (by evm_ov) |>.push1 ⟨0⟩ hd1 (by evm_ov)
     |>.dup2 hd3 (by evm_ov) |>.dup2 hd4 (by evm_ov)
   have rd5 := rd4.mstore 0 (wordAt0Mem key mem)
-    (UInt256.ofNat 3) hd5 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd5 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd10pre := evm_run rd5 with [
     raw push1 ⟨2⟩ hd6 (by evm_ov),
     raw push1 ⟨32⟩ hd8 (by evm_ov)]
   have rd10 := rd10pre.mstore 0 (twoWordHashMem key ⟨2⟩ mem)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd14pre := evm_run rd10 with [
     raw push1 ⟨64⟩ hd11 (by evm_ov),
     raw swap1 hd13 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨2⟩ key hmem
   have rd15 := rd14pre.keccak256 0 (solcMappingSlot ⟨2⟩ key)
-    (UInt256.ofNat 3) hd14 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd14 mem_cost hslot (by decide +native) (by evm_ov)
   have rd17 := rd15.push1 ⟨1⟩ hd15 (by evm_ov)
   have rd18 := rd17.add hd17 (by evm_ov)
   obtain ⟨_, _, rd19raw⟩ := rd18.sload hd18 (by evm_ov)
@@ -563,18 +563,18 @@ theorem RD.vatInitRateGuardRevert {code : ByteArray} {g : Sat256} {s0 : State}
   have rd4 := h.jumpdest hd0 (by evm_ov) |>.push1 ⟨0⟩ hd1 (by evm_ov)
     |>.dup2 hd3 (by evm_ov) |>.dup2 hd4 (by evm_ov)
   have rd5 := rd4.mstore 0 (wordAt0Mem key mem)
-    (UInt256.ofNat 3) hd5 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd5 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd10pre := evm_run rd5 with [
     raw push1 ⟨2⟩ hd6 (by evm_ov),
     raw push1 ⟨32⟩ hd8 (by evm_ov)]
   have rd10 := rd10pre.mstore 0 (twoWordHashMem key ⟨2⟩ mem)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd14pre := evm_run rd10 with [
     raw push1 ⟨64⟩ hd11 (by evm_ov),
     raw swap1 hd13 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨2⟩ key hmem
   have rd15 := rd14pre.keccak256 0 (solcMappingSlot ⟨2⟩ key)
-    (UInt256.ofNat 3) hd14 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd14 mem_cost hslot (by decide +native) (by evm_ov)
   have rd17 := rd15.push1 ⟨1⟩ hd15 (by evm_ov)
   have rd18 := rd17.add hd17 (by evm_ov)
   obtain ⟨_, _, rd19raw⟩ := rd18.sload hd18 (by evm_ov)
@@ -660,18 +660,18 @@ theorem RD.vatInitStoreRay {code : ByteArray} {g : Sat256} {s0 : State}
   have rd4 := h.jumpdest hd0 (by evm_ov) |>.push1 ⟨0⟩ hd1 (by evm_ov)
     |>.swap1 hd3 (by evm_ov) |>.dup2 hd4 (by evm_ov)
   have rd5 := rd4.mstore 0 (wordAt0Mem key mem)
-    (UInt256.ofNat 3) hd5 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd5 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd10pre := evm_run rd5 with [
     raw push1 ⟨2⟩ hd6 (by evm_ov),
     raw push1 ⟨32⟩ hd8 (by evm_ov)]
   have rd10 := rd10pre.mstore 0 (twoWordHashMem key ⟨2⟩ mem)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd14pre := evm_run rd10 with [
     raw push1 ⟨64⟩ hd11 (by evm_ov),
     raw swap1 hd13 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨2⟩ key hmem
   have rd15 := rd14pre.keccak256 0 (solcMappingSlot ⟨2⟩ key)
-    (UInt256.ofNat 3) hd14 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd14 mem_cost hslot (by decide +native) (by evm_ov)
   have rd28 := rd15.pushConst initRayWord
     (width := 12) (op := .PUSH12) (by decide) hd15 (by evm_ov)
   have rd33 := evm_run rd28 with [
@@ -698,10 +698,10 @@ theorem vatInitX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨682⟩) (ret := ⟨524⟩)
     (decoded := ⟨704⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem vatInitBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -751,7 +751,7 @@ theorem vatInitBodyCoreOk
     hdecoded
     (by
       unfold vatAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
   have hrateSolc :
       solcSlotWord σ_evm I (solcMappingSlot ⟨2⟩ (initIlkWord I) + ⟨1⟩) = ⟨0⟩ := by
@@ -765,7 +765,7 @@ theorem vatInitBodyCoreOk
     hafterAuth
     (by
       unfold vatInitRateGuardWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hrateSolc hmemAuth (by jump_dest) (by simp)
   have hrateMem :
       (twoWordHashMem (initIlkWord I) ⟨2⟩
@@ -777,15 +777,15 @@ theorem vatInitBodyCoreOk
     hstorePc
     (by
       unfold vatInitStoreRayWf initRayWord
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) hperm hrateMem (by simp)
-  have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+  have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (cA, sstoreAccountMap I.codeOwner σ_evm slot initRayWord) ByteArray.empty := by
     simpa [slot, initRateSlot_eq I hsz36] using
-      RD.stop hretPc' (by native_decide) (by simp)
+      RD.stop hretPc' (by decide +native) (by simp)
   have haccounts :
       accountMapEquiv (sstoreAccountMap I.codeOwner σ_evm slot initRayWord)
         evm1.accountMap := by
@@ -793,7 +793,7 @@ theorem vatInitBodyCoreOk
       accountMapEquiv_sstoreAccountMap I.codeOwner slot initRayWord hAccounts
   have henc : returnEquiv ByteArray.empty none initTransition.returnType := by
     rw [show initTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, storageStore_createdAccounts])
     haccounts henc
@@ -837,10 +837,10 @@ theorem vatInitBodyCoreUnauthorized
     hdecoded
     (by
       unfold vatAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold vatAuthRevertTailWf vatAuthTailPc
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by simp)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -890,7 +890,7 @@ theorem vatInitBodyCoreAlreadyInit
     hdecoded
     (by
       unfold vatAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
   have hrateSolc :
       solcSlotWord σ_evm I (solcMappingSlot ⟨2⟩ (initIlkWord I) + ⟨1⟩) ≠ ⟨0⟩ := by
@@ -909,10 +909,10 @@ theorem vatInitBodyCoreAlreadyInit
     hafterAuth
     (by
       unfold vatInitRateGuardWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcErrorStringRevertTailWf vatInitRateGuardTailPc vatIlkAlreadyInitRawWord
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hrateSolc hmemAuth hreadAuth (by simp)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

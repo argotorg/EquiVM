@@ -266,7 +266,7 @@ theorem uniswapDecode_swap_ok {I : ExecutionEnv} (hsz132 : 132 ≤ I.calldata.si
       | none => none) = some (swapStore I)
     unfold decodeCalldata.decodeArgs
     rw [show abiTupleHeadSize? [uint256, uint256, legacyAddr, ABIType.bytes] = some 128 by
-      native_decide]
+      decide +native]
     simp only [bind, Option.bind]
     rw [if_neg (by
       rw [List.length_drop, htlen]
@@ -301,7 +301,7 @@ theorem uniswapDecode_swap_none_head_short {I : ExecutionEnv}
       | none => none) = none
     unfold decodeCalldata.decodeArgs
     rw [show abiTupleHeadSize? [uint256, uint256, legacyAddr, ABIType.bytes] = some 128 by
-      native_decide]
+      decide +native]
     simp only [bind, Option.bind]
     rw [if_pos (by
       rw [List.length_drop, htlen]
@@ -495,7 +495,7 @@ theorem uniswapDecode_swap_none_of_values_none {I : ExecutionEnv}
       | none => none) = none
     unfold decodeCalldata.decodeArgs
     rw [show abiTupleHeadSize? [uint256, uint256, legacyAddr, ABIType.bytes] = some 128 by
-      native_decide]
+      decide +native]
     simp only [bind, Option.bind]
     rw [if_neg (by
       rw [List.length_drop, htlen]
@@ -558,10 +558,10 @@ theorem uniswapSwapX_shortHead {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     (code := uniswapV2PairBytecode) (entry := ⟨430⟩) (ret := ⟨570⟩)
     (decoded := ⟨452⟩) (need := ⟨128⟩)
     hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem uniswapSwapX_offsetHuge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsize : I.calldata.size < UInt256.size) (hsz132 : 132 ≤ I.calldata.size)
@@ -577,10 +577,10 @@ theorem uniswapSwapX_offsetHuge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (code := uniswapV2PairBytecode) (entry := ⟨430⟩) (ret := ⟨570⟩)
     (decoded := ⟨452⟩) (need := ⟨128⟩)
     hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) hlt
   have rd490 := evm_run rd452 with [
     jumpdest, dup2, calldataload, swap2, push1 ⟨32⟩, dup2, add, calldataload,
     swap2, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, push1 ⟨64⟩,
@@ -597,20 +597,20 @@ theorem uniswapSwapX_offsetHuge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     simpa [swapDataOffset, swapDataOffsetWord, calldataWord,
       show (((⟨4⟩ : UInt256) + ⟨96⟩).toNat) = 100 from by decide] using hoff'
   have rd496 := rd490.pushConst ⟨4294967296⟩ (width := 5) (op := .PUSH5)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd497 := rd496.dup2 (by native_decide) (by evm_ov)
-  have rd498₀ := rd497.gt (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
+  have rd497 := rd496.dup2 (by decide +native) (by evm_ov)
+  have rd498₀ := rd497.gt (by decide +native) (by evm_ov)
   have rd498 := rd498₀
   rw [hgt] at rd498
-  have rd499₀ := rd498.iszero (by native_decide) (by evm_ov)
+  have rd499₀ := rd498.iszero (by decide +native) (by evm_ov)
   have rd499 := rd499₀
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd499
-  have rd502 := rd499.push2 ⟨507⟩ (by native_decide) (by evm_ov)
-  have rd503 := rd502.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+  have rd502 := rd499.push2 ⟨507⟩ (by decide +native) (by evm_ov)
+  have rd503 := rd502.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by evm_ov)
-  have rd505 := rd503.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd506 := rd505.dup1 (by native_decide) (by evm_ov)
-  exact rd506.rev 0 (by native_decide) mem_cost (by evm_ov)
+  have rd505 := rd503.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd506 := rd505.dup1 (by decide +native) (by evm_ov)
+  exact rd506.rev 0 (by decide +native) mem_cost (by evm_ov)
 
 theorem uniswapSwapX_lengthShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsize : I.calldata.size < UInt256.size) (hsz132 : 132 ≤ I.calldata.size)
@@ -627,10 +627,10 @@ theorem uniswapSwapX_lengthShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     (code := uniswapV2PairBytecode) (entry := ⟨430⟩) (ret := ⟨570⟩)
     (decoded := ⟨452⟩) (need := ⟨128⟩)
     hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) hlt
   have rd490 := evm_run rd452 with [
     jumpdest, dup2, calldataload, swap2, push1 ⟨32⟩, dup2, add, calldataload,
     swap2, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, push1 ⟨64⟩,
@@ -649,17 +649,17 @@ theorem uniswapSwapX_lengthShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     simpa [swapDataOffset, swapDataOffsetWord, calldataWord,
       show (((⟨4⟩ : UInt256) + ⟨96⟩).toNat) = 100 from by decide] using hoffLe
   have rd496 := rd490.pushConst ⟨4294967296⟩ (width := 5) (op := .PUSH5)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd497 := rd496.dup2 (by native_decide) (by evm_ov)
-  have rd498₀ := rd497.gt (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
+  have rd497 := rd496.dup2 (by decide +native) (by evm_ov)
+  have rd498₀ := rd497.gt (by decide +native) (by evm_ov)
   have rd498 := rd498₀
   rw [hoffPass] at rd498
-  have rd499₀ := rd498.iszero (by native_decide) (by evm_ov)
+  have rd499₀ := rd498.iszero (by decide +native) (by evm_ov)
   have rd499 := rd499₀
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd499
-  have rd502 := rd499.push2 ⟨507⟩ (by native_decide) (by evm_ov)
-  have rd507 := rd502.jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by evm_ov)
+  have rd502 := rd499.push2 ⟨507⟩ (by decide +native) (by evm_ov)
+  have rd507 := rd502.jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    (by decide +native) (by evm_ov)
   have rd516 := evm_run rd507 with [
     jumpdest, dup3, add, dup4, push1 ⟨32⟩, dup3, add, gt]
   have hgtLen :
@@ -714,15 +714,15 @@ theorem uniswapSwapX_lengthShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     exact hlenShort
   have rd516' := rd516
   rw [hgtLen] at rd516'
-  have rd517₀ := rd516'.iszero (by native_decide) (by evm_ov)
+  have rd517₀ := rd516'.iszero (by decide +native) (by evm_ov)
   have rd517 := rd517₀
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd517
-  have rd520 := rd517.push2 ⟨525⟩ (by native_decide) (by evm_ov)
-  have rd521 := rd520.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+  have rd520 := rd517.push2 ⟨525⟩ (by decide +native) (by evm_ov)
+  have rd521 := rd520.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by evm_ov)
-  have rd523 := rd521.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd524 := rd523.dup1 (by native_decide) (by evm_ov)
-  exact rd524.rev 0 (by native_decide) mem_cost (by evm_ov)
+  have rd523 := rd521.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd524 := rd523.dup1 (by decide +native) (by evm_ov)
+  exact rd524.rev 0 (by decide +native) mem_cost (by evm_ov)
 
 private theorem swapU256_lor_one_ne_zero_left (w : UInt256) :
     UInt256.lor ⟨1⟩ w ≠ ⟨0⟩ := by
@@ -809,10 +809,10 @@ theorem uniswapSwapX_lengthHuge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (code := uniswapV2PairBytecode) (entry := ⟨430⟩) (ret := ⟨570⟩)
     (decoded := ⟨452⟩) (need := ⟨128⟩)
     hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) hlt
   have rd490 := evm_run rd452 with [
     jumpdest, dup2, calldataload, swap2, push1 ⟨32⟩, dup2, add, calldataload,
     swap2, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, push1 ⟨64⟩,
@@ -831,17 +831,17 @@ theorem uniswapSwapX_lengthHuge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     simpa [swapDataOffset, swapDataOffsetWord, calldataWord,
       show (((⟨4⟩ : UInt256) + ⟨96⟩).toNat) = 100 from by decide] using hoffLe
   have rd496 := rd490.pushConst ⟨4294967296⟩ (width := 5) (op := .PUSH5)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd497 := rd496.dup2 (by native_decide) (by evm_ov)
-  have rd498₀ := rd497.gt (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
+  have rd497 := rd496.dup2 (by decide +native) (by evm_ov)
+  have rd498₀ := rd497.gt (by decide +native) (by evm_ov)
   have rd498 := rd498₀
   rw [hoffPass] at rd498
-  have rd499₀ := rd498.iszero (by native_decide) (by evm_ov)
+  have rd499₀ := rd498.iszero (by decide +native) (by evm_ov)
   have rd499 := rd499₀
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd499
-  have rd502 := rd499.push2 ⟨507⟩ (by native_decide) (by evm_ov)
-  have rd507 := rd502.jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by evm_ov)
+  have rd502 := rd499.push2 ⟨507⟩ (by decide +native) (by evm_ov)
+  have rd507 := rd502.jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    (by decide +native) (by evm_ov)
   have rd516 := evm_run rd507 with [
     jumpdest, dup3, add, dup4, push1 ⟨32⟩, dup3, add, gt]
   have hgtLen :
@@ -896,19 +896,19 @@ theorem uniswapSwapX_lengthHuge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     exact hlenWord
   have rd516' := rd516
   rw [hgtLen] at rd516'
-  have rd517₀ := rd516'.iszero (by native_decide) (by evm_ov)
+  have rd517₀ := rd516'.iszero (by decide +native) (by evm_ov)
   have rd517 := rd517₀
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd517
-  have rd520 := rd517.push2 ⟨525⟩ (by native_decide) (by evm_ov)
-  have rd525 := rd520.jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by evm_ov)
+  have rd520 := rd517.push2 ⟨525⟩ (by decide +native) (by evm_ov)
+  have rd525 := rd520.jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    (by decide +native) (by evm_ov)
   have rd540 := evm_run rd525 with [
     jumpdest, dup1, calldataload, swap1, push1 ⟨32⟩, add, swap2, dup5,
     push1 ⟨1⟩, dup4, mul, dup5, add, gt]
   have rd546 := rd540.pushConst ⟨4294967296⟩ (width := 5) (op := .PUSH5)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd547 := rd546.dup4 (by native_decide) (by evm_ov)
-  have rd548₀ := rd547.gt (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
+  have rd547 := rd546.dup4 (by decide +native) (by evm_ov)
+  have rd548₀ := rd547.gt (by decide +native) (by evm_ov)
   have hgtHuge :
       UInt256.gt
         (uInt256OfByteArray
@@ -951,16 +951,16 @@ theorem uniswapSwapX_lengthHuge {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     simpa [solcLegacyMaxU32] using hlenHuge
   have rd548 := rd548₀
   rw [hgtHuge] at rd548
-  have rd549 := RD.or rd548 (by native_decide) (by evm_ov)
-  have rd550₀ := rd549.iszero (by native_decide) (by evm_ov)
+  have rd549 := RD.or rd548 (by decide +native) (by evm_ov)
+  have rd550₀ := rd549.iszero (by decide +native) (by evm_ov)
   have rd550 := rd550₀
   rw [isZero_eq_zero_of_ne (swapU256_lor_one_ne_zero_left _)] at rd550
-  have rd553 := rd550.push2 ⟨559⟩ (by native_decide) (by evm_ov)
-  have rd554 := rd553.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+  have rd553 := rd550.push2 ⟨559⟩ (by decide +native) (by evm_ov)
+  have rd554 := rd553.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by evm_ov)
-  have rd556 := rd554.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd557 := rd556.dup1 (by native_decide) (by evm_ov)
-  exact rd557.rev 0 (by native_decide) mem_cost (by evm_ov)
+  have rd556 := rd554.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd557 := rd556.dup1 (by decide +native) (by evm_ov)
+  exact rd557.rev 0 (by decide +native) mem_cost (by evm_ov)
 
 theorem uniswapSwapX_payloadShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsize : I.calldata.size < UInt256.size) (hsz132 : 132 ≤ I.calldata.size)
@@ -980,10 +980,10 @@ theorem uniswapSwapX_payloadShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
     (code := uniswapV2PairBytecode) (entry := ⟨430⟩) (ret := ⟨570⟩)
     (decoded := ⟨452⟩) (need := ⟨128⟩)
     hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) hlt
   have rd490 := evm_run rd452 with [
     jumpdest, dup2, calldataload, swap2, push1 ⟨32⟩, dup2, add, calldataload,
     swap2, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, push1 ⟨64⟩,
@@ -1002,17 +1002,17 @@ theorem uniswapSwapX_payloadShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
     simpa [swapDataOffset, swapDataOffsetWord, calldataWord,
       show (((⟨4⟩ : UInt256) + ⟨96⟩).toNat) = 100 from by decide] using hoffLe
   have rd496 := rd490.pushConst ⟨4294967296⟩ (width := 5) (op := .PUSH5)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd497 := rd496.dup2 (by native_decide) (by evm_ov)
-  have rd498₀ := rd497.gt (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
+  have rd497 := rd496.dup2 (by decide +native) (by evm_ov)
+  have rd498₀ := rd497.gt (by decide +native) (by evm_ov)
   have rd498 := rd498₀
   rw [hoffPass] at rd498
-  have rd499₀ := rd498.iszero (by native_decide) (by evm_ov)
+  have rd499₀ := rd498.iszero (by decide +native) (by evm_ov)
   have rd499 := rd499₀
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd499
-  have rd502 := rd499.push2 ⟨507⟩ (by native_decide) (by evm_ov)
-  have rd507 := rd502.jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by evm_ov)
+  have rd502 := rd499.push2 ⟨507⟩ (by decide +native) (by evm_ov)
+  have rd507 := rd502.jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    (by decide +native) (by evm_ov)
   have rd516 := evm_run rd507 with [
     jumpdest, dup3, add, dup4, push1 ⟨32⟩, dup3, add, gt]
   have hgtLen :
@@ -1067,12 +1067,12 @@ theorem uniswapSwapX_payloadShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
     exact hlenWord
   have rd516' := rd516
   rw [hgtLen] at rd516'
-  have rd517₀ := rd516'.iszero (by native_decide) (by evm_ov)
+  have rd517₀ := rd516'.iszero (by decide +native) (by evm_ov)
   have rd517 := rd517₀
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd517
-  have rd520 := rd517.push2 ⟨525⟩ (by native_decide) (by evm_ov)
-  have rd525 := rd520.jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by evm_ov)
+  have rd520 := rd517.push2 ⟨525⟩ (by decide +native) (by evm_ov)
+  have rd525 := rd520.jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    (by decide +native) (by evm_ov)
   have rd540 := evm_run rd525 with [
     jumpdest, dup1, calldataload, swap1, push1 ⟨32⟩, add, swap2, dup5,
     push1 ⟨1⟩, dup4, mul, dup5, add, gt]
@@ -1184,19 +1184,19 @@ theorem uniswapSwapX_payloadShort {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
   have rd540' := rd540
   rw [hgtPayload] at rd540'
   have rd546 := rd540'.pushConst ⟨4294967296⟩ (width := 5) (op := .PUSH5)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd547 := rd546.dup4 (by native_decide) (by evm_ov)
-  have rd548 := rd547.gt (by native_decide) (by evm_ov)
-  have rd549 := RD.or rd548 (by native_decide) (by evm_ov)
-  have rd550₀ := rd549.iszero (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
+  have rd547 := rd546.dup4 (by decide +native) (by evm_ov)
+  have rd548 := rd547.gt (by decide +native) (by evm_ov)
+  have rd549 := RD.or rd548 (by decide +native) (by evm_ov)
+  have rd550₀ := rd549.iszero (by decide +native) (by evm_ov)
   have rd550 := rd550₀
   rw [isZero_eq_zero_of_ne (swapU256_lor_one_ne_zero_right _)] at rd550
-  have rd553 := rd550.push2 ⟨559⟩ (by native_decide) (by evm_ov)
-  have rd554 := rd553.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+  have rd553 := rd550.push2 ⟨559⟩ (by decide +native) (by evm_ov)
+  have rd554 := rd553.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by evm_ov)
-  have rd556 := rd554.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd557 := rd556.dup1 (by native_decide) (by evm_ov)
-  exact rd557.rev 0 (by native_decide) mem_cost (by evm_ov)
+  have rd556 := rd554.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd557 := rd556.dup1 (by decide +native) (by evm_ov)
+  exact rd557.rev 0 (by decide +native) mem_cost (by evm_ov)
 
 theorem uniswapSwapBodyCoreDecodeFailed_headShort
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

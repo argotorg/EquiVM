@@ -47,15 +47,15 @@ theorem flopperReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : flopperSelWord I = ⟨0xbf353dbb⟩ := by
     simpa [flopperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0xbf 0x35 0x3d 0xbb ⟨0xbf353dbb⟩
-        (by native_decide) (by simpa [flopperSelBytes] using hsel)
+        (by decide +native) (by simpa [flopperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flopperBytecode flopperRootSplitPc)
       (flopperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat flopperBytecode flopperHighSplitPc)
       (flopperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   obtain ⟨_, _, hfirst⟩ :=
     flopperReachHighHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh
@@ -70,10 +70,10 @@ theorem flopperReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (armSelNat flopperBytecode (nthArmPc flopperBytecode flopperHighHighFirstArmPc 0))
         (flopperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo ⟨766⟩ 0 hfirst
     (fun j hj => flopperHighHighArmsWellFormed j (le_trans hj (by omega)))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem flopperWardsBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -117,23 +117,23 @@ theorem flopperWardsBodyCoreOk
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := flopperBytecode) (sel := sel) (entry := ⟨766⟩) (ret := ⟨644⟩)
     (decoded := ⟨788⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcOneAddressExternalMaskAndJumpMasked
     (code := flopperBytecode) (decoded := ⟨788⟩) (ret := ⟨644⟩) (routine := ⟨3874⟩)
     (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by jump_dest) (by simp)
   obtain ⟨_, _, hretPc⟩ := RD.solcZeroSlotMappingGetter
     (code := flopperBytecode) (pc := ⟨3874⟩) (key := key) (ret := ⟨644⟩)
     (R := [sel])
     (by simpa [key, wardsMappingKey] using hroutine)
     (by
       unfold solcZeroSlotMappingGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   have hret :
       RDret flopperBytecode (Sat256.ofUInt256 g)
@@ -146,7 +146,7 @@ theorem flopperWardsBodyCoreOk
       (by simpa [slot, flopperSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨0⟩ key)
       (by rfl)
       (by
@@ -191,10 +191,10 @@ theorem flopperWardsBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := flopperBytecode) (sel := sel) (entry := ⟨766⟩) (ret := ⟨644⟩)
     (decoded := ⟨788⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (flopperDecode_wards_none_short hsz4 hshort)
 

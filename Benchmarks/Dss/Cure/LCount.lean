@@ -19,7 +19,7 @@ theorem cureDispatchLCount {I : ExecutionEnv}
   simp [dispatchList, selectorOf, hcd, cureSelBytes,
     cureAmtSelectorBytes, cureCageSelectorBytes, cureDenySelectorBytes,
     cureDropSelectorBytes, cureFileSelectorBytes, cureLCountSelectorBytes]
-  native_decide
+  decide +native
 
 theorem cureDecode_lCount {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (lCountTransition.params.map Param.name)
@@ -58,15 +58,15 @@ theorem cureLCountBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (cureReachLCountBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcWordSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [lCountWord] using hbody)
 
 end Benchmarks.Dss.Cure

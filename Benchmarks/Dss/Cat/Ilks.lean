@@ -373,12 +373,12 @@ theorem RD.catIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
   have rd6 := rd5.dup2 hd5 (by evm_ov)
   have rd7 := rd6.swap1 hd6 (by evm_ov)
   have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨1⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd10 := rd8.push1 ⟨0⟩ hd8 (by evm_ov)
   have rd11 := rd10.swap2 hd10 (by evm_ov)
   have rd12 := rd11.dup3 hd11 (by evm_ov)
   have rd13 := rd12.mstore 0 (solcMappingHashMem ⟨1⟩ key)
-    (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := rd13.push1 ⟨64⟩ hd13 (by evm_ov)
   have rd16 := rd15.swap1 hd15 (by evm_ov)
   have rd17 := rd16.swap2 hd16 (by evm_ov)
@@ -387,7 +387,7 @@ theorem RD.catIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     (UInt256.ofNat 3) hd17 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd19 := rd18.dup1 hd18 (by evm_ov)
   obtain ⟨_, _, rd20⟩ := rd19.sload hd19 (by evm_ov)
   have rd21 := rd20.swap2 hd20 (by evm_ov)
@@ -523,7 +523,7 @@ theorem RD.catIlksReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
   have rd16 := rd15.and hd15 (by evm_ov)
   have rd17 := rd16.dup5 hd16 (by evm_ov)
   have rd18 := rd17.mstore 6 (solcScratchReturnMem mem (UInt256.land first solcAddrMask))
-    (UInt256.ofNat 5) hd17 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 5) hd17 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd20 := rd18.push1 ⟨32⟩ hd18 (by evm_ov)
   have rd21 := rd20.dup5 hd20 (by evm_ov)
   have rd22 := rd21.add hd21 (by evm_ov)
@@ -532,13 +532,13 @@ theorem RD.catIlksReturnFromMem {code : ByteArray} {g : Sat256} {s0 : State}
   have rd25 := rd24.swap3 hd24 (by evm_ov)
   have rd26 := rd25.mstore 3
     (catScratchReturn2Mem mem (UInt256.land first solcAddrMask) second)
-    (UInt256.ofNat 6) hd25 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 6) hd25 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd27 := rd26.dup3 hd26 (by evm_ov)
   have rd28 := rd27.dup3 hd27 (by evm_ov)
   have rd29 := rd28.add hd28 (by evm_ov)
   have rd30 := rd29.mstore 3
     (catScratchReturn3Mem mem (UInt256.land first solcAddrMask) second third)
-    (UInt256.ofNat 7) hd29 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 7) hd29 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd31 := rd30.mload 0 ⟨128⟩ (UInt256.ofNat 7) hd30 mem_cost
     (catScratchReturn3Mem_mload64 (UInt256.land first solcAddrMask) second third hscratch hread64)
     (by decide) (by evm_ov)
@@ -594,20 +594,20 @@ theorem catAddrUintUintReturnEncoding (w chop dunk : UInt256) :
   rw [show UInt256.toByteArray dunk = (EVM.Word.toBytesBE dunk).toByteArray by
     exact (word_toBytesBE_toByteArray_eq_toByteArray dunk).symm]
   unfold encodeReturnValues? encodeABIValues?
-  rw [show abiTupleHeadSize? [addr, uint256, uint256] = some 96 by native_decide]
+  rw [show abiTupleHeadSize? [addr, uint256, uint256] = some 96 by decide +native]
   simp only [bind, Option.bind]
   unfold encodeABIValuesFrom?
   rw [hencFlip]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType addr = false by native_decide]
+  rw [show isDynamicABIType addr = false by decide +native]
   unfold encodeABIValuesFrom?
   rw [hencChop]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
+  rw [show isDynamicABIType uint256 = false by decide +native]
   unfold encodeABIValuesFrom?
   rw [hencDunk]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
+  rw [show isDynamicABIType uint256 = false by decide +native]
   unfold encodeABIValuesFrom?
   simp only [Bool.false_eq_true, if_false, List.nil_append, List.append_nil]
   apply congrArg some
@@ -635,7 +635,7 @@ theorem catDispatch_ilks {I : ExecutionEnv}
       simp only [selectorOf, biteSelectorBytes, boxSelectorBytes, cageSelectorBytes,
         clawSelectorBytes, denySelectorBytes, fileAddressSelectorBytes, fileIlkFlipSelectorBytes,
         fileIlkUintSelectorBytes, fileUintSelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, ilksSelectorBytes]
     exact hsel
 
@@ -647,22 +647,22 @@ theorem catReachIlksBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ⟨635⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
         (cA, σ) k C := by
   have hword : catSelWord I = ⟨3647180086⟩ :=
-    catSelWord_eq_of_beq I hsz 0xd9 0x63 0x8d 0x36 ⟨3647180086⟩ (by native_decide) hsel
+    catSelWord_eq_of_beq I hsz 0xd9 0x63 0x8d 0x36 ⟨3647180086⟩ (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) = ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   have hhigh : UInt256.gt (armSelNat catBytecode catHighSplitPc) (catSelWord I) = ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catHighHighFirstArmPc j))
         (catSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catHighHighFirstArmPc 1))
         (catSelWord I) ≠ ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   exact catReachHighHighBody 1 (by omega) ⟨635⟩ hcode hwv hsz hsize hroot hhigh heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 /-! ### Solm-side body execution -/
 
@@ -810,29 +810,29 @@ theorem catIlksBodyCoreOk
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := catBytecode) (sel := sel) (entry := ⟨635⟩) (ret := ⟨664⟩)
     (decoded := ⟨657⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
   have htoRoutine : ∃ k C, RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨3215⟩
       (ilksArgWord I :: ⟨664⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C := by
-    have rd658 := hdecoded.jumpdest (by native_decide) (by evm_ov)
-    have rd659 := rd658.pop (by native_decide) (by evm_ov)
-    have rd660 := rd659.calldataload (by native_decide) (by evm_ov)
-    have rd663 := rd660.push2 ⟨3215⟩ (by native_decide) (by evm_ov)
+    have rd658 := hdecoded.jumpdest (by decide +native) (by evm_ov)
+    have rd659 := rd658.pop (by decide +native) (by evm_ov)
+    have rd660 := rd659.calldataload (by decide +native) (by evm_ov)
+    have rd663 := rd660.push2 ⟨3215⟩ (by decide +native) (by evm_ov)
     exact ⟨_, _, by
       simpa [ilksArgWord, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-        using rd663.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+        using rd663.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
   obtain ⟨_, _, htoRoutineRd⟩ := htoRoutine
   obtain ⟨_, _, hretPc⟩ := RD.catIlksStructGetter
     (code := catBytecode) (pc := ⟨3215⟩) (key := ilksArgWord I) (ret := ⟨664⟩)
     (R := [sel]) (by simpa using htoRoutineRd)
     (by
       unfold catIlksStructGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   have hret :
       RDret catBytecode (Sat256.ofUInt256 g)
@@ -847,7 +847,7 @@ theorem catIlksBodyCoreOk
         simpa [flipWord, chopWord, dunkWord, flipSlot, chopSlot, dunkSlot, catSlotWord] using hretPc)
       (by
         unfold catIlksReturnFromMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (solcMappingHashMem_mload64 ⟨1⟩ (ilksArgWord I))
       (solcMappingHashMem_size ⟨1⟩ (ilksArgWord I))
       (solcMappingHashMem_read64 ⟨1⟩ (ilksArgWord I))
@@ -903,10 +903,10 @@ theorem catIlksBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := catBytecode) (sel := sel) (entry := ⟨635⟩) (ret := ⟨664⟩)
     (decoded := ⟨657⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (catDecode_ilks_none_short hsz4 hshort)
 

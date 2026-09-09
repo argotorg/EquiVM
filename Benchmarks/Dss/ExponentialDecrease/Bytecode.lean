@@ -156,7 +156,7 @@ def exponentialDecreaseBytecode : ByteArray :=
       ⟨1021⟩, ⟨1025⟩, ⟨1037⟩, ⟨1060⟩, ⟨1076⟩, ⟨1114⟩, ⟨1130⟩, ⟨1137⟩, ⟨1148⟩, ⟨1154⟩,
       ⟨1159⟩, ⟨1165⟩, ⟨1169⟩, ⟨1177⟩, ⟨1198⟩, ⟨1201⟩, ⟨1210⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def exponentialDecreaseCreationChunk0 : ByteArray :=
@@ -300,7 +300,7 @@ def exponentialDecreaseCreationBytecode : ByteArray :=
       ⟨1076⟩, ⟨1110⟩, ⟨1114⟩, ⟨1126⟩, ⟨1149⟩, ⟨1165⟩, ⟨1203⟩, ⟨1219⟩, ⟨1226⟩, ⟨1237⟩,
       ⟨1243⟩, ⟨1248⟩, ⟨1254⟩, ⟨1258⟩, ⟨1266⟩, ⟨1287⟩, ⟨1290⟩, ⟨1299⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.ExponentialDecrease

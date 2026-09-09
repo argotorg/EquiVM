@@ -129,7 +129,7 @@ theorem vatDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
       rfl | rfl
     all_goals
       simp [selectorOf]
-      native_decide) h
+      decide +native) h
 
 theorem vatDispatchDebt {I : ExecutionEnv}
     (hsel : selIs I (vatSelBytes 4)) :
@@ -139,7 +139,7 @@ theorem vatDispatchDebt {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some debtTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem vatDispatchLine {I : ExecutionEnv}
     (hsel : selIs I (vatSelBytes 0)) :
@@ -149,7 +149,7 @@ theorem vatDispatchLine {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some LineTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem vatDispatchDai {I : ExecutionEnv}
     (hsel : selIs I (vatSelBytes 3)) :
@@ -159,7 +159,7 @@ theorem vatDispatchDai {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some daiTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem vatDispatchCan {I : ExecutionEnv}
     (hsel : selIs I (vatSelBytes 2)) :
@@ -169,7 +169,7 @@ theorem vatDispatchCan {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some canTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem vatDispatchSin {I : ExecutionEnv}
     (hsel : selIs I (vatSelBytes 22)) :
@@ -179,7 +179,7 @@ theorem vatDispatchSin {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some sinTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem vatDispatchLive {I : ExecutionEnv}
     (hsel : selIs I (vatSelBytes 18)) :
@@ -189,7 +189,7 @@ theorem vatDispatchLive {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some liveTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem vatDispatchVice {I : ExecutionEnv}
     (hsel : selIs I (vatSelBytes 26)) :
@@ -199,7 +199,7 @@ theorem vatDispatchVice {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some viceTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem vatDispatchWards {I : ExecutionEnv}
     (hsel : selIs I (vatSelBytes 27)) :
@@ -209,7 +209,7 @@ theorem vatDispatchWards {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some wardsTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem vatDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 28 → (vatSelBytes i == cd.extract 0 4) = false) :
@@ -291,37 +291,37 @@ theorem vatBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.tran
 theorem vatRootSplitWellFormed :
     selectorSplitWellFormed vatBytecode vatRootSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem vatHighSplitWellFormed :
     selectorSplitWellFormed vatBytecode vatHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem vatHighHighSplitWellFormed :
     selectorSplitWellFormed vatBytecode vatHighHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem vatHighLowSplitWellFormed :
     selectorSplitWellFormed vatBytecode vatHighLowSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem vatLowSplitWellFormed :
     selectorSplitWellFormed vatBytecode vatLowSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem vatLowHighSplitWellFormed :
     selectorSplitWellFormed vatBytecode vatLowHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem vatLowLowSplitWellFormed :
     selectorSplitWellFormed vatBytecode vatLowLowSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem vatArms65WellFormed :
@@ -330,7 +330,7 @@ theorem vatArms65WellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem vatArms114WellFormed :
@@ -339,7 +339,7 @@ theorem vatArms114WellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem vatArms163WellFormed :
@@ -348,7 +348,7 @@ theorem vatArms163WellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem vatArms212WellFormed :
@@ -357,7 +357,7 @@ theorem vatArms212WellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem vatArms272WellFormed :
@@ -366,7 +366,7 @@ theorem vatArms272WellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem vatArms321WellFormed :
@@ -375,7 +375,7 @@ theorem vatArms321WellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem vatArms370WellFormed :
@@ -384,7 +384,7 @@ theorem vatArms370WellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem vatArms419WellFormed :
@@ -393,7 +393,7 @@ theorem vatArms419WellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 theorem vatArms65Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -401,7 +401,7 @@ theorem vatArms65Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat vatBytecode (nthArmPc vatBytecode vatArms65FirstPc j))
         (vatSelWord I) =
       if (vatArms65SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem vatArms114Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 3) :
@@ -409,7 +409,7 @@ theorem vatArms114Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat vatBytecode (nthArmPc vatBytecode vatArms114FirstPc j))
         (vatSelWord I) =
       if (vatArms114SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem vatArms163Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -417,7 +417,7 @@ theorem vatArms163Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat vatBytecode (nthArmPc vatBytecode vatArms163FirstPc j))
         (vatSelWord I) =
       if (vatArms163SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem vatArms212Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 3) :
@@ -425,7 +425,7 @@ theorem vatArms212Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat vatBytecode (nthArmPc vatBytecode vatArms212FirstPc j))
         (vatSelWord I) =
       if (vatArms212SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem vatArms272Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -433,7 +433,7 @@ theorem vatArms272Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat vatBytecode (nthArmPc vatBytecode vatArms272FirstPc j))
         (vatSelWord I) =
       if (vatArms272SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem vatArms321Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 3) :
@@ -441,7 +441,7 @@ theorem vatArms321Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat vatBytecode (nthArmPc vatBytecode vatArms321FirstPc j))
         (vatSelWord I) =
       if (vatArms321SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem vatArms370Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -449,7 +449,7 @@ theorem vatArms370Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat vatBytecode (nthArmPc vatBytecode vatArms370FirstPc j))
         (vatSelWord I) =
       if (vatArms370SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem vatArms419Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 3) :
@@ -457,7 +457,7 @@ theorem vatArms419Eq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat vatBytecode (nthArmPc vatBytecode vatArms419FirstPc j))
         (vatSelWord I) =
       if (vatArms419SelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem vatJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
@@ -468,9 +468,9 @@ theorem vatJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt25
     RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h452 := h.push2 vatDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h452 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h452 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem vatArms65NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) vatArms65FirstPc
@@ -488,7 +488,7 @@ theorem vatArms65NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (vatArms65WellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
-  exact vatJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
+  exact vatJumpToNoMatchRevert h109 (by decide +native) (by decide +native)
 
 theorem vatArms114NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) vatArms114FirstPc
@@ -504,7 +504,7 @@ theorem vatArms114NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 1 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (vatArms114WellFormed 2 (by omega))
         (heq0 2 (by omega)) (by simp)
-  exact vatJumpToNoMatchRevert h147 (by native_decide) (by native_decide)
+  exact vatJumpToNoMatchRevert h147 (by decide +native) (by decide +native)
 
 theorem vatArms163NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) vatArms163FirstPc
@@ -522,7 +522,7 @@ theorem vatArms163NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (vatArms163WellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
-  exact vatJumpToNoMatchRevert h207 (by native_decide) (by native_decide)
+  exact vatJumpToNoMatchRevert h207 (by decide +native) (by decide +native)
 
 theorem vatArms212NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) vatArms212FirstPc
@@ -538,7 +538,7 @@ theorem vatArms212NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 1 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (vatArms212WellFormed 2 (by omega))
         (heq0 2 (by omega)) (by simp)
-  exact vatJumpToNoMatchRevert h245 (by native_decide) (by native_decide)
+  exact vatJumpToNoMatchRevert h245 (by decide +native) (by decide +native)
 
 theorem vatArms272NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) vatArms272FirstPc
@@ -556,7 +556,7 @@ theorem vatArms272NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (vatArms272WellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
-  exact vatJumpToNoMatchRevert h316 (by native_decide) (by native_decide)
+  exact vatJumpToNoMatchRevert h316 (by decide +native) (by decide +native)
 
 theorem vatArms321NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) vatArms321FirstPc
@@ -572,7 +572,7 @@ theorem vatArms321NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 1 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (vatArms321WellFormed 2 (by omega))
         (heq0 2 (by omega)) (by simp)
-  exact vatJumpToNoMatchRevert h354 (by native_decide) (by native_decide)
+  exact vatJumpToNoMatchRevert h354 (by decide +native) (by decide +native)
 
 theorem vatArms370NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) vatArms370FirstPc
@@ -590,7 +590,7 @@ theorem vatArms370NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (vatArms370WellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
-  exact vatJumpToNoMatchRevert h414 (by native_decide) (by native_decide)
+  exact vatJumpToNoMatchRevert h414 (by decide +native) (by decide +native)
 
 theorem vatArms419NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) vatArms419FirstPc
@@ -606,9 +606,9 @@ theorem vatArms419NoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 1 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (vatArms419WellFormed 2 (by omega))
         (heq0 2 (by omega)) (by simp)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h452 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h452 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem vatReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -624,13 +624,13 @@ theorem vatReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (revertTgt := vatDispatchRevertPc) (guardWidth := 2) (revertWidth := 2)
       (guardOp := .PUSH2) (revertOp := .PUSH2)
       hcode hwv hsz hsize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem vatReachArms419First {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -654,7 +654,7 @@ theorem vatReachArms419First {cA gh bl σ σ₀ A I} {g : Sat256}
       vatLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [vatLowSplitPc, vatRootSplitPc, armTgt, pushAt]
-      using h249.jumpdest (by native_decide) (by simp)
+      using h249.jumpdest (by decide +native) (by simp)
   have h358 : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
       (armTgt vatBytecode vatLowSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty (cA, σ)
@@ -665,7 +665,7 @@ theorem vatReachArms419First {cA gh bl σ σ₀ A I} {g : Sat256}
       ByteArray.empty (cA, σ)
       (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
     simpa [vatLowLowSplitPc, vatLowSplitPc, armTgt, pushAt]
-      using h358.jumpdest (by native_decide) (by simp)
+      using h358.jumpdest (by decide +native) (by simp)
   have h418 : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
       (armTgt vatBytecode vatLowLowSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty (cA, σ)
@@ -678,7 +678,7 @@ theorem vatReachArms419First {cA gh bl σ σ₀ A I} {g : Sat256}
       (k32 + 5 + 1 + 5 + 1 + 5 + 1)
       (C32 + 22 + 1 + 22 + 1 + 22 + 1) := by
     simpa [vatArms419FirstPc, vatLowLowSplitPc, armTgt, pushAt]
-      using h418.jumpdest (by native_decide) (by simp)
+      using h418.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h419⟩
 
 theorem vatReachArms419Body {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -737,7 +737,7 @@ theorem vatReachArms163First {cA gh bl σ σ₀ A I} {g : Sat256}
       ByteArray.empty (cA, σ)
       (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
     simpa [vatHighLowSplitPc, vatHighSplitPc, armTgt, pushAt]
-      using h151.jumpdest (by native_decide) (by simp)
+      using h151.jumpdest (by decide +native) (by simp)
   have h163 : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
       vatArms163FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ)
@@ -803,7 +803,7 @@ theorem vatReachArms212First {cA gh bl σ σ₀ A I} {g : Sat256}
       ByteArray.empty (cA, σ)
       (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
     simpa [vatHighLowSplitPc, vatHighSplitPc, armTgt, pushAt]
-      using h151.jumpdest (by native_decide) (by simp)
+      using h151.jumpdest (by decide +native) (by simp)
   have h211 : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
       (armTgt vatBytecode vatHighLowSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty (cA, σ)
@@ -815,7 +815,7 @@ theorem vatReachArms212First {cA gh bl σ σ₀ A I} {g : Sat256}
       ByteArray.empty (cA, σ)
       (k32 + 5 + 5 + 1 + 5 + 1) (C32 + 22 + 22 + 1 + 22 + 1) := by
     simpa [vatArms212FirstPc, vatHighLowSplitPc, armTgt, pushAt]
-      using h211.jumpdest (by native_decide) (by simp)
+      using h211.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h212⟩
 
 theorem vatReachArms212Body {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -866,7 +866,7 @@ theorem vatReachArms370First {cA gh bl σ σ₀ A I} {g : Sat256}
       vatLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [vatLowSplitPc, vatRootSplitPc, armTgt, pushAt]
-      using h249.jumpdest (by native_decide) (by simp)
+      using h249.jumpdest (by decide +native) (by simp)
   have h358 : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
       (armTgt vatBytecode vatLowSplitPc) [vatSelWord I] solcFreePtrMem
       (UInt256.ofNat 3) ByteArray.empty (cA, σ)
@@ -877,7 +877,7 @@ theorem vatReachArms370First {cA gh bl σ σ₀ A I} {g : Sat256}
       ByteArray.empty (cA, σ)
       (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
     simpa [vatLowLowSplitPc, vatLowSplitPc, armTgt, pushAt]
-      using h358.jumpdest (by native_decide) (by simp)
+      using h358.jumpdest (by decide +native) (by simp)
   have h370 : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
       vatArms370FirstPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ)
@@ -951,7 +951,7 @@ theorem vatReachArms114First {cA gh bl σ σ₀ A I} {g : Sat256}
       ByteArray.empty (cA, σ)
       (k32 + 5 + 5 + 5 + 1) (C32 + 22 + 22 + 22 + 1) := by
     simpa [vatArms114FirstPc, vatHighHighSplitPc, armTgt, pushAt]
-      using h113.jumpdest (by native_decide) (by simp)
+      using h113.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h114⟩
 
 theorem vatReachArms114Body {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1002,7 +1002,7 @@ theorem vatReachArms272First {cA gh bl σ σ₀ A I} {g : Sat256}
       vatLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [vatLowSplitPc, vatRootSplitPc, armTgt, pushAt]
-      using h249.jumpdest (by native_decide) (by simp)
+      using h249.jumpdest (by decide +native) (by simp)
   have h261 : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
       vatLowHighSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ)
@@ -1129,7 +1129,7 @@ theorem vatReachArms321First {cA gh bl σ σ₀ A I} {g : Sat256}
       vatLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
     simpa [vatLowSplitPc, vatRootSplitPc, armTgt, pushAt]
-      using h249.jumpdest (by native_decide) (by simp)
+      using h249.jumpdest (by decide +native) (by simp)
   have h261 : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
       vatLowHighSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ)
@@ -1148,7 +1148,7 @@ theorem vatReachArms321First {cA gh bl σ σ₀ A I} {g : Sat256}
       ByteArray.empty (cA, σ)
       (k32 + 5 + 1 + 5 + 5 + 1) (C32 + 22 + 1 + 22 + 22 + 1) := by
     simpa [vatArms321FirstPc, vatLowHighSplitPc, armTgt, pushAt]
-      using h320.jumpdest (by native_decide) (by simp)
+      using h320.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h321⟩
 
 theorem vatReachArms321Body {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1347,7 +1347,7 @@ theorem vatX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         vatLowSplitPc [vatSelWord I] solcFreePtrMem (UInt256.ofNat 3)
         ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
       simpa [vatLowSplitPc, vatRootSplitPc, armTgt, pushAt]
-        using h249.jumpdest (by native_decide) (by simp)
+        using h249.jumpdest (by decide +native) (by simp)
     by_cases hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) ≠ ⟨0⟩
     · have h358 : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
           (armTgt vatBytecode vatLowSplitPc) [vatSelWord I] solcFreePtrMem
@@ -1359,7 +1359,7 @@ theorem vatX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           ByteArray.empty (cA, σ)
           (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
         simpa [vatLowLowSplitPc, vatLowSplitPc, armTgt, pushAt]
-          using h358.jumpdest (by native_decide) (by simp)
+          using h358.jumpdest (by decide +native) (by simp)
       by_cases hlowlow :
           UInt256.gt (armSelNat vatBytecode vatLowLowSplitPc) (vatSelWord I) ≠ ⟨0⟩
       · have h418 : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
@@ -1374,7 +1374,7 @@ theorem vatX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
             (k32 + 5 + 1 + 5 + 1 + 5 + 1)
             (C32 + 22 + 1 + 22 + 1 + 22 + 1) := by
           simpa [vatArms419FirstPc, vatLowLowSplitPc, armTgt, pushAt]
-            using h418.jumpdest (by native_decide) (by simp)
+            using h418.jumpdest (by decide +native) (by simp)
         exact vatArms419NoMatchRevert h419 heq419
       · have hlowlow0 :
             UInt256.gt (armSelNat vatBytecode vatLowLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
@@ -1411,7 +1411,7 @@ theorem vatX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
             ByteArray.empty (cA, σ)
             (k32 + 5 + 1 + 5 + 5 + 1) (C32 + 22 + 1 + 22 + 22 + 1) := by
           simpa [vatArms321FirstPc, vatLowHighSplitPc, armTgt, pushAt]
-            using h320.jumpdest (by native_decide) (by simp)
+            using h320.jumpdest (by decide +native) (by simp)
         exact vatArms321NoMatchRevert h321 heq321
       · have hlowhigh0 :
             UInt256.gt (armSelNat vatBytecode vatLowHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
@@ -1445,7 +1445,7 @@ theorem vatX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
           ByteArray.empty (cA, σ)
           (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
         simpa [vatHighLowSplitPc, vatHighSplitPc, armTgt, pushAt]
-          using h151.jumpdest (by native_decide) (by simp)
+          using h151.jumpdest (by decide +native) (by simp)
       by_cases hhighlow :
           UInt256.gt (armSelNat vatBytecode vatHighLowSplitPc) (vatSelWord I) ≠ ⟨0⟩
       · have h211 : RD vatBytecode I g (initState cA gh bl σ σ₀ g A I)
@@ -1459,7 +1459,7 @@ theorem vatX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
             ByteArray.empty (cA, σ)
             (k32 + 5 + 5 + 1 + 5 + 1) (C32 + 22 + 22 + 1 + 22 + 1) := by
           simpa [vatArms212FirstPc, vatHighLowSplitPc, armTgt, pushAt]
-            using h211.jumpdest (by native_decide) (by simp)
+            using h211.jumpdest (by decide +native) (by simp)
         exact vatArms212NoMatchRevert h212 heq212
       · have hhighlow0 :
             UInt256.gt (armSelNat vatBytecode vatHighLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
@@ -1496,7 +1496,7 @@ theorem vatX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
             ByteArray.empty (cA, σ)
             (k32 + 5 + 5 + 5 + 1) (C32 + 22 + 22 + 22 + 1) := by
           simpa [vatArms114FirstPc, vatHighHighSplitPc, armTgt, pushAt]
-            using h113.jumpdest (by native_decide) (by simp)
+            using h113.jumpdest (by decide +native) (by simp)
         exact vatArms114NoMatchRevert h114 heq114
       · have hhighhigh0 :
             UInt256.gt (armSelNat vatBytecode vatHighHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
@@ -1515,35 +1515,35 @@ theorem vatX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
-  have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
+  have h12 := h0.push2 ⟨16⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h12 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem vatX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
     RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt vatBytecode)
     (opC := solcGuardTgtOp vatBytecode)
     (wC := solcGuardTgtWidth vatBytecode) h0 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest)
-  have h452 := h1.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.calldatasize (by native_decide) (by simp only [List.length]; omega)
-    |>.lt (by native_decide) (by simp only [List.length]; omega)
-    |>.push2 vatDispatchRevertPc (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest)
+  have h452 := h1.push1 ⟨4⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.calldatasize (by decide +native) (by simp only [List.length]; omega)
+    |>.lt (by decide +native) (by simp only [List.length]; omega)
+    |>.push2 vatDispatchRevertPc (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h452 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h452 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 end Benchmarks.Dss.Vat

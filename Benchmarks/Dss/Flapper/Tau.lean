@@ -25,15 +25,15 @@ theorem flapperReachTauBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : flapperSelWord I = ⟨0xcfc4af55⟩ := by
     simpa [flapperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0xcf 0xc4 0xaf 0x55 ⟨0xcfc4af55⟩
-        (by native_decide) (by simpa [flapperSelBytes] using hsel)
+        (by decide +native) (by simpa [flapperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flapperBytecode flapperRootSplitPc)
       (flapperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat flapperBytecode flapperHighSplitPc)
       (flapperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   obtain ⟨_, _, hfirst⟩ :=
     flapperReachHighHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh
@@ -44,16 +44,16 @@ theorem flapperReachTauBody {cA gh bl σ σ₀ A I} {g : Sat256}
     intro j hj
     interval_cases j
     rw [hword]
-    native_decide
+    decide +native
   have htake :
       UInt256.eq
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperHighHighFirstArmPc 1))
         (flapperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo ⟨831⟩ 1 hfirst
     (fun j hj => flapperHighHighArmsWellFormed j (le_trans hj (by omega)))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem flapperTauBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = flapperBytecode)
@@ -87,15 +87,15 @@ theorem flapperTauBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold flapperUint48Offset6SlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold flapperReturnUint48FromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [tauWord] using hbody)
 
 end Benchmarks.Dss.Flapper

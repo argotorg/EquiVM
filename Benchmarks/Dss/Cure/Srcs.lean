@@ -36,7 +36,7 @@ theorem cureDispatchSrcs {I : ExecutionEnv}
     cureLiftSelectorBytes, cureListSelectorBytes, cureLiveSelectorBytes,
     cureLoadSelectorBytes, cureLoadedSelectorBytes, curePosSelectorBytes,
     cureRelySelectorBytes, cureSaySelectorBytes, cureSrcsSelectorBytes]
-  native_decide
+  decide +native
 
 theorem cureDecode_srcs_ok {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) :
@@ -94,13 +94,13 @@ theorem cureReachSrcsBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0xf381273f⟩ :=
     cureSelWord_eq_of_beq I hsz 0xf3 0x81 0x27 0x3f ⟨0xf381273f⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨816⟩ 3 h54 (fun j hj => cureHighUpperArmsWellFormed j (by omega))
-    (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (fun j hj => by interval_cases j <;> · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 abbrev srcsLenWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
   cureSlotWord ⟨2⟩ σ I
@@ -332,7 +332,7 @@ theorem RD.cureSrcsArrayGetterInBounds {code : ByteArray} {ee : ExecutionEnv}
   have rd11 := rd8.push2 ⟨3622⟩ hd8 (by simp only [List.length_cons]; omega)
   have hcond : UInt256.lt idx len ≠ ⟨0⟩ := by
     rw [hltWord]
-    native_decide
+    decide +native
   have rd13 := rd11.jumpiT hd11 hcond hjmpBounds
     (by simp only [List.length_cons]; omega)
   have rd14 := rd13.jumpdest hd13 (by simp only [List.length_cons]; omega)
@@ -340,14 +340,14 @@ theorem RD.cureSrcsArrayGetterInBounds {code : ByteArray} {ee : ExecutionEnv}
   have rd17 := rd16.swap2 hd15 (by simp only [List.length_cons]; omega)
   have rd18 := rd17.dup3 hd16 (by simp only [List.length_cons]; omega)
   have rd19 := rd18.mstore 0 srcsBaseSlotMem (UInt256.ofNat 3) hd17 mem_cost
-    (by rfl) (by native_decide) (by simp only [List.length_cons]; omega)
+    (by rfl) (by decide +native) (by simp only [List.length_cons]; omega)
   have rd21 := rd19.push1 ⟨32⟩ hd18 (by simp only [List.length_cons]; omega)
   have rd22 := rd21.swap1 hd20 (by simp only [List.length_cons]; omega)
   have rd23 := rd22.swap2 hd21 (by simp only [List.length_cons]; omega)
   have rd24 := rd23.keccak256 0 srcsDataSlot (UInt256.ofNat 3) hd22 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨32⟩ : UInt256).toNat = 32 from by decide] using srcsBaseSlotMem_keccak)
-    (by native_decide) (by simp only [List.length_cons]; omega)
+    (by decide +native) (by simp only [List.length_cons]; omega)
   have rd25 := rd24.add hd23 (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rd26'⟩ := rd25.sload hd25 (by simp only [List.length_cons]; omega)
   have rd26 := by
@@ -359,7 +359,7 @@ theorem RD.cureSrcsArrayGetterInBounds {code : ByteArray} {ee : ExecutionEnv}
   have rd34 := rd33.sub hd33 (by simp only [List.length_cons]; omega)
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have rd35 := rd34.and hd34 (by simp only [List.length_cons]; omega)
   have rd36 := by
     simpa [hmask,
@@ -408,17 +408,17 @@ theorem RD.cureSrcsInBounds {cA σ I} {g : Sat256} {s0 : State}
     (hlt : (srcsIndex I).toNat < (srcsLenWord σ I).toNat) :
     RDret cureBytecode g s0 (cA, σ)
       (UInt256.toByteArray (UInt256.land (srcsRawWord σ I) solcAddrMask)) := by
-  have rd839 := h.jumpdest (by native_decide)
+  have rd839 := h.jumpdest (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd840 := rd839.pop (by native_decide)
+  have rd840 := rd839.pop (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd841' := rd840.calldataload (by native_decide)
+  have rd841' := rd840.calldataload (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd841 := by
     simpa [srcsIndex, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide] using rd841'
-  have rd844 := rd841.push2 ⟨3609⟩ (by native_decide)
+  have rd844 := rd841.push2 ⟨3609⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd3609 := rd844.jump (by native_decide) (by jump_dest)
+  have rd3609 := rd844.jump (by decide +native) (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3609' := by
     simpa [srcsIndex, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide] using rd3609
@@ -428,7 +428,7 @@ theorem RD.cureSrcsInBounds {cA σ I} {g : Sat256} {s0 : State}
     rfl
   obtain ⟨_, _, rd845⟩ := RD.cureSrcsArrayGetterInBounds
     (idx := srcsIndex I) (len := srcsLenWord σ I) (ret := ⟨845⟩) (R := [sel])
-    rd3609' (by unfold srcsArrayGetterInBoundsWf; repeat' first | apply And.intro | native_decide)
+    rd3609' (by unfold srcsArrayGetterInBoundsWf; repeat' first | apply And.intro | decide +native)
     hlt hlen (by jump_dest) (by jump_dest) (by simp)
   have hraw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
@@ -443,7 +443,7 @@ theorem RD.cureSrcsInBounds {cA σ I} {g : Sat256} {s0 : State}
     (pc := ⟨845⟩) (val := masked) (ret := ⟨845⟩) (R := [sel])
     (memout := solcScratchReturnMem srcsBaseSlotMem masked)
     (by simpa [masked, hraw] using rd845)
-    (by unfold solcReturnAddressFromMemWf; repeat' first | apply And.intro | native_decide)
+    (by unfold solcReturnAddressFromMemWf; repeat' first | apply And.intro | decide +native)
     (by
       exact mloadFreePtrValue
         (by rw [srcsBaseSlotMem_size]; decide) (by decide) srcsBaseSlotMem_read64)
@@ -465,29 +465,29 @@ theorem RD.cureSrcsOutOfBoundsInvalid {cA σ I} {g : Sat256} {s0 : State}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C)
     (hle : (srcsLenWord σ I).toNat ≤ (srcsIndex I).toNat) :
     RDinvalid cureBytecode g s0 := by
-  have rd839 := h.jumpdest (by native_decide)
+  have rd839 := h.jumpdest (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd840 := rd839.pop (by native_decide)
+  have rd840 := rd839.pop (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd841' := rd840.calldataload (by native_decide)
+  have rd841' := rd840.calldataload (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd841 := by
     simpa [srcsIndex, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide] using rd841'
-  have rd844 := rd841.push2 ⟨3609⟩ (by native_decide)
+  have rd844 := rd841.push2 ⟨3609⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd3609 := rd844.jump (by native_decide) (by jump_dest)
+  have rd3609 := rd844.jump (by decide +native) (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3609n := by
     simpa [srcsIndex, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide] using rd3609
-  have rd1 := rd3609n.jumpdest (by native_decide)
+  have rd1 := rd3609n.jumpdest (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd3 := rd1.push1 ⟨2⟩ (by native_decide)
+  have rd3 := rd1.push1 ⟨2⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd4 := rd3.dup2 (by native_decide)
+  have rd4 := rd3.dup2 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd5 := rd4.dup2 (by native_decide)
+  have rd5 := rd4.dup2 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  obtain ⟨k6, C6, rd6'⟩ := rd5.sload (by native_decide)
+  obtain ⟨k6, C6, rd6'⟩ := rd5.sload (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6 :
       RD cureBytecode I g s0 ⟨3615⟩
@@ -495,19 +495,19 @@ theorem RD.cureSrcsOutOfBoundsInvalid {cA σ I} {g : Sat256} {s0 : State}
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k6 C6 := by
     simpa [srcsLenWord, cureSlotWord, solcSlotWord, srcsIndex, calldataWord,
       show (⟨4⟩ : UInt256).toNat = 4 from by decide] using rd6'
-  have rd7 := rd6.dup2 (by native_decide)
+  have rd7 := rd6.dup2 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd8 := rd7.lt (by native_decide)
+  have rd8 := rd7.lt (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hltWord : UInt256.lt (srcsIndex I) (srcsLenWord σ I) = ⟨0⟩ := by
     exact ult_zero hle
   have rd8' := rd8
   rw [hltWord] at rd8'
-  have rd11 := rd8'.push2 ⟨3622⟩ (by native_decide)
+  have rd11 := rd8'.push2 ⟨3622⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd3621 := rd11.jumpiNT (by native_decide) rfl
+  have rd3621 := rd11.jumpiNT (by decide +native) rfl
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact rdInvalidHalt rd3621 (by native_decide)
+  exact rdInvalidHalt rd3621 (by decide +native)
 
 private theorem Xi_error_of_X_sat_local {createdAccounts genesisBlockHeader blocks σ σ₀ A I}
     {g : Sat256} {e : ExecutionException}
@@ -566,9 +566,9 @@ theorem cureSrcsBodyCoreOk
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := cureBytecode) (sel := sel) (entry := ⟨816⟩) (ret := ⟨845⟩)
     (decoded := ⟨838⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
   have hlenWord :
@@ -615,10 +615,10 @@ theorem cureSrcsBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := cureBytecode) (sel := sel) (entry := ⟨816⟩) (ret := ⟨845⟩)
     (decoded := ⟨838⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (cureDecode_srcs_none_short hshort)
 
@@ -648,9 +648,9 @@ theorem cureSrcsBodyCoreOob
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := cureBytecode) (sel := sel) (entry := ⟨816⟩) (ret := ⟨845⟩)
     (decoded := ⟨838⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
   have hlenWord :

@@ -24,17 +24,17 @@ theorem vatReachDebtBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0x0dca59c1⟩ :=
     vatSelWord_eq_of_beq I hsz 0x0d 0xca 0x59 0xc1 ⟨0x0dca59c1⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlowlow :
       UInt256.gt (armSelNat vatBytecode vatLowLowSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms419FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
@@ -44,9 +44,9 @@ theorem vatReachDebtBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms419FirstPc 0))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms419Body 0 (by omega) ⟨457⟩ hcode hwv hsz hsize
-    hroot hlow hlowlow heq0 htake (by jump_dest) (by native_decide)
+    hroot hlow hlowlow heq0 htake (by jump_dest) (by decide +native)
 
 theorem vatDebtBodyCore : VatBodyTheorem 4 := by
   intro cA gh bl σ_evm σ_solm σ₀ A I g hcode hsize _hperm hwv hsel hAccounts
@@ -74,15 +74,15 @@ theorem vatDebtBodyCore : VatBodyTheorem 4 := by
     hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcWordSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [debtWord] using hbody)
 
 end Benchmarks.Dss.Vat

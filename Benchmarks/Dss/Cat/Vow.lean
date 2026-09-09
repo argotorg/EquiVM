@@ -25,7 +25,7 @@ theorem catDispatch_vow {I : ExecutionEnv} (hsel : selIs I ⟨#[0x62, 0x6c, 0xb3
         clawSelectorBytes, denySelectorBytes, fileAddressSelectorBytes, fileIlkFlipSelectorBytes,
         fileIlkUintSelectorBytes, fileUintSelectorBytes, ilksSelectorBytes, litterSelectorBytes,
         liveSelectorBytes, relySelectorBytes, vatSelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, vowSelectorBytes]; exact hsel
 
 theorem catDecode_vow {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
@@ -41,11 +41,11 @@ theorem catReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
         ⟨437⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hword : catSelWord I = ⟨1651291077⟩ :=
-    catSelWord_eq_of_beq I hsz 0x62 0x6c 0xb3 0xc5 ⟨1651291077⟩ (by native_decide) hsel
+    catSelWord_eq_of_beq I hsz 0x62 0x6c 0xb3 0xc5 ⟨1651291077⟩ (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) ≠ ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   have hlow : UInt256.gt (armSelNat catBytecode catLowSplitPc) (catSelWord I) = ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catLowHighFirstArmPc j))
         (catSelWord I) = ⟨0⟩ := by
@@ -53,9 +53,9 @@ theorem catReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have htake :
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catLowHighFirstArmPc 0))
         (catSelWord I) ≠ ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   exact catReachLowHighBody 0 (by omega) ⟨437⟩ hcode hwv hsz hsize hroot hlow heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem catVowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
@@ -84,8 +84,8 @@ theorem catVowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   exact catAddressGetterBodyCore (entry := ⟨437⟩) (routine := ⟨2700⟩) (slot := ⟨4⟩)
     hcode (catDispatch_vow hsel) (catDecode_vow hsz)
     (catReachVowBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
-    (by unfold solcGetterEntryWf; repeat' first | apply And.intro | native_decide)
-    (by unfold solcAddressSlotGetterWf; repeat' first | apply And.intro | native_decide)
+    (by unfold solcGetterEntryWf; repeat' first | apply And.intro | decide +native)
+    (by unfold solcAddressSlotGetterWf; repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by rfl) (by simpa [catAddressReturnWord, catSlotWord] using hbody)
 
 end Benchmarks.Dss.Cat

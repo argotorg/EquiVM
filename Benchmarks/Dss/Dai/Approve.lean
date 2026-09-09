@@ -50,7 +50,7 @@ theorem approveStore_get_usr (I : ExecutionEnv) :
   unfold approveStore
   rw [store_get_ne
     (L := (∅ : Store).insert "usr" (approveUsrValue I))
-    (k := "wad") (a := "usr") (approveWadValue I) (by native_decide)]
+    (k := "wad") (a := "usr") (approveWadValue I) (by decide +native)]
   simp
 
 theorem approveStore_get_wad (I : ExecutionEnv) :
@@ -61,7 +61,7 @@ theorem approveStore_get_wad (I : ExecutionEnv) :
 theorem approveStore_allowance (I : ExecutionEnv) :
     (approveStore I).get? "allowance" = none := by
   unfold approveStore
-  rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native)]
   simp
 
 theorem approveStore_index_usr (I : ExecutionEnv) :
@@ -320,36 +320,36 @@ theorem daiApproveX_logReady {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (approveInnerSlot I) (approveUsrMaskedWord I)
         (approveInnerMem_size I)
   have rd1308pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1309 := rd1308pre.mstore 0 (wordAt0Mem (approveOwnerWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1315pre := evm_run rd1309 with [
-    raw push1 ⟨3⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨3⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1316 := rd1315pre.mstore 0 (approveInnerMem I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1320pre := evm_run rd1316 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have rd1321 := rd1320pre.keccak256 0 (approveInnerSlot I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hinnerSlot (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hinnerSlot (by decide +native) (by evm_ov)
   have rd1333pre := evm_run rd1321 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov)]
   have hmask :
       UInt256.land (approveUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -359,63 +359,63 @@ theorem daiApproveX_logReady {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     exact solcAddrMask_clean (approveUsrMaskedWord_canonical I)
   rw [hmask] at rd1333pre
   have rd1334 := rd1333pre.mstore 0 (wordAt0Mem (approveUsrMaskedWord I) (approveInnerMem I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1336pre := evm_run rd1334 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have rd1337 := rd1336pre.mstore 0 (approveHashMem I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1339pre := evm_run rd1337 with [
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have rd1340 := rd1339pre.keccak256 0
     (mapSlot (approveUsrMaskedWord I) (approveInnerSlot I)) (UInt256.ofNat 3)
-    (by native_decide) mem_cost houterSlot (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost houterSlot (by decide +native) (by evm_ov)
   have rd1342pre := evm_run rd1340 with [
-    raw dup7 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1343raw⟩ := rd1342pre.sstore hperm (by native_decide)
+    raw dup7 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd1343raw⟩ := rd1342pre.sstore hperm (by decide +native)
     (by change 9 ≤ 1024; decide)
   have rd1347pre := evm_run rd1343raw with [
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost
       (approveHashMem_mload64 I) (by decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1348 := rd1347pre.mstore 6 (approveLogMem I) (UInt256.ofNat 5)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1356pre := evm_run rd1348 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost
+    raw swap2 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide +native) mem_cost
       (approveLogMem_mload64 I) (by decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov)]
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov)]
   have rd1389 := rd1356pre.pushConst approveApprovalTopic (width := 32) (op := .PUSH32)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1395pre := evm_run rd1389 with [
-    raw swap3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  have rd1396 := rd1395pre.log3 0 (UInt256.ofNat 5) (by native_decide) hperm
+    raw swap3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  have rd1396 := rd1395pre.log3 0 (UInt256.ofNat 5) (by decide +native) hperm
     mem_cost (by decide) (by change 5 ≤ 1024; decide)
   have rd1404pre := evm_run rd1396 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [approveStorageSlot_eq_innerSlot I, approveOwnerWord] using
-      rd1404pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      rd1404pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem daiX_approve_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -431,10 +431,10 @@ theorem daiX_approve_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, rd496⟩ := daiApproveX_logReady (I := I) hperm rd1302
   have hretWf : solcReturnBoolFromMemWf daiBytecode ⟨496⟩ := by
     unfold solcReturnBoolFromMemWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   have hbool :
       UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ := by
-    native_decide
+    decide +native
   simpa [hbool] using
     RD.solcReturnBoolFromMem rd496 hretWf (approveLogMem_mload64 I) (by rfl)
       (approveBoolReturnMem_mload64 I) (approveBoolReturnMem_read128 I)
@@ -497,7 +497,7 @@ theorem daiApproveBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (daiSelBytes 1) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (daiSelBytes 1) (by decide +native) hsel
   have hdispatch : dispatchMsg contract I.calldata = some approveTransition :=
     daiDispatchApprove hsel
   have hreach := daiReachApproveBody (cA := cA) (gh := gh) (bl := bl)

@@ -65,27 +65,27 @@ theorem skimSecondSafeTransferDynamicBasePtr_add64_add36 (out : ByteArray) :
     skimSecondSafeTransferDynamicBasePtr out + (⟨64⟩ : UInt256) + ⟨36⟩ =
       skimSecondSafeTransferDynamicBasePtr out + ⟨100⟩ := by
   rw [u256_add_assoc]
-  rw [show (⟨64⟩ : UInt256) + ⟨36⟩ = ⟨100⟩ by native_decide]
+  rw [show (⟨64⟩ : UInt256) + ⟨36⟩ = ⟨100⟩ by decide +native]
 
 theorem skimSecondSafeTransferDynamicBasePtr_add64_add68 (out : ByteArray) :
     skimSecondSafeTransferDynamicBasePtr out + (⟨64⟩ : UInt256) + ⟨68⟩ =
       skimSecondSafeTransferDynamicBasePtr out + ⟨132⟩ := by
   rw [u256_add_assoc]
-  rw [show (⟨64⟩ : UInt256) + ⟨68⟩ = ⟨132⟩ by native_decide]
+  rw [show (⟨64⟩ : UInt256) + ⟨68⟩ = ⟨132⟩ by decide +native]
 
 theorem skimSecondSafeTransferDynamicBasePtr_add96_add32 (out : ByteArray) :
     (⟨32⟩ : UInt256) + (skimSecondSafeTransferDynamicBasePtr out + ⟨96⟩) =
       skimSecondSafeTransferDynamicBasePtr out + ⟨128⟩ := by
   rw [u256_add_comm (⟨32⟩ : UInt256) _]
   rw [u256_add_assoc]
-  rw [show (⟨96⟩ : UInt256) + ⟨32⟩ = ⟨128⟩ by native_decide]
+  rw [show (⟨96⟩ : UInt256) + ⟨32⟩ = ⟨128⟩ by decide +native]
 
 theorem skimSecondSafeTransferDynamicBasePtr_add128_add32 (out : ByteArray) :
     (⟨32⟩ : UInt256) + (skimSecondSafeTransferDynamicBasePtr out + ⟨128⟩) =
       skimSecondSafeTransferDynamicBasePtr out + ⟨160⟩ := by
   rw [u256_add_comm (⟨32⟩ : UInt256) _]
   rw [u256_add_assoc]
-  rw [show (⟨128⟩ : UInt256) + ⟨32⟩ = ⟨160⟩ by native_decide]
+  rw [show (⟨128⟩ : UInt256) + ⟨32⟩ = ⟨160⟩ by decide +native]
 
 theorem skimSecondSafeTransferDynamicCallPtr_add32 (out : ByteArray) :
     (⟨32⟩ : UInt256) + skimSecondSafeTransferDynamicCallPtr out =
@@ -93,7 +93,7 @@ theorem skimSecondSafeTransferDynamicCallPtr_add32 (out : ByteArray) :
   rw [skimSecondSafeTransferDynamicCallPtr, skimSecondSafeTransferDynamicRetPtr]
   rw [u256_add_comm (⟨32⟩ : UInt256) _]
   rw [u256_add_assoc]
-  rw [show (⟨164⟩ : UInt256) + ⟨32⟩ = ⟨196⟩ by native_decide]
+  rw [show (⟨164⟩ : UInt256) + ⟨32⟩ = ⟨196⟩ by decide +native]
 
 theorem skimSecondSafeTransferDynamicRetPtr_add32 (out : ByteArray) :
     (⟨32⟩ : UInt256) + skimSecondSafeTransferDynamicRetPtr out =
@@ -101,7 +101,7 @@ theorem skimSecondSafeTransferDynamicRetPtr_add32 (out : ByteArray) :
   rw [skimSecondSafeTransferDynamicRetPtr]
   rw [u256_add_comm (⟨32⟩ : UInt256) _]
   rw [u256_add_assoc]
-  rw [show (⟨196⟩ : UInt256) + ⟨32⟩ = ⟨228⟩ by native_decide]
+  rw [show (⟨196⟩ : UInt256) + ⟨32⟩ = ⟨228⟩ by decide +native]
 
 theorem skimSecondSafeTransferDynamicCallPtr_add68 (out : ByteArray) :
     (⟨68⟩ : UInt256) + skimSecondSafeTransferDynamicCallPtr out =
@@ -109,7 +109,7 @@ theorem skimSecondSafeTransferDynamicCallPtr_add68 (out : ByteArray) :
   rw [skimSecondSafeTransferDynamicCallPtr, skimSecondSafeTransferDynamicRetEnd]
   rw [u256_add_comm (⟨68⟩ : UInt256) _]
   rw [u256_add_assoc]
-  rw [show (⟨164⟩ : UInt256) + ⟨68⟩ = ⟨232⟩ by native_decide]
+  rw [show (⟨164⟩ : UInt256) + ⟨68⟩ = ⟨232⟩ by decide +native]
 
 theorem skimSecondSafeTransferDynamicRetEnd_sub_callPtr (out : ByteArray)
     (houtSize : out.size < 2 ^ 255) :
@@ -329,7 +329,7 @@ theorem skimSafeTransferReturnDataRounded_ge (out : ByteArray)
       (UInt256.lnot ⟨31⟩).toNat) % UInt256.size
   rw [hsum]
   have hlnot : (UInt256.lnot ⟨31⟩).toNat = 2 ^ 256 - 2 ^ 5 := by
-    native_decide
+    decide +native
   change out.size ≤ (Nat.land (out.size + 63) (UInt256.lnot ⟨31⟩).toNat) %
     UInt256.size
   rw [hlnot]
@@ -372,7 +372,7 @@ theorem skimSafeTransferReturnDataRounded_nonempty_ge64 (out : ByteArray)
       (UInt256.lnot ⟨31⟩).toNat) % UInt256.size
   rw [hsum]
   have hlnot : (UInt256.lnot ⟨31⟩).toNat = 2 ^ 256 - 2 ^ 5 := by
-    native_decide
+    decide +native
   change 64 ≤ (Nat.land (out.size + 63) (UInt256.lnot ⟨31⟩).toNat) %
     UInt256.size
   rw [hlnot]
@@ -2255,7 +2255,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
   have rd6375 := evm_run h with [
     jumpdest, push1 ⟨64⟩, dup1,
     raw mload 0 (skimSafeTransferReturnDataPtr out1)
-      (skimSecondSafeTransferDynamicWords0 out1) (by native_decide)
+      (skimSecondSafeTransferDynamicWords0 out1) (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2272,7 +2272,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     dup1, dup3, add, dup3,
     raw mstore 0 (skimSecondSafeTransferDynamicMem0 self o toWord prevValue out1 out2)
       (skimSecondSafeTransferDynamicWords0 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2292,7 +2292,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     push1 ⟨25⟩, dup2,
     raw mstore 0 (skimSecondSafeTransferDynamicMem1 self o toWord prevValue out1 out2)
       (skimSecondSafeTransferDynamicWords0 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2306,7 +2306,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
           skimSecondBalanceDynamicStaticcallWords_ptr_same out1 hout1Size)
       (by evm_ov)]
   have rd6417 := rd6384.pushConst skimSafeTransferSignatureWord (width := 32) (op := .PUSH32)
-    (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by evm_ov)
   have rd6423 := evm_run rd6417 with [
     push1 ⟨32⟩, swap2, dup3, add,
     raw mstore
@@ -2314,7 +2314,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
         Cₘ (skimSecondSafeTransferDynamicWords0 out1))
       (skimSecondSafeTransferDynamicMem2 self o toWord prevValue out1 out2)
       (skimSecondSafeTransferDynamicWordsMem2 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2335,7 +2335,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     dup2,
     raw mload 0 (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩)
       (skimSecondSafeTransferDynamicWordsMem2 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2354,7 +2354,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
         Cₘ (skimSecondSafeTransferDynamicWordsMem2 out1))
       (skimSecondSafeTransferDynamicMem3 self o toWord prevValue out1 out2)
       (skimSecondSafeTransferDynamicWordsMem3 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2378,7 +2378,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
         Cₘ (skimSecondSafeTransferDynamicWordsMem3 out1))
       (skimSecondSafeTransferDynamicMem4 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsMem4 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2399,7 +2399,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     dup5,
     raw mload 0 (skimSecondSafeTransferDynamicBasePtr out1 + ⟨64⟩)
       (skimSecondSafeTransferDynamicWordsMem4 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2414,7 +2414,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     dup1, dup5, sub, swap1, swap2, add, dup2,
     raw mstore 0 (skimSecondSafeTransferDynamicMem5 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsMem4 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2424,14 +2424,14 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by
         unfold skimSecondSafeTransferDynamicMem5
         rw [u256_sub_self,
-          show (⟨68⟩ : UInt256) + ⟨0⟩ = ⟨68⟩ by native_decide])
+          show (⟨68⟩ : UInt256) + ⟨0⟩ = ⟨68⟩ by decide +native])
       (skimSecondSafeTransferDynamicWordsMem4_mload_base64_same out1 hout1Size)
       (by evm_ov)]
   have rd6466 := evm_run rd6459 with [
     push1 ⟨100⟩, swap1, swap3, add, dup5,
     raw mstore 0 (skimSecondSafeTransferDynamicMem6 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsMem4 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2441,7 +2441,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by
         unfold skimSecondSafeTransferDynamicMem6 skimSecondSafeTransferDynamicCallPtr
         rw [u256_add_assoc]
-        rw [show (⟨64⟩ : UInt256) + ⟨100⟩ = ⟨164⟩ by native_decide]
+        rw [show (⟨64⟩ : UInt256) + ⟨100⟩ = ⟨164⟩ by decide +native]
         rfl)
       (skimSecondSafeTransferDynamicWordsMem4_mload64_same out1 hout1Size)
       (by evm_ov)]
@@ -2450,13 +2450,13 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     raw mload 0
       (skimSecondSafeTransferDynamicWord96 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsMem4 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         have hptr :
             skimSecondSafeTransferDynamicBasePtr out1 + (⟨64⟩ : UInt256) + ⟨32⟩ =
               skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩ := by
           rw [u256_add_assoc]
-          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by native_decide]
+          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by decide +native]
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
             List.getElem!_cons_zero, List.getElem!_cons_succ, hptr,
@@ -2467,7 +2467,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
             skimSecondSafeTransferDynamicBasePtr out1 + (⟨64⟩ : UInt256) + ⟨32⟩ =
               skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩ := by
           rw [u256_add_assoc]
-          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by native_decide]
+          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by decide +native]
         rw [hptr]
         exact skimSecondSafeTransferDynamicMem6_mload_base96 self toWord prevValue value
           ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size)
@@ -2476,25 +2476,25 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
             skimSecondSafeTransferDynamicBasePtr out1 + (⟨64⟩ : UInt256) + ⟨32⟩ =
               skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩ := by
           rw [u256_add_assoc]
-          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by native_decide]
+          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by decide +native]
         rw [hptr]
         exact skimSecondSafeTransferDynamicWordsMem4_mload_base96_same out1 hout1Size)
       (by evm_ov)]
   have rd6480 := evm_run rd6471 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨224⟩, shl, sub, and]
   have rd6485 := rd6480.pushConst transferSelectorWord (width := 4) (op := .PUSH4)
-    (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by evm_ov)
   have rd6491 := evm_run rd6485 with [
     push1 ⟨224⟩, shl, or, dup2,
     raw mstore 0 (skimSecondSafeTransferDynamicMem7 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsMem4 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         have hptr :
             skimSecondSafeTransferDynamicBasePtr out1 + (⟨64⟩ : UInt256) + ⟨32⟩ =
               skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩ := by
           rw [u256_add_assoc]
-          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by native_decide]
+          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by decide +native]
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
             List.getElem!_cons_zero, List.getElem!_cons_succ, hptr,
@@ -2505,7 +2505,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
             skimSecondSafeTransferDynamicBasePtr out1 + (⟨64⟩ : UInt256) + ⟨32⟩ =
               skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩ := by
           rw [u256_add_assoc]
-          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by native_decide]
+          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by decide +native]
         rw [hptr]
         unfold skimSecondSafeTransferDynamicMem7
           skimSecondSafeTransferDynamicPatchedSelectorWord
@@ -2515,14 +2515,14 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
             skimSecondSafeTransferDynamicBasePtr out1 + (⟨64⟩ : UInt256) + ⟨32⟩ =
               skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩ := by
           rw [u256_add_assoc]
-          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by native_decide]
+          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by decide +native]
         rw [hptr]
         exact skimSecondSafeTransferDynamicWordsMem4_mload_base96_same out1 hout1Size)
       (by evm_ov)]
   have rd6512 := evm_run rd6491 with [
     swap3,
     raw mload 0 (skimSecondSafeTransferDynamicCallPtr out1)
-      (skimSecondSafeTransferDynamicWordsMem4 out1) (by native_decide)
+      (skimSecondSafeTransferDynamicWordsMem4 out1) (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2535,7 +2535,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by evm_ov),
     dup2,
     raw mload 0 (⟨68⟩ : UInt256)
-      (skimSecondSafeTransferDynamicWordsMem4 out1) (by native_decide)
+      (skimSecondSafeTransferDynamicWordsMem4 out1) (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2549,18 +2549,18 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     push1 ⟨0⟩, swap5, push1 ⟨96⟩, swap5, dup10, and,
     swap4, swap3, swap2, dup3, swap2, swap1, dup1, dup4, dup4]
   have rd6521a := evm_run rd6512 with [
-    jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by native_decide)]
+    jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by decide +native)]
   have rd6539a := evm_run rd6521a with [
     dup1,
     raw mload 0
       (skimSecondSafeTransferDynamicPatchedSelectorWord self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsMem4 out1) (by native_decide)
+      (skimSecondSafeTransferDynamicWordsMem4 out1) (by decide +native)
       (fun s haws hstks => by
         have hptr :
             skimSecondSafeTransferDynamicBasePtr out1 + (⟨64⟩ : UInt256) + ⟨32⟩ =
               skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩ := by
           rw [u256_add_assoc]
-          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by native_decide]
+          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by decide +native]
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
             List.getElem!_cons_zero, List.getElem!_cons_succ, hptr,
@@ -2571,7 +2571,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
             skimSecondSafeTransferDynamicBasePtr out1 + (⟨64⟩ : UInt256) + ⟨32⟩ =
               skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩ := by
           rw [u256_add_assoc]
-          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by native_decide]
+          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by decide +native]
         rw [hptr]
         exact skimSecondSafeTransferDynamicMem7_mload_base96 self toWord prevValue value
           ho32 hoSize hout1Ne hout1Size hout2_32 hout2Size)
@@ -2580,7 +2580,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
             skimSecondSafeTransferDynamicBasePtr out1 + (⟨64⟩ : UInt256) + ⟨32⟩ =
               skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩ := by
           rw [u256_add_assoc]
-          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by native_decide]
+          rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by decide +native]
         rw [hptr]
         exact skimSecondSafeTransferDynamicWordsMem4_mload_base96_same out1 hout1Size)
       (by evm_ov),
@@ -2590,7 +2590,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
         Cₘ (skimSecondSafeTransferDynamicWordsMem4 out1))
       (skimSecondSafeTransferDynamicCallMem0 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsCall0 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2601,23 +2601,23 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by unfold skimSecondSafeTransferDynamicWordsCall0; rfl) (by evm_ov),
     push1 ⟨31⟩, not, swap1, swap3, add, swap2,
     push1 ⟨32⟩, swap2, dup3, add, swap2, add, push2 ⟨6512⟩]
-  have rd6512a := rd6539a.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd6512a := rd6539a.jump (by decide +native) (by jump_dest) (by evm_ov)
   have hbase96 :
       skimSecondSafeTransferDynamicBasePtr out1 + (⟨64⟩ : UInt256) + ⟨32⟩ =
         skimSecondSafeTransferDynamicBasePtr out1 + ⟨96⟩ := by
     rw [u256_add_assoc]
-    rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by native_decide]
+    rw [show (⟨64⟩ : UInt256) + ⟨32⟩ = ⟨96⟩ by decide +native]
   rw [hbase96, skimSecondSafeTransferDynamicBasePtr_add96_add32 out1,
     skimSecondSafeTransferDynamicCallPtr_add32 out1,
-    show (⟨68⟩ : UInt256) + UInt256.lnot ⟨31⟩ = ⟨36⟩ by native_decide]
+    show (⟨68⟩ : UInt256) + UInt256.lnot ⟨31⟩ = ⟨36⟩ by decide +native]
     at rd6512a
   have rd6521b := evm_run rd6512a with [
-    jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by native_decide)]
+    jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by decide +native)]
   have rd6539b := evm_run rd6521b with [
     dup1,
     raw mload 0
       (skimSecondSafeTransferDynamicCopyWord1 self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsCall0 out1) (by native_decide)
+      (skimSecondSafeTransferDynamicWordsCall0 out1) (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2638,7 +2638,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
         Cₘ (skimSecondSafeTransferDynamicWordsCall0 out1))
       (skimSecondSafeTransferDynamicCallMem1 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsCall1 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2649,20 +2649,20 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (by unfold skimSecondSafeTransferDynamicWordsCall1; rfl) (by evm_ov),
     push1 ⟨31⟩, not, swap1, swap3, add, swap2,
     push1 ⟨32⟩, swap2, dup3, add, swap2, add, push2 ⟨6512⟩]
-  have rd6512b := rd6539b.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd6512b := rd6539b.jump (by decide +native) (by jump_dest) (by evm_ov)
   rw [skimSecondSafeTransferDynamicBasePtr_add128_add32 out1,
     skimSecondSafeTransferDynamicRetPtr_add32 out1,
-    show (⟨36⟩ : UInt256) + UInt256.lnot ⟨31⟩ = ⟨4⟩ by native_decide]
+    show (⟨36⟩ : UInt256) + UInt256.lnot ⟨31⟩ = ⟨4⟩ by decide +native]
     at rd6512b
   have rd6543 := evm_run rd6512b with [
     jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩,
-    jumpiT (by native_decide) (by jump_dest)]
+    jumpiT (by decide +native) (by jump_dest)]
   have rd6575 := evm_run rd6543 with [
     jumpdest, push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub,
     dup1, not, dup3,
     raw mload 0
       (skimSecondSafeTransferDynamicTailSourceWord self o toWord prevValue out1 out2 value)
-      (skimSecondSafeTransferDynamicWordsCall1 out1) (by native_decide)
+      (skimSecondSafeTransferDynamicWordsCall1 out1) (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2682,7 +2682,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
       (Cₘ (skimSecondSafeTransferDynamicWordsCall2 out1) -
         Cₘ (skimSecondSafeTransferDynamicWordsCall1 out1))
       ⟨0⟩ (skimSecondSafeTransferDynamicWordsCall2 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2697,7 +2697,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     raw mstore 0
       (skimSecondSafeTransferDynamicCallMem2 self o toWord prevValue out1 out2 value)
       (skimSecondSafeTransferDynamicWordsCall2 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2719,7 +2719,7 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
     swap1, pop, add, swap2, pop, pop, push1 ⟨0⟩, push1 ⟨64⟩,
     raw mload 0 (skimSecondSafeTransferDynamicCallPtr out1)
       (skimSecondSafeTransferDynamicWordsCall2 out1)
-      (by native_decide)
+      (by decide +native)
       (fun s haws hstks => by
         set_option linter.unusedSimpArgs false in
           simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -2733,12 +2733,12 @@ theorem RD.uniswapSkimSecondSafeTransferEntryToCallMade_dynamic_offset
         (skimSecondSafeTransferDynamicWordsCall2_toNat_ge13 out1 hout1Size))
       (by evm_ov),
     dup1, dup4, sub, dup2, push1 ⟨0⟩, dup7]
-  obtain ⟨gasArg, rd6594⟩ := rd6593.gas (by native_decide) (by evm_ov)
+  obtain ⟨gasArg, rd6594⟩ := rd6593.gas (by decide +native) (by evm_ov)
   rw [skimSecondSafeTransferDynamicCallPtr_add68 out1,
     skimSecondSafeTransferDynamicRetEnd_sub_callPtr out1 hout1Size]
     at rd6594
   obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘ, rd6595, houtSize'⟩ :=
-    rd6594.call (by native_decide) hdepth (by evm_ov)
+    rd6594.call (by decide +native) hdepth (by evm_ov)
   refine ⟨cA', σ', z, out, A_in, callGas, gasArg, k', C', ?_, ?_, houtSize'⟩
   · simpa using hΘ
   · have hlen :

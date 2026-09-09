@@ -383,7 +383,7 @@ def catBytecode : ByteArray :=
       ⟨3360⟩, ⟨3366⟩, ⟨3455⟩, ⟨3558⟩, ⟨3578⟩, ⟨3691⟩, ⟨3711⟩, ⟨3720⟩, ⟨3744⟩, ⟨3747⟩,
       ⟨3756⟩, ⟨3762⟩, ⟨3778⟩, ⟨3795⟩, ⟨3802⟩, ⟨3818⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def catCreationChunk0 : ByteArray :=
@@ -755,7 +755,7 @@ def catCreationBytecode : ByteArray :=
       ⟨3385⟩, ⟨3474⟩, ⟨3486⟩, ⟨3492⟩, ⟨3581⟩, ⟨3684⟩, ⟨3704⟩, ⟨3817⟩, ⟨3837⟩, ⟨3846⟩,
       ⟨3870⟩, ⟨3873⟩, ⟨3882⟩, ⟨3888⟩, ⟨3904⟩, ⟨3921⟩, ⟨3928⟩, ⟨3944⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.Cat

@@ -78,7 +78,7 @@ theorem uniswapLowestArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 /-- The middle-low selector group contains three linear `EQ` arms. -/
@@ -88,7 +88,7 @@ theorem uniswapMidLowArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 /-- The low-upper selector group contains four linear `EQ` arms. -/
@@ -98,7 +98,7 @@ theorem uniswapLowUpperArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 /-- The high-upper selector group contains four linear `EQ` arms. -/
@@ -108,7 +108,7 @@ theorem uniswapHighUpperArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 /-- The high-middle selector group contains three linear `EQ` arms. -/
@@ -118,7 +118,7 @@ theorem uniswapHighMiddleArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 /-- The high-lower selector group contains four linear `EQ` arms. -/
@@ -128,7 +128,7 @@ theorem uniswapHighLowerArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 /-- The high-lowest selector group contains three linear `EQ` arms. -/
@@ -138,43 +138,43 @@ theorem uniswapHighLowestArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 /-- The root selector split is `DUP1; PUSH4; GT; PUSH2; JUMPI`. -/
 theorem uniswapRootSplitWellFormed :
     selectorSplitWellFormed uniswapV2PairBytecode uniswapRootSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 /-- The low selector split is `DUP1; PUSH4; GT; PUSH2; JUMPI`. -/
 theorem uniswapLowSplitWellFormed :
     selectorSplitWellFormed uniswapV2PairBytecode uniswapLowSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 /-- The middle-low selector split is `DUP1; PUSH4; GT; PUSH2; JUMPI`. -/
 theorem uniswapMidLowSplitWellFormed :
     selectorSplitWellFormed uniswapV2PairBytecode uniswapMidLowSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 /-- The high selector split is `DUP1; PUSH4; GT; PUSH2; JUMPI`. -/
 theorem uniswapHighSplitWellFormed :
     selectorSplitWellFormed uniswapV2PairBytecode uniswapHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 /-- The high-middle selector split is `DUP1; PUSH4; GT; PUSH2; JUMPI`. -/
 theorem uniswapHighMidSplitWellFormed :
     selectorSplitWellFormed uniswapV2PairBytecode uniswapHighMidSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 /-- The high-lower selector split is `DUP1; PUSH4; GT; PUSH2; JUMPI`. -/
 theorem uniswapHighLowerSplitWellFormed :
     selectorSplitWellFormed uniswapV2PairBytecode uniswapHighLowerSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem uniswapSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (c0 c1 c2 c3 : UInt8) (sel : UInt256)
@@ -254,7 +254,7 @@ theorem uniswapDispatchSwap {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x02, 0x2c, 0x0d, 0x9f]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchName {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x06, 0xfd, 0xde, 0x03]⟩) :
@@ -262,7 +262,7 @@ theorem uniswapDispatchName {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x06, 0xfd, 0xde, 0x03]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchGetReserves {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x09, 0x02, 0xf1, 0xac]⟩) :
@@ -270,7 +270,7 @@ theorem uniswapDispatchGetReserves {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x09, 0x02, 0xf1, 0xac]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchApprove {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩) :
@@ -278,7 +278,7 @@ theorem uniswapDispatchApprove {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchToken0 {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x0d, 0xfe, 0x16, 0x81]⟩) :
@@ -286,7 +286,7 @@ theorem uniswapDispatchToken0 {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x0d, 0xfe, 0x16, 0x81]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchTotalSupply {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x18, 0x16, 0x0d, 0xdd]⟩) :
@@ -294,7 +294,7 @@ theorem uniswapDispatchTotalSupply {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchTransferFrom {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x23, 0xb8, 0x72, 0xdd]⟩) :
@@ -302,7 +302,7 @@ theorem uniswapDispatchTransferFrom {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchPermitTypehash {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x30, 0xad, 0xf8, 0x1f]⟩) :
@@ -310,7 +310,7 @@ theorem uniswapDispatchPermitTypehash {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x30, 0xad, 0xf8, 0x1f]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchDecimals {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x31, 0x3c, 0xe5, 0x67]⟩) :
@@ -318,7 +318,7 @@ theorem uniswapDispatchDecimals {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x31, 0x3c, 0xe5, 0x67]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchDomainSeparator {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x36, 0x44, 0xe5, 0x15]⟩) :
@@ -326,7 +326,7 @@ theorem uniswapDispatchDomainSeparator {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x36, 0x44, 0xe5, 0x15]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchInitialize {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x48, 0x5c, 0xc9, 0x55]⟩) :
@@ -334,7 +334,7 @@ theorem uniswapDispatchInitialize {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x48, 0x5c, 0xc9, 0x55]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchPrice0CumulativeLast {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x59, 0x09, 0xc0, 0xd5]⟩) :
@@ -342,7 +342,7 @@ theorem uniswapDispatchPrice0CumulativeLast {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x59, 0x09, 0xc0, 0xd5]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchPrice1CumulativeLast {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x5a, 0x3d, 0x54, 0x93]⟩) :
@@ -350,7 +350,7 @@ theorem uniswapDispatchPrice1CumulativeLast {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x5a, 0x3d, 0x54, 0x93]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchMint {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x6a, 0x62, 0x78, 0x42]⟩) :
@@ -358,7 +358,7 @@ theorem uniswapDispatchMint {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x6a, 0x62, 0x78, 0x42]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchBalanceOf {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x70, 0xa0, 0x82, 0x31]⟩) :
@@ -366,7 +366,7 @@ theorem uniswapDispatchBalanceOf {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchKLast {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x74, 0x64, 0xfc, 0x3d]⟩) :
@@ -374,7 +374,7 @@ theorem uniswapDispatchKLast {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x74, 0x64, 0xfc, 0x3d]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchNonces {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x7e, 0xce, 0xbe, 0x00]⟩) :
@@ -382,7 +382,7 @@ theorem uniswapDispatchNonces {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x7e, 0xce, 0xbe, 0x00]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchBurn {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x89, 0xaf, 0xcb, 0x44]⟩) :
@@ -390,7 +390,7 @@ theorem uniswapDispatchBurn {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x89, 0xaf, 0xcb, 0x44]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchSymbol {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0x95, 0xd8, 0x9b, 0x41]⟩) :
@@ -398,7 +398,7 @@ theorem uniswapDispatchSymbol {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0x95, 0xd8, 0x9b, 0x41]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchTransfer {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩) :
@@ -406,7 +406,7 @@ theorem uniswapDispatchTransfer {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0xa9, 0x05, 0x9c, 0xbb]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchMinimumLiquidity {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0xba, 0x9a, 0x7a, 0x56]⟩) :
@@ -414,7 +414,7 @@ theorem uniswapDispatchMinimumLiquidity {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0xba, 0x9a, 0x7a, 0x56]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchSkim {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0xbc, 0x25, 0xcf, 0x77]⟩) :
@@ -422,7 +422,7 @@ theorem uniswapDispatchSkim {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0xbc, 0x25, 0xcf, 0x77]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchFactory {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0xc4, 0x5a, 0x01, 0x55]⟩) :
@@ -430,7 +430,7 @@ theorem uniswapDispatchFactory {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0xc4, 0x5a, 0x01, 0x55]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchToken1 {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0xd2, 0x12, 0x20, 0xa7]⟩) :
@@ -438,7 +438,7 @@ theorem uniswapDispatchToken1 {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0xd2, 0x12, 0x20, 0xa7]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchPermit {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0xd5, 0x05, 0xac, 0xcf]⟩) :
@@ -446,7 +446,7 @@ theorem uniswapDispatchPermit {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0xd5, 0x05, 0xac, 0xcf]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchAllowance {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0xdd, 0x62, 0xed, 0x3e]⟩) :
@@ -454,7 +454,7 @@ theorem uniswapDispatchAllowance {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0xdd, 0x62, 0xed, 0x3e]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatchSync {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0xff, 0xf6, 0xca, 0xe9]⟩) :
@@ -462,7 +462,7 @@ theorem uniswapDispatchSync {I : ExecutionEnv}
   have hcd : I.calldata.extract 0 4 = (⟨#[0xff, 0xf6, 0xca, 0xe9]⟩ : ByteArray) :=
     (byteArray_eq_of_beq hsel).symm
   simp [dispatchMsg_eq_dispatchList, contract, dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem uniswapDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg contract cd = none := by
@@ -590,26 +590,26 @@ theorem uniswapReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (revertTgt := (⟨425⟩ : UInt256)) (guardWidth := 2) (revertWidth := 2)
       (guardOp := .PUSH2) (revertOp := .PUSH2)
       hcode hwv hsz hsize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 theorem uniswapX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide)
-  have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native)
+  have h12 := h0.push2 ⟨16⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h12 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem uniswapX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -617,21 +617,21 @@ theorem uniswapX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
     (A := A) (g := g) hcode
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native)
   obtain ⟨_, _, h18⟩ := solcGuardCallvalueZero
     (ctgt := (⟨16⟩ : UInt256)) (opC := .PUSH2) (wC := 2)
-    h0 hwv (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by jump_dest)
-  have h425 := h18.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.calldatasize (by native_decide) (by simp only [List.length]; omega)
-    |>.lt (by native_decide) (by simp only [List.length]; omega)
-    |>.push2 ⟨425⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
+    h0 hwv (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by jump_dest)
+  have h425 := h18.push1 ⟨4⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.calldatasize (by decide +native) (by simp only [List.length]; omega)
+    |>.lt (by decide +native) (by simp only [List.length]; omega)
+    |>.push2 ⟨425⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h425 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h425 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 /-- Reach the low-half split from the root split. -/
 theorem uniswapReachLowSplit {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -931,9 +931,9 @@ theorem uniswapJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     RDrev uniswapV2PairBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h425 := h.push2 ⟨425⟩ hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by evm_ov)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h425 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h425 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -956,12 +956,12 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         (uniswapSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 0 (by omega) 0x02 0x2c 0x0d 0x9f _ (by native_decide) rfl
-    · exact hselectorNoMatch 1 (by omega) 0x06 0xfd 0xde 0x03 _ (by native_decide) rfl
-    · exact hselectorNoMatch 2 (by omega) 0x09 0x02 0xf1 0xac _ (by native_decide) rfl
-    · exact hselectorNoMatch 3 (by omega) 0x09 0x5e 0xa7 0xb3 _ (by native_decide) rfl
-    · exact hselectorNoMatch 4 (by omega) 0x0d 0xfe 0x16 0x81 _ (by native_decide) rfl
-    · exact hselectorNoMatch 5 (by omega) 0x18 0x16 0x0d 0xdd _ (by native_decide) rfl
+    · exact hselectorNoMatch 0 (by omega) 0x02 0x2c 0x0d 0x9f _ (by decide +native) rfl
+    · exact hselectorNoMatch 1 (by omega) 0x06 0xfd 0xde 0x03 _ (by decide +native) rfl
+    · exact hselectorNoMatch 2 (by omega) 0x09 0x02 0xf1 0xac _ (by decide +native) rfl
+    · exact hselectorNoMatch 3 (by omega) 0x09 0x5e 0xa7 0xb3 _ (by decide +native) rfl
+    · exact hselectorNoMatch 4 (by omega) 0x0d 0xfe 0x16 0x81 _ (by decide +native) rfl
+    · exact hselectorNoMatch 5 (by omega) 0x18 0x16 0x0d 0xdd _ (by decide +native) rfl
   have heqMidLow : ∀ j, j < 3 →
       UInt256.eq
         (armSelNat uniswapV2PairBytecode
@@ -969,9 +969,9 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         (uniswapSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 6 (by omega) 0x23 0xb8 0x72 0xdd _ (by native_decide) rfl
-    · exact hselectorNoMatch 7 (by omega) 0x30 0xad 0xf8 0x1f _ (by native_decide) rfl
-    · exact hselectorNoMatch 8 (by omega) 0x31 0x3c 0xe5 0x67 _ (by native_decide) rfl
+    · exact hselectorNoMatch 6 (by omega) 0x23 0xb8 0x72 0xdd _ (by decide +native) rfl
+    · exact hselectorNoMatch 7 (by omega) 0x30 0xad 0xf8 0x1f _ (by decide +native) rfl
+    · exact hselectorNoMatch 8 (by omega) 0x31 0x3c 0xe5 0x67 _ (by decide +native) rfl
   have heqLowUpper : ∀ j, j < 4 →
       UInt256.eq
         (armSelNat uniswapV2PairBytecode
@@ -979,10 +979,10 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         (uniswapSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 9 (by omega) 0x36 0x44 0xe5 0x15 _ (by native_decide) rfl
-    · exact hselectorNoMatch 10 (by omega) 0x48 0x5c 0xc9 0x55 _ (by native_decide) rfl
-    · exact hselectorNoMatch 11 (by omega) 0x59 0x09 0xc0 0xd5 _ (by native_decide) rfl
-    · exact hselectorNoMatch 12 (by omega) 0x5a 0x3d 0x54 0x93 _ (by native_decide) rfl
+    · exact hselectorNoMatch 9 (by omega) 0x36 0x44 0xe5 0x15 _ (by decide +native) rfl
+    · exact hselectorNoMatch 10 (by omega) 0x48 0x5c 0xc9 0x55 _ (by decide +native) rfl
+    · exact hselectorNoMatch 11 (by omega) 0x59 0x09 0xc0 0xd5 _ (by decide +native) rfl
+    · exact hselectorNoMatch 12 (by omega) 0x5a 0x3d 0x54 0x93 _ (by decide +native) rfl
   have heqHighUpper : ∀ j, j < 4 →
       UInt256.eq
         (armSelNat uniswapV2PairBytecode
@@ -990,10 +990,10 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         (uniswapSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 23 (by omega) 0xd2 0x12 0x20 0xa7 _ (by native_decide) rfl
-    · exact hselectorNoMatch 24 (by omega) 0xd5 0x05 0xac 0xcf _ (by native_decide) rfl
-    · exact hselectorNoMatch 25 (by omega) 0xdd 0x62 0xed 0x3e _ (by native_decide) rfl
-    · exact hselectorNoMatch 26 (by omega) 0xff 0xf6 0xca 0xe9 _ (by native_decide) rfl
+    · exact hselectorNoMatch 23 (by omega) 0xd2 0x12 0x20 0xa7 _ (by decide +native) rfl
+    · exact hselectorNoMatch 24 (by omega) 0xd5 0x05 0xac 0xcf _ (by decide +native) rfl
+    · exact hselectorNoMatch 25 (by omega) 0xdd 0x62 0xed 0x3e _ (by decide +native) rfl
+    · exact hselectorNoMatch 26 (by omega) 0xff 0xf6 0xca 0xe9 _ (by decide +native) rfl
   have heqHighMiddle : ∀ j, j < 3 →
       UInt256.eq
         (armSelNat uniswapV2PairBytecode
@@ -1001,9 +1001,9 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         (uniswapSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 20 (by omega) 0xba 0x9a 0x7a 0x56 _ (by native_decide) rfl
-    · exact hselectorNoMatch 21 (by omega) 0xbc 0x25 0xcf 0x77 _ (by native_decide) rfl
-    · exact hselectorNoMatch 22 (by omega) 0xc4 0x5a 0x01 0x55 _ (by native_decide) rfl
+    · exact hselectorNoMatch 20 (by omega) 0xba 0x9a 0x7a 0x56 _ (by decide +native) rfl
+    · exact hselectorNoMatch 21 (by omega) 0xbc 0x25 0xcf 0x77 _ (by decide +native) rfl
+    · exact hselectorNoMatch 22 (by omega) 0xc4 0x5a 0x01 0x55 _ (by decide +native) rfl
   have heqHighLower : ∀ j, j < 4 →
       UInt256.eq
         (armSelNat uniswapV2PairBytecode
@@ -1011,10 +1011,10 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         (uniswapSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 16 (by omega) 0x7e 0xce 0xbe 0x00 _ (by native_decide) rfl
-    · exact hselectorNoMatch 17 (by omega) 0x89 0xaf 0xcb 0x44 _ (by native_decide) rfl
-    · exact hselectorNoMatch 18 (by omega) 0x95 0xd8 0x9b 0x41 _ (by native_decide) rfl
-    · exact hselectorNoMatch 19 (by omega) 0xa9 0x05 0x9c 0xbb _ (by native_decide) rfl
+    · exact hselectorNoMatch 16 (by omega) 0x7e 0xce 0xbe 0x00 _ (by decide +native) rfl
+    · exact hselectorNoMatch 17 (by omega) 0x89 0xaf 0xcb 0x44 _ (by decide +native) rfl
+    · exact hselectorNoMatch 18 (by omega) 0x95 0xd8 0x9b 0x41 _ (by decide +native) rfl
+    · exact hselectorNoMatch 19 (by omega) 0xa9 0x05 0x9c 0xbb _ (by decide +native) rfl
   have heqHighLowest : ∀ j, j < 3 →
       UInt256.eq
         (armSelNat uniswapV2PairBytecode
@@ -1022,9 +1022,9 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         (uniswapSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 13 (by omega) 0x6a 0x62 0x78 0x42 _ (by native_decide) rfl
-    · exact hselectorNoMatch 14 (by omega) 0x70 0xa0 0x82 0x31 _ (by native_decide) rfl
-    · exact hselectorNoMatch 15 (by omega) 0x74 0x64 0xfc 0x3d _ (by native_decide) rfl
+    · exact hselectorNoMatch 13 (by omega) 0x6a 0x62 0x78 0x42 _ (by decide +native) rfl
+    · exact hselectorNoMatch 14 (by omega) 0x70 0xa0 0x82 0x31 _ (by decide +native) rfl
+    · exact hselectorNoMatch 15 (by omega) 0x74 0x64 0xfc 0x3d _ (by decide +native) rfl
   by_cases hroot :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapRootSplitPc) (uniswapSelWord I) =
         ⟨0⟩
@@ -1046,7 +1046,7 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
               (heqHighUpper 2 (by omega)) (by simp)
           |>.selectorArmNotTakenAuto (uniswapHighUpperArmsWellFormed 3 (by omega))
               (heqHighUpper 3 (by omega)) (by simp)
-        exact uniswapJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
+        exact uniswapJumpToNoMatchRevert h109 (by decide +native) (by decide +native)
       · obtain ⟨_, _, h114⟩ := uniswapReachHighMiddleFirstArm (cA := cA) (gh := gh)
           (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           hcode hwv hsz hsize hroot hhigh hhighMid
@@ -1057,7 +1057,7 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
               (heqHighMiddle 1 (by omega)) (by simp)
           |>.selectorArmNotTakenAuto (uniswapHighMiddleArmsWellFormed 2 (by omega))
               (heqHighMiddle 2 (by omega)) (by simp)
-        exact uniswapJumpToNoMatchRevert h147 (by native_decide) (by native_decide)
+        exact uniswapJumpToNoMatchRevert h147 (by decide +native) (by decide +native)
     · by_cases hlower :
         UInt256.gt (armSelNat uniswapV2PairBytecode uniswapHighLowerSplitPc) (uniswapSelWord I) =
           ⟨0⟩
@@ -1073,7 +1073,7 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
               (heqHighLower 2 (by omega)) (by simp)
           |>.selectorArmNotTakenAuto (uniswapHighLowerArmsWellFormed 3 (by omega))
               (heqHighLower 3 (by omega)) (by simp)
-        exact uniswapJumpToNoMatchRevert h207 (by native_decide) (by native_decide)
+        exact uniswapJumpToNoMatchRevert h207 (by decide +native) (by decide +native)
       · obtain ⟨_, _, h212⟩ := uniswapReachHighLowestFirstArm (cA := cA) (gh := gh)
           (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           hcode hwv hsz hsize hroot hhigh hlower
@@ -1084,7 +1084,7 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
               (heqHighLowest 1 (by omega)) (by simp)
           |>.selectorArmNotTakenAuto (uniswapHighLowestArmsWellFormed 2 (by omega))
               (heqHighLowest 2 (by omega)) (by simp)
-        exact uniswapJumpToNoMatchRevert h245 (by native_decide) (by native_decide)
+        exact uniswapJumpToNoMatchRevert h245 (by decide +native) (by decide +native)
   · by_cases hlow :
       UInt256.gt (armSelNat uniswapV2PairBytecode uniswapLowSplitPc) (uniswapSelWord I) =
         ⟨0⟩
@@ -1103,7 +1103,7 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
               (heqLowUpper 2 (by omega)) (by simp)
           |>.selectorArmNotTakenAuto (uniswapLowUpperArmsWellFormed 3 (by omega))
               (heqLowUpper 3 (by omega)) (by simp)
-        exact uniswapJumpToNoMatchRevert h316 (by native_decide) (by native_decide)
+        exact uniswapJumpToNoMatchRevert h316 (by decide +native) (by decide +native)
       · obtain ⟨_, _, h321⟩ := uniswapReachMidLowFirstArm (cA := cA) (gh := gh)
           (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
           hcode hwv hsz hsize hroot hlow hmidLow
@@ -1114,7 +1114,7 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
               (heqMidLow 1 (by omega)) (by simp)
           |>.selectorArmNotTakenAuto (uniswapMidLowArmsWellFormed 2 (by omega))
               (heqMidLow 2 (by omega)) (by simp)
-        exact uniswapJumpToNoMatchRevert h354 (by native_decide) (by native_decide)
+        exact uniswapJumpToNoMatchRevert h354 (by decide +native) (by decide +native)
     · obtain ⟨_, _, h359⟩ := uniswapReachLowestFirstArm (cA := cA) (gh := gh)
         (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hlow
@@ -1131,9 +1131,9 @@ theorem uniswapX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
             (heqLowest 4 (by omega)) (by simp)
         |>.selectorArmNotTakenAuto (uniswapLowestArmsWellFormed 5 (by omega))
             (heqLowest 5 (by omega)) (by simp)
-      have h426 := h425.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-      exact RD.solcPush1Dup1Revert0 h426 (by native_decide) (by native_decide)
-        (by native_decide) (by simp only [List.length_singleton]; omega)
+      have h426 := h425.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+      exact RD.solcPush1Dup1Revert0 h426 (by decide +native) (by decide +native)
+        (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem uniswapNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = uniswapV2PairBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
@@ -1484,7 +1484,7 @@ theorem uniswapReachDecimalsBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals native_decide)
+      all_goals decide +native)
     (by
       rw [hword]
       decide)
@@ -1570,7 +1570,7 @@ theorem uniswapReachPrice0CumulativeLastBody {cA gh bl σ σ₀ A I} {g : Sat256
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals native_decide)
+      all_goals decide +native)
     (by
       rw [hword]
       decide)
@@ -1593,7 +1593,7 @@ theorem uniswapReachPrice1CumulativeLastBody {cA gh bl σ σ₀ A I} {g : Sat256
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals native_decide)
+      all_goals decide +native)
     (by
       rw [hword]
       decide)
@@ -1639,7 +1639,7 @@ theorem uniswapReachKLastBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals native_decide)
+      all_goals decide +native)
     (by
       rw [hword]
       decide)
@@ -1702,7 +1702,7 @@ theorem uniswapReachFactoryBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals native_decide)
+      all_goals decide +native)
     (by
       rw [hword]
       decide)
@@ -1745,7 +1745,7 @@ theorem uniswapReachAllowanceBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals native_decide)
+      all_goals decide +native)
     (by
       rw [hword]
       decide)
@@ -1768,7 +1768,7 @@ theorem uniswapReachSyncBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals native_decide)
+      all_goals decide +native)
     (by
       rw [hword]
       decide)
@@ -1855,7 +1855,7 @@ theorem uniswapReachApproveBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals native_decide)
+      all_goals decide +native)
     (by
       rw [hword]
       decide)
@@ -1905,7 +1905,7 @@ theorem uniswapReachTransferBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals native_decide)
+      all_goals decide +native)
     (by
       rw [hword]
       decide)

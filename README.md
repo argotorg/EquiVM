@@ -229,7 +229,7 @@ trusted base is small and explicit. Accepting a certificate means trusting:
   proved to implement.
 - **The proof checker.** The Lean 4 kernel and the three standard axioms of
   Lean's core library (`propext`, `Classical.choice`, `Quot.sound`), and
-  Lean's compiled evaluator, which `native_decide` uses to check concrete
+  Lean's compiled evaluator, which `decide +native` uses to check concrete
   byte-level facts such as the jump-destination tables.
 - **The EVM model.** The refinement is stated against the
   [EVMLean](https://github.com/lefterislazar/EVMLean) semantics that follows the
@@ -264,7 +264,7 @@ lake build <Module>.Correct
 ```
 
 The footprint must contain nothing beyond the axioms above: the three standard
-Lean axioms, the `native_decide` evaluation facts, the contract's Keccak
+Lean axioms, the `decide +native` evaluation facts, the contract's Keccak
 selector facts, and — where applicable — `keccak_size` and the EVMLean
 precompile bounds. Any other axiom, or any `sorry`, means the certificate does
 not hold.

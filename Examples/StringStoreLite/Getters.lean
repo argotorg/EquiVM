@@ -1245,7 +1245,7 @@ theorem setLengthMaxWord_zero
             ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32))
         ⟨18446744073709551615⟩ = ⟨0⟩ := by
   rw [hlenZero]
-  native_decide
+  decide +native
 
 theorem setPayloadWord_zero
     (cd : ByteArray)
@@ -1269,7 +1269,7 @@ theorem setPayloadWord_zero
               ((((⟨4⟩ : UInt256) + calldataWord cd 4)).toNat) 32)) ⟨1⟩ =
         ⟨0⟩ := by
     rw [hlenZero]
-    native_decide
+    decide +native
   apply ugt_zero
   rw [hmul]
   rw [setAddZero_toNat]
@@ -1468,7 +1468,7 @@ theorem setLengthMaxWord_of_abi
         ⟨18446744073709551615⟩ = ⟨0⟩ := by
   rw [setLengthWord_eq_abi cd hoffMax]
   apply ugt_zero
-  rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by native_decide]
+  rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by decide +native]
   exact Nat.le_of_not_gt hlenMax
 
 theorem setLengthMaxWord_one_of_abi
@@ -1484,7 +1484,7 @@ theorem setLengthMaxWord_one_of_abi
         ⟨18446744073709551615⟩ = ⟨1⟩ := by
   rw [setLengthWord_eq_abi cd hoffMax]
   apply ugt_one
-  rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by native_decide]
+  rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by decide +native]
   exact hlenHuge
 
 theorem currentLengthHeaderWord_eq_of_accountMapEquiv {σ_evm σ_solm : AccountMap}
@@ -2072,7 +2072,7 @@ theorem stringStoreLiteX_bytesLengthDecoderLongValid {cA gh bl σ σ₀ A I} {g 
   have rd911 := rd903.jumpiT (by decide) hvalid (by jump_dest)
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, evm_run rd911 with [
-    jumpdest, pop, swap2, swap1, pop, raw jump (by native_decide) hret
+    jumpdest, pop, swap2, swap1, pop, raw jump (by decide +native) hret
       (by simp only [List.length_cons]; omega)]⟩
 
 theorem stringStoreLiteX_bytesLengthDecoderLongValidMem {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -2100,7 +2100,7 @@ theorem stringStoreLiteX_bytesLengthDecoderLongValidMem {cA gh bl σ σ₀ A I} 
   have rd911 := rd903.jumpiT (by decide) hvalid (by jump_dest)
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, evm_run rd911 with [
-    jumpdest, pop, swap2, swap1, pop, raw jump (by native_decide) hret
+    jumpdest, pop, swap2, swap1, pop, raw jump (by decide +native) hret
       (by simp only [List.length_cons]; omega)]⟩
 
 theorem stringStoreLiteX_bytesLengthDecoderShortValid {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -2130,7 +2130,7 @@ theorem stringStoreLiteX_bytesLengthDecoderShortValid {cA gh bl σ σ₀ A I} {g
   have rd911 := rd903.jumpiT (by decide) hvalid (by jump_dest)
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, evm_run rd911 with [
-    jumpdest, pop, swap2, swap1, pop, raw jump (by native_decide) hret
+    jumpdest, pop, swap2, swap1, pop, raw jump (by decide +native) hret
       (by simp only [List.length_cons]; omega)]⟩
 
 theorem stringStoreLiteX_bytesLengthDecoderShortValidMem {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -2159,7 +2159,7 @@ theorem stringStoreLiteX_bytesLengthDecoderShortValidMem {cA gh bl σ σ₀ A I}
   have rd911 := rd903.jumpiT (by decide) hvalid (by jump_dest)
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, evm_run rd911 with [
-    jumpdest, pop, swap2, swap1, pop, raw jump (by native_decide) hret
+    jumpdest, pop, swap2, swap1, pop, raw jump (by decide +native) hret
       (by simp only [List.length_cons]; omega)]⟩
 
 theorem stringStoreLiteX_currentLengthDecoderLongValid {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -2280,24 +2280,24 @@ theorem stringStoreLiteX_currentLengthMalformedPanic {cA gh bl σ σ₀ A I} {g 
   obtain ⟨_, _, rd903⟩ := hreach
   have rd824 := evm_run rd903 with [
     push2 ⟨910⟩, push2 ⟨824⟩, jump (by jump_dest)]
-  have rd825 := rd824.jumpdest (by native_decide)
+  have rd825 := rd824.jumpdest (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd858 := rd825.pushConst solcPanicSelectorWord (width := 32)
-    (op := Operation.POp.PUSH32) (by decide) (by native_decide)
+    (op := Operation.POp.PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rd858 with [
     push0,
-    raw mstore 0 solcPanic22Mem1 (UInt256.ofNat 3) (by native_decide)
+    raw mstore 0 solcPanic22Mem1 (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl]; rfl)
       (by decide) (by simp only [List.length_cons]; omega),
     push1 ⟨34⟩, push1 ⟨4⟩,
-    raw mstore 0 solcPanic22Mem (UInt256.ofNat 3) (by native_decide)
+    raw mstore 0 solcPanic22Mem (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by decide]; rfl)
       (by decide) (by simp only [List.length_cons]; omega),
     push1 ⟨36⟩, push0,
-    raw rev 0 (by native_decide) mem_cost
+    raw rev 0 (by decide +native) mem_cost
       (by simp only [List.length_cons]; omega)]
 
 theorem stringStoreLiteX_setMalformedPanic {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -2310,24 +2310,24 @@ theorem stringStoreLiteX_setMalformedPanic {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd903⟩ := hreach
   have rd824 := evm_run rd903 with [
     push2 ⟨910⟩, push2 ⟨824⟩, jump (by jump_dest)]
-  have rd825 := rd824.jumpdest (by native_decide)
+  have rd825 := rd824.jumpdest (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd858 := rd825.pushConst solcPanicSelectorWord (width := 32)
-    (op := Operation.POp.PUSH32) (by decide) (by native_decide)
+    (op := Operation.POp.PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rd858 with [
     push0,
-    raw mstore 0 setMalformedPanicMem1 (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 setMalformedPanicMem1 (UInt256.ofNat 6) (by decide +native)
       mem_cost
       (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl]; rfl)
       (by decide) (by simp only [List.length_cons]; omega),
     push1 ⟨34⟩, push1 ⟨4⟩,
-    raw mstore 0 setMalformedPanicMem (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 setMalformedPanicMem (UInt256.ofNat 6) (by decide +native)
       mem_cost
       (by rw [show (⟨4⟩ : UInt256).toNat = 4 from by decide]; rfl)
       (by decide) (by simp only [List.length_cons]; omega),
     push1 ⟨36⟩, push0,
-    raw rev 0 (by native_decide) mem_cost
+    raw rev 0 (by decide +native) mem_cost
       (by simp only [List.length_cons]; omega)]
 
 theorem stringStoreLiteX_bytesLengthDecoderLongMalformed {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -2588,7 +2588,7 @@ theorem stringStoreLiteX_setDecoderOffsetHuge {cA gh bl σ σ₀ A I} {g : Sat25
     jumpiT (by rw [hslt]; decide) (by jump_dest),
     jumpdest, push0, dup4, add, calldataload]
   have rd681 := RD.pushConst rd671 ⟨18446744073709551615⟩
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native) (by evm_ov)
   exact evm_run rd681 with [
     dup2,
     gt, iszero, push2 ⟨696⟩,
@@ -2627,7 +2627,7 @@ theorem stringStoreLiteX_stringDecoder560LengthHuge {cA gh bl σ σ₀ A I} {g :
     jumpiT (by rw [hstart]; decide) (by jump_dest)]
   have rd595 := RD.pushConst (evm_run rd581 with [jumpdest, dup3, calldataload, swap1, pop])
     ⟨18446744073709551615⟩ (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   exact evm_run rd595 with [
     dup2, gt, iszero, push2 ⟨610⟩,
     jumpiNT (by rw [hlenMax]; decide),
@@ -2654,7 +2654,7 @@ theorem stringStoreLiteX_stringDecoder560PayloadShort {cA gh bl σ σ₀ A I} {g
     jumpiT (by rw [hstart]; decide) (by jump_dest)]
   have rd595 := RD.pushConst (evm_run rd581 with [jumpdest, dup3, calldataload, swap1, pop])
     ⟨18446744073709551615⟩ (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   exact evm_run rd595 with [
     dup2, gt, iszero, push2 ⟨610⟩,
     jumpiT (by rw [hlenMax]; decide) (by jump_dest),
@@ -2688,7 +2688,7 @@ theorem stringStoreLiteX_stringDecoder560Ok {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpiT (by rw [hstart]; decide) (by jump_dest)]
   have rd595 := RD.pushConst (evm_run rd581 with [jumpdest, dup3, calldataload, swap1, pop])
     ⟨18446744073709551615⟩ (width := 8) (op := .PUSH8)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd638 := evm_run rd595 with [
     dup2, gt, iszero, push2 ⟨610⟩,
     jumpiT (by rw [hlenMax]; decide) (by jump_dest),
@@ -2718,7 +2718,7 @@ theorem stringStoreLiteX_setDecoderLengthShort {cA gh bl σ σ₀ A I} {g : Sat2
   have hgt :
       UInt256.gt (calldataWord I.calldata 4) ⟨18446744073709551615⟩ = ⟨0⟩ := by
     apply ugt_zero
-    rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by native_decide]
+    rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by decide +native]
     exact Nat.le_of_not_gt hoffMax
   have hgt' :
       UInt256.gt
@@ -2767,7 +2767,7 @@ theorem stringStoreLiteX_setDecoderLengthShort {cA gh bl σ σ₀ A I} {g : Sat2
     jumpiT (by rw [hslt]; decide) (by jump_dest),
     jumpdest, push0, dup4, add, calldataload]
   have rd681 := RD.pushConst rd671 ⟨18446744073709551615⟩
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native) (by evm_ov)
   have rd696 := evm_run rd681 with [
     dup2, gt, iszero, push2 ⟨696⟩,
     jumpiT (by rw [hgt']; decide) (by jump_dest)]
@@ -2794,7 +2794,7 @@ theorem stringStoreLiteX_setDecoderSignedStartHigh {cA gh bl σ σ₀ A I} {g : 
   have hgt :
       UInt256.gt (calldataWord I.calldata 4) ⟨18446744073709551615⟩ = ⟨0⟩ := by
     apply ugt_zero
-    rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by native_decide]
+    rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by decide +native]
     exact Nat.le_of_not_gt hoffMax
   have hgt' :
       UInt256.gt
@@ -2810,7 +2810,7 @@ theorem stringStoreLiteX_setDecoderSignedStartHigh {cA gh bl σ σ₀ A I} {g : 
     jumpiT (by rw [hslt]; decide) (by jump_dest),
     jumpdest, push0, dup4, add, calldataload]
   have rd681 := RD.pushConst rd671 ⟨18446744073709551615⟩
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native) (by evm_ov)
   have rd696 := evm_run rd681 with [
     dup2, gt, iszero, push2 ⟨696⟩,
     jumpiT (by rw [hgt']; decide) (by jump_dest)]
@@ -2845,7 +2845,7 @@ theorem stringStoreLiteX_setDecoderLengthHuge {cA gh bl σ σ₀ A I} {g : Sat25
   have hgt :
       UInt256.gt (calldataWord I.calldata 4) ⟨18446744073709551615⟩ = ⟨0⟩ := by
     apply ugt_zero
-    rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by native_decide]
+    rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by decide +native]
     exact Nat.le_of_not_gt hoffMax
   have hgt' :
       UInt256.gt
@@ -2857,7 +2857,7 @@ theorem stringStoreLiteX_setDecoderLengthHuge {cA gh bl σ σ₀ A I} {g : Sat25
     jumpiT (by rw [hslt]; decide) (by jump_dest),
     jumpdest, push0, dup4, add, calldataload]
   have rd681 := RD.pushConst rd671 ⟨18446744073709551615⟩
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native) (by evm_ov)
   have rd696 := evm_run rd681 with [
     dup2, gt, iszero, push2 ⟨696⟩,
     jumpiT (by rw [hgt']; decide) (by jump_dest)]
@@ -2902,7 +2902,7 @@ theorem stringStoreLiteX_setDecoderPayloadShort {cA gh bl σ σ₀ A I} {g : Sat
   have hgt :
       UInt256.gt (calldataWord I.calldata 4) ⟨18446744073709551615⟩ = ⟨0⟩ := by
     apply ugt_zero
-    rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by native_decide]
+    rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by decide +native]
     exact Nat.le_of_not_gt hoffMax
   have hgt' :
       UInt256.gt
@@ -2914,7 +2914,7 @@ theorem stringStoreLiteX_setDecoderPayloadShort {cA gh bl σ σ₀ A I} {g : Sat
     jumpiT (by rw [hslt]; decide) (by jump_dest),
     jumpdest, push0, dup4, add, calldataload]
   have rd681 := RD.pushConst rd671 ⟨18446744073709551615⟩
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native) (by evm_ov)
   have rd696 := evm_run rd681 with [
     dup2, gt, iszero, push2 ⟨696⟩,
     jumpiT (by rw [hgt']; decide) (by jump_dest)]
@@ -2967,7 +2967,7 @@ theorem stringStoreLiteX_setDecoderOkCore {cA gh bl σ σ₀ A I} {g : Sat256}
   have hgt :
       UInt256.gt (calldataWord I.calldata 4) ⟨18446744073709551615⟩ = ⟨0⟩ := by
     apply ugt_zero
-    rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by native_decide]
+    rw [show (⟨18446744073709551615⟩ : UInt256).toNat = ABI.solcMaxU64 by decide +native]
     exact Nat.le_of_not_gt hoffMax
   have hgt' :
       UInt256.gt
@@ -2979,7 +2979,7 @@ theorem stringStoreLiteX_setDecoderOkCore {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpiT (by rw [hslt]; decide) (by jump_dest),
     jumpdest, push0, dup4, add, calldataload]
   have rd681 := RD.pushConst rd671 ⟨18446744073709551615⟩
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native) (by evm_ov)
   have rd696 := evm_run rd681 with [
     dup2, gt, iszero, push2 ⟨696⟩,
     jumpiT (by rw [hgt']; decide) (by jump_dest)]
@@ -3055,19 +3055,19 @@ theorem stringStoreLiteX_setReachStorageWriteMem {cA gh bl σ σ₀ A I} {g : Sa
     jumpdest, push0, push0, dup4, dup4, dup1, dup1, push1 ⟨31⟩, add,
     push1 ⟨32⟩, dup1, swap2, div, mul, push1 ⟨32⟩, add,
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     swap1, dup2, add, push1 ⟨64⟩,
-    raw mstore 0 (currentLengthAllocMem len) (UInt256.ofNat 3) (by native_decide)
+    raw mstore 0 (currentLengthAllocMem len) (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (by
         rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
         rfl)
       (by decide) (by evm_ov),
     dup1, swap4, swap3, swap2, swap1, dup2, dup2,
-    raw mstore 6 (currentLengthMem len) (UInt256.ofNat 5) (by native_decide)
+    raw mstore 6 (currentLengthMem len) (UInt256.ofNat 5) (by decide +native)
       mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
@@ -3084,7 +3084,7 @@ theorem stringStoreLiteX_setReachStorageWriteMem {cA gh bl σ σ₀ A I} {g : Sa
     (Cₘ awCopy - Cₘ (UInt256.ofNat 5))
     (setCalldataMem I.calldata len payloadStart)
     awCopy
-    rd219 (by native_decide)
+    rd219 (by decide +native)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, awCopy]
@@ -3101,7 +3101,7 @@ theorem stringStoreLiteX_setReachStorageWriteMem {cA gh bl σ σ₀ A I} {g : Sa
     (Cₘ awPad - Cₘ awCopy)
     (setPaddedMem I.calldata len payloadStart)
     awPad
-    rd224 (by native_decide)
+    rd224 (by decide +native)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, awCopy, awPad]
@@ -3553,7 +3553,7 @@ theorem setShortPackedHeader_mask_of_short {len : UInt256}
       (UInt256.shiftRight (UInt256.lnot ⟨0⟩) (UInt256.mul ⟨8⟩ (UInt256.ofNat n))) =
     UInt256.ofNat (2 ^ 256 - 2 ^ (256 - 8 * n))
   change n < 32 at hshort
-  interval_cases n <;> native_decide
+  interval_cases n <;> decide +native
 
 theorem setShortPackedHeader_eq_solidityShortBytesWord {I : ExecutionEnv}
     {len payloadStart : UInt256}
@@ -3826,17 +3826,17 @@ theorem stringStoreLiteX_setEmptyReachStorageWrite {cA gh bl σ σ₀ A I} {g : 
     jumpdest, push0, push0, dup4, dup4, dup1, dup1, push1 ⟨31⟩, add,
     push1 ⟨32⟩, dup1, swap2, div, mul, push1 ⟨32⟩, add,
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     swap1, dup2, add, push1 ⟨64⟩,
-    raw mstore 0 currentLengthZeroAllocMem (UInt256.ofNat 3) (by native_decide)
+    raw mstore 0 currentLengthZeroAllocMem (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov),
     dup1, swap4, swap3, swap2, swap1, dup2, dup2,
-    raw mstore 6 currentLengthZeroMem (UInt256.ofNat 5) (by native_decide)
+    raw mstore 6 currentLengthZeroMem (UInt256.ofNat 5) (by decide +native)
       mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
@@ -3852,12 +3852,12 @@ theorem stringStoreLiteX_setEmptyReachStorageWrite {cA gh bl σ σ₀ A I} {g : 
     (Cₘ awCopy - Cₘ (UInt256.ofNat 5))
     currentLengthZeroMem
     awCopy
-    rd219 (by native_decide)
+    rd219 (by decide +native)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, awCopy]
       rw [show (((⟨32⟩ : UInt256) + ⟨128⟩).toNat) =
-          (⟨160⟩ : UInt256).toNat by native_decide])
+          (⟨160⟩ : UInt256).toNat by decide +native])
     (by
       simpa using
         stringStoreLite_write_len_zero I.calldata currentLengthZeroMem payloadStart.toNat 160)
@@ -3870,16 +3870,16 @@ theorem stringStoreLiteX_setEmptyReachStorageWrite {cA gh bl σ σ₀ A I} {g : 
     (Cₘ awPad - Cₘ awCopy)
     currentLengthZeroReturnMem
     awPad
-    rd224 (by native_decide)
+    rd224 (by decide +native)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, awCopy, awPad]
       rw [show (((⟨32⟩ : UInt256) + ⟨128⟩ + ⟨0⟩).toNat) =
-          (⟨160⟩ : UInt256).toNat by native_decide])
+          (⟨160⟩ : UInt256).toNat by decide +native])
     (by rfl)
     (by
       rw [show (((⟨32⟩ : UInt256) + ⟨128⟩ + ⟨0⟩).toNat) =
-          (⟨160⟩ : UInt256).toNat by native_decide])
+          (⟨160⟩ : UInt256).toNat by decide +native])
     (by evm_ov)
   have rd1350 := evm_run rd225 with [
     push1 ⟨31⟩, not, push1 ⟨31⟩, dup3, add, and, swap1, pop,
@@ -3908,7 +3908,7 @@ theorem stringStoreLiteX_setEmptyWriteShortZero {cA gh bl σ σ₀ A I} {g : Sat
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
     jumpdest, push0, dup2,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost
       currentLengthZeroReturnMem_mload128
       (by decide) (by evm_ov),
@@ -3916,11 +3916,11 @@ theorem stringStoreLiteX_setEmptyWriteShortZero {cA gh bl σ σ₀ A I} {g : Sat
   have rd1384 := evm_run rd1359 with [
     jumpdest]
   have rd1369 := RD.pushConst rd1384 ⟨18446744073709551615⟩
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native) (by evm_ov)
   have rd1384' := evm_run rd1369 with [
     dup2, gt, iszero, push2 ⟨1384⟩, jumpiT (by decide) (by jump_dest)]
   have rd1389 := evm_run rd1384' with [jumpdest, push2 ⟨1394⟩, dup3]
-  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd1390⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1390⟩
@@ -3971,11 +3971,11 @@ theorem stringStoreLiteX_setEmptyWriteShortZero {cA gh bl σ σ₀ A I} {g : Sat
     jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
-  obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by decide +native) (by evm_ov)
   have hpacked0 :
       ((⟨0⟩ : UInt256).land ((⟨0⟩ : UInt256).lnot.shiftLeft ((⟨8⟩ : UInt256).mul ⟨0⟩)).lnot).lor
           ((⟨2⟩ : UInt256).mul ⟨0⟩) = ⟨0⟩ := by
-    native_decide
+    decide +native
   obtain ⟨_, _, rd1449⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1449⟩
@@ -4012,18 +4012,18 @@ theorem stringStoreLiteX_setEmptyWriteShortValid {cA gh bl σ σ₀ A I} {g : Sa
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
     jumpdest, push0, dup2,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost
       currentLengthZeroReturnMem_mload128
       (by decide) (by evm_ov),
     swap1, pop, swap2, swap1, pop, jump (by jump_dest)]
   have rd1384 := evm_run rd1359 with [jumpdest]
   have rd1369 := RD.pushConst rd1384 ⟨18446744073709551615⟩
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native) (by evm_ov)
   have rd1384' := evm_run rd1369 with [
     dup2, gt, iszero, push2 ⟨1384⟩, jumpiT (by decide) (by jump_dest)]
   have rd1389 := evm_run rd1384' with [jumpdest, push2 ⟨1394⟩, dup3]
-  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd1390⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1390⟩
@@ -4089,11 +4089,11 @@ theorem stringStoreLiteX_setEmptyWriteShortValid {cA gh bl σ σ₀ A I} {g : Sa
     jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
-  obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by decide +native) (by evm_ov)
   have hpacked0 :
       ((⟨0⟩ : UInt256).land ((⟨0⟩ : UInt256).lnot.shiftRight ((⟨8⟩ : UInt256).mul ⟨0⟩)).lnot).lor
           ((⟨2⟩ : UInt256).mul ⟨0⟩) = ⟨0⟩ := by
-    native_decide
+    decide +native
   obtain ⟨_, _, rd1449⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1449⟩
@@ -4137,7 +4137,7 @@ theorem stringStoreLiteX_setWriteShortPackedFrom1436 {cA gh bl σinit σ₀ A I}
     jumpdest, swap2, pop, dup3, push1 ⟨2⟩, mul, dup3, or, swap1, pop,
     swap3, swap2, pop, pop, jump (by jump_dest)]
   have rd1448pre := evm_run rd1446 with [jumpdest, dup7]
-  obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1449₀⟩ := rd1448pre.sstore hperm (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa only [sstoreAccountMap, initState, setShortPackedHeader] using
       (evm_run rd1449₀ with [
@@ -4181,13 +4181,13 @@ theorem stringStoreLiteX_setWriteShortPayloadLoadedFrom1405 {cA gh bl σinit σ�
       (by
         rw [hlenNotZero]),
     dup3, dup8, add]
-  have haddrWord : ((⟨128⟩ : UInt256) + ⟨32⟩) = ⟨160⟩ := by native_decide
-  have haddr : (((⟨128⟩ : UInt256) + ⟨32⟩).toNat) = 160 := by native_decide
+  have haddrWord : ((⟨128⟩ : UInt256) + ⟨32⟩) = ⟨160⟩ := by decide +native
+  have haddr : (((⟨128⟩ : UInt256) + ⟨32⟩).toNat) = 160 := by decide +native
   have rd1434 := RD.mload
     (Cₘ (setHelperPayloadAw len) - Cₘ (setHelperEntryAw len))
     (setHelperPayloadWord I.calldata len payloadStart)
     (setHelperPayloadAw len)
-    rd1430 (by native_decide)
+    rd1430 (by decide +native)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
@@ -4252,7 +4252,7 @@ theorem stringStoreLiteX_setWriteShortNonemptyValid {cA gh bl σ σ₀ A I} {g :
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
     jumpdest, push0, dup2,
-    raw mload 0 len (setHelperEntryAw len) (by native_decide)
+    raw mload 0 len (setHelperEntryAw len) (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
@@ -4263,7 +4263,7 @@ theorem stringStoreLiteX_setWriteShortNonemptyValid {cA gh bl σ σ₀ A I} {g :
     swap1, pop, swap2, swap1, pop, jump (by jump_dest)]
   have rd1384 := evm_run rd1359 with [jumpdest]
   have rd1369 := RD.pushConst rd1384 ⟨18446744073709551615⟩
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native) (by evm_ov)
   have rd1384' := evm_run rd1369 with [
     dup2, gt, iszero, push2 ⟨1384⟩, jumpiT
       (by
@@ -4276,7 +4276,7 @@ theorem stringStoreLiteX_setWriteShortNonemptyValid {cA gh bl σ σ₀ A I} {g :
         decide)
       (by jump_dest)]
   have rd1389 := evm_run rd1384' with [jumpdest, push2 ⟨1394⟩, dup3]
-  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd1390⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1390⟩
@@ -4345,18 +4345,18 @@ theorem stringStoreLiteX_setEmptyWriteLongMalformed {cA gh bl σ σ₀ A I} {g :
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
     jumpdest, push0, dup2,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost
       currentLengthZeroReturnMem_mload128
       (by decide) (by evm_ov),
     swap1, pop, swap2, swap1, pop, jump (by jump_dest)]
   have rd1384 := evm_run rd1359 with [jumpdest]
   have rd1369 := RD.pushConst rd1384 ⟨18446744073709551615⟩
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native) (by evm_ov)
   have rd1384' := evm_run rd1369 with [
     dup2, gt, iszero, push2 ⟨1384⟩, jumpiT (by decide) (by jump_dest)]
   have rd1389 := evm_run rd1384' with [jumpdest, push2 ⟨1394⟩, dup3]
-  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd1390⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1390⟩
@@ -4389,18 +4389,18 @@ theorem stringStoreLiteX_setEmptyWriteShortMalformed {cA gh bl σ σ₀ A I} {g 
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
     jumpdest, push0, dup2,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost
       currentLengthZeroReturnMem_mload128
       (by decide) (by evm_ov),
     swap1, pop, swap2, swap1, pop, jump (by jump_dest)]
   have rd1384 := evm_run rd1359 with [jumpdest]
   have rd1369 := RD.pushConst rd1384 ⟨18446744073709551615⟩
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native) (by evm_ov)
   have rd1384' := evm_run rd1369 with [
     dup2, gt, iszero, push2 ⟨1384⟩, jumpiT (by decide) (by jump_dest)]
   have rd1389 := evm_run rd1384' with [jumpdest, push2 ⟨1394⟩, dup3]
-  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd1390⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1390⟩
@@ -4431,15 +4431,15 @@ theorem stringStoreLiteX_setShortNonemptyMalformedPanic {cA gh bl σ σ₀ A I}
     setHelperEntryAw_ge5_of_u64 (len := len) hlenMax
   have rd824 := evm_run rd903 with [
     push2 ⟨910⟩, push2 ⟨824⟩, jump (by jump_dest)]
-  have rd825 := rd824.jumpdest (by native_decide)
+  have rd825 := rd824.jumpdest (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd858 := rd825.pushConst solcPanicSelectorWord (width := 32)
-    (op := Operation.POp.PUSH32) (by decide) (by native_decide)
+    (op := Operation.POp.PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rd858 with [
     push0,
     raw mstore 0 (setMalformedPanicMem1Of (setPaddedMem I.calldata len payloadStart))
-      (setHelperEntryAw len) (by native_decide)
+      (setHelperEntryAw len) (by decide +native)
       (by
         intro s haw' hstk
         rw [set_mstoreCostSpec (aw := setHelperEntryAw len) (off := ⟨0⟩) s haw' hstk]
@@ -4452,7 +4452,7 @@ theorem stringStoreLiteX_setShortNonemptyMalformedPanic {cA gh bl σ σ₀ A I}
       (by simp only [List.length_cons]; omega),
     push1 ⟨34⟩, push1 ⟨4⟩,
     raw mstore 0 (setMalformedPanicMemOf (setPaddedMem I.calldata len payloadStart))
-      (setHelperEntryAw len) (by native_decide)
+      (setHelperEntryAw len) (by decide +native)
       (by
         intro s haw' hstk
         rw [set_mstoreCostSpec (aw := setHelperEntryAw len) (off := ⟨4⟩) s haw' hstk]
@@ -4464,7 +4464,7 @@ theorem stringStoreLiteX_setShortNonemptyMalformedPanic {cA gh bl σ σ₀ A I}
       (set_activeWordsMstore4_eq_self (aw := setHelperEntryAw len) (by omega))
       (by simp only [List.length_cons]; omega),
     push1 ⟨36⟩, push0,
-    raw rev 0 (by native_decide)
+    raw rev 0 (by decide +native)
       (by
         intro s haw' hstk
         rw [set_revertCostSpec (aw := setHelperEntryAw len) (off := ⟨0⟩)
@@ -4552,7 +4552,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongMalformed
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
     jumpdest, push0, dup2,
-    raw mload 0 len (setHelperEntryAw len) (by native_decide)
+    raw mload 0 len (setHelperEntryAw len) (by decide +native)
       (by
         intro s haw hstk
         rw [set_mloadCostSpec (aw := setHelperEntryAw len) (off := ⟨128⟩) s haw hstk]
@@ -4567,7 +4567,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongMalformed
     swap1, pop, swap2, swap1, pop, jump (by jump_dest)]
   have rd1384 := evm_run rd1359 with [jumpdest]
   have rd1369 := RD.pushConst rd1384 ⟨18446744073709551615⟩
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native) (by evm_ov)
   have rd1384' := evm_run rd1369 with [
     dup2, gt, iszero, push2 ⟨1384⟩, jumpiT
       (by
@@ -4579,7 +4579,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteLongMalformed
         decide)
       (by jump_dest)]
   have rd1389 := evm_run rd1384' with [jumpdest, push2 ⟨1394⟩, dup3]
-  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd1390⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1390⟩
@@ -4619,7 +4619,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteShortMalformed
     jumpdest, push2 ⟨1359⟩, dup3, push2 ⟨769⟩, jump (by jump_dest)]
   have rd1359 := evm_run rd769 with [
     jumpdest, push0, dup2,
-    raw mload 0 len (setHelperEntryAw len) (by native_decide)
+    raw mload 0 len (setHelperEntryAw len) (by decide +native)
       (by
         intro s haw hstk
         rw [set_mloadCostSpec (aw := setHelperEntryAw len) (off := ⟨128⟩) s haw hstk]
@@ -4634,7 +4634,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteShortMalformed
     swap1, pop, swap2, swap1, pop, jump (by jump_dest)]
   have rd1384 := evm_run rd1359 with [jumpdest]
   have rd1369 := RD.pushConst rd1384 ⟨18446744073709551615⟩
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide) (by evm_ov)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native) (by evm_ov)
   have rd1384' := evm_run rd1369 with [
     dup2, gt, iszero, push2 ⟨1384⟩, jumpiT
       (by
@@ -4646,7 +4646,7 @@ theorem stringStoreLiteX_setShortNonemptyWriteShortMalformed
         decide)
       (by jump_dest)]
   have rd1389 := evm_run rd1384' with [jumpdest, push2 ⟨1394⟩, dup3]
-  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd1390₀⟩ := rd1389.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd1390⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨1390⟩
@@ -4675,7 +4675,7 @@ theorem stringStoreLiteX_setEmptyReturnFromWrite {cA gh bl σ σ₀ A I}
   obtain ⟨_, _, rd261⟩ := hreach
   have rd93 := evm_run rd261 with [
     jumpdest, pop, dup1,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost
       currentLengthZeroReturnMem_mload128
       (by decide) (by evm_ov),
@@ -4737,7 +4737,7 @@ theorem stringStoreLiteX_setShortNonemptyReturnFromWrite {cA gh bl σ σ₀ A I}
     setHelperPayloadAw_eq_7_of_short_nonzero hnz hshort
   have rd93 := evm_run rd261 with [
     jumpdest, pop, dup1,
-    raw mload 0 len (setHelperPayloadAw len) (by native_decide)
+    raw mload 0 len (setHelperPayloadAw len) (by decide +native)
       (by
         intro s haw' hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw', hstk, haw]
@@ -4871,24 +4871,24 @@ theorem stringStoreLiteX_clearCurrentZeroReachCopyDecoder {cA gh bl σ σ₀ A I
   have rd330 := evm_run rd307 with [
     jumpdest, dup1, push1 ⟨31⟩, add, push1 ⟨32⟩, dup1, swap2, div, mul,
     push1 ⟨32⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     swap1, dup2, add, push1 ⟨64⟩,
-    raw mstore 0 currentLengthZeroAllocMem (UInt256.ofNat 3) (by native_decide)
+    raw mstore 0 currentLengthZeroAllocMem (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov)]
   have rd340 := evm_run rd330 with [
     dup1, swap3, swap2, swap1, dup2, dup2,
-    raw mstore 6 currentLengthZeroMem (UInt256.ofNat 5) (by native_decide)
+    raw mstore 6 currentLengthZeroMem (UInt256.ofNat 5) (by decide +native)
       mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, add, dup3]
   have rd343 := evm_run rd340 with [dup1]
-  obtain ⟨_, _, rd343₀⟩ := rd343.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd343₀⟩ := rd343.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd343'⟩ : ∃ k C, RD stringStoreLiteBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨343⟩
       [currentLengthHeaderWord σ I, ⟨0⟩, ⟨160⟩, ⟨0⟩, ⟨0⟩, ⟨128⟩,
@@ -4931,7 +4931,7 @@ theorem stringStoreLiteX_clearCurrentZeroReachDelete {cA gh bl σ σ₀ A I}
   have rd435 := evm_run rd426 with [
     jumpdest, pop, pop, pop, pop, pop, swap1, pop, dup1]
   have rd436 := evm_run rd435 with [
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 5) (by native_decide)
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 5) (by decide +native)
       mem_cost
       currentLengthZeroMem_mload128
       (by decide) (by evm_ov)]
@@ -4958,7 +4958,7 @@ theorem stringStoreLiteX_clearCurrentDeleteShortZero {cA gh bl σ σ₀ A I}
       (cA, sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k C := by
   obtain ⟨_, _, rd453⟩ := hreach
   have rd457pre := evm_run rd453 with [jumpdest, pop, dup1]
-  obtain ⟨_, _, rd457₀⟩ := rd457pre.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd457₀⟩ := rd457pre.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd457⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨457⟩
@@ -4985,7 +4985,7 @@ theorem stringStoreLiteX_clearCurrentDeleteShortZero {cA gh bl σ σ₀ A I}
         currentLengthZeroMem (UInt256.ofNat 5) ByteArray.empty (cA, σ) k C := by
     exact ⟨_, _, by simpa [hzero] using rd465₀⟩
   have rd468pre := evm_run rd465 with [jumpdest, push0, dup3]
-  obtain ⟨_, _, rd469₀⟩ := rd468pre.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd469₀⟩ := rd468pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd469⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
@@ -4996,7 +4996,7 @@ theorem stringStoreLiteX_clearCurrentDeleteShortZero {cA gh bl σ σ₀ A I}
         (cA, sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k C := by
     exact ⟨_, _, by simpa [initState] using rd469₀⟩
   have rd476 := evm_run rd469 with [dup1, push1 ⟨31⟩, lt, push2 ⟨483⟩]
-  have rd477 := rd476.jumpiNT (by native_decide) (by decide)
+  have rd477 := rd476.jumpiNT (by decide +native) (by decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd509 := evm_run rd477 with [pop, pop, push2 ⟨509⟩, jump (by jump_dest)]
   have rd449 := evm_run rd509 with [jumpdest, jump (by jump_dest)]
@@ -5121,26 +5121,26 @@ theorem stringStoreLiteX_clearCurrentShortReachDelete {cA gh bl σ σ₀ A I}
   have rd330 := evm_run rd307 with [
     jumpdest, dup1, push1 ⟨31⟩, add, push1 ⟨32⟩, dup1, swap2, div, mul,
     push1 ⟨32⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       solcFreePtrMem_mload64
       (by decide) (by evm_ov),
     swap1, dup2, add, push1 ⟨64⟩,
     raw mstore 0 (currentLengthAllocMem len) (UInt256.ofNat 3)
-      (by native_decide)
+      (by decide +native)
       mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov)]
   have rd340 := evm_run rd330 with [
     dup1, swap3, swap2, swap1, dup2, dup2,
     raw mstore 6 (currentLengthMem len) (UInt256.ofNat 5)
-      (by native_decide)
+      (by decide +native)
       mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, add, dup3]
   have rd343 := evm_run rd340 with [dup1]
-  obtain ⟨_, _, rd343₀⟩ := rd343.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd343₀⟩ := rd343.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd343'⟩ : ∃ k C, RD stringStoreLiteBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨343⟩
       [currentLengthHeaderWord σ I, ⟨0⟩, ⟨160⟩, len, ⟨0⟩, ⟨128⟩, ⟨0⟩,
@@ -5176,9 +5176,9 @@ theorem stringStoreLiteX_clearCurrentShortReachDelete {cA gh bl σ σ₀ A I}
   have rd357 := evm_run rd351 with [jumpdest, dup1, iszero, push2 ⟨426⟩]
   have rd358 := rd357.jumpiNT (by decide) hnotZero (by evm_ov)
   have rd385 := evm_run rd358 with [dup1, push1 ⟨31⟩, lt, push2 ⟨385⟩]
-  have rd366 := rd385.jumpiNT (by native_decide) hnotGt31 (by evm_ov)
+  have rd366 := rd385.jumpiNT (by decide +native) hnotGt31 (by evm_ov)
   have rd371pre := evm_run rd366 with [push2 ⟨256⟩, dup1, dup4]
-  obtain ⟨_, _, rd372₀⟩ := rd371pre.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd372₀⟩ := rd371pre.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd372⟩ : ∃ k C, RD stringStoreLiteBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨372⟩
       [currentLengthHeaderWord σ I, ⟨256⟩, ⟨256⟩, len, ⟨0⟩, ⟨160⟩, len,
@@ -5189,7 +5189,7 @@ theorem stringStoreLiteX_clearCurrentShortReachDelete {cA gh bl σ σ₀ A I}
   have rd376 := evm_run rd372 with [
     div, mul, dup4,
     raw mstore 3 (currentLengthPayloadMem len (currentLengthHeaderWord σ I))
-      (UInt256.ofNat 6) (by native_decide)
+      (UInt256.ofNat 6) (by decide +native)
       mem_cost
       (by rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide]; rfl)
       (by decide) (by evm_ov)]
@@ -5198,7 +5198,7 @@ theorem stringStoreLiteX_clearCurrentShortReachDelete {cA gh bl σ σ₀ A I}
   have rd426 := evm_run rd376 with [
     swap2, push1 ⟨32⟩, add, swap2, push2 ⟨426⟩, jump (by jump_dest),
     jumpdest, pop, pop, pop, pop, pop, swap1, pop, dup1,
-    raw mload 0 len (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 len (UInt256.ofNat 6) (by decide +native)
       mem_cost
       (currentLengthPayloadMem_mload128 len (currentLengthHeaderWord σ I))
       (by decide) (by evm_ov)]
@@ -5227,7 +5227,7 @@ theorem stringStoreLiteX_clearCurrentDeleteShortValid {cA gh bl σ σ₀ A I}
       (cA, sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k C := by
   obtain ⟨_, _, rd453⟩ := hreach
   have rd457pre := evm_run rd453 with [jumpdest, pop, dup1]
-  obtain ⟨_, _, rd457₀⟩ := rd457pre.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd457₀⟩ := rd457pre.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd457⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨457⟩
@@ -5258,7 +5258,7 @@ theorem stringStoreLiteX_clearCurrentDeleteShortValid {cA gh bl σ σ₀ A I}
         mem aw rdata (cA, σ) k C := by
     exact ⟨_, _, by simpa [← hlen] using rd465₀⟩
   have rd468pre := evm_run rd465 with [jumpdest, push0, dup3]
-  obtain ⟨_, _, rd469₀⟩ := rd468pre.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd469₀⟩ := rd468pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd469⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
@@ -5273,7 +5273,7 @@ theorem stringStoreLiteX_clearCurrentDeleteShortValid {cA gh bl σ σ₀ A I}
   have hnotGt31 : UInt256.lt ⟨31⟩ len = ⟨0⟩ :=
     currentLength_notGt31_of_lt32 hlt32
   have rd476 := evm_run rd469 with [dup1, push1 ⟨31⟩, lt, push2 ⟨483⟩]
-  have rd477 := rd476.jumpiNT (by native_decide) hnotGt31
+  have rd477 := rd476.jumpiNT (by decide +native) hnotGt31
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd509 := evm_run rd477 with [pop, pop, push2 ⟨509⟩, jump (by jump_dest)]
   have rd449 := evm_run rd509 with [jumpdest, jump (by jump_dest)]
@@ -5525,27 +5525,27 @@ theorem stringStoreLiteX_clearDataWordsLoopDone {cA gh bl σinit σ₀ A I} {g :
       (UInt256.isZero (UInt256.gt count idx) :: idx :: count :: base :: ret :: rest).length =
         rest.length + 5 := by
     simp only [List.length_cons]
-  have rd513 := rd511.jumpdest (by native_decide) hovStack
-  have rd514 := rd513.dup1 (by native_decide)
+  have rd513 := rd511.jumpdest (by decide +native) hovStack
+  have rd514 := rd513.dup1 (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd515 := rd514.dup3 (by native_decide)
+  have rd515 := rd514.dup3 (by decide +native)
     (by rw [hlenBase]; omega)
-  have rd516 := rd515.gt (by native_decide)
+  have rd516 := rd515.gt (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd517 := rd516.iszero (by native_decide)
+  have rd517 := rd516.iszero (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd520 := rd517.push2 ⟨535⟩ (by native_decide)
+  have rd520 := rd517.push2 ⟨535⟩ (by decide +native)
     (by rw [hlenCond]; omega)
-  have rd535 := rd520.jumpiT (by native_decide) hcond (by jump_dest)
+  have rd535 := rd520.jumpiT (by decide +native) hcond (by jump_dest)
     (by rw [hlenIdx]; omega)
-  have rd536 := rd535.jumpdest (by native_decide) hovStack
-  have rd537 := rd536.pop (by native_decide)
+  have rd536 := rd535.jumpdest (by decide +native) hovStack
+  have rd537 := rd536.pop (by decide +native)
     (by rw [hlenCount]; omega)
-  have rd538 := rd537.pop (by native_decide)
+  have rd538 := rd537.pop (by decide +native)
     (by rw [hlenBase]; omega)
-  have rd539 := rd538.pop (by native_decide)
+  have rd539 := rd538.pop (by decide +native)
     (by rw [hlenRet]; omega)
-  exact ⟨_, _, rd539.jump (by native_decide) hret (by omega)⟩
+  exact ⟨_, _, rd539.jump (by decide +native) hret (by omega)⟩
 
 theorem stringStoreLiteX_clearDataWordsLoopStep {cA gh bl σinit σ₀ A I} {g : Sat256}
     {τ : AccountMap} {idx count base ret : UInt256} {rest : List UInt256}
@@ -5574,38 +5574,38 @@ theorem stringStoreLiteX_clearDataWordsLoopStep {cA gh bl σinit σ₀ A I} {g :
       (UInt256.isZero (UInt256.gt count idx) :: idx :: count :: base :: ret :: rest).length =
         rest.length + 5 := by
     simp only [List.length_cons]
-  have rd513 := rd511.jumpdest (by native_decide) hovStack
-  have rd514 := rd513.dup1 (by native_decide)
+  have rd513 := rd511.jumpdest (by decide +native) hovStack
+  have rd514 := rd513.dup1 (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd515 := rd514.dup3 (by native_decide)
+  have rd515 := rd514.dup3 (by decide +native)
     (by rw [hlenBase]; omega)
-  have rd516 := rd515.gt (by native_decide)
+  have rd516 := rd515.gt (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd517 := rd516.iszero (by native_decide)
+  have rd517 := rd516.iszero (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd520 := rd517.push2 ⟨535⟩ (by native_decide)
+  have rd520 := rd517.push2 ⟨535⟩ (by decide +native)
     (by rw [hlenCond]; omega)
-  have rd522 := rd520.jumpiNT (by native_decide) hcontinue
+  have rd522 := rd520.jumpiNT (by decide +native) hcontinue
     (by rw [hlenIdx]; omega)
-  have rd523 := rd522.dup3 (by native_decide)
+  have rd523 := rd522.dup3 (by decide +native)
     (by rw [hlenRet]; omega)
-  have rd524 := rd523.dup2 (by native_decide)
+  have rd524 := rd523.dup2 (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd525 := rd524.add (by native_decide)
+  have rd525 := rd524.add (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd526 := rd525.push0 (by native_decide)
+  have rd526 := rd525.push0 (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd527 := rd526.swap1 (by native_decide)
+  have rd527 := rd526.swap1 (by decide +native)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨_, _, rd528⟩ := rd527.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd528⟩ := rd527.sstore hperm (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd530 := rd528.push1 ⟨1⟩ (by native_decide)
+  have rd530 := rd528.push1 ⟨1⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd531 := rd530.add (by native_decide)
+  have rd531 := rd530.add (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd534 := rd531.push2 ⟨513⟩ (by native_decide)
+  have rd534 := rd531.push2 ⟨513⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
-  exact ⟨_, _, rd534.jump (by native_decide) (by jump_dest)
+  exact ⟨_, _, rd534.jump (by decide +native) (by jump_dest)
     (by simp only [List.length_cons]; omega)⟩
 
 theorem stringStoreLiteX_clearDataWordsLoopGenerated {cA gh bl σinit σ₀ A I} {g : Sat256}
@@ -5679,7 +5679,7 @@ theorem stringStoreLiteX_clearCurrentDeleteLongValidToLoop {cA gh bl σ σ₀ A 
       (cA, sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k C := by
   obtain ⟨_, _, rd453⟩ := hreach
   have rd457pre := evm_run rd453 with [jumpdest, pop, dup1]
-  obtain ⟨_, _, rd457₀⟩ := rd457pre.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd457₀⟩ := rd457pre.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd457⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
         (initState cA gh bl σ σ₀ g A I) ⟨457⟩
@@ -5704,7 +5704,7 @@ theorem stringStoreLiteX_clearCurrentDeleteLongValidToLoop {cA gh bl σ σ₀ A 
         mem aw rdata (cA, σ) k C := by
     exact ⟨_, _, by simpa [← hlen] using rd465₀⟩
   have rd468pre := evm_run rd465 with [jumpdest, push0, dup3]
-  obtain ⟨_, _, rd469₀⟩ := rd468pre.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd469₀⟩ := rd468pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd469⟩ :
       ∃ k C, RD stringStoreLiteBytecode I g
@@ -5714,19 +5714,19 @@ theorem stringStoreLiteX_clearCurrentDeleteLongValidToLoop {cA gh bl σ σ₀ A 
         (cA, sstoreAccountMap I.codeOwner σ ⟨0⟩ ⟨0⟩) k C := by
     exact ⟨_, _, by simpa [initState] using rd469₀⟩
   have rd476 := evm_run rd469 with [dup1, push1 ⟨31⟩, lt, push2 ⟨483⟩]
-  have rd483 := rd476.jumpiT (by native_decide) hgt31 (by jump_dest)
+  have rd483 := rd476.jumpiT (by decide +native) hgt31 (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd493 := evm_run rd483 with [
     jumpdest, push1 ⟨31⟩, add, push1 ⟨32⟩, swap1, div, swap1, push0,
     raw mstore (Cₘ (clearCurrentBaseAw aw) - Cₘ aw)
-      (clearCurrentBaseMemFrom mem) (clearCurrentBaseAw aw) (by native_decide)
+      (clearCurrentBaseMemFrom mem) (clearCurrentBaseAw aw) (by decide +native)
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, clearCurrentBaseAw])
       (by rfl) (by rfl) (by evm_ov),
     push1 ⟨32⟩, push0]
   have rd498 := evm_run rd493 with [
     raw keccak256 (Cₘ (clearCurrentHashAw aw) - Cₘ (clearCurrentBaseAw aw))
-      clearCurrentBaseWord (clearCurrentHashAw aw) (by native_decide)
+      clearCurrentBaseWord (clearCurrentHashAw aw) (by decide +native)
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
           clearCurrentHashAw, clearCurrentBaseAw])

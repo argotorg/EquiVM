@@ -24,11 +24,11 @@ theorem gemJoinReachLiveBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : gemJoinSelWord I = ⟨0x957aa58c⟩ :=
     gemJoinSelWord_eq_of_beq I hsz 0x95 0x7a 0xa5 0x8c ⟨0x957aa58c⟩
-      (by native_decide) (by simpa [gemJoinSelBytes] using hsel)
+      (by decide +native) (by simpa [gemJoinSelBytes] using hsel)
   have hroot :
       UInt256.gt (armSelNat gemJoinBytecode gemJoinRootSplitPc) (gemJoinSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat gemJoinBytecode (nthArmPc gemJoinBytecode gemJoinHighFirstArmPc j))
         (gemJoinSelWord I) = ⟨0⟩ := by
@@ -38,9 +38,9 @@ theorem gemJoinReachLiveBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat gemJoinBytecode (nthArmPc gemJoinBytecode gemJoinHighFirstArmPc 0))
         (gemJoinSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact gemJoinReachHighBody 0 (by omega) ⟨310⟩ hcode hwv hsz hsize hroot heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem gemJoinLiveBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = gemJoinBytecode)
@@ -73,15 +73,15 @@ theorem gemJoinLiveBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (gemJoinReachLiveBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcWordSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [gemJoinLiveWord] using hbody)
 
 end Benchmarks.Dss.GemJoin

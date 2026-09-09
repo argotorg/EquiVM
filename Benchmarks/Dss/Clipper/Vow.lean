@@ -12,7 +12,7 @@ theorem clipperVowSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     clipperSelWord I = clipperSelNat 26 := by
   simpa [clipperSelWord, solcSelectorWord, clipperSelNat] using
     solcSelectorWord_eq_of_beq I hsz 0x62 0x6c 0xb3 0xc5 (clipperSelNat 26)
-      (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
+      (by decide +native) (by simpa [clipperSelBytes, selIs] using hsel)
 
 theorem clipperDispatch_vow (v : ClipperImmutables) {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 26)) :
@@ -34,57 +34,57 @@ theorem clipperDispatch_vow (v : ClipperImmutables) {I : ExecutionEnv}
       | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
       | rfl | rfl | hfalse
     · rw [selectorOf, activeSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, bufSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, calcSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, chipSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, chostSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, countSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, cuspSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, denySelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, dogSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, fileUintSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, fileAddressSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, getStatusSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, ilkSelectorBytes v, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, kickSelectorBytes v, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, kicksSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, listSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, redoSelectorBytes v, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, relySelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, salesSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, spotterSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, stoppedSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, tailSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, takeSelectorBytes v, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, tipSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, upchostSelectorBytes v, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, vatSelectorBytes v, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · cases hfalse
   · rw [selectorOf, vowSelectorBytes]
     simpa [clipperSelBytes] using hsel
@@ -160,8 +160,8 @@ theorem clipperReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
         change decode code (selArmJumpiPc (⟨32⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
-    (by rw [hword]; native_decide)
-    (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
+    (by rw [hword]; decide +native)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by decide +native))
     (by simp)
   have h272 := clipperSplitNotTaken (pc := (⟨261⟩ : UInt256))
     (next := (⟨272⟩ : UInt256)) (pivot := clipperSelNat 9)
@@ -189,8 +189,8 @@ theorem clipperReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
         change decode code (selArmJumpiPc (⟨261⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h283 := clipperSplitNotTaken (pc := (⟨272⟩ : UInt256))
     (next := (⟨283⟩ : UInt256)) (pivot := clipperSelNat 6)
@@ -213,8 +213,8 @@ theorem clipperReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
         change decode code (selArmJumpiPc (⟨272⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h294 := clipperArmNotTaken (pc := (⟨283⟩ : UInt256))
     (next := (⟨294⟩ : UInt256)) (sel := clipperSelNat 6)
@@ -237,8 +237,8 @@ theorem clipperReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
         change decode code (selArmJumpiPc (⟨283⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h305 := clipperArmNotTaken (pc := (⟨294⟩ : UInt256))
     (next := (⟨305⟩ : UInt256)) (sel := clipperSelNat 11)
@@ -261,8 +261,8 @@ theorem clipperReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
         change decode code (selArmJumpiPc (⟨294⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h829 := clipperArmTaken (pc := (⟨305⟩ : UInt256)) (sel := clipperSelNat 26)
     (tgt := (⟨829⟩ : UInt256)) h305
@@ -284,8 +284,8 @@ theorem clipperReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
         change decode code (selArmJumpiPc (⟨305⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
-    (by rw [hword]; native_decide)
-    (clipperJumpDestBeforeFirstPatch v hpatch (⟨829⟩ : UInt256) (by native_decide))
+    (by rw [hword]; decide +native)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨829⟩ : UInt256) (by decide +native))
     (by simp)
   exact ⟨_, _, h829⟩
 
@@ -295,8 +295,8 @@ theorem clipperVowGetterEntryWf (v : ClipperImmutables) {code : ByteArray}
   unfold solcGetterEntryWf
   repeat' first | apply And.intro
   all_goals
-    rw [clipperDecodeBeforeFirstPatch v hpatch _ (by native_decide)]
-    native_decide
+    rw [clipperDecodeBeforeFirstPatch v hpatch _ (by decide +native)]
+    decide +native
 
 theorem clipperVowPatchesWindowDisjoint32 (v : ClipperImmutables) (lo hi : Nat)
     (hlo : lo ∈ [3325, 3326, 3327, 3328, 3329, 3330, 3331, 3332, 3333, 3334,
@@ -319,12 +319,12 @@ theorem clipperVowSlotGetterWf (v : ClipperImmutables) {code : ByteArray}
   all_goals
     exact patchRuntime_decode_disjoint_of_decode_res hpatch
       (by
-        apply clipperVowPatchesWindowDisjoint32 v <;> native_decide)
+        apply clipperVowPatchesWindowDisjoint32 v <;> decide +native)
       (by
-        apply clipperVowPatchesWindowDisjoint32 v <;> native_decide)
-      (by native_decide)
-      (by native_decide)
-      (by native_decide)
+        apply clipperVowPatchesWindowDisjoint32 v <;> decide +native)
+      (by decide +native)
+      (by decide +native)
+      (by decide +native)
 
 theorem clipperJumpDest3325 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
@@ -335,10 +335,10 @@ theorem clipperJumpDest3325 (v : ClipperImmutables) {code : ByteArray}
   cases hIlk : wordBytes? v.ilk with
   | none =>
       simp [hIlk]
-      native_decide
+      decide +native
   | some bs =>
       simp [hIlk]
-      native_decide
+      decide +native
 
 theorem clipperVowBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
@@ -349,7 +349,7 @@ theorem clipperVowBody (v : ClipperImmutables) {code : ByteArray}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (clipperSelBytes 26) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (clipperSelBytes 26) (by decide +native) hsel
   have hbody :
       ExecTransitionBody (config v) (contract v)
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ vowTransition.body
@@ -373,7 +373,7 @@ theorem clipperVowBody (v : ClipperImmutables) {code : ByteArray}
     (slot := (⟨2⟩ : UInt256)) (returnPc := (⟨716⟩ : UInt256))
     hcode (clipperDispatch_vow v hsel) (clipperDecode_vow v hsz) hreach hAccounts
     (clipperVowGetterEntryWf v hpatch) (clipperVowSlotGetterWf v hpatch) hroutine
-    (clipperJumpDestBeforeFirstPatch v hpatch (⟨716⟩ : UInt256) (by native_decide))
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨716⟩ : UInt256) (by decide +native))
     (clipperReturnAddress716Wf v hpatch) (by rfl) hbody
 
 end Benchmarks.Dss.Clipper

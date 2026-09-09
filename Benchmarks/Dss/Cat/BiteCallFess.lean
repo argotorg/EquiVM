@@ -92,7 +92,7 @@ theorem fessSelectorMem_selector (p : UInt256) {mem : ByteArray} (hp : p.toNat �
     show p.toNat + 4 - p.toNat = 4 from by omega,
     extract_extract_BA, show 0 + 0 = 0 from rfl, show min (0 + 4) 32 = 4 from by omega,
     toByteArray_eq_toBytesBE]
-  native_decide
+  decide +native
 
 /-- The `[p, p+36)` window of the `fess` calldata buffer is `selector ++ arg`. -/
 theorem fessCalldataMem_read_window (p arg : UInt256) {mem : ByteArray}
@@ -174,12 +174,12 @@ theorem RD.catBiteFessCall {cA gh bl σ σ₀ A I} {g : Sat256}
       ∧ o.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd2299⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native)
       (by simp only [List.length_cons]; omega)
   obtain ⟨cA', σ', z, o, Ain, callGas, k', C', hΘ, rd2300, hout⟩ :=
-    RD.call (pc := ⟨2299⟩) rd2299 (by native_decide) hdepth (by omega)
+    RD.call (pc := ⟨2299⟩) rd2299 (by decide +native) hdepth (by omega)
   refine ⟨cA', σ', z, o, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · exact rd2300
@@ -195,9 +195,9 @@ theorem RD.catBiteFessNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
     (hov : R.length + 9 ≤ 1024) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons]; omega)
 
 /-- `fess` `CALL` at maximum call depth (`depth = 1024`): the `CALL` yields status `0` without
     invoking `Θ`. -/
@@ -217,7 +217,7 @@ theorem RD.catBiteFessCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
         outOff.toNat outSize.toNat))
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨k', C', rd2300⟩ :=
-    RD.callDepthLimit (pc := ⟨2299⟩) rd2299 (by native_decide) hdepth (by omega)
+    RD.callDepthLimit (pc := ⟨2299⟩) rd2299 (by decide +native) hdepth (by omega)
   exact ⟨k', C', rd2300⟩
 
 /-- `fess` success guard, `CALL` returned status `0`: the revert-data bubbling tail reverts. -/
@@ -229,9 +229,9 @@ theorem RD.catBiteFessCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     (hov : R.length + 5 ≤ 1024) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2300⟩) (okPc := ⟨2316⟩) rd2300 rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by omega)
 
 /-- `fess` success guard, `CALL` returned nonzero status: step past the guard (void call — the
@@ -246,8 +246,8 @@ theorem RD.catBiteFessCallSucceeded {cA gh bl σ σ₀ A I} {g : Sat256}
       R mem aw rdata acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨2300⟩) (okPc := ⟨2316⟩) rd2300
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by omega)
 
 end Benchmarks.Dss.Cat

@@ -50,7 +50,7 @@ theorem catBiteIlksPostCallMem_size (I : ExecutionEnv) (o : ByteArray)
     (hlo : 160 ≤ o.size) (hout : o.size < UInt256.size) :
     (catBiteIlksPostCallMem I o).size = 288 := by
   unfold catBiteIlksPostCallMem
-  rw [ilks_hlen o hlo hout, show catBiteIlksOutPtr.toNat = 128 from by native_decide,
+  rw [ilks_hlen o hlo hout, show catBiteIlksOutPtr.toNat = 128 from by decide +native,
     write_eq_gen_extend o (catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem) 128 160
       (by decide) (by omega) (by rw [ilksBase_size]; omega) (by rw [ilksBase_size]; omega),
     ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract, ilksBase_size]
@@ -60,7 +60,7 @@ theorem catBiteIlksPostCallMem_read64 (I : ExecutionEnv) (o : ByteArray)
     (hlo : 160 ≤ o.size) (hout : o.size < UInt256.size) :
     (catBiteIlksPostCallMem I o).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold catBiteIlksPostCallMem
-  rw [ilks_hlen o hlo hout, show catBiteIlksOutPtr.toNat = 128 from by native_decide,
+  rw [ilks_hlen o hlo hout, show catBiteIlksOutPtr.toNat = 128 from by decide +native,
     write_read_below_gen_extend o (catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem) 128 160 64
       (by decide) (by omega) (by rw [ilksBase_size]; omega) (by omega)]
   exact ilksBase_read64
@@ -72,7 +72,7 @@ private theorem ilks_read_window (I : ExecutionEnv) (o : ByteArray) (readAddr : 
     (catBiteIlksPostCallMem I o).readWithPadding readAddr 32 =
       o.extract (readAddr - 128) (readAddr - 128 + 32) := by
   unfold catBiteIlksPostCallMem
-  rw [ilks_hlen o hlo hout, show catBiteIlksOutPtr.toNat = 128 from by native_decide]
+  rw [ilks_hlen o hlo hout, show catBiteIlksOutPtr.toNat = 128 from by decide +native]
   exact writeReturnCopy_read32 o (catBiteIlksCalldataMem (biteIlkWord I) solcFreePtrMem)
     128 160 readAddr (by omega) (by rw [ilksBase_size]; omega) h128 (by omega)
 
@@ -129,7 +129,7 @@ theorem catBiteUrnsPostCallMem_read64 (I : ExecutionEnv) {mem : ByteArray} (o : 
     (hlo : 64 ≤ o.size) (hout : o.size < UInt256.size) :
     (catBiteUrnsPostCallMem I mem o).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold catBiteUrnsPostCallMem
-  rw [urns_hlen o hlo hout, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+  rw [urns_hlen o hlo hout, show (⟨128⟩ : UInt256).toNat = 128 from by decide +native,
     write_read_below_gen_extend o (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem) 128 64 64
       (by decide) (by omega) (by rw [biteUrnsCalldataMem_size hmem]; omega) (by omega)]
   exact biteUrnsCalldataMem_read64 hmem hread64
@@ -141,7 +141,7 @@ private theorem urns_read_word (I : ExecutionEnv) {mem : ByteArray} (o : ByteArr
       UInt256.toByteArray (UInt256.ofNat (fromByteArrayBigEndian
         (o.extract (readAddr - 128) (readAddr - 128 + 32)))) := by
   unfold catBiteUrnsPostCallMem
-  rw [urns_hlen o hlo hout, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+  rw [urns_hlen o hlo hout, show (⟨128⟩ : UInt256).toNat = 128 from by decide +native,
     writeReturnCopy_read32 o (biteUrnsCalldataMem (biteIlkWord I) (biteUrnWord I) mem)
       128 64 readAddr (by omega) (by rw [biteUrnsCalldataMem_size hmem]; omega) h128 (by omega)]
   have hw := readWithPadding_eq_toByteArray_ofNat o (readAddr - 128) (by omega)
@@ -228,7 +228,7 @@ theorem catBiteKickPostCallMem_size (urn vow tab dink : UInt256) {mem : ByteArra
     (hmem : 292 ≤ mem.size) (ho32 : 32 ≤ o.size) (hout : o.size < UInt256.size) :
     (catBiteKickPostCallMem urn vow tab dink mem o).size = mem.size := by
   unfold catBiteKickPostCallMem
-  rw [kick_hlen o ho32 hout, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+  rw [kick_hlen o ho32 hout, show (⟨128⟩ : UInt256).toNat = 128 from by decide +native,
     write32_eq o (kickCalldataMem urn vow tab dink mem) 128
       (by omega) (by rw [kickCalldataMem_size urn vow tab dink hmem]; omega),
     ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract, ByteArray.size_extract,
@@ -241,7 +241,7 @@ theorem catBiteKickPostCallMem_read64 (urn vow tab dink : UInt256) {mem : ByteAr
     (catBiteKickPostCallMem urn vow tab dink mem o).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold catBiteKickPostCallMem
-  rw [kick_hlen o ho32 hout, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+  rw [kick_hlen o ho32 hout, show (⟨128⟩ : UInt256).toNat = 128 from by decide +native,
     write_read_below_gen_extend o (kickCalldataMem urn vow tab dink mem) 128 32 64
       (by decide) (by omega) (by rw [kickCalldataMem_size urn vow tab dink hmem]; omega) (by omega)]
   exact kickCalldataMem_read64 urn vow tab dink hmem hread64
@@ -251,7 +251,7 @@ theorem catBiteKickPostCallMem_read128 (urn vow tab dink : UInt256) {mem : ByteA
     (catBiteKickPostCallMem urn vow tab dink mem o).readWithPadding 128 32 =
       UInt256.toByteArray (UInt256.ofNat (fromByteArrayBigEndian (o.extract 0 32))) := by
   unfold catBiteKickPostCallMem
-  rw [kick_hlen o ho32 hout, show (⟨128⟩ : UInt256).toNat = 128 from by native_decide,
+  rw [kick_hlen o ho32 hout, show (⟨128⟩ : UInt256).toNat = 128 from by decide +native,
     writeReturnCopy_read32 o (kickCalldataMem urn vow tab dink mem) 128 32 128
       (by omega) (by rw [kickCalldataMem_size urn vow tab dink hmem]; omega) (by omega) (by omega)]
   have hw := readWithPadding_eq_toByteArray_ofNat o 0 (by omega)

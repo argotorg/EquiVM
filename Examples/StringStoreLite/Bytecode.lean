@@ -102,31 +102,31 @@ def stringStoreLiteInitcode : ByteArray :=
 
 theorem stringStoreLiteDecode0 :
     decode stringStoreLiteInitcode ⟨0⟩ = some (.Push .PUSH2, some (⟨1611⟩, 2)) := by
-  native_decide
+  decide +native
 
 theorem stringStoreLiteDecode3 :
     decode stringStoreLiteInitcode ⟨3⟩ = some (.DUP1, .none) := by
-  native_decide
+  decide +native
 
 theorem stringStoreLiteDecode4 :
     decode stringStoreLiteInitcode ⟨4⟩ = some (.Push .PUSH1, some (⟨10⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem stringStoreLiteDecode6 :
     decode stringStoreLiteInitcode ⟨6⟩ = some (.PUSH0, .none) := by
-  native_decide
+  decide +native
 
 theorem stringStoreLiteDecode7 :
     decode stringStoreLiteInitcode ⟨7⟩ = some (.CODECOPY, .none) := by
-  native_decide
+  decide +native
 
 theorem stringStoreLiteDecode8 :
     decode stringStoreLiteInitcode ⟨8⟩ = some (.PUSH0, .none) := by
-  native_decide
+  decide +native
 
 theorem stringStoreLiteDecode9 :
     decode stringStoreLiteInitcode ⟨9⟩ = some (.RETURN, .none) := by
-  native_decide
+  decide +native
 
 /-- The `JUMPDEST` positions of `stringStoreLiteBytecode`. -/
 @[valid_jumps] theorem stringStoreLiteValidJumps :
@@ -147,7 +147,7 @@ theorem stringStoreLiteDecode9 :
       ⟨1436⟩, ⟨1446⟩, ⟨1454⟩, ⟨1468⟩, ⟨1470⟩, ⟨1507⟩, ⟨1532⟩, ⟨1536⟩,
       ⟨1549⟩
       ] := by
-  native_decide
+  decide +native
 
 /-- `keccak("set(string)")[0:4]`. -/
 axiom setSelectorBytes :

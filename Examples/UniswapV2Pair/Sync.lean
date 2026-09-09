@@ -1180,7 +1180,7 @@ theorem syncBlockTimestampValue_eq_updateTimestampWord (evm : EVM.State) :
   unfold syncBlockTimestampValue syncBlockTimestampInt uniswapUint256Value uint256Value
   unfold uniswapUpdateTimestampWord
   rw [u256_land_toNat]
-  have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by native_decide
+  have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by decide +native
   rw [hmask, nat_land_comm, nat_land_mask_eq_mod]
   have hsmall :
       (UInt256.ofNat evm.executionEnv.header.timestamp).toNat % 2 ^ 32 < UInt256.size := by
@@ -1196,7 +1196,7 @@ theorem uint32MaskedSub_toInt (a b : UInt256)
   by_cases hle : b.toNat ≤ a.toNat
   · rw [u256_land_toNat]
     rw [usub_toNat hle]
-    have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by native_decide
+    have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by decide +native
     rw [hmask, nat_land_mask_eq_mod]
     have hlt : a.toNat - b.toNat < 2 ^ 32 := by omega
     rw [Nat.mod_eq_of_lt hlt]
@@ -1216,7 +1216,7 @@ theorem uint32MaskedSub_toInt (a b : UInt256)
   · have hltba : a.toNat < b.toNat := by omega
     rw [u256_land_toNat]
     rw [usub_toNat_underflow hltba]
-    have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by native_decide
+    have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by decide +native
     rw [hmask, nat_land_mask_eq_mod]
     have hsplit :
         UInt256.size + a.toNat - b.toNat =

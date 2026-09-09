@@ -313,7 +313,7 @@ def cometRewardsBytecode : ByteArray :=
       ⟨3611⟩, ⟨3620⟩, ⟨3626⟩, ⟨3636⟩, ⟨3660⟩, ⟨3679⟩, ⟨3738⟩, ⟨3794⟩, ⟨3796⟩, ⟨3804⟩, ⟨3808⟩,
       ⟨3844⟩, ⟨3869⟩, ⟨3876⟩, ⟨3888⟩, ⟨3915⟩, ⟨3950⟩, ⟨3978⟩, ⟨3988⟩, ⟨4016⟩, ⟨4020⟩, ⟨4044⟩
       ] := by
-  native_decide
+  decide +native
 
 private def cometRewardsCreationChunk0 : ByteArray :=
   ⟨#[
@@ -619,6 +619,6 @@ def cometRewardsCreationBytecode : ByteArray :=
       ⟨3948⟩, ⟨3952⟩, ⟨3988⟩, ⟨4013⟩, ⟨4020⟩, ⟨4032⟩, ⟨4059⟩, ⟨4094⟩, ⟨4122⟩, ⟨4132⟩, ⟨4160⟩,
       ⟨4164⟩, ⟨4188⟩
       ] := by
-  native_decide
+  decide +native
 
 end Benchmarks.CompoundIII.CometRewards

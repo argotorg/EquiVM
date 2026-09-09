@@ -145,7 +145,7 @@ theorem RD.uniswapSkimSafeTransferNonemptyTrueStatusToLengthLoaded {g : Sat256}
     rd6652 houtNe houtSize
     (skimSafeTransferReturnDataMem_mload292 self toWord value out ho32 hoSize houtNe houtSize)
     (skimSafeTransferReturnDataActiveWords_mload292_same out houtSize)
-    (by native_decide)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in

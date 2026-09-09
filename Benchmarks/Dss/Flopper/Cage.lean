@@ -116,15 +116,15 @@ theorem flopperReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : flopperSelWord I = ⟨0x69245009⟩ := by
     simpa [flopperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0x69 0x24 0x50 0x09 ⟨0x69245009⟩
-        (by native_decide) (by simpa [flopperSelBytes] using hsel)
+        (by decide +native) (by simpa [flopperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flopperBytecode flopperRootSplitPc)
       (flopperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat flopperBytecode flopperLowSplitPc)
       (flopperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   obtain ⟨_, _, hfirst⟩ :=
     flopperReachLowHighFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hlow
@@ -132,15 +132,15 @@ theorem flopperReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat flopperBytecode (nthArmPc flopperBytecode flopperLowHighFirstArmPc j))
         (flopperSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat flopperBytecode (nthArmPc flopperBytecode flopperLowHighFirstArmPc 3))
         (flopperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo ⟨620⟩ 3 hfirst
     (fun j hj => flopperLowHighArmsWellFormed j (le_trans hj (by omega)))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem flopperCageX_enter {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD flopperBytecode I g
@@ -150,10 +150,10 @@ theorem flopperCageX_enter {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         [⟨334⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, h392⟩ := hreach
-  have rd393 := h392.jumpdest (by native_decide) (by evm_ov)
-  have rd396 := rd393.push2 ⟨334⟩ (by native_decide) (by evm_ov)
-  have rd399 := rd396.push2 ⟨3131⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd399.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  have rd393 := h392.jumpdest (by decide +native) (by evm_ov)
+  have rd396 := rd393.push2 ⟨334⟩ (by decide +native) (by evm_ov)
+  have rd399 := rd396.push2 ⟨3131⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd399.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem flopperCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -170,37 +170,37 @@ theorem flopperCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd1585pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1586 := rd1585pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1590pre := evm_run rd1586 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1591 := rd1590pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1594pre := evm_run rd1591 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1595 := rd1594pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k1596, C1596, rd1596raw⟩ := rd1595.sload (by native_decide) (by evm_ov)
+  obtain ⟨k1596, C1596, rd1596raw⟩ := rd1595.sload (by decide +native) (by evm_ov)
   have rd1596 : RD flopperBytecode I g s0 ⟨3148⟩
       (relyAuthWord σ I :: ⟨334⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1596 C1596 := by
     simpa [relyAuthWord, flopperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1596raw
   have rd1599pre := evm_run rd1596 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hauth, u256_eq_refl] at rd1599pre
   have rd1602 := rd1599pre.pushConst (⟨3224⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1602.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1602.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -217,39 +217,39 @@ theorem flopperCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd1585pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1586 := rd1585pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1590pre := evm_run rd1586 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1591 := rd1590pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1594pre := evm_run rd1591 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1595 := rd1594pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k1596, C1596, rd1596raw⟩ := rd1595.sload (by native_decide) (by evm_ov)
+  obtain ⟨k1596, C1596, rd1596raw⟩ := rd1595.sload (by decide +native) (by evm_ov)
   have rd1596 : RD flopperBytecode I g s0 ⟨3148⟩
       (relyAuthWord σ I :: ⟨334⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1596 C1596 := by
     simpa [relyAuthWord, flopperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1596raw
   have rd1599pre := evm_run rd1596 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq : UInt256.eq (⟨1⟩ : UInt256) (relyAuthWord σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne (by intro hbad; exact hauth hbad.symm)
   rw [heq] at rd1599pre
   have rd1602 := rd1599pre.pushConst (⟨3224⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1603 := rd1602.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1603 := rd1602.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨3155⟩)
     (len := ⟨22⟩)
@@ -261,7 +261,7 @@ theorem flopperCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     rd1603
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide)
     relyNotAuthorizedWord
     (relyAuthHashMem_size I)
@@ -275,30 +275,30 @@ theorem flopperCageX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
     RDret flopperBytecode g s0
       (cA, cagePostAccountMap I σ)
       ByteArray.empty := by
-  have rd3225 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3227 := rd3225.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3229 := rd3227.push1 ⟨8⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3230raw⟩ := rd3229.sstore hperm (by native_decide) (by evm_ov)
-  have rd3232 := rd3230raw.push1 ⟨9⟩ (by native_decide) (by evm_ov)
-  have rd3233 := rd3232.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨k3234, C3234, rd3234raw⟩ := rd3233.sload (by native_decide) (by evm_ov)
+  have rd3225 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3227 := rd3225.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3229 := rd3227.push1 ⟨8⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3230raw⟩ := rd3229.sstore hperm (by decide +native) (by evm_ov)
+  have rd3232 := rd3230raw.push1 ⟨9⟩ (by decide +native) (by evm_ov)
+  have rd3233 := rd3232.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨k3234, C3234, rd3234raw⟩ := rd3233.sload (by decide +native) (by evm_ov)
   have rd3234 : RD flopperBytecode I g s0 ⟨3234⟩
       (solcSlotWord (cageLivePostAccountMap I σ) I ⟨9⟩ :: ⟨9⟩ :: ⟨334⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
       (cA, cageLivePostAccountMap I σ) k3234 C3234 := by
     simpa [cageLivePostAccountMap, solcSlotWord] using rd3234raw
   have rd3244 := evm_run rd3234 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw not (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
-  have rd3245 := rd3244.caller (by native_decide) (by evm_ov)
-  have rd3246 := rd3245.or (by native_decide) (by evm_ov)
-  have rd3247 := rd3246.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3248raw⟩ := rd3247.sstore hperm (by native_decide) (by evm_ov)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw not (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
+  have rd3245 := rd3244.caller (by decide +native) (by evm_ov)
+  have rd3246 := rd3245.or (by decide +native) (by evm_ov)
+  have rd3247 := rd3246.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3248raw⟩ := rd3247.sstore hperm (by decide +native) (by evm_ov)
   have hsourceClean : UInt256.land (relySourceWord I) solcAddrMask = relySourceWord I := by
     exact solcAddrMask_clean
       (by simpa [relySourceWord, solcSourceWord] using solcSourceWord_canonical I)
@@ -327,12 +327,12 @@ theorem flopperCageX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
             exact u256_lor_comm _ _
       _ = cageVowStoredWord I σ := by
             rfl
-  have rd334 := rd3248raw.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd335 := rd334.jumpdest (by native_decide) (by evm_ov)
+  have rd334 := rd3248raw.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd335 := rd334.jumpdest (by decide +native) (by evm_ov)
   simpa [cagePostAccountMap, cageVowStoredWord, hword,
     show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
-    using RD.stop rd335 (by native_decide) (by evm_ov)
+    using RD.stop rd335 (by decide +native) (by evm_ov)
 
 theorem flopperX_cage_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
@@ -411,7 +411,7 @@ theorem flopperCageBodyCoreOk
       (by
         simpa [cageTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-            (dvs := []) rfl (by native_decide) (by native_decide)))
+            (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem flopperCageBodyCoreUnauthorized
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

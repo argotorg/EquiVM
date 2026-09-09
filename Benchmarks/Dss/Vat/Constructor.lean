@@ -22,11 +22,11 @@ noncomputable def vatCtorReturnMem (mem : ByteArray) : ByteArray :=
   vatCreationBytecode.write 56 mem 0 6965
 
 theorem vatCreationBytecode_size : vatCreationBytecode.size = 7021 := by
-  native_decide
+  decide +native
 
 theorem vatCreation_runtime_window :
     vatCreationBytecode.extract 56 (56 + 6965) = vatBytecode := by
-  native_decide
+  decide +native
 
 theorem vatCtorReturnMem_read (mem : ByteArray) :
     (vatCtorReturnMem mem).readWithPadding 0 6965 = vatBytecode := by
@@ -38,159 +38,159 @@ theorem vatCtorReturnMem_read (mem : ByteArray) :
 
 theorem vatCtorDecode0 :
     decode vatCreationBytecode ⟨0⟩ = some (.Push .PUSH1, some (⟨128⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode2 :
     decode vatCreationBytecode ⟨2⟩ = some (.Push .PUSH1, some (⟨64⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode4 :
     decode vatCreationBytecode ⟨4⟩ = some (.MSTORE, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode5 :
     decode vatCreationBytecode ⟨5⟩ = some (.CALLVALUE, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode6 :
     decode vatCreationBytecode ⟨6⟩ = some (.Dup .DUP1, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode7 :
     decode vatCreationBytecode ⟨7⟩ = some (.ISZERO, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode8 :
     decode vatCreationBytecode ⟨8⟩ = some (.Push .PUSH2, some (⟨16⟩, 2)) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode11 :
     decode vatCreationBytecode ⟨11⟩ = some (.JUMPI, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode12 :
     decode vatCreationBytecode ⟨12⟩ = some (.Push .PUSH1, some (⟨0⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode14 :
     decode vatCreationBytecode ⟨14⟩ = some (.Dup .DUP1, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode15 :
     decode vatCreationBytecode ⟨15⟩ = some (.REVERT, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode16 :
     decode vatCreationBytecode ⟨16⟩ = some (.JUMPDEST, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode17 :
     decode vatCreationBytecode ⟨17⟩ = some (.POP, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode18 :
     decode vatCreationBytecode ⟨18⟩ = some (.CALLER, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode19 :
     decode vatCreationBytecode ⟨19⟩ = some (.Push .PUSH1, some (⟨0⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode21 :
     decode vatCreationBytecode ⟨21⟩ = some (.Exchange .SWAP1, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode22 :
     decode vatCreationBytecode ⟨22⟩ = some (.Dup .DUP2, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode23 :
     decode vatCreationBytecode ⟨23⟩ = some (.MSTORE, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode24 :
     decode vatCreationBytecode ⟨24⟩ = some (.Push .PUSH1, some (⟨32⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode26 :
     decode vatCreationBytecode ⟨26⟩ = some (.Dup .DUP2, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode27 :
     decode vatCreationBytecode ⟨27⟩ = some (.Exchange .SWAP1, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode28 :
     decode vatCreationBytecode ⟨28⟩ = some (.MSTORE, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode29 :
     decode vatCreationBytecode ⟨29⟩ = some (.Push .PUSH1, some (⟨64⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode31 :
     decode vatCreationBytecode ⟨31⟩ = some (.Exchange .SWAP1, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode32 :
     decode vatCreationBytecode ⟨32⟩ = some (.KECCAK256, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode33 :
     decode vatCreationBytecode ⟨33⟩ = some (.Push .PUSH1, some (⟨1⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode35 :
     decode vatCreationBytecode ⟨35⟩ = some (.Exchange .SWAP1, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode36 :
     decode vatCreationBytecode ⟨36⟩ = some (.Dup .DUP2, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode37 :
     decode vatCreationBytecode ⟨37⟩ = some (.Exchange .SWAP1, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode38 :
     decode vatCreationBytecode ⟨38⟩ = some (.SSTORE, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode39 :
     decode vatCreationBytecode ⟨39⟩ = some (.Push .PUSH1, some (⟨10⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode41 :
     decode vatCreationBytecode ⟨41⟩ = some (.SSTORE, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode42 :
     decode vatCreationBytecode ⟨42⟩ = some (.Push .PUSH2, some (⟨6965⟩, 2)) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode45 :
     decode vatCreationBytecode ⟨45⟩ = some (.Dup .DUP1, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode46 :
     decode vatCreationBytecode ⟨46⟩ = some (.Push .PUSH2, some (⟨56⟩, 2)) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode49 :
     decode vatCreationBytecode ⟨49⟩ = some (.Push .PUSH1, some (⟨0⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode51 :
     decode vatCreationBytecode ⟨51⟩ = some (.CODECOPY, none) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode52 :
     decode vatCreationBytecode ⟨52⟩ = some (.Push .PUSH1, some (⟨0⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem vatCtorDecode54 :
     decode vatCreationBytecode ⟨54⟩ = some (.RETURN, none) := by
-  native_decide
+  decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem vatCtorInitcodeSuccess

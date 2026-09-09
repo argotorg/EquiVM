@@ -43,6 +43,6 @@ theorem daiJoinCtorWardsStoreReach
   have rdBeforeStore := daiJoin_ctor_run rdSlot with [push1 ⟨1⟩, swap1, dup2, swap1]
   obtain ⟨k', C', rd82⟩ := rdBeforeStore.sstore hperm (by daiJoin_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [show (⟨81⟩ : UInt256) + ⟨1⟩ = ⟨82⟩ from by native_decide] using rd82⟩
+    simpa [show (⟨81⟩ : UInt256) + ⟨1⟩ = ⟨82⟩ from by decide +native] using rd82⟩
 
 end Benchmarks.Dss.DaiJoin

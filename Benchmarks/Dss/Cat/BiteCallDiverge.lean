@@ -41,9 +41,9 @@ theorem RD.catBiteIlksNoCode
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) :=
   RD.solcExtcodesizeGuardMissing (pc := ⟨1233⟩) (okPc := ⟨1245⟩) rd hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons]; omega)
 
 /-- **ilks call failed** — the `STATICCALL` success guard at pc `1249` bubbles the revert. Mirrors
 `RD.catBiteUrnsCallFailed` at the `ilks` call-guard pcs. -/
@@ -59,9 +59,9 @@ theorem RD.catBiteIlksCallFailed
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) :=
   RD.solcCallSuccessGuardMissing (pc := ⟨1249⟩) (okPc := ⟨1265⟩) rd rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) hosz hov
 
 /-- **ilks return decode short** — from the `STATICCALL` success guard (pc `1249`, `status ≠ 0`),
 clear the guard, drop the three scratch frame words, read the free pointer, and fall through the
@@ -89,31 +89,31 @@ theorem RD.catBiteIlksReturnDecodeShortReverts
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd1267⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨1249⟩) (okPc := ⟨1265⟩) rd hstatus
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
       (by simp only [List.length_cons]; omega)
-  have rd1268 := rd1267.pop (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1269 := rd1268.pop (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1270 := rd1269.pop (by native_decide) (by omega)
-  have rd1272 := rd1270.push1 ⟨64⟩ (by native_decide) (by omega)
-  have rd1273 := RD.mload 0 ⟨128⟩ aw rd1272 (by native_decide) hMload64Cost hMload64Value
+  have rd1268 := rd1267.pop (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1269 := rd1268.pop (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1270 := rd1269.pop (by decide +native) (by omega)
+  have rd1272 := rd1270.push1 ⟨64⟩ (by decide +native) (by omega)
+  have rd1273 := RD.mload 0 ⟨128⟩ aw rd1272 (by decide +native) hMload64Cost hMload64Value
     hMload64Aw (by omega)
-  have rd1274 := rd1273.returndatasize (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1276 := rd1274.push1 ⟨160⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1277 := rd1276.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1278 := rd1277.lt (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1279 := rd1278.iszero (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1282 := rd1279.push2 ⟨1287⟩ (by native_decide) (by simp only [List.length_cons]; omega)
+  have rd1274 := rd1273.returndatasize (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1276 := rd1274.push1 ⟨160⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1277 := rd1276.dup2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1278 := rd1277.lt (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1279 := rd1278.iszero (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1282 := rd1279.push2 ⟨1287⟩ (by decide +native) (by simp only [List.length_cons]; omega)
   have hlt : UInt256.lt (UInt256.ofNat o.size) ⟨160⟩ = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
     rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide, ulit_toNat' o.size hhi]
     exact hshort
   have hcond : UInt256.isZero (UInt256.lt (UInt256.ofNat o.size) ⟨160⟩) = ⟨0⟩ := by
     rw [hlt]; decide
-  have rdFallthrough := RD.jumpiNT rd1282 (by native_decide) hcond
+  have rdFallthrough := RD.jumpiNT rd1282 (by decide +native) hcond
     (by simp only [List.length_cons]; omega)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 /-! ## `urns` STATICCALL divergences (pc 1383 guard / 1399 call-guard / 1420 decode-guard) -/
@@ -602,27 +602,27 @@ theorem RD.catBiteKickReturnDecodeShortReverts
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd2550⟩ := RD.catBiteKickCallSucceeded rd hstatus (by evm_ov)
-  have rd2551 := rd2550.pop (by native_decide) (by evm_ov)
-  have rd2552 := rd2551.pop (by native_decide) (by evm_ov)
-  have rd2553 := rd2552.pop (by native_decide) (by evm_ov)
-  have rd2555 := rd2553.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd2556 := RD.mload 0 fp aw rd2555 (by native_decide) hMloadFreeCost hMloadFreeValue
+  have rd2551 := rd2550.pop (by decide +native) (by evm_ov)
+  have rd2552 := rd2551.pop (by decide +native) (by evm_ov)
+  have rd2553 := rd2552.pop (by decide +native) (by evm_ov)
+  have rd2555 := rd2553.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd2556 := RD.mload 0 fp aw rd2555 (by decide +native) hMloadFreeCost hMloadFreeValue
     hMloadFreeAw (by evm_ov)
-  have rd2557 := rd2556.returndatasize (by native_decide) (by evm_ov)
-  have rd2559 := rd2557.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd2560 := rd2559.dup2 (by native_decide) (by evm_ov)
-  have rd2561 := rd2560.lt (by native_decide) (by evm_ov)
+  have rd2557 := rd2556.returndatasize (by decide +native) (by evm_ov)
+  have rd2559 := rd2557.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd2560 := rd2559.dup2 (by decide +native) (by evm_ov)
+  have rd2561 := rd2560.lt (by decide +native) (by evm_ov)
   have hlt : UInt256.lt (UInt256.ofNat o.size) ⟨32⟩ = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
     rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide, ulit_toNat' o.size hhi]
     exact hshort
-  have rd2562 := rd2561.iszero (by native_decide) (by evm_ov)
-  have rd2565 := rd2562.push2 ⟨2570⟩ (by native_decide) (by evm_ov)
+  have rd2562 := rd2561.iszero (by decide +native) (by evm_ov)
+  have rd2565 := rd2562.push2 ⟨2570⟩ (by decide +native) (by evm_ov)
   have hcond : UInt256.isZero (UInt256.lt (UInt256.ofNat o.size) ⟨32⟩) = ⟨0⟩ := by
     rw [hlt]; decide
-  have rdFallthrough := RD.jumpiNT rd2565 (by native_decide) hcond (by evm_ov)
+  have rdFallthrough := RD.jumpiNT rd2565 (by decide +native) hcond (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
-    (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by decide +native) (by evm_ov)
 
 /-- **kick return-decode-short leaf.** EVM cursor at the `kick` success-guard `@2532` with a
 successful-call status (`status ≠ 0`) but a short return (`o.size < 32`), so the solc return decoder

@@ -38,7 +38,7 @@ theorem potCtorVatSloadReach
     rfl
   rw [hload] at rd79
   have hpc79 : (⟨75⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ = ⟨79⟩ := by
-    native_decide
+    decide +native
   rw [hpc79] at rd79
   exact ⟨_, _, rd79⟩
 
@@ -65,7 +65,7 @@ theorem potCtorVatMaskLowReach
       (⟨79⟩ : UInt256) + UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨90⟩ := by
-    native_decide
+    decide +native
   rw [hpc90] at rd90
   exact ⟨_, _, by
     simpa [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -95,7 +95,7 @@ theorem potCtorVatMaskHighReach
       (⟨90⟩ : UInt256) + UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨102⟩ := by
-    native_decide
+    decide +native
   rw [hpc102] at rd102
   exact ⟨_, _, by
     simpa [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -122,7 +122,7 @@ theorem potCtorVatMaskJoinReach
     swap3, swap1, swap3, or, swap1, swap2]
   have hpc108 :
       (⟨102⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨108⟩ := by
-    native_decide
+    decide +native
   rw [hpc108] at rd108
   exact ⟨_, _, by
     simpa [potCtorVatStored, setAddressOffset0Word] using rd108⟩
@@ -166,6 +166,6 @@ theorem potCtorVatStoreReach
   obtain ⟨_, _, rd108⟩ := potCtorVatBeforeStoreReach vat rd75
   obtain ⟨k', C', rd109⟩ := rd108.sstore hperm (by pot_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [show (⟨108⟩ : UInt256) + ⟨1⟩ = ⟨109⟩ from by native_decide] using rd109⟩
+    simpa [show (⟨108⟩ : UInt256) + ⟨1⟩ = ⟨109⟩ from by decide +native] using rd109⟩
 
 end Benchmarks.Dss.Pot

@@ -312,9 +312,9 @@ theorem RD.catFileIlkFlipHopeNoCodeGen {cA gh bl σ σ₀ A I} {g : Sat256} {fli
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ' (fifVat2M σ' I) = ⟨0⟩) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3679⟩) (okPc := ⟨3691⟩) rd hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.catFileIlkFlipHopePostCallGen {cA gh bl σ σ₀ A I} {g : Sat256} {flip ret sel : UInt256}
     {mem rdata : ByteArray} {cA' : Batteries.RBSet AccountAddress compare} {σ' : AccountMap} {k C : ℕ}
@@ -342,17 +342,17 @@ theorem RD.catFileIlkFlipHopePostCallGen {cA gh bl σ σ₀ A I} {g : Sat256} {f
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd3694⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3679⟩) (okPc := ⟨3691⟩) rd hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   obtain ⟨cA'', σ'', z, out, A_in, callGas, k', C', hΘpack, rd3695raw, houtsz⟩ :=
-    RD.call rd3694 (by native_decide) hdepth (by evm_ov)
+    RD.call rd3694 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A'', hΘ⟩ := hΘpack
   refine ⟨cA'', σ'', z, out, A'', k', C', ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           (⟨128⟩ : UInt256).toNat (⟨36⟩ : UInt256).toNat) (⟨128⟩ : UInt256).toNat
-          (⟨0⟩ : UInt256).toNat) = UInt256.ofNat 6 := by native_decide
+          (⟨0⟩ : UInt256).toNat) = UInt256.ofNat 6 := by decide +native
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := rfl
     have rd3695 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3695⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨164⟩ :: ⟨2746363844⟩ :: fifVat2M σ' I :: flip ::
@@ -389,11 +389,11 @@ theorem RD.catFileIlkFlipNopeDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256} {fl
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨gasWord, k1, C1, rd3561⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3546⟩) (okPc := ⟨3558⟩) rd hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
-  obtain ⟨k', C', rd3562⟩ := RD.callDepthLimit rd3561 (by native_decide) hdepth (by evm_ov)
-  exact RD.catFileIlkFlipNopeCallFailure (by simpa using rd3562) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
+  obtain ⟨k', C', rd3562⟩ := RD.callDepthLimit rd3561 (by decide +native) hdepth (by evm_ov)
+  exact RD.catFileIlkFlipNopeCallFailure (by simpa using rd3562) (by decide +native)
 
 /-! ### Solm body — auth-fail revert -/
 
@@ -903,7 +903,7 @@ theorem catFileIlkFlipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0xeb, 0xec, 0xb3, 0x9d]⟩ (by native_decide) hsel
+    calldata_size_ge_of_selIs I ⟨#[0xeb, 0xec, 0xb3, 0x9d]⟩ (by decide +native) hsel
   have hreach := catReachFileIlkFlipBody (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel
   by_cases hshort : I.calldata.size < 100
@@ -916,10 +916,10 @@ theorem catFileIlkFlipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     have hrev := RD.solcExternalStaticArgsShortReverts
       (code := catBytecode) (sel := catSelWord I) (entry := ⟨733⟩) (ret := ⟨302⟩)
       (decoded := ⟨755⟩) (need := ⟨96⟩) hreach
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) hlt
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) hlt
     exact hrev.reEquivDecodingFailed hcode (catDispatch_fileIlkFlip hsel)
       (catDecode_fileIlkFlip_none_short hsz4 hshort)
   have hsz100 : 100 ≤ I.calldata.size := by omega
@@ -1174,7 +1174,7 @@ theorem catFileIlkFlipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   (fifVatCodePosGen hHopeTarget hcodeStoreSolmNe) hcallHopeSolm (fifHopeDecode out2)
                 have henc : returnEquiv ByteArray.empty none fileIlkFlipTransition.returnType := by
                   rw [show fileIlkFlipTransition.returnType = [] by rfl]
-                  exact returnEquiv.fallthrough rfl rfl (by native_decide)
+                  exact returnEquiv.fallthrough rfl rfl (by decide +native)
                 exact (RD.catFileIlkFlipHopeCallSuccess (by simpa using rd3695)).reEquivExecutionGenAccountMapEquiv
                   hcode hdispatch hdecode hbody rfl hAccountsHope henc
         · -- depth = 1024: nope CALL returns 0 → both sides revert
@@ -1200,7 +1200,7 @@ theorem catFileIlkFlipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (fifVatCodePos hcodeSolmNe) hcallNopeFalse)
     · -- what != "flip": unrecognized-param revert at ⟨953⟩
       have hmatchNe : fileIlkFlipWhatWord I ≠ ABI.bytesToWord fileIlkFlipBytes :=
-        fileIlkFlipWhatWord_ne_of_bytes_ne (by omega) hflip (by native_decide)
+        fileIlkFlipWhatWord_ne_of_bytes_ne (by omega) hflip (by decide +native)
       obtain ⟨_, _, rd953⟩ := RD.catFileIlkFlipWhatSkip rd3455 hmatchNe (by simp)
       have hmemAuth : (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
         twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size

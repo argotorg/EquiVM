@@ -157,28 +157,28 @@ theorem flipperDentX_lotGuardPrefix {cA σ I} {g : Sat256} {s0 : State}
       (twoWordHashMem (dentId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd4526 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (wordAt0Mem (dentId I) mem) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (twoWordHashMem (dentId I) ⟨1⟩ mem) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
     raw keccak256 0 (bidBaseOfWord (dentId I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by simpa [bidBaseOfWord] using
         twoWordHashMem_solcMappingSlot ⟨1⟩ (dentId I) hmemSize)
       (by decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  obtain ⟨k4526, C4526, rd4526raw⟩ := rd4526.sload (by native_decide) (by evm_ov)
+    raw add (by decide +native) (by evm_ov)]
+  obtain ⟨k4526, C4526, rd4526raw⟩ := rd4526.sload (by decide +native) (by evm_ov)
   have rd4527 : RD flipperBytecode I g s0 ⟨4527⟩
       (bidLotWord (dentId I) σ I :: dentBid I :: dentLot I :: dentId I :: ret :: sel :: [])
       (twoWordHashMem (dentId I) ⟨1⟩ mem)
@@ -189,8 +189,8 @@ theorem flipperDentX_lotGuardPrefix {cA σ I} {g : Sat256} {s0 : State}
         (u256_add_comm (⟨1⟩ : UInt256) (bidBaseOfWord (dentId I)))
     simpa [bidLotWord, flipperSlotWord, hslotAdd] using rd4526raw
   exact ⟨_, _, evm_run rd4527 with [
-    raw dup3 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov)]⟩
+    raw dup3 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov)]⟩
 
 theorem flipperDentX_lotLowerOk {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
@@ -207,8 +207,8 @@ theorem flipperDentX_lotLowerOk {cA σ I} {g : Sat256} {s0 : State}
     ult_one hlt
   rw [hltWord] at rd4529
   exact ⟨_, _, evm_run rd4529 with [
-    raw push2 ⟨4601⟩ (by native_decide) (by evm_ov),
-    raw jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)]⟩
+    raw push2 ⟨4601⟩ (by decide +native) (by evm_ov),
+    raw jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)]⟩
 
 theorem flipperDentX_lotNotLower {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
@@ -232,8 +232,8 @@ theorem flipperDentX_lotNotLower {cA σ I} {g : Sat256} {s0 : State}
     exact hle
   rw [hltWord] at rd4529
   have rd4533 := evm_run rd4529 with [
-    raw push2 ⟨4601⟩ (by native_decide) (by evm_ov),
-    raw jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+    raw push2 ⟨4601⟩ (by decide +native) (by evm_ov),
+    raw jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
       (by evm_ov)]
   obtain ⟨_, _, rd4533'⟩ : ∃ k' C', RD flipperBytecode I g s0 ⟨4533⟩
       [dentBid I, dentLot I, dentId I, ret, sel] memLot
@@ -246,7 +246,7 @@ theorem flipperDentX_lotNotLower {cA σ I} {g : Sat256} {s0 : State}
     rd4533'
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) (by rfl) hmemLotSize hmemLotRead64 (by simp)
 
 end Benchmarks.Dss.Flipper

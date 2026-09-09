@@ -12,7 +12,7 @@ namespace UniswapV2Pair
 
 theorem permitTypehashWord_toBytesBE :
     EVM.Word.toBytesBE permitTypehashWord = permitTypehashBytes := by
-  native_decide
+  decide +native
 
 /-- The Solm `PERMIT_TYPEHASH()` body returns the bytes32 literal from Uniswap V2 ERC20. -/
 theorem uniswapPermitTypehashBodyReturns (evm : EVM.State) (locals : Store)
@@ -35,7 +35,7 @@ theorem uniswapX_permitTypehash {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     uniswap_word_getter_entry_wf
     (by
       unfold permitTypehashWord Reasoning.Reach.uniswapConstGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by jump_dest)
 
 theorem uniswapDecode_permitTypehash {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
@@ -94,7 +94,7 @@ theorem uniswapPermitTypehashBodyCore
       (width := 32) (op := .PUSH32) hreach uniswap_word_getter_entry_wf
       (by
         unfold permitTypehashWord Reasoning.Reach.uniswapConstGetterWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by jump_dest) (by jump_dest)).reEquivExecutionTransport
     hcode hdispatch hdecode hbody rfl hAccounts henc
 

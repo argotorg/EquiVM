@@ -48,11 +48,11 @@ macro "dog_ctor_decode" : tactic =>
   `(tactic|
     (first
       | rw [Reasoning.Theory.decode_append_left_window
-          dogCreationBytecode _ _ (by native_decide) (by native_decide)]
+          dogCreationBytecode _ _ (by decide +native) (by decide +native)]
       | (unfold dogCtorCode
          rw [Reasoning.Theory.decode_append_left_window
-          dogCreationBytecode _ _ (by native_decide) (by native_decide)]);
-     native_decide))
+          dogCreationBytecode _ _ (by decide +native) (by decide +native)]);
+     decide +native))
 
 macro "dog_ctor_jd" : tactic =>
   `(tactic|
@@ -79,10 +79,10 @@ macro "dog_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do
   return acc
 
 theorem dogCreationBytecode_size : dogCreationBytecode.size = 4927 := by
-  native_decide
+  decide +native
 
 theorem dogBytecode_size : dogBytecode.size = 4745 := by
-  native_decide
+  decide +native
 
 theorem dogCtorArgsTail_size (vat : AccountAddress) : (dogCtorArgsTail vat).size = 32 := by
   simpa [dogCtorArgsTail] using word_toBytesBE_toByteArray_size (EVM.word vat.val)
@@ -94,11 +94,11 @@ theorem dogCtorCode_size (vat : AccountAddress) : (dogCtorCode vat).size = 4959 
 theorem dogCtorArgLen_eq (vat : AccountAddress) :
     (UInt256.ofNat (dogCtorCode vat).size).sub ⟨4927⟩ = (⟨32⟩ : UInt256) := by
   rw [dogCtorCode_size]
-  native_decide
+  decide +native
 
 theorem dogCreationBytecode_runtime_window :
     dogCreationBytecode.extract 182 (182 + 4745) = dogBytecode := by
-  native_decide
+  decide +native
 
 theorem dogCtorCode_runtime_window (vat : AccountAddress) :
     (dogCtorCode vat).extract 182 (182 + 4745) = dogBytecode := by
@@ -223,7 +223,7 @@ theorem dogCtorArg_codecopy_mem (vat : AccountAddress) :
     rw [extract_append_right' dogCreationBytecode (dogCtorArgsTail vat) 4927 (4927 + 32)]
     · exact dogCreationBytecode_size.symm
     · rw [dogCtorArgsTail_size]
-      native_decide
+      decide +native
   · norm_num
   · rw [dogCtorCode_size]
   · rw [dogCtorFreePtrMem_size]
@@ -347,7 +347,7 @@ theorem dogVatPackedHighMask (vat : AccountAddress) :
         (UInt256.lnot (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨96⟩) ⟨1⟩)) =
       UInt256.shiftLeft (EVM.word vat.val) ⟨96⟩ := by
   rw [show UInt256.lnot (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨96⟩) ⟨1⟩) =
-      UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ 96) by native_decide]
+      UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ 96) by decide +native]
   apply u256_land_high_mask_eq_self (hk := by norm_num)
   have hlt160 : (EVM.word vat.val).toNat < 2 ^ (160 : Nat) := by
     have hvat : (EVM.word vat.val).toNat = vat.val := by
@@ -705,7 +705,7 @@ theorem dogCtorPatchedRuntime_size (vat : AccountAddress) :
     (dogCtorPatchedRuntime vat).size = 4745 := by
   unfold dogCtorPatchedRuntime
   exact writeCascade_size_of_base dogBytecode (dogRuntimeWrites vat) (base := 4745) (out := 4745)
-    (by native_decide) (by simp [dogRuntimeWrites, WriteGapsOk])
+    (by decide +native) (by simp [dogRuntimeWrites, WriteGapsOk])
     (by simp [dogRuntimeWrites, writeCascadeSize])
 
 theorem dogCtorPatchedRuntime_read (vat : AccountAddress) :

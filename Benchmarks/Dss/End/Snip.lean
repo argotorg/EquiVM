@@ -26,7 +26,7 @@ abbrev endSnipStore (I : ExecutionEnv) : Store :=
 
 theorem endSnipStore_get_ilk (I : ExecutionEnv) :
     (endSnipStore I).get? "ilk" = some (.fixedBytes bytes32Width (endSnipIlkBytes I)) := by
-  rw [endSnipStore, store_get_ne _ _ (by native_decide), store_get_self]
+  rw [endSnipStore, store_get_ne _ _ (by decide +native), store_get_self]
 
 abbrev endSnipIlkKey (I : ExecutionEnv) : KeyValue := endBytes32ArgKey I
 
@@ -448,7 +448,7 @@ theorem endSnipDogIlksPostCallMem_size_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 128 ≤ out.size) :
     (endSnipDogIlksPostCallMem I out).size = 256 := by
   unfold endSnipDogIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
     Nat.min_eq_left hlo]
   rw [write_eq_gen_extend out (endSnipDogIlksCalldataMem I) 128 128
     (by omega) (by omega)
@@ -462,7 +462,7 @@ theorem endSnipDogIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray) :
     (endSnipDogIlksPostCallMem I out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endSnipDogIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native]
   by_cases hlen0 : min 128 out.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     exact endSnipDogIlksCalldataMem_read64 I
@@ -472,7 +472,7 @@ theorem endSnipDogIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray) :
       (by
         rw [endSnipDogIlksCalldataMem_size I]
         omega)
-      (by native_decide)]
+      (by decide +native)]
     exact endSnipDogIlksCalldataMem_read64 I
 
 theorem endSnipDogIlksPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray) :
@@ -485,7 +485,7 @@ theorem endSnipDogIlksPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray) :
   mloadFreePtrValue
     (by
       unfold endSnipDogIlksPostCallMem
-      rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide]
+      rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native]
       by_cases hlen0 : min 128 out.size = 0
       · rw [hlen0, byteArray_write_len_zero, endSnipDogIlksCalldataMem_size I]
         decide
@@ -511,7 +511,7 @@ theorem endSnipDogIlksPostCallMem_read128_long (I : ExecutionEnv) (out : ByteArr
     (hlo : 128 ≤ out.size) :
     (endSnipDogIlksPostCallMem I out).readWithPadding 128 32 = out.extract 0 32 := by
   unfold endSnipDogIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
     Nat.min_eq_left hlo]
   rw [write_eq_gen_extend out (endSnipDogIlksCalldataMem I) 128 128
     (by omega) (by omega)
@@ -548,7 +548,7 @@ theorem endSnipDogIlksPostCallMem_mload128_long (I : ExecutionEnv) (out : ByteAr
         endSnipDogIlkClipWord out
     rw [endSnipDogIlksPostCallMem_read128_long I out hlo]
   · rw [endSnipDogIlksPostCallMem_size_long I out hlo]
-    native_decide
+    decide +native
 
 theorem endSnipDogIlksDecode_ok {out : ByteArray} (hlo : 128 ≤ out.size) :
     config.externalABI.decode? "dogIlks" out =
@@ -720,19 +720,19 @@ theorem endSnipVatIlksSelectorMem_size_long (I : ExecutionEnv) (dogOut : ByteArr
     endFlowVatIlksSelectorShifted 128 256 256
     (endSnipVatIlksBaseMem_size_long I dogOut hloDog)
     (by rw [endSnipVatIlksBaseMem_size_long I dogOut hloDog]; omega)
-    (by native_decide)
+    (by decide +native)
 
 theorem endSnipVatIlksCalldataMem_size_long (I : ExecutionEnv) (dogOut : ByteArray)
     (hloDog : 128 ≤ dogOut.size) :
     (endSnipVatIlksCalldataMem I dogOut).size = 256 := by
   unfold endSnipVatIlksCalldataMem endFlowVatIlksCalldataMem endFlowVatIlksArg0Mem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   exact toByteArray_write32_size_of_le
     (endFlowVatIlksSelectorMem (endSnipDogIlksPostCallMem I dogOut))
     (endFlowIlkWord I) 132 256 256
     (endSnipVatIlksSelectorMem_size_long I dogOut hloDog)
     (by rw [endSnipVatIlksSelectorMem_size_long I dogOut hloDog]; omega)
-    (by native_decide)
+    (by decide +native)
 
 theorem endSnipVatIlksSelectorMem_read64_long (I : ExecutionEnv) (dogOut : ByteArray)
     (hloDog : 128 ≤ dogOut.size) :
@@ -746,7 +746,7 @@ theorem endSnipVatIlksSelectorMem_read64_long (I : ExecutionEnv) (dogOut : ByteA
     (endSnipDogIlksPostCallMem I dogOut) 128 64
     (by rw [endSnipVatIlksBaseMem_size_long I dogOut hloDog]; omega)
     (by omega)
-    (by rw [endSnipVatIlksBaseMem_size_long I dogOut hloDog]; native_decide)]
+    (by rw [endSnipVatIlksBaseMem_size_long I dogOut hloDog]; decide +native)]
   exact endSnipDogIlksPostCallMem_read64 I dogOut
 
 theorem endSnipVatIlksCalldataMem_read64_long (I : ExecutionEnv) (dogOut : ByteArray)
@@ -754,7 +754,7 @@ theorem endSnipVatIlksCalldataMem_read64_long (I : ExecutionEnv) (dogOut : ByteA
     (endSnipVatIlksCalldataMem I dogOut).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endSnipVatIlksCalldataMem endFlowVatIlksCalldataMem endFlowVatIlksArg0Mem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   rw [write32_read_below _ _ 132 64 (by rw [toByteArray_size])
     (by rw [endSnipVatIlksSelectorMem_size_long I dogOut hloDog]; omega) (by omega)]
   exact endSnipVatIlksSelectorMem_read64_long I dogOut hloDog
@@ -772,9 +772,9 @@ theorem endSnipVatIlksSelectorMem_extract128_132_long (I : ExecutionEnv)
       ilksSelector
     rw [toByteArray_write_read_window_of_gap endFlowVatIlksSelectorShifted
       (endSnipDogIlksPostCallMem I dogOut) 128 0 4
-      (by omega) (by omega) (by native_decide)
-      (by rw [endSnipVatIlksBaseMem_size_long I dogOut hloDog]; native_decide)]
-    native_decide
+      (by omega) (by omega) (by decide +native)
+      (by rw [endSnipVatIlksBaseMem_size_long I dogOut hloDog]; decide +native)]
+    decide +native
   rw [← hread]
   rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
     (by rw [endSnipVatIlksSelectorMem_size_long I dogOut hloDog]; omega)]
@@ -784,13 +784,13 @@ theorem endSnipVatIlksCalldataMem_read128_36_long (I : ExecutionEnv)
     (endSnipVatIlksCalldataMem I dogOut).readWithPadding 128 36 =
       ilksSelector ++ (endSnipIlkWord I).toByteArray := by
   unfold endSnipVatIlksCalldataMem endFlowVatIlksCalldataMem endFlowVatIlksArg0Mem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   let selMem := endFlowVatIlksSelectorMem (endSnipDogIlksPostCallMem I dogOut)
   have hselSize : selMem.size = 256 := by
     simpa [selMem] using endSnipVatIlksSelectorMem_size_long I dogOut hloDog
   have hfinalSize : ((endFlowIlkWord I).toByteArray.write 0 selMem 132 32).size = 256 := by
     exact toByteArray_write32_size_of_le selMem (endFlowIlkWord I) 132 256 256
-      hselSize (by rw [hselSize]; omega) (by native_decide)
+      hselSize (by rw [hselSize]; omega) (by decide +native)
   rw [readWithPadding_eq_extract' _ 128 36 (by norm_num) (by norm_num)
     (by rw [hfinalSize]; omega)]
   rw [write32_eq _ _ 132 (by rw [toByteArray_size]) (by rw [hselSize]; omega)]
@@ -860,8 +860,8 @@ theorem endSnipVatIlksPostCallMem_size_long (I : ExecutionEnv) (dogOut vatOut : 
     (hloDog : 128 ≤ dogOut.size) (hloVat : 160 ≤ vatOut.size) :
     (endSnipVatIlksPostCallMem I dogOut vatOut).size = 288 := by
   unfold endSnipVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   rw [Nat.min_eq_left hloVat]
   rw [write_eq_gen_extend vatOut (endSnipVatIlksCalldataMem I dogOut) 128 160
     (by omega) (by omega)
@@ -876,23 +876,23 @@ theorem endSnipVatIlksPostCallMem_read64 (I : ExecutionEnv) (dogOut vatOut : Byt
     (endSnipVatIlksPostCallMem I dogOut vatOut).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endSnipVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   by_cases hlen0 : min 160 vatOut.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     exact endSnipVatIlksCalldataMem_read64_long I dogOut hloDog
   · rw [write_read_below_gen_extend vatOut (endSnipVatIlksCalldataMem I dogOut)
       128 (min 160 vatOut.size) 64 hlen0 (Nat.min_le_right _ _)
       (by rw [endSnipVatIlksCalldataMem_size_long I dogOut hloDog]; omega)
-      (by native_decide)]
+      (by decide +native)]
     exact endSnipVatIlksCalldataMem_read64_long I dogOut hloDog
 
 theorem endSnipVatIlksPostCallMem_size_gt64 (I : ExecutionEnv) (dogOut vatOut : ByteArray)
     (hloDog : 128 ≤ dogOut.size) :
     64 < (endSnipVatIlksPostCallMem I dogOut vatOut).size := by
   unfold endSnipVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   by_cases hlen0 : min 160 vatOut.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     rw [endSnipVatIlksCalldataMem_size_long I dogOut hloDog]
@@ -934,8 +934,8 @@ theorem endSnipVatIlksPostCallMem_read160_long (I : ExecutionEnv)
     (endSnipVatIlksPostCallMem I dogOut vatOut).readWithPadding 160 32 =
       vatOut.extract 32 64 := by
   unfold endSnipVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   rw [Nat.min_eq_left hloVat]
   rw [write_eq_gen_extend vatOut (endSnipVatIlksCalldataMem I dogOut) 128 160
     (by omega) (by omega)
@@ -983,7 +983,7 @@ theorem endSnipVatIlksPostCallMem_mload160_long (I : ExecutionEnv)
   · exact not_or.mpr
       ⟨by rw [endSnipVatIlksPostCallMem_size_long I dogOut vatOut hloDog hloVat];
           decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem endSnipSalesClipAddr_eq_ofUInt256 (dogOut : ByteArray) :
     endSnipDogIlkClipAddr dogOut =
@@ -1005,19 +1005,19 @@ theorem endSnipSalesSelectorMem_size_long (I : ExecutionEnv)
     endSnipSalesSelectorShifted 128 288 288
     (endSnipVatIlksPostCallMem_size_long I dogOut vatOut hloDog hloVat)
     (by rw [endSnipVatIlksPostCallMem_size_long I dogOut vatOut hloDog hloVat]; omega)
-    (by native_decide)
+    (by decide +native)
 
 theorem endSnipSalesCalldataMem_size_long (I : ExecutionEnv)
     (dogOut vatOut : ByteArray) (hloDog : 128 ≤ dogOut.size)
     (hloVat : 160 ≤ vatOut.size) :
     (endSnipSalesCalldataMem I dogOut vatOut).size = 288 := by
   unfold endSnipSalesCalldataMem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   exact toByteArray_write32_size_of_le (endSnipSalesSelectorMem I dogOut vatOut)
     (endSnipIdWord I) 132 288 288
     (endSnipSalesSelectorMem_size_long I dogOut vatOut hloDog hloVat)
     (by rw [endSnipSalesSelectorMem_size_long I dogOut vatOut hloDog hloVat]; omega)
-    (by native_decide)
+    (by decide +native)
 
 theorem endSnipSalesSelectorMem_read64_long (I : ExecutionEnv)
     (dogOut vatOut : ByteArray) (hloDog : 128 ≤ dogOut.size)
@@ -1041,7 +1041,7 @@ theorem endSnipSalesCalldataMem_read64_long (I : ExecutionEnv)
     (endSnipSalesCalldataMem I dogOut vatOut).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endSnipSalesCalldataMem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   rw [write32_read_below _ _ 132 64 (by rw [toByteArray_size])
     (by rw [endSnipSalesSelectorMem_size_long I dogOut vatOut hloDog hloVat]; omega)
     (by omega)]
@@ -1061,7 +1061,7 @@ theorem endSnipSalesSelectorMem_extract128_132_long (I : ExecutionEnv)
     rw [write32_read_prefix_len _ _ 128 4 (by rw [toByteArray_size])
       (by rw [endSnipVatIlksPostCallMem_size_long I dogOut vatOut hloDog hloVat]; omega)
       (by omega) (by omega) (by omega)]
-    native_decide
+    decide +native
   rw [← hread]
   rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
     (by rw [endSnipSalesSelectorMem_size_long I dogOut vatOut hloDog hloVat]; omega)]
@@ -1072,13 +1072,13 @@ theorem endSnipSalesCalldataMem_read128_36_long (I : ExecutionEnv)
     (endSnipSalesCalldataMem I dogOut vatOut).readWithPadding 128 36 =
       salesSelector ++ (endSnipIdWord I).toByteArray := by
   unfold endSnipSalesCalldataMem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   let selMem := endSnipSalesSelectorMem I dogOut vatOut
   have hselSize : selMem.size = 288 := by
     simpa [selMem] using endSnipSalesSelectorMem_size_long I dogOut vatOut hloDog hloVat
   have hfinalSize : ((endSnipIdWord I).toByteArray.write 0 selMem 132 32).size = 288 := by
     exact toByteArray_write32_size_of_le selMem (endSnipIdWord I) 132 288 288
-      hselSize (by rw [hselSize]; omega) (by native_decide)
+      hselSize (by rw [hselSize]; omega) (by decide +native)
   rw [readWithPadding_eq_extract' _ 128 36 (by norm_num) (by norm_num)
     (by rw [hfinalSize]; omega)]
   rw [write32_eq _ _ 132 (by rw [toByteArray_size]) (by rw [hselSize]; omega)]
@@ -1147,8 +1147,8 @@ theorem endSnipSalesPostCallMem_size_long (I : ExecutionEnv)
     (hloVat : 160 ≤ vatOut.size) (hloSale : 192 ≤ saleOut.size) :
     (endSnipSalesPostCallMem I dogOut vatOut saleOut).size = 320 := by
   unfold endSnipSalesPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endSnipSalesOutSize.toNat = 192 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endSnipSalesOutSize.toNat = 192 by decide +native]
   rw [Nat.min_eq_left hloSale]
   rw [write_eq_gen_extend saleOut (endSnipSalesCalldataMem I dogOut vatOut) 128 192
     (by omega) (by omega)
@@ -1164,15 +1164,15 @@ theorem endSnipSalesPostCallMem_read64 (I : ExecutionEnv)
     (endSnipSalesPostCallMem I dogOut vatOut saleOut).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endSnipSalesPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endSnipSalesOutSize.toNat = 192 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endSnipSalesOutSize.toNat = 192 by decide +native]
   by_cases hlen0 : min 192 saleOut.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     exact endSnipSalesCalldataMem_read64_long I dogOut vatOut hloDog hloVat
   · rw [write_read_below_gen_extend saleOut (endSnipSalesCalldataMem I dogOut vatOut)
       128 (min 192 saleOut.size) 64 hlen0 (Nat.min_le_right _ _)
       (by rw [endSnipSalesCalldataMem_size_long I dogOut vatOut hloDog hloVat]; omega)
-      (by native_decide)]
+      (by decide +native)]
     exact endSnipSalesCalldataMem_read64_long I dogOut vatOut hloDog hloVat
 
 theorem endSnipSalesPostCallMem_size_gt64 (I : ExecutionEnv)
@@ -1180,8 +1180,8 @@ theorem endSnipSalesPostCallMem_size_gt64 (I : ExecutionEnv)
     (hloVat : 160 ≤ vatOut.size) :
     64 < (endSnipSalesPostCallMem I dogOut vatOut saleOut).size := by
   unfold endSnipSalesPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endSnipSalesOutSize.toNat = 192 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endSnipSalesOutSize.toNat = 192 by decide +native]
   by_cases hlen0 : min 192 saleOut.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     rw [endSnipSalesCalldataMem_size_long I dogOut vatOut hloDog hloVat]
@@ -1240,8 +1240,8 @@ theorem endSnipSalesPostCallMem_read160_long (I : ExecutionEnv)
     (endSnipSalesPostCallMem I dogOut vatOut saleOut).readWithPadding 160 32 =
       saleOut.extract 32 64 := by
   unfold endSnipSalesPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endSnipSalesOutSize.toNat = 192 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endSnipSalesOutSize.toNat = 192 by decide +native]
   rw [Nat.min_eq_left hloSale]
   rw [write_eq_gen_extend saleOut (endSnipSalesCalldataMem I dogOut vatOut) 128 192
     (by omega) (by omega)
@@ -1270,8 +1270,8 @@ theorem endSnipSalesPostCallMem_read192_long (I : ExecutionEnv)
     (endSnipSalesPostCallMem I dogOut vatOut saleOut).readWithPadding 192 32 =
       saleOut.extract 64 96 := by
   unfold endSnipSalesPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endSnipSalesOutSize.toNat = 192 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endSnipSalesOutSize.toNat = 192 by decide +native]
   rw [Nat.min_eq_left hloSale]
   rw [write_eq_gen_extend saleOut (endSnipSalesCalldataMem I dogOut vatOut) 128 192
     (by omega) (by omega)
@@ -1300,8 +1300,8 @@ theorem endSnipSalesPostCallMem_read224_long (I : ExecutionEnv)
     (endSnipSalesPostCallMem I dogOut vatOut saleOut).readWithPadding 224 32 =
       saleOut.extract 96 128 := by
   unfold endSnipSalesPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endSnipSalesOutSize.toNat = 192 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endSnipSalesOutSize.toNat = 192 by decide +native]
   rw [Nat.min_eq_left hloSale]
   rw [write_eq_gen_extend saleOut (endSnipSalesCalldataMem I dogOut vatOut) 128 192
     (by omega) (by omega)
@@ -1344,7 +1344,7 @@ theorem endSnipSalesPostCallMem_mload160_long (I : ExecutionEnv)
   · exact not_or.mpr
       ⟨by rw [endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale];
           decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem endSnipSalesPostCallMem_mload192_long (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) (hloDog : 128 ≤ dogOut.size)
@@ -1366,7 +1366,7 @@ theorem endSnipSalesPostCallMem_mload192_long (I : ExecutionEnv)
   · exact not_or.mpr
       ⟨by rw [endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale];
           decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem endSnipSalesPostCallMem_mload224_long (I : ExecutionEnv)
     (dogOut vatOut saleOut : ByteArray) (hloDog : 128 ≤ dogOut.size)
@@ -1388,7 +1388,7 @@ theorem endSnipSalesPostCallMem_mload224_long (I : ExecutionEnv)
   · exact not_or.mpr
       ⟨by rw [endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale];
           decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem decodeScalarWordWithMode_legacy_uint96_ok {bytes : List UInt8} {start : Nat}
     (hlen : ((bytes.drop start).take 32).length = 32) :
@@ -1580,9 +1580,9 @@ theorem endSnipSuckCalldataMem_read128_4 (σ : AccountMap) (I : ExecutionEnv)
       (164, endPackVowWord σ I),
       (196, endSnipSaleTabWord saleOut) ]]
   · unfold endSnipSuckSelectorShifted suckSelector selectorBytes
-    native_decide
+    decide +native
   · rw [endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale]
-    native_decide
+    decide +native
   · simp [WindowDisjointFromWrites]
   · norm_num
   · norm_num
@@ -1603,10 +1603,10 @@ theorem endSnipSuckCalldataMem_read132_32 (σ : AccountMap) (I : ExecutionEnv)
     (hbase := by
       rw [writeWord_size]
       · rw [endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale]
-        native_decide)
+        decide +native)
     (hgap := by
       rw [endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale]
-      native_decide)
+      decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSnipSuckCalldataMem_read164_32 (σ : AccountMap) (I : ExecutionEnv)
@@ -1630,7 +1630,7 @@ theorem endSnipSuckCalldataMem_read164_32 (σ : AccountMap) (I : ExecutionEnv)
         [(128, endSnipSuckSelectorShifted), (132, endPackVowWord σ I)]
         (endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSnipSuckCalldataMem_read196_32 (σ : AccountMap) (I : ExecutionEnv)
@@ -1658,7 +1658,7 @@ theorem endSnipSuckCalldataMem_read196_32 (σ : AccountMap) (I : ExecutionEnv)
           (164, endPackVowWord σ I)]
         (endSnipSalesPostCallMem_size_long I dogOut vatOut saleOut hloDog hloVat hloSale)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSnipSuckCalldataMem_read128_100 (σ : AccountMap) (I : ExecutionEnv)
@@ -1735,9 +1735,9 @@ theorem endSnipYankCalldataMem_read128_4 (σ : AccountMap) (I : ExecutionEnv)
   rw [writeCascade_read_window_of_head (endSnipSuckCalldataMem σ I dogOut vatOut saleOut)
     128 0 4 endSnipYankSelectorShifted [ (132, endSnipIdWord I) ]]
   · unfold endSnipYankSelectorShifted yankSelector selectorBytes
-    native_decide
+    decide +native
   · rw [endSnipSuckCalldataMem_size σ I dogOut vatOut saleOut hloDog hloVat hloSale]
-    native_decide
+    decide +native
   · simp [WindowDisjointFromWrites]
   · norm_num
   · norm_num
@@ -1757,10 +1757,10 @@ theorem endSnipYankCalldataMem_read132_32 (σ : AccountMap) (I : ExecutionEnv)
     (hbase := by
       rw [writeWord_size]
       · rw [endSnipSuckCalldataMem_size σ I dogOut vatOut saleOut hloDog hloVat hloSale]
-        native_decide)
+        decide +native)
     (hgap := by
       rw [endSnipSuckCalldataMem_size σ I dogOut vatOut saleOut hloDog hloVat hloSale]
-      native_decide)
+      decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSnipYankCalldataMem_read128_36 (σ : AccountMap) (I : ExecutionEnv)
@@ -1960,9 +1960,9 @@ theorem endSnipGrabCalldataMemFor_read128_4 (σCall σLoc : AccountMap)
       (260, endSnipSaleLotWord saleOut),
       (292, endSnipArtWord vatOut saleOut) ]]
   · unfold endFreeGrabSelectorShifted grabSelector selectorBytes
-    native_decide
+    decide +native
   · rw [endSnipArtStoreHashMem_size σLoc I dogOut vatOut saleOut hloDog hloVat hloSale]
-    native_decide
+    decide +native
   · simp [WindowDisjointFromWrites]
   · norm_num
   · norm_num
@@ -1989,10 +1989,10 @@ theorem endSnipGrabCalldataMemFor_read132_32 (σCall σLoc : AccountMap)
     (hbase := by
       rw [writeWord_size]
       · rw [endSnipArtStoreHashMem_size σLoc I dogOut vatOut saleOut hloDog hloVat hloSale]
-        native_decide)
+        decide +native)
     (hgap := by
       rw [endSnipArtStoreHashMem_size σLoc I dogOut vatOut saleOut hloDog hloVat hloSale]
-      native_decide)
+      decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSnipGrabCalldataMemFor_read164_32 (σCall σLoc : AccountMap)
@@ -2022,7 +2022,7 @@ theorem endSnipGrabCalldataMemFor_read164_32 (σCall σLoc : AccountMap)
         [(128, endFreeGrabSelectorShifted), (132, endSnipIlkWord I)]
         (endSnipArtStoreHashMem_size σLoc I dogOut vatOut saleOut hloDog hloVat hloSale)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSnipGrabCalldataMemFor_read196_32 (σCall σLoc : AccountMap)
@@ -2055,7 +2055,7 @@ theorem endSnipGrabCalldataMemFor_read196_32 (σCall σLoc : AccountMap)
           (164, endSnipSaleUsrAddrWord saleOut)]
         (endSnipArtStoreHashMem_size σLoc I dogOut vatOut saleOut hloDog hloVat hloSale)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSnipGrabCalldataMemFor_read228_32 (σCall σLoc : AccountMap)
@@ -2089,7 +2089,7 @@ theorem endSnipGrabCalldataMemFor_read228_32 (σCall σLoc : AccountMap)
           (164, endSnipSaleUsrAddrWord saleOut), (196, endSnipThisWord I)]
         (endSnipArtStoreHashMem_size σLoc I dogOut vatOut saleOut hloDog hloVat hloSale)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSnipGrabCalldataMemFor_read260_32 (σCall σLoc : AccountMap)
@@ -2126,7 +2126,7 @@ theorem endSnipGrabCalldataMemFor_read260_32 (σCall σLoc : AccountMap)
           (228, endPackVowWord σCall I)]
         (endSnipArtStoreHashMem_size σLoc I dogOut vatOut saleOut hloDog hloVat hloSale)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSnipGrabCalldataMemFor_read292_32 (σCall σLoc : AccountMap)
@@ -2165,7 +2165,7 @@ theorem endSnipGrabCalldataMemFor_read292_32 (σCall σLoc : AccountMap)
           (228, endPackVowWord σCall I), (260, endSnipSaleLotWord saleOut)]
         (endSnipArtStoreHashMem_size σLoc I dogOut vatOut saleOut hloDog hloVat hloSale)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSnipGrabCalldataMemFor_read128_196 (σCall σLoc : AccountMap)
@@ -2275,7 +2275,7 @@ theorem endSnipLogDataMemFor_read64 (σCall σLoc : AccountMap) (I : ExecutionEn
     (by omega)
     (by rw [endSnipGrabPostCallMemFor_eq,
       endSnipGrabCalldataMemFor_size σCall σLoc I dogOut vatOut saleOut
-        hloDog hloVat hloSale]; native_decide)]
+        hloDog hloVat hloSale]; decide +native)]
   exact endSnipGrabPostCallMemFor_read64 σCall σLoc I dogOut vatOut saleOut ret
     hloDog hloVat hloSale
 
@@ -2307,7 +2307,7 @@ theorem endSnipLogDataMem2For_read64 (σCall σLoc : AccountMap) (I : ExecutionE
       hloDog hloVat hloSale]; omega)
     (by omega)
     (by rw [endSnipLogDataMemFor_size σCall σLoc I dogOut vatOut saleOut ret
-      hloDog hloVat hloSale]; native_decide)]
+      hloDog hloVat hloSale]; decide +native)]
   exact endSnipLogDataMemFor_read64 σCall σLoc I dogOut vatOut saleOut ret
     hloDog hloVat hloSale
 
@@ -2339,7 +2339,7 @@ theorem endSnipLogDataMem3For_read64 (σCall σLoc : AccountMap) (I : ExecutionE
       hloDog hloVat hloSale]; omega)
     (by omega)
     (by rw [endSnipLogDataMem2For_size σCall σLoc I dogOut vatOut saleOut ret
-      hloDog hloVat hloSale]; native_decide)]
+      hloDog hloVat hloSale]; decide +native)]
   exact endSnipLogDataMem2For_read64 σCall σLoc I dogOut vatOut saleOut ret
     hloDog hloVat hloSale
 
@@ -2459,27 +2459,27 @@ theorem endReachSnipBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : endSelWord I = ⟨0x38c6de40⟩ :=
     endSelWord_eq_of_beq I hsz 0x38 0xc6 0xde 0x40 ⟨0x38c6de40⟩
-      (by native_decide)
+      (by decide +native)
       (by simpa [selIs, endSnipConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
     endReachDebtFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-      (by rw [hword]; native_decide)
-      (by rw [hword]; native_decide)
-      (by rw [hword]; native_decide)
+      (by rw [hword]; decide +native)
+      (by rw [hword]; decide +native)
+      (by rw [hword]; decide +native)
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endDebtFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endDebtFirstArmPc 3))
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo endSnipEntryPc 3 hfirst
     (fun j hj => endGroup452ArmsWellFormed j (by omega))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem RD.endSnipDecodeToBody {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
@@ -2494,20 +2494,20 @@ theorem RD.endSnipDecodeToBody {code : ByteArray} {g : Sat256} {s0 : State}
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
-  have rd622 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd623 := rd622.pop (by native_decide) (by evm_ov)
-  have rd624 := rd623.dup1 (by native_decide) (by evm_ov)
-  have rd625 := rd624.calldataload (by native_decide) (by evm_ov)
-  have rd626 := rd625.swap1 (by native_decide) (by evm_ov)
-  have rd628 := rd626.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd629 := rd628.add (by native_decide) (by evm_ov)
-  have rd630 := rd629.calldataload (by native_decide) (by evm_ov)
-  have rd631 := rd630.push2 endSnipBodyPc (by native_decide) (by evm_ov)
+  have rd622 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd623 := rd622.pop (by decide +native) (by evm_ov)
+  have rd624 := rd623.dup1 (by decide +native) (by evm_ov)
+  have rd625 := rd624.calldataload (by decide +native) (by evm_ov)
+  have rd626 := rd625.swap1 (by decide +native) (by evm_ov)
+  have rd628 := rd626.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd629 := rd628.add (by decide +native) (by evm_ov)
+  have rd630 := rd629.calldataload (by decide +native) (by evm_ov)
+  have rd631 := rd630.push2 endSnipBodyPc (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [endSnipBodyPc, endSnipDecodedPc, calldataWord,
       show (⟨4⟩ : UInt256).toNat = 4 from by decide,
       show (⟨36⟩ : UInt256).toNat = 36 from by decide]
-      using rd631.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd631.jump (by decide +native) hroutine (by evm_ov)⟩
 
 theorem endSnipX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -2522,9 +2522,9 @@ theorem endSnipX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (code := endBytecode) (sel := sel)
     (entry := endSnipEntryPc) (ret := endSnipReturnPc)
     (decoded := endSnipDecodedPc) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz68 hsize
   obtain ⟨_, _, hroutine⟩ := RD.endSnipDecodeToBody
     (code := endBytecode) (ret := endSnipReturnPc) (sel := sel) (R := [])
@@ -2543,34 +2543,34 @@ theorem endSnipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hslot : endSnipTagSlot I = solcMappingSlot ⟨12⟩ key := by
     simpa [key] using endSnipTagSlot_eq (I := I) hsz68
   have rd1654pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1655 := rd1654pre.mstore 0 (wordAt0Mem key solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd1659pre := evm_run rd1655 with [
-    raw push1 ⟨12⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨12⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd1660 := rd1659pre.mstore 0 (twoWordHashMem key ⟨12⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd1663pre := evm_run rd1660 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd1664pre := rd1663pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost
+    (UInt256.ofNat 3) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1665raw⟩ := rd1664pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1665raw⟩ := rd1664pre.sload (by decide +native) (by evm_ov)
   have htagRaw :
       solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = ⟨0⟩ := by
     rw [← hslot]
@@ -2587,8 +2587,8 @@ theorem endSnipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         (twoWordHashMem key ⟨12⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
         (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [endSnipBodyPc, key] using rd1665zero⟩
-  have rd1668pre := rd1665.push2 ⟨1739⟩ (by native_decide) (by evm_ov)
-  have rd1669pre := rd1668pre.jumpiNT (by native_decide)
+  have rd1668pre := rd1665.push2 ⟨1739⟩ (by decide +native) (by evm_ov)
+  have rd1669pre := rd1668pre.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   obtain ⟨_, _, rd1669⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1669⟩
@@ -2606,7 +2606,7 @@ theorem endSnipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rd1669
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) rfl
     (twoWordHashMem_size_96 key ⟨12⟩ solcFreePtrMem_size)
     (twoWordHashMem_read64 key ⟨12⟩ solcFreePtrMem_size solcFreePtrMem_read64)
@@ -2627,34 +2627,34 @@ theorem endSnipX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hslot : endSnipTagSlot I = solcMappingSlot ⟨12⟩ key := by
     simpa [key] using endSnipTagSlot_eq (I := I) hsz68
   have rd1654pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1655 := rd1654pre.mstore 0 (wordAt0Mem key solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd1659pre := evm_run rd1655 with [
-    raw push1 ⟨12⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨12⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd1660 := rd1659pre.mstore 0 (twoWordHashMem key ⟨12⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd1663pre := evm_run rd1660 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd1664pre := rd1663pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost
+    (UInt256.ofNat 3) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1665raw⟩ := rd1664pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1665raw⟩ := rd1664pre.sload (by decide +native) (by evm_ov)
   have htagRaw :
       solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = endSnipTagWord σ I := by
     rw [← hslot]
@@ -2673,8 +2673,8 @@ theorem endSnipX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         (twoWordHashMem key ⟨12⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
         (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [endSnipBodyPc, key] using rd1665nzRaw⟩
-  have rd1668pre := rd1665nz.push2 ⟨1739⟩ (by native_decide) (by evm_ov)
-  have rd1739pre := rd1668pre.jumpiT (by native_decide) htag (by jump_dest) (by evm_ov)
+  have rd1668pre := rd1665nz.push2 ⟨1739⟩ (by decide +native) (by evm_ov)
+  have rd1739pre := rd1668pre.jumpiT (by decide +native) htag (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa [key] using rd1739pre⟩
 
 theorem endSnipX_dogIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -2712,14 +2712,14 @@ theorem endSnipX_dogIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
         endFlowVatIlksSelectorShifted := by
-    native_decide
+    decide +native
   have hdogMask :
       UInt256.land solcAddrMask (endSlotWord ⟨3⟩ σ I) = endSnipDogWord σ I := by
     simpa [endSnipDogWord, solcAddrMask] using
       u256_land_comm solcAddrMask (endSlotWord ⟨3⟩ σ I)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have hdogMaskRight :
       (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩).land
           (endSlotWord ⟨3⟩ σ I) = endSnipDogWord σ I := by
@@ -2727,13 +2727,13 @@ theorem endSnipX_dogIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     exact hdogMask
   have hinSize :
       (UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩) = endFlowVatIlksInSize := by
-    native_decide
+    decide +native
   have hendPtr : ((⟨128⟩ : UInt256) + ⟨36⟩) = endFlowVatIlksEndPtr := by
-    native_decide
+    decide +native
   have rd1741 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨3⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1742raw⟩ := rd1741.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨3⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd1742raw⟩ := rd1741.sload (by decide +native) (by evm_ov)
   have rd1742 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1743⟩
         (endSlotWord ⟨3⟩ σ I :: endSnipIdWord I :: endSnipIlkWord I ::
@@ -2743,69 +2743,69 @@ theorem endSnipX_dogIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd1742raw⟩
   obtain ⟨_, _, rd1742⟩ := rd1742
   have rd1804 := evm_run rd1742 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost hmload64Hash (by decide) (by evm_ov),
-    raw push4 ⟨0x6cb1c69b⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨225⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 ⟨0x6cb1c69b⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨225⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (endFlowVatIlksSelectorMem (endSnipDogIlksBaseMem I))
-      (UInt256.ofNat 5) (by native_decide) mem_cost
+      (UInt256.ofNat 5) (by decide +native) mem_cost
       (by
         simp [endFlowVatIlksSelectorMem, endFlowVatIlksOutPtr,
           endSnipDogIlksBaseMem, hselectorShift])
       (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 3 (endSnipDogIlksCalldataMem I) (UInt256.ofNat 6)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [endSnipDogIlksCalldataMem, endFlowVatIlksCalldataMem,
           endFlowVatIlksArg0Mem, endFlowVatIlksOutPtr, endSnipDogIlksBaseMem])
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 endFlowVatIlksSelectorWord (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨128⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 endFlowVatIlksSelectorWord (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨128⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     convert rd1804 using 1
     all_goals
-      try native_decide
+      try decide +native
       try simp [endFlowVatIlksOutPtr, endFlowVatIlksInSize,
         endSnipDogIlksOutSize, endFlowVatIlksEndPtr, hdogMaskRight, hinSize, hendPtr]
-      try native_decide⟩
+      try decide +native⟩
 
 theorem endSnipX_dogIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
@@ -2818,9 +2818,9 @@ theorem endSnipX_dogIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd1804⟩ := endSnipX_dogIlksExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1804⟩) (okPc := ⟨1816⟩) rd1804
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_dogIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
@@ -2840,9 +2840,9 @@ theorem endSnipX_dogIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨gasWord, k', C', rd1819⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1804⟩) (okPc := ⟨1816⟩) rd1804
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd1819⟩
 
 theorem endSnipX_dogIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -2873,7 +2873,7 @@ theorem endSnipX_dogIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
           (endSnipDogIlksPostCallMem I out) (UInt256.ofNat 8) out (cA', σ') k' C'
       ∧ out.size < UInt256.size := by
   obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd1820raw, hout⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endSnipDogIlksWriteLen_eq (out := out) hout
@@ -2882,7 +2882,7 @@ theorem endSnipX_dogIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
           endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
           endFlowVatIlksOutPtr.toNat endSnipDogIlksOutSize.toNat) = UInt256.ofNat 8 := by
       unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endSnipDogIlksOutSize
-      native_decide
+      decide +native
     simpa [endSnipDogIlksPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endSnipDogIlksOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd1820raw
 
@@ -2903,7 +2903,7 @@ theorem endSnipX_dogIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
       (endSnipDogIlksCalldataMem I) (UInt256.ofNat 8)
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨k', C', rd1820raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endSnipDogIlksOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -2913,7 +2913,7 @@ theorem endSnipX_dogIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
         endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
         endFlowVatIlksOutPtr.toNat endSnipDogIlksOutSize.toNat) = UInt256.ofNat 8 := by
     unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endSnipDogIlksOutSize
-    native_decide
+    decide +native
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endSnipDogIlksOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd1820raw
 
@@ -2928,9 +2928,9 @@ theorem endSnipX_dogIlksCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1820⟩) (okPc := ⟨1836⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_dogIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
@@ -2946,13 +2946,13 @@ theorem endSnipX_dogIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat25
   obtain ⟨_, _, rd1838⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨1820⟩) (okPc := ⟨1836⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp)
   have rd1841 := evm_run rd1838 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa using rd1841⟩
 
 theorem endSnipX_dogIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
@@ -2972,23 +2972,23 @@ theorem endSnipX_dogIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I} {g : Sat2
     rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, ulit_toNat' out.size hout]
     exact hlo
   have rd1850 := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨128⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1858⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨128⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1858⟩ (by decide +native) (by evm_ov)]
   have rdJump := rd1850
   rw [hlt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rdJump
   have rd1861 := evm_run rdJump with [
-    raw jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    raw jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw mload 0 (endSnipDogIlkClipWord out) (UInt256.ofNat 8) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw mload 0 (endSnipDogIlkClipWord out) (UInt256.ofNat 8) (by decide +native)
       mem_cost hmload128 (by decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd1861⟩
 
@@ -3005,21 +3005,21 @@ theorem endSnipX_dogIlksReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I} {g : S
     rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide, ulit_toNat' out.size hout]
     exact hshort
   have rd1850 := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨128⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1858⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨128⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1858⟩ (by decide +native) (by evm_ov)]
   have rdShort := rd1850
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
-  have rdFall := rdShort.jumpiNT (by native_decide)
+  have rdFall := rdShort.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFall
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
@@ -3053,14 +3053,14 @@ theorem endSnipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sa
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
         endFlowVatIlksSelectorShifted := by
-    native_decide
+    decide +native
   have hvatMask :
       UInt256.land solcAddrMask (endSlotWord ⟨1⟩ σ' I) = endPackVatWord σ' I := by
     simpa [endPackVatWord, solcAddrMask] using
       u256_land_comm solcAddrMask (endSlotWord ⟨1⟩ σ' I)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have hvatMaskRight :
       (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩).land
           (endSlotWord ⟨1⟩ σ' I) = endPackVatWord σ' I := by
@@ -3068,12 +3068,12 @@ theorem endSnipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sa
     exact hvatMask
   have hinSize :
       (UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩) = endFlowVatIlksInSize := by
-    native_decide
+    decide +native
   have hendPtr : ((⟨128⟩ : UInt256) + ⟨36⟩) = endFlowVatIlksEndPtr := by
-    native_decide
+    decide +native
   have rd1864 := evm_run h with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1864raw⟩ := rd1864.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd1864raw⟩ := rd1864.sload (by decide +native) (by evm_ov)
   have rd1864 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1864⟩
         (endSlotWord ⟨1⟩ σ' I :: endSnipDogIlkClipWord dogOut :: ⟨0⟩ ::
@@ -3083,74 +3083,74 @@ theorem endSnipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I} {g : Sa
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd1864raw⟩
   obtain ⟨_, _, rd1864⟩ := rd1864
   have rd1929 := evm_run rd1864 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost hmload64Base (by decide) (by evm_ov),
-    raw push4 ⟨0x6cb1c69b⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨225⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 ⟨0x6cb1c69b⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨225⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (endFlowVatIlksSelectorMem (endSnipDogIlksPostCallMem I dogOut))
-      (UInt256.ofNat 8) (by native_decide) mem_cost
+      (UInt256.ofNat 8) (by decide +native) mem_cost
       (by
         simp [endFlowVatIlksSelectorMem, endFlowVatIlksOutPtr,
           hselectorShift])
       (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipVatIlksCalldataMem I dogOut) (UInt256.ofNat 8)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [endSnipVatIlksCalldataMem, endFlowVatIlksCalldataMem,
           endFlowVatIlksArg0Mem, endFlowVatIlksOutPtr])
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 endFlowVatIlksSelectorWord (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 endFlowVatIlksSelectorWord (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     convert rd1929 using 1
     all_goals
-      try native_decide
+      try decide +native
       try simp [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endFlowVatIlksOutSize,
         endFlowVatIlksEndPtr, hvatMaskRight, hinSize, hendPtr]
-      try native_decide⟩
+      try decide +native⟩
 
 theorem endSnipX_vatIlksNoCode {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {dogOut : ByteArray} {k C : ℕ}
@@ -3165,9 +3165,9 @@ theorem endSnipX_vatIlksNoCode {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd1930⟩ := endSnipX_vatIlksExtcodesizeGuard hloDog h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1930⟩) (okPc := ⟨1942⟩) rd1930
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_vatIlksCallReady {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {dogOut : ByteArray} {k C : ℕ}
@@ -3190,9 +3190,9 @@ theorem endSnipX_vatIlksCallReady {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
   obtain ⟨gasWord, k', C', rd1945⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1930⟩) (okPc := ⟨1942⟩) rd1930
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd1945⟩
 
 theorem endSnipX_vatIlksPostCall {cA cAcur gh bl σ σcur σ₀ A I} {g : Sat256}
@@ -3226,7 +3226,7 @@ theorem endSnipX_vatIlksPostCall {cA cAcur gh bl σ σcur σ₀ A I} {g : Sat256
           (cA', σ') k' C'
       ∧ out.size < UInt256.size := by
   obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd1946raw, hout⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endSnipVatIlksWriteLen_eq (out := out) hout
@@ -3235,7 +3235,7 @@ theorem endSnipX_vatIlksPostCall {cA cAcur gh bl σ σcur σ₀ A I} {g : Sat256
           endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
           endFlowVatIlksOutPtr.toNat endFlowVatIlksOutSize.toNat) = UInt256.ofNat 9 := by
       unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endFlowVatIlksOutSize
-      native_decide
+      decide +native
     simpa [endSnipVatIlksPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endFlowVatIlksOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd1946raw
 
@@ -3258,7 +3258,7 @@ theorem endSnipX_vatIlksCallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
       (endSnipVatIlksCalldataMem I dogOut) (UInt256.ofNat 9) ByteArray.empty
       (cAcur, σcur) k' C' := by
   obtain ⟨k', C', rd1946raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endFlowVatIlksOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -3268,7 +3268,7 @@ theorem endSnipX_vatIlksCallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
         endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
         endFlowVatIlksOutPtr.toNat endFlowVatIlksOutSize.toNat) = UInt256.ofNat 9 := by
     unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endFlowVatIlksOutSize
-    native_decide
+    decide +native
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endFlowVatIlksOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd1946raw
 
@@ -3284,9 +3284,9 @@ theorem endSnipX_vatIlksCallFailed {cA cA' gh bl σ σcur σ' σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1946⟩) (okPc := ⟨1962⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_vatIlksCallSucceeded {cA cA' gh bl σ σcur σ' σ₀ A I}
@@ -3304,8 +3304,8 @@ theorem endSnipX_vatIlksCallSucceeded {cA cA' gh bl σ σcur σ' σ₀ A I}
       mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨1946⟩) (okPc := ⟨1962⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp)
 
 theorem endSnipX_vatIlksReturnDecodeOk {cA cA' gh bl σ σcur σ' σ₀ A I}
@@ -3332,28 +3332,28 @@ theorem endSnipX_vatIlksReturnDecodeOk {cA cA' gh bl σ σcur σ' σ₀ A I}
       ulit_toNat' vatOut.size hout]
     exact hloVat
   have rd1978 := evm_run h with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1984⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1984⟩ (by decide +native) (by evm_ov)]
   have rdJump := rd1978
   rw [hlt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rdJump
   have rd1990 := evm_run rdJump with [
-    raw jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    raw jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mload 0 (endFlowVatIlkRateWord vatOut) (UInt256.ofNat 9) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mload 0 (endFlowVatIlkRateWord vatOut) (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload160 (by decide) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endFlowVatIlksEndPtr, endFlowVatIlksSelectorWord, endFlowVatIlksOutPtr,
@@ -3377,24 +3377,24 @@ theorem endSnipX_vatIlksReturnDecodeShort {cA cA' gh bl σ σcur σ' σ₀ A I}
       ulit_toNat' vatOut.size hout]
     exact hshort
   have rd1978 := evm_run h with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1984⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1984⟩ (by decide +native) (by evm_ov)]
   have rdShort := rd1978
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
-  have rdFall := rdShort.jumpiNT (by native_decide)
+  have rdFall := rdShort.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFall
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_salesExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
@@ -3432,10 +3432,10 @@ theorem endSnipX_salesExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
   have hselectorShift :
       UInt256.shiftLeft endSnipSalesSelectorWord ⟨224⟩ =
         endSnipSalesSelectorShifted := by
-    native_decide
+    decide +native
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have hclipMaskRight :
       (endSnipDogIlkClipWord dogOut).land
           (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩) =
@@ -3445,77 +3445,77 @@ theorem endSnipX_salesExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
       u256_land_comm (endSnipDogIlkClipWord dogOut) solcAddrMask
   have hinSize :
       (UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩) = endFlowVatIlksInSize := by
-    native_decide
+    decide +native
   have hendPtr : ((⟨128⟩ : UInt256) + ⟨36⟩) = endFlowVatIlksEndPtr := by
-    native_decide
+    decide +native
   have rd2058 := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64Base (by decide) (by evm_ov),
-    raw push4 endSnipSalesSelectorWord (by native_decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 endSnipSalesSelectorWord (by decide +native) (by evm_ov),
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipSalesSelectorMem I dogOut vatOut) (UInt256.ofNat 9)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [endSnipSalesSelectorMem, endFlowVatIlksOutPtr, hselectorShift])
       (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipSalesCalldataMem I dogOut vatOut) (UInt256.ofNat 9)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by simp [endSnipSalesCalldataMem, endFlowVatIlksOutPtr])
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 endSnipSalesSelectorWord (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨192⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 endSnipSalesSelectorWord (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨192⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     convert rd2058 using 1
     all_goals
-      try native_decide
+      try decide +native
       try simp [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endSnipSalesOutSize,
         endFlowVatIlksEndPtr, hclipMaskRight, hinSize, hendPtr]
-      try native_decide⟩
+      try decide +native⟩
 
 theorem endSnipX_salesNoCode {cA cA' gh bl σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut : ByteArray} {k C : ℕ}
@@ -3532,9 +3532,9 @@ theorem endSnipX_salesNoCode {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨_, _, rd2058⟩ := endSnipX_salesExtcodesizeGuard hloDog hloVat h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2058⟩) (okPc := ⟨2070⟩) rd2058
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_salesCallReady {cA cA' gh bl σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut : ByteArray} {k C : ℕ}
@@ -3561,9 +3561,9 @@ theorem endSnipX_salesCallReady {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨gasWord, k', C', rd2073⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2058⟩) (okPc := ⟨2070⟩) rd2058
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd2073⟩
 
 theorem endSnipX_salesPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
@@ -3602,7 +3602,7 @@ theorem endSnipX_salesPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
           saleOut (cA', σ') k' C'
       ∧ saleOut.size < UInt256.size := by
   obtain ⟨cA', σ', z, saleOut, Ain, callGas, k', C', hΘ, rd2074raw, hout⟩ :=
-    RD.solcStaticcall h (by native_decide) hdepth
+    RD.solcStaticcall h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨cA', σ', z, saleOut, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
@@ -3612,7 +3612,7 @@ theorem endSnipX_salesPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
           endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
           endFlowVatIlksOutPtr.toNat endSnipSalesOutSize.toNat) = UInt256.ofNat 10 := by
       unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endSnipSalesOutSize
-      native_decide
+      decide +native
     simpa [endSnipSalesPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endSnipSalesOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd2074raw
 
@@ -3638,7 +3638,7 @@ theorem endSnipX_salesStaticcallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
       (endSnipSalesCalldataMem I dogOut vatOut) (UInt256.ofNat 10) ByteArray.empty
       (cAcur, σcur) k' C' := by
   obtain ⟨k', C', rd2074raw⟩ :=
-    RD.solcStaticcallDepthLimit h (by native_decide) hdepth
+    RD.solcStaticcallDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endSnipSalesOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -3648,7 +3648,7 @@ theorem endSnipX_salesStaticcallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
         endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
         endFlowVatIlksOutPtr.toNat endSnipSalesOutSize.toNat) = UInt256.ofNat 10 := by
     unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endSnipSalesOutSize
-    native_decide
+    decide +native
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endSnipSalesOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd2074raw
 
@@ -3666,9 +3666,9 @@ theorem endSnipX_salesCallFailed {cA cA' gh bl σ σ' σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2074⟩) (okPc := ⟨2090⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_salesCallSucceeded {cA cA' gh bl σ σ' σ₀ A I}
@@ -3689,13 +3689,13 @@ theorem endSnipX_salesCallSucceeded {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨_, _, rd2092⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨2074⟩) (okPc := ⟨2090⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp)
   have rd2095 := evm_run rd2092 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa using rd2095⟩
 
 theorem endSnipX_salesReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
@@ -3729,38 +3729,38 @@ theorem endSnipX_salesReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
       ulit_toNat' saleOut.size hout]
     exact hloSale
   have rd2104 := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨192⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨2112⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨192⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨2112⟩ (by decide +native) (by evm_ov)]
   have rdJump := rd2104
   rw [hlt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rdJump
   have rd2131 := evm_run rdJump with [
-    raw jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    raw jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mload 0 (endSnipSaleTabWord saleOut) (UInt256.ofNat 10) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mload 0 (endSnipSaleTabWord saleOut) (UInt256.ofNat 10) (by decide +native)
       mem_cost hmload160 (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mload 0 (endSnipSaleLotWord saleOut) (UInt256.ofNat 10) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mload 0 (endSnipSaleLotWord saleOut) (UInt256.ofNat 10) (by decide +native)
       mem_cost hmload192 (by decide) (by evm_ov),
-    raw push1 ⟨96⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mload 0 (endSnipSaleUsrWord saleOut) (UInt256.ofNat 10) (by native_decide)
+    raw push1 ⟨96⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mload 0 (endSnipSaleUsrWord saleOut) (UInt256.ofNat 10) (by decide +native)
       mem_cost hmload224 (by decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd2131⟩
 
@@ -3782,21 +3782,21 @@ theorem endSnipX_salesReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
       ulit_toNat' saleOut.size hout]
     exact hshort
   have rd2104 := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨192⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨2112⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨192⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨2112⟩ (by decide +native) (by evm_ov)]
   have rdShort := rd2104
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
-  have rdFall := rdShort.jumpiNT (by native_decide)
+  have rdFall := rdShort.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFall
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 end Benchmarks.Dss.End
@@ -4078,10 +4078,10 @@ theorem endSnipX_suckExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
   have hselectorShift :
       UInt256.shiftLeft endSnipSuckSelectorWord ⟨224⟩ =
         endSnipSuckSelectorShifted := by
-    native_decide
+    decide +native
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have hvatMask :
       UInt256.land (endSlotWord ⟨1⟩ σ' I) solcAddrMask = endPackVatWord σ' I := by
     rfl
@@ -4097,8 +4097,8 @@ theorem endSnipX_suckExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     simpa [endPackVowWord] using
       u256_land_comm solcAddrMask (endSlotWord ⟨4⟩ σ' I)
   have rd2137 := evm_run h with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2138raw⟩ := rd2137.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2138raw⟩ := rd2137.sload (by decide +native) (by evm_ov)
   have rd2134 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2134⟩
         (endSlotWord ⟨1⟩ σ' I :: endSnipSaleUsrWord saleOut :: ⟨64⟩ ::
@@ -4111,9 +4111,9 @@ theorem endSnipX_suckExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2138raw⟩
   obtain ⟨_, _, rd2134⟩ := rd2134
   have rd2137 := evm_run rd2134 with [
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2138raw⟩ := rd2137.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2138raw⟩ := rd2137.sload (by decide +native) (by evm_ov)
   have rd2138 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2138⟩
         (endSlotWord ⟨4⟩ σ' I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σ' I ::
@@ -4127,106 +4127,106 @@ theorem endSnipX_suckExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2138raw⟩
   obtain ⟨_, _, rd2138⟩ := rd2138
   have rd2220raw := evm_run rd2138 with [
-    raw dup5 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by native_decide)
+    raw dup5 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by decide +native)
       mem_cost hmload64Base (by decide) (by evm_ov),
-    raw push4 endSnipSuckSelectorWord (by native_decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 endSnipSuckSelectorWord (by decide +native) (by evm_ov),
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipSuckMem1 I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by rw [hselectorShift]; rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipSuckMem2 σ' I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 by decide +native]
         rw [haddrMask, hvowMaskLeft]
         rfl)
       (by decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipSuckMem3 σ' I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨36⟩).toNat = 164 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨36⟩).toNat = 164 by decide +native]
         rw [haddrMask, hvowMaskLeft]
         rfl)
       (by decide) (by evm_ov),
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipSuckCalldataMem σ' I dogOut vatOut saleOut)
-      (UInt256.ofNat 10) (by native_decide) mem_cost
+      (UInt256.ofNat 10) (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨68⟩).toNat = 196 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨68⟩).toNat = 196 by decide +native]
         change (endSnipSaleTabWord saleOut).toByteArray.write 0
           (endSnipSuckMem3 σ' I dogOut vatOut saleOut) 196 32 =
           endSnipSuckCalldataMem σ' I dogOut vatOut saleOut
         simp [endSnipSuckCalldataMem, endSnipSuckMem1, endSnipSuckMem2,
           endSnipSuckMem3, writeCascade, Reasoning.Theory.writeWord])
       (by decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by native_decide)
+    raw swap4 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw swap9 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw swap7 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 endSnipSuckSelectorWord (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw swap5 (by decide +native) (by evm_ov),
+    raw swap9 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw swap7 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 endSnipSuckSelectorWord (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     convert rd2220raw using 1
     all_goals
-      try native_decide
+      try decide +native
       try simp [endSnipSuckOutPtr, endSnipSuckInSize, endSnipSuckOutSize,
         endSnipSuckEndPtr, endSnipSuckSelectorWord, endPackVatWord, endPackVowWord,
         endSlotWord, solcSlotWord, solcAddrMask, haddrMask, hvatMask, hvatMaskLeft,
         hvowMask, hvowMaskLeft]
-      try native_decide⟩
+      try decide +native⟩
 
 theorem endSnipX_suckNoCode {cA cA' gh bl σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut : ByteArray} {k C : ℕ}
@@ -4246,9 +4246,9 @@ theorem endSnipX_suckNoCode {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨_, _, rd2220⟩ := endSnipX_suckExtcodesizeGuard hloDog hloVat hloSale h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2220⟩) (okPc := ⟨2232⟩) rd2220
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_suckCallReady {cA cA' gh bl σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut : ByteArray} {k C : ℕ}
@@ -4278,9 +4278,9 @@ theorem endSnipX_suckCallReady {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨gasWord, k', C', rd2235⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2220⟩) (okPc := ⟨2232⟩) rd2220
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd2235⟩
 
 theorem endSnipX_suckPostCall {cA cA' gh bl σ σ' σ₀ A I}
@@ -4318,7 +4318,7 @@ theorem endSnipX_suckPostCall {cA cA' gh bl σ σ' σ₀ A I}
           (UInt256.ofNat 10) ret (cA'', σ'') k' C'
       ∧ ret.size < UInt256.size := by
   obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd2236raw, hret⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endSnipSuckOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
@@ -4331,7 +4331,7 @@ theorem endSnipX_suckPostCall {cA cA' gh bl σ σ' σ₀ A I}
           endSnipSuckOutPtr.toNat endSnipSuckInSize.toNat)
           endSnipSuckOutPtr.toNat endSnipSuckOutSize.toNat) = UInt256.ofNat 10 := by
       unfold endSnipSuckOutPtr endSnipSuckInSize endSnipSuckOutSize
-      native_decide
+      decide +native
     simpa [endSnipSuckPostCallMem, endSnipSuckOutPtr, endSnipSuckInSize,
       endSnipSuckOutSize, endSnipSuckEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd2236raw
@@ -4358,7 +4358,7 @@ theorem endSnipX_suckCallDepthLimit {cA cA' gh bl σ σ' σ₀ A I}
       (endSnipSuckCalldataMem σ' I dogOut vatOut saleOut) (UInt256.ofNat 10)
       ByteArray.empty (cA', σ') k' C' := by
   obtain ⟨k', C', rd2236raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endSnipSuckOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -4368,7 +4368,7 @@ theorem endSnipX_suckCallDepthLimit {cA cA' gh bl σ σ' σ₀ A I}
         endSnipSuckOutPtr.toNat endSnipSuckInSize.toNat)
         endSnipSuckOutPtr.toNat endSnipSuckOutSize.toNat) = UInt256.ofNat 10 := by
     unfold endSnipSuckOutPtr endSnipSuckInSize endSnipSuckOutSize
-    native_decide
+    decide +native
   simpa [endSnipSuckOutPtr, endSnipSuckInSize, endSnipSuckOutSize,
     endSnipSuckEndPtr, hmin, byteArray_write_len_zero, haw] using rd2236raw
 
@@ -4385,9 +4385,9 @@ theorem endSnipX_suckCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2236⟩) (okPc := ⟨2252⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_suckCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
@@ -4408,13 +4408,13 @@ theorem endSnipX_suckCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
   obtain ⟨_, _, rd2254⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨2236⟩) (okPc := ⟨2252⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp)
   have rd2257 := evm_run rd2254 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa using rd2257⟩
 
 theorem endSnipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
@@ -4469,7 +4469,7 @@ theorem endSnipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
         hloDog hloVat hloSale)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have hclipMaskLeft :
       UInt256.land (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩)
           (endSnipDogIlkClipWord dogOut) =
@@ -4485,64 +4485,64 @@ theorem endSnipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
   have hselectorMaskShift :
       UInt256.shiftLeft (UInt256.land endSnipYankSelectorWord ⟨0xffffffff⟩) ⟨224⟩ =
         endSnipYankSelectorShifted := by
-    native_decide
+    decide +native
   have hselectorMaskShiftLeft :
       UInt256.shiftLeft (UInt256.land ⟨0xffffffff⟩ endSnipYankSelectorWord) ⟨224⟩ =
         endSnipYankSelectorShifted := by
-    native_decide
+    decide +native
   have rd2314raw := evm_run h with [
-    raw dup5 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push4 endSnipYankSelectorWord (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by native_decide)
+    raw dup5 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push4 endSnipYankSelectorWord (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by decide +native)
       mem_cost hmload64Base (by decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push4 ⟨0xffffffff⟩ (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push4 ⟨0xffffffff⟩ (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipYankMem1 σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by rw [hselectorMaskShiftLeft]; rfl) (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipYankCalldataMem σmem I dogOut vatOut saleOut)
-      (UInt256.ofNat 10) (by native_decide) mem_cost
+      (UInt256.ofNat 10) (by decide +native) mem_cost
       (by
-        rw [show ((⟨4⟩ : UInt256) + ⟨128⟩).toNat = 132 by native_decide]
+        rw [show ((⟨4⟩ : UInt256) + ⟨128⟩).toNat = 132 by decide +native]
         change (endSnipIdWord I).toByteArray.write 0
           (endSnipYankMem1 σmem I dogOut vatOut saleOut) 132 32 =
           endSnipYankCalldataMem σmem I dogOut vatOut saleOut
         simp [endSnipYankCalldataMem, endSnipYankMem1, writeCascade,
           Reasoning.Theory.writeWord])
       (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by native_decide)
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endSnipYankOutPtr, endSnipYankInSize, endSnipYankOutSize,
       endSnipYankEndPtr, endSnipYankSelectorWord, haddrMask, hclipMaskLeft,
@@ -4565,9 +4565,9 @@ theorem endSnipX_yankNoCode {cA cA' gh bl σ σmem σpost σ₀ A I}
   obtain ⟨_, _, rd2314⟩ := endSnipX_yankExtcodesizeGuard hloDog hloVat hloSale h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2314⟩) (okPc := ⟨2326⟩) rd2314
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_yankCallReady {cA cA' gh bl σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut rdata : ByteArray} {k C : ℕ}
@@ -4596,9 +4596,9 @@ theorem endSnipX_yankCallReady {cA cA' gh bl σ σmem σpost σ₀ A I}
   obtain ⟨gasWord, k', C', rd2329⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2314⟩) (okPc := ⟨2326⟩) rd2314
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd2329⟩
 
 theorem endSnipX_yankPostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
@@ -4636,7 +4636,7 @@ theorem endSnipX_yankPostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
           (UInt256.ofNat 10) ret (cA'', σ'') k' C'
       ∧ ret.size < UInt256.size := by
   obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd2330raw, hret⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endSnipYankOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
@@ -4649,7 +4649,7 @@ theorem endSnipX_yankPostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
           endSnipYankOutPtr.toNat endSnipYankInSize.toNat)
           endSnipYankOutPtr.toNat endSnipYankOutSize.toNat) = UInt256.ofNat 10 := by
       unfold endSnipYankOutPtr endSnipYankInSize endSnipYankOutSize
-      native_decide
+      decide +native
     simpa [endSnipYankPostCallMem, endSnipYankOutPtr, endSnipYankInSize,
       endSnipYankOutSize, endSnipYankEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd2330raw
@@ -4676,7 +4676,7 @@ theorem endSnipX_yankCallDepthLimit {cA cA' gh bl σ σmem σpost σ₀ A I}
       (endSnipYankCalldataMem σmem I dogOut vatOut saleOut) (UInt256.ofNat 10)
       ByteArray.empty (cA', σpost) k' C' := by
   obtain ⟨k', C', rd2330raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endSnipYankOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -4686,7 +4686,7 @@ theorem endSnipX_yankCallDepthLimit {cA cA' gh bl σ σmem σpost σ₀ A I}
         endSnipYankOutPtr.toNat endSnipYankInSize.toNat)
         endSnipYankOutPtr.toNat endSnipYankOutSize.toNat) = UInt256.ofNat 10 := by
     unfold endSnipYankOutPtr endSnipYankInSize endSnipYankOutSize
-    native_decide
+    decide +native
   simpa [endSnipYankOutPtr, endSnipYankInSize, endSnipYankOutSize,
     endSnipYankEndPtr, hmin, byteArray_write_len_zero, haw] using rd2330raw
 
@@ -4703,9 +4703,9 @@ theorem endSnipX_yankCallFailed {cA cA' gh bl σ σpost σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2330⟩) (okPc := ⟨2346⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_yankCallSucceeded {cA cA' gh bl σ σpost σ₀ A I}
@@ -4726,13 +4726,13 @@ theorem endSnipX_yankCallSucceeded {cA cA' gh bl σ σpost σ₀ A I}
   obtain ⟨_, _, rd2348⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨2330⟩) (okPc := ⟨2346⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp)
   have rd2351 := evm_run rd2348 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa using rd2351⟩
 
 theorem endSnipX_artDivZeroInvalid {cA cA' gh bl σ σmem σpost σ₀ A I}
@@ -4750,13 +4750,13 @@ theorem endSnipX_artDivZeroInvalid {cA cA' gh bl σ σmem σpost σ₀ A I}
       X (g.toNat + 1) (D_J endBytecode 0)
         (initState cA gh bl σ σ₀ g A I) = .error .InvalidInstruction := by
   have rd2359 := evm_run h with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨2361⟩ (by native_decide) (by evm_ov)]
-  have rd2360 := rd2359.jumpiNT (by native_decide) (by simpa using hrate) (by evm_ov)
-  exact endFlowInvalidError rd2360 (by native_decide)
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨2361⟩ (by decide +native) (by evm_ov)]
+  have rd2360 := rd2359.jumpiNT (by decide +native) (by simpa using hrate) (by evm_ov)
+  exact endFlowInvalidError rd2360 (by decide +native)
 
 theorem endSnipX_artAddEntry {cA cA' gh bl σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
@@ -4796,38 +4796,38 @@ theorem endSnipX_artAddEntry {cA cA' gh bl σ σmem σpost σ₀ A I}
       endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem0) ⟨14⟩ key
         (by rw [hmem0Size]; omega)
   have rd2359 := evm_run h with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨2361⟩ (by native_decide) (by evm_ov)]
-  have rd2361 := rd2359.jumpiT (by native_decide) hrate (by jump_dest) (by evm_ov)
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨2361⟩ (by decide +native) (by evm_ov)]
+  have rd2361 := rd2359.jumpiT (by decide +native) hrate (by jump_dest) (by evm_ov)
   have rd2365 := evm_run rd2361 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup12 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup12 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2366 := rd2365.mstore 0 (wordAt0Mem key mem0) (UInt256.ofNat 10)
-    (by native_decide) mem_cost (by simp [wordAt0Mem, key, mem0])
-    (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by simp [wordAt0Mem, key, mem0])
+    (by decide +native) (by evm_ov)
   have rd2371 := evm_run rd2366 with [
-    raw push1 ⟨14⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨14⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd2371' := rd2371.mstore 0 mem14 (UInt256.ofNat 10)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (by
       change (⟨14⟩ : UInt256).toByteArray.write 0 (wordAt0Mem key mem0) 32 32 =
         mem14
       simp [mem14, endSnipArtHashMem, twoWordHashMem, wordAt32Mem, key, mem0,
         endSnipYankPostCallMem_eq])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd2375 := evm_run rd2371' with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd2376 := rd2375.keccak256 0 (endSnipArtSlot I) (UInt256.ofNat 10)
-    (by native_decide) mem_cost (by simpa [key, hslot] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2377raw⟩ := rd2376.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by simpa [key, hslot] using hhash)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2377raw⟩ := rd2376.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd2377⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2377⟩
         (endSnipArtOldWord σpost I :: endSnipSaleTabWord saleOut ::
@@ -4841,18 +4841,18 @@ theorem endSnipX_artAddEntry {cA cA' gh bl σ σmem σpost σ₀ A I}
       simpa [endSnipArtOldWord, endSlotWord, solcSlotWord, hslot, key, mem14]
         using rd2377raw⟩
   have rd2390 := evm_run rd2377 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push2 ⟨2391⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨10092⟩ (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push2 ⟨2391⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨10092⟩ (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endSnipArtWord, mem14] using
-      rd2390.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      rd2390.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem endSnipX_artAddReturns {cA cA' gh bl σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut ret : ByteArray} {k C : ℕ}
@@ -4886,30 +4886,30 @@ theorem endSnipX_artAddReturns {cA cA' gh bl σ σmem σpost σ₀ A I}
   have hlt : UInt256.lt (art + old) old = ⟨0⟩ :=
     ult_zero (by rw [haddNat]; omega)
   have rd10099pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
-  have rd10099 := evm_run rd10099pre with [raw lt (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
+  have rd10099 := evm_run rd10099pre with [raw lt (by decide +native) (by evm_ov)]
   have rd10099' := by
     simpa [old, art] using rd10099
   rw [hlt] at rd10099'
-  have rd10100pre := evm_run rd10099' with [raw iszero (by native_decide) (by evm_ov)]
+  have rd10100pre := evm_run rd10099' with [raw iszero (by decide +native) (by evm_ov)]
   have rd10100 := by
     simpa using rd10100pre
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd10100
   have rd10108pre := evm_run rd10100 with [
-    raw push2 ⟨10108⟩ (by native_decide) (by evm_ov),
-    raw jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)]
+    raw push2 ⟨10108⟩ (by decide +native) (by evm_ov),
+    raw jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)]
   have rd2391 := evm_run rd10108pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have hcomm : art + old = old + art := u256_add_comm art old
   exact ⟨_, _, by simpa [endSnipArtNewWord, old, art, hcomm] using rd2391⟩
 
@@ -4949,25 +4949,25 @@ theorem endSnipX_artAddOverflow {cA cA' gh bl σ σmem σpost σ₀ A I}
     have hartLt : art.toNat < UInt256.size := art.val.isLt
     omega
   have rd10099pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
-  have rd10099 := evm_run rd10099pre with [raw lt (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
+  have rd10099 := evm_run rd10099pre with [raw lt (by decide +native) (by evm_ov)]
   have rd10099' := by
     simpa [old, art] using rd10099
   rw [hlt] at rd10099'
-  have rd10100pre := evm_run rd10099' with [raw iszero (by native_decide) (by evm_ov)]
+  have rd10100pre := evm_run rd10099' with [raw iszero (by decide +native) (by evm_ov)]
   have rd10100 := by
     simpa using rd10100pre
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd10100
-  have rd10104pre := evm_run rd10100 with [raw push2 ⟨10108⟩ (by native_decide) (by evm_ov)]
-  have rd10104 := rd10104pre.jumpiNT (by native_decide) (by decide)
+  have rd10104pre := evm_run rd10100 with [raw push2 ⟨10108⟩ (by decide +native) (by evm_ov)]
+  have rd10104 := rd10104pre.jumpiNT (by decide +native) (by decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact RD.solcPush1Dup1Revert0 rd10104 (by native_decide) (by native_decide)
-    (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rd10104 (by decide +native) (by decide +native)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_artStoreAtHash {cA cA' gh bl σ σmem σpost σ₀ A I} {g : Sat256}
@@ -5017,34 +5017,34 @@ theorem endSnipX_artStoreAtHash {cA cA' gh bl σ σmem σpost σ₀ A I} {g : Sa
       endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem14) ⟨14⟩ key
         (by rw [hmem14Size]; omega)
   have rd2396 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup11 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup11 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2396' := rd2396.mstore 0 (wordAt0Mem key mem14) (UInt256.ofNat 10)
-    (by native_decide) mem_cost (by simp [wordAt0Mem, key, mem14])
-    (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by simp [wordAt0Mem, key, mem14])
+    (by decide +native) (by evm_ov)
   have rd2401 := evm_run rd2396' with [
-    raw push1 ⟨14⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨14⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd2401' := rd2401.mstore 0 memStore (UInt256.ofNat 10)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (by
       change (⟨14⟩ : UInt256).toByteArray.write 0 (wordAt0Mem key mem14) 32 32 =
         memStore
       simp [memStore, endSnipArtStoreHashMem, twoWordHashMem, wordAt32Mem, key, mem14])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd2405 := evm_run rd2401' with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2406 := rd2405.keccak256 0 (endSnipArtSlot I) (UInt256.ofNat 10)
-    (by native_decide) mem_cost (by simpa [key, hslot] using hhash)
-    (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by simpa [key, hslot] using hhash)
+    (by decide +native) (by evm_ov)
   have rd2409 := evm_run rd2406 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2410raw⟩ := rd2409.sstore hperm (by native_decide)
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2410raw⟩ := rd2409.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [endSnipPostArtAccountMap, memStore] using rd2410raw⟩
 
@@ -5085,26 +5085,26 @@ theorem endSnipX_artStoreIntGuardOk {cA cA' gh bl σ σmem σpost σ₀ A I} {g 
       (slt_lit_zero (a := endSnipArtWord vatOut saleOut) (m := 0)
         (by norm_num) (by omega) hart)
   have rd2418pre := evm_run rd2410 with [
-    raw dup4 (by native_decide) (by evm_ov),
-    raw slt (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push2 ⟨2425⟩ (by native_decide) (by evm_ov)]
+    raw dup4 (by decide +native) (by evm_ov),
+    raw slt (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push2 ⟨2425⟩ (by decide +native) (by evm_ov)]
   rw [hsltLot, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd2418pre
-  have rd2419 := rd2418pre.jumpiNT (by native_decide)
+  have rd2419 := rd2418pre.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   have rd2424pre := evm_run rd2419 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw slt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw slt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov)]
   rw [hsltArt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd2424pre
   have rd2489 := evm_run rd2424pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨2489⟩ (by native_decide) (by evm_ov),
-    raw jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨2489⟩ (by decide +native) (by evm_ov),
+    raw jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa using rd2489⟩
 
@@ -5131,19 +5131,19 @@ theorem endSnipX_artStoreIntGuardLotOverflow {cA cA' gh bl σ σmem σpost σ₀
       (slt_lit_one_high (a := endSnipSaleLotWord saleOut) (m := 0)
         (by norm_num) hlot)
   have rd2418pre := evm_run rd2410 with [
-    raw dup4 (by native_decide) (by evm_ov),
-    raw slt (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push2 ⟨2425⟩ (by native_decide) (by evm_ov)]
+    raw dup4 (by decide +native) (by evm_ov),
+    raw slt (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push2 ⟨2425⟩ (by decide +native) (by evm_ov)]
   rw [hsltLot, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd2418pre
-  have rd2425 := rd2418pre.jumpiT (by native_decide)
+  have rd2425 := rd2418pre.jumpiT (by decide +native)
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
   have rd2429pre := evm_run rd2425 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨2489⟩ (by native_decide) (by evm_ov)]
-  have rd2430 := rd2429pre.jumpiNT (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨2489⟩ (by decide +native) (by evm_ov)]
+  have rd2430 := rd2429pre.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact endSnip_solcErrorStringRevertTail_aw10
     (pc := ⟨2430⟩) (len := ⟨12⟩)
@@ -5153,7 +5153,7 @@ theorem endSnipX_artStoreIntGuardLotOverflow {cA cA' gh bl σ σmem σpost σ₀
     rd2430
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) rfl
     (endSnipArtStoreHashMem_size σmem I dogOut vatOut saleOut hloDog hloVat hloSale)
     (endSnipArtStoreHashMem_read64 σmem I dogOut vatOut saleOut hloDog hloVat hloSale)
@@ -5188,26 +5188,26 @@ theorem endSnipX_artStoreIntGuardArtOverflow {cA cA' gh bl σ σmem σpost σ₀
       (slt_lit_one_high (a := endSnipArtWord vatOut saleOut) (m := 0)
         (by norm_num) hart)
   have rd2418pre := evm_run rd2410 with [
-    raw dup4 (by native_decide) (by evm_ov),
-    raw slt (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push2 ⟨2425⟩ (by native_decide) (by evm_ov)]
+    raw dup4 (by decide +native) (by evm_ov),
+    raw slt (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push2 ⟨2425⟩ (by decide +native) (by evm_ov)]
   rw [hsltLot, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd2418pre
-  have rd2419 := rd2418pre.jumpiNT (by native_decide)
+  have rd2419 := rd2418pre.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   have rd2424pre := evm_run rd2419 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw slt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw slt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov)]
   rw [hsltArt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd2424pre
   have rd2429pre := evm_run rd2424pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨2489⟩ (by native_decide) (by evm_ov)]
-  have rd2430 := rd2429pre.jumpiNT (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨2489⟩ (by decide +native) (by evm_ov)]
+  have rd2430 := rd2429pre.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact endSnip_solcErrorStringRevertTail_aw10
     (pc := ⟨2430⟩) (len := ⟨12⟩)
@@ -5217,7 +5217,7 @@ theorem endSnipX_artStoreIntGuardArtOverflow {cA cA' gh bl σ σmem σpost σ₀
     rd2430
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) rfl
     (endSnipArtStoreHashMem_size σmem I dogOut vatOut saleOut hloDog hloVat hloSale)
     (endSnipArtStoreHashMem_read64 σmem I dogOut vatOut saleOut hloDog hloVat hloSale)
@@ -5278,7 +5278,7 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
   have hselectorShift :
       UInt256.shiftLeft (⟨0x01eeacfd⟩ : UInt256) ⟨230⟩ =
         endFreeGrabSelectorShifted := by
-    native_decide
+    decide +native
   have hthisWord : EVM.word ↑I.codeOwner = endSnipThisWord I :=
     endSnipThisWordOfAddr I
   have husrMask :
@@ -5306,11 +5306,11 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
       u256_land_comm solcAddrMask (endSlotWord ⟨1⟩ σCall I)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have rd2492 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2493raw⟩ := rd2492.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2493raw⟩ := rd2492.sload (by decide +native) (by evm_ov)
   have rd2493 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2493⟩
         (endSlotWord ⟨1⟩ σCall I :: endSnipArtWord vatOut saleOut ::
@@ -5323,9 +5323,9 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2493raw⟩
   obtain ⟨_, _, rd2493⟩ := rd2493
   have rd2496 := evm_run rd2493 with [
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2497raw⟩ := rd2496.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2497raw⟩ := rd2496.sload (by decide +native) (by evm_ov)
   have rd2497 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2497⟩
         (endSlotWord ⟨4⟩ σCall I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σCall I ::
@@ -5339,115 +5339,115 @@ theorem endSnipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σLoc σ₀ A I}
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd2497raw⟩
   obtain ⟨_, _, rd2497⟩ := rd2497
   have rd2591raw := evm_run rd2497 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw push4 ⟨0x01eeacfd⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨230⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 ⟨0x01eeacfd⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨230⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipGrabMem1 σLoc I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by rw [hselectorShift]; rfl) (by decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup14 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup14 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipGrabMem2 σLoc I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipGrabMem3 σLoc I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨36⟩).toNat = 164 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨36⟩).toNat = 164 by decide +native]
         rw [haddrMask, husrMaskLeft]
         rfl)
       (by decide) (by evm_ov),
-    raw address (by native_decide) (by evm_ov),
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw address (by decide +native) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipGrabMem4 σLoc I dogOut vatOut saleOut) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨68⟩).toNat = 196 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨68⟩).toNat = 196 by decide +native]
         simp [endSnipGrabMem4, Reasoning.Theory.writeWord, endSnipThisWord])
       (by decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipGrabMem5For σCall σLoc I dogOut vatOut saleOut)
       (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨100⟩).toNat = 228 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨100⟩).toNat = 228 by decide +native]
         rw [haddrMask, hvowMaskLeft]
         rfl)
       (by decide) (by evm_ov),
-    raw push1 ⟨132⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨132⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endSnipGrabMem6For σCall σLoc I dogOut vatOut saleOut)
       (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨132⟩).toNat = 260 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨132⟩).toNat = 260 by decide +native]
         rfl)
       (by decide) (by evm_ov),
-    raw push1 ⟨164⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨164⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 3 (endSnipGrabMem7For σCall σLoc I dogOut vatOut saleOut)
       (UInt256.ofNat 11)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨164⟩).toNat = 292 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨164⟩).toNat = 292 by decide +native]
         rfl)
       (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by decide +native)
       mem_cost hmload64Grab (by decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 ⟨0x7bab3f40⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨196⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw swap3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 ⟨0x7bab3f40⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨196⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   have rd2591 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2591⟩
         (endPackVatWord σCall I :: endPackVatWord σCall I :: ⟨0⟩ ::
@@ -5486,9 +5486,9 @@ theorem endSnipX_grabNoCode {cA cA' gh bl σ σCall σLoc σ₀ A I}
   obtain ⟨_, _, rd2591⟩ := endSnipX_grabExtcodesizeGuard hloDog hloVat hloSale h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2591⟩) (okPc := ⟨2603⟩) rd2591
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_grabCallReady {cA cA' gh bl σ σCall σLoc σ₀ A I}
     {g : Sat256} {sel : UInt256} {dogOut vatOut saleOut rdata : ByteArray} {k C : ℕ}
@@ -5519,9 +5519,9 @@ theorem endSnipX_grabCallReady {cA cA' gh bl σ σCall σLoc σ₀ A I}
   obtain ⟨gasWord, k', C', rd2606⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2591⟩) (okPc := ⟨2603⟩) rd2591
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd2606⟩
 
 theorem endSnipX_grabPostCall {cA cA' gh bl σ σCall σ₀ A I}
@@ -5562,7 +5562,7 @@ theorem endSnipX_grabPostCall {cA cA' gh bl σ σCall σ₀ A I}
           (UInt256.ofNat 11) ret (cA'', σ'') k' C'
       ∧ ret.size < UInt256.size := by
   obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd2607raw, hret⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endFreeGrabOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
@@ -5575,7 +5575,7 @@ theorem endSnipX_grabPostCall {cA cA' gh bl σ σCall σ₀ A I}
           endFreeGrabOutPtr.toNat endFreeGrabInSize.toNat)
           endFreeGrabOutPtr.toNat endFreeGrabOutSize.toNat) = UInt256.ofNat 11 := by
       unfold endFreeGrabOutPtr endFreeGrabInSize endFreeGrabOutSize
-      native_decide
+      decide +native
     simpa [endSnipGrabPostCallMemFor, endFreeGrabOutPtr, endFreeGrabInSize,
       endFreeGrabOutSize, endFreeGrabEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd2607raw
@@ -5604,7 +5604,7 @@ theorem endSnipX_grabCallDepthLimit {cA cA' gh bl σ σCall σLoc σ₀ A I}
       (endSnipGrabCalldataMemFor σCall σLoc I dogOut vatOut saleOut)
       (UInt256.ofNat 11) ByteArray.empty (cA', σCall) k' C' := by
   obtain ⟨k', C', rd2607raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endFreeGrabOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -5614,7 +5614,7 @@ theorem endSnipX_grabCallDepthLimit {cA cA' gh bl σ σCall σLoc σ₀ A I}
         endFreeGrabOutPtr.toNat endFreeGrabInSize.toNat)
         endFreeGrabOutPtr.toNat endFreeGrabOutSize.toNat) = UInt256.ofNat 11 := by
     unfold endFreeGrabOutPtr endFreeGrabInSize endFreeGrabOutSize
-    native_decide
+    decide +native
   simpa [endFreeGrabOutPtr, endFreeGrabInSize, endFreeGrabOutSize,
     endFreeGrabEndPtr, hmin, byteArray_write_len_zero, haw] using rd2607raw
 
@@ -5633,9 +5633,9 @@ theorem endSnipX_grabCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2607⟩) (okPc := ⟨2623⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSnipX_grabCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
@@ -5659,8 +5659,8 @@ theorem endSnipX_grabCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
       mem (UInt256.ofNat 11) rdata (cA', σpost) k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨2607⟩) (okPc := ⟨2623⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp)
 
 theorem endSnipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -5708,7 +5708,7 @@ theorem endSnipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
         hloDog hloVat hloSale)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have husrMaskLeft :
       UInt256.land solcAddrMask (endSnipSaleUsrWord saleOut) =
         endSnipSaleUsrAddrWord saleOut := by
@@ -5721,60 +5721,60 @@ theorem endSnipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
   let snipEvent : UInt256 :=
     ⟨0xfc67e20caaffa015d51f696df8ea5c273ba269c69bdc2ec31c1334d01286eaa4⟩
   have rd2632pre := evm_run h with [
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by native_decide)
-      mem_cost hmload64 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by decide +native)
+      mem_cost hmload64 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rdTabMem := rd2632pre.mstore 0
     (endSnipLogDataMemFor σCall σLoc I dogOut vatOut saleOut ret) (UInt256.ofNat 11)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2639pre := evm_run rdTabMem with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rdLotMem := rd2639pre.mstore 0
     (endSnipLogDataMem2For σCall σLoc I dogOut vatOut saleOut ret) (UInt256.ofNat 11)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (by
-      rw [show ((⟨128⟩ : UInt256) + ⟨32⟩).toNat = 160 by native_decide]
+      rw [show ((⟨128⟩ : UInt256) + ⟨32⟩).toNat = 160 by decide +native]
       rfl)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd2645pre := evm_run rdLotMem with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rdArtMem := rd2645pre.mstore 0
     (endSnipLogDataMem3For σCall σLoc I dogOut vatOut saleOut ret) (UInt256.ofNat 11)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (by
-      rw [show ((⟨64⟩ : UInt256) + ⟨128⟩).toNat = 192 by native_decide]
+      rw [show ((⟨64⟩ : UInt256) + ⟨128⟩).toNat = 192 by decide +native]
       rfl)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd2665raw := evm_run rdArtMem with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by native_decide)
-      mem_cost hmload64Log (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup12 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup13 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by decide +native)
+      mem_cost hmload64Log (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup12 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup13 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd2665 : ∃ k' C', RD endBytecode I g s0 ⟨2665⟩
       (⟨128⟩ :: ⟨128⟩ :: endSnipIlkWord I :: endSnipIdWord I ::
         endSnipSaleUsrAddrWord saleOut :: endSnipArtWord vatOut saleOut ::
@@ -5787,16 +5787,16 @@ theorem endSnipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     exact ⟨_, _, by simpa [haddrMask, husrMask] using rd2665raw⟩
   obtain ⟨_, _, rd2665⟩ := rd2665
   have rdEvent := rd2665.pushConst snipEvent (width := 32) (op := .PUSH32)
-    (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by evm_ov)
   have rd2707raw := evm_run rdEvent with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨96⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨96⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd2707 : ∃ k' C', RD endBytecode I g s0 ⟨2707⟩
       (⟨128⟩ :: ⟨96⟩ :: snipEvent :: endSnipIlkWord I :: endSnipIdWord I ::
         endSnipSaleUsrAddrWord saleOut :: endSnipArtWord vatOut saleOut ::
@@ -5821,52 +5821,52 @@ theorem endSnipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 11).toNat (⟨128⟩ : UInt256).toNat
         (⟨96⟩ : UInt256).toNat))
-    rd2707 (by native_decide) hperm mem_cost (by native_decide)
+    rd2707 (by decide +native) hperm mem_cost (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdPopArt := RD.pop (a := endSnipArtWord vatOut saleOut)
     (t := [endSnipSaleUsrWord saleOut, endSnipSaleLotWord saleOut,
       endSnipSaleTabWord saleOut, endFlowVatIlkRateWord vatOut,
       endSnipDogIlkClipWord dogOut, endSnipDogIlkClipWord dogOut,
       endSnipIdWord I, endSnipIlkWord I, endSnipReturnPc, sel])
-    rdLog (by native_decide) (by evm_ov)
+    rdLog (by decide +native) (by evm_ov)
   have rdPopUsr := RD.pop (a := endSnipSaleUsrWord saleOut)
     (t := [endSnipSaleLotWord saleOut, endSnipSaleTabWord saleOut,
       endFlowVatIlkRateWord vatOut, endSnipDogIlkClipWord dogOut,
       endSnipDogIlkClipWord dogOut, endSnipIdWord I, endSnipIlkWord I,
       endSnipReturnPc, sel])
-    rdPopArt (by native_decide) (by evm_ov)
+    rdPopArt (by decide +native) (by evm_ov)
   have rdPopLot := RD.pop (a := endSnipSaleLotWord saleOut)
     (t := [endSnipSaleTabWord saleOut, endFlowVatIlkRateWord vatOut,
       endSnipDogIlkClipWord dogOut, endSnipDogIlkClipWord dogOut,
       endSnipIdWord I, endSnipIlkWord I, endSnipReturnPc, sel])
-    rdPopUsr (by native_decide) (by evm_ov)
+    rdPopUsr (by decide +native) (by evm_ov)
   have rdPopTab := RD.pop (a := endSnipSaleTabWord saleOut)
     (t := [endFlowVatIlkRateWord vatOut, endSnipDogIlkClipWord dogOut,
       endSnipDogIlkClipWord dogOut, endSnipIdWord I, endSnipIlkWord I,
       endSnipReturnPc, sel])
-    rdPopLot (by native_decide) (by evm_ov)
+    rdPopLot (by decide +native) (by evm_ov)
   have rdPopRate := RD.pop (a := endFlowVatIlkRateWord vatOut)
     (t := [endSnipDogIlkClipWord dogOut, endSnipDogIlkClipWord dogOut,
       endSnipIdWord I, endSnipIlkWord I, endSnipReturnPc, sel])
-    rdPopTab (by native_decide) (by evm_ov)
+    rdPopTab (by decide +native) (by evm_ov)
   have rdPopClipA := RD.pop (a := endSnipDogIlkClipWord dogOut)
     (t := [endSnipDogIlkClipWord dogOut, endSnipIdWord I, endSnipIlkWord I,
       endSnipReturnPc, sel])
-    rdPopRate (by native_decide) (by evm_ov)
+    rdPopRate (by decide +native) (by evm_ov)
   have rdPopClipB := RD.pop (a := endSnipDogIlkClipWord dogOut)
     (t := [endSnipIdWord I, endSnipIlkWord I, endSnipReturnPc, sel])
-    rdPopClipA (by native_decide) (by evm_ov)
+    rdPopClipA (by decide +native) (by evm_ov)
   have rdPopId := RD.pop (a := endSnipIdWord I)
     (t := [endSnipIlkWord I, endSnipReturnPc, sel])
-    rdPopClipB (by native_decide) (by evm_ov)
+    rdPopClipB (by decide +native) (by evm_ov)
   have rdPopIlk := RD.pop (a := endSnipIlkWord I)
     (t := [endSnipReturnPc, sel])
-    rdPopId (by native_decide) (by evm_ov)
+    rdPopId (by decide +native) (by evm_ov)
   have rd562 := RD.jump (a := endSnipReturnPc) (t := [sel]) rdPopIlk
-    (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) (by jump_dest) (by evm_ov)
   have rd563 := RD.jumpdest (pc := endSnipReturnPc) (stk := [sel]) rd562
-    (by native_decide) (by evm_ov)
-  exact RD.stop rd563 (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  exact RD.stop rd563 (by decide +native) (by evm_ov)
 
 theorem evalExpr_endSnip_ilk (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := endSnipStore I } evm (.var "ilk") =
@@ -6513,8 +6513,8 @@ theorem evalExprs_endSnip_vatIlksArgs_afterClip (evm : EVM.State)
     change EvalResult.ofOption EvalError.unboundVariable
       ((endSnipStoreClip I dogOut).get? "ilk") =
         .ok (.fixedBytes bytes32Width (endBytes32ArgBytes I))
-    rw [endSnipStoreClip, store_get_ne _ _ (by native_decide),
-      endSnipStoreDogIlk, store_get_ne _ _ (by native_decide), endSnipStore_get_ilk]
+    rw [endSnipStoreClip, store_get_ne _ _ (by decide +native),
+      endSnipStoreDogIlk, store_get_ne _ _ (by decide +native), endSnipStore_get_ilk]
     rfl
   simp [evalExprs?, hilk, endSnipIlkBytes, endBytes32ArgBytes, EvalResult.bind, bind, pure]
 
@@ -6774,8 +6774,8 @@ theorem endSnipSalesReceiver_afterRate {I dogOut vatOut evm} :
   change EvalResult.ofOption EvalError.unboundVariable
       ((endSnipStoreRate I dogOut vatOut).get? "clip") =
     .ok (.address (endSnipDogIlkClipAddr dogOut))
-  rw [endSnipStoreRate, store_get_ne _ _ (by native_decide),
-    endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
+  rw [endSnipStoreRate, store_get_ne _ _ (by decide +native),
+    endSnipStoreVatIlk, store_get_ne _ _ (by decide +native),
     endSnipStoreClip, store_get_self]
   rfl
 
@@ -6835,10 +6835,10 @@ theorem evalExprs_endSnip_salesArgs_afterRate (evm : EVM.State)
     change EvalResult.ofOption EvalError.unboundVariable
         ((endSnipStoreRate I dogOut vatOut).get? "id") =
       .ok (.int (Int.ofNat (endSnipIdWord I).toNat))
-    rw [endSnipStoreRate, store_get_ne _ _ (by native_decide),
-      endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
-      endSnipStoreClip, store_get_ne _ _ (by native_decide),
-      endSnipStoreDogIlk, store_get_ne _ _ (by native_decide),
+    rw [endSnipStoreRate, store_get_ne _ _ (by decide +native),
+      endSnipStoreVatIlk, store_get_ne _ _ (by decide +native),
+      endSnipStoreClip, store_get_ne _ _ (by decide +native),
+      endSnipStoreDogIlk, store_get_ne _ _ (by decide +native),
       endSnipStore, store_get_self]
     rfl
   simp [evalExprs?, hid, EvalResult.bind, bind, pure]
@@ -7022,7 +7022,7 @@ theorem evalExpr_endSnip_clipSale_lot (evm : EVM.State) (I : ExecutionEnv)
           .address (endSnipSaleUsrAddr saleOut),
           .int (Int.ofNat ((endSnipSaleTicWord saleOut).toNat % EVM.twoPow 96)),
           .int (Int.ofNat (endSnipSaleTopWord saleOut).toNat)])
-    rw [endSnipStoreTab, store_get_ne _ _ (by native_decide),
+    rw [endSnipStoreTab, store_get_ne _ _ (by decide +native),
       endSnipStoreClipSale, store_get_self]
     rfl
   rw [evalExpr?]
@@ -7051,8 +7051,8 @@ theorem evalExpr_endSnip_clipSale_usr (evm : EVM.State) (I : ExecutionEnv)
           .address (endSnipSaleUsrAddr saleOut),
           .int (Int.ofNat ((endSnipSaleTicWord saleOut).toNat % EVM.twoPow 96)),
           .int (Int.ofNat (endSnipSaleTopWord saleOut).toNat)])
-    rw [endSnipStoreLot, store_get_ne _ _ (by native_decide),
-      endSnipStoreTab, store_get_ne _ _ (by native_decide),
+    rw [endSnipStoreLot, store_get_ne _ _ (by decide +native),
+      endSnipStoreTab, store_get_ne _ _ (by decide +native),
       endSnipStoreClipSale, store_get_self]
     rfl
   rw [evalExpr?]
@@ -7199,8 +7199,8 @@ theorem evalExprs_endSnip_suckArgs_afterUsr (evm : EVM.State) (I : ExecutionEnv)
         (locals := endSnipStoreUsr I dogOut vatOut saleOut)
         (name := "tab") (value := endSnipSaleTabWord saleOut)
         (by
-          rw [endSnipStoreUsr, store_get_ne _ _ (by native_decide),
-            endSnipStoreLot, store_get_ne _ _ (by native_decide),
+          rw [endSnipStoreUsr, store_get_ne _ _ (by decide +native),
+            endSnipStoreLot, store_get_ne _ _ (by decide +native),
             endSnipStoreTab, store_get_self])
   simp [evalExprs?, hvow, htab, EvalResult.bind, bind, pure]
 
@@ -7316,13 +7316,13 @@ theorem endSnipClipReceiver_afterSuck {I dogOut vatOut saleOut evm} :
   change EvalResult.ofOption EvalError.unboundVariable
       ((endSnipStoreSuck I dogOut vatOut saleOut).get? "clip") =
     .ok (.address (endSnipDogIlkClipAddr dogOut))
-  rw [endSnipStoreSuck, store_get_ne _ _ (by native_decide),
-    endSnipStoreUsr, store_get_ne _ _ (by native_decide),
-    endSnipStoreLot, store_get_ne _ _ (by native_decide),
-    endSnipStoreTab, store_get_ne _ _ (by native_decide),
-    endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
-    endSnipStoreRate, store_get_ne _ _ (by native_decide),
-    endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
+  rw [endSnipStoreSuck, store_get_ne _ _ (by decide +native),
+    endSnipStoreUsr, store_get_ne _ _ (by decide +native),
+    endSnipStoreLot, store_get_ne _ _ (by decide +native),
+    endSnipStoreTab, store_get_ne _ _ (by decide +native),
+    endSnipStoreClipSale, store_get_ne _ _ (by decide +native),
+    endSnipStoreRate, store_get_ne _ _ (by decide +native),
+    endSnipStoreVatIlk, store_get_ne _ _ (by decide +native),
     endSnipStoreClip, store_get_self]
   rfl
 
@@ -7337,15 +7337,15 @@ theorem evalExprs_endSnip_yankArgs_afterSuck (evm : EVM.State) (I : ExecutionEnv
     change EvalResult.ofOption EvalError.unboundVariable
         ((endSnipStoreSuck I dogOut vatOut saleOut).get? "id") =
       .ok (.int (Int.ofNat (endSnipIdWord I).toNat))
-    rw [endSnipStoreSuck, store_get_ne _ _ (by native_decide),
-      endSnipStoreUsr, store_get_ne _ _ (by native_decide),
-      endSnipStoreLot, store_get_ne _ _ (by native_decide),
-      endSnipStoreTab, store_get_ne _ _ (by native_decide),
-      endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
-      endSnipStoreRate, store_get_ne _ _ (by native_decide),
-      endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
-      endSnipStoreClip, store_get_ne _ _ (by native_decide),
-      endSnipStoreDogIlk, store_get_ne _ _ (by native_decide),
+    rw [endSnipStoreSuck, store_get_ne _ _ (by decide +native),
+      endSnipStoreUsr, store_get_ne _ _ (by decide +native),
+      endSnipStoreLot, store_get_ne _ _ (by decide +native),
+      endSnipStoreTab, store_get_ne _ _ (by decide +native),
+      endSnipStoreClipSale, store_get_ne _ _ (by decide +native),
+      endSnipStoreRate, store_get_ne _ _ (by decide +native),
+      endSnipStoreVatIlk, store_get_ne _ _ (by decide +native),
+      endSnipStoreClip, store_get_ne _ _ (by decide +native),
+      endSnipStoreDogIlk, store_get_ne _ _ (by decide +native),
       endSnipStore, store_get_self]
     rfl
   simp [evalExprs?, hid, EvalResult.bind, bind, pure]
@@ -7450,10 +7450,10 @@ theorem evalExpr_endSnip_tab_afterYank (evm : EVM.State) (I : ExecutionEnv)
       (locals := endSnipStoreYank I dogOut vatOut saleOut)
       (name := "tab") (value := endSnipSaleTabWord saleOut)
       (by
-        rw [endSnipStoreYank, store_get_ne _ _ (by native_decide),
-          endSnipStoreSuck, store_get_ne _ _ (by native_decide),
-          endSnipStoreUsr, store_get_ne _ _ (by native_decide),
-          endSnipStoreLot, store_get_ne _ _ (by native_decide),
+        rw [endSnipStoreYank, store_get_ne _ _ (by decide +native),
+          endSnipStoreSuck, store_get_ne _ _ (by decide +native),
+          endSnipStoreUsr, store_get_ne _ _ (by decide +native),
+          endSnipStoreLot, store_get_ne _ _ (by decide +native),
           endSnipStoreTab, store_get_self])
 
 theorem evalExpr_endSnip_rate_afterYank (evm : EVM.State) (I : ExecutionEnv)
@@ -7466,12 +7466,12 @@ theorem evalExpr_endSnip_rate_afterYank (evm : EVM.State) (I : ExecutionEnv)
       (locals := endSnipStoreYank I dogOut vatOut saleOut)
       (name := "rate") (value := endFlowVatIlkRateWord vatOut)
       (by
-        rw [endSnipStoreYank, store_get_ne _ _ (by native_decide),
-          endSnipStoreSuck, store_get_ne _ _ (by native_decide),
-          endSnipStoreUsr, store_get_ne _ _ (by native_decide),
-          endSnipStoreLot, store_get_ne _ _ (by native_decide),
-          endSnipStoreTab, store_get_ne _ _ (by native_decide),
-          endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
+        rw [endSnipStoreYank, store_get_ne _ _ (by decide +native),
+          endSnipStoreSuck, store_get_ne _ _ (by decide +native),
+          endSnipStoreUsr, store_get_ne _ _ (by decide +native),
+          endSnipStoreLot, store_get_ne _ _ (by decide +native),
+          endSnipStoreTab, store_get_ne _ _ (by decide +native),
+          endSnipStoreClipSale, store_get_ne _ _ (by decide +native),
           endSnipStoreRate, store_get_self])
 
 theorem endSnipStmtArt (evm : EVM.State) (I : ExecutionEnv)
@@ -7501,17 +7501,17 @@ theorem endSnipStmtArtReverts (evm : EVM.State) (I : ExecutionEnv)
 
 theorem endSnipStoreArt_get_ilk (I : ExecutionEnv) (dogOut vatOut saleOut : ByteArray) :
     (endSnipStoreArt I dogOut vatOut saleOut).get? "ilk" = some (endFlowIlkValue I) := by
-  rw [endSnipStoreArt, store_get_ne _ _ (by native_decide),
-    endSnipStoreYank, store_get_ne _ _ (by native_decide),
-    endSnipStoreSuck, store_get_ne _ _ (by native_decide),
-    endSnipStoreUsr, store_get_ne _ _ (by native_decide),
-    endSnipStoreLot, store_get_ne _ _ (by native_decide),
-    endSnipStoreTab, store_get_ne _ _ (by native_decide),
-    endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
-    endSnipStoreRate, store_get_ne _ _ (by native_decide),
-    endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
-    endSnipStoreClip, store_get_ne _ _ (by native_decide),
-    endSnipStoreDogIlk, store_get_ne _ _ (by native_decide)]
+  rw [endSnipStoreArt, store_get_ne _ _ (by decide +native),
+    endSnipStoreYank, store_get_ne _ _ (by decide +native),
+    endSnipStoreSuck, store_get_ne _ _ (by decide +native),
+    endSnipStoreUsr, store_get_ne _ _ (by decide +native),
+    endSnipStoreLot, store_get_ne _ _ (by decide +native),
+    endSnipStoreTab, store_get_ne _ _ (by decide +native),
+    endSnipStoreClipSale, store_get_ne _ _ (by decide +native),
+    endSnipStoreRate, store_get_ne _ _ (by decide +native),
+    endSnipStoreVatIlk, store_get_ne _ _ (by decide +native),
+    endSnipStoreClip, store_get_ne _ _ (by decide +native),
+    endSnipStoreDogIlk, store_get_ne _ _ (by decide +native)]
   simpa [endFlowIlkValue, endBytes32ArgValue, endBytes32ArgBytes, endSnipIlkBytes]
     using endSnipStore_get_ilk I
 
@@ -7691,7 +7691,7 @@ theorem endSnipStmtArtAssign (evm : EVM.State) (I : ExecutionEnv)
     have hget :
         (endSnipStoreArtNew σ I dogOut vatOut saleOut).get? "ilk" =
           some (endFlowIlkValue I) := by
-      rw [endSnipStoreArtNew, store_get_ne _ _ (by native_decide)]
+      rw [endSnipStoreArtNew, store_get_ne _ _ (by decide +native)]
       exact endSnipStoreArt_get_ilk I dogOut vatOut saleOut
     exact endSnipAssignArt evm I (endSnipArtNewWord σ I vatOut saleOut) hbase hget hsz68
   exact ExecStmt.assign hArtNew hassign
@@ -7731,11 +7731,11 @@ theorem evalExpr_endSnip_lot_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
       (locals := endSnipStoreArtNew σ I dogOut vatOut saleOut)
       (name := "lot") (value := endSnipSaleLotWord saleOut)
       (by
-        rw [endSnipStoreArtNew, store_get_ne _ _ (by native_decide),
-          endSnipStoreArt, store_get_ne _ _ (by native_decide),
-          endSnipStoreYank, store_get_ne _ _ (by native_decide),
-          endSnipStoreSuck, store_get_ne _ _ (by native_decide),
-          endSnipStoreUsr, store_get_ne _ _ (by native_decide),
+        rw [endSnipStoreArtNew, store_get_ne _ _ (by decide +native),
+          endSnipStoreArt, store_get_ne _ _ (by decide +native),
+          endSnipStoreYank, store_get_ne _ _ (by decide +native),
+          endSnipStoreSuck, store_get_ne _ _ (by decide +native),
+          endSnipStoreUsr, store_get_ne _ _ (by decide +native),
           endSnipStoreLot, store_get_self])
 
 theorem evalExpr_endSnip_art_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
@@ -7748,7 +7748,7 @@ theorem evalExpr_endSnip_art_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
       (locals := endSnipStoreArtNew σ I dogOut vatOut saleOut)
       (name := "art") (value := endSnipArtWord vatOut saleOut)
       (by
-        rw [endSnipStoreArtNew, store_get_ne _ _ (by native_decide),
+        rw [endSnipStoreArtNew, store_get_ne _ _ (by decide +native),
           endSnipStoreArt, store_get_self])
 
 theorem endSnipEvalExpr_intGuard_true (evm : EVM.State) (I : ExecutionEnv)
@@ -7759,7 +7759,7 @@ theorem endSnipEvalExpr_intGuard_true (evm : EVM.State) (I : ExecutionEnv)
       (.binary .and
         (.binary .lt (.var "lot") (.intLit int256Limit))
         (.binary .lt (.var "art") (.intLit int256Limit))) = .ok (.bool true) := by
-  have hlimit : int256Limit = Int.ofNat (2 ^ 255) := by native_decide
+  have hlimit : int256Limit = Int.ofNat (2 ^ 255) := by decide +native
   have hlotExpr := evalExpr_endSnip_lot_afterArtNew evm I σ dogOut vatOut saleOut
   have hartExpr := evalExpr_endSnip_art_afterArtNew evm I σ dogOut vatOut saleOut
   have hlimitExpr :
@@ -7787,7 +7787,7 @@ theorem endSnipEvalExpr_intGuard_false_lot (evm : EVM.State) (I : ExecutionEnv)
       (.binary .and
         (.binary .lt (.var "lot") (.intLit int256Limit))
         (.binary .lt (.var "art") (.intLit int256Limit))) = .ok (.bool false) := by
-  have hlimit : int256Limit = Int.ofNat (2 ^ 255) := by native_decide
+  have hlimit : int256Limit = Int.ofNat (2 ^ 255) := by decide +native
   have hlotExpr := evalExpr_endSnip_lot_afterArtNew evm I σ dogOut vatOut saleOut
   have hlimitExpr :
       evalExpr? config { contract := contract, locals := endSnipStoreArtNew σ I dogOut vatOut saleOut } evm
@@ -7809,7 +7809,7 @@ theorem endSnipEvalExpr_intGuard_false_art (evm : EVM.State) (I : ExecutionEnv)
       (.binary .and
         (.binary .lt (.var "lot") (.intLit int256Limit))
         (.binary .lt (.var "art") (.intLit int256Limit))) = .ok (.bool false) := by
-  have hlimit : int256Limit = Int.ofNat (2 ^ 255) := by native_decide
+  have hlimit : int256Limit = Int.ofNat (2 ^ 255) := by decide +native
   have hlotExpr := evalExpr_endSnip_lot_afterArtNew evm I σ dogOut vatOut saleOut
   have hartExpr := evalExpr_endSnip_art_afterArtNew evm I σ dogOut vatOut saleOut
   have hlimitExpr :
@@ -7836,20 +7836,20 @@ theorem endSnipVatReceiver_afterArtNewFor {σCall σLoc I dogOut vatOut saleOut 
     evalExpr? config { contract := contract, locals := endSnipStoreArtNew σLoc I dogOut vatOut saleOut } evm
       (.storage vatRef) = .ok (.address (endPackVatAddr σCall I)) := by
   have hbase : (endSnipStoreArtNew σLoc I dogOut vatOut saleOut).get? "vat" = none := by
-    rw [endSnipStoreArtNew, store_get_ne _ _ (by native_decide),
-      endSnipStoreArt, store_get_ne _ _ (by native_decide),
-      endSnipStoreYank, store_get_ne _ _ (by native_decide),
-      endSnipStoreSuck, store_get_ne _ _ (by native_decide),
-      endSnipStoreUsr, store_get_ne _ _ (by native_decide),
-      endSnipStoreLot, store_get_ne _ _ (by native_decide),
-      endSnipStoreTab, store_get_ne _ _ (by native_decide),
-      endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
-      endSnipStoreRate, store_get_ne _ _ (by native_decide),
-      endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
-      endSnipStoreClip, store_get_ne _ _ (by native_decide),
-      endSnipStoreDogIlk, store_get_ne _ _ (by native_decide),
-      endSnipStore, store_get_ne _ _ (by native_decide),
-      store_get_ne _ _ (by native_decide)]
+    rw [endSnipStoreArtNew, store_get_ne _ _ (by decide +native),
+      endSnipStoreArt, store_get_ne _ _ (by decide +native),
+      endSnipStoreYank, store_get_ne _ _ (by decide +native),
+      endSnipStoreSuck, store_get_ne _ _ (by decide +native),
+      endSnipStoreUsr, store_get_ne _ _ (by decide +native),
+      endSnipStoreLot, store_get_ne _ _ (by decide +native),
+      endSnipStoreTab, store_get_ne _ _ (by decide +native),
+      endSnipStoreClipSale, store_get_ne _ _ (by decide +native),
+      endSnipStoreRate, store_get_ne _ _ (by decide +native),
+      endSnipStoreVatIlk, store_get_ne _ _ (by decide +native),
+      endSnipStoreClip, store_get_ne _ _ (by decide +native),
+      endSnipStoreDogIlk, store_get_ne _ _ (by decide +native),
+      endSnipStore, store_get_ne _ _ (by decide +native),
+      store_get_ne _ _ (by decide +native)]
     simp
   simpa [hmap, howner, Solm.EVM.storageLoad, State.lookupAccount,
     endPackVatAddr, endPackVatWord, endSlotWord, solcSlotWord] using
@@ -7862,7 +7862,7 @@ theorem evalExpr_endSnip_ilk_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
       evm (.var "ilk") =
       .ok (.fixedBytes bytes32Width (endBytes32ArgBytes I)) := by
   apply endEvalExpr_varFixedBytes
-  rw [endSnipStoreArtNew, store_get_ne _ _ (by native_decide)]
+  rw [endSnipStoreArtNew, store_get_ne _ _ (by decide +native)]
   simpa [endFlowIlkValue, endBytes32ArgValue] using
     endSnipStoreArt_get_ilk I dogOut vatOut saleOut
 
@@ -7874,10 +7874,10 @@ theorem evalExpr_endSnip_usr_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
   change EvalResult.ofOption EvalError.unboundVariable
     ((endSnipStoreArtNew σ I dogOut vatOut saleOut).get? "usr") =
       .ok (.address (endSnipSaleUsrAddr saleOut))
-  rw [endSnipStoreArtNew, store_get_ne _ _ (by native_decide),
-    endSnipStoreArt, store_get_ne _ _ (by native_decide),
-    endSnipStoreYank, store_get_ne _ _ (by native_decide),
-    endSnipStoreSuck, store_get_ne _ _ (by native_decide),
+  rw [endSnipStoreArtNew, store_get_ne _ _ (by decide +native),
+    endSnipStoreArt, store_get_ne _ _ (by decide +native),
+    endSnipStoreYank, store_get_ne _ _ (by decide +native),
+    endSnipStoreSuck, store_get_ne _ _ (by decide +native),
     endSnipStoreUsr, store_get_self]
   rfl
 
@@ -7894,20 +7894,20 @@ theorem evalExpr_endSnip_vow_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
     evalExpr? config { contract := contract, locals := endSnipStoreArtNew σ I dogOut vatOut saleOut }
       evm vowAddr = .ok (.address (endPackVowAddr evm.accountMap I)) := by
   have hbase : (endSnipStoreArtNew σ I dogOut vatOut saleOut).get? "vow" = none := by
-    rw [endSnipStoreArtNew, store_get_ne _ _ (by native_decide),
-      endSnipStoreArt, store_get_ne _ _ (by native_decide),
-      endSnipStoreYank, store_get_ne _ _ (by native_decide),
-      endSnipStoreSuck, store_get_ne _ _ (by native_decide),
-      endSnipStoreUsr, store_get_ne _ _ (by native_decide),
-      endSnipStoreLot, store_get_ne _ _ (by native_decide),
-      endSnipStoreTab, store_get_ne _ _ (by native_decide),
-      endSnipStoreClipSale, store_get_ne _ _ (by native_decide),
-      endSnipStoreRate, store_get_ne _ _ (by native_decide),
-      endSnipStoreVatIlk, store_get_ne _ _ (by native_decide),
-      endSnipStoreClip, store_get_ne _ _ (by native_decide),
-      endSnipStoreDogIlk, store_get_ne _ _ (by native_decide),
-      endSnipStore, store_get_ne _ _ (by native_decide),
-      store_get_ne _ _ (by native_decide)]
+    rw [endSnipStoreArtNew, store_get_ne _ _ (by decide +native),
+      endSnipStoreArt, store_get_ne _ _ (by decide +native),
+      endSnipStoreYank, store_get_ne _ _ (by decide +native),
+      endSnipStoreSuck, store_get_ne _ _ (by decide +native),
+      endSnipStoreUsr, store_get_ne _ _ (by decide +native),
+      endSnipStoreLot, store_get_ne _ _ (by decide +native),
+      endSnipStoreTab, store_get_ne _ _ (by decide +native),
+      endSnipStoreClipSale, store_get_ne _ _ (by decide +native),
+      endSnipStoreRate, store_get_ne _ _ (by decide +native),
+      endSnipStoreVatIlk, store_get_ne _ _ (by decide +native),
+      endSnipStoreClip, store_get_ne _ _ (by decide +native),
+      endSnipStoreDogIlk, store_get_ne _ _ (by decide +native),
+      endSnipStore, store_get_ne _ _ (by decide +native),
+      store_get_ne _ _ (by decide +native)]
     simp
   simpa [vowAddr, howner, Solm.EVM.storageLoad, State.lookupAccount,
     endPackVowAddr, endPackVowWord, endSlotWord, solcSlotWord] using
@@ -8805,10 +8805,10 @@ theorem endSnipX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (code := endBytecode) (sel := sel)
     (entry := endSnipEntryPc) (ret := endSnipReturnPc)
     (decoded := endSnipDecodedPc) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem endSnipBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -9827,7 +9827,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       let int256Bound : Nat :=
                                         57896044618658097711785492504343953926634992332820282019728792003956564819968
                                       have hint256Bound : int256Bound = 2 ^ 255 := by
-                                        native_decide
+                                        decide +native
                                       by_cases hlotBound :
                                           (endSnipSaleLotWord saleOut).toNat < int256Bound
                                       · have hlot :
@@ -10205,8 +10205,8 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                     (returnEquiv.fallthrough
                                                       (o := ByteArray.empty) (r := none)
                                                       (t := []) (dvs := []) rfl
-                                                      (by native_decide)
-                                                      (by native_decide)))
+                                                      (by decide +native)
+                                                      (by decide +native)))
                                         · have hartOverflowBound :
                                             int256Bound ≤
                                               (endSnipArtWord vatOut saleOut).toNat :=
@@ -10292,7 +10292,7 @@ theorem endSnipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 (out := ByteArray.empty)
                 hwv hsz68 htagSolmNE hdogCodeSolmNE
                 (by simpa using hcallSolm)
-          exact (endSnipX_dogIlksCallFailed rd1820 (by native_decide))
+          exact (endSnipX_dogIlksCallFailed rd1820 (by decide +native))
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · exact endSnipBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 

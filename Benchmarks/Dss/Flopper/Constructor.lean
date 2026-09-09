@@ -17,13 +17,13 @@ private theorem flopperCtorDefaultsSlot6Word_eq_source (old : UInt256) :
         flopperCtorTauWord := by
   rw [flopperCtorDefaultsSlot6Word, fileSetUint48Offset0Word, fileSetUint48Offset6Word]
   rw [show UInt256.land flopperCtorTtlWord flopperUint48Mask = flopperCtorTtlWord
-    by native_decide]
+    by decide +native]
   rw [show UInt256.land flopperCtorTauWord flopperUint48Mask = flopperCtorTauWord
-    by native_decide]
+    by decide +native]
   rw [show UInt256.mul flopperCtorTauWord (UInt256.ofNat (2 ^ 48)) =
-      UInt256.shiftLeft flopperCtorTauWord ⟨48⟩ by native_decide]
+      UInt256.shiftLeft flopperCtorTauWord ⟨48⟩ by decide +native]
   rw [show fileUint48Offset6Mask = UInt256.shiftLeft flopperUint48Mask ⟨48⟩
-    by native_decide]
+    by decide +native]
   rw [u256_land_comm (UInt256.lnot (UInt256.shiftLeft flopperUint48Mask ⟨48⟩))
     (UInt256.lor (UInt256.land old (UInt256.lnot flopperUint48Mask)) flopperCtorTtlWord)]
   rw [u256_lor_comm]

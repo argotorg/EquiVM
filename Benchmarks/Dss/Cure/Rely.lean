@@ -71,7 +71,7 @@ theorem cureAuthGuardEval_true {cA gh bl σ σ₀ A I} {g : Sat256} {locals : St
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
-  all_goals native_decide
+  all_goals decide +native
 
 theorem cureAuthGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
@@ -105,7 +105,7 @@ theorem cureAuthGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256} {locals : S
     apply hload
     apply u256_inj
     simpa using hnat
-  all_goals native_decide
+  all_goals decide +native
 
 theorem cureLiveGuardEval_true {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "live" = none)
@@ -135,7 +135,7 @@ theorem cureLiveGuardEval_true {cA gh bl σ σ₀ A I} {g : Sat256} {locals : St
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
-  all_goals native_decide
+  all_goals decide +native
 
 theorem cureLiveGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "live" = none)
@@ -169,7 +169,7 @@ theorem cureLiveGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256} {locals : S
     apply hload
     apply u256_inj
     simpa using hnat
-  all_goals native_decide
+  all_goals decide +native
 
 theorem cureDispatchRely {I : ExecutionEnv}
     (hsel : selIs I (cureSelBytes 12)) :
@@ -184,7 +184,7 @@ theorem cureDispatchRely {I : ExecutionEnv}
     cureLiftSelectorBytes, cureListSelectorBytes, cureLiveSelectorBytes,
     cureLoadSelectorBytes, cureLoadedSelectorBytes, curePosSelectorBytes,
     cureRelySelectorBytes]
-  native_decide
+  decide +native
 
 theorem cureDecode_rely_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (relyTransition.params.map Param.name)
@@ -208,13 +208,13 @@ theorem cureReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x65fae35e⟩ :=
     cureSelWord_eq_of_beq I hsz 0x65 0xfa 0xe3 0x5e ⟨0x65fae35e⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h185⟩ := cureReachLowUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨594⟩ 4 h185 (fun j hj => cureLowUpperArmsWellFormed j (by omega))
-    (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (fun j hj => by interval_cases j <;> · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 /-! ### Auth and `live` bytecode guard helpers -/
 
@@ -300,19 +300,19 @@ theorem RD.cureAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := rd6.mstore 0 (wordAt0Mem (solcSourceWord ee) solcFreePtrMem)
-    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd11 := evm_run rd7 with [
     raw push1 ⟨32⟩ hd7 (by evm_ov),
     raw dup2 hd9 (by evm_ov),
     raw swap1 hd10 (by evm_ov)]
   have rd12 := rd11.mstore 0 (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := evm_run rd12 with [
     raw push1 ⟨64⟩ hd12 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ (solcSourceWord ee) solcFreePtrMem_size
   have rd16 := rd15.keccak256 0 (solcMappingSlot ⟨0⟩ (solcSourceWord ee))
-    (UInt256.ofNat 3) hd15 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd15 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd17⟩ := rd16.sload hd16 (by evm_ov)
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
@@ -346,19 +346,19 @@ theorem RD.cureAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := rd6.mstore 0 (wordAt0Mem (solcSourceWord ee) solcFreePtrMem)
-    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd11 := evm_run rd7 with [
     raw push1 ⟨32⟩ hd7 (by evm_ov),
     raw dup2 hd9 (by evm_ov),
     raw swap1 hd10 (by evm_ov)]
   have rd12 := rd11.mstore 0 (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := evm_run rd12 with [
     raw push1 ⟨64⟩ hd12 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ (solcSourceWord ee) solcFreePtrMem_size
   have rd16 := rd15.keccak256 0 (solcMappingSlot ⟨0⟩ (solcSourceWord ee))
-    (UInt256.ofNat 3) hd15 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd15 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd17⟩ := rd16.sload hd16 (by evm_ov)
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
@@ -571,42 +571,42 @@ theorem RD.cureRelyStoreOne {g : Sat256} {s0 : State}
     rw [u256_land_comm key (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)]
     exact hmaskLiteral
   have rdMasked := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [hmaskLiteral'] at rdMasked
   have rdMstore0Prefix := evm_run rdMasked with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rdAfterKey := rdMstore0Prefix.mstore 0 (wordAt0Mem key mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem key ⟨0⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by
       simpa only [List.length_cons] using hov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ key hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨0⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
   have rdBeforeStore := evm_run rdSlot with [
-    raw push1 ⟨1⟩ (by native_decide) (by
+    raw push1 ⟨1⟩ (by decide +native) (by
       change R.length + 6 < 1024
       omega),
-    raw swap1 (by native_decide) (by
+    raw swap1 (by decide +native) (by
       simpa only [List.length_cons] using hov)]
-  obtain ⟨_, _, rdAfterStore⟩ := rdBeforeStore.sstore hperm (by native_decide)
+  obtain ⟨_, _, rdAfterStore⟩ := rdBeforeStore.sstore hperm (by decide +native)
     (by simp only [List.length_cons]; omega)
   have hread64' :
       (twoWordHashMem key ⟨0⟩ mem).readWithPadding 64 32 =
@@ -620,20 +620,20 @@ theorem RD.cureRelyStoreOne {g : Sat256} {s0 : State}
             (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
     rw [if_neg (by
       rw [twoWordHashMem_size_96 key ⟨0⟩ hmem]
-      native_decide)]
+      decide +native)]
     rw [show (⟨64⟩ : UInt256).toNat = 64 from rfl, hread64']
-    native_decide
-  have rdMload := rdAfterStore.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
-    mem_cost hmload64 (by native_decide) (by evm_ov)
+    decide +native
+  have rdMload := rdAfterStore.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
+    mem_cost hmload64 (by decide +native) (by evm_ov)
   have rdTopic := rdMload.pushConst cureRelyEventTopic
-    (op := .PUSH32) (width := 32) (by decide) (by native_decide) (by evm_ov)
+    (op := .PUSH32) (width := 32) (by decide) (by decide +native) (by evm_ov)
   have rdLogPrefix := evm_run rdTopic with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rdLogged := RD.cureLog2 0 (UInt256.ofNat 3) rdLogPrefix
-    (by native_decide) hperm mem_cost (by native_decide) (by evm_ov)
-  have rdPop := rdLogged.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rdPop.jump (by native_decide) hret (by evm_ov)⟩
+    (by decide +native) hperm mem_cost (by decide +native) (by evm_ov)
+  have rdPop := rdLogged.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rdPop.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem cureRelyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
@@ -670,16 +670,16 @@ theorem cureRelyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
       (code := cureBytecode) (sel := sel) (entry := ⟨594⟩) (ret := ⟨484⟩)
       (decoded := ⟨616⟩) hreach
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
       (by jump_dest) hsz36 hsize
     obtain ⟨_, _, hroutine⟩ := RD.solcOneAddressExternalMaskAndJumpMasked
       (code := cureBytecode) (decoded := ⟨616⟩) (ret := ⟨484⟩) (routine := ⟨2345⟩)
       (R := [sel]) hdecoded
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by jump_dest) (by simp)
     by_cases hauthEvm : cureSlotWord callerSlot σ_evm I = ⟨1⟩
     · have hauthSolm : cureSlotWord callerSlot σ_solm I = ⟨1⟩ := by
         rw [← hcallerWord]
@@ -692,7 +692,7 @@ theorem cureRelyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (by simpa [key, relyKey] using hroutine)
         (by
           unfold cureAuthCheckWf
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         hauthSolc (by jump_dest) (by simp)
       by_cases hliveEvm : cureSlotWord ⟨1⟩ σ_evm I = ⟨1⟩
       · have hliveSolm : cureSlotWord ⟨1⟩ σ_solm I = ⟨1⟩ := by
@@ -756,7 +756,7 @@ theorem cureRelyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (ret := ⟨484⟩) (R := [sel]) hafterAuth
           (by
             unfold cureLiveGuardWf
-            repeat' first | apply And.intro | native_decide)
+            repeat' first | apply And.intro | decide +native)
           hliveSolc (by jump_dest) (by simp)
         have hmemAuth :
             (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -774,12 +774,12 @@ theorem cureRelyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (g := Sat256.ofUInt256 g) (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
           (ee := I) (key := key) (ret := ⟨484⟩) (R := [sel])
           hstorePc (by jump_dest) hperm hmemAuth hread64 hcanonKey (by simp)
-        have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+        have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
         have hret :
             RDret cureBytecode (Sat256.ofUInt256 g)
               (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
               (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨1⟩) ByteArray.empty := by
-          simpa [slot] using RD.stop hretPc' (by native_decide) (by simp)
+          simpa [slot] using RD.stop hretPc' (by decide +native) (by simp)
         have hcreated :
             (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨1⟩).1 = evm1.createdAccounts := by
           simp [evm1, evm0, initState, storageStore_createdAccounts]
@@ -790,7 +790,7 @@ theorem cureRelyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             accountMapEquiv_sstoreAccountMap I.codeOwner slot ⟨1⟩ hAccounts
         have henc : returnEquiv ByteArray.empty none relyTransition.returnType := by
           rw [show relyTransition.returnType = [] by rfl]
-          exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+          exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
         exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
           hcreated haccounts henc
       · have hliveSolm : cureSlotWord ⟨1⟩ σ_solm I ≠ ⟨1⟩ := by
@@ -834,10 +834,10 @@ theorem cureRelyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (ret := ⟨484⟩) (R := [sel]) hafterAuth
           (by
             unfold cureLiveGuardWf
-            repeat' first | apply And.intro | native_decide)
+            repeat' first | apply And.intro | decide +native)
           (by
             unfold solcErrorStringRevertTailWf cureLiveGuardTailPc cureNotLiveRawWord
-            repeat' first | apply And.intro | native_decide)
+            repeat' first | apply And.intro | decide +native)
           hliveSolc hmemAuth hread64 (by simp)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hauthSolm : cureSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
@@ -868,10 +868,10 @@ theorem cureRelyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (by simpa [key, relyKey] using hroutine)
         (by
           unfold cureAuthCheckWf
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         (by
           unfold solcErrorStringRevertTailWf cureAuthTailPc cureNotAuthorizedRawWord
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         hauthSolc (by simp)
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hlt :
@@ -883,10 +883,10 @@ theorem cureRelyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     have hrev := RD.solcExternalStaticArgsShortReverts
       (code := cureBytecode) (sel := sel) (entry := ⟨594⟩) (ret := ⟨484⟩)
       (decoded := ⟨616⟩) (need := ⟨32⟩) hreach
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) hlt
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) hlt
     exact hrev.reEquivDecodingFailed hcode hdispatch
       (cureDecode_rely_none_short hsz4 (by omega))
 

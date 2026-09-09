@@ -86,7 +86,7 @@ theorem kissHealSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 164) :
     extract_extract_BA,
     show 0 + 0 = 0 from rfl, show min (0 + 4) 32 = 4 from by omega,
     toByteArray_eq_toBytesBE]
-  native_decide
+  decide +native
 
 theorem kissHealCalldataMem_read128_36 (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 164) :
@@ -118,11 +118,11 @@ theorem kissHealCalldataMem_read128_36 (I : ExecutionEnv) {mem : ByteArray}
 
 theorem kissHealInSize_eq : kissHealInSize = ⟨36⟩ := by
   unfold kissHealInSize kissHealOutPtr
-  native_decide
+  decide +native
 
 theorem kissHealEndPtr_eq : kissHealEndPtr = ⟨164⟩ := by
   unfold kissHealEndPtr kissHealOutPtr
-  native_decide
+  decide +native
 
 theorem kissHealEncode_eq (I : ExecutionEnv) {mem : ByteArray} (hmem : mem.size = 164) :
     config.externalABI.encode? "heal" [.int (Int.ofNat (kissRad I).toNat)] =
@@ -160,30 +160,30 @@ theorem RD.vowKissSurplusEnoughStoresAsh
       (cA',
         sstoreAccountMap I.codeOwner σ' ⟨6⟩
           (UInt256.sub (vowSlotWord ⟨6⟩ σ' I) (kissRad I))) k' C' := by
-  have rd1746 := rd.dup2 (by native_decide) (by evm_ov)
-  have rd1747₀ := rd1746.gt (by native_decide) (by evm_ov)
+  have rd1746 := rd.dup2 (by decide +native) (by evm_ov)
+  have rd1747₀ := rd1746.gt (by decide +native) (by evm_ov)
   have hgt : UInt256.gt (kissRad I) vatDai = ⟨0⟩ :=
     ugt_zero hvatDaiEnough
   have rd1747 := rd1747₀
   rw [hgt] at rd1747
-  have rd1748₀ := rd1747.iszero (by native_decide) (by evm_ov)
+  have rd1748₀ := rd1747.iszero (by decide +native) (by evm_ov)
   have rd1748 := rd1748₀
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1748
-  have rd1751 := rd1748.push2 ⟨1823⟩ (by native_decide) (by evm_ov)
-  have rd1823 := rd1751.jumpiT (by native_decide)
+  have rd1751 := rd1748.push2 ⟨1823⟩ (by decide +native) (by evm_ov)
+  have rd1823 := rd1751.jumpiT (by decide +native)
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
-  have rd1824 := rd1823.jumpdest (by native_decide) (by evm_ov)
-  have rd1827 := rd1824.push2 ⟨1835⟩ (by native_decide) (by evm_ov)
-  have rd1829 := rd1827.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1830, C1830, rd1830₀⟩ := rd1829.sload (by native_decide) (by evm_ov)
+  have rd1824 := rd1823.jumpdest (by decide +native) (by evm_ov)
+  have rd1827 := rd1824.push2 ⟨1835⟩ (by decide +native) (by evm_ov)
+  have rd1829 := rd1827.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1830, C1830, rd1830₀⟩ := rd1829.sload (by decide +native) (by evm_ov)
   have rd1830 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1830⟩
       (vowSlotWord ⟨6⟩ σ' I :: ⟨1835⟩ :: kissRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o (cA', σ') k1830 C1830 := by
     simpa [vowSlotWord, solcSlotWord] using rd1830₀
-  have rd1831 := rd1830.dup3 (by native_decide) (by evm_ov)
-  have rd1834 := rd1831.push2 ⟨5096⟩ (by native_decide) (by evm_ov)
-  have rd5096 := rd1834.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd1831 := rd1830.dup3 (by decide +native) (by evm_ov)
+  have rd1834 := rd1831.push2 ⟨5096⟩ (by decide +native) (by evm_ov)
+  have rd5096 := rd1834.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd1835⟩ := RD.solcCheckedSubSuccess
     (code := vowBytecode) (pc := ⟨5096⟩) (okPc := ⟨5090⟩)
     (a := vowSlotWord ⟨6⟩ σ' I) (b := kissRad I) (ret := ⟨1835⟩)
@@ -191,11 +191,11 @@ theorem RD.vowKissSurplusEnoughStoresAsh
     (by simpa using rd5096)
     (by
       unfold solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hashEnoughDai (by jump_dest) (by jump_dest) (by simp)
-  have rd1836 := rd1835.jumpdest (by native_decide) (by evm_ov)
-  have rd1838 := rd1836.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1839⟩ := rd1838.sstore hperm (by native_decide) (by evm_ov)
+  have rd1836 := rd1835.jumpdest (by decide +native) (by evm_ov)
+  have rd1838 := rd1836.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1839⟩ := rd1838.sstore hperm (by decide +native) (by evm_ov)
   exact ⟨_, _, by simpa using rd1839⟩
 
 set_option maxHeartbeats 1000000 in
@@ -216,8 +216,8 @@ theorem RD.vowKissToHealExtcodesizeGuard
         kissRad I :: ⟨412⟩ :: sel :: [])
       (kissHealCalldataMem I mem) (UInt256.ofNat 6) o (cA', σ') k' C' := by
   let target := kissDaiTargetWord σ' I
-  have rd1841 := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1842, C1842, rd1842₀⟩ := rd1841.sload (by native_decide) (by evm_ov)
+  have rd1841 := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1842, C1842, rd1842₀⟩ := rd1841.sload (by decide +native) (by evm_ov)
   have rd1842 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1842⟩
       (vowSlotWord ⟨1⟩ σ' I :: kissRad I :: ⟨412⟩ :: sel :: [])
@@ -246,23 +246,23 @@ theorem RD.vowKissToHealExtcodesizeGuard
   have rd1903 := evm_run rd1842 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     push4 ⟨1021227399⟩,
     push1 ⟨226⟩,
     shl,
     dup2,
-    raw mstore 0 (kissHealSelectorMem mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (kissHealSelectorMem mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩,
     dup2,
     add,
     dup5,
     swap1,
-    raw mstore 0 (kissHealCalldataMem I mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (kissHealCalldataMem I mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Heal (by decide) (by evm_ov),
     push1 ⟨1⟩,
     push1 ⟨1⟩,
@@ -314,9 +314,9 @@ theorem RD.vowKissHealNoCode
   obtain ⟨_, _, rd1903⟩ := RD.vowKissToHealExtcodesizeGuard rd hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1903⟩) (okPc := ⟨1915⟩) rd1903
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.vowKissToHealCall
     {cA gh bl σ σ₀ A I} {g sel : UInt256}
@@ -339,9 +339,9 @@ theorem RD.vowKissToHealCall
   obtain ⟨gasWord, k1918, C1918, rd1918⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1903⟩) (okPc := ⟨1915⟩) rd1903
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k1918, C1918, by simpa using rd1918⟩
 
 theorem RD.vowKissHealPostCall
@@ -375,7 +375,7 @@ theorem RD.vowKissHealPostCall
   obtain ⟨gasWord, _, _, rd1918⟩ :=
     RD.vowKissToHealCall rd hmem hread64 hcodeSize
   obtain ⟨cA'', σ'', z, out, A_in, callGas, k1919, C1919, hΘpack, rd1919raw, houtsz⟩ :=
-    RD.call rd1918 (by native_decide) hdepth (by evm_ov)
+    RD.call rd1918 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A'', hΘ⟩ := hΘpack
   refine ⟨cA'', σ'', z, out, A'', k1919, C1919, ?_, ?_, houtsz⟩
   · have haw :
@@ -384,7 +384,7 @@ theorem RD.vowKissHealPostCall
           kissHealOutPtr.toNat kissHealOutSize.toNat) = UInt256.ofNat 6 := by
       rw [kissHealInSize_eq]
       unfold kissHealOutPtr kissHealOutSize
-      native_decide
+      decide +native
     have hmin : (min kissHealOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold kissHealOutSize
       rfl
@@ -420,9 +420,9 @@ theorem RD.vowKissHealCallFailure
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1919⟩) (okPc := ⟨1935⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp)
 
 theorem RD.vowKissHealCallSuccessToReturn
@@ -440,13 +440,13 @@ theorem RD.vowKissHealCallSuccessToReturn
   obtain ⟨_, _, rd1937⟩ := RD.solcCallSuccessGuardOk
     (pc := ⟨1919⟩) (okPc := ⟨1935⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by simp)
-  have rd1938 := rd1937.pop (by native_decide) (by evm_ov)
-  have rd1939 := rd1938.pop (by native_decide) (by evm_ov)
-  have rd1940 := rd1939.pop (by native_decide) (by evm_ov)
-  have rd1941 := rd1940.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1941.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native) (by simp)
+  have rd1938 := rd1937.pop (by decide +native) (by evm_ov)
+  have rd1939 := rd1938.pop (by decide +native) (by evm_ov)
+  have rd1940 := rd1939.pop (by decide +native) (by evm_ov)
+  have rd1941 := rd1940.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1941.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vowKissHealCallSuccess
     {cA gh bl σ σ₀ A I} {g sel target : UInt256}
@@ -460,8 +460,8 @@ theorem RD.vowKissHealCallSuccess
     RDret vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty := by
   obtain ⟨_, _, rd412⟩ := RD.vowKissHealCallSuccessToReturn rd
-  have rd413 := rd412.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd413 (by native_decide) (by simp)
+  have rd413 := rd412.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd413 (by decide +native) (by simp)
 
 theorem RD.vowKissHealCallDepthLimit
     {cA gh bl σ σ₀ A I} {g sel : UInt256}
@@ -483,14 +483,14 @@ theorem RD.vowKissHealCallDepthLimit
   obtain ⟨_, _, _, rd1918⟩ := RD.vowKissToHealCall rd hmem hread64 hcodeSize
   obtain ⟨k1919, C1919, rd1919raw⟩ := RD.callDepthLimit
     (by simpa [kissHealOutSize] using rd1918)
-    (by native_decide) hdepth (by evm_ov)
+    (by decide +native) hdepth (by evm_ov)
   have haw :
       UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
         kissHealOutPtr.toNat kissHealInSize.toNat)
         kissHealOutPtr.toNat kissHealOutSize.toNat) = UInt256.ofNat 6 := by
     rw [kissHealInSize_eq]
     unfold kissHealOutPtr kissHealOutSize
-    native_decide
+    decide +native
   have hmin : (min kissHealOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     unfold kissHealOutSize
     rfl
@@ -524,13 +524,13 @@ theorem RD.vowKissDaiCallDepthLimit
   obtain ⟨_, _, _, rd1703⟩ :=
     RD.vowKissToDaiStaticcall hreach hsz36 hsize hashEnough hcodeSize
   obtain ⟨k1704, C1704, rd1704raw⟩ :=
-    RD.solcStaticcallDepthLimit rd1703 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcallDepthLimit rd1703 (by decide +native) hdepth (by evm_ov)
   have haw :
       UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
         (kissDaiOutPtr I).toNat (kissDaiInSize I).toNat)
         (kissDaiOutPtr I).toNat (⟨32⟩ : UInt256).toNat) = UInt256.ofNat 6 := by
     rw [kissDaiOutPtr_eq, kissDaiInSize_eq]
-    native_decide
+    decide +native
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     rfl
   have rd1704 : RD vowBytecode I (Sat256.ofUInt256 g)
@@ -614,7 +614,7 @@ theorem extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : UInt25
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+        (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
@@ -1152,7 +1152,7 @@ theorem vowKissHealSuccessBodyCore
     hvatDaiEnough hAshLoadDai hvatLoadDai hAshNew hvatCodeHeal hcallHeal hdecHeal
   have henc : returnEquiv ByteArray.empty none kissTransition.returnType := by
     rw [show kissTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     hcreated hAccountsFinal henc
 
@@ -1291,7 +1291,7 @@ theorem vowKissBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (oDai.write 0 (kissDaiCalldataMem I) 128 32).size
                   ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
             rw [hmem]
-            native_decide
+            decide +native
           rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
             kissDaiWrite_read128_32 I oDai ho32]
         obtain ⟨_, _, rd1745⟩ :=
@@ -1571,6 +1571,6 @@ theorem vowKissBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (kissDaiEncode_eq I) (by simpa [evm0, initState] using hdepthEq))
     exact vowKissDaiCallFailureBodyCore (cA' := cA) (σ'_evm := σ_evm)
       (A'_evm := A_dai) hcode hwv hdispatch hdecode rd1704 hcallDaiDepth
-      (by native_decide) hashEnoughEvm hvatCodeSolm hAccounts
+      (by decide +native) hashEnoughEvm hvatCodeSolm hAccounts
 
 end Benchmarks.Dss.Vow

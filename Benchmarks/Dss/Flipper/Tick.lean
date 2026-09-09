@@ -502,29 +502,29 @@ theorem flipperReachTickBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : flipperSelWord I = ⟨0xfc7b6aee⟩ :=
     flipperSelWord_eq_of_beq I hsz 0xfc 0x7b 0x6a 0xee ⟨0xfc7b6aee⟩
-      (by native_decide) (by simpa [flipperSelBytes] using hsel)
+      (by decide +native) (by simpa [flipperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flipperBytecode flipperRootSplitPc)
       (flipperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat flipperBytecode flipperLowSplitPc)
       (flipperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperLowHighFirstArmPc j))
         (flipperSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperLowHighFirstArmPc 4))
         (flipperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact flipperReachLowHighBody 4 (by omega) ⟨938⟩ hcode hwv hsz hsize hroot hlow
-    heq0 htake (by jump_dest) (by native_decide)
+    heq0 htake (by jump_dest) (by decide +native)
 
 theorem RD.flipperTickDecodeToRoutine {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256}
@@ -538,11 +538,11 @@ theorem RD.flipperTickDecodeToRoutine {code : ByteArray} {g : Sat256}
       (calldataWord ee.calldata 4 :: ret :: sel :: R) mem aw rdata acc k' C' := by
   subst hwf
   have rd5964 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw push2 ⟨5964⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) hroutine (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw push2 ⟨5964⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) hroutine (by evm_ov)]
   exact ⟨_, _, by simpa [calldataWord] using rd5964⟩
 
 theorem flipperTickX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -556,9 +556,9 @@ theorem flipperTickX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flipperBytecode) (sel := sel) (entry := ⟨938⟩) (ret := ⟨323⟩)
     (decoded := ⟨960⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by
       exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
@@ -584,20 +584,20 @@ theorem flipperTickX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := flipperBytecode) (sel := sel) (entry := ⟨938⟩) (ret := ⟨323⟩)
     (decoded := ⟨960⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem flipperTickDecodePushMask5992 :
     decode flipperBytecode (⟨5992⟩ : UInt256) =
       some (.Push .PUSH6, some (uint48Mask, 6)) := by
-  native_decide
+  decide +native
 
 theorem flipperTickDecodePushMask6098 :
     decode flipperBytecode (⟨6098⟩ : UInt256) =
       some (.Push .PUSH6, some (uint48Mask, 6)) := by
-  native_decide
+  decide +native
 
 abbrev flipperTickBidAlreadyPlacedWord : UInt256 :=
   ⟨31853446598541861569121664937091529620694441758256295719644551114134306947072⟩
@@ -605,22 +605,22 @@ abbrev flipperTickBidAlreadyPlacedWord : UInt256 :=
 theorem flipperTickDecodePushBidAlreadyPlaced6138 :
     decode flipperBytecode (⟨6138⟩ : UInt256) =
       some (.Push .PUSH32, some (flipperTickBidAlreadyPlacedWord, 32)) := by
-  native_decide
+  decide +native
 
 theorem flipperTickDecodePushMask6204 :
     decode flipperBytecode (⟨6204⟩ : UInt256) =
       some (.Push .PUSH6, some (uint48Mask, 6)) := by
-  native_decide
+  decide +native
 
 theorem flipperTickDecodePushMask6237 :
     decode flipperBytecode (⟨6237⟩ : UInt256) =
       some (.Push .PUSH6, some (uint48Mask, 6)) := by
-  native_decide
+  decide +native
 
 theorem flipperTickDecodePushMask6276 :
     decode flipperBytecode (⟨6276⟩ : UInt256) =
       some (.Push .PUSH6, some (uint48Mask, 6)) := by
-  native_decide
+  decide +native
 
 theorem flipperTickX_endCheckOk {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
@@ -631,25 +631,25 @@ theorem flipperTickX_endCheckOk {cA σ I} {g : Sat256} {s0 : State}
       (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd5982 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (wordAt0Mem (tickId I) solcFreePtrMem) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
     raw mstore 0 (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw keccak256 0 (solcMappingSlot ⟨1⟩ (tickId I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (twoWordHashMem_solcMappingSlot ⟨1⟩ (tickId I) solcFreePtrMem_size)
       (by decide) (by evm_ov),
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  obtain ⟨k5983, C5983, rd5983raw⟩ := rd5982.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  obtain ⟨k5983, C5983, rd5983raw⟩ := rd5982.sload (by decide +native) (by evm_ov)
   have rd5983 : RD flipperBytecode I g s0 ⟨5983⟩
       [flipperSlotWord (tickBidPackedSlot I) σ I, tickId I, ret, sel]
       (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)
@@ -662,19 +662,19 @@ theorem flipperTickX_endCheckOk {cA σ I} {g : Sat256} {s0 : State}
       hslotAdd] using
       rd5983raw
   have rd6000 := evm_run rd5983 with [
-    raw timestamp (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨208⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
+    raw timestamp (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨208⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
     raw pushConst uint48Mask
-      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by native_decide)
+      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by decide +native)
       flipperTickDecodePushMask5992
       (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov)]
+    raw and (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov)]
   have hltWord :
       UInt256.lt (tickEndWord (tickBidPackedSlot I) σ I) (tickNow I) = ⟨1⟩ :=
     ult_one hlt
@@ -687,8 +687,8 @@ theorem flipperTickX_endCheckOk {cA σ I} {g : Sat256} {s0 : State}
     simpa [tickEndWord, flipperUint48Offset26Word, tickNow, uint48Divisor26,
       u256_land_comm] using hltWord
   rw [hltRaw] at rd6000
-  have rd6001 := rd6000.push2 ⟨6072⟩ (by native_decide) (by evm_ov)
-  have rd6072 := rd6001.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd6001 := rd6000.push2 ⟨6072⟩ (by decide +native) (by evm_ov)
+  have rd6072 := rd6001.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
   exact ⟨_, _, rd6072⟩
 
@@ -699,25 +699,25 @@ theorem flipperTickX_notFinished {cA σ I} {g : Sat256} {s0 : State}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   have rd5982 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (wordAt0Mem (tickId I) solcFreePtrMem) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
     raw mstore 0 (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw keccak256 0 (solcMappingSlot ⟨1⟩ (tickId I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (twoWordHashMem_solcMappingSlot ⟨1⟩ (tickId I) solcFreePtrMem_size)
       (by decide) (by evm_ov),
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  obtain ⟨k5983, C5983, rd5983raw⟩ := rd5982.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  obtain ⟨k5983, C5983, rd5983raw⟩ := rd5982.sload (by decide +native) (by evm_ov)
   have rd5983 : RD flipperBytecode I g s0 ⟨5983⟩
       [flipperSlotWord (tickBidPackedSlot I) σ I, tickId I, ret, sel]
       (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)
@@ -730,19 +730,19 @@ theorem flipperTickX_notFinished {cA σ I} {g : Sat256} {s0 : State}
       hslotAdd] using
       rd5983raw
   have rd6000 := evm_run rd5983 with [
-    raw timestamp (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨208⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
+    raw timestamp (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨208⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
     raw pushConst uint48Mask
-      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by native_decide)
+      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by decide +native)
       flipperTickDecodePushMask5992
       (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov)]
+    raw and (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov)]
   have hgeWord :
       UInt256.lt (tickEndWord (tickBidPackedSlot I) σ I) (tickNow I) = ⟨0⟩ :=
     ult_zero hge
@@ -755,8 +755,8 @@ theorem flipperTickX_notFinished {cA σ I} {g : Sat256} {s0 : State}
     simpa [tickEndWord, flipperUint48Offset26Word, tickNow, uint48Divisor26,
       u256_land_comm] using hgeWord
   rw [hgeRaw] at rd6000
-  have rd6001 := rd6000.push2 ⟨6072⟩ (by native_decide) (by evm_ov)
-  have rd6005 := rd6001.jumpiNT (by native_decide)
+  have rd6001 := rd6000.push2 ⟨6072⟩ (by decide +native) (by evm_ov)
+  have rd6005 := rd6001.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨6005⟩) (len := ⟨20⟩)
@@ -767,7 +767,7 @@ theorem flipperTickX_notFinished {cA σ I} {g : Sat256} {s0 : State}
     rd6005
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) (by rfl)
     (twoWordHashMem_size_96 (tickId I) ⟨1⟩ solcFreePtrMem_size)
     (twoWordHashMem_read64 (tickId I) ⟨1⟩ solcFreePtrMem_size solcFreePtrMem_read64)
@@ -784,28 +784,28 @@ theorem flipperTickX_ticCheckOk {cA σ I} {g : Sat256} {s0 : State}
         (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem))
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd6090 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (wordAt0Mem (tickId I)
         (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
     raw mstore 0 (twoWordHashMem (tickId I) ⟨1⟩
         (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw keccak256 0 (solcMappingSlot ⟨1⟩ (tickId I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (twoWordHashMem_solcMappingSlot ⟨1⟩ (tickId I)
         (twoWordHashMem_size_96 (tickId I) ⟨1⟩ solcFreePtrMem_size))
       (by decide) (by evm_ov),
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  obtain ⟨k6091, C6091, rd6091raw⟩ := rd6090.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  obtain ⟨k6091, C6091, rd6091raw⟩ := rd6090.sload (by decide +native) (by evm_ov)
   have rd6091 : RD flipperBytecode I g s0 ⟨6091⟩
       [flipperSlotWord (tickBidPackedSlot I) σ I, tickId I, ret, sel]
       (twoWordHashMem (tickId I) ⟨1⟩
@@ -819,17 +819,17 @@ theorem flipperTickX_ticCheckOk {cA σ I} {g : Sat256} {s0 : State}
       hslotAdd] using
       rd6091raw
   have rd6106 := evm_run rd6091 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
     raw pushConst uint48Mask
-      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by native_decide)
+      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by decide +native)
       flipperTickDecodePushMask6098
       (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov)]
+    raw and (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov)]
   have hraw :
       UInt256.land uint48Mask
         (UInt256.div (flipperSlotWord (tickBidPackedSlot I) σ I)
@@ -838,8 +838,8 @@ theorem flipperTickX_ticCheckOk {cA σ I} {g : Sat256} {s0 : State}
       using htic
   rw [hraw] at rd6106
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6106
-  have rd6107 := rd6106.push2 ⟨6187⟩ (by native_decide) (by evm_ov)
-  have rd6187 := rd6107.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd6107 := rd6106.push2 ⟨6187⟩ (by decide +native) (by evm_ov)
+  have rd6187 := rd6107.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
   exact ⟨_, _, rd6187⟩
 
@@ -851,28 +851,28 @@ theorem flipperTickX_bidAlreadyPlaced {cA σ I} {g : Sat256} {s0 : State}
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   have rd6090 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (wordAt0Mem (tickId I)
         (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
     raw mstore 0 (twoWordHashMem (tickId I) ⟨1⟩
         (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw keccak256 0 (solcMappingSlot ⟨1⟩ (tickId I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (twoWordHashMem_solcMappingSlot ⟨1⟩ (tickId I)
         (twoWordHashMem_size_96 (tickId I) ⟨1⟩ solcFreePtrMem_size))
       (by decide) (by evm_ov),
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  obtain ⟨k6091, C6091, rd6091raw⟩ := rd6090.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  obtain ⟨k6091, C6091, rd6091raw⟩ := rd6090.sload (by decide +native) (by evm_ov)
   have rd6091 : RD flipperBytecode I g s0 ⟨6091⟩
       [flipperSlotWord (tickBidPackedSlot I) σ I, tickId I, ret, sel]
       (twoWordHashMem (tickId I) ⟨1⟩
@@ -886,17 +886,17 @@ theorem flipperTickX_bidAlreadyPlaced {cA σ I} {g : Sat256} {s0 : State}
       hslotAdd] using
       rd6091raw
   have rd6106 := evm_run rd6091 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
     raw pushConst uint48Mask
-      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by native_decide)
+      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by decide +native)
       flipperTickDecodePushMask6098
       (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov)]
+    raw and (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov)]
   let ticRaw :=
     UInt256.land uint48Mask
       (UInt256.div (flipperSlotWord (tickBidPackedSlot I) σ I)
@@ -913,8 +913,8 @@ theorem flipperTickX_bidAlreadyPlaced {cA σ I} {g : Sat256} {s0 : State}
       (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem))
     (UInt256.ofNat 3) ByteArray.empty (cA, σ) _ _ at rd6106
   rw [hiszero] at rd6106
-  have rd6111 := rd6106.push2 ⟨6187⟩ (by native_decide) (by evm_ov)
-    |>.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
+  have rd6111 := rd6106.push2 ⟨6187⟩ (by decide +native) (by evm_ov)
+    |>.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   let ticMem :=
     twoWordHashMem (tickId I) ⟨1⟩
       (twoWordHashMem (tickId I) ⟨1⟩ solcFreePtrMem)
@@ -928,55 +928,55 @@ theorem flipperTickX_bidAlreadyPlaced {cA σ I} {g : Sat256} {s0 : State}
       (twoWordHashMem_size_96 (tickId I) ⟨1⟩ solcFreePtrMem_size)
       (twoWordHashMem_read64 (tickId I) ⟨1⟩ solcFreePtrMem_size solcFreePtrMem_read64)
   have rdMload := evm_run rd6111 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 ticMem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 ticMem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨26⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨26⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 (⟨26⟩ : UInt256) ticMem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst flipperTickBidAlreadyPlacedWord
     (width := 32) (op := .PUSH32) (by decide) flipperTickDecodePushBidAlreadyPlaced6138
     (by evm_ov)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem3 (⟨26⟩ : UInt256)
         flipperTickBidAlreadyPlacedWord ticMem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide) mem_cost
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native) mem_cost
       (solcErrorStringMem3_mload64 (⟨26⟩ : UInt256) flipperTickBidAlreadyPlacedWord
         hmem hread64)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 theorem flipperTickX_toAdd48 {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
@@ -985,39 +985,39 @@ theorem flipperTickX_toAdd48 {cA σ I} {g : Sat256} {s0 : State}
     ∃ k' C', RD flipperBytecode I g s0 ⟨6272⟩
       [tickTauWord σ I, tickNow I, ⟨6216⟩, tickId I, ret, sel]
       (tickTicCheckedMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
-  have rd6190 := h.jumpdest (by native_decide) (by evm_ov)
-    |>.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k6191, C6191, rd6191raw⟩ := rd6190.sload (by native_decide) (by evm_ov)
+  have rd6190 := h.jumpdest (by decide +native) (by evm_ov)
+    |>.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k6191, C6191, rd6191raw⟩ := rd6190.sload (by decide +native) (by evm_ov)
   have rd6191 : RD flipperBytecode I g s0 ⟨6191⟩
       [flipperSlotWord ⟨5⟩ σ I, tickId I, ret, sel]
       (tickTicCheckedMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k6191 C6191 := by
     simpa [flipperSlotWord] using rd6191raw
   have rd6215 := evm_run rd6191 with [
-    raw push2 ⟨6216⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw timestamp (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨48⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
+    raw push2 ⟨6216⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw timestamp (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨48⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
     raw pushConst uint48Mask
-      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by native_decide)
+      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by decide +native)
       flipperTickDecodePushMask6204
       (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push2 ⟨6272⟩ (by native_decide) (by evm_ov)]
+    raw and (by decide +native) (by evm_ov),
+    raw push2 ⟨6272⟩ (by decide +native) (by evm_ov)]
   have hraw :
       UInt256.land uint48Mask
         (UInt256.div (flipperSlotWord ⟨5⟩ σ I)
           (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨48⟩)) =
         tickTauWord σ I := by
     have hdiv48 : UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨48⟩ = uint48Divisor := by
-      native_decide
+      decide +native
     simpa [tickTauWord, flipperUint48Offset6Word, hdiv48, u256_land_comm]
   rw [hraw] at rd6215
-  exact ⟨_, _, rd6215.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  exact ⟨_, _, rd6215.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem flipperTickX_add48Success {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
@@ -1029,21 +1029,21 @@ theorem flipperTickX_add48Success {cA σ I} {g : Sat256} {s0 : State}
       [tickNow I + tickTauWord σ I, tickId I, ret, sel]
       (tickTicCheckedMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd6289 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw pushConst uint48Mask
-      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by native_decide)
+      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by decide +native)
       flipperTickDecodePushMask6276
       (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov)]
   have hltWord :
       UInt256.lt (tickEndNewWord σ I) (tickNow48 I) = ⟨0⟩ :=
     ult_zero (tickEndNewWord_ge_now48_noOverflow hfit)
@@ -1053,17 +1053,17 @@ theorem flipperTickX_add48Success {cA σ I} {g : Sat256} {s0 : State}
         (UInt256.land (tickNow I) uint48Mask) = ⟨0⟩ := by
     simpa [tickNow48, tickEndNewWord_fullTimestampAdd] using hltWord
   rw [hltRaw] at rd6289
-  have rd6290 := rd6289.iszero (by native_decide) (by evm_ov)
+  have rd6290 := rd6289.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6290
-  have rd6299 := rd6290.push2 ⟨6299⟩ (by native_decide) (by evm_ov)
-    |>.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)
+  have rd6299 := rd6290.push2 ⟨6299⟩ (by decide +native) (by evm_ov)
+    |>.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)
   exact ⟨_, _, evm_run rd6299 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]⟩
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]⟩
 
 theorem flipperTickX_add48Overflow {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
@@ -1073,21 +1073,21 @@ theorem flipperTickX_add48Overflow {cA σ I} {g : Sat256} {s0 : State}
       (tickTicCheckedMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   have rd6289 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw pushConst uint48Mask
-      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by native_decide)
+      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by decide +native)
       flipperTickDecodePushMask6276
       (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov)]
   have hltWord :
       UInt256.lt (tickEndNewWord σ I) (tickNow48 I) = ⟨1⟩ :=
     ult_one (tickEndNewWord_lt_now48_overflow hover)
@@ -1097,12 +1097,12 @@ theorem flipperTickX_add48Overflow {cA σ I} {g : Sat256} {s0 : State}
         (UInt256.land (tickNow I) uint48Mask) = ⟨1⟩ := by
     simpa [tickNow48, tickEndNewWord_fullTimestampAdd] using hltWord
   rw [hltRaw] at rd6289
-  have rd6290 := rd6289.iszero (by native_decide) (by evm_ov)
+  have rd6290 := rd6289.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd6290
-  have rd6295 := rd6290.push2 ⟨6299⟩ (by native_decide) (by evm_ov)
-    |>.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  exact RD.solcPush1Dup1Revert0 rd6295 (by native_decide) (by native_decide)
-    (by native_decide) (by evm_ov)
+  have rd6295 := rd6290.push2 ⟨6299⟩ (by decide +native) (by evm_ov)
+    |>.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
+  exact RD.solcPush1Dup1Revert0 rd6295 (by decide +native) (by decide +native)
+    (by decide +native) (by evm_ov)
 
 theorem flipperTickX_storeEnd {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
@@ -1117,31 +1117,31 @@ theorem flipperTickX_storeEnd {cA σ I} {g : Sat256} {s0 : State}
   let mem1 := wordAt0Mem (tickId I) mem0
   let mem2 := twoWordHashMem (tickId I) ⟨1⟩ mem0
   have rd6236 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mstore 0 mem1 (UInt256.ofNat 3) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mstore 0 mem1 (UInt256.ofNat 3) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw mstore 0 mem2 (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw mstore 0 mem2 (UInt256.ofNat 3) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
     raw keccak256 0 (solcMappingSlot ⟨1⟩ (tickId I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (twoWordHashMem_solcMappingSlot ⟨1⟩ (tickId I)
         (by
           dsimp [mem0, mem2, tickTicCheckedMem]
           exact twoWordHashMem_size_96 (tickId I) ⟨1⟩
             (twoWordHashMem_size_96 (tickId I) ⟨1⟩ solcFreePtrMem_size)))
       (by decide) (by evm_ov),
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
-  obtain ⟨k6237, C6237, rd6237raw⟩ := rd6236.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
+  obtain ⟨k6237, C6237, rd6237raw⟩ := rd6236.sload (by decide +native) (by evm_ov)
   have rd6237 : RD flipperBytecode I g s0 ⟨6237⟩
       [flipperSlotWord (tickBidPackedSlot I) σ I, tickBidPackedSlot I,
         tickNow I + tickTauWord σ I, ⟨323⟩, sel]
@@ -1154,33 +1154,33 @@ theorem flipperTickX_storeEnd {cA σ I} {g : Sat256} {s0 : State}
       hslotAdd] using rd6237raw
   have rd6270 := evm_run rd6237 with [
     raw pushConst uint48Mask
-      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by native_decide)
+      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by decide +native)
       flipperTickDecodePushMask6237
       (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨208⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨208⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨208⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨208⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hdiv26 :
       UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨208⟩ = uint48Divisor26 := by
-    native_decide
+    decide +native
   have hstoredRaw :
       UInt256.lor
         (UInt256.land (flipperSlotWord (tickBidPackedSlot I) σ I)
@@ -1213,10 +1213,10 @@ theorem flipperTickX_storeEnd {cA σ I} {g : Sat256} {s0 : State}
       _ = tickEndStoredWord σ I := by
           rw [tickEndNewWord_fullTimestampAdd]
   rw [hstoredRaw] at rd6270
-  obtain ⟨_, _, rd6271⟩ := rd6270.sstore hperm (by native_decide) (by evm_ov)
-  have rd323 := rd6271.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd324 (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd6271⟩ := rd6270.sstore hperm (by decide +native) (by evm_ov)
+  have rd323 := rd6271.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd324 := rd323.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd324 (by decide +native) (by evm_ov)
 
 theorem flipperTickSourceBodyNotFinished {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -1494,7 +1494,7 @@ theorem flipperTickBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   (tickEndStoredWord σ_evm I) hAccounts)
             (by
               rw [show tickTransition.returnType = [] by rfl]
-              exact returnEquiv.fallthrough rfl (by rfl) (by native_decide))
+              exact returnEquiv.fallthrough rfl (by rfl) (by decide +native))
         · have hoverEvm :
               2 ^ 48 ≤ (tickNow48 I).toNat + (tickTauWord σ_evm I).toNat := by
             omega

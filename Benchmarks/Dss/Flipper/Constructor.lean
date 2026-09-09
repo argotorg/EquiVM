@@ -107,8 +107,8 @@ theorem flipperCtorDeployment_shape {args : List Solm.Value} {deployedInitcode :
 macro "flipper_ctor_decode" : tactic =>
   `(tactic|
     (rw [Reasoning.Theory.decode_append_left_window
-      flipperCreationBytecode _ _ (by native_decide) (by native_decide)]
-     native_decide))
+      flipperCreationBytecode _ _ (by decide +native) (by decide +native)]
+     decide +native))
 
 macro "flipper_ctor_jump_dest" : tactic =>
   `(tactic|
@@ -116,15 +116,15 @@ macro "flipper_ctor_jump_dest" : tactic =>
 
 theorem flipperCreationBytecode_size :
     flipperCreationBytecode.size = 6596 := by
-  native_decide
+  decide +native
 
 theorem flipperBytecode_size :
     flipperBytecode.size = 6386 := by
-  native_decide
+  decide +native
 
 theorem flipperCreationBytecode_runtime_window :
     flipperCreationBytecode.extract 210 (210 + 6386) = flipperBytecode := by
-  native_decide
+  decide +native
 
 theorem flipperCtorArgsTail_size (vat cat : Ethereum.AccountAddress) (ilk : List UInt8)
     (hilk : ilk.length = 32) :
@@ -260,12 +260,12 @@ theorem flipperCtorCopiedMem_eq (vat cat : AccountAddress) (ilk : List UInt8)
   · rw [extract_append_right' flipperCreationBytecode (flipperCtorArgsTail vat cat ilk)
       6596 (6596 + 96)]
     · rw [solcFreePtrMem_size]
-    · native_decide
+    · decide +native
     · rw [flipperCtorArgsTail_size vat cat ilk hilk]
-      native_decide
+      decide +native
   · decide
   · rw [ByteArray.size_append, flipperCtorArgsTail_size vat cat ilk hilk]
-    native_decide
+    decide +native
   · rw [solcFreePtrMem_size]
     decide
   · rw [solcFreePtrMem_size]
@@ -289,7 +289,7 @@ theorem flipperCtorArgsMem_size (vat cat : AccountAddress) (ilk : List UInt8)
   · exact flipperCtorArgsMem_base_size vat cat ilk hilk
   · rw [flipperCtorArgsMem_base_size vat cat ilk hilk]
     omega
-  · native_decide
+  · decide +native
 
 private theorem flipperCtorArgsTail_extract_first (vat cat : AccountAddress) (ilk : List UInt8) :
     (flipperCtorArgsTail vat cat ilk).extract 0 32 =
@@ -606,7 +606,7 @@ theorem assign_flipperCtorTtlStorage (evm : EVM.State) {locals : Store}
         (.int defaultTtl) = some evm' := by
     simpa [evm', defaultTtl] using
       flipperStorageLocStore_uint48_offset0 evm ⟨5⟩ (⟨10800⟩ : UInt256)
-        (by native_decide)
+        (by decide +native)
   exact assignStorageRef_storage_scalar
     (ty := .elem (.int uint48Int)) (loc := uint48Loc ⟨5⟩ ⟨0, by decide⟩ (by decide))
     (hbase := by simpa [ttlRef] using hbase)
@@ -635,7 +635,7 @@ theorem assign_flipperCtorTauStorage (evm : EVM.State) {locals : Store}
         (.int defaultTau) = some evm' := by
     simpa [evm', defaultTau] using
       flipperStorageLocStore_uint48_offset6 evm ⟨5⟩ (⟨172800⟩ : UInt256)
-        (by native_decide)
+        (by decide +native)
   exact assignStorageRef_storage_scalar
     (ty := .elem (.int uint48Int)) (loc := uint48Loc ⟨5⟩ ⟨6, by decide⟩ (by decide))
     (hbase := by simpa [tauRef] using hbase)
@@ -972,7 +972,7 @@ theorem flipperCtorNonpayableRDrev
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov)]
   have rd14 := rd5.pushConst (⟨1050000000000000000⟩ : UInt256)
-    (width := 8) (op := .PUSH8) (by native_decide : Operation.POp.PUSH8 ≠ .PUSH0)
+    (width := 8) (op := .PUSH8) (by decide +native : Operation.POp.PUSH8 ≠ .PUSH0)
     (by flipper_ctor_decode) (by evm_ov)
   have rd16 := rd14.push1 ⟨4⟩ (by flipper_ctor_decode) (by evm_ov)
   obtain ⟨_, _, rd17raw⟩ := rd16.sstore hperm (by flipper_ctor_decode)
@@ -991,7 +991,7 @@ theorem flipperCtorNonpayableRDrev
   have rd24 := evm_run rd21 with [
     raw push2 ⟨10800⟩ (by flipper_ctor_decode) (by evm_ov)]
   have rd31 := rd24.pushConst (⟨281474976710655⟩ : UInt256)
-    (width := 6) (op := .PUSH6) (by native_decide : Operation.POp.PUSH6 ≠ .PUSH0)
+    (width := 6) (op := .PUSH6) (by decide +native : Operation.POp.PUSH6 ≠ .PUSH0)
     (by flipper_ctor_decode) (by evm_ov)
   have rd36 := evm_run rd31 with [
     raw not (by flipper_ctor_decode) (by evm_ov),
@@ -1000,7 +1000,7 @@ theorem flipperCtorNonpayableRDrev
     raw and (by flipper_ctor_decode) (by evm_ov),
     raw or (by flipper_ctor_decode) (by evm_ov)]
   have rd43 := rd36.pushConst (⟨281474976710655⟩ : UInt256)
-    (width := 6) (op := .PUSH6) (by native_decide : Operation.POp.PUSH6 ≠ .PUSH0)
+    (width := 6) (op := .PUSH6) (by decide +native : Operation.POp.PUSH6 ≠ .PUSH0)
     (by flipper_ctor_decode) (by evm_ov)
   have rd48 := evm_run rd43 with [
     raw push1 ⟨48⟩ (by flipper_ctor_decode) (by evm_ov),
@@ -1008,7 +1008,7 @@ theorem flipperCtorNonpayableRDrev
     raw not (by flipper_ctor_decode) (by evm_ov),
     raw and (by flipper_ctor_decode) (by evm_ov)]
   have rd58 := rd48.pushConst (⟨0x02a300000000000000⟩ : UInt256)
-    (width := 9) (op := .PUSH9) (by native_decide : Operation.POp.PUSH9 ≠ .PUSH0)
+    (width := 9) (op := .PUSH9) (by decide +native : Operation.POp.PUSH9 ≠ .PUSH0)
     (by flipper_ctor_decode) (by evm_ov)
   have rd60 := evm_run rd58 with [
     raw or (by flipper_ctor_decode) (by evm_ov),
@@ -1058,12 +1058,12 @@ theorem flipperCtorPackedWord_eq (old : UInt256) :
   have httl :
       UInt256.land (⟨10800⟩ : UInt256) (⟨281474976710655⟩ : UInt256) =
         ⟨10800⟩ := by
-    native_decide
+    decide +native
   have htau :
       UInt256.shiftLeft
         (UInt256.land (⟨172800⟩ : UInt256) (⟨281474976710655⟩ : UInt256)) ⟨48⟩ =
         (⟨0x02a300000000000000⟩ : UInt256) := by
-    native_decide
+    decide +native
   simp only [uint48Mask]
   rw [httl, htau]
   exact u256_lor_comm _ _
@@ -1179,7 +1179,7 @@ theorem flipperCtorInitReach
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov)]
   have rd14 := rd5.pushConst (⟨1050000000000000000⟩ : UInt256)
-    (width := 8) (op := .PUSH8) (by native_decide : Operation.POp.PUSH8 ≠ .PUSH0)
+    (width := 8) (op := .PUSH8) (by decide +native : Operation.POp.PUSH8 ≠ .PUSH0)
     (by flipper_ctor_decode) (by evm_ov)
   have rd16 := rd14.push1 ⟨4⟩ (by flipper_ctor_decode) (by evm_ov)
   obtain ⟨_, _, rd17raw⟩ := rd16.sstore hperm (by flipper_ctor_decode)
@@ -1196,7 +1196,7 @@ theorem flipperCtorInitReach
   have rd24 := evm_run rd21 with [
     raw push2 ⟨10800⟩ (by flipper_ctor_decode) (by evm_ov)]
   have rd31 := rd24.pushConst (⟨281474976710655⟩ : UInt256)
-    (width := 6) (op := .PUSH6) (by native_decide : Operation.POp.PUSH6 ≠ .PUSH0)
+    (width := 6) (op := .PUSH6) (by decide +native : Operation.POp.PUSH6 ≠ .PUSH0)
     (by flipper_ctor_decode) (by evm_ov)
   have rd36 := evm_run rd31 with [
     raw not (by flipper_ctor_decode) (by evm_ov),
@@ -1205,7 +1205,7 @@ theorem flipperCtorInitReach
     raw and (by flipper_ctor_decode) (by evm_ov),
     raw or (by flipper_ctor_decode) (by evm_ov)]
   have rd43 := rd36.pushConst (⟨281474976710655⟩ : UInt256)
-    (width := 6) (op := .PUSH6) (by native_decide : Operation.POp.PUSH6 ≠ .PUSH0)
+    (width := 6) (op := .PUSH6) (by decide +native : Operation.POp.PUSH6 ≠ .PUSH0)
     (by flipper_ctor_decode) (by evm_ov)
   have rd48 := evm_run rd43 with [
     raw push1 ⟨48⟩ (by flipper_ctor_decode) (by evm_ov),
@@ -1213,7 +1213,7 @@ theorem flipperCtorInitReach
     raw not (by flipper_ctor_decode) (by evm_ov),
     raw and (by flipper_ctor_decode) (by evm_ov)]
   have rd58 := rd48.pushConst (⟨0x02a300000000000000⟩ : UInt256)
-    (width := 9) (op := .PUSH9) (by native_decide : Operation.POp.PUSH9 ≠ .PUSH0)
+    (width := 9) (op := .PUSH9) (by decide +native : Operation.POp.PUSH9 ≠ .PUSH0)
     (by flipper_ctor_decode) (by evm_ov)
   have rd60 := evm_run rd58 with [
     raw or (by flipper_ctor_decode) (by evm_ov),
@@ -1383,8 +1383,8 @@ private theorem flipperCtorArgsGuardReach
   exact ⟨_, _, by
     simpa [code,
       show ((⟨99⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
-          UInt256.ofNat 3) = ⟨107⟩ from by native_decide,
-      show (UInt256.lt (⟨96⟩ : UInt256) ⟨96⟩).isZero = ⟨1⟩ from by native_decide]
+          UInt256.ofNat 3) = ⟨107⟩ from by decide +native,
+      show (UInt256.lt (⟨96⟩ : UInt256) ⟨96⟩).isZero = ⟨1⟩ from by decide +native]
       using rd107⟩
 
 set_option maxHeartbeats 1000000 in
@@ -1452,7 +1452,7 @@ theorem flipperCtorArgsReach
   obtain ⟨_, _, rd99⟩ := flipperCtorArgsFreePtrReach vat cat ilk rd93
   obtain ⟨_, _, rd107⟩ := flipperCtorArgsGuardReach vat cat ilk rd99
   have rd112 := rd107.jumpiT (by flipper_ctor_decode)
-    (by native_decide) (by flipper_ctor_jump_dest) (by evm_ov)
+    (by decide +native) (by flipper_ctor_jump_dest) (by evm_ov)
   exact flipperCtorArgsLoadReach vat cat ilk hilk (by simpa using rd112)
 
 set_option maxHeartbeats 1000000 in
@@ -1532,7 +1532,7 @@ theorem flipperCtorVatStoreReach
           ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨159⟩ := by
-    native_decide
+    decide +native
   rw [hpc159] at rd159
   have hwordStore :
       UInt256.lor

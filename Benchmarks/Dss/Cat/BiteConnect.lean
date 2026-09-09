@@ -47,33 +47,33 @@ theorem RD.catBiteCheckedMulRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     omega
   have heq0 : UInt256.eq (UInt256.div (UInt256.mul b a) a) b = ⟨0⟩ :=
     uInt256_eq_zero_of_ne (fun h1 => hneq (uInt256_eq_one_eq h1))
-  have rd3721 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd3723 := rd3721.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3724 := rd3723.dup2 (by native_decide) (by evm_ov)
-  have rd3725 := rd3724.iszero (by native_decide) (by evm_ov)
-  have rd3726 := rd3725.dup1 (by native_decide) (by evm_ov)
-  have rd3729 := rd3726.push2 ⟨3747⟩ (by native_decide) (by evm_ov)
-  have rd3730 := rd3729.jumpiNT (by native_decide) hiszero0 (by evm_ov)
-  have rd3731 := rd3730.pop (by native_decide) (by evm_ov)
-  have rd3732 := rd3731.pop (by native_decide) (by evm_ov)
-  have rd3733 := rd3732.dup1 (by native_decide) (by evm_ov)
-  have rd3734 := rd3733.dup3 (by native_decide) (by evm_ov)
-  have rd3735 := rd3734.mul (by native_decide) (by evm_ov)
-  have rd3736 := rd3735.dup3 (by native_decide) (by evm_ov)
-  have rd3737 := rd3736.dup3 (by native_decide) (by evm_ov)
-  have rd3738 := rd3737.dup3 (by native_decide) (by evm_ov)
-  have rd3739 := rd3738.dup2 (by native_decide) (by evm_ov)
-  have rd3742 := rd3739.push2 ⟨3744⟩ (by native_decide) (by evm_ov)
-  have rd3744 := rd3742.jumpiT (by native_decide) ha (by jump_dest) (by evm_ov)
-  have rd3745 := rd3744.jumpdest (by native_decide) (by evm_ov)
-  have rd3746 := rd3745.div (by native_decide) (by evm_ov)
-  have rd3747 := rd3746.eq (by native_decide) (by evm_ov)
+  have rd3721 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd3723 := rd3721.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3724 := rd3723.dup2 (by decide +native) (by evm_ov)
+  have rd3725 := rd3724.iszero (by decide +native) (by evm_ov)
+  have rd3726 := rd3725.dup1 (by decide +native) (by evm_ov)
+  have rd3729 := rd3726.push2 ⟨3747⟩ (by decide +native) (by evm_ov)
+  have rd3730 := rd3729.jumpiNT (by decide +native) hiszero0 (by evm_ov)
+  have rd3731 := rd3730.pop (by decide +native) (by evm_ov)
+  have rd3732 := rd3731.pop (by decide +native) (by evm_ov)
+  have rd3733 := rd3732.dup1 (by decide +native) (by evm_ov)
+  have rd3734 := rd3733.dup3 (by decide +native) (by evm_ov)
+  have rd3735 := rd3734.mul (by decide +native) (by evm_ov)
+  have rd3736 := rd3735.dup3 (by decide +native) (by evm_ov)
+  have rd3737 := rd3736.dup3 (by decide +native) (by evm_ov)
+  have rd3738 := rd3737.dup3 (by decide +native) (by evm_ov)
+  have rd3739 := rd3738.dup2 (by decide +native) (by evm_ov)
+  have rd3742 := rd3739.push2 ⟨3744⟩ (by decide +native) (by evm_ov)
+  have rd3744 := rd3742.jumpiT (by decide +native) ha (by jump_dest) (by evm_ov)
+  have rd3745 := rd3744.jumpdest (by decide +native) (by evm_ov)
+  have rd3746 := rd3745.div (by decide +native) (by evm_ov)
+  have rd3747 := rd3746.eq (by decide +native) (by evm_ov)
   rw [heq0] at rd3747
-  have rd3748 := rd3747.jumpdest (by native_decide) (by evm_ov)
-  have rd3751 := rd3748.push2 ⟨3756⟩ (by native_decide) (by evm_ov)
-  have rd3752 := rd3751.jumpiNT (by native_decide) rfl (by evm_ov)
-  exact RD.solcPush1Dup1Revert0 rd3752 (by native_decide) (by native_decide)
-    (by native_decide) (by evm_ov)
+  have rd3748 := rd3747.jumpdest (by decide +native) (by evm_ov)
+  have rd3751 := rd3748.push2 ⟨3756⟩ (by decide +native) (by evm_ov)
+  have rd3752 := rd3751.jumpiNT (by decide +native) rfl (by evm_ov)
+  exact RD.solcPush1Dup1Revert0 rd3752 (by decide +native) (by decide +native)
+    (by decide +native) (by evm_ov)
 
 /-- Entry (`375`) → routine (`1163`) → ilks `STATICCALL` (Seg 1, at pc `1249`): the first view call.
 Pure trace chaining; the ilks `typedCallViaEVM` coupling threads out. -/
@@ -433,7 +433,7 @@ theorem catBiteFessEncode_eq (p2 dartRate : UInt256) {mem : ByteArray}
     unfold catBiteFessCalldataMemP fessCalldataMem catBiteFessSelMemP fessSelectorMem
       fessSelectorShifted
     have hsel : UInt256.land ⟨4294967295⟩ ⟨1769929592⟩ = UInt256.land ⟨1769929592⟩ ⟨4294967295⟩ := by
-      native_decide
+      decide +native
     have hoff : (⟨4⟩ + p2).toNat = p2.toNat + 4 := by
       rw [uadd_toNat, show (⟨4⟩ : UInt256).toNat = 4 from by decide, Nat.add_comm,
         Nat.mod_eq_of_lt hp2sz]
@@ -778,7 +778,7 @@ theorem catBiteDecode_none_short {I : ExecutionEnv}
   rw [if_neg (by rw [htlen]; omega : ¬ I.calldata.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, .elem .address] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, .elem .address] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [if_pos (by rw [List.length_drop, htlen]; omega : (I.calldata.toList.drop 4).length < 64)]
 
@@ -799,10 +799,10 @@ theorem catBiteShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := catBytecode) (sel := catSelWord I) (entry := ⟨375⟩) (ret := ⟨419⟩)
     (decoded := ⟨397⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode (catDispatch_bite hsel)
     (catBiteDecode_none_short hsz4 hshort)
 

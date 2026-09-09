@@ -279,18 +279,18 @@ theorem RD.vowFessToFirstAdd {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rdMem0 := rdMem0Prefix.mstore 0 (wordAt0Mem ts mem)
-    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMemSlotPrefix := evm_run rdMem0 with [
     raw push1 ⟨4⟩ hd7 (by evm_ov),
     raw push1 ⟨32⟩ hd9 (by evm_ov)]
   have rdHashMem := rdMemSlotPrefix.mstore 0 (twoWordHashMem ts ⟨4⟩ mem)
-    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩ hd12 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨4⟩ ts hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨4⟩ ts)
-    (UInt256.ofNat 3) hd15 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd15 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rdLoaded⟩ := rdSlot.sload hd16 (by evm_ov)
   have rdJump := evm_run rdLoaded with [
     raw push2 afterAddPc hd17 (by evm_ov),
@@ -374,18 +374,18 @@ theorem RD.vowFessStoreSinAndToSecondAdd {code : ByteArray} {g : Sat256} {s0 : S
     raw swap1 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rdMem0 := rdMem0Prefix.mstore 0 (wordAt0Mem ts mem)
-    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMemSlotPrefix := evm_run rdMem0 with [
     raw push1 ⟨4⟩ hd7 (by evm_ov),
     raw push1 ⟨32⟩ hd9 (by evm_ov)]
   have rdHashMem := rdMemSlotPrefix.mstore 0 (twoWordHashMem ts ⟨4⟩ mem)
-    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩ hd12 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨4⟩ ts hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨4⟩ ts)
-    (UInt256.ofNat 3) hd15 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd15 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rdStored⟩ := rdSlot.sstore hperm hd16 (by evm_ov)
   have rdBeforeLoad := evm_run rdStored with [raw push1 ⟨5⟩ hd17 (by evm_ov)]
   obtain ⟨_, _, rdLoaded⟩ := rdBeforeLoad.sload hd19 (by evm_ov)
@@ -449,7 +449,7 @@ theorem vowDispatch_fess {I : ExecutionEnv}
     all_goals
       simp [selectorOf, AshSelectorBytes, SinSelectorBytes, bumpSelectorBytes,
         cageSelectorBytes, denySelectorBytes, dumpSelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, fessSelectorBytes]
     exact hsel
 
@@ -476,13 +476,13 @@ theorem vowReachFessBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vowSelWord I = ⟨1769929592⟩ :=
     vowSelWord_eq_of_beq I hsz 0x69 0x7e 0xfb 0x78 ⟨1769929592⟩
-      (by native_decide) hsel
+      (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat vowBytecode vowHighSplitPc) (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowHighLowFirstArmPc j))
         (vowSelWord I) = ⟨0⟩ := by
@@ -492,9 +492,9 @@ theorem vowReachFessBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowHighLowFirstArmPc 0))
         (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vowReachHighLowBody 0 (by omega) ⟨571⟩ hcode hwv hsz hsize hroot hhigh heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem RD.vowFessDecodeToRoutine
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -511,17 +511,17 @@ theorem RD.vowFessDecodeToRoutine
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := vowBytecode) (sel := sel) (entry := ⟨571⟩) (ret := ⟨412⟩)
     (decoded := ⟨593⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
-  have rd594 := hdecoded.jumpdest (by native_decide) (by evm_ov)
-  have rd595 := rd594.pop (by native_decide) (by evm_ov)
-  have rd596 := rd595.calldataload (by native_decide) (by evm_ov)
-  have rd599 := rd596.push2 ⟨3318⟩ (by native_decide) (by evm_ov)
+  have rd594 := hdecoded.jumpdest (by decide +native) (by evm_ov)
+  have rd595 := rd594.pop (by decide +native) (by evm_ov)
+  have rd596 := rd595.calldataload (by decide +native) (by evm_ov)
+  have rd599 := rd596.push2 ⟨3318⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [tab, fessTab, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-      using rd599.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      using rd599.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vowFessSuccess
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -563,7 +563,7 @@ theorem RD.vowFessSuccess
     (ret := ⟨412⟩) (R := [sel]) htoRoutineRD
     (by
       unfold vowAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauth (by jump_dest) (by simp)
   have hmemAuth : (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
     twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
@@ -573,7 +573,7 @@ theorem RD.vowFessSuccess
     hafterAuth
     (by
       unfold vowFessToFirstAddWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hmemAuth (by jump_dest) (by simp)
   obtain ⟨_, _, hafterFirstAdd⟩ := RD.solcCheckedAddSuccess
     (code := vowBytecode) (pc := ⟨5074⟩) (okPc := ⟨5090⟩)
@@ -582,7 +582,7 @@ theorem RD.vowFessSuccess
     (by simpa [era, eraSlot, tab] using hfirstAdd)
     (by
       unfold solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [era, eraSlot, tab] using hfitEra)
     (by jump_dest) (by jump_dest) (by simp)
   have hmemFirst :
@@ -596,7 +596,7 @@ theorem RD.vowFessSuccess
     (by simpa [sinNew, tab] using hafterFirstAdd)
     (by
       unfold vowFessStoreSinAndToSecondAddWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hmemFirst hperm (by jump_dest) (by simp)
   obtain ⟨_, _, hafterSecondAdd⟩ := RD.solcCheckedAddSuccess
     (code := vowBytecode) (pc := ⟨5074⟩) (okPc := ⟨5090⟩)
@@ -605,7 +605,7 @@ theorem RD.vowFessSuccess
     (by simpa [σ1, sinNew, era, eraSlot, tab] using hsecondAdd)
     (by
       unfold solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [σ1, sinNew, era, eraSlot, tab] using hfitSin)
     (by jump_dest) (by jump_dest) (by simp)
   obtain ⟨_, _, hretPc⟩ := RD.vowFessStoreSinCapital
@@ -614,11 +614,11 @@ theorem RD.vowFessSuccess
     (by simpa [SinNew, σ1, tab] using hafterSecondAdd)
     (by
       unfold vowFessStoreSinCapitalWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hperm (by jump_dest) (by simp)
-  have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+  have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
   simpa [tab, era, eraSlot, sinNew, σ1, SinNew, fessEraKey, fessTab] using
-    RD.stop hretPc' (by native_decide) (by simp)
+    RD.stop hretPc' (by decide +native) (by simp)
 
 theorem RD.vowFessAuthRevert
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -638,10 +638,10 @@ theorem RD.vowFessAuthRevert
     (by simpa [tab] using htoRoutineRD)
     (by
       unfold vowAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcErrorStringRevertTailWf vowAuthTailPc vowNotAuthorizedRawWord
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauth (by simp)
 
 theorem RD.vowFessFirstAddOverflow
@@ -666,7 +666,7 @@ theorem RD.vowFessFirstAddOverflow
     (by simpa [tab] using htoRoutineRD)
     (by
       unfold vowAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauth (by jump_dest) (by simp)
   have hmemAuth : (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
     twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
@@ -676,7 +676,7 @@ theorem RD.vowFessFirstAddOverflow
     hafterAuth
     (by
       unfold vowFessToFirstAddWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hmemAuth (by jump_dest) (by simp)
   exact RD.solcCheckedAddEmptyRevert
     (code := vowBytecode) (pc := ⟨5074⟩) (okPc := ⟨5090⟩)
@@ -685,7 +685,7 @@ theorem RD.vowFessFirstAddOverflow
     (by simpa [era, eraSlot, tab] using hfirstAdd)
     (by
       unfold solcCheckedAddEmptyRevertWf solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [era, eraSlot, tab] using hover)
     (by simp)
 
@@ -719,7 +719,7 @@ theorem RD.vowFessSecondAddOverflow
     (by simpa [tab] using htoRoutineRD)
     (by
       unfold vowAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauth (by jump_dest) (by simp)
   have hmemAuth : (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
     twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
@@ -729,7 +729,7 @@ theorem RD.vowFessSecondAddOverflow
     hafterAuth
     (by
       unfold vowFessToFirstAddWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hmemAuth (by jump_dest) (by simp)
   obtain ⟨_, _, hafterFirstAdd⟩ := RD.solcCheckedAddSuccess
     (code := vowBytecode) (pc := ⟨5074⟩) (okPc := ⟨5090⟩)
@@ -738,7 +738,7 @@ theorem RD.vowFessSecondAddOverflow
     (by simpa [era, eraSlot, tab] using hfirstAdd)
     (by
       unfold solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [era, eraSlot, tab] using hfitEra)
     (by jump_dest) (by jump_dest) (by simp)
   have hmemFirst :
@@ -752,7 +752,7 @@ theorem RD.vowFessSecondAddOverflow
     (by simpa [sinNew, tab] using hafterFirstAdd)
     (by
       unfold vowFessStoreSinAndToSecondAddWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hmemFirst hperm (by jump_dest) (by simp)
   exact RD.solcCheckedAddEmptyRevert
     (code := vowBytecode) (pc := ⟨5074⟩) (okPc := ⟨5090⟩)
@@ -761,7 +761,7 @@ theorem RD.vowFessSecondAddOverflow
     (by simpa [σ1, sinNew, era, eraSlot, tab] using hsecondAdd)
     (by
       unfold solcCheckedAddEmptyRevertWf solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [σ1, sinNew, era, eraSlot, tab] using hoverSin)
     (by simp)
 
@@ -987,7 +987,7 @@ theorem vowFessBodyCore
             accountMapEquiv_sstoreAccountMap I.codeOwner ⟨5⟩ SinNew haccounts1
         have henc : returnEquiv ByteArray.empty none fessTransition.returnType := by
           rw [show fessTransition.returnType = [] by rfl]
-          exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+          exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
         have hret' :
             RDret vowBytecode (Sat256.ofUInt256 g)
               (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
@@ -1188,10 +1188,10 @@ theorem vowFessShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := vowBytecode) (sel := vowSelWord I) (entry := ⟨571⟩) (ret := ⟨412⟩)
     (decoded := ⟨593⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode (vowDispatch_fess hsel)
     (vowDecode_fess_none_short hsz4 hshort)
 

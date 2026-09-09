@@ -168,15 +168,15 @@ theorem flapperReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
   have hword : flapperSelWord I = ⟨0xa2f91af2⟩ := by
     simpa [flapperSelWord, solcSelectorWord] using
       solcSelectorWord_eq_of_beq I hsz 0xa2 0xf9 0x1a 0xf2 ⟨0xa2f91af2⟩
-        (by native_decide) (by simpa [flapperSelBytes] using hsel)
+        (by decide +native) (by simpa [flapperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flapperBytecode flapperRootSplitPc)
       (flapperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat flapperBytecode flapperHighSplitPc)
       (flapperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   obtain ⟨_, _, hfirst⟩ :=
     flapperReachHighLowFirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ)
       (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize hroot hhigh
@@ -185,16 +185,16 @@ theorem flapperReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperHighLowFirstArmPc j))
         (flapperSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq
         (armSelNat flapperBytecode (nthArmPc flapperBytecode flapperHighLowFirstArmPc 2))
         (flapperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo ⟨700⟩ 2 hfirst
     (fun j hj => flapperHighLowArmsWellFormed j (le_trans hj (by omega)))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem flapperCageX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -207,18 +207,18 @@ theorem flapperCageX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flapperBytecode) (sel := sel) (entry := ⟨700⟩) (ret := ⟨360⟩)
     (decoded := ⟨722⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
-  have rd723 := hdecoded.jumpdest (by native_decide) (by evm_ov)
-  have rd724 := rd723.pop (by native_decide) (by evm_ov)
-  have rd725 := rd724.calldataload (by native_decide) (by evm_ov)
-  have rd728 := rd725.push2 ⟨3106⟩ (by native_decide) (by evm_ov)
+  have rd723 := hdecoded.jumpdest (by decide +native) (by evm_ov)
+  have rd724 := rd723.pop (by decide +native) (by evm_ov)
+  have rd725 := rd724.calldataload (by decide +native) (by evm_ov)
+  have rd728 := rd725.push2 ⟨3106⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [cageRadWord, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-      using rd728.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      using rd728.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem flapperCageX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -236,10 +236,10 @@ theorem flapperCageX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
   exact RD.solcExternalStaticArgsShortReverts
     (code := flapperBytecode) (sel := sel) (entry := ⟨700⟩) (ret := ⟨360⟩)
     (decoded := ⟨722⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 set_option maxHeartbeats 1000000 in
 theorem flapperCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -258,38 +258,38 @@ theorem flapperCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd3111pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3112 := rd3111pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd3117pre := evm_run rd3112 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd3118 := rd3117pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd3121pre := evm_run rd3118 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd3122 := rd3121pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k3123, C3123, rd3123raw⟩ := rd3122.sload (by native_decide) (by evm_ov)
+  obtain ⟨k3123, C3123, rd3123raw⟩ := rd3122.sload (by decide +native) (by evm_ov)
   have rd3123 : RD flapperBytecode I g s0 ⟨3123⟩
       (relyAuthWord σ I :: cageRadWord I :: ⟨360⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3123 C3123 := by
     simpa [relyAuthWord, flapperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using
       rd3123raw
   have rd3126pre := evm_run rd3123 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hauth, u256_eq_refl] at rd3126pre
   have rd3129 := rd3126pre.pushConst (⟨3199⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd3129.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd3129.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -307,40 +307,40 @@ theorem flapperCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd3111pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3112 := rd3111pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd3117pre := evm_run rd3112 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd3118 := rd3117pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd3121pre := evm_run rd3118 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd3122 := rd3121pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k3123, C3123, rd3123raw⟩ := rd3122.sload (by native_decide) (by evm_ov)
+  obtain ⟨k3123, C3123, rd3123raw⟩ := rd3122.sload (by decide +native) (by evm_ov)
   have rd3123 : RD flapperBytecode I g s0 ⟨3123⟩
       (relyAuthWord σ I :: cageRadWord I :: ⟨360⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3123 C3123 := by
     simpa [relyAuthWord, flapperSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using
       rd3123raw
   have rd3126pre := evm_run rd3123 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq : UInt256.eq (⟨1⟩ : UInt256) (relyAuthWord σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne (by intro hbad; exact hauth hbad.symm)
   rw [heq] at rd3126pre
   have rd3129 := rd3126pre.pushConst (⟨3199⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd3130 := rd3129.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd3130 := rd3129.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨3130⟩)
     (len := ⟨22⟩)
@@ -352,7 +352,7 @@ theorem flapperCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     rd3130
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide)
     relyNotAuthorizedWord
     (relyAuthHashMem_size I)
@@ -369,13 +369,13 @@ theorem flapperCageX_storeLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty
       (cA, cageLivePostAccountMap I σ) k' C' := by
   have rd3206pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨7⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨7⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   obtain ⟨k3207, C3207, rd3207raw⟩ := rd3206pre.sstore hperm
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   exact ⟨k3207, C3207, by
     simpa [cageLivePostAccountMap] using rd3207raw⟩
 
@@ -429,78 +429,78 @@ theorem flapperCageX_toMoveExtcodesizeGuard
         ⟨128⟩ :=
     mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
   have rd3209pre := evm_run h with [
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov)]
   obtain ⟨k3210, C3210, rd3210raw⟩ :=
-    rd3209pre.sload (by native_decide) (by evm_ov)
+    rd3209pre.sload (by decide +native) (by evm_ov)
   have rd3210 : RD flapperBytecode I g s0 ⟨3210⟩
       (flapperSlotWord ⟨2⟩ σ I :: ⟨0⟩ :: rad :: ⟨360⟩ :: sel :: [])
       mem0 (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3210 C3210 := by
     simpa [mem0, rad, flapperSlotWord] using rd3210raw
   have rd3277 := evm_run rd3210 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost hmload64Mem0 (by decide) (by evm_ov),
-    raw push4 cageMoveSelectorWord (by native_decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 cageMoveSelectorWord (by decide +native) (by evm_ov),
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (Benchmarks.Dss.Flopper.dentMoveSelectorMem mem0) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw address (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw address (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (Benchmarks.Dss.Flopper.dentMoveSrcMem src mem0) (UInt256.ofNat 6)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [Benchmarks.Dss.Flopper.dentMoveSrcMem, src, cageThisWord,
-          show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 from by native_decide])
-      (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+          show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 from by decide +native])
+      (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (Benchmarks.Dss.Flopper.dentMoveGuyMem src guy mem0) (UInt256.ofNat 7)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [Benchmarks.Dss.Flopper.dentMoveGuyMem, src, guy, cageSenderWord,
-          show ((⟨128⟩ : UInt256) + ⟨36⟩).toNat = 164 from by native_decide])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+          show ((⟨128⟩ : UInt256) + ⟨36⟩).toNat = 164 from by decide +native])
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 3 (cageMoveCalldataMem src guy rad mem0) (UInt256.ofNat 8)
-      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push4 cageMoveSelectorWord (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 cageMoveInSize (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push4 cageMoveSelectorWord (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 cageMoveInSize (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   have hpc3277 :
       (⟨3210⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 5 +
           UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
@@ -511,7 +511,7 @@ theorem flapperCageX_toMoveExtcodesizeGuard
           ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨3277⟩ := by
-    native_decide
+    decide +native
   rw [hpc3277] at rd3277
   exact ⟨_, _, by
     simpa [vat, src, guy, rad, mem0, cageVatWord, flapperAddressReturnWord,
@@ -530,13 +530,13 @@ theorem flapperCageX_toMoveExtcodesizeGuard
       solcAddrMask, u256_land_comm,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide,
-      show (⟨128⟩ : UInt256) + ⟨4⟩ = ⟨132⟩ from by native_decide,
-      show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by native_decide,
-      show (⟨128⟩ : UInt256) + ⟨68⟩ = ⟨196⟩ from by native_decide,
+      show (⟨128⟩ : UInt256) + ⟨4⟩ = ⟨132⟩ from by decide +native,
+      show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by decide +native,
+      show (⟨128⟩ : UInt256) + ⟨68⟩ = ⟨196⟩ from by decide +native,
       show UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + cageMoveInSize =
-        cageMoveInSize from by native_decide,
-      show (⟨128⟩ : UInt256) + cageMoveInSize = cageMoveEndPtr from by native_decide,
-      show cageMoveInSize + cageMoveOutPtr = cageMoveEndPtr from by native_decide]
+        cageMoveInSize from by decide +native,
+      show (⟨128⟩ : UInt256) + cageMoveInSize = cageMoveEndPtr from by decide +native,
+      show cageMoveInSize + cageMoveOutPtr = cageMoveEndPtr from by decide +native]
       using rd3277⟩
 
 theorem flapperCageX_moveNoCode
@@ -551,9 +551,9 @@ theorem flapperCageX_moveNoCode
   obtain ⟨_, _, rd3277⟩ := flapperCageX_toMoveExtcodesizeGuard rd3207
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3277⟩) (okPc := ⟨3289⟩)
     rd3277 hnoCode
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem flapperCageX_moveCall
     {cA gh bl σStart σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
@@ -605,12 +605,12 @@ theorem flapperCageX_moveCall
   obtain ⟨gasWord, _, _, rd3292⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3277⟩) (okPc := ⟨3289⟩) rd3277
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   obtain ⟨cA', σ', z, out, A_in, callGas, k3293, C3293, hΘpack, rd3293raw,
       houtsz⟩ :=
-    RD.call rd3292 (by native_decide) hdepth (by simp)
+    RD.call rd3292 (by decide +native) hdepth (by simp)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, out, A', k3293, C3293, ?_, ?_, houtsz⟩
   · have haw :
@@ -618,7 +618,7 @@ theorem flapperCageX_moveCall
           cageMoveOutPtr.toNat cageMoveInSize.toNat)
           cageMoveOutPtr.toNat cageMoveOutSize.toNat) = UInt256.ofNat 8 := by
       unfold cageMoveOutPtr cageMoveInSize cageMoveOutSize
-      native_decide
+      decide +native
     have hmin : (min cageMoveOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold cageMoveOutSize
       rfl
@@ -665,11 +665,11 @@ theorem flapperCageX_moveCallDepthLimit
   obtain ⟨gasWord, _, _, rd3292⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3277⟩) (okPc := ⟨3289⟩) rd3277
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   obtain ⟨k3293, C3293, rd3293raw⟩ :=
-    RD.callDepthLimit rd3292 (by native_decide) hdepth
+    RD.callDepthLimit rd3292 (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k3293, C3293, ?_⟩
   have hmin : (min cageMoveOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -680,7 +680,7 @@ theorem flapperCageX_moveCallDepthLimit
         cageMoveOutPtr.toNat cageMoveInSize.toNat)
         cageMoveOutPtr.toNat cageMoveOutSize.toNat) = UInt256.ofNat 8 := by
     unfold cageMoveOutPtr cageMoveInSize cageMoveOutSize
-    native_decide
+    decide +native
   simpa [cageMoveOutPtr, cageMoveInSize, cageMoveOutSize, hmin,
     byteArray_write_len_zero, haw] using rd3293raw
 
@@ -696,9 +696,9 @@ theorem flapperCageX_moveCallFailure
     RDrev flapperBytecode g (initState cA gh bl σStart σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3293⟩) (okPc := ⟨3309⟩) rd3293
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     houtSize (by simp)
 
 theorem flapperCageX_moveCallSuccess
@@ -714,23 +714,23 @@ theorem flapperCageX_moveCallSuccess
   obtain ⟨k3311, C3311, rd3311raw⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨3293⟩) (okPc := ⟨3309⟩) rd3293
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3311 : RD flapperBytecode I g (initState cA gh bl σStart σ₀ g A I) ⟨3311⟩
       (cageMoveEndPtr :: cageMoveSelectorWord :: cageVatWord σ I :: cageRadWord I ::
         ⟨360⟩ :: sel :: [])
       mem (UInt256.ofNat 8) out (cA', σ') k3311 C3311 := by
-    simpa [show ((⟨3309⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨3311⟩ from by native_decide]
+    simpa [show ((⟨3309⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨3311⟩ from by decide +native]
       using rd3311raw
   have rd3315 := evm_run rd3311 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  have rd360 := rd3315.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd361 := rd360.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd361 (by native_decide) (by evm_ov)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  have rd360 := rd3315.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd361 := rd360.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd361 (by decide +native) (by evm_ov)
 
 theorem cageSlotWord_accountMapEquiv {σ τ : AccountMap} {I : ExecutionEnv}
     (hAccounts : accountMapEquiv σ τ) (slot : UInt256) :
@@ -1283,7 +1283,7 @@ theorem flapperCageBodyCoreMoveCallDepthLimit
     flapperCageX_storeLive hperm rd3199
   obtain ⟨_, _, rd3293⟩ :=
     flapperCageX_moveCallDepthLimit (g := Sat256.ofUInt256 g) hcodeSize hdepth rd3207
-  exact (flapperCageX_moveCallFailure rd3293 (by native_decide))
+  exact (flapperCageX_moveCallFailure rd3293 (by decide +native))
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flapperCageBodyCoreMoveCallFailure
@@ -1515,7 +1515,7 @@ theorem flapperCageBodyCoreMoveCallSuccess
       (by
         simpa [cageTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-            (dvs := []) rfl (by native_decide) (by native_decide)))
+            (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem flapperCageBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

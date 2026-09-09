@@ -186,7 +186,7 @@ theorem tinyCtorCode_tail_window (owner : AccountAddress) (scale : UInt256) (use
 
 theorem tinyCtorCreation_runtime_window :
     tinyImmutableCreationBytecode.extract 202 (202 + 432) = tinyImmutableBytecode := by
-  native_decide +revert
+  decide +native +revert
 
 theorem tinyCtorCode_runtime_window (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) :
@@ -500,7 +500,7 @@ theorem tinyCtorPatchedRuntime_size (owner : AccountAddress) (scale : UInt256) :
     [ (186, scale), (361, scale), (72, EVM.word (↑owner : Nat)),
       (245, EVM.word (↑owner : Nat)) ]
     (base := 432) (out := 432)
-    (by native_decide) (by simp [WriteGapsOk]) (by simp [writeCascadeSize])
+    (by decide +native) (by simp [WriteGapsOk]) (by simp [writeCascadeSize])
 
 theorem tinyCtorRuntime_codecopy_mem (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) :
@@ -591,7 +591,7 @@ theorem tinyCtorAbiMem_read160 (owner : AccountAddress) (scale : UInt256)
   rw [extract_append_left (ffi.ByteArray.zeroes 96)
     (tinyCtorTail owner scale useScale) 64 96 (by
       rw [zeroes_ofNat_size 96 (by norm_num)])]
-  native_decide
+  decide +native
 
 theorem tinyCtorAbiFreeMem_read160 (owner : AccountAddress) (scale : UInt256)
     (useScale : Bool) :
@@ -882,17 +882,17 @@ macro "tiny_ctor_decode" : tactic =>
     (first
       | rw [tinyCtorCreation_decode_append _ _ (by
           rw [tinyImmutableCreationBytecode_size]
-          native_decide)]
+          decide +native)]
       | (unfold tinyCtorCode; rw [tinyCtorCreation_decode_append _ _ (by
           rw [tinyImmutableCreationBytecode_size]
-          native_decide)]);
-     native_decide))
+          decide +native)]);
+     decide +native))
 
 macro "tiny_ctor_jd" : tactic =>
   `(tactic|
     (first
-      | (apply Reasoning.Theory.D_J_contains_append_left; native_decide)
-      | (unfold tinyCtorCode; apply Reasoning.Theory.D_J_contains_append_left; native_decide)))
+      | (apply Reasoning.Theory.D_J_contains_append_left; decide +native)
+      | (unfold tinyCtorCode; apply Reasoning.Theory.D_J_contains_append_left; decide +native)))
 
 open Lean in
 macro "tiny_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do

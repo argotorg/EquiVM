@@ -55,9 +55,9 @@ theorem RD.catBiteGrabNoCode
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 /-- EXTCODESIZE guard, has-code branch + CALL: steps the guard, pushes `GAS`, executes the void
@@ -91,15 +91,15 @@ theorem RD.catBiteGrabCall
   obtain ⟨gasWord, k1, C1, rd2192⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native)
       (by simp only [List.length_cons]; omega)
   obtain ⟨cA', σ', z, o, Ain, callGas, k', C', hΘ, rd2193raw, hout⟩ :=
-    RD.call rd2192 (by native_decide) hdepth
+    RD.call rd2192 (by decide +native) hdepth
       (by omega)
   have hpc : ((⟨2189⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨2193⟩ : UInt256) := by
-    native_decide
+    decide +native
   rw [hpc] at rd2193raw
   exact ⟨cA', σ', z, o, Ain, callGas, _, _, k', C',
     (by simpa [initState] using hΘ), rd2193raw, hout⟩
@@ -121,15 +121,15 @@ theorem RD.catBiteGrabCallDepthLimit
   obtain ⟨gasWord, k1, C1, rd2192⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native)
       (by simp only [List.length_cons]; omega)
   obtain ⟨k', C', rd2193raw⟩ :=
-    RD.callDepthLimit rd2192 (by native_decide) hdepth
+    RD.callDepthLimit rd2192 (by decide +native) hdepth
       (by omega)
   have hpc : ((⟨2189⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨2193⟩ : UInt256) := by
-    native_decide
+    decide +native
   rw [hpc] at rd2193raw
   exact ⟨_, _, k', C', rd2193raw⟩
 
@@ -147,9 +147,9 @@ theorem RD.catBiteGrabCallFailed
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨2193⟩) (okPc := ⟨2209⟩) rd2193
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize
     hov
 
@@ -170,10 +170,10 @@ theorem RD.catBiteGrabCallSucceeded
   obtain ⟨k1, C1, rd2211⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨2193⟩) (okPc := ⟨2209⟩) rd2193
       hstatus
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp only [List.length_cons]; omega)
-  have rd2212 := RD.pop rd2211 (by native_decide) (by omega)
+  have rd2212 := RD.pop rd2211 (by decide +native) (by omega)
   exact ⟨_, _, by simpa using rd2212⟩
 
 /-! ## Memory-encoding coupling for `vat.grab(...)`

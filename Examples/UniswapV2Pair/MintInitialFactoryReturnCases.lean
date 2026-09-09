@@ -29,7 +29,7 @@ theorem mintInitial_rootSub_word_eq
       (UInt256.sub (UInt256.ofNat rootLiquidity.toNat) (⟨1000⟩ : UInt256)).toNat =
         rootLiquidity.toNat - 1000 := by
     rw [usub_toNat hrootGeWord, hrootWordToNat]
-    have h1000 : (⟨1000⟩ : UInt256).toNat = 1000 := by native_decide
+    have h1000 : (⟨1000⟩ : UInt256).toNat = 1000 := by decide +native
     rw [h1000]
   rw [hliquidity, hsubToNat]
   have hnonneg : 0 ≤ rootLiquidity - minimumLiquidity := by
@@ -346,12 +346,12 @@ theorem uniswapMintInitialFeeOffKLastZeroReturnFromFactoryWitnessCase
         hfeeCall hfeeDec hfeeToAddr hkLastSource htotalZero hsqrt hrootGeMin hfitSub
         hliquidity hliqNonzero hfitSupplyMinSource hfitBalanceMinSource hfitSupplySource
         hfitBalanceSource (by
-          have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+          have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
           have hnat : balance0.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound0
           norm_num [maxUint112]
           exact_mod_cast hnat)
         (by
-          have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+          have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
           have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound1
           norm_num [maxUint112]
           exact_mod_cast hnat)
@@ -695,12 +695,12 @@ theorem uniswapMintInitialFeeOnKLastZeroReturnFromFactoryWitnessCase
         hfeeCall hfeeDec hfeeToAddr hkLastSource htotalZero hsqrt hrootGeMin hfitSub
         hliquidity hliqNonzero hfitSupplyMinSource hfitBalanceMinSource hfitSupplySource
         hfitBalanceSource (by
-          have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+          have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
           have hnat : balance0.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound0
           norm_num [maxUint112]
           exact_mod_cast hnat)
         (by
-          have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+          have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
           have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound1
           norm_num [maxUint112]
           exact_mod_cast hnat)
@@ -1032,12 +1032,12 @@ theorem uniswapMintInitialFeeOffKLastNonzeroReturnFromFactoryWitnessCase
         hrootGeMin hfitSub hliquidity hliqNonzero hfitSupplyMinSource
         hfitBalanceMinSource hfitSupplySource hfitBalanceSource
         (by
-          have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+          have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
           have hnat : balance0.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound0
           norm_num [maxUint112]
           exact_mod_cast hnat)
         (by
-          have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+          have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
           have hnat : balance1.toNat ≤ 2 ^ 112 - 1 := by simpa [hmask] using hbound1
           norm_num [maxUint112]
           exact_mod_cast hnat)

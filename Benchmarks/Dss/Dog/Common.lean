@@ -76,7 +76,7 @@ theorem dogEvmSelectorEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
       if (dogSelBytes i == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
   interval_cases i <;>
     simpa [dogSelectorWord, dogSelBytes, solcSelectorWord] using
-      (evmSelectorDecode (cd := I.calldata) hsz _ _ _ _ _ (by native_decide))
+      (evmSelectorDecode (cd := I.calldata) hsz _ _ _ _ _ (by decide +native))
 
 theorem dogSelectorEqZero (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (hnm : ∀ i, i < 17 → (dogSelBytes i == I.calldata.extract 0 4) = false)
@@ -204,7 +204,7 @@ theorem dogDecodeCalldataWithMode_legacyBytes32_uint256_ok {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [dogDecodeABIValues_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -225,7 +225,7 @@ theorem dogDecodeCalldataWithMode_legacyBytes32_uint256_none_short {cd : ByteArr
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64
   · rw [if_pos hbytes]
@@ -291,7 +291,7 @@ theorem dogDecodeCalldataWithMode_legacyBytes32_address_ok {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [dogDecodeABIValues_bytes32_address_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -312,7 +312,7 @@ theorem dogDecodeCalldataWithMode_legacyBytes32_address_none_short {cd : ByteArr
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64
   · rw [if_pos hbytes]
@@ -631,7 +631,7 @@ theorem dogAuthGuardEval_true {v : DogImmutables}
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
-  all_goals native_decide
+  all_goals decide +native
 
 theorem dogAuthGuardEval_false {v : DogImmutables}
     {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
@@ -666,7 +666,7 @@ theorem dogAuthGuardEval_false {v : DogImmutables}
     apply hload
     apply u256_inj
     simpa using hnat
-  all_goals native_decide
+  all_goals decide +native
 
 theorem RD.solcAddressConstGetterExternal {code : ByteArray} {cA gh bl σ σ₀ A I}
     {g : Sat256} {sel entry routine returnPc val : UInt256} {width : Nat}
@@ -936,19 +936,19 @@ theorem RD.dogAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := rd6.mstore 0 (wordAt0Mem (solcSourceWord ee) solcFreePtrMem)
-    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd11 := evm_run rd7 with [
     raw push1 ⟨32⟩ hd7 (by evm_ov),
     raw dup2 hd9 (by evm_ov),
     raw swap1 hd10 (by evm_ov)]
   have rd12 := rd11.mstore 0 (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := evm_run rd12 with [
     raw push1 ⟨64⟩ hd12 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ (solcSourceWord ee) solcFreePtrMem_size
   have rd16 := rd15.keccak256 0 (solcMappingSlot ⟨0⟩ (solcSourceWord ee))
-    (UInt256.ofNat 3) hd15 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd15 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd17⟩ := rd16.sload hd16 (by evm_ov)
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
@@ -982,19 +982,19 @@ theorem RD.dogAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := rd6.mstore 0 (wordAt0Mem (solcSourceWord ee) solcFreePtrMem)
-    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd11 := evm_run rd7 with [
     raw push1 ⟨32⟩ hd7 (by evm_ov),
     raw dup2 hd9 (by evm_ov),
     raw swap1 hd10 (by evm_ov)]
   have rd12 := rd11.mstore 0 (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := evm_run rd12 with [
     raw push1 ⟨64⟩ hd12 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ (solcSourceWord ee) solcFreePtrMem_size
   have rd16 := rd15.keccak256 0 (solcMappingSlot ⟨0⟩ (solcSourceWord ee))
-    (UInt256.ofNat 3) hd15 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd15 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd17⟩ := rd16.sload hd16 (by evm_ov)
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
@@ -1094,11 +1094,11 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
   have rd6 := rd5.dup2 hd5 (by evm_ov)
   have rd7 := rd6.swap1 hd6 (by evm_ov)
   have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨0⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd9 := rd8.swap1 hd8 (by evm_ov)
   have rd10 := rd9.dup2 hd9 (by evm_ov)
   have rd11 := rd10.mstore 0 (solcMappingHashMem ⟨0⟩ key)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd13 := rd11.push1 ⟨64⟩ hd11 (by evm_ov)
   have rd14 := rd13.swap1 hd13 (by evm_ov)
   have hslot := solcMappingKeccakSlot ⟨0⟩ key
@@ -1106,7 +1106,7 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
     (UInt256.ofNat 3) hd14 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd16⟩ := rd15.sload hd15 (by evm_ov)
   have rd17 := rd16.dup2 hd16 (by evm_ov)
   exact ⟨_, _, rd17.jump hd17 hret (by evm_ov)⟩
@@ -1168,19 +1168,19 @@ theorem RD.solcIlksChopGetter {code : ByteArray} {g : Sat256} {s0 : State}
   have rd4 := rd3.swap1 hd3 (by evm_ov)
   have rd5 := rd4.dup2 hd4 (by evm_ov)
   have rd6 := rd5.mstore 0 (wordAt0Mem key solcFreePtrMem)
-    (UInt256.ofNat 3) hd5 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd5 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd8 := rd6.push1 ⟨1⟩ hd6 (by evm_ov)
   have rd10 := rd8.push1 ⟨32⟩ hd8 (by evm_ov)
   have rd11 := rd10.dup2 hd10 (by evm_ov)
   have rd12 := rd11.swap1 hd11 (by evm_ov)
   have rd13 := rd12.mstore 0 (twoWordHashMem key ⟨1⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := rd13.push1 ⟨64⟩ hd13 (by evm_ov)
   have rd16 := rd15.swap1 hd15 (by evm_ov)
   have rd17 := rd16.swap2 hd16 (by evm_ov)
   have hslot := twoWordHashMem_solcMappingSlot ⟨1⟩ key solcFreePtrMem_size
   have rd18 := rd17.keccak256 0 (solcMappingSlot ⟨1⟩ key)
-    (UInt256.ofNat 3) hd17 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd17 mem_cost hslot (by decide +native) (by evm_ov)
   have rd19 := rd18.add hd18 (by evm_ov)
   obtain ⟨_, _, rd20⟩ := rd19.sload hd19 (by evm_ov)
   have rd21 := rd20.swap1 hd20 (by evm_ov)
@@ -1253,7 +1253,7 @@ private theorem dog_patches_ge_1405 (v : DogImmutables) :
 theorem dogPatchedPrefix1405 {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
     ∃ rest, code = dogBytecode.extract 0 1405 ++ rest := by
-  exact patchRuntime_eq_pref_append (by native_decide) (dog_patches_ge_1405 v) hpatch
+  exact patchRuntime_eq_pref_append (by decide +native) (dog_patches_ge_1405 v) hpatch
 
 theorem dogDecodePatchedEqTemplate1405 {v : DogImmutables} {code : ByteArray} {pc : UInt256}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) (hwin : pc.toNat + 33 ≤ 1405) :
@@ -1263,11 +1263,11 @@ theorem dogDecodePatchedEqTemplate1405 {v : DogImmutables} {code : ByteArray} {p
   obtain ⟨tail, htail⟩ := dogPatchedPrefix1405 hpatch
   have htemplate : dogBytecode = pref ++ tail0 := by
     dsimp [pref, tail0]
-    exact (byteArray_prefix_suffix dogBytecode 1405 (by native_decide)).symm
+    exact (byteArray_prefix_suffix dogBytecode 1405 (by decide +native)).symm
   have hprefSize : pref.size = 1405 := by
     dsimp [pref]
     rw [ByteArray.size_extract]
-    have hs : 1405 ≤ dogBytecode.size := by native_decide
+    have hs : 1405 ≤ dogBytecode.size := by decide +native
     omega
   rw [htail]
   change decode (pref ++ tail) pc = decode dogBytecode pc
@@ -1292,11 +1292,11 @@ theorem dogDecodePatchedEqPrefix1405 {v : DogImmutables} {code : ByteArray} {pc 
   obtain ⟨tail, htail⟩ := dogPatchedPrefix1405 hpatch
   have htemplate : dogBytecode = pref ++ tail0 := by
     dsimp [pref, tail0]
-    exact (byteArray_prefix_suffix dogBytecode 1405 (by native_decide)).symm
+    exact (byteArray_prefix_suffix dogBytecode 1405 (by decide +native)).symm
   have hprefSize : pref.size = 1405 := by
     dsimp [pref]
     rw [ByteArray.size_extract]
-    have hs : 1405 ≤ dogBytecode.size := by native_decide
+    have hs : 1405 ≤ dogBytecode.size := by decide +native
     omega
   have hleft : decode (pref ++ tail) pc = decode pref pc := by
     exact Reasoning.Theory.decode_append_left pref tail pc
@@ -1593,7 +1593,7 @@ theorem dogDecodePatchedEqTemplateDisjoint {v : DogImmutables} {code : ByteArray
     decode code pc = decode dogBytecode pc := by
   unfold decode
   have hsize := patchRuntime_size_eq hpatch
-  have hsize64 : dogBytecode.size < 2 ^ 64 := by native_decide
+  have hsize64 : dogBytecode.size < 2 ^ 64 := by decide +native
   have hget : code.get? pc.toNat = dogBytecode.get? pc.toNat := by
     apply get?_eq_of_extract_one
     · rw [hsize]

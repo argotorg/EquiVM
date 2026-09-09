@@ -29,7 +29,7 @@ theorem endPotArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 theorem endReachPotBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -40,7 +40,7 @@ theorem endReachPotBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : endSelWord I = ⟨0x4ba2363a⟩ :=
     endSelWord_eq_of_beq I hsz 0x4b 0xa2 0x36 0x3a ⟨0x4ba2363a⟩
-      (by native_decide) (by simpa [selIs, endPotConcreteSelector, selectorBytes] using hsel)
+      (by decide +native) (by simpa [selIs, endPotConcreteSelector, selectorBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
     endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
@@ -49,21 +49,21 @@ theorem endReachPotBody {cA gh bl σ σ₀ A I} {g : Sat256}
       ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
     simpa [endRootSplitPc, endLow1JumpdestPc] using
       RD.selectorSplitTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
+        (by rw [hword]; decide +native) (by jump_dest) (by simp)
   have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [endLow1SplitPc] using h271.jumpdest (by native_decide) (by simp)
+    simpa [endLow1SplitPc] using h271.jumpdest (by decide +native) (by simp)
   have h391 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow2JumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
     simpa [endLow1SplitPc, endLow2JumpdestPc] using
       RD.selectorSplitTakenAuto h272 endLow1SplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
+        (by rw [hword]; decide +native) (by jump_dest) (by simp)
   have h392 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1) (C32 + 22 + 1 + 22 + 1) := by
-    simpa [endLow2SplitPc] using h391.jumpdest (by native_decide) (by simp)
+    simpa [endLow2SplitPc] using h391.jumpdest (by decide +native) (by simp)
   have h403 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endPotFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 1 + 5)
@@ -71,20 +71,20 @@ theorem endReachPotBody {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [endLow2SplitPc, endPotFirstArmPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h392 endLow2SplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+        (by rw [hword]; decide +native) (by simp)
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endPotFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endPotFirstArmPc 1))
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo endPotEntryPc 1 h403
     (fun j hj => endPotArmsWellFormed j (le_trans hj (by omega)))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem endPotBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -119,15 +119,15 @@ theorem endPotBodyCore
     hcode hdispatch hdecode hreach hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcAddressSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnAddressFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [potWord] using hbody)
 
 theorem endPotBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}

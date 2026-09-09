@@ -24,4 +24,4 @@ The tactic unfolds the contract's precomputed `@[valid_jumps]` table, then compu
 membership check.  This handles both literal targets and bytecode-derived targets such as
 `solcGuardTgt code`, avoiding call-site `change` boilerplate. -/
 macro "jump_dest" : tactic =>
-  `(tactic| (simp only [valid_jumps]; native_decide))
+  `(tactic| (simp only [valid_jumps]; decide +native))

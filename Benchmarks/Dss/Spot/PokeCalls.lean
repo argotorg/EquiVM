@@ -80,7 +80,7 @@ theorem evalExprs_pokeVatFileArgs
 
 theorem pokeSpotParamBytes_eq_toBytesBE :
     pokeSpotParamBytes = EVM.Word.toBytesBE pokeSpotParamWord := by
-  native_decide
+  decide +native
 
 theorem pokeVatFileEncode_eq (I : ExecutionEnv) (spot : UInt256) {mem : ByteArray}
     (hsz36 : 36 ≤ I.calldata.size) (hmem : mem.size = 192) :
@@ -243,7 +243,7 @@ theorem poke_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : U
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+        (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
@@ -285,7 +285,7 @@ theorem pokePipCode_pos_of_codeSize_ne_zero {cA gh bl σ σ₀ A I} {g : UInt256
     cases hacc : σ.find? (AccountAddress.ofUInt256 (pokePipTargetWord σ I)) <;>
       simp [initState, State.lookupAccount, Reasoning.Theory.extCodeSizeWord,
         pokePipAddress_eq_target σ I, hacc, Option.option] <;>
-      native_decide
+      decide +native
   exact hne (by rw [← hword, hwordZero])
 
 theorem pokeVatCode_zero_of_codeSize_zero {evm : EVM.State}
@@ -332,7 +332,7 @@ theorem pokeVatCode_pos_of_codeSize_ne_zero {evm : EVM.State}
             (pokeVatTargetWord evm.accountMap evm.executionEnv)) <;>
       simp [State.lookupAccount, Reasoning.Theory.extCodeSizeWord,
         pokeVatAddress_eq_target evm.accountMap evm.executionEnv, hacc, Option.option] <;>
-      native_decide
+      decide +native
   exact hne (by rw [← hword, hwordZero])
 
 theorem typedCallViaEVM_zero_substate_irrel {cfg : Config} {evm evm' : EVM.State}

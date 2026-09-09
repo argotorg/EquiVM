@@ -44,7 +44,7 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesize
   let factory := mintFeeFactoryWord σ'' I
   have rd7705 := evm_run rd7696 with [
     jumpdest, push1 ⟨0⟩, dup1, push1 ⟨5⟩, push1 ⟨0⟩, swap1]
-  obtain ⟨k7706, C7706, rd7706₀⟩ := rd7705.sload (by native_decide) (by evm_ov)
+  obtain ⟨k7706, C7706, rd7706₀⟩ := rd7705.sload (by decide +native) (by evm_ov)
   have rd7706 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7706⟩
       [factoryRaw, ⟨0⟩, ⟨0⟩, ⟨0⟩,
@@ -60,37 +60,37 @@ theorem uniswapMintFeeRuntimeFactoryExtcodesize
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and,
     push4 feeToSelectorWord, push1 ⟨64⟩]
   have rd7738 := rd7738pre
-  rw [show UInt256.exp (⟨256⟩ : UInt256) ⟨0⟩ = ⟨1⟩ from by native_decide,
+  rw [show UInt256.exp (⟨256⟩ : UInt256) ⟨0⟩ = ⟨1⟩ from by decide +native,
     u256_div_one,
     show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide,
     u256_land_solcAddrMask_idem_left factoryRaw] at rd7738
   have rd7739 := rd7738.mload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords
-    (by native_decide)
+    (by decide +native)
     mem_cost
     (balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
       (UInt256.ofNat I.codeOwner.val) o o1 ho32 hoSize ho132 ho1Size)
-    (by native_decide)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd7750pre := evm_run rd7739 with [
     dup2, push4 ⟨0xffffffff⟩, and, push1 ⟨224⟩, shl, dup2]
   have rd7750 := rd7750pre
   rw [show UInt256.land (⟨0xffffffff⟩ : UInt256) feeToSelectorWord =
-      feeToSelectorWord from by native_decide] at rd7750
+      feeToSelectorWord from by decide +native] at rd7750
   have rd7751 := rd7750.mstore 0 (feeToSelectorMem baseMem) feeToStaticcallActiveWords
-    (by native_decide) mem_cost (by rfl) (by native_decide)
+    (by decide +native) mem_cost (by rfl) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd7758 := evm_run rd7751 with [
     push1 ⟨4⟩, add, push1 ⟨32⟩, push1 ⟨64⟩]
   rw [show (⟨4⟩ : UInt256) + ⟨128⟩ = ⟨132⟩ from by decide] at rd7758
   have rd7759 := rd7758.mload 0 ⟨128⟩ feeToStaticcallActiveWords
-    (by native_decide)
+    (by decide +native)
     mem_cost
     (by
       simpa [baseMem] using
         feeToSelectorMem_mload64_of_rebuiltStaticcallMem
           (UInt256.ofNat I.codeOwner.val) o o1 ho32 hoSize ho132 ho1Size)
-    (by native_decide)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd7765 := evm_run rd7759 with [dup1, dup4, sub, dup2, dup7, dup1]
   rw [show UInt256.sub (⟨132⟩ : UInt256) ⟨128⟩ = ⟨4⟩ from by decide] at rd7765
@@ -119,9 +119,9 @@ theorem uniswapMintFeeRuntimeFactoryMissingCodeReverts
     RDrev uniswapV2PairBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcExtcodesizeGuardMissing (okPc := ⟨7777⟩) rd7765 hfactoryNoCode
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
@@ -179,13 +179,13 @@ theorem uniswapMintFeeRuntimeFactoryStaticcallMade
   let factory := mintFeeFactoryWord σ'' I
   obtain ⟨_, _, _, rd7780⟩ :=
     RD.solcExtcodesizeGuardOkGas (okPc := ⟨7777⟩) rd7765 hfactoryCode
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest)
-      (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest)
+      (by decide +native) (by decide +native) (by decide +native)
       (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨cAFee, σFee, zFee, outFee, A_inFee, callGasFee, k', C', hΘ, rd7781,
       houtFeeSize⟩ :=
-    RD.solcStaticcall rd7780 (by native_decide) hdepth
+    RD.solcStaticcall rd7780 (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨cAFee, σFee, zFee, outFee, A_inFee, callGasFee, k', C',
     by simpa [baseMem, factory, initState] using hΘ,
@@ -244,10 +244,10 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCall
     have hstatus : (if zFee then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       simp [hz]
     exact RD.solcCallSuccessGuardMissing (okPc := ⟨7797⟩) rd7781 hstatus
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) houtFeeSize
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) houtFeeSize
       (by simp only [List.length_cons, List.length_nil]; omega)
   · intro hz hshort
     have hstatus : (if zFee then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩ := by
@@ -255,24 +255,24 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCall
       decide
     obtain ⟨_, _, rd7799⟩ :=
       RD.solcCallSuccessGuardOk (okPc := ⟨7797⟩) rd7781 hstatus
-        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-        (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+        (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+        (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
         (by simp only [List.length_cons, List.length_nil]; omega)
     exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨7799⟩) (okPc := ⟨7819⟩)
       rd7799 hshort houtFeeSize
       (fun s haw hstk => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
+        decide +native)
+      (by decide +native)
       (by
         simpa [baseMem] using
           feeToStaticcallMem_mload64_of_size_lt
             (UInt256.ofNat I.codeOwner.val) o o1 outFee ho32 hoSize ho132 ho1Size
             hshort houtFeeSize)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native)
       (by simp only [List.length_cons, List.length_nil]; omega)
   · intro hz hout32
     have hstatus : (if zFee then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩ := by
@@ -280,16 +280,16 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCall
       decide
     obtain ⟨_, _, rd7799⟩ :=
       RD.solcCallSuccessGuardOk (okPc := ⟨7797⟩) rd7781 hstatus
-        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-        (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+        (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+        (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
         (by simp only [List.length_cons, List.length_nil]; omega)
     obtain ⟨_, _, rd7822⟩ :=
       RD.solcUint256ReturnWordDecodeOk (pc := ⟨7799⟩) (okPc := ⟨7819⟩)
         rd7799 hout32 houtFeeSize
         (fun s haw hstk => by
           simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-          native_decide)
-        (by native_decide)
+          decide +native)
+        (by decide +native)
         (by
           simpa [baseMem] using
             feeToStaticcallMem_mload64_of_size_ge
@@ -302,15 +302,15 @@ theorem uniswapMintFeeRuntimeFactoryResultBranchesFromCall
               hout32 houtFeeSize)
         (fun s haw hstk => by
           simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-          native_decide)
-        (by native_decide)
-        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-        (by jump_dest) (by native_decide) (by native_decide) (by native_decide)
+          decide +native)
+        (by decide +native)
+        (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+        (by jump_dest) (by decide +native) (by decide +native) (by decide +native)
         (by simp only [List.length_cons, List.length_nil]; omega)
     have rd7824 := evm_run rd7822 with [push1 ⟨11⟩]
-    obtain ⟨k7825, C7825, rd7825₀⟩ := rd7824.sload (by native_decide) (by evm_ov)
+    obtain ⟨k7825, C7825, rd7825₀⟩ := rd7824.sload (by decide +native) (by evm_ov)
     exact ⟨k7825, C7825, by simpa [baseMem, mintFeeKLastSlotWord, uniswapSlotWord] using rd7825₀⟩
 
 set_option maxHeartbeats 1000000 in
@@ -386,9 +386,9 @@ theorem uniswapMintFeeRuntimeFeeOffKLastNonzeroReturn
       mem aw rdata (cAFee, sstoreAccountMap I.codeOwner σFee ⟨11⟩ ⟨0⟩) k' C' := by
   have rd8038pre := evm_run rd8026 with [jumpdest, dup1, iszero, push2 ⟨8038⟩]
   rw [isZero_eq_zero_of_ne hkLastNonzero] at rd8038pre
-  have rd8033 := evm_run rd8038pre with [jumpiNT (by native_decide)]
+  have rd8033 := evm_run rd8038pre with [jumpiNT (by decide +native)]
   have rd8037 := evm_run rd8033 with [push1 ⟨0⟩, push1 ⟨11⟩]
-  obtain ⟨_, _, rd8038⟩ := rd8037.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd8038⟩ := rd8037.sstore hperm (by decide +native) (by evm_ov)
   exact ⟨_, _, evm_run rd8038 with [jumpdest, pop, pop, swap3, swap2, pop, pop,
     jump (by jump_dest)]⟩
 
@@ -418,7 +418,7 @@ theorem uniswapMintFeeRuntimeFeeOnEntry
       solcAddrMask from by decide,
     isZero_eq_zero_of_ne hfeeToNonzero,
     show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd7848pre
-  exact ⟨_, _, evm_run rd7848pre with [jumpiNT (by native_decide)]⟩
+  exact ⟨_, _, evm_run rd7848pre with [jumpiNT (by decide +native)]⟩
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` fee-on return when `kLast` is zero. -/
@@ -681,7 +681,7 @@ theorem uniswapMintFeeRuntimeFeeOnKLastNonzeroMulEntry
       mem aw rdata (cAFee, σFee) k' C' := by
   have rd7854pre := evm_run rd7848 with [dup1, iszero, push2 ⟨8021⟩]
   rw [isZero_eq_zero_of_ne hkLastNonzero] at rd7854pre
-  have rd7854 := evm_run rd7854pre with [jumpiNT (by native_decide)]
+  have rd7854 := evm_run rd7854pre with [jumpiNT (by decide +native)]
   have rd6780 := evm_run rd7854 with [
     push1 ⟨0⟩, push2 ⟨7886⟩, push2 ⟨3737⟩, push1 ⟨1⟩, push1 ⟨1⟩,
     push1 ⟨112⟩, shl, sub, dup9, dup2, and, swap1, dup9, and,

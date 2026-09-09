@@ -109,14 +109,14 @@ theorem daiDeployment_shape {args : List Value} {deployedInitcode : ByteArray} :
                 staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
 
 theorem daiCreationBytecode_size : daiCreationBytecode.size = 4312 := by
-  native_decide
+  decide +native
 
 theorem daiBytecode_size : daiBytecode.size = 4011 := by
-  native_decide
+  decide +native
 
 theorem daiCreationBytecode_runtime_window :
     daiCreationBytecode.extract 301 (301 + 4011) = daiBytecode := by
-  native_decide
+  decide +native
 
 noncomputable def daiCtorCode (chainIdWord : UInt256) : ByteArray :=
   daiCreationBytecode ++ (EVM.Word.toBytesBE chainIdWord).toByteArray
@@ -132,13 +132,13 @@ macro "dai_ctor_decode" : tactic =>
     (first
       | rw [daiCreationBytecode_decode_append _ _ (by decide)]
       | (unfold daiCtorCode; rw [daiCreationBytecode_decode_append _ _ (by decide)]);
-     native_decide))
+     decide +native))
 
 macro "dai_ctor_jd" : tactic =>
   `(tactic|
     (first
-      | (apply Reasoning.Theory.D_J_contains_append_left; native_decide)
-      | (unfold daiCtorCode; apply Reasoning.Theory.D_J_contains_append_left; native_decide)))
+      | (apply Reasoning.Theory.D_J_contains_append_left; decide +native)
+      | (unfold daiCtorCode; apply Reasoning.Theory.D_J_contains_append_left; decide +native)))
 
 open Lean in
 macro "dai_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do
@@ -178,7 +178,7 @@ theorem daiCtorCode_size (chainIdWord : UInt256) :
 theorem daiCtorArgLen_eq (chainIdWord : UInt256) :
     (UInt256.ofNat (daiCtorCode chainIdWord).size).sub ⟨4312⟩ = (⟨32⟩ : UInt256) := by
   rw [daiCtorCode_size]
-  native_decide
+  decide +native
 
 noncomputable def daiCtorArgMem (chainIdWord : UInt256) : ByteArray :=
   solcFreePtrMem ++ ffi.ByteArray.zeroes 32 ++ UInt256.toByteArray chainIdWord
@@ -864,13 +864,13 @@ theorem daiCtorLocals_get_chainId (chainId : Int) :
 theorem daiCtorLocals_get_wards (chainId : Int) :
     (daiCtorLocals chainId).get? "wards" = none := by
   unfold daiCtorLocals
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem daiCtorLocals_get_DOMAIN_SEPARATOR (chainId : Int) :
     (daiCtorLocals chainId).get? "DOMAIN_SEPARATOR" = none := by
   unfold daiCtorLocals
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem evalStorageRef_daiCtor_wards (evm : EVM.State) (I : ExecutionEnv) (chainId : Int)
@@ -1263,7 +1263,7 @@ theorem daiCtorArgLengthCheckTrace
       [⟨128⟩] mem (UInt256.ofNat 5) rdata acc k' C' := by
   have rd := dai_ctor_run h with [
     push1 ⟨32⟩, dup2, lt, iszero, push2 ⟨51⟩,
-    jumpiT (by native_decide) (by dai_ctor_jd),
+    jumpiT (by decide +native) (by dai_ctor_jd),
     jumpdest, pop]
   exact ⟨_, _, rd⟩
 
@@ -1383,7 +1383,7 @@ theorem daiCtorDomainWordsTrace
   have rdNameRaw := rdNameLen.pushConst
     (⟨693460759908978978078209758180535⟩ : UInt256)
     (width := 14) (op := .PUSH14)
-    (by native_decide) (by dai_ctor_decode) (by evm_ov)
+    (by decide +native) (by dai_ctor_decode) (by evm_ov)
   have rdPreHash := dai_ctor_run rdNameRaw with [
     push1 ⟨145⟩, shl, swap1, dup4, add,
     raw mstore 3 (daiCtorDomainNameMem I chainIdWord) (UInt256.ofNat 7)
@@ -1407,21 +1407,21 @@ theorem daiCtorDomainWordsTrace
       (by decide) (by evm_ov)]
   have rdTypeHash := rdPreHash.pushConst daiCtorTypeHashWord
     (width := 32) (op := .PUSH32)
-    (by native_decide) (by dai_ctor_decode) (by evm_ov)
+    (by decide +native) (by dai_ctor_decode) (by evm_ov)
   have rdTypeMem := dai_ctor_run rdTypeHash with [
     dup2, dup4, add,
     raw mstore 6 (daiCtorDomainTypeMem I chainIdWord) (UInt256.ofNat 11)
       (by dai_ctor_decode) mem_cost rfl (by decide) (by evm_ov)]
   have rdNameHash := rdTypeMem.pushConst daiCtorNameHashWord
     (width := 32) (op := .PUSH32)
-    (by native_decide) (by dai_ctor_decode) (by evm_ov)
+    (by decide +native) (by dai_ctor_decode) (by evm_ov)
   have rdNameHashMem := dai_ctor_run rdNameHash with [
     dup2, dup5, add,
     raw mstore 3 (daiCtorDomainNameHashMem I chainIdWord) (UInt256.ofNat 12)
       (by dai_ctor_decode) mem_cost rfl (by decide) (by evm_ov)]
   have rdVersionHash := rdNameHashMem.pushConst daiCtorVersionHashWord
     (width := 32) (op := .PUSH32)
-    (by native_decide) (by dai_ctor_decode) (by evm_ov)
+    (by decide +native) (by dai_ctor_decode) (by evm_ov)
   have rd := dai_ctor_run rdVersionHash with [
     push1 ⟨96⟩, dup3, add,
     raw mstore 3 (daiCtorDomainVersionHashMem I chainIdWord) (UInt256.ofNat 13)

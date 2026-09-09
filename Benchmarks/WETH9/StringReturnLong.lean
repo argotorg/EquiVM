@@ -73,14 +73,14 @@ theorem weth9NameLongReachLoop {cA gh bl σ σ₀ A I} {g : Sat256}
   have h942 := evm_run h910 with [
     jumpdest, dup3, add, swap2, swap1, push1 ⟨0⟩,
     raw mstore 0 (weth9LongScratchMem (weth9StringSlotWord σ I ⟨0⟩)) (UInt256.ofNat 5)
-      (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost rfl (by decide +native) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨0⟩]
-  have h943 := h942.keccak256 0 weth9LongDataBase (UInt256.ofNat 5) (by native_decide)
+  have h943 := h942.keccak256 0 weth9LongDataBase (UInt256.ofNat 5) (by decide +native)
     (by intro s haw hstk
         simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw,
           List.getElem!_cons_zero, List.getElem!_cons_succ,
           show (⟨0⟩ : UInt256).toNat = 0 from rfl, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-        native_decide)
+        decide +native)
     (weth9LongScratchMem_keccak0 _) (by decide) (by evm_ov)
   exact ⟨_, _, evm_run h943 with [swap1]⟩
 
@@ -127,17 +127,17 @@ theorem weth9NameLongCopyContinue {cA gh bl σ σ₀ A I}
       memout awStore ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd944⟩ := hreach
   have rd946 := evm_run rd944 with [jumpdest, dup2]
-  obtain ⟨_, _, rd947₀⟩ := rd946.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd947₀⟩ := rd946.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd947⟩ : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨947⟩
       [weth9LongStorageWord σ I slot, ptr, slot, endp, len, ⟨0⟩, ⟨128⟩,
         ⟨187⟩, weth9SelWord I] m aw ByteArray.empty (cA, σ) k C :=
     ⟨_, _, by simpa [weth9LongStorageWord, initState] using rd947₀⟩
   have rd948 := evm_run rd947 with [dup2]
-  have rd949 := rd948.mstore mstoreCost memout awStore (by native_decide) hmstoreCost hmemout
+  have rd949 := rd948.mstore mstoreCost memout awStore (by decide +native) hmstoreCost hmemout
     hawStore (by evm_ov)
   have rd960 := evm_run rd949 with [
     swap1, push1 ⟨1⟩, add, swap1, push1 ⟨32⟩, add, dup1, dup4, gt, push2 ⟨944⟩]
-  exact ⟨_, _, rd960.jumpiT (by native_decide) hcontinue (by jump_dest) (by evm_ov)⟩
+  exact ⟨_, _, rd960.jumpiT (by decide +native) hcontinue (by jump_dest) (by evm_ov)⟩
 
 /-- Copy-loop exit (pc 944 → 187), done branch (`end ≤ ptr + 32`): converges through the trailing
     bookkeeping (964–972) and the shared `POP×5; DUP2; JUMP` (973–980) back to the encoder entry. -/
@@ -159,21 +159,21 @@ theorem weth9NameLongCopyExit {cA gh bl σ σ₀ A I}
       [⟨128⟩, ⟨187⟩, weth9SelWord I] memout awStore ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd944⟩ := hreach
   have rd946 := evm_run rd944 with [jumpdest, dup2]
-  obtain ⟨_, _, rd947₀⟩ := rd946.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd947₀⟩ := rd946.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd947⟩ : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨947⟩
       [weth9LongStorageWord σ I slot, ptr, slot, endp, len, ⟨0⟩, ⟨128⟩,
         ⟨187⟩, weth9SelWord I] m aw ByteArray.empty (cA, σ) k C :=
     ⟨_, _, by simpa [weth9LongStorageWord, initState] using rd947₀⟩
   have rd948 := evm_run rd947 with [dup2]
-  have rd949 := rd948.mstore mstoreCost memout awStore (by native_decide) hmstoreCost hmemout
+  have rd949 := rd948.mstore mstoreCost memout awStore (by decide +native) hmstoreCost hmemout
     hawStore (by evm_ov)
   have rd960 := evm_run rd949 with [
     swap1, push1 ⟨1⟩, add, swap1, push1 ⟨32⟩, add, dup1, dup4, gt, push2 ⟨944⟩]
-  have rd963 := rd960.jumpiNT (by native_decide) hdone (by evm_ov)
+  have rd963 := rd960.jumpiNT (by decide +native) hdone (by evm_ov)
   have rd980 := evm_run rd963 with [
     dup3, swap1, sub, push1 ⟨31⟩, and, dup3, add, swap2,
     jumpdest, pop, pop, pop, pop, pop, dup2]
-  exact ⟨_, _, rd980.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  exact ⟨_, _, rd980.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 /-- One `writeWord` copy at the running pointer. -/
 noncomputable def weth9LongCopyMem (mem : ByteArray) (ptr word : UInt256) : ByteArray :=

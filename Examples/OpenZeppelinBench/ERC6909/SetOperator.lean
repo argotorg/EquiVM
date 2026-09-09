@@ -380,13 +380,13 @@ theorem setOperatorSource_zero_iff (I : ExecutionEnv) :
 theorem setOperatorBoolCanonJump {word : UInt256}
     (hbool : word = ⟨0⟩ ∨ word = ⟨1⟩) :
     UInt256.eq word (UInt256.isZero (UInt256.isZero word)) ≠ ⟨0⟩ := by
-  rcases hbool with rfl | rfl <;> native_decide
+  rcases hbool with rfl | rfl <;> decide +native
 
 theorem setOperatorBoolNoncanonJump {word : UInt256}
     (hnz : word ≠ ⟨0⟩) (hno : word ≠ ⟨1⟩) :
     UInt256.eq word (UInt256.isZero (UInt256.isZero word)) = ⟨0⟩ := by
   rw [isZero_eq_zero_of_ne hnz]
-  have hone : UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ := by native_decide
+  have hone : UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ := by decide +native
   rw [hone]
   exact u256_eq_of_ne hno
 

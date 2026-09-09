@@ -130,7 +130,7 @@ theorem permitNonceHashMem_mload64 (I : ExecutionEnv) :
       = ⟨128⟩ :=
   mloadWordValue_of_readWithPadding
     (by rw [permitNonceHashMem_size]; decide)
-    (by native_decide)
+    (by decide +native)
     (permitNonceHashMem_read64 I)
 
 theorem permitNonceKeccakSlot (I : ExecutionEnv) :
@@ -666,7 +666,7 @@ theorem permitVWord_toNat (I : ExecutionEnv) :
     (permitVWord I).toNat = (permitVRawWord I).toNat % EVM.twoPow 8 := by
   unfold permitVWord
   rw [uland_toNat]
-  have hmask : (⟨255⟩ : UInt256).toNat = 2 ^ 8 - 1 := by native_decide
+  have hmask : (⟨255⟩ : UInt256).toNat = 2 ^ 8 - 1 := by decide +native
   rw [hmask]
   change Nat.land (permitVRawWord I).toNat (2 ^ 8 - 1) =
     (permitVRawWord I).toNat % EVM.twoPow 8
@@ -679,7 +679,7 @@ theorem permitVWord_mask_left (I : ExecutionEnv) :
   apply u256_inj
   rw [u256_land_toNat, permitVWord_toNat]
   have hmask : (⟨255⟩ : UInt256).toNat = 2 ^ 8 - 1 := by
-    native_decide
+    decide +native
   rw [hmask]
   change Nat.land ((permitVRawWord I).toNat % EVM.twoPow 8) (2 ^ 8 - 1) %
       UInt256.size =
@@ -1018,10 +1018,10 @@ theorem uniswapPermitX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (code := uniswapV2PairBytecode) (entry := ⟨1340⟩) (ret := ⟨570⟩)
     (decoded := ⟨1362⟩) (need := ⟨224⟩)
     hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 /-- The optimized external wrapper for `permit` decodes the seven static ABI words and jumps to
 the shared permit routine at pc 5473. Legacy address words are masked before the jump. -/
@@ -1041,9 +1041,9 @@ theorem uniswapPermitX_decoded_masked {cA gh bl σ σ₀ A I} {g : Sat256} {sel 
     (code := uniswapV2PairBytecode) (entry := ⟨1340⟩) (ret := ⟨570⟩)
     (decoded := ⟨1362⟩) (need := ⟨224⟩)
     hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hlt
   have rd5473 := evm_run rd1362 with [
     jumpdest, pop, push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2,
@@ -1336,7 +1336,7 @@ theorem evalExpr_permit_afterNonce_s (evm : EVM.State) (I : ExecutionEnv) :
 
 theorem permitTypehashBytes_eq_toBytesBE :
     permitTypehashBytes = EVM.Word.toBytesBE permitTypehashWord := by
-  native_decide
+  decide +native
 
 theorem byteArray_mk_toList_toArray (b : ByteArray) :
     ByteArray.mk b.toList.toArray = b := by
@@ -1355,7 +1355,7 @@ theorem word_toBytesBE_eq_toByteArray_toList (w : UInt256) :
 
 theorem permitDigestPrefix_toList :
     (ByteArray.mk #[0x19, 0x01]).toList = [0x19, 0x01] := by
-  native_decide
+  decide +native
 
 theorem permitEncodePacked_uint256 (w : UInt256) :
     encodePackedValue? uint256 (.int (Int.ofNat w.toNat)) =
@@ -1378,7 +1378,7 @@ theorem permitEncodePacked_typehash :
     encodePackedValue? bytes32 (.fixedBytes bytes32Width permitTypehashBytes) =
       some (EVM.Word.toBytesBE permitTypehashWord) := by
   have hlen : permitTypehashBytes.length = fixedBytesSize bytes32Width := by
-    native_decide
+    decide +native
   have hbytes : permitTypehashBytes = EVM.Word.toBytesBE permitTypehashWord :=
     permitTypehashBytes_eq_toBytesBE
   have hwordLen : (EVM.Word.toBytesBE permitTypehashWord).length =
@@ -2363,7 +2363,7 @@ theorem evalExpr_permit_nonce_next (evm : EVM.State) (I : ExecutionEnv) :
       { contract := contract, locals := permitAfterNonceLoadStore evm I } evm
       (wrapU256 (.binary .add (.var "nonce") (.intLit 1))) =
         .ok (permitNonceNextLoadedValue evm I) := by
-  have hone : (⟨1⟩ : UInt256).toNat = 1 := by native_decide
+  have hone : (⟨1⟩ : UInt256).toNat = 1 := by decide +native
   unfold wrapU256 permitNonceNextLoadedValue permitNonceNextLoadedWord permitNonceLoadedWord
   simp only [evalExpr?, EvalResult.ofOption, EvalResult.bind, bind]
   rw [permitAfterNonceLoadStore_nonce]
@@ -2940,7 +2940,7 @@ theorem uniswapPermitX_expired {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
     rd5482
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) (by rfl) solcFreePtrMem_size solcFreePtrMem_read64
     (by simp only [List.length_cons, List.length_nil]; omega)
 
@@ -2986,7 +2986,7 @@ theorem uniswapPermitX_nonceStored {cA gh bl σ σ₀ A I} {g : Sat256} {sel : U
   obtain ⟨_, _, rd5547⟩ := hdeadlineOk
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have hownerMask :
       UInt256.land (permitOwnerMaskedWord I) solcAddrMask = permitOwnerMaskedWord I := by
     apply solcAddrMask_clean
@@ -3227,10 +3227,10 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecoded
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       simp [hz]
     exact RD.solcCallSuccessGuardMissing (okPc := ⟨5830⟩) rd5814 hstatus
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) hoSize
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) hoSize
       (by simp only [List.length_cons, List.length_nil]; omega)
   · intro hz ho32
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) ≠ ⟨0⟩ := by
@@ -3238,8 +3238,8 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecoded
       decide
     obtain ⟨_, _, rd5832⟩ :=
       RD.solcCallSuccessGuardOk (okPc := ⟨5830⟩) rd5814 hstatus
-        (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-        (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+        (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+        (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
         (by simp only [List.length_cons, List.length_nil]; omega)
     have hstructMemSize : (permitStructHashMem σ I).size = 352 := by
       simpa [permitStructHashMem] using
@@ -3339,18 +3339,18 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAll
       rw [hz]
       decide
     exact RD.solcCallSuccessGuardOk (okPc := ⟨5830⟩) rd5814 hstatus
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨cA', σ', z, o, A_in, callGas, hΘ, ?_, ?_, ?_, hoSize⟩
   · intro hz
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       simp [hz]
     exact RD.solcCallSuccessGuardMissing (okPc := ⟨5830⟩) rd5814 hstatus
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) hoSize
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) hoSize
       (by simp only [List.length_cons, List.length_nil]; omega)
   · intro hz hshort
     obtain ⟨_, _, rd5832⟩ := hguardOk hz
@@ -3431,18 +3431,18 @@ theorem uniswapPermitX_ecrecoverStatusAndReturnDecodedAllAt
       rw [hz]
       decide
     exact RD.solcCallSuccessGuardOk (okPc := ⟨5830⟩) rd5814 hstatus
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨?_, ?_, ?_⟩
   · intro hz
     have hstatus : (if z then (⟨1⟩ : UInt256) else ⟨0⟩) = ⟨0⟩ := by
       simp [hz]
     exact RD.solcCallSuccessGuardMissing (okPc := ⟨5830⟩) rd5814 hstatus
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) hoSize
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) hoSize
       (by simp only [List.length_cons, List.length_nil]; omega)
   · intro hz hshort
     obtain ⟨_, _, rd5832⟩ := hguardOk hz
@@ -4014,7 +4014,7 @@ theorem uniswapPermitBodyCoreOk_afterNonce
       henvCall hAccountsCall
   exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
     (uniswapDecode_permit_ok hsz228) hbody hcreated hAccountsPost
-    (returnEquiv.fallthrough rfl rfl (by native_decide))
+    (returnEquiv.fallthrough rfl rfl (by decide +native))
 
 theorem uniswapPermitBodyCoreOk_afterNonce_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -4142,7 +4142,7 @@ theorem uniswapPermitBodyCoreOk_afterNonce_short
       henvCall hAccountsCall
   exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
     (uniswapDecode_permit_ok hsz228) hbody hcreated hAccountsPost
-    (returnEquiv.fallthrough rfl rfl (by native_decide))
+    (returnEquiv.fallthrough rfl rfl (by decide +native))
 
 theorem uniswapPermitBodyRevertsAfterNonce {evm : EVM.State} {I : ExecutionEnv}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)

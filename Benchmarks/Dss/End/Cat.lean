@@ -28,12 +28,12 @@ abbrev endCatRoutinePc : UInt256 := ⟨9558⟩
 theorem endCatHighSplitWellFormed :
     selectorSplitWellFormed endBytecode endCatHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endCatHigh2SplitWellFormed :
     selectorSplitWellFormed endBytecode endCatHigh2SplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem endCatArmsWellFormed :
@@ -41,7 +41,7 @@ theorem endCatArmsWellFormed :
   intro j hj
   interval_cases j
   dsimp [armWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endReachCatBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -52,7 +52,7 @@ theorem endReachCatBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : endSelWord I = ⟨0xe4881813⟩ :=
     endSelWord_eq_of_beq I hsz 0xe4 0x88 0x18 0x13 ⟨0xe4881813⟩
-      (by native_decide) (by simpa [selIs, endCatConcreteSelector, selectorBytes] using hsel)
+      (by decide +native) (by simpa [selIs, endCatConcreteSelector, selectorBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
     endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
@@ -62,21 +62,21 @@ theorem endReachCatBody {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [endRootSplitPc, endCatHighSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+        (by rw [hword]; decide +native) (by simp)
   have h54 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endCatHigh2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [endCatHighSplitPc, endCatHigh2SplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h43 endCatHighSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+        (by rw [hword]; decide +native) (by simp)
   have h65 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endCatFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
     simpa [endCatHigh2SplitPc, endCatFirstArmPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h54 endCatHigh2SplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+        (by rw [hword]; decide +native) (by simp)
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endCatFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
@@ -86,10 +86,10 @@ theorem endReachCatBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endCatFirstArmPc 0))
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo endCatEntryPc 0 h65
     (fun j hj => endCatArmsWellFormed j hj)
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem endCatBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -124,15 +124,15 @@ theorem endCatBodyCore
     hcode hdispatch hdecode hreach hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcAddressSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnAddressFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [catWord] using hbody)
 
 theorem endCatBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}

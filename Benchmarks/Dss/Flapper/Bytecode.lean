@@ -481,7 +481,7 @@ def flapperBytecode : ByteArray :=
       ⟨4233⟩, ⟨4319⟩, ⟨4458⟩, ⟨4478⟩, ⟨4553⟩, ⟨4574⟩, ⟨4580⟩, ⟨4586⟩, ⟨4694⟩, ⟨4809⟩,
       ⟨4838⟩, ⟨4894⟩, ⟨4918⟩, ⟨4921⟩, ⟨4930⟩, ⟨4936⟩, ⟨4963⟩, ⟨4979⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def flapperCreationChunk0 : ByteArray :=
@@ -954,7 +954,7 @@ def flapperCreationBytecode : ByteArray :=
       ⟨4351⟩, ⟨4363⟩, ⟨4441⟩, ⟨4527⟩, ⟨4666⟩, ⟨4686⟩, ⟨4761⟩, ⟨4782⟩, ⟨4788⟩, ⟨4794⟩,
       ⟨4902⟩, ⟨5017⟩, ⟨5046⟩, ⟨5102⟩, ⟨5126⟩, ⟨5129⟩, ⟨5138⟩, ⟨5144⟩, ⟨5171⟩, ⟨5187⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.Flapper

@@ -217,7 +217,7 @@ theorem RD.erc20DecodeAddrRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {
 macro "erc20_mapping_hash_wf" : term =>
   `(by
     unfold Reasoning.Reach.erc20MappingHashSuffixWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 /-- End PC for `erc20MappingHashSuffixWf`.  Kept as chained offsets so callers at concrete PCs
     reduce by computation instead of needing UInt256 arithmetic reassociation lemmas. -/
@@ -260,18 +260,18 @@ theorem RD.erc20MappingHashSuffix {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
     ⟨hd0, hd1, hd2, hd3, hd4, hd5, hd6, hd7, hd8, hd9, hd10⟩
   have rd1 := h.dup2 hd0 (by evm_ov)
   have rd2 := rd1.mstore 0 memKey (UInt256.ofNat 3) hd1 mem_cost hkey
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd3 := rd2.push1 ⟨32⟩ hd2 (by evm_ov)
   have rd4 := rd3.add hd3 (by evm_ov)
   have rd5 := rd4.swap1 hd4 (by evm_ov)
   have rd6 := rd5.dup2 hd5 (by evm_ov)
   have rd7 := rd6.mstore 0 memHash (UInt256.ofNat 3) hd6 mem_cost hbase
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd8 := rd7.push1 ⟨32⟩ hd7 (by evm_ov)
   have rd9 := rd8.add hd8 (by evm_ov)
   have rd10 := rd9.push0 hd9 (by evm_ov)
   exact ⟨_, _, rd10.keccak256 0 slot (UInt256.ofNat 3) hd10 mem_cost hslot
-    (by native_decide) (by evm_ov)⟩
+    (by decide +native) (by evm_ov)⟩
 
 end Reasoning.Reach
 

@@ -75,12 +75,12 @@ theorem daiX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (σ₀ := σ₀) (A := A) (g := g) hcode (by decide) (by decide) (by decide)
     (by decide) (by decide) (by decide)
   have h12 := h0
-    |>.pushConst (⟨16⟩ : UInt256) (width := 2) (op := .PUSH2) (by native_decide)
-        (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
+    |>.pushConst (⟨16⟩ : UInt256) (width := 2) (op := .PUSH2) (by decide +native)
+        (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hwv)
         (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h12 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem daiX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -94,16 +94,16 @@ theorem daiX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (wC := solcGuardTgtWidth daiBytecode) h0 hwv
     (by decide) (by decide) (by decide) (by decide) (by decide) (by jump_dest)
   have h322 := h1
-    |>.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.calldatasize (by native_decide) (by simp only [List.length]; omega)
-    |>.lt (by native_decide) (by simp only [List.length]; omega)
-    |>.pushConst (⟨322⟩ : UInt256) (width := 2) (op := .PUSH2) (by native_decide)
-        (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
+    |>.push1 ⟨4⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.calldatasize (by decide +native) (by simp only [List.length]; omega)
+    |>.lt (by decide +native) (by simp only [List.length]; omega)
+    |>.pushConst (⟨322⟩ : UInt256) (width := 2) (op := .PUSH2) (by decide +native)
+        (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
         (by simp only [List.length]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h322 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h322 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem daiDispatch_none_short {cd : ByteArray} (hshort : cd.size < 4) :
     dispatchMsg contract cd = none := by
@@ -179,9 +179,9 @@ theorem daiJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h322 := h.push2 ⟨322⟩ hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by evm_ov)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h322 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h322 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -203,46 +203,46 @@ theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         (daiSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 18 (by omega) 0xa9 0x05 0x9c 0xbb _ (by native_decide) rfl
-    · exact hselectorNoMatch 14 (by omega) 0xb7 0x53 0xa9 0x8c _ (by native_decide) rfl
-    · exact hselectorNoMatch 8 (by omega) 0xbb 0x35 0x78 0x3b _ (by native_decide) rfl
-    · exact hselectorNoMatch 21 (by omega) 0xbf 0x35 0x3d 0xbb _ (by native_decide) rfl
-    · exact hselectorNoMatch 0 (by omega) 0xdd 0x62 0xed 0x3e _ (by native_decide) rfl
-    · exact hselectorNoMatch 13 (by omega) 0xf2 0xd5 0xd5 0x6b _ (by native_decide) rfl
+    · exact hselectorNoMatch 18 (by omega) 0xa9 0x05 0x9c 0xbb _ (by decide +native) rfl
+    · exact hselectorNoMatch 14 (by omega) 0xb7 0x53 0xa9 0x8c _ (by decide +native) rfl
+    · exact hselectorNoMatch 8 (by omega) 0xbb 0x35 0x78 0x3b _ (by decide +native) rfl
+    · exact hselectorNoMatch 21 (by omega) 0xbf 0x35 0x3d 0xbb _ (by decide +native) rfl
+    · exact hselectorNoMatch 0 (by omega) 0xdd 0x62 0xed 0x3e _ (by decide +native) rfl
+    · exact hselectorNoMatch 13 (by omega) 0xf2 0xd5 0xd5 0x6b _ (by decide +native) rfl
   have heqHigh : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat daiBytecode (nthArmPc daiBytecode daiHighFirstArmPc j))
         (daiSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 10 (by omega) 0x7e 0xce 0xbe 0x00 _ (by native_decide) rfl
-    · exact hselectorNoMatch 11 (by omega) 0x8f 0xcb 0xaf 0x0c _ (by native_decide) rfl
-    · exact hselectorNoMatch 16 (by omega) 0x95 0xd8 0x9b 0x41 _ (by native_decide) rfl
-    · exact hselectorNoMatch 5 (by omega) 0x9c 0x52 0xa7 0xf1 _ (by native_decide) rfl
-    · exact hselectorNoMatch 3 (by omega) 0x9d 0xc2 0x9f 0xac _ (by native_decide) rfl
+    · exact hselectorNoMatch 10 (by omega) 0x7e 0xce 0xbe 0x00 _ (by decide +native) rfl
+    · exact hselectorNoMatch 11 (by omega) 0x8f 0xcb 0xaf 0x0c _ (by decide +native) rfl
+    · exact hselectorNoMatch 16 (by omega) 0x95 0xd8 0x9b 0x41 _ (by decide +native) rfl
+    · exact hselectorNoMatch 5 (by omega) 0x9c 0x52 0xa7 0xf1 _ (by decide +native) rfl
+    · exact hselectorNoMatch 3 (by omega) 0x9d 0xc2 0x9f 0xac _ (by decide +native) rfl
   have heqLow : ∀ j, j < 6 →
       UInt256.eq
         (armSelNat daiBytecode (nthArmPc daiBytecode daiLowFirstArmPc j))
         (daiSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 4 (by omega) 0x31 0x3c 0xe5 0x67 _ (by native_decide) rfl
-    · exact hselectorNoMatch 6 (by omega) 0x36 0x44 0xe5 0x15 _ (by native_decide) rfl
-    · exact hselectorNoMatch 7 (by omega) 0x40 0xc1 0x0f 0x19 _ (by native_decide) rfl
-    · exact hselectorNoMatch 20 (by omega) 0x54 0xfd 0x4d 0x50 _ (by native_decide) rfl
-    · exact hselectorNoMatch 15 (by omega) 0x65 0xfa 0xe3 0x5e _ (by native_decide) rfl
-    · exact hselectorNoMatch 2 (by omega) 0x70 0xa0 0x82 0x31 _ (by native_decide) rfl
+    · exact hselectorNoMatch 4 (by omega) 0x31 0x3c 0xe5 0x67 _ (by decide +native) rfl
+    · exact hselectorNoMatch 6 (by omega) 0x36 0x44 0xe5 0x15 _ (by decide +native) rfl
+    · exact hselectorNoMatch 7 (by omega) 0x40 0xc1 0x0f 0x19 _ (by decide +native) rfl
+    · exact hselectorNoMatch 20 (by omega) 0x54 0xfd 0x4d 0x50 _ (by decide +native) rfl
+    · exact hselectorNoMatch 15 (by omega) 0x65 0xfa 0xe3 0x5e _ (by decide +native) rfl
+    · exact hselectorNoMatch 2 (by omega) 0x70 0xa0 0x82 0x31 _ (by decide +native) rfl
   have heqVeryLow : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat daiBytecode (nthArmPc daiBytecode daiVeryLowFirstArmPc j))
         (daiSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 9 (by omega) 0x06 0xfd 0xde 0x03 _ (by native_decide) rfl
-    · exact hselectorNoMatch 1 (by omega) 0x09 0x5e 0xa7 0xb3 _ (by native_decide) rfl
-    · exact hselectorNoMatch 17 (by omega) 0x18 0x16 0x0d 0xdd _ (by native_decide) rfl
-    · exact hselectorNoMatch 19 (by omega) 0x23 0xb8 0x72 0xdd _ (by native_decide) rfl
-    · exact hselectorNoMatch 12 (by omega) 0x30 0xad 0xf8 0x1f _ (by native_decide) rfl
+    · exact hselectorNoMatch 9 (by omega) 0x06 0xfd 0xde 0x03 _ (by decide +native) rfl
+    · exact hselectorNoMatch 1 (by omega) 0x09 0x5e 0xa7 0xb3 _ (by decide +native) rfl
+    · exact hselectorNoMatch 17 (by omega) 0x18 0x16 0x0d 0xdd _ (by decide +native) rfl
+    · exact hselectorNoMatch 19 (by omega) 0x23 0xb8 0x72 0xdd _ (by decide +native) rfl
+    · exact hselectorNoMatch 12 (by omega) 0x30 0xad 0xf8 0x1f _ (by decide +native) rfl
   by_cases hroot :
       UInt256.gt (armSelNat daiBytecode daiRootSplitPc) (daiSelWord I) = ⟨0⟩
   · by_cases hhigh :
@@ -263,7 +263,7 @@ theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
             (heqVeryHigh 4 (by omega)) (by simp)
         |>.selectorArmNotTakenAuto (daiVeryHighArmsWellFormed 5 (by omega))
             (heqVeryHigh 5 (by omega)) (by simp)
-      exact daiJumpToNoMatchRevert h124 (by native_decide) (by native_decide)
+      exact daiJumpToNoMatchRevert h124 (by decide +native) (by decide +native)
     · obtain ⟨_, _, h125⟩ := daiReachHighFirstArm (cA := cA) (gh := gh)
         (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hhigh
@@ -278,7 +278,7 @@ theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
             (heqHigh 3 (by omega)) (by simp)
         |>.selectorArmNotTakenAuto (daiHighArmsWellFormed 4 (by omega))
             (heqHigh 4 (by omega)) (by simp)
-      exact daiJumpToNoMatchRevert h181 (by native_decide) (by native_decide)
+      exact daiJumpToNoMatchRevert h181 (by decide +native) (by decide +native)
   · by_cases hlow :
         UInt256.gt (armSelNat daiBytecode daiLowSplitPc) (daiSelWord I) = ⟨0⟩
     · obtain ⟨_, _, h196⟩ := daiReachLowFirstArm (cA := cA) (gh := gh)
@@ -297,7 +297,7 @@ theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
             (heqLow 4 (by omega)) (by simp)
         |>.selectorArmNotTakenAuto (daiLowArmsWellFormed 5 (by omega))
             (heqLow 5 (by omega)) (by simp)
-      exact daiJumpToNoMatchRevert h263 (by native_decide) (by native_decide)
+      exact daiJumpToNoMatchRevert h263 (by decide +native) (by decide +native)
     · obtain ⟨_, _, h267⟩ := daiReachVeryLowFirstArm (cA := cA) (gh := gh)
         (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
         hcode hwv hsz hsize hroot hlow
@@ -312,9 +312,9 @@ theorem daiX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
             (heqVeryLow 3 (by omega)) (by simp)
         |>.selectorArmNotTakenAuto (daiVeryLowArmsWellFormed 4 (by omega))
             (heqVeryLow 4 (by omega)) (by simp)
-      have h323 := h322.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-      exact RD.solcPush1Dup1Revert0 h323 (by native_decide) (by native_decide)
-        (by native_decide) (by simp only [List.length_singleton]; omega)
+      have h323 := h322.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+      exact RD.solcPush1Dup1Revert0 h323 (by decide +native) (by decide +native)
+        (by decide +native) (by simp only [List.length_singleton]; omega)
 
 /-- `callvalue != 0` reverts on both sides for every Dai transition. -/
 theorem daiNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}

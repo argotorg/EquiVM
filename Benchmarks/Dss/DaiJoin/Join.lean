@@ -35,10 +35,10 @@ theorem daiJoinReachJoinBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : daiJoinSelWord I = ⟨0x3b4da69f⟩ :=
     daiJoinSelWord_eq_of_beq I hsz 0x3b 0x4d 0xa6 0x9f ⟨0x3b4da69f⟩
-      (by native_decide) (by simpa [daiJoinSelBytes] using hsel)
+      (by decide +native) (by simpa [daiJoinSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat daiJoinBytecode daiJoinRootSplitPc) (daiJoinSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 1 →
       UInt256.eq
         (armSelNat daiJoinBytecode
@@ -47,16 +47,16 @@ theorem daiJoinReachJoinBody {cA gh bl σ σ₀ A I} {g : Sat256}
     intro j hj
     interval_cases j
     rw [hword]
-    native_decide
+    decide +native
   have htake :
       UInt256.eq
         (armSelNat daiJoinBytecode
           (nthArmPc daiJoinBytecode daiJoinLowFirstArmPc 1))
         (daiJoinSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact daiJoinReachLowBody 1 (by omega) ⟨188⟩ hcode hwv hsz hsize hroot heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem daiJoinJoinX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -70,17 +70,17 @@ theorem daiJoinJoinX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := daiJoinBytecode) (sel := sel)
     (entry := ⟨188⟩) (ret := ⟨232⟩) (decoded := ⟨210⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz68 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcAddressUint256ExternalMaskAndJumpMasked
     (code := daiJoinBytecode) (decoded := ⟨210⟩) (ret := ⟨232⟩)
     (routine := ⟨449⟩) (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [joinWadWord, joinUsrMaskedWord, joinUsrWord, calldataWord] using hroutine⟩
 
@@ -101,10 +101,10 @@ theorem daiJoinJoinX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
     (code := daiJoinBytecode) (sel := sel)
     (entry := ⟨188⟩) (ret := ⟨232⟩) (decoded := ⟨210⟩)
     (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem joinStore_get_wad (I : ExecutionEnv) :
     (joinStore I).get? "wad" = some (joinWadValue I) := by
@@ -1317,7 +1317,7 @@ theorem daiJoinJoinDaiBurnSuccessCore
     (by
       simpa [joinTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+          (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem daiJoinJoinBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = daiJoinBytecode)
@@ -1347,7 +1347,7 @@ theorem daiJoinJoinBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       obtain ⟨_, _, rd490⟩ := daiJoinJoinMulSuccess hmulOk rd449
       have hfit : daiJoinONEWord.toNat * (joinWadWord I).toNat < UInt256.size := by
         rw [hwad]
-        native_decide
+        decide +native
       by_cases hvatCode :
           Reasoning.Theory.extCodeSizeWord σ_evm
             (daiJoinVatTargetWord σ_evm I) = ⟨0⟩

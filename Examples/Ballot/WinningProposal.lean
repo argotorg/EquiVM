@@ -466,7 +466,7 @@ theorem winningProposalForLoopReturns (evm : EVM.State) (locals : Store)
         have hlast : L2.get? "winningVoteCount" = L1.get? "winningVoteCount" := by
           simpa [L2] using
             (store_get_ne L1 (.int (Int.ofNat (p + ⟨1⟩).toNat))
-              (by native_decide : ("p" == "winningVoteCount") = false))
+              (by decide +native : ("p" == "winningVoteCount") = false))
         have hmid :
             L1.get? "winningVoteCount" =
               (L.insert "winningVoteCount" (.int (Int.ofNat voteCount.toNat))).get?
@@ -474,7 +474,7 @@ theorem winningProposalForLoopReturns (evm : EVM.State) (locals : Store)
           simpa [L1] using
             (store_get_ne (L.insert "winningVoteCount" (.int (Int.ofNat voteCount.toNat)))
               (.int (Int.ofNat p.toNat))
-              (by native_decide : ("winningProposal_" == "winningVoteCount") = false))
+              (by decide +native : ("winningProposal_" == "winningVoteCount") = false))
         rw [hlast, hmid]
         simp
       have hbestL2 :
@@ -482,7 +482,7 @@ theorem winningProposalForLoopReturns (evm : EVM.State) (locals : Store)
         have hlast : L2.get? "winningProposal_" = L1.get? "winningProposal_" := by
           simpa [L2] using
             (store_get_ne L1 (.int (Int.ofNat (p + ⟨1⟩).toNat))
-              (by native_decide : ("p" == "winningProposal_") = false))
+              (by decide +native : ("p" == "winningProposal_") = false))
         rw [hlast]
         simp [L1]
       have hpropsL2 : L2.get? "proposals" = none := by
@@ -583,7 +583,7 @@ theorem ballotWinningProposalBodyReturns (evm : EVM.State) (locals : Store)
     have hlast : Lcount.get? "winningProposal_" = Lwp.get? "winningProposal_" := by
       simpa [Lcount] using
         (store_get_ne Lwp (.int (Int.ofNat (0 : Nat)))
-          (by native_decide : ("winningVoteCount" == "winningProposal_") = false))
+          (by decide +native : ("winningVoteCount" == "winningProposal_") = false))
     rw [hlast]
     simp [Lwp]
   obtain ⟨locals', hfor, hPfinal⟩ :=

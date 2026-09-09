@@ -505,7 +505,7 @@ theorem accountAddressOfNat_word_eq_mask (w : UInt256) :
     UInt256.ofNat (AccountAddress.ofNat w.toNat).val = UInt256.land solcAddrMask w := by
   apply u256_inj
   rw [u256_land_toNat]
-  rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by native_decide]
+  rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide +native]
   rw [nat_land_comm, nat_land_mask_eq_mod]
   have hleft :
       (UInt256.ofNat (AccountAddress.ofNat w.toNat).val).toNat = w.toNat % 2 ^ 160 := by
@@ -2059,7 +2059,7 @@ theorem uniswapSkimBody
                                     storageStore_accountMap, henv3] using hs
                                 exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
                                   (uniswapDecode_skim_ok hsz36 hcanonTo) hbody hCreatedRet
-                                  hAccountsRet (returnEquiv.fallthrough rfl rfl (by native_decide))
+                                  hAccountsRet (returnEquiv.fallthrough rfl rfl (by decide +native))
                               by_cases hz3False : z3 = false
                               · have htransfer1False : callViaEVM evm2S
                                     (EVM.address
@@ -2826,7 +2826,7 @@ theorem uniswapSkimBody
                                           storageStore_accountMap, henv3] using hs
                                       exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
                                         (uniswapDecode_skim_ok hsz36 hcanonTo) hbody hCreatedRet
-                                        hAccountsRet (returnEquiv.fallthrough rfl rfl (by native_decide))
+                                        hAccountsRet (returnEquiv.fallthrough rfl rfl (by decide +native))
                                     by_cases hz3False : z3 = false
                                     · have htransfer1False : callViaEVM evm2S
                                           (EVM.address
@@ -4002,7 +4002,7 @@ theorem uniswapSkimBody
                                     storageStore_accountMap, henv3] using hs
                                 exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
                                   (uniswapDecode_skim_ok_noncanon hsz36 hcanonTo) hbody hCreatedRet
-                                  hAccountsRet (returnEquiv.fallthrough rfl rfl (by native_decide))
+                                  hAccountsRet (returnEquiv.fallthrough rfl rfl (by decide +native))
                               by_cases hz3False : z3 = false
                               · have htransfer1False : callViaEVM evm2S
                                     (EVM.address
@@ -4770,7 +4770,7 @@ theorem uniswapSkimBody
                                           storageStore_accountMap, henv3] using hs
                                       exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
                                         (uniswapDecode_skim_ok_noncanon hsz36 hcanonTo) hbody hCreatedRet
-                                        hAccountsRet (returnEquiv.fallthrough rfl rfl (by native_decide))
+                                        hAccountsRet (returnEquiv.fallthrough rfl rfl (by decide +native))
                                     by_cases hz3False : z3 = false
                                     · have htransfer1False : callViaEVM evm2S
                                           (EVM.address

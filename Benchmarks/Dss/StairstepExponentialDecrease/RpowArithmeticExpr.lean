@@ -14,27 +14,27 @@ abbrev rpowRay : UInt256 :=
 theorem rpowRay_toNat : rpowRay.toNat = 1000000000000000000000000000 := by
   change (UInt256.ofNat 1000000000000000000000000000).toNat =
     1000000000000000000000000000
-  exact ulit_toNat' _ (by native_decide)
+  exact ulit_toNat' _ (by decide +native)
 
 theorem rpowUInt256Zero_toNat : (⟨0⟩ : UInt256).toNat = 0 := by
-  native_decide
+  decide +native
 
 theorem rpowUInt256One_toNat : (⟨1⟩ : UInt256).toNat = 1 := by
-  native_decide
+  decide +native
 
 theorem rpowUInt256Two_toNat : (⟨2⟩ : UInt256).toNat = 2 := by
-  native_decide
+  decide +native
 
 theorem rpowUInt256Two_ne_zero : (⟨2⟩ : UInt256) ≠ ⟨0⟩ := by
-  native_decide
+  decide +native
 
 theorem rpowUInt256DivZeroTwo :
     UInt256.div (⟨0⟩ : UInt256) (⟨2⟩ : UInt256) = ⟨0⟩ := by
-  native_decide
+  decide +native
 
 theorem rpowUInt256DivOneTwo :
     UInt256.div (⟨1⟩ : UInt256) (⟨2⟩ : UInt256) = ⟨0⟩ := by
-  native_decide
+  decide +native
 
 theorem RAY_eq_rpowRay_toNat : RAY = Int.ofNat rpowRay.toNat := by
   simp [RAY, rpowRay_toNat]

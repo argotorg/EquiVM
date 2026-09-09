@@ -61,15 +61,15 @@ def ballotCtorPrefix : ByteArray :=
 /-- Full creation/initcode: real constructor prefix followed by the deployed runtime. -/
 def ballotInitcode : ByteArray := ballotCtorPrefix ++ ballotBytecode
 
-theorem ballotCtorPrefix_size : ballotCtorPrefix.size = 442 := by native_decide
+theorem ballotCtorPrefix_size : ballotCtorPrefix.size = 442 := by decide +native
 
-theorem ballotBytecode_size : ballotBytecode.size = 1926 := by native_decide
+theorem ballotBytecode_size : ballotBytecode.size = 1926 := by decide +native
 
-theorem ballotInitcode_size : ballotInitcode.size = 2368 := by native_decide
+theorem ballotInitcode_size : ballotInitcode.size = 2368 := by decide +native
 
 /-- The constructor copies the embedded runtime window — which is *exactly* `ballotBytecode`. -/
 theorem ballotInitcode_runtime_window :
-    ballotInitcode.extract 442 (442 + 1926) = ballotBytecode := by native_decide
+    ballotInitcode.extract 442 (442 + 1926) = ballotBytecode := by decide +native
 
 /-! ## Decode automation for the symbolic argument tail
 
@@ -86,13 +86,13 @@ theorem ballotInitcode_decode_append (tail : ByteArray) (pc : UInt256) (hpc : pc
 
 /-- Discharge `decode (ballotInitcode ++ argBytes) ⟨pc⟩ = op` for a concrete `pc < 442`. -/
 macro "ctor_decode" : tactic =>
-  `(tactic| (rw [ballotInitcode_decode_append _ _ (by decide)]; native_decide))
+  `(tactic| (rw [ballotInitcode_decode_append _ _ (by decide)]; decide +native))
 
 /-- Discharge `(D_J (ballotInitcode ++ argBytes) 0).contains ⟨pc⟩ = true` for an in-prefix
     `JUMPDEST`: the destination is valid in the concrete `ballotInitcode` and survives the symbolic
     argument tail via `D_J_contains_append_left`. -/
 macro "ctor_jd" : tactic =>
-  `(tactic| (apply Reasoning.Theory.D_J_contains_append_left; native_decide))
+  `(tactic| (apply Reasoning.Theory.D_J_contains_append_left; decide +native))
 
 /-- Smoke test: the callvalue-guard target (`pc 15`) and the decoder entry (`pc 0xd2`) are valid
     jump destinations regardless of the appended argument bytes. -/
@@ -102,7 +102,7 @@ example (tail : ByteArray) : (D_J (ballotInitcode ++ tail) 0).contains ⟨210⟩
 
 open Lean in
 /-- `ctor_run` mirrors `evm_run` but discharges the decode obligation with `ctor_decode` (which
-    handles the symbolic argument tail) instead of `native_decide`.  Identical threading otherwise. -/
+    handles the symbolic argument tail) instead of `decide +native`.  Identical threading otherwise. -/
 macro "ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do
   let mut acc := base
   for s in steps.getElems do

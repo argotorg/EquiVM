@@ -24,15 +24,15 @@ theorem flipperReachTauBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : flipperSelWord I = ⟨0xcfc4af55⟩ :=
     flipperSelWord_eq_of_beq I hsz 0xcf 0xc4 0xaf 0x55 ⟨0xcfc4af55⟩
-      (by native_decide) (by simpa [flipperSelBytes] using hsel)
+      (by decide +native) (by simpa [flipperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flipperBytecode flipperRootSplitPc)
       (flipperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat flipperBytecode flipperLowSplitPc)
       (flipperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperLowHighFirstArmPc j))
@@ -44,9 +44,9 @@ theorem flipperReachTauBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (nthArmPc flipperBytecode flipperLowHighFirstArmPc 0))
         (flipperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact flipperReachLowHighBody 0 (by omega) ⟨870⟩ hcode hwv hsz hsize hroot hlow
-    heq0 htake (by jump_dest) (by native_decide)
+    heq0 htake (by jump_dest) (by decide +native)
 
 theorem flipperTauBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = flipperBytecode)
@@ -79,10 +79,10 @@ theorem flipperTauBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (flipperReachTauBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcUint48Offset6SlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by rfl) (by simpa [tauWord] using hbody)

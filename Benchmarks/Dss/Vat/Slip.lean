@@ -55,30 +55,30 @@ abbrev slipEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 theorem slipStore_gem (I : ExecutionEnv) :
     (slipStore I).get? "gem" = none := by
   unfold slipStore
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem slipStore_wards (I : ExecutionEnv) :
     (slipStore I).get? "wards" = none := by
   unfold slipStore
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem slipStore_get_ilk (I : ExecutionEnv) :
     (slipStore I).get? "ilk" = some (slipIlkValue I) := by
   unfold slipStore
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem slipStore_get_usr (I : ExecutionEnv) :
     (slipStore I).get? "usr" = some (slipUsrValue I) := by
   unfold slipStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem slipStore_get_wad (I : ExecutionEnv) :
@@ -110,15 +110,15 @@ theorem slipStoreGemNew_get_gemNew (I : ExecutionEnv) (gemNew : UInt256) :
 
 theorem slipStoreGemNew_gem (I : ExecutionEnv) (gemNew : UInt256) :
     (slipStoreGemNew I gemNew).get? "gem" = none := by
-  rw [slipStoreGemNew, store_get_ne _ _ (by native_decide), slipStore_gem]
+  rw [slipStoreGemNew, store_get_ne _ _ (by decide +native), slipStore_gem]
 
 theorem slipStoreGemNew_wards (I : ExecutionEnv) (gemNew : UInt256) :
     (slipStoreGemNew I gemNew).get? "wards" = none := by
-  rw [slipStoreGemNew, store_get_ne _ _ (by native_decide), slipStore_wards]
+  rw [slipStoreGemNew, store_get_ne _ _ (by decide +native), slipStore_wards]
 
 theorem slipStoreGemNew_get_wad (I : ExecutionEnv) (gemNew : UInt256) :
     (slipStoreGemNew I gemNew).get? "wad" = some (slipWadValue I) := by
-  rw [slipStoreGemNew, store_get_ne _ _ (by native_decide), slipStore_get_wad]
+  rw [slipStoreGemNew, store_get_ne _ _ (by decide +native), slipStore_get_wad]
 
 theorem slipStoreGemNew_index_ilk (I : ExecutionEnv) (gemNew : UInt256) :
     (slipStoreGemNew I gemNew)["ilk"] = slipIlkValue I := by
@@ -431,7 +431,7 @@ theorem ugt_eq_zero_to_le {a b : UInt256}
   have hone : UInt256.gt a b = ⟨1⟩ := ugt_one (by omega)
   have hbad : (⟨1⟩ : UInt256) = ⟨0⟩ := by
     rw [← hone, h]
-  exact False.elim ((by native_decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) hbad)
+  exact False.elim ((by decide +native : (⟨1⟩ : UInt256) ≠ ⟨0⟩) hbad)
 
 theorem ult_eq_zero_to_le {a b : UInt256}
     (h : UInt256.lt a b = ⟨0⟩) : b.toNat ≤ a.toNat := by
@@ -439,7 +439,7 @@ theorem ult_eq_zero_to_le {a b : UInt256}
   have hone : UInt256.lt a b = ⟨1⟩ := ult_one (by omega)
   have hbad : (⟨1⟩ : UInt256) = ⟨0⟩ := by
     rw [← hone, h]
-  exact False.elim ((by native_decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) hbad)
+  exact False.elim ((by decide +native : (⟨1⟩ : UInt256) ≠ ⟨0⟩) hbad)
 
 theorem ugt_ne_zero_to_gt {a b : UInt256}
     (h : UInt256.gt a b ≠ ⟨0⟩) : b.toNat < a.toNat := by
@@ -468,7 +468,7 @@ theorem slt_zero_eq_zero_to_nonneg (w : UInt256)
       simpa using h
     have hbad : (⟨1⟩ : UInt256) = ⟨0⟩ := by
       rw [← hone, hzero]
-    exact False.elim ((by native_decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) hbad)
+    exact False.elim ((by decide +native : (⟨1⟩ : UInt256) ≠ ⟨0⟩) hbad)
 
 theorem sgt_zero_eq_zero_to_nonpos (w : UInt256)
     (h : UInt256.sgt w ⟨0⟩ = ⟨0⟩) :
@@ -488,7 +488,7 @@ theorem sgt_zero_eq_zero_to_nonpos (w : UInt256)
         simpa using h
       have hbad : (⟨1⟩ : UInt256) = ⟨0⟩ := by
         rw [← hone, hzero']
-      exact False.elim ((by native_decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) hbad)
+      exact False.elim ((by decide +native : (⟨1⟩ : UInt256) ≠ ⟨0⟩) hbad)
   · simp [hlow]
     have hleNat : w.toNat ≤ EVM.wordModulus := Nat.le_of_lt w.val.isLt
     have hleInt : (w.toNat : Int) ≤ (EVM.wordModulus : Int) := by
@@ -526,7 +526,7 @@ theorem sgt_zero_ne_zero_to_pos (w : UInt256)
           apply u256_inj
           simpa using hzero
         subst w
-        native_decide
+        decide +native
       exact False.elim (h (by simpa using hsgt0))
     · have hpos : 0 < w.toNat := Nat.pos_of_ne_zero hzero
       simp [hlow]
@@ -536,7 +536,7 @@ theorem sgt_zero_ne_zero_to_pos (w : UInt256)
       have hhi : w.toNat ≥ 2 ^ 255 := by
         simpa [EVM.twoPow] using le_of_not_gt hlow
       have hzeroLow : ¬ (UInt256.ofNat 0).toNat ≥ 2 ^ 255 := by
-        native_decide
+        decide +native
       rw [if_pos hhi, if_neg hzeroLow]
       rfl
     exact False.elim (h (by simpa using hsgt0))
@@ -788,7 +788,7 @@ theorem decodeCalldata_legacyBytes32_address_int256_ok {cd : ByteArray}
   rw [if_neg (by simp [bytes32, addr, int256, isDynamicABIType])]
   simp only
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr, int256] = some 96 by native_decide]
+  rw [show abiTupleHeadSize? [bytes32, addr, int256] = some 96 by decide +native]
   simp only [bind, Option.bind]
   rw [if_neg (by rw [List.length_drop, htlen]; omega :
     ¬ (cd.toList.drop 4).length < 96)]
@@ -838,7 +838,7 @@ theorem vatDecode_slip_none_short {I : ExecutionEnv}
   rw [if_neg (by simp [bytes32, addr, int256, isDynamicABIType])]
   simp only
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr, int256] = some 96 by native_decide]
+  rw [show abiTupleHeadSize? [bytes32, addr, int256] = some 96 by decide +native]
   simp only [bind, Option.bind]
   rw [if_pos (by rw [List.length_drop, htlen]; omega :
     (I.calldata.toList.drop 4).length < 96)]
@@ -857,7 +857,7 @@ theorem vatDispatchSlip {I : ExecutionEnv}
     healSelectorBytes, hopeSelectorBytes, ilksSelectorBytes, initSelectorBytes,
     liveSelectorBytes, moveSelectorBytes, nopeSelectorBytes, relySelectorBytes,
     sinSelectorBytes, slipSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachSlipBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -868,17 +868,17 @@ theorem vatReachSlipBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0x7cdd3fde⟩ :=
     vatSelWord_eq_of_beq I hsz 0x7c 0xdd 0x3f 0xde ⟨0x7cdd3fde⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhighlow :
       UInt256.gt (armSelNat vatBytecode vatHighLowSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms212FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
@@ -888,9 +888,9 @@ theorem vatReachSlipBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms212FirstPc 0))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms212Body 0 (by omega) ⟨1045⟩ hcode hwv hsz hsize
-    hroot hhigh hhighlow heq0 htake (by jump_dest) (by native_decide)
+    hroot hhigh hhighlow heq0 htake (by jump_dest) (by decide +native)
 
 @[reducible] def solcSlipExternalLoadAndJumpWf
     (code : ByteArray) (pc routine : UInt256) : Prop :=
@@ -992,9 +992,9 @@ theorem vatSlipX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨1045⟩) (ret := ⟨524⟩)
     (decoded := ⟨1067⟩) (need := ⟨96⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz100) hsize)
   obtain ⟨_, _, hroutine⟩ := RD.solcSlipExternalLoadAndJump
@@ -1002,7 +1002,7 @@ theorem vatSlipX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (R := [sel]) hdecoded
     (by
       unfold solcSlipExternalLoadAndJumpWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   exact ⟨_, _, by
     simpa [slipWadWord, slipUsrMaskedWord, slipUsrWord, slipIlkWord] using hroutine⟩
@@ -1023,10 +1023,10 @@ theorem vatSlipX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨1045⟩) (ret := ⟨524⟩)
     (decoded := ⟨1067⟩) (need := ⟨96⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem RD.vatSignedAddOkSecond {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {sum x y ret : UInt256} {R : List UInt256}
@@ -1038,56 +1038,56 @@ theorem RD.vatSignedAddOkSecond {g : Sat256} {s0 : State}
     (hret : (D_J vatBytecode 0).contains ret = true)
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD vatBytecode ee g s0 ret (sum :: R) mem activeWords rdata acc k' C' := by
-  have rd6682 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd6684 := rd6682.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6685 := rd6684.dup3 (by native_decide) (by evm_ov)
-  have rd6686 := rd6685.sgt (by native_decide) (by evm_ov)
-  have rd6687 := rd6686.iszero (by native_decide) (by evm_ov)
-  have rd6688 := rd6687.dup1 (by native_decide) (by evm_ov)
-  have rd6691 := rd6688.push2 ⟨6697⟩ (by native_decide) (by evm_ov)
+  have rd6682 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd6684 := rd6682.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6685 := rd6684.dup3 (by decide +native) (by evm_ov)
+  have rd6686 := rd6685.sgt (by decide +native) (by evm_ov)
+  have rd6687 := rd6686.iszero (by decide +native) (by evm_ov)
+  have rd6688 := rd6687.dup1 (by decide +native) (by evm_ov)
+  have rd6691 := rd6688.push2 ⟨6697⟩ (by decide +native) (by evm_ov)
   by_cases hypos0 : UInt256.sgt y ⟨0⟩ = ⟨0⟩
   · have rd6697 := by
       rw [hypos0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6691
-      simpa using rd6691.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+      simpa using rd6691.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
         (by evm_ov)
-    have rd6698 := rd6697.jumpdest (by native_decide) (by evm_ov)
-    have rd6701 := rd6698.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
+    have rd6698 := rd6697.jumpdest (by decide +native) (by evm_ov)
+    have rd6701 := rd6698.push2 ⟨6615⟩ (by decide +native) (by evm_ov)
     have rd6615 := by
-      simpa using rd6701.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+      simpa using rd6701.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
         (by evm_ov)
-    have rd6616 := rd6615.jumpdest (by native_decide) (by evm_ov)
-    have rd6617 := rd6616.swap3 (by native_decide) (by evm_ov)
-    have rd6618 := rd6617.swap2 (by native_decide) (by evm_ov)
-    have rd6619 := rd6618.pop (by native_decide) (by evm_ov)
-    have rd6620 := rd6619.pop (by native_decide) (by evm_ov)
-    exact ⟨_, _, rd6620.jump (by native_decide) hret (by evm_ov)⟩
+    have rd6616 := rd6615.jumpdest (by decide +native) (by evm_ov)
+    have rd6617 := rd6616.swap3 (by decide +native) (by evm_ov)
+    have rd6618 := rd6617.swap2 (by decide +native) (by evm_ov)
+    have rd6619 := rd6618.pop (by decide +native) (by evm_ov)
+    have rd6620 := rd6619.pop (by decide +native) (by evm_ov)
+    exact ⟨_, _, rd6620.jump (by decide +native) hret (by evm_ov)⟩
   · have rd6692 := by
       have hcond : UInt256.isZero (UInt256.sgt y ⟨0⟩) = ⟨0⟩ :=
         isZero_eq_zero_of_ne hypos0
       rw [hcond] at rd6691
-      simpa using rd6691.jumpiNT (by native_decide)
+      simpa using rd6691.jumpiNT (by decide +native)
         (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    have rd6693 := rd6692.pop (by native_decide) (by evm_ov)
-    have rd6694 := rd6693.dup3 (by native_decide) (by evm_ov)
-    have rd6695 := rd6694.dup2 (by native_decide) (by evm_ov)
-    have rd6696 := rd6695.lt (by native_decide) (by evm_ov)
-    have rd6697pre := rd6696.iszero (by native_decide) (by evm_ov)
+    have rd6693 := rd6692.pop (by decide +native) (by evm_ov)
+    have rd6694 := rd6693.dup3 (by decide +native) (by evm_ov)
+    have rd6695 := rd6694.dup2 (by decide +native) (by evm_ov)
+    have rd6696 := rd6695.lt (by decide +native) (by evm_ov)
+    have rd6697pre := rd6696.iszero (by decide +native) (by evm_ov)
     have hlt0 : UInt256.lt sum x = ⟨0⟩ :=
       hpos.resolve_left hypos0
     have rd6697 := by
       rw [hlt0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6697pre
       exact rd6697pre
-    have rd6698 := rd6697.jumpdest (by native_decide) (by evm_ov)
-    have rd6701 := rd6698.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
+    have rd6698 := rd6697.jumpdest (by decide +native) (by evm_ov)
+    have rd6701 := rd6698.push2 ⟨6615⟩ (by decide +native) (by evm_ov)
     have rd6615 := by
-      simpa using rd6701.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+      simpa using rd6701.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
         (by evm_ov)
-    have rd6616 := rd6615.jumpdest (by native_decide) (by evm_ov)
-    have rd6617 := rd6616.swap3 (by native_decide) (by evm_ov)
-    have rd6618 := rd6617.swap2 (by native_decide) (by evm_ov)
-    have rd6619 := rd6618.pop (by native_decide) (by evm_ov)
-    have rd6620 := rd6619.pop (by native_decide) (by evm_ov)
-    exact ⟨_, _, rd6620.jump (by native_decide) hret (by evm_ov)⟩
+    have rd6616 := rd6615.jumpdest (by decide +native) (by evm_ov)
+    have rd6617 := rd6616.swap3 (by decide +native) (by evm_ov)
+    have rd6618 := rd6617.swap2 (by decide +native) (by evm_ov)
+    have rd6619 := rd6618.pop (by decide +native) (by evm_ov)
+    have rd6620 := rd6619.pop (by decide +native) (by evm_ov)
+    exact ⟨_, _, rd6620.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem RD.vatSignedAddRevertSecond {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {sum x y ret : UInt256} {R : List UInt256}
@@ -1098,13 +1098,13 @@ theorem RD.vatSignedAddRevertSecond {g : Sat256} {s0 : State}
     (hpos : ¬ (UInt256.sgt y ⟨0⟩ = ⟨0⟩ ∨ UInt256.lt sum x = ⟨0⟩))
     (hov : R.length + 7 ≤ 1024) :
     RDrev vatBytecode g s0 := by
-  have rd6682 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd6684 := rd6682.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6685 := rd6684.dup3 (by native_decide) (by evm_ov)
-  have rd6686 := rd6685.sgt (by native_decide) (by evm_ov)
-  have rd6687 := rd6686.iszero (by native_decide) (by evm_ov)
-  have rd6688 := rd6687.dup1 (by native_decide) (by evm_ov)
-  have rd6691 := rd6688.push2 ⟨6697⟩ (by native_decide) (by evm_ov)
+  have rd6682 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd6684 := rd6682.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6685 := rd6684.dup3 (by decide +native) (by evm_ov)
+  have rd6686 := rd6685.sgt (by decide +native) (by evm_ov)
+  have rd6687 := rd6686.iszero (by decide +native) (by evm_ov)
+  have rd6688 := rd6687.dup1 (by decide +native) (by evm_ov)
+  have rd6691 := rd6688.push2 ⟨6697⟩ (by decide +native) (by evm_ov)
   have hypos0 : UInt256.sgt y ⟨0⟩ ≠ ⟨0⟩ := by
     intro hy
     exact hpos (Or.inl hy)
@@ -1112,13 +1112,13 @@ theorem RD.vatSignedAddRevertSecond {g : Sat256} {s0 : State}
     have hcond : UInt256.isZero (UInt256.sgt y ⟨0⟩) = ⟨0⟩ :=
       isZero_eq_zero_of_ne hypos0
     rw [hcond] at rd6691
-    simpa using rd6691.jumpiNT (by native_decide)
+    simpa using rd6691.jumpiNT (by decide +native)
       (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd6693 := rd6692.pop (by native_decide) (by evm_ov)
-  have rd6694 := rd6693.dup3 (by native_decide) (by evm_ov)
-  have rd6695 := rd6694.dup2 (by native_decide) (by evm_ov)
-  have rd6696 := rd6695.lt (by native_decide) (by evm_ov)
-  have rd6697pre := rd6696.iszero (by native_decide) (by evm_ov)
+  have rd6693 := rd6692.pop (by decide +native) (by evm_ov)
+  have rd6694 := rd6693.dup3 (by decide +native) (by evm_ov)
+  have rd6695 := rd6694.dup2 (by decide +native) (by evm_ov)
+  have rd6696 := rd6695.lt (by decide +native) (by evm_ov)
+  have rd6697pre := rd6696.iszero (by decide +native) (by evm_ov)
   have hlt0 : UInt256.lt sum x ≠ ⟨0⟩ := by
     intro hlt
     exact hpos (Or.inr hlt)
@@ -1127,12 +1127,12 @@ theorem RD.vatSignedAddRevertSecond {g : Sat256} {s0 : State}
       isZero_eq_zero_of_ne hlt0
     rw [hcond] at rd6697pre
     exact rd6697pre
-  have rd6698 := rd6697.jumpdest (by native_decide) (by evm_ov)
-  have rd6701 := rd6698.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
-  have rd6702 := rd6701.jumpiNT (by native_decide)
+  have rd6698 := rd6697.jumpdest (by decide +native) (by evm_ov)
+  have rd6701 := rd6698.push2 ⟨6615⟩ (by decide +native) (by evm_ov)
+  have rd6702 := rd6701.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rd6702
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 theorem RD.vatSignedAddOk {g : Sat256} {s0 : State}
@@ -1147,47 +1147,47 @@ theorem RD.vatSignedAddOk {g : Sat256} {s0 : State}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD vatBytecode ee g s0 ret ((y + x) :: R) mem activeWords rdata acc k' C' := by
   let sum := y + x
-  have rd6654 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd6655 := rd6654.dup2 (by native_decide) (by evm_ov)
-  have rd6656 := rd6655.dup2 (by native_decide) (by evm_ov)
-  have rd6657 := rd6656.add (by native_decide) (by evm_ov)
-  have rd6659 := rd6657.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6660 := rd6659.dup3 (by native_decide) (by evm_ov)
-  have rd6661 := rd6660.slt (by native_decide) (by evm_ov)
-  have rd6662 := rd6661.iszero (by native_decide) (by evm_ov)
-  have rd6663 := rd6662.dup1 (by native_decide) (by evm_ov)
-  have rd6666 := rd6663.push2 ⟨6672⟩ (by native_decide) (by evm_ov)
+  have rd6654 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd6655 := rd6654.dup2 (by decide +native) (by evm_ov)
+  have rd6656 := rd6655.dup2 (by decide +native) (by evm_ov)
+  have rd6657 := rd6656.add (by decide +native) (by evm_ov)
+  have rd6659 := rd6657.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6660 := rd6659.dup3 (by decide +native) (by evm_ov)
+  have rd6661 := rd6660.slt (by decide +native) (by evm_ov)
+  have rd6662 := rd6661.iszero (by decide +native) (by evm_ov)
+  have rd6663 := rd6662.dup1 (by decide +native) (by evm_ov)
+  have rd6666 := rd6663.push2 ⟨6672⟩ (by decide +native) (by evm_ov)
   by_cases hyneg0 : UInt256.slt y ⟨0⟩ = ⟨0⟩
   · have rd6672 := by
       rw [hyneg0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6666
-      simpa [sum] using rd6666.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+      simpa [sum] using rd6666.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
         (by evm_ov)
-    have rd6673 := rd6672.jumpdest (by native_decide) (by evm_ov)
-    have rd6676 := rd6673.push2 ⟨6681⟩ (by native_decide) (by evm_ov)
+    have rd6673 := rd6672.jumpdest (by decide +native) (by evm_ov)
+    have rd6676 := rd6673.push2 ⟨6681⟩ (by decide +native) (by evm_ov)
     have rd6681 := by
-      simpa using rd6676.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+      simpa using rd6676.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
         (by evm_ov)
     exact RD.vatSignedAddOkSecond (h := rd6681) hpos hret hov
   · have rd6667 := by
       have hcond : UInt256.isZero (UInt256.slt y ⟨0⟩) = ⟨0⟩ :=
         isZero_eq_zero_of_ne hyneg0
       rw [hcond] at rd6666
-      simpa [sum] using rd6666.jumpiNT (by native_decide)
+      simpa [sum] using rd6666.jumpiNT (by decide +native)
         (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    have rd6668 := rd6667.pop (by native_decide) (by evm_ov)
-    have rd6669 := rd6668.dup3 (by native_decide) (by evm_ov)
-    have rd6670 := rd6669.dup2 (by native_decide) (by evm_ov)
-    have rd6671 := rd6670.gt (by native_decide) (by evm_ov)
-    have rd6672pre := rd6671.iszero (by native_decide) (by evm_ov)
+    have rd6668 := rd6667.pop (by decide +native) (by evm_ov)
+    have rd6669 := rd6668.dup3 (by decide +native) (by evm_ov)
+    have rd6670 := rd6669.dup2 (by decide +native) (by evm_ov)
+    have rd6671 := rd6670.gt (by decide +native) (by evm_ov)
+    have rd6672pre := rd6671.iszero (by decide +native) (by evm_ov)
     have hgt0 : UInt256.gt sum x = ⟨0⟩ := by
       simpa [sum] using hneg.resolve_left hyneg0
     have rd6672 := by
       rw [hgt0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6672pre
       exact rd6672pre
-    have rd6673 := rd6672.jumpdest (by native_decide) (by evm_ov)
-    have rd6676 := rd6673.push2 ⟨6681⟩ (by native_decide) (by evm_ov)
+    have rd6673 := rd6672.jumpdest (by decide +native) (by evm_ov)
+    have rd6676 := rd6673.push2 ⟨6681⟩ (by decide +native) (by evm_ov)
     have rd6681 := by
-      simpa using rd6676.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+      simpa using rd6676.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
         (by evm_ov)
     exact RD.vatSignedAddOkSecond (h := rd6681) hpos hret hov
 
@@ -1203,16 +1203,16 @@ theorem RD.vatSignedAddRevert {g : Sat256} {s0 : State}
     (hov : R.length + 7 ≤ 1024) :
     RDrev vatBytecode g s0 := by
   let sum := y + x
-  have rd6654 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd6655 := rd6654.dup2 (by native_decide) (by evm_ov)
-  have rd6656 := rd6655.dup2 (by native_decide) (by evm_ov)
-  have rd6657 := rd6656.add (by native_decide) (by evm_ov)
-  have rd6659 := rd6657.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6660 := rd6659.dup3 (by native_decide) (by evm_ov)
-  have rd6661 := rd6660.slt (by native_decide) (by evm_ov)
-  have rd6662 := rd6661.iszero (by native_decide) (by evm_ov)
-  have rd6663 := rd6662.dup1 (by native_decide) (by evm_ov)
-  have rd6666 := rd6663.push2 ⟨6672⟩ (by native_decide) (by evm_ov)
+  have rd6654 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd6655 := rd6654.dup2 (by decide +native) (by evm_ov)
+  have rd6656 := rd6655.dup2 (by decide +native) (by evm_ov)
+  have rd6657 := rd6656.add (by decide +native) (by evm_ov)
+  have rd6659 := rd6657.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6660 := rd6659.dup3 (by decide +native) (by evm_ov)
+  have rd6661 := rd6660.slt (by decide +native) (by evm_ov)
+  have rd6662 := rd6661.iszero (by decide +native) (by evm_ov)
+  have rd6663 := rd6662.dup1 (by decide +native) (by evm_ov)
+  have rd6666 := rd6663.push2 ⟨6672⟩ (by decide +native) (by evm_ov)
   rcases hneg with hnegFail | ⟨hnegOk, hposFail⟩
   · have hyneg0 : UInt256.slt y ⟨0⟩ ≠ ⟨0⟩ := by
       intro hy
@@ -1221,13 +1221,13 @@ theorem RD.vatSignedAddRevert {g : Sat256} {s0 : State}
       have hcond : UInt256.isZero (UInt256.slt y ⟨0⟩) = ⟨0⟩ :=
         isZero_eq_zero_of_ne hyneg0
       rw [hcond] at rd6666
-      simpa [sum] using rd6666.jumpiNT (by native_decide)
+      simpa [sum] using rd6666.jumpiNT (by decide +native)
         (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    have rd6668 := rd6667.pop (by native_decide) (by evm_ov)
-    have rd6669 := rd6668.dup3 (by native_decide) (by evm_ov)
-    have rd6670 := rd6669.dup2 (by native_decide) (by evm_ov)
-    have rd6671 := rd6670.gt (by native_decide) (by evm_ov)
-    have rd6672pre := rd6671.iszero (by native_decide) (by evm_ov)
+    have rd6668 := rd6667.pop (by decide +native) (by evm_ov)
+    have rd6669 := rd6668.dup3 (by decide +native) (by evm_ov)
+    have rd6670 := rd6669.dup2 (by decide +native) (by evm_ov)
+    have rd6671 := rd6670.gt (by decide +native) (by evm_ov)
+    have rd6672pre := rd6671.iszero (by decide +native) (by evm_ov)
     have hgt0 : UInt256.gt sum x ≠ ⟨0⟩ := by
       intro hgt
       exact hnegFail (Or.inr (by simpa [sum] using hgt))
@@ -1236,44 +1236,44 @@ theorem RD.vatSignedAddRevert {g : Sat256} {s0 : State}
         isZero_eq_zero_of_ne hgt0
       rw [hcond] at rd6672pre
       exact rd6672pre
-    have rd6673 := rd6672.jumpdest (by native_decide) (by evm_ov)
-    have rd6676 := rd6673.push2 ⟨6681⟩ (by native_decide) (by evm_ov)
-    have rd6677 := rd6676.jumpiNT (by native_decide)
+    have rd6673 := rd6672.jumpdest (by decide +native) (by evm_ov)
+    have rd6676 := rd6673.push2 ⟨6681⟩ (by decide +native) (by evm_ov)
+    have rd6677 := rd6676.jumpiNT (by decide +native)
       (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
     exact RD.solcPush1Dup1Revert0 rd6677
-      (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native)
       (by simp only [List.length_cons]; omega)
   · by_cases hyneg0 : UInt256.slt y ⟨0⟩ = ⟨0⟩
     · have rd6672 := by
         rw [hyneg0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6666
-        simpa [sum] using rd6666.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+        simpa [sum] using rd6666.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
           (by evm_ov)
-      have rd6673 := rd6672.jumpdest (by native_decide) (by evm_ov)
-      have rd6676 := rd6673.push2 ⟨6681⟩ (by native_decide) (by evm_ov)
+      have rd6673 := rd6672.jumpdest (by decide +native) (by evm_ov)
+      have rd6676 := rd6673.push2 ⟨6681⟩ (by decide +native) (by evm_ov)
       have rd6681 := by
-        simpa using rd6676.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+        simpa using rd6676.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
           (by evm_ov)
       exact RD.vatSignedAddRevertSecond (h := rd6681) (by simpa [sum] using hposFail) hov
     · have rd6667 := by
         have hcond : UInt256.isZero (UInt256.slt y ⟨0⟩) = ⟨0⟩ :=
           isZero_eq_zero_of_ne hyneg0
         rw [hcond] at rd6666
-        simpa [sum] using rd6666.jumpiNT (by native_decide)
+        simpa [sum] using rd6666.jumpiNT (by decide +native)
           (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-      have rd6668 := rd6667.pop (by native_decide) (by evm_ov)
-      have rd6669 := rd6668.dup3 (by native_decide) (by evm_ov)
-      have rd6670 := rd6669.dup2 (by native_decide) (by evm_ov)
-      have rd6671 := rd6670.gt (by native_decide) (by evm_ov)
-      have rd6672pre := rd6671.iszero (by native_decide) (by evm_ov)
+      have rd6668 := rd6667.pop (by decide +native) (by evm_ov)
+      have rd6669 := rd6668.dup3 (by decide +native) (by evm_ov)
+      have rd6670 := rd6669.dup2 (by decide +native) (by evm_ov)
+      have rd6671 := rd6670.gt (by decide +native) (by evm_ov)
+      have rd6672pre := rd6671.iszero (by decide +native) (by evm_ov)
       have hgt0 : UInt256.gt sum x = ⟨0⟩ := by
         simpa [sum] using hnegOk.resolve_left hyneg0
       have rd6672 := by
         rw [hgt0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6672pre
         exact rd6672pre
-      have rd6673 := rd6672.jumpdest (by native_decide) (by evm_ov)
-      have rd6676 := rd6673.push2 ⟨6681⟩ (by native_decide) (by evm_ov)
+      have rd6673 := rd6672.jumpdest (by decide +native) (by evm_ov)
+      have rd6676 := rd6673.push2 ⟨6681⟩ (by decide +native) (by evm_ov)
       have rd6681 := by
-        simpa using rd6676.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+        simpa using rd6676.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
           (by evm_ov)
       exact RD.vatSignedAddRevertSecond (h := rd6681) (by simpa [sum] using hposFail) hov
 
@@ -1301,49 +1301,49 @@ theorem RD.vatSlipToStoreValue {g : Sat256} {s0 : State}
   let inner := solcMappingSlot ⟨4⟩ ilk
   let slot := solcMappingSlot inner usr
   let old := solcSlotWord σ ee slot
-  have rd4641 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4643 := rd4641.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4644 := rd4643.dup4 (by native_decide) (by evm_ov)
-  have rd4645 := rd4644.dup2 (by native_decide) (by evm_ov)
+  have rd4641 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4643 := rd4641.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4644 := rd4643.dup4 (by decide +native) (by evm_ov)
+  have rd4645 := rd4644.dup2 (by decide +native) (by evm_ov)
   have rd4646 := rd4645.mstore 0 (wordAt0Mem ilk mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4648 := rd4646.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd4650 := rd4648.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4651 := rd4650.swap1 (by native_decide) (by evm_ov)
-  have rd4652 := rd4651.dup2 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4648 := rd4646.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd4650 := rd4648.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4651 := rd4650.swap1 (by decide +native) (by evm_ov)
+  have rd4652 := rd4651.dup2 (by decide +native) (by evm_ov)
   have rd4653 := rd4652.mstore 0 (twoWordHashMem ilk ⟨4⟩ mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4655 := rd4653.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4656 := rd4655.dup1 (by native_decide) (by evm_ov)
-  have rd4657 := rd4656.dup4 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4655 := rd4653.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4656 := rd4655.dup1 (by decide +native) (by evm_ov)
+  have rd4657 := rd4656.dup4 (by decide +native) (by evm_ov)
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ ilk hmem
-  have rd4658 := rd4657.keccak256 0 inner (UInt256.ofNat 3) (by native_decide)
-    mem_cost hinner (by native_decide) (by evm_ov)
-  have rd4660 := rd4658.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4662 := rd4660.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4664 := rd4662.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4665 := rd4664.shl (by native_decide) (by evm_ov)
-  have rd4666 := rd4665.sub (by native_decide) (by evm_ov)
-  have rd4667 := rd4666.dup7 (by native_decide) (by evm_ov)
-  have rd4668 := rd4667.and (by native_decide) (by evm_ov)
+  have rd4658 := rd4657.keccak256 0 inner (UInt256.ofNat 3) (by decide +native)
+    mem_cost hinner (by decide +native) (by evm_ov)
+  have rd4660 := rd4658.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4662 := rd4660.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4664 := rd4662.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4665 := rd4664.shl (by decide +native) (by evm_ov)
+  have rd4666 := rd4665.sub (by decide +native) (by evm_ov)
+  have rd4667 := rd4666.dup7 (by decide +native) (by evm_ov)
+  have rd4668 := rd4667.and (by decide +native) (by evm_ov)
   have hmask : UInt256.land usr
       (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) = usr := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     exact husrClean
   rw [hmask] at rd4668
-  have rd4669 := rd4668.dup5 (by native_decide) (by evm_ov)
+  have rd4669 := rd4668.dup5 (by decide +native) (by evm_ov)
   have rd4670 := rd4669.mstore 0 (wordAt0Mem usr (twoWordHashMem ilk ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4671 := rd4670.swap1 (by native_decide) (by evm_ov)
-  have rd4672 := rd4671.swap2 (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4671 := rd4670.swap1 (by decide +native) (by evm_ov)
+  have rd4672 := rd4671.swap2 (by decide +native) (by evm_ov)
   have rd4673 := rd4672.mstore 0 (twoWordHashMem usr inner (twoWordHashMem ilk ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4674 := rd4673.swap1 (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4674 := rd4673.swap1 (by decide +native) (by evm_ov)
   have hmemInner : (twoWordHashMem ilk ⟨4⟩ mem).size = 96 :=
     twoWordHashMem_size_96 ilk ⟨4⟩ hmem
   have hslot :
@@ -1351,18 +1351,18 @@ theorem RD.vatSlipToStoreValue {g : Sat256} {s0 : State}
           (ffi.KEC ((twoWordHashMem usr inner (twoWordHashMem ilk ⟨4⟩ mem)).readWithPadding 0 64))) =
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner usr hmemInner
-  have rd4675 := rd4674.keccak256 0 slot (UInt256.ofNat 3) (by native_decide)
-    mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4676⟩ := rd4675.sload (by native_decide) (by evm_ov)
+  have rd4675 := rd4674.keccak256 0 slot (UInt256.ofNat 3) (by decide +native)
+    mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4676⟩ := rd4675.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   rw [hold] at rd4676
-  have rd4679 := rd4676.push2 ⟨4685⟩ (by native_decide) (by evm_ov)
-  have rd4680 := rd4679.swap1 (by native_decide) (by evm_ov)
-  have rd4681 := rd4680.dup3 (by native_decide) (by evm_ov)
-  have rd4684 := rd4681.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4684.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4679 := rd4676.push2 ⟨4685⟩ (by decide +native) (by evm_ov)
+  have rd4680 := rd4679.swap1 (by decide +native) (by evm_ov)
+  have rd4681 := rd4680.dup3 (by decide +native) (by evm_ov)
+  have rd4684 := rd4681.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4684.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4685⟩ := RD.vatSignedAddOk
     (x := old) (y := wad) (ret := ⟨4685⟩) (R := wad :: usr :: ilk :: ret :: R)
     rd6653
@@ -1393,49 +1393,49 @@ theorem RD.vatSlipToStoreRevert {g : Sat256} {s0 : State}
   let inner := solcMappingSlot ⟨4⟩ ilk
   let slot := solcMappingSlot inner usr
   let old := solcSlotWord σ ee slot
-  have rd4641 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4643 := rd4641.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4644 := rd4643.dup4 (by native_decide) (by evm_ov)
-  have rd4645 := rd4644.dup2 (by native_decide) (by evm_ov)
+  have rd4641 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4643 := rd4641.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4644 := rd4643.dup4 (by decide +native) (by evm_ov)
+  have rd4645 := rd4644.dup2 (by decide +native) (by evm_ov)
   have rd4646 := rd4645.mstore 0 (wordAt0Mem ilk mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4648 := rd4646.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd4650 := rd4648.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4651 := rd4650.swap1 (by native_decide) (by evm_ov)
-  have rd4652 := rd4651.dup2 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4648 := rd4646.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd4650 := rd4648.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4651 := rd4650.swap1 (by decide +native) (by evm_ov)
+  have rd4652 := rd4651.dup2 (by decide +native) (by evm_ov)
   have rd4653 := rd4652.mstore 0 (twoWordHashMem ilk ⟨4⟩ mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4655 := rd4653.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4656 := rd4655.dup1 (by native_decide) (by evm_ov)
-  have rd4657 := rd4656.dup4 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4655 := rd4653.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4656 := rd4655.dup1 (by decide +native) (by evm_ov)
+  have rd4657 := rd4656.dup4 (by decide +native) (by evm_ov)
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ ilk hmem
-  have rd4658 := rd4657.keccak256 0 inner (UInt256.ofNat 3) (by native_decide)
-    mem_cost hinner (by native_decide) (by evm_ov)
-  have rd4660 := rd4658.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4662 := rd4660.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4664 := rd4662.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4665 := rd4664.shl (by native_decide) (by evm_ov)
-  have rd4666 := rd4665.sub (by native_decide) (by evm_ov)
-  have rd4667 := rd4666.dup7 (by native_decide) (by evm_ov)
-  have rd4668 := rd4667.and (by native_decide) (by evm_ov)
+  have rd4658 := rd4657.keccak256 0 inner (UInt256.ofNat 3) (by decide +native)
+    mem_cost hinner (by decide +native) (by evm_ov)
+  have rd4660 := rd4658.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4662 := rd4660.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4664 := rd4662.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4665 := rd4664.shl (by decide +native) (by evm_ov)
+  have rd4666 := rd4665.sub (by decide +native) (by evm_ov)
+  have rd4667 := rd4666.dup7 (by decide +native) (by evm_ov)
+  have rd4668 := rd4667.and (by decide +native) (by evm_ov)
   have hmask : UInt256.land usr
       (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) = usr := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     exact husrClean
   rw [hmask] at rd4668
-  have rd4669 := rd4668.dup5 (by native_decide) (by evm_ov)
+  have rd4669 := rd4668.dup5 (by decide +native) (by evm_ov)
   have rd4670 := rd4669.mstore 0 (wordAt0Mem usr (twoWordHashMem ilk ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4671 := rd4670.swap1 (by native_decide) (by evm_ov)
-  have rd4672 := rd4671.swap2 (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4671 := rd4670.swap1 (by decide +native) (by evm_ov)
+  have rd4672 := rd4671.swap2 (by decide +native) (by evm_ov)
   have rd4673 := rd4672.mstore 0 (twoWordHashMem usr inner (twoWordHashMem ilk ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4674 := rd4673.swap1 (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4674 := rd4673.swap1 (by decide +native) (by evm_ov)
   have hmemInner : (twoWordHashMem ilk ⟨4⟩ mem).size = 96 :=
     twoWordHashMem_size_96 ilk ⟨4⟩ hmem
   have hslot :
@@ -1443,18 +1443,18 @@ theorem RD.vatSlipToStoreRevert {g : Sat256} {s0 : State}
           (ffi.KEC ((twoWordHashMem usr inner (twoWordHashMem ilk ⟨4⟩ mem)).readWithPadding 0 64))) =
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner usr hmemInner
-  have rd4675 := rd4674.keccak256 0 slot (UInt256.ofNat 3) (by native_decide)
-    mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4676⟩ := rd4675.sload (by native_decide) (by evm_ov)
+  have rd4675 := rd4674.keccak256 0 slot (UInt256.ofNat 3) (by decide +native)
+    mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4676⟩ := rd4675.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   rw [hold] at rd4676
-  have rd4679 := rd4676.push2 ⟨4685⟩ (by native_decide) (by evm_ov)
-  have rd4680 := rd4679.swap1 (by native_decide) (by evm_ov)
-  have rd4681 := rd4680.dup3 (by native_decide) (by evm_ov)
-  have rd4684 := rd4681.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4684.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4679 := rd4676.push2 ⟨4685⟩ (by decide +native) (by evm_ov)
+  have rd4680 := rd4679.swap1 (by decide +native) (by evm_ov)
+  have rd4681 := rd4680.dup3 (by decide +native) (by evm_ov)
+  have rd4684 := rd4681.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4684.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedAddRevert
     (x := old) (y := wad) (ret := ⟨4685⟩) (R := wad :: usr :: ilk :: ret :: R)
     rd6653 (by simpa [old, slot, inner] using hfail)
@@ -1477,52 +1477,52 @@ theorem RD.vatSlipStoreValue {g : Sat256} {s0 : State}
         (solcMappingSlot (solcMappingSlot ⟨4⟩ ilk) usr) sum) k' C' := by
   let inner := solcMappingSlot ⟨4⟩ ilk
   let slot := solcMappingSlot inner usr
-  have rd4686 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4688 := rd4686.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4689 := rd4688.swap4 (by native_decide) (by evm_ov)
-  have rd4690 := rd4689.dup5 (by native_decide) (by evm_ov)
+  have rd4686 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4688 := rd4686.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4689 := rd4688.swap4 (by decide +native) (by evm_ov)
+  have rd4690 := rd4689.dup5 (by decide +native) (by evm_ov)
   have rd4691 := rd4690.mstore 0 (wordAt0Mem ilk mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4693 := rd4691.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd4695 := rd4693.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4696 := rd4695.swap1 (by native_decide) (by evm_ov)
-  have rd4697 := rd4696.dup2 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4693 := rd4691.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd4695 := rd4693.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4696 := rd4695.swap1 (by decide +native) (by evm_ov)
+  have rd4697 := rd4696.dup2 (by decide +native) (by evm_ov)
   have rd4698 := rd4697.mstore 0 (twoWordHashMem ilk ⟨4⟩ mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4700 := rd4698.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4701 := rd4700.dup1 (by native_decide) (by evm_ov)
-  have rd4702 := rd4701.dup7 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4700 := rd4698.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4701 := rd4700.dup1 (by decide +native) (by evm_ov)
+  have rd4702 := rd4701.dup7 (by decide +native) (by evm_ov)
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ ilk hmem
-  have rd4703 := rd4702.keccak256 0 inner (UInt256.ofNat 3) (by native_decide)
-    mem_cost hinner (by native_decide) (by evm_ov)
-  have rd4705 := rd4703.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4707 := rd4705.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4709 := rd4707.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4710 := rd4709.shl (by native_decide) (by evm_ov)
-  have rd4711 := rd4710.sub (by native_decide) (by evm_ov)
-  have rd4712 := rd4711.swap1 (by native_decide) (by evm_ov)
-  have rd4713 := rd4712.swap6 (by native_decide) (by evm_ov)
-  have rd4714 := rd4713.and (by native_decide) (by evm_ov)
+  have rd4703 := rd4702.keccak256 0 inner (UInt256.ofNat 3) (by decide +native)
+    mem_cost hinner (by decide +native) (by evm_ov)
+  have rd4705 := rd4703.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4707 := rd4705.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4709 := rd4707.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4710 := rd4709.shl (by decide +native) (by evm_ov)
+  have rd4711 := rd4710.sub (by decide +native) (by evm_ov)
+  have rd4712 := rd4711.swap1 (by decide +native) (by evm_ov)
+  have rd4713 := rd4712.swap6 (by decide +native) (by evm_ov)
+  have rd4714 := rd4713.and (by decide +native) (by evm_ov)
   have hmask : UInt256.land usr
       (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) = usr := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
     exact husrClean
   rw [hmask] at rd4714
-  have rd4715 := rd4714.dup7 (by native_decide) (by evm_ov)
+  have rd4715 := rd4714.dup7 (by decide +native) (by evm_ov)
   have rd4716 := rd4715.mstore 0 (wordAt0Mem usr (twoWordHashMem ilk ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4717 := rd4716.swap4 (by native_decide) (by evm_ov)
-  have rd4718 := rd4717.swap1 (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4717 := rd4716.swap4 (by decide +native) (by evm_ov)
+  have rd4718 := rd4717.swap1 (by decide +native) (by evm_ov)
   have rd4719 := rd4718.mstore 0 (twoWordHashMem usr inner (twoWordHashMem ilk ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd4720 := rd4719.swap2 (by native_decide) (by evm_ov)
-  have rd4721 := rd4720.swap1 (by native_decide) (by evm_ov)
-  have rd4722 := rd4721.swap3 (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd4720 := rd4719.swap2 (by decide +native) (by evm_ov)
+  have rd4721 := rd4720.swap1 (by decide +native) (by evm_ov)
+  have rd4722 := rd4721.swap3 (by decide +native) (by evm_ov)
   have hmemInner : (twoWordHashMem ilk ⟨4⟩ mem).size = 96 :=
     twoWordHashMem_size_96 ilk ⟨4⟩ hmem
   have hslot :
@@ -1530,12 +1530,12 @@ theorem RD.vatSlipStoreValue {g : Sat256} {s0 : State}
           (ffi.KEC ((twoWordHashMem usr inner (twoWordHashMem ilk ⟨4⟩ mem)).readWithPadding 0 64))) =
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner usr hmemInner
-  have rd4723 := rd4722.keccak256 0 slot (UInt256.ofNat 3) (by native_decide)
-    mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4724⟩ := rd4723.sstore hperm (by native_decide)
+  have rd4723 := rd4722.keccak256 0 slot (UInt256.ofNat 3) (by decide +native)
+    mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4724⟩ := rd4723.sstore hperm (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd4725 := rd4724.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, by simpa [slot, inner] using rd4725.jump (by native_decide) hret (by evm_ov)⟩
+  have rd4725 := rd4724.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, by simpa [slot, inner] using rd4725.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem slipUsrMaskedWord_clean (I : ExecutionEnv) :
     UInt256.land (slipUsrMaskedWord I) solcAddrMask = slipUsrMaskedWord I := by
@@ -1584,7 +1584,7 @@ theorem RD.vatSlipStoreOk {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel 
     (code := vatBytecode) (pc := ⟨4558⟩) (okPc := ⟨4640⟩)
     (key := slipWadWord I) (ret := slipUsrMaskedWord I)
     (R := [slipIlkWord I, ⟨524⟩, sel]) h
-    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | decide +native)
     hauth (by jump_dest) (by simp)
   have hmemAuth :
       (twoWordHashMem (hopeSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -1936,7 +1936,7 @@ theorem vatSlipBodyCore : VatBodyTheorem 23 := by
             (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀)
             (A := A) (I := I) (g := Sat256.ofUInt256 g)
             hdecoded hauthSolc hnegSolc hposSolc hperm
-          have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+          have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
           have hret :
               RDret vatBytecode (Sat256.ofUInt256 g)
                 (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
@@ -1948,7 +1948,7 @@ theorem vatSlipBodyCore : VatBodyTheorem 23 := by
                       (solcMappingSlot (solcMappingSlot ⟨4⟩ (slipIlkWord I))
                         (slipUsrMaskedWord I))))
                 ByteArray.empty := by
-            simpa using RD.stop hretPc' (by native_decide) (by simp)
+            simpa using RD.stop hretPc' (by decide +native) (by simp)
           let evm1 :=
             Solm.EVM.storageStore evm0 I.codeOwner slot gemNewS
           have hcreated :
@@ -1975,7 +1975,7 @@ theorem vatSlipBodyCore : VatBodyTheorem 23 := by
               accountMapEquiv_sstoreAccountMap I.codeOwner slot gemNewS hAccounts
           have henc : returnEquiv ByteArray.empty none slipTransition.returnType := by
             rw [show slipTransition.returnType = [] by rfl]
-            exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+            exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
           exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
             hcreated haccounts henc
         · have hposFailSolc :
@@ -2045,7 +2045,7 @@ theorem vatSlipBodyCore : VatBodyTheorem 23 := by
             (key := slipWadWord I) (ret := slipUsrMaskedWord I)
             (R := [slipIlkWord I, ⟨524⟩, vatSelWord I])
             (by simpa using hdecoded)
-            (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
+            (by unfold vatAuthCheckWf; repeat' first | apply And.intro | decide +native)
             hauthSolc (by jump_dest) (by simp)
           have hmemAuth :
               (twoWordHashMem (hopeSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -2094,7 +2094,7 @@ theorem vatSlipBodyCore : VatBodyTheorem 23 := by
           (key := slipWadWord I) (ret := slipUsrMaskedWord I)
           (R := [slipIlkWord I, ⟨524⟩, vatSelWord I])
           (by simpa using hdecoded)
-          (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
+          (by unfold vatAuthCheckWf; repeat' first | apply And.intro | decide +native)
           hauthSolc (by jump_dest) (by simp)
         have hmemAuth :
             (twoWordHashMem (hopeSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -2131,8 +2131,8 @@ theorem vatSlipBodyCore : VatBodyTheorem 23 := by
         (pc := ⟨4558⟩) (okPc := ⟨4640⟩) (key := slipWadWord I)
         (ret := slipUsrMaskedWord I) (R := [slipIlkWord I, ⟨524⟩, vatSelWord I])
         (by simpa using hdecoded)
-        (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
-        (by unfold vatAuthRevertTailWf vatAuthTailPc; repeat' first | apply And.intro | native_decide)
+        (by unfold vatAuthCheckWf; repeat' first | apply And.intro | decide +native)
+        (by unfold vatAuthRevertTailWf vatAuthTailPc; repeat' first | apply And.intro | decide +native)
         hauthSolc (by simp)
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · exact (vatSlipX_shortarg (g := Sat256.ofUInt256 g) hsz4 (by omega) hsize hreach)

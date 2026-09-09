@@ -181,43 +181,43 @@ abbrev permitDigestStore (evm : EVM.State) (I : ExecutionEnv) : Store :=
 theorem permitStore_get_holder (I : ExecutionEnv) :
     (permitStore I).get? "holder" = some (permitHolderValue I) := by
   unfold permitStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem permitStore_get_spender (I : ExecutionEnv) :
     (permitStore I).get? "spender" = some (permitSpenderValue I) := by
   unfold permitStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem permitStore_get_nonce (I : ExecutionEnv) :
     (permitStore I).get? "nonce" = some (permitNonceValue I) := by
   unfold permitStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem permitStore_get_expiry (I : ExecutionEnv) :
     (permitStore I).get? "expiry" = some (permitExpiryValue I) := by
   unfold permitStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem permitStore_get_allowed (I : ExecutionEnv) :
     (permitStore I).get? "allowed" = some (permitAllowedValue I) := by
   unfold permitStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem permitStore_get_v (I : ExecutionEnv) :
     (permitStore I).get? "v" = some (permitVValue I) := by
   unfold permitStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem permitStore_get_r (I : ExecutionEnv) :
     (permitStore I).get? "r" = some (permitRValue I) := by
   unfold permitStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem permitStore_get_s (I : ExecutionEnv) :
@@ -228,37 +228,37 @@ theorem permitStore_get_s (I : ExecutionEnv) :
 theorem permitStore_get_DOMAIN_SEPARATOR (I : ExecutionEnv) :
     (permitStore I).get? "DOMAIN_SEPARATOR" = none := by
   unfold permitStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem permitStore_get_nonces (I : ExecutionEnv) :
     (permitStore I).get? "nonces" = none := by
   unfold permitStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem permitStore_get_allowance (I : ExecutionEnv) :
     (permitStore I).get? "allowance" = none := by
   unfold permitStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem permitDigestStore_get_v (evm : EVM.State) (I : ExecutionEnv) :
     (permitDigestStore evm I).get? "v" = some (permitVValue I) := by
   unfold permitDigestStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact permitStore_get_v I
 
 theorem permitDigestStore_get_r (evm : EVM.State) (I : ExecutionEnv) :
     (permitDigestStore evm I).get? "r" = some (permitRValue I) := by
   unfold permitDigestStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact permitStore_get_r I
 
 theorem permitDigestStore_get_s (evm : EVM.State) (I : ExecutionEnv) :
     (permitDigestStore evm I).get? "s" = some (permitSValue I) := by
   unfold permitDigestStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact permitStore_get_s I
 
 theorem permitNonceStorageSlot_eq_mapSlot_masked (I : ExecutionEnv) :
@@ -314,16 +314,16 @@ theorem permitDigestBytes_length (evm : EVM.State) (I : ExecutionEnv) :
   exact keccak_size _
 
 theorem permitTypehashBytes_length : permitTypehashBytes.length = 32 := by
-  native_decide
+  decide +native
 
 theorem permitAllowedCleanWord_stable (I : ExecutionEnv) :
     UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)) = permitAllowedCleanWord I := by
   unfold permitAllowedCleanWord
   by_cases h : permitAllowedWord I = ⟨0⟩
   · rw [h]
-    native_decide
+    decide +native
   · rw [isZero_eq_zero_of_ne h]
-    native_decide
+    decide +native
 
 theorem word_toBytesBE_length_32 (w : UInt256) :
     (EVM.Word.toBytesBE w).length = 32 := by
@@ -338,7 +338,7 @@ theorem byteArray_mk_toArray_eq_toByteArray (xs : List UInt8) :
   rw [List.toList_data_toByteArray]
 
 theorem eip191ByteArray_toList : (⟨#[25, 1]⟩ : ByteArray).toList = [25, 1] := by
-  native_decide
+  decide +native
 
 theorem permitStructPackedByteArray_eq (I : ExecutionEnv) :
     ByteArray.mk
@@ -617,7 +617,7 @@ theorem evalExpr_permitDigestStore_holder (evm : EVM.State) (I : ExecutionEnv) :
       (.var "holder") = .ok (permitHolderValue I) := by
   rw [evalExpr?]
   unfold permitDigestStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   rw [permitStore_get_holder]
   simp [EvalResult.ofOption]
 
@@ -917,7 +917,7 @@ theorem evalExpr_ecrecoverSuccess_false
       .ok (.bool false) := by
   rw [evalExpr?]
   simp only [EvalResult.ofOption]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem evalExpr_ecrecoverSuccess_true
@@ -930,7 +930,7 @@ theorem evalExpr_ecrecoverSuccess_true
       .ok (.bool true) := by
   rw [evalExpr?]
   simp only [EvalResult.ofOption]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem decodeReturnValueWithMode_legacy_addr_none_short {returndata : ByteArray}
@@ -1035,7 +1035,7 @@ theorem evalExpr_permitRecoveredStore_holder (evm evm' : EVM.State) (I : Executi
   rw [evalExpr?]
   unfold permitRecoveredStore permitEcrecoverCallStore permitDigestStore
   simp only [EvalResult.ofOption]
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem evalExpr_permitRecoveredStore_spender (evm evm' : EVM.State) (I : ExecutionEnv)
@@ -1047,7 +1047,7 @@ theorem evalExpr_permitRecoveredStore_spender (evm evm' : EVM.State) (I : Execut
   rw [evalExpr?]
   unfold permitRecoveredStore permitEcrecoverCallStore permitDigestStore
   simp only [EvalResult.ofOption]
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem evalExpr_permitRecoveredStore_nonce (evm evm' : EVM.State) (I : ExecutionEnv)
@@ -1059,7 +1059,7 @@ theorem evalExpr_permitRecoveredStore_nonce (evm evm' : EVM.State) (I : Executio
   rw [evalExpr?]
   unfold permitRecoveredStore permitEcrecoverCallStore permitDigestStore
   simp only [EvalResult.ofOption]
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem evalExpr_permitRecoveredStore_expiry (evm evm' : EVM.State) (I : ExecutionEnv)
@@ -1071,7 +1071,7 @@ theorem evalExpr_permitRecoveredStore_expiry (evm evm' : EVM.State) (I : Executi
   rw [evalExpr?]
   unfold permitRecoveredStore permitEcrecoverCallStore permitDigestStore
   simp only [EvalResult.ofOption]
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem evalExpr_permitRecoveredStore_allowed (evm evm' : EVM.State) (I : ExecutionEnv)
@@ -1083,7 +1083,7 @@ theorem evalExpr_permitRecoveredStore_allowed (evm evm' : EVM.State) (I : Execut
   rw [evalExpr?]
   unfold permitRecoveredStore permitEcrecoverCallStore permitDigestStore
   simp only [EvalResult.ofOption]
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem evalExpr_permitRecoveredStore_recovered (evm evm' : EVM.State) (I : ExecutionEnv)
@@ -1099,10 +1099,10 @@ theorem permitRecoveredStore_get_nonces (evm : EVM.State) (I : ExecutionEnv)
     (out : ByteArray) (recovered : AccountAddress) :
     (permitRecoveredStore evm I out recovered).get? "nonces" = none := by
   unfold permitRecoveredStore permitEcrecoverCallStore permitDigestStore
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact permitStore_get_nonces I
 
 theorem evalExpr_binary_nonshort {cfg solm evm op lhs rhs}
@@ -1476,7 +1476,7 @@ theorem evalExpr_permitRecoveredStore_wad
     rfl
   · rw [if_neg hzero, if_neg hzero]
     simp only [evalExpr?]
-    native_decide
+    decide +native
 
 abbrev permitWadStore (evm : EVM.State) (I : ExecutionEnv)
     (out : ByteArray) (recovered : AccountAddress) : Store :=
@@ -1487,17 +1487,17 @@ theorem permitRecoveredStore_get_allowance (evm : EVM.State) (I : ExecutionEnv)
     (out : ByteArray) (recovered : AccountAddress) :
     (permitRecoveredStore evm I out recovered).get? "allowance" = none := by
   unfold permitRecoveredStore permitEcrecoverCallStore permitDigestStore
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact permitStore_get_allowance I
 
 theorem permitWadStore_get_allowance (evm : EVM.State) (I : ExecutionEnv)
     (out : ByteArray) (recovered : AccountAddress) :
     (permitWadStore evm I out recovered).get? "allowance" = none := by
   unfold permitWadStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   exact permitRecoveredStore_get_allowance evm I out recovered
 
 theorem evalExpr_permitWadStore_wad
@@ -1522,11 +1522,11 @@ theorem evalExpr_permitWadStore_holder
   rw [evalExpr?]
   unfold permitWadStore permitRecoveredStore permitEcrecoverCallStore permitDigestStore
   simp only [EvalResult.ofOption]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   rw [permitStore_get_holder]
 
 theorem evalExpr_permitWadStore_spender
@@ -1539,11 +1539,11 @@ theorem evalExpr_permitWadStore_spender
   rw [evalExpr?]
   unfold permitWadStore permitRecoveredStore permitEcrecoverCallStore permitDigestStore
   simp only [EvalResult.ofOption]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   rw [permitStore_get_spender]
 
 theorem evalStorageRef_permitWadStore_allowance (evm evm' : EVM.State) (I : ExecutionEnv)
@@ -2127,7 +2127,7 @@ theorem daiDecode_permit_ok {I : ExecutionEnv}
             ABIType.elem (ElemType.int uint8Int), ABIType.elem (ElemType.bytes bytes32Width),
             ABIType.elem (ElemType.bytes bytes32Width)] =
         some 256 := by
-    native_decide
+    decide +native
   have hnotShort : ¬ (I.calldata.toList.drop 4).length < 256 := by
     rw [List.length_drop, htlen]; omega
   have htake0 : ((I.calldata.toList.drop 4).take 32).length = 32 := by
@@ -2217,7 +2217,7 @@ theorem daiDecode_permit_none_short {I : ExecutionEnv}
             ABIType.elem (ElemType.int uint8Int), ABIType.elem (ElemType.bytes bytes32Width),
             ABIType.elem (ElemType.bytes bytes32Width)] =
         some 256 := by
-    native_decide
+    decide +native
   have hshortArgs : (I.calldata.toList.drop 4).length < 256 := by
     rw [List.length_drop, htlen]; omega
   unfold decodeCalldataWithMode decodeCalldata
@@ -2248,18 +2248,18 @@ theorem daiPermitX_lenOk {cA gh bl σ σ₀ A I} {g : Sat256}
         ⟨0⟩ := by
     rw [hlt]
     decide
-  have rd811 := rd810.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  have rd814 := rd811.push2 ⟨686⟩ (by native_decide) (by evm_ov)
-  have rd816 := rd814.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd817 := rd816.dup1 (by native_decide) (by evm_ov)
-  have rd818 := rd817.calldatasize (by native_decide) (by evm_ov)
-  have rd819 := rd818.sub (by native_decide) (by evm_ov)
-  have rd822 := rd819.push2 ⟨256⟩ (by native_decide) (by evm_ov)
-  have rd823 := rd822.dup2 (by native_decide) (by evm_ov)
-  have rd824 := rd823.lt (by native_decide) (by evm_ov)
-  have rd825 := rd824.iszero (by native_decide) (by evm_ov)
-  have rd828 := rd825.push2 ⟨833⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd828.jumpiT (by native_decide) hjumpCond (by jump_dest) (by evm_ov)⟩
+  have rd811 := rd810.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  have rd814 := rd811.push2 ⟨686⟩ (by decide +native) (by evm_ov)
+  have rd816 := rd814.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd817 := rd816.dup1 (by decide +native) (by evm_ov)
+  have rd818 := rd817.calldatasize (by decide +native) (by evm_ov)
+  have rd819 := rd818.sub (by decide +native) (by evm_ov)
+  have rd822 := rd819.push2 ⟨256⟩ (by decide +native) (by evm_ov)
+  have rd823 := rd822.dup2 (by decide +native) (by evm_ov)
+  have rd824 := rd823.lt (by decide +native) (by evm_ov)
+  have rd825 := rd824.iszero (by decide +native) (by evm_ov)
+  have rd828 := rd825.push2 ⟨833⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd828.jumpiT (by decide +native) hjumpCond (by jump_dest) (by evm_ov)⟩
 
 theorem daiPermitX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -2275,26 +2275,26 @@ theorem daiPermitX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [usub_ofNat_word_toNat (by simpa using hsz4) hsize]
     change I.calldata.size - 4 < 256
     omega
-  have rd811 := rd810.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  have rd814 := rd811.push2 ⟨686⟩ (by native_decide) (by evm_ov)
-  have rd816 := rd814.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd817 := rd816.dup1 (by native_decide) (by evm_ov)
-  have rd818 := rd817.calldatasize (by native_decide) (by evm_ov)
-  have rd819 := rd818.sub (by native_decide) (by evm_ov)
-  have rd822 := rd819.push2 ⟨256⟩ (by native_decide) (by evm_ov)
-  have rd823 := rd822.dup2 (by native_decide) (by evm_ov)
-  have rd824₀ := rd823.lt (by native_decide) (by evm_ov)
+  have rd811 := rd810.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  have rd814 := rd811.push2 ⟨686⟩ (by decide +native) (by evm_ov)
+  have rd816 := rd814.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd817 := rd816.dup1 (by decide +native) (by evm_ov)
+  have rd818 := rd817.calldatasize (by decide +native) (by evm_ov)
+  have rd819 := rd818.sub (by decide +native) (by evm_ov)
+  have rd822 := rd819.push2 ⟨256⟩ (by decide +native) (by evm_ov)
+  have rd823 := rd822.dup2 (by decide +native) (by evm_ov)
+  have rd824₀ := rd823.lt (by decide +native) (by evm_ov)
   have rd824 := rd824₀
   rw [hlt] at rd824
-  have rd825₀ := rd824.iszero (by native_decide) (by evm_ov)
+  have rd825₀ := rd824.iszero (by decide +native) (by evm_ov)
   have rd825 := rd825₀
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd825
-  have rd828 := rd825.push2 ⟨833⟩ (by native_decide) (by evm_ov)
-  have rd829 := rd828.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+  have rd828 := rd825.push2 ⟨833⟩ (by decide +native) (by evm_ov)
+  have rd829 := rd828.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by evm_ov)
-  have rd831 := rd829.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd832 := rd831.dup1 (by native_decide) (by evm_ov)
-  exact rd832.rev 0 (by native_decide) mem_cost (by evm_ov)
+  have rd831 := rd829.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd832 := rd831.dup1 (by decide +native) (by evm_ov)
+  exact rd832.rev 0 (by decide +native) mem_cost (by evm_ov)
 
 theorem daiPermitX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
     (hsz260 : 260 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -2308,60 +2308,60 @@ theorem daiPermitX_decoded {cA gh bl σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd833⟩ := daiPermitX_lenOk hsz260 hsize hreach
   have rd899raw := evm_run rd833 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push1 ⟨96⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push1 ⟨128⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push1 ⟨255⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push1 ⟨192⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw push2 ⟨2428⟩ (by native_decide) (by evm_ov)]
-  have rd2428 := rd899raw.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push1 ⟨96⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push1 ⟨128⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push1 ⟨255⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push1 ⟨192⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw push2 ⟨2428⟩ (by decide +native) (by evm_ov)]
+  have rd2428 := rd899raw.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by
     simpa [permitHolderMaskedWord, permitSpenderMaskedWord, permitAllowedCleanWord,
       permitVMaskedWord, permitHolderWord, permitSpenderWord, permitNonceWord,
@@ -2550,11 +2550,11 @@ abbrev permitInvalidAddress0Word : UInt256 :=
 
 theorem permitInvalidAddress0Word_shift :
     UInt256.shiftLeft permitInvalidAddress0RawWord ⟨92⟩ = permitInvalidAddress0Word := by
-  native_decide
+  decide +native
 
 theorem permitTypehashBytes_eq_wordLit :
     permitTypehashBytes = EVM.Word.toBytesBE permitTypehashWordLit := by
-  native_decide
+  decide +native
 
 noncomputable abbrev permitStructMem1 (I : ExecutionEnv) : ByteArray :=
   permitWordMem solcFreePtrMem 160 permitTypehashWordLit
@@ -2590,7 +2590,7 @@ abbrev permitEip191Word : UInt256 :=
 theorem permitEip191Word_prefix :
     (UInt256.toByteArray permitEip191Word).extract 0 2 = [25, 1].toByteArray := by
   rw [toByteArray_eq_toBytesBE]
-  native_decide
+  decide +native
 
 noncomputable abbrev permitDigestMem9 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
@@ -2615,85 +2615,85 @@ noncomputable abbrev permitDigestMem13 (I : ExecutionEnv) (domainWord : UInt256)
 theorem permitStructMem1_size (I : ExecutionEnv) : (permitStructMem1 I).size = 192 := by
   unfold permitStructMem1
   rw [permitWordMem_size]
-  · rw [solcFreePtrMem_size]; native_decide
-  · rw [solcFreePtrMem_size]; native_decide
+  · rw [solcFreePtrMem_size]; decide +native
+  · rw [solcFreePtrMem_size]; decide +native
 
 theorem permitStructMem2_size (I : ExecutionEnv) : (permitStructMem2 I).size = 224 := by
   unfold permitStructMem2
   rw [permitWordMem_size]
-  · rw [permitStructMem1_size]; native_decide
-  · rw [permitStructMem1_size]; native_decide
+  · rw [permitStructMem1_size]; decide +native
+  · rw [permitStructMem1_size]; decide +native
 
 theorem permitStructMem3_size (I : ExecutionEnv) : (permitStructMem3 I).size = 256 := by
   unfold permitStructMem3
   rw [permitWordMem_size]
-  · rw [permitStructMem2_size]; native_decide
-  · rw [permitStructMem2_size]; native_decide
+  · rw [permitStructMem2_size]; decide +native
+  · rw [permitStructMem2_size]; decide +native
 
 theorem permitStructMem4_size (I : ExecutionEnv) : (permitStructMem4 I).size = 288 := by
   unfold permitStructMem4
   rw [permitWordMem_size]
-  · rw [permitStructMem3_size]; native_decide
-  · rw [permitStructMem3_size]; native_decide
+  · rw [permitStructMem3_size]; decide +native
+  · rw [permitStructMem3_size]; decide +native
 
 theorem permitStructMem5_size (I : ExecutionEnv) : (permitStructMem5 I).size = 320 := by
   unfold permitStructMem5
   rw [permitWordMem_size]
-  · rw [permitStructMem4_size]; native_decide
-  · rw [permitStructMem4_size]; native_decide
+  · rw [permitStructMem4_size]; decide +native
+  · rw [permitStructMem4_size]; decide +native
 
 theorem permitStructMem6_size (I : ExecutionEnv) : (permitStructMem6 I).size = 352 := by
   unfold permitStructMem6
   rw [permitWordMem_size]
-  · rw [permitStructMem5_size]; native_decide
-  · rw [permitStructMem5_size]; native_decide
+  · rw [permitStructMem5_size]; decide +native
+  · rw [permitStructMem5_size]; decide +native
 
 theorem permitDigestMem7_size (I : ExecutionEnv) : (permitDigestMem7 I).size = 352 := by
   unfold permitDigestMem7
   rw [permitWordMem_size]
-  · rw [permitStructMem6_size]; native_decide
-  · rw [permitStructMem6_size]; native_decide
+  · rw [permitStructMem6_size]; decide +native
+  · rw [permitStructMem6_size]; decide +native
 
 theorem permitDigestMem8_size (I : ExecutionEnv) : (permitDigestMem8 I).size = 352 := by
   unfold permitDigestMem8
   rw [permitWordMem_size]
-  · rw [permitDigestMem7_size]; native_decide
-  · rw [permitDigestMem7_size]; native_decide
+  · rw [permitDigestMem7_size]; decide +native
+  · rw [permitDigestMem7_size]; decide +native
 
 theorem permitDigestMem9_size (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem9 I domainWord).size = 416 := by
   unfold permitDigestMem9
   rw [permitWordMem_size]
-  · rw [permitDigestMem8_size]; native_decide
-  · rw [permitDigestMem8_size]; native_decide
+  · rw [permitDigestMem8_size]; decide +native
+  · rw [permitDigestMem8_size]; decide +native
 
 theorem permitDigestMem10_size (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem10 I domainWord).size = 418 := by
   unfold permitDigestMem10
   rw [permitWordMem_size]
-  · rw [permitDigestMem9_size]; native_decide
-  · rw [permitDigestMem9_size]; native_decide
+  · rw [permitDigestMem9_size]; decide +native
+  · rw [permitDigestMem9_size]; decide +native
 
 theorem permitDigestMem11_size (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem11 I domainWord).size = 450 := by
   unfold permitDigestMem11
   rw [permitWordMem_size]
-  · rw [permitDigestMem10_size]; native_decide
-  · rw [permitDigestMem10_size]; native_decide
+  · rw [permitDigestMem10_size]; decide +native
+  · rw [permitDigestMem10_size]; decide +native
 
 theorem permitDigestMem12_size (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem12 I domainWord).size = 450 := by
   unfold permitDigestMem12
   rw [permitWordMem_size]
-  · rw [permitDigestMem11_size]; native_decide
-  · rw [permitDigestMem11_size]; native_decide
+  · rw [permitDigestMem11_size]; decide +native
+  · rw [permitDigestMem11_size]; decide +native
 
 theorem permitDigestMem13_size (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem13 I domainWord).size = 450 := by
   unfold permitDigestMem13
   rw [permitWordMem_size]
-  · rw [permitDigestMem12_size]; native_decide
-  · rw [permitDigestMem12_size]; native_decide
+  · rw [permitDigestMem12_size]; decide +native
+  · rw [permitDigestMem12_size]; decide +native
 
 theorem permitStructMem1_read64 (I : ExecutionEnv) :
     (permitStructMem1 I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
@@ -2702,7 +2702,7 @@ theorem permitStructMem1_read64 (I : ExecutionEnv) :
       (word := permitTypehashWordLit)
       (hsize := by rw [solcFreePtrMem_size])
       (hoff := by norm_num)
-      (hgap := by rw [solcFreePtrMem_size]; native_decide) |>.trans solcFreePtrMem_read64
+      (hgap := by rw [solcFreePtrMem_size]; decide +native) |>.trans solcFreePtrMem_read64
 
 theorem permitStructMem2_read64 (I : ExecutionEnv) :
     (permitStructMem2 I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
@@ -2711,7 +2711,7 @@ theorem permitStructMem2_read64 (I : ExecutionEnv) :
       (word := permitHolderMaskedWord I)
       (hsize := by rw [permitStructMem1_size]; norm_num)
       (hoff := by norm_num)
-      (hgap := by rw [permitStructMem1_size]; native_decide) |>.trans
+      (hgap := by rw [permitStructMem1_size]; decide +native) |>.trans
         (permitStructMem1_read64 I)
 
 theorem permitStructMem3_read64 (I : ExecutionEnv) :
@@ -2721,7 +2721,7 @@ theorem permitStructMem3_read64 (I : ExecutionEnv) :
       (word := permitSpenderMaskedWord I)
       (hsize := by rw [permitStructMem2_size]; norm_num)
       (hoff := by norm_num)
-      (hgap := by rw [permitStructMem2_size]; native_decide) |>.trans
+      (hgap := by rw [permitStructMem2_size]; decide +native) |>.trans
         (permitStructMem2_read64 I)
 
 theorem permitStructMem4_read64 (I : ExecutionEnv) :
@@ -2731,7 +2731,7 @@ theorem permitStructMem4_read64 (I : ExecutionEnv) :
       (word := permitNonceWord I)
       (hsize := by rw [permitStructMem3_size]; norm_num)
       (hoff := by norm_num)
-      (hgap := by rw [permitStructMem3_size]; native_decide) |>.trans
+      (hgap := by rw [permitStructMem3_size]; decide +native) |>.trans
         (permitStructMem3_read64 I)
 
 theorem permitStructMem5_read64 (I : ExecutionEnv) :
@@ -2741,7 +2741,7 @@ theorem permitStructMem5_read64 (I : ExecutionEnv) :
       (word := permitExpiryWord I)
       (hsize := by rw [permitStructMem4_size]; norm_num)
       (hoff := by norm_num)
-      (hgap := by rw [permitStructMem4_size]; native_decide) |>.trans
+      (hgap := by rw [permitStructMem4_size]; decide +native) |>.trans
         (permitStructMem4_read64 I)
 
 theorem permitStructMem6_read64 (I : ExecutionEnv) :
@@ -2751,7 +2751,7 @@ theorem permitStructMem6_read64 (I : ExecutionEnv) :
       (word := UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
       (hsize := by rw [permitStructMem5_size]; norm_num)
       (hoff := by norm_num)
-      (hgap := by rw [permitStructMem5_size]; native_decide) |>.trans
+      (hgap := by rw [permitStructMem5_size]; decide +native) |>.trans
         (permitStructMem5_read64 I)
 
 theorem permitStructMem6_mload64 (I : ExecutionEnv) :
@@ -2769,7 +2769,7 @@ theorem permitDigestMem7_read128 (I : ExecutionEnv) :
       UInt256.toByteArray (⟨192⟩ : UInt256) := by
   simpa [permitDigestMem7] using
     permitWordMem_read_back (permitStructMem6 I) 128 (⟨192⟩ : UInt256)
-      (by rw [permitStructMem6_size]; native_decide)
+      (by rw [permitStructMem6_size]; decide +native)
 
 theorem permitDigestMem8_read128 (I : ExecutionEnv) :
     (permitDigestMem8 I).readWithPadding 128 32 =
@@ -2777,7 +2777,7 @@ theorem permitDigestMem8_read128 (I : ExecutionEnv) :
   simpa [permitDigestMem8] using
     permitWordMem_read_preserve (mem := permitDigestMem7 I) (off := 64) (read := 128)
       (word := (⟨352⟩ : UInt256))
-      (hgap := by rw [permitDigestMem7_size]; native_decide)
+      (hgap := by rw [permitDigestMem7_size]; decide +native)
       (hdisj := Or.inr ⟨by norm_num, by rw [permitDigestMem7_size]; norm_num⟩) |>.trans
         (permitDigestMem7_read128 I)
 
@@ -2804,13 +2804,13 @@ theorem permitDigestMem8_read_structMem6 (I : ExecutionEnv) {read : Nat}
       simpa [permitDigestMem8] using
         permitWordMem_read_preserve (mem := permitDigestMem7 I) (off := 64)
           (read := read) (word := (⟨352⟩ : UInt256))
-          (hgap := by rw [permitDigestMem7_size]; native_decide)
+          (hgap := by rw [permitDigestMem7_size]; decide +native)
           (hdisj := Or.inr ⟨by omega, by rw [permitDigestMem7_size]; omega⟩)
     _ = (permitStructMem6 I).readWithPadding read 32 := by
       simpa [permitDigestMem7] using
         permitWordMem_read_preserve (mem := permitStructMem6 I) (off := 128)
           (read := read) (word := (⟨192⟩ : UInt256))
-          (hgap := by rw [permitStructMem6_size]; native_decide)
+          (hgap := by rw [permitStructMem6_size]; decide +native)
           (hdisj := Or.inr ⟨by omega, by rw [permitStructMem6_size]; omega⟩)
 
 theorem permitDigestMem8_read160 (I : ExecutionEnv) :
@@ -2824,36 +2824,36 @@ theorem permitDigestMem8_read160 (I : ExecutionEnv) :
       simpa [permitStructMem6] using
         permitWordMem_read_preserve (mem := permitStructMem5 I) (off := 320)
           (read := 160) (word := UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
-          (hgap := by rw [permitStructMem5_size]; native_decide)
+          (hgap := by rw [permitStructMem5_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem5_size]⟩)
     _ = (permitStructMem4 I).readWithPadding 160 32 := by
       simpa [permitStructMem5] using
         permitWordMem_read_preserve (mem := permitStructMem4 I) (off := 288)
           (read := 160) (word := permitExpiryWord I)
-          (hgap := by rw [permitStructMem4_size]; native_decide)
+          (hgap := by rw [permitStructMem4_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem4_size]⟩)
     _ = (permitStructMem3 I).readWithPadding 160 32 := by
       simpa [permitStructMem4] using
         permitWordMem_read_preserve (mem := permitStructMem3 I) (off := 256)
           (read := 160) (word := permitNonceWord I)
-          (hgap := by rw [permitStructMem3_size]; native_decide)
+          (hgap := by rw [permitStructMem3_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem3_size]⟩)
     _ = (permitStructMem2 I).readWithPadding 160 32 := by
       simpa [permitStructMem3] using
         permitWordMem_read_preserve (mem := permitStructMem2 I) (off := 224)
           (read := 160) (word := permitSpenderMaskedWord I)
-          (hgap := by rw [permitStructMem2_size]; native_decide)
+          (hgap := by rw [permitStructMem2_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem2_size]⟩)
     _ = (permitStructMem1 I).readWithPadding 160 32 := by
       simpa [permitStructMem2] using
         permitWordMem_read_preserve (mem := permitStructMem1 I) (off := 192)
           (read := 160) (word := permitHolderMaskedWord I)
-          (hgap := by rw [permitStructMem1_size]; native_decide)
+          (hgap := by rw [permitStructMem1_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem1_size]⟩)
     _ = UInt256.toByteArray permitTypehashWordLit := by
       simpa [permitStructMem1] using
         permitWordMem_read_back solcFreePtrMem 160 permitTypehashWordLit
-          (by rw [solcFreePtrMem_size]; native_decide)
+          (by rw [solcFreePtrMem_size]; decide +native)
 
 theorem permitDigestMem8_read192 (I : ExecutionEnv) :
     (permitDigestMem8 I).readWithPadding 192 32 =
@@ -2866,30 +2866,30 @@ theorem permitDigestMem8_read192 (I : ExecutionEnv) :
       simpa [permitStructMem6] using
         permitWordMem_read_preserve (mem := permitStructMem5 I) (off := 320)
           (read := 192) (word := UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
-          (hgap := by rw [permitStructMem5_size]; native_decide)
+          (hgap := by rw [permitStructMem5_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem5_size]⟩)
     _ = (permitStructMem4 I).readWithPadding 192 32 := by
       simpa [permitStructMem5] using
         permitWordMem_read_preserve (mem := permitStructMem4 I) (off := 288)
           (read := 192) (word := permitExpiryWord I)
-          (hgap := by rw [permitStructMem4_size]; native_decide)
+          (hgap := by rw [permitStructMem4_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem4_size]⟩)
     _ = (permitStructMem3 I).readWithPadding 192 32 := by
       simpa [permitStructMem4] using
         permitWordMem_read_preserve (mem := permitStructMem3 I) (off := 256)
           (read := 192) (word := permitNonceWord I)
-          (hgap := by rw [permitStructMem3_size]; native_decide)
+          (hgap := by rw [permitStructMem3_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem3_size]⟩)
     _ = (permitStructMem2 I).readWithPadding 192 32 := by
       simpa [permitStructMem3] using
         permitWordMem_read_preserve (mem := permitStructMem2 I) (off := 224)
           (read := 192) (word := permitSpenderMaskedWord I)
-          (hgap := by rw [permitStructMem2_size]; native_decide)
+          (hgap := by rw [permitStructMem2_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem2_size]⟩)
     _ = UInt256.toByteArray (permitHolderMaskedWord I) := by
       simpa [permitStructMem2] using
         permitWordMem_read_back (permitStructMem1 I) 192 (permitHolderMaskedWord I)
-          (by rw [permitStructMem1_size]; native_decide)
+          (by rw [permitStructMem1_size]; decide +native)
 
 theorem permitDigestMem8_read224 (I : ExecutionEnv) :
     (permitDigestMem8 I).readWithPadding 224 32 =
@@ -2902,24 +2902,24 @@ theorem permitDigestMem8_read224 (I : ExecutionEnv) :
       simpa [permitStructMem6] using
         permitWordMem_read_preserve (mem := permitStructMem5 I) (off := 320)
           (read := 224) (word := UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
-          (hgap := by rw [permitStructMem5_size]; native_decide)
+          (hgap := by rw [permitStructMem5_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem5_size]⟩)
     _ = (permitStructMem4 I).readWithPadding 224 32 := by
       simpa [permitStructMem5] using
         permitWordMem_read_preserve (mem := permitStructMem4 I) (off := 288)
           (read := 224) (word := permitExpiryWord I)
-          (hgap := by rw [permitStructMem4_size]; native_decide)
+          (hgap := by rw [permitStructMem4_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem4_size]⟩)
     _ = (permitStructMem3 I).readWithPadding 224 32 := by
       simpa [permitStructMem4] using
         permitWordMem_read_preserve (mem := permitStructMem3 I) (off := 256)
           (read := 224) (word := permitNonceWord I)
-          (hgap := by rw [permitStructMem3_size]; native_decide)
+          (hgap := by rw [permitStructMem3_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem3_size]⟩)
     _ = UInt256.toByteArray (permitSpenderMaskedWord I) := by
       simpa [permitStructMem3] using
         permitWordMem_read_back (permitStructMem2 I) 224 (permitSpenderMaskedWord I)
-          (by rw [permitStructMem2_size]; native_decide)
+          (by rw [permitStructMem2_size]; decide +native)
 
 theorem permitDigestMem8_read256 (I : ExecutionEnv) :
     (permitDigestMem8 I).readWithPadding 256 32 =
@@ -2932,18 +2932,18 @@ theorem permitDigestMem8_read256 (I : ExecutionEnv) :
       simpa [permitStructMem6] using
         permitWordMem_read_preserve (mem := permitStructMem5 I) (off := 320)
           (read := 256) (word := UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
-          (hgap := by rw [permitStructMem5_size]; native_decide)
+          (hgap := by rw [permitStructMem5_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem5_size]⟩)
     _ = (permitStructMem4 I).readWithPadding 256 32 := by
       simpa [permitStructMem5] using
         permitWordMem_read_preserve (mem := permitStructMem4 I) (off := 288)
           (read := 256) (word := permitExpiryWord I)
-          (hgap := by rw [permitStructMem4_size]; native_decide)
+          (hgap := by rw [permitStructMem4_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem4_size]⟩)
     _ = UInt256.toByteArray (permitNonceWord I) := by
       simpa [permitStructMem4] using
         permitWordMem_read_back (permitStructMem3 I) 256 (permitNonceWord I)
-          (by rw [permitStructMem3_size]; native_decide)
+          (by rw [permitStructMem3_size]; decide +native)
 
 theorem permitDigestMem8_read288 (I : ExecutionEnv) :
     (permitDigestMem8 I).readWithPadding 288 32 =
@@ -2956,12 +2956,12 @@ theorem permitDigestMem8_read288 (I : ExecutionEnv) :
       simpa [permitStructMem6] using
         permitWordMem_read_preserve (mem := permitStructMem5 I) (off := 320)
           (read := 288) (word := UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
-          (hgap := by rw [permitStructMem5_size]; native_decide)
+          (hgap := by rw [permitStructMem5_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitStructMem5_size]⟩)
     _ = UInt256.toByteArray (permitExpiryWord I) := by
       simpa [permitStructMem5] using
         permitWordMem_read_back (permitStructMem4 I) 288 (permitExpiryWord I)
-          (by rw [permitStructMem4_size]; native_decide)
+          (by rw [permitStructMem4_size]; decide +native)
 
 theorem permitDigestMem8_read320 (I : ExecutionEnv) :
     (permitDigestMem8 I).readWithPadding 320 32 =
@@ -2974,7 +2974,7 @@ theorem permitDigestMem8_read320 (I : ExecutionEnv) :
       simpa [permitStructMem6] using
         permitWordMem_read_back (permitStructMem5 I) 320
           (UInt256.isZero (UInt256.isZero (permitAllowedCleanWord I)))
-          (by rw [permitStructMem5_size]; native_decide)
+          (by rw [permitStructMem5_size]; decide +native)
     _ = UInt256.toByteArray (permitAllowedCleanWord I) := by
       rw [permitAllowedCleanWord_stable]
 
@@ -3030,7 +3030,7 @@ theorem permitDigestMem8_read64 (I : ExecutionEnv) :
       UInt256.toByteArray (⟨352⟩ : UInt256) := by
   simpa [permitDigestMem8] using
     permitWordMem_read_back (permitDigestMem7 I) 64 (⟨352⟩ : UInt256)
-      (by rw [permitDigestMem7_size]; native_decide)
+      (by rw [permitDigestMem7_size]; decide +native)
 
 theorem permitDigestMem9_read64 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem9 I domainWord).readWithPadding 64 32 =
@@ -3040,7 +3040,7 @@ theorem permitDigestMem9_read64 (I : ExecutionEnv) (domainWord : UInt256) :
       (word := permitEip191Word)
       (hsize := by rw [permitDigestMem8_size]; norm_num)
       (hoff := by norm_num)
-      (hgap := by rw [permitDigestMem8_size]; native_decide) |>.trans
+      (hgap := by rw [permitDigestMem8_size]; decide +native) |>.trans
         (permitDigestMem8_read64 I)
 
 theorem permitDigestMem10_read64 (I : ExecutionEnv) (domainWord : UInt256) :
@@ -3051,7 +3051,7 @@ theorem permitDigestMem10_read64 (I : ExecutionEnv) (domainWord : UInt256) :
       (word := domainWord)
       (hsize := by rw [permitDigestMem9_size]; norm_num)
       (hoff := by norm_num)
-      (hgap := by rw [permitDigestMem9_size]; native_decide) |>.trans
+      (hgap := by rw [permitDigestMem9_size]; decide +native) |>.trans
         (permitDigestMem9_read64 I domainWord)
 
 theorem permitDigestMem11_read64 (I : ExecutionEnv) (domainWord : UInt256) :
@@ -3062,7 +3062,7 @@ theorem permitDigestMem11_read64 (I : ExecutionEnv) (domainWord : UInt256) :
       (word := permitStructHashMemWord I)
       (hsize := by rw [permitDigestMem10_size]; norm_num)
       (hoff := by norm_num)
-      (hgap := by rw [permitDigestMem10_size]; native_decide) |>.trans
+      (hgap := by rw [permitDigestMem10_size]; decide +native) |>.trans
         (permitDigestMem10_read64 I domainWord)
 
 theorem permitDigestMem11_mload64 (I : ExecutionEnv) (domainWord : UInt256) :
@@ -3083,7 +3083,7 @@ theorem permitDigestMem12_read352 (I : ExecutionEnv) (domainWord : UInt256) :
       UInt256.toByteArray (⟨66⟩ : UInt256) := by
   simpa [permitDigestMem12] using
     permitWordMem_read_back (permitDigestMem11 I domainWord) 352 (⟨66⟩ : UInt256)
-      (by rw [permitDigestMem11_size]; native_decide)
+      (by rw [permitDigestMem11_size]; decide +native)
 
 theorem permitDigestMem13_read352 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem13 I domainWord).readWithPadding 352 32 =
@@ -3091,7 +3091,7 @@ theorem permitDigestMem13_read352 (I : ExecutionEnv) (domainWord : UInt256) :
   simpa [permitDigestMem13] using
     permitWordMem_read_preserve (mem := permitDigestMem12 I domainWord) (off := 64)
       (read := 352) (word := (⟨450⟩ : UInt256))
-      (hgap := by rw [permitDigestMem12_size]; native_decide)
+      (hgap := by rw [permitDigestMem12_size]; decide +native)
       (hdisj := Or.inr ⟨by norm_num, by rw [permitDigestMem12_size]; norm_num⟩) |>.trans
         (permitDigestMem12_read352 I domainWord)
 
@@ -3113,7 +3113,7 @@ theorem permitDigestMem13_read64 (I : ExecutionEnv) (domainWord : UInt256) :
       UInt256.toByteArray (⟨450⟩ : UInt256) := by
   simpa [permitDigestMem13] using
     permitWordMem_read_back (permitDigestMem12 I domainWord) 64 (⟨450⟩ : UInt256)
-      (by rw [permitDigestMem12_size]; native_decide)
+      (by rw [permitDigestMem12_size]; decide +native)
 
 theorem permitDigestMem13_mload64 (I : ExecutionEnv) (domainWord : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥ (permitDigestMem13 I domainWord).size
@@ -3134,7 +3134,7 @@ theorem permitDigestMem12_read384_66 (I : ExecutionEnv) (domainWord : UInt256) :
   simpa [permitDigestMem12] using
     permitWordMem_read_preserve_len (mem := permitDigestMem11 I domainWord) (off := 352)
       (read := 384) (len := 66) (word := (⟨66⟩ : UInt256))
-      (hgap := by rw [permitDigestMem11_size]; native_decide)
+      (hgap := by rw [permitDigestMem11_size]; decide +native)
       (hdisj := Or.inr ⟨by norm_num, by rw [permitDigestMem11_size]⟩)
       (hpos := by norm_num) (hlen64 := by norm_num)
 
@@ -3144,7 +3144,7 @@ theorem permitDigestMem13_read384_66 (I : ExecutionEnv) (domainWord : UInt256) :
   simpa [permitDigestMem13] using
     permitWordMem_read_preserve_len (mem := permitDigestMem12 I domainWord) (off := 64)
       (read := 384) (len := 66) (word := (⟨450⟩ : UInt256))
-      (hgap := by rw [permitDigestMem12_size]; native_decide)
+      (hgap := by rw [permitDigestMem12_size]; decide +native)
       (hdisj := Or.inr ⟨by norm_num, by rw [permitDigestMem12_size]⟩)
       (hpos := by norm_num) (hlen64 := by norm_num) |>.trans
         (permitDigestMem12_read384_66 I domainWord)
@@ -3157,21 +3157,21 @@ theorem permitDigestMem11_read384_2 (I : ExecutionEnv) (domainWord : UInt256) :
       simpa [permitDigestMem11] using
         permitWordMem_read_preserve_len (mem := permitDigestMem10 I domainWord) (off := 418)
           (read := 384) (len := 2) (word := permitStructHashMemWord I)
-          (hgap := by rw [permitDigestMem10_size]; native_decide)
+          (hgap := by rw [permitDigestMem10_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitDigestMem10_size]⟩)
           (hpos := by norm_num) (hlen64 := by norm_num)
     _ = (permitDigestMem9 I domainWord).readWithPadding 384 2 := by
       simpa [permitDigestMem10] using
         permitWordMem_read_preserve_len (mem := permitDigestMem9 I domainWord) (off := 386)
           (read := 384) (len := 2) (word := domainWord)
-          (hgap := by rw [permitDigestMem9_size]; native_decide)
+          (hgap := by rw [permitDigestMem9_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitDigestMem9_size]⟩)
           (hpos := by norm_num) (hlen64 := by norm_num)
     _ = (UInt256.toByteArray permitEip191Word).extract 0 2 := by
       simpa [permitDigestMem9, permitWordMem] using
         Reasoning.Theory.writeWord_read_window (permitDigestMem8 I) 384 0 2
           permitEip191Word (by norm_num) (by norm_num) (by norm_num)
-          (by rw [permitDigestMem8_size]; native_decide)
+          (by rw [permitDigestMem8_size]; decide +native)
     _ = [25, 1].toByteArray := permitEip191Word_prefix
 
 theorem permitDigestMem11_read386 (I : ExecutionEnv) (domainWord : UInt256) :
@@ -3183,19 +3183,19 @@ theorem permitDigestMem11_read386 (I : ExecutionEnv) (domainWord : UInt256) :
       simpa [permitDigestMem11] using
         permitWordMem_read_preserve (mem := permitDigestMem10 I domainWord) (off := 418)
           (read := 386) (word := permitStructHashMemWord I)
-          (hgap := by rw [permitDigestMem10_size]; native_decide)
+          (hgap := by rw [permitDigestMem10_size]; decide +native)
           (hdisj := Or.inl ⟨by norm_num, by simpa [permitDigestMem10_size]⟩)
     _ = UInt256.toByteArray domainWord := by
       simpa [permitDigestMem10] using
         permitWordMem_read_back (permitDigestMem9 I domainWord) 386 domainWord
-          (by rw [permitDigestMem9_size]; native_decide)
+          (by rw [permitDigestMem9_size]; decide +native)
 
 theorem permitDigestMem11_read418 (I : ExecutionEnv) (domainWord : UInt256) :
     (permitDigestMem11 I domainWord).readWithPadding 418 32 =
       UInt256.toByteArray (permitStructHashMemWord I) := by
   simpa [permitDigestMem11] using
     permitWordMem_read_back (permitDigestMem10 I domainWord) 418 (permitStructHashMemWord I)
-      (by rw [permitDigestMem10_size]; native_decide)
+      (by rw [permitDigestMem10_size]; decide +native)
 
 theorem permitDigestMem11_read384_66_eq (cA gh bl σ σ₀ A I) (g : Sat256) :
     ((permitDigestMem11 I
@@ -3324,7 +3324,7 @@ theorem permitVMaskedWord_mask (I : ExecutionEnv) :
   rw [show 255 &&& (permitVWord I).toNat = (permitVWord I).toNat &&& 255 by
     rw [Nat.and_comm]]
   rw [Nat.and_assoc]
-  rw [show 255 &&& 255 = 255 by native_decide]
+  rw [show 255 &&& 255 = 255 by decide +native]
 
 noncomputable abbrev permitEcrecoverMem0 (I : ExecutionEnv) (domainWord : UInt256) :
     ByteArray :=
@@ -3713,8 +3713,8 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, rd2428⟩ := daiPermitX_decoded hsz260 hsize hreach
   obtain ⟨_, _, rd2432raw⟩ := (evm_run rd2428 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov)]).sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov)]).sload (by decide +native) (by evm_ov)
   have rd2432 := by
     simpa [domainSeparatorStorageSlot, initState, Solm.EVM.storageLoad] using rd2432raw
   let domainWord :=
@@ -3727,24 +3727,24 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   let mem5 := permitStructMem5 I
   let mem6 := permitStructMem6 I
   have rd2436pre := evm_run rd2432 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost (mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide)
         solcFreePtrMem_read64) (by decide) (by evm_ov)]
   have rd2469 := rd2436pre.pushConst permitTypehashWordLit (width := 32) (op := .PUSH32)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd2477pre := evm_run rd2469 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd2478 := evm_run rd2477pre with [
-    raw mstore 9 mem1 (UInt256.ofNat 6) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw mstore 9 mem1 (UInt256.ofNat 6) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have hholderMask :
       UInt256.land (permitHolderMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -3753,23 +3753,23 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
       solcAddrMask from by decide]
     exact solcAddrMask_clean (permitHolderMaskedWord_canonical I)
   have rd2489pre := evm_run rd2478 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup14 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup14 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [hholderMask] at rd2489pre
   have rd2495 := evm_run rd2489pre with [
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mstore 3 mem2 (UInt256.ofNat 7) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mstore 3 mem2 (UInt256.ofNat 7) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have hspenderMask :
       UInt256.land (permitSpenderMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -3778,46 +3778,46 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
       solcAddrMask from by decide]
     exact solcAddrMask_clean (permitSpenderMaskedWord_canonical I)
   have rd2498pre := evm_run rd2495 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup13 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup13 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [hspenderMask] at rd2498pre
   have rd2503 := evm_run rd2498pre with [
-    raw push1 ⟨96⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mstore 3 mem3 (UInt256.ofNat 8) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw push1 ⟨96⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mstore 3 mem3 (UInt256.ofNat 8) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2507 := evm_run rd2503 with [
-    raw push1 ⟨128⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  have rd2508 := Reasoning.Reach.RD.dup12 rd2507 (by native_decide) (by evm_ov)
+    raw push1 ⟨128⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  have rd2508 := Reasoning.Reach.RD.dup12 rd2507 (by decide +native) (by evm_ov)
   have rd2510 := evm_run rd2508 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mstore 3 mem4 (UInt256.ofNat 9) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mstore 3 mem4 (UInt256.ofNat 9) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2517 := evm_run rd2510 with [
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup11 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mstore 3 mem5 (UInt256.ofNat 10) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup11 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mstore 3 mem5 (UInt256.ofNat 10) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2529 := evm_run rd2517 with [
-    raw dup9 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push1 ⟨192⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw mstore 3 mem6 (UInt256.ofNat 11) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw dup9 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push1 ⟨192⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw mstore 3 mem6 (UInt256.ofNat 11) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   let mem7 := permitDigestMem7 I
   let mem8 := permitDigestMem8 I
   let structHash := permitStructHashMemWord I
@@ -3830,127 +3830,127 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   let digestWord :=
     UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem11.readWithPadding 384 66)))
   have rd2539 := evm_run rd2529 with [
-    raw dup5 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by native_decide)
-      mem_cost (by simpa [mem6] using permitStructMem6_mload64 I) (by native_decide)
+    raw dup5 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by decide +native)
+      mem_cost (by simpa [mem6] using permitStructMem6_mload64 I) (by decide +native)
         (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 0 mem7 (UInt256.ofNat 11) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 0 mem7 (UInt256.ofNat 11) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2545 := evm_run rd2539 with [
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw mstore 0 mem8 (UInt256.ofNat 11) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw mstore 0 mem8 (UInt256.ofNat 11) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2550pre := evm_run rd2545 with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨192⟩ (UInt256.ofNat 11) (by native_decide)
-      mem_cost (by simpa [mem8] using permitDigestMem8_mload128 I) (by native_decide)
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨192⟩ (UInt256.ofNat 11) (by decide +native)
+      mem_cost (by simpa [mem8] using permitDigestMem8_mload128 I) (by decide +native)
         (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  have rd2551 := rd2550pre.keccak256 0 structHash (UInt256.ofNat 11) (by native_decide)
-    mem_cost (by rfl) (by native_decide) (by evm_ov)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  have rd2551 := rd2550pre.keccak256 0 structHash (UInt256.ofNat 11) (by decide +native)
+    mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2563 := evm_run rd2551 with [
-    raw push2 ⟨6401⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨240⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw push2 ⟨256⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mstore 6 mem9 (UInt256.ofNat 13) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw push2 ⟨6401⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨240⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw push2 ⟨256⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mstore 6 mem9 (UInt256.ofNat 13) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2572 := evm_run rd2563 with [
-    raw push2 ⟨258⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw mstore 3 mem10 (UInt256.ofNat 14) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw push2 ⟨258⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw mstore 3 mem10 (UInt256.ofNat 14) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2582 := evm_run rd2572 with [
-    raw push2 ⟨290⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw mstore 3 mem11 (UInt256.ofNat 15) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw push2 ⟨290⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw mstore 3 mem11 (UInt256.ofNat 15) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2601 := evm_run rd2582 with [
-    raw dup4 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨352⟩ (UInt256.ofNat 15) (by native_decide)
+    raw dup4 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨352⟩ (UInt256.ofNat 15) (by decide +native)
       mem_cost (by simpa [mem11] using permitDigestMem11_mload64 I domainWord)
-        (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw mstore 0 mem12 (UInt256.ofNat 15) (by native_decide)
+        (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw mstore 0 mem12 (UInt256.ofNat 15) (by decide +native)
       mem_cost (by
         have hword :
             ((⟨290⟩ : UInt256) + (⟨128⟩ : UInt256).sub (⟨352⟩ : UInt256)) =
-              (⟨66⟩ : UInt256) := by native_decide
+              (⟨66⟩ : UInt256) := by decide +native
         rw [hword]
-        rw [show (⟨352⟩ : UInt256).toNat = 352 from by native_decide]
+        rw [show (⟨352⟩ : UInt256).toNat = 352 from by decide +native]
         change (UInt256.toByteArray (⟨66⟩ : UInt256)).write 0 mem11 352 32 = mem12
         rfl)
-        (by native_decide) (by evm_ov),
-    raw push2 ⟨322⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw mstore 0 mem13 (UInt256.ofNat 15) (by native_decide)
+        (by decide +native) (by evm_ov),
+    raw push2 ⟨322⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw mstore 0 mem13 (UInt256.ofNat 15) (by decide +native)
       mem_cost (by
         have hword : ((⟨128⟩ : UInt256) + (⟨322⟩ : UInt256)) =
-            (⟨450⟩ : UInt256) := by native_decide
+            (⟨450⟩ : UInt256) := by decide +native
         rw [hword]
-        rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide]
+        rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide +native]
         change (UInt256.toByteArray (⟨450⟩ : UInt256)).write 0 mem12 64 32 = mem13
         rfl)
-        (by native_decide) (by evm_ov)]
+        (by decide +native) (by evm_ov)]
   have rd2611 := evm_run rd2601 with [
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨66⟩ (UInt256.ofNat 15) (by native_decide)
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨66⟩ (UInt256.ofNat 15) (by decide +native)
       mem_cost (by simpa [mem13] using permitDigestMem13_mload352 I domainWord)
-        (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
-  have rd2611hash := rd2611.keccak256 0 digestWord (UInt256.ofNat 15) (by native_decide)
+        (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
+  have rd2611hash := rd2611.keccak256 0 digestWord (UInt256.ofNat 15) (by decide +native)
     mem_cost (by
       unfold digestWord
       rw [show ((⟨32⟩ : UInt256) + (⟨352⟩ : UInt256)).toNat = 384 from by
-          native_decide,
-        show (⟨66⟩ : UInt256).toNat = 66 from by native_decide,
+          decide +native,
+        show (⟨66⟩ : UInt256).toNat = 66 from by decide +native,
         show mem13.readWithPadding 384 66 = mem11.readWithPadding 384 66 from by
         simpa [mem13, mem11] using permitDigestMem13_read384_66 I domainWord])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   rw [hz] at rd2611hash
   have rd2615 := evm_run rd2611hash with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push2 ⟨2684⟩ (by native_decide) (by evm_ov)]
-  have rd2616 := rd2615.jumpiNT (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push2 ⟨2684⟩ (by decide +native) (by evm_ov)]
+  have rd2616 := rd2615.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   let err0 := permitWordMem mem13 450 solcErrorStringSelector
   let err1 := permitWordMem err0 454 (⟨32⟩ : UInt256)
@@ -3964,23 +3964,23 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   have herr0_size : err0.size = 482 := by
     unfold err0
     rw [permitWordMem_size]
-    · rw [hmem13_size]; native_decide
-    · rw [hmem13_size]; native_decide
+    · rw [hmem13_size]; decide +native
+    · rw [hmem13_size]; decide +native
   have herr1_size : err1.size = 486 := by
     unfold err1
     rw [permitWordMem_size]
-    · rw [herr0_size]; native_decide
-    · rw [herr0_size]; native_decide
+    · rw [herr0_size]; decide +native
+    · rw [herr0_size]; decide +native
   have herr2_size : err2.size = 518 := by
     unfold err2
     rw [permitWordMem_size]
-    · rw [herr1_size]; native_decide
-    · rw [herr1_size]; native_decide
+    · rw [herr1_size]; decide +native
+    · rw [herr1_size]; decide +native
   have herr3_size : err3.size = 550 := by
     unfold err3
     rw [permitWordMem_size]
-    · rw [herr2_size]; native_decide
-    · rw [herr2_size]; native_decide
+    · rw [herr2_size]; decide +native
+    · rw [herr2_size]; decide +native
   have herr0_read64 :
       err0.readWithPadding 64 32 = UInt256.toByteArray (⟨450⟩ : UInt256) := by
     simpa [err0] using
@@ -3988,7 +3988,7 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
         (word := solcErrorStringSelector)
         (hsize := by rw [hmem13_size]; norm_num)
         (hoff := by norm_num)
-        (hgap := by rw [hmem13_size]; native_decide) |>.trans hmem13_read64
+        (hgap := by rw [hmem13_size]; decide +native) |>.trans hmem13_read64
   have herr1_read64 :
       err1.readWithPadding 64 32 = UInt256.toByteArray (⟨450⟩ : UInt256) := by
     simpa [err1] using
@@ -3996,7 +3996,7 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
         (word := (⟨32⟩ : UInt256))
         (hsize := by rw [herr0_size]; norm_num)
         (hoff := by norm_num)
-        (hgap := by rw [herr0_size]; native_decide) |>.trans herr0_read64
+        (hgap := by rw [herr0_size]; decide +native) |>.trans herr0_read64
   have herr2_read64 :
       err2.readWithPadding 64 32 = UInt256.toByteArray (⟨450⟩ : UInt256) := by
     simpa [err2] using
@@ -4004,7 +4004,7 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
         (word := (⟨21⟩ : UInt256))
         (hsize := by rw [herr1_size]; norm_num)
         (hoff := by norm_num)
-        (hgap := by rw [herr1_size]; native_decide) |>.trans herr1_read64
+        (hgap := by rw [herr1_size]; decide +native) |>.trans herr1_read64
   have herr3_read64 :
       err3.readWithPadding 64 32 = UInt256.toByteArray (⟨450⟩ : UInt256) := by
     simpa [err3] using
@@ -4012,7 +4012,7 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
         (word := permitInvalidAddress0Word)
         (hsize := by rw [herr2_size]; norm_num)
         (hoff := by norm_num)
-        (hgap := by rw [herr2_size]; native_decide) |>.trans herr2_read64
+        (hgap := by rw [herr2_size]; decide +native) |>.trans herr2_read64
   have herr3_mload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ err3.size
           ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -4025,72 +4025,72 @@ theorem daiPermitX_holderZeroRevert {cA gh bl σ σ₀ A I} {g : Sat256}
       (by decide)
       (by simpa using herr3_read64)
   have rdErrMload := evm_run rd2616 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨450⟩ (UInt256.ofNat 15) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨450⟩ (UInt256.ofNat 15) (by decide +native)
       mem_cost (by simpa [mem13] using permitDigestMem13_mload64 I domainWord)
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   have rdErrSelectorRaw := rdErrMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
   have rdErrSelector := evm_run rdErrSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov)]
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov)]
   rw [show UInt256.shiftLeft (⟨4594637⟩ : UInt256) ⟨229⟩ =
       solcErrorStringSelector from rfl] at rdErrSelector
   have rdErrPrefix := evm_run rdErrSelector with [
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 3 err0 (UInt256.ofNat 16) (by native_decide)
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 3 err0 (UInt256.ofNat 16) (by decide +native)
       mem_cost (by
-        rw [show (⟨450⟩ : UInt256).toNat = 450 from by native_decide]
+        rw [show (⟨450⟩ : UInt256).toNat = 450 from by decide +native]
         simp [err0, permitWordMem, Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mstore 0 err1 (UInt256.ofNat 16) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mstore 0 err1 (UInt256.ofNat 16) (by decide +native)
       mem_cost (by
         rw [show ((⟨450⟩ : UInt256) + (⟨4⟩ : UInt256)).toNat = 454 from by
-          native_decide]
+          decide +native]
         simp [err1, permitWordMem, Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨21⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mstore 3 err2 (UInt256.ofNat 17) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨21⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mstore 3 err2 (UInt256.ofNat 17) (by decide +native)
       mem_cost (by
         rw [show ((⟨450⟩ : UInt256) + (⟨36⟩ : UInt256)).toNat = 486 from by
-          native_decide]
+          decide +native]
         simp [err2, permitWordMem, Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   have rdErrRaw := rdErrPrefix.pushConst permitInvalidAddress0RawWord
-    (width := 21) (op := .PUSH21) (by decide) (by native_decide) (by evm_ov)
+    (width := 21) (op := .PUSH21) (by decide) (by decide +native) (by evm_ov)
   have rdErrWord := evm_run rdErrRaw with [
-    raw push1 ⟨92⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov)]
+    raw push1 ⟨92⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov)]
   rw [permitInvalidAddress0Word_shift] at rdErrWord
   exact evm_run rdErrWord with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mstore 3 err3 (UInt256.ofNat 18) (by native_decide)
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mstore 3 err3 (UInt256.ofNat 18) (by decide +native)
       mem_cost (by
         rw [show ((⟨450⟩ : UInt256) + (⟨68⟩ : UInt256)).toNat = 518 from by
-          native_decide]
+          decide +native]
         simp [err3, permitWordMem, Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨450⟩ (UInt256.ofNat 18) (by native_decide)
-      mem_cost herr3_mload64 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+      (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨450⟩ (UInt256.ofNat 18) (by decide +native)
+      mem_cost herr3_mload64 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_nonzeroHolderReach2684 {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -4110,8 +4110,8 @@ theorem daiPermitX_nonzeroHolderReach2684 {cA gh bl σ σ₀ A I} {g : Sat256}
       (UInt256.ofNat 15) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd2428⟩ := daiPermitX_decoded hsz260 hsize hreach
   obtain ⟨_, _, rd2432raw⟩ := (evm_run rd2428 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov)]).sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov)]).sload (by decide +native) (by evm_ov)
   have rd2432 := by
     simpa [domainSeparatorStorageSlot, initState, Solm.EVM.storageLoad] using rd2432raw
   let domainWord :=
@@ -4124,24 +4124,24 @@ theorem daiPermitX_nonzeroHolderReach2684 {cA gh bl σ σ₀ A I} {g : Sat256}
   let mem5 := permitStructMem5 I
   let mem6 := permitStructMem6 I
   have rd2436pre := evm_run rd2432 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost (mloadFreePtrValue (by rw [solcFreePtrMem_size]; decide) (by decide)
         solcFreePtrMem_read64) (by decide) (by evm_ov)]
   have rd2469 := rd2436pre.pushConst permitTypehashWordLit (width := 32) (op := .PUSH32)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd2477pre := evm_run rd2469 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd2478 := evm_run rd2477pre with [
-    raw mstore 9 mem1 (UInt256.ofNat 6) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw mstore 9 mem1 (UInt256.ofNat 6) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have hholderMask :
       UInt256.land (permitHolderMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -4150,23 +4150,23 @@ theorem daiPermitX_nonzeroHolderReach2684 {cA gh bl σ σ₀ A I} {g : Sat256}
       solcAddrMask from by decide]
     exact solcAddrMask_clean (permitHolderMaskedWord_canonical I)
   have rd2489pre := evm_run rd2478 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup14 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup14 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [hholderMask] at rd2489pre
   have rd2495 := evm_run rd2489pre with [
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mstore 3 mem2 (UInt256.ofNat 7) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mstore 3 mem2 (UInt256.ofNat 7) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have hspenderMask :
       UInt256.land (permitSpenderMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -4175,46 +4175,46 @@ theorem daiPermitX_nonzeroHolderReach2684 {cA gh bl σ σ₀ A I} {g : Sat256}
       solcAddrMask from by decide]
     exact solcAddrMask_clean (permitSpenderMaskedWord_canonical I)
   have rd2498pre := evm_run rd2495 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup13 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup13 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [hspenderMask] at rd2498pre
   have rd2503 := evm_run rd2498pre with [
-    raw push1 ⟨96⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mstore 3 mem3 (UInt256.ofNat 8) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw push1 ⟨96⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mstore 3 mem3 (UInt256.ofNat 8) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2507 := evm_run rd2503 with [
-    raw push1 ⟨128⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  have rd2508 := Reasoning.Reach.RD.dup12 rd2507 (by native_decide) (by evm_ov)
+    raw push1 ⟨128⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  have rd2508 := Reasoning.Reach.RD.dup12 rd2507 (by decide +native) (by evm_ov)
   have rd2510 := evm_run rd2508 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mstore 3 mem4 (UInt256.ofNat 9) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mstore 3 mem4 (UInt256.ofNat 9) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2517 := evm_run rd2510 with [
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup11 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mstore 3 mem5 (UInt256.ofNat 10) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup11 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mstore 3 mem5 (UInt256.ofNat 10) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2529 := evm_run rd2517 with [
-    raw dup9 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push1 ⟨192⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw mstore 3 mem6 (UInt256.ofNat 11) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw dup9 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push1 ⟨192⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw mstore 3 mem6 (UInt256.ofNat 11) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   let mem7 := permitDigestMem7 I
   let mem8 := permitDigestMem8 I
   let structHash := permitStructHashMemWord I
@@ -4226,122 +4226,122 @@ theorem daiPermitX_nonzeroHolderReach2684 {cA gh bl σ σ₀ A I} {g : Sat256}
   let digestWord :=
     UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (mem11.readWithPadding 384 66)))
   have rd2539 := evm_run rd2529 with [
-    raw dup5 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by native_decide)
-      mem_cost (by simpa [mem6] using permitStructMem6_mload64 I) (by native_decide)
+    raw dup5 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 11) (by decide +native)
+      mem_cost (by simpa [mem6] using permitStructMem6_mload64 I) (by decide +native)
         (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 0 mem7 (UInt256.ofNat 11) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 0 mem7 (UInt256.ofNat 11) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2545 := evm_run rd2539 with [
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw mstore 0 mem8 (UInt256.ofNat 11) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw mstore 0 mem8 (UInt256.ofNat 11) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2550pre := evm_run rd2545 with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨192⟩ (UInt256.ofNat 11) (by native_decide)
-      mem_cost (by simpa [mem8] using permitDigestMem8_mload128 I) (by native_decide)
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨192⟩ (UInt256.ofNat 11) (by decide +native)
+      mem_cost (by simpa [mem8] using permitDigestMem8_mload128 I) (by decide +native)
         (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  have rd2551 := rd2550pre.keccak256 0 structHash (UInt256.ofNat 11) (by native_decide)
-    mem_cost (by rfl) (by native_decide) (by evm_ov)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  have rd2551 := rd2550pre.keccak256 0 structHash (UInt256.ofNat 11) (by decide +native)
+    mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2563 := evm_run rd2551 with [
-    raw push2 ⟨6401⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨240⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw push2 ⟨256⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mstore 6 mem9 (UInt256.ofNat 13) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw push2 ⟨6401⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨240⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw push2 ⟨256⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mstore 6 mem9 (UInt256.ofNat 13) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2572 := evm_run rd2563 with [
-    raw push2 ⟨258⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw mstore 3 mem10 (UInt256.ofNat 14) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw push2 ⟨258⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw mstore 3 mem10 (UInt256.ofNat 14) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2582 := evm_run rd2572 with [
-    raw push2 ⟨290⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw mstore 3 mem11 (UInt256.ofNat 15) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw push2 ⟨290⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw mstore 3 mem11 (UInt256.ofNat 15) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2601 := evm_run rd2582 with [
-    raw dup4 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨352⟩ (UInt256.ofNat 15) (by native_decide)
+    raw dup4 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨352⟩ (UInt256.ofNat 15) (by decide +native)
       mem_cost (by simpa [mem11] using permitDigestMem11_mload64 I domainWord)
-        (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw mstore 0 mem12 (UInt256.ofNat 15) (by native_decide)
+        (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw mstore 0 mem12 (UInt256.ofNat 15) (by decide +native)
       mem_cost (by
         have hword :
             ((⟨290⟩ : UInt256) + (⟨128⟩ : UInt256).sub (⟨352⟩ : UInt256)) =
-              (⟨66⟩ : UInt256) := by native_decide
+              (⟨66⟩ : UInt256) := by decide +native
         rw [hword]
-        rw [show (⟨352⟩ : UInt256).toNat = 352 from by native_decide]
+        rw [show (⟨352⟩ : UInt256).toNat = 352 from by decide +native]
         change (UInt256.toByteArray (⟨66⟩ : UInt256)).write 0 mem11 352 32 = mem12
         rfl)
-        (by native_decide) (by evm_ov),
-    raw push2 ⟨322⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw mstore 0 mem13 (UInt256.ofNat 15) (by native_decide)
+        (by decide +native) (by evm_ov),
+    raw push2 ⟨322⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw mstore 0 mem13 (UInt256.ofNat 15) (by decide +native)
       mem_cost (by
         have hword : ((⟨128⟩ : UInt256) + (⟨322⟩ : UInt256)) =
-            (⟨450⟩ : UInt256) := by native_decide
+            (⟨450⟩ : UInt256) := by decide +native
         rw [hword]
-        rw [show (⟨64⟩ : UInt256).toNat = 64 from by native_decide]
+        rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide +native]
         change (UInt256.toByteArray (⟨450⟩ : UInt256)).write 0 mem12 64 32 = mem13
         rfl)
-        (by native_decide) (by evm_ov)]
+        (by decide +native) (by evm_ov)]
   have rd2611 := evm_run rd2601 with [
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨66⟩ (UInt256.ofNat 15) (by native_decide)
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨66⟩ (UInt256.ofNat 15) (by decide +native)
       mem_cost (by simpa [mem13] using permitDigestMem13_mload352 I domainWord)
-        (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
-  have rd2611hash := rd2611.keccak256 0 digestWord (UInt256.ofNat 15) (by native_decide)
+        (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
+  have rd2611hash := rd2611.keccak256 0 digestWord (UInt256.ofNat 15) (by decide +native)
     mem_cost (by
       unfold digestWord
       rw [show ((⟨32⟩ : UInt256) + (⟨352⟩ : UInt256)).toNat = 384 from by
-          native_decide,
-        show (⟨66⟩ : UInt256).toNat = 66 from by native_decide,
+          decide +native,
+        show (⟨66⟩ : UInt256).toNat = 66 from by decide +native,
         show mem13.readWithPadding 384 66 = mem11.readWithPadding 384 66 from by
         simpa [mem13, mem11] using permitDigestMem13_read384_66 I domainWord])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have hdigest :
       digestWord = permitDigestWord (initState cA gh bl σ σ₀ g A I) I := by
     unfold digestWord
@@ -4349,9 +4349,9 @@ theorem daiPermitX_nonzeroHolderReach2684 {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [domainWord] using permitDigestWord_from_mem13 cA gh bl σ σ₀ A I g
   rw [hdigest] at rd2611hash
   have rd2615 := evm_run rd2611hash with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push2 ⟨2684⟩ (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rd2615.jumpiT (by native_decide) hnz (by jump_dest) (by evm_ov)⟩
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push2 ⟨2684⟩ (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rd2615.jumpiT (by decide +native) hnz (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_nonzeroHolderToStaticcallFrom2684 {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -4389,108 +4389,108 @@ theorem daiPermitX_nonzeroHolderToStaticcallFrom2684 {cA gh bl σ σ₀ A I} {g 
   let mem4 := permitEcrecoverMem4 I domainWord digestWord
   let mem5 := permitEcrecoverMem5 I domainWord digestWord
   have rd2731 := evm_run rd2684 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨450⟩ (UInt256.ofNat 15) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨450⟩ (UInt256.ofNat 15) (by decide +native)
       mem_cost (by simpa [evm, domainWord] using permitDigestMem13_mload64 I domainWord)
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 3 mem0 (UInt256.ofNat 16) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 3 mem0 (UInt256.ofNat 16) (by decide +native)
       mem_cost (by
-        rw [show (⟨450⟩ : UInt256).toNat = 450 by native_decide]
+        rw [show (⟨450⟩ : UInt256).toNat = 450 by decide +native]
         simp [mem0, evm, domainWord, permitEcrecoverMem0, permitWordMem,
           Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mstore 0 mem1 (UInt256.ofNat 16) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mstore 0 mem1 (UInt256.ofNat 16) (by decide +native)
       mem_cost (by
-        rw [show ((⟨32⟩ : UInt256) + ⟨450⟩) = ⟨482⟩ by native_decide]
-        rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
+        rw [show ((⟨32⟩ : UInt256) + ⟨450⟩) = ⟨482⟩ by decide +native]
+        rw [show (⟨64⟩ : UInt256).toNat = 64 by decide +native]
         simp [mem0, mem1, permitEcrecoverMem1, permitWordMem, Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 16) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨482⟩ (UInt256.ofNat 16) (by decide +native)
       mem_cost (by simpa [mem1, domainWord] using permitEcrecoverMem1_mload64 I domainWord)
-      (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 3 mem2 (UInt256.ofNat 17) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 3 mem2 (UInt256.ofNat 17) (by decide +native)
       mem_cost (by
-        rw [show (⟨482⟩ : UInt256).toNat = 482 by native_decide]
+        rw [show (⟨482⟩ : UInt256).toNat = 482 by decide +native]
         simp [evm, digestWord, mem1, mem2, permitEcrecoverMem2, permitWordMem,
           Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw push1 ⟨255⟩ (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 3 mem3 (UInt256.ofNat 18) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw push1 ⟨255⟩ (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 3 mem3 (UInt256.ofNat 18) (by decide +native)
       mem_cost (by
         rw [permitVMaskedWord_mask I]
-        rw [show ((⟨32⟩ : UInt256) + ⟨482⟩) = ⟨514⟩ by native_decide]
-        rw [show (⟨514⟩ : UInt256).toNat = 514 by native_decide]
+        rw [show ((⟨32⟩ : UInt256) + ⟨482⟩) = ⟨514⟩ by decide +native]
+        rw [show (⟨514⟩ : UInt256).toNat = 514 by decide +native]
         simp [mem2, mem3, permitEcrecoverMem2, permitEcrecoverMem3, permitWordMem,
           Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 3 mem4 (UInt256.ofNat 19) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 3 mem4 (UInt256.ofNat 19) (by decide +native)
       mem_cost (by
-        rw [show ((⟨32⟩ : UInt256) + (⟨32⟩ + ⟨482⟩)) = ⟨546⟩ by native_decide]
-        rw [show (⟨546⟩ : UInt256).toNat = 546 by native_decide]
+        rw [show ((⟨32⟩ : UInt256) + (⟨32⟩ + ⟨482⟩)) = ⟨546⟩ by decide +native]
+        rw [show (⟨546⟩ : UInt256).toNat = 546 by decide +native]
         simp [mem3, mem4, permitEcrecoverMem3, permitEcrecoverMem4, permitWordMem,
           Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 3 mem5 (UInt256.ofNat 20) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 3 mem5 (UInt256.ofNat 20) (by decide +native)
       mem_cost (by
         rw [show ((⟨32⟩ : UInt256) + (⟨32⟩ + (⟨32⟩ + ⟨482⟩))) = ⟨578⟩ by
-          native_decide]
-        rw [show (⟨578⟩ : UInt256).toNat = 578 by native_decide]
+          decide +native]
+        rw [show (⟨578⟩ : UInt256).toNat = 578 by decide +native]
         simp [mem4, mem5, permitEcrecoverMem4, permitEcrecoverMem5, permitWordMem,
           Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   have rd2756 := evm_run rd2731 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by decide +native)
       mem_cost (by simpa [mem5, domainWord, digestWord] using
         permitEcrecoverMem5_mload64 I domainWord digestWord)
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov)]
-  obtain ⟨gasArg, rd2757⟩ := RD.gas rd2756 (by native_decide) (by evm_ov)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov)]
+  obtain ⟨gasArg, rd2757⟩ := RD.gas rd2756 (by decide +native) (by evm_ov)
   exact ⟨gasArg, _, _, by simpa [evm, domainWord, digestWord] using rd2757⟩
 
 set_option maxHeartbeats 1000000 in
@@ -4550,110 +4550,110 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {cA gh bl σ σ₀ A I} {g : 
   let mem4 := permitEcrecoverMem4 I domainWord digestWord
   let mem5 := permitEcrecoverMem5 I domainWord digestWord
   have rd2731 := evm_run rd2684 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨450⟩ (UInt256.ofNat 15) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨450⟩ (UInt256.ofNat 15) (by decide +native)
       mem_cost (by simpa [evm, domainWord] using permitDigestMem13_mload64 I domainWord)
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 3 mem0 (UInt256.ofNat 16) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 3 mem0 (UInt256.ofNat 16) (by decide +native)
       mem_cost (by
-        rw [show (⟨450⟩ : UInt256).toNat = 450 by native_decide]
+        rw [show (⟨450⟩ : UInt256).toNat = 450 by decide +native]
         simp [mem0, evm, domainWord, permitEcrecoverMem0, permitWordMem,
           Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mstore 0 mem1 (UInt256.ofNat 16) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mstore 0 mem1 (UInt256.ofNat 16) (by decide +native)
       mem_cost (by
-        rw [show ((⟨32⟩ : UInt256) + ⟨450⟩) = ⟨482⟩ by native_decide]
-        rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
+        rw [show ((⟨32⟩ : UInt256) + ⟨450⟩) = ⟨482⟩ by decide +native]
+        rw [show (⟨64⟩ : UInt256).toNat = 64 by decide +native]
         simp [mem0, mem1, permitEcrecoverMem1, permitWordMem, Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 16) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨482⟩ (UInt256.ofNat 16) (by decide +native)
       mem_cost (by simpa [mem1, domainWord] using permitEcrecoverMem1_mload64 I domainWord)
-      (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 3 mem2 (UInt256.ofNat 17) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 3 mem2 (UInt256.ofNat 17) (by decide +native)
       mem_cost (by
-        rw [show (⟨482⟩ : UInt256).toNat = 482 by native_decide]
+        rw [show (⟨482⟩ : UInt256).toNat = 482 by decide +native]
         simp [evm, digestWord, mem1, mem2, permitEcrecoverMem2, permitWordMem,
           Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw push1 ⟨255⟩ (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 3 mem3 (UInt256.ofNat 18) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw push1 ⟨255⟩ (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 3 mem3 (UInt256.ofNat 18) (by decide +native)
       mem_cost (by
         rw [permitVMaskedWord_mask I]
-        rw [show ((⟨32⟩ : UInt256) + ⟨482⟩) = ⟨514⟩ by native_decide]
-        rw [show (⟨514⟩ : UInt256).toNat = 514 by native_decide]
+        rw [show ((⟨32⟩ : UInt256) + ⟨482⟩) = ⟨514⟩ by decide +native]
+        rw [show (⟨514⟩ : UInt256).toNat = 514 by decide +native]
         simp [mem2, mem3, permitEcrecoverMem2, permitEcrecoverMem3, permitWordMem,
           Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 3 mem4 (UInt256.ofNat 19) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 3 mem4 (UInt256.ofNat 19) (by decide +native)
       mem_cost (by
-        rw [show ((⟨32⟩ : UInt256) + (⟨32⟩ + ⟨482⟩)) = ⟨546⟩ by native_decide]
-        rw [show (⟨546⟩ : UInt256).toNat = 546 by native_decide]
+        rw [show ((⟨32⟩ : UInt256) + (⟨32⟩ + ⟨482⟩)) = ⟨546⟩ by decide +native]
+        rw [show (⟨546⟩ : UInt256).toNat = 546 by decide +native]
         simp [mem3, mem4, permitEcrecoverMem3, permitEcrecoverMem4, permitWordMem,
           Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 3 mem5 (UInt256.ofNat 20) (by native_decide)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 3 mem5 (UInt256.ofNat 20) (by decide +native)
       mem_cost (by
         rw [show ((⟨32⟩ : UInt256) + (⟨32⟩ + (⟨32⟩ + ⟨482⟩))) = ⟨578⟩ by
-          native_decide]
-        rw [show (⟨578⟩ : UInt256).toNat = 578 by native_decide]
+          decide +native]
+        rw [show (⟨578⟩ : UInt256).toNat = 578 by decide +native]
         simp [mem4, mem5, permitEcrecoverMem4, permitEcrecoverMem5, permitWordMem,
           Reasoning.Theory.writeWord])
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   have rd2756 := evm_run rd2731 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by native_decide)
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨482⟩ (UInt256.ofNat 20) (by decide +native)
       mem_cost (by simpa [mem5, domainWord, digestWord] using
         permitEcrecoverMem5_mload64 I domainWord digestWord)
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov)]
-  obtain ⟨_gasArg, rd2757⟩ := RD.gas rd2756 (by native_decide) (by evm_ov)
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov)]
+  obtain ⟨_gasArg, rd2757⟩ := RD.gas rd2756 (by decide +native) (by evm_ov)
   obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd2758, hoSize⟩ :=
-    RD.solcStaticcall rd2757 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcall rd2757 (by decide +native) hdepth (by evm_ov)
   refine ⟨cA', σ', z, o, A_in, callGas, k', C', ?_, ?_, hoSize⟩
   · rcases hΘ with ⟨g'', A', hΘ⟩
     refine ⟨g'', A', ?_⟩
@@ -4663,7 +4663,7 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {cA gh bl σ σ₀ A I} {g : 
             ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + (⟨482⟩ : UInt256))))).sub
             (⟨482⟩ : UInt256)).toNat =
           permitEcrecoverCalldata (initState cA gh bl σ σ₀ g A I) I := by
-      rw [show (⟨482⟩ : UInt256).toNat = 482 by native_decide]
+      rw [show (⟨482⟩ : UInt256).toNat = 482 by decide +native]
       change mem5.readWithPadding 482 128 =
         permitEcrecoverCalldata (initState cA gh bl σ σ₀ g A I) I
       simpa [mem5, evm, domainWord, digestWord] using
@@ -4672,11 +4672,11 @@ theorem daiPermitX_nonzeroHolderStaticcallFrom2684 {cA gh bl σ σ₀ A I} {g : 
     rw [hcalldata] at hΘ
     simpa [evm, initState, domainWord, digestWord] using hΘ
   · rw [show ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) +
-        ((⟨32⟩ : UInt256) + (⟨482⟩ : UInt256))))) = ⟨610⟩ by native_decide] at rd2758
+        ((⟨32⟩ : UInt256) + (⟨482⟩ : UInt256))))) = ⟨610⟩ by decide +native] at rd2758
     rw [show UInt256.sub (⟨482⟩ : UInt256) (⟨32⟩ : UInt256) = ⟨450⟩ by
-      native_decide] at rd2758
+      decide +native] at rd2758
     rw [show UInt256.sub (⟨610⟩ : UInt256) (⟨482⟩ : UInt256) = ⟨128⟩ by
-      native_decide] at rd2758
+      decide +native] at rd2758
     simpa [evm, domainWord, digestWord] using rd2758
 
 theorem ecrecover_output_size (σ : AccountMap) (g : UInt256) (A : Substate)
@@ -4697,7 +4697,7 @@ theorem ecrecover_output_size (σ : AccountMap) (g : UInt256) (A : Substate)
         rw [ByteArray_zeroes_size]
         rw [ByteArray.size_extract]
         rw [keccak_size]
-        native_decide
+        decide +native
       · left
         rfl
 
@@ -4707,7 +4707,7 @@ theorem toExecute_ecrecover_precompile (σ : AccountMap) :
   unfold toExecute
   have hmem : AccountAddress.ofUInt256 (⟨1⟩ : UInt256) ∈ π := by
     unfold π
-    native_decide
+    decide +native
   rw [if_pos hmem]
 
 theorem permitStaticcallTheta_ecrecover_output_size
@@ -4722,7 +4722,7 @@ theorem permitStaticcallTheta_ecrecover_output_size
       ToExecute.Precompiled (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) := by
     exact toExecute_ecrecover_precompile σ
   have hone : (AccountAddress.ofUInt256 (⟨1⟩ : UInt256)) = 1 := by
-    native_decide
+    decide +native
   have hout := congrArg (fun x => x.2.2.2.2.2.size) hΘ
   have hout' :
       o.size =
@@ -4751,9 +4751,9 @@ theorem daiPermitX_nonzeroHolderEcrecoverFailureAfter2758
     (hoSize : o.size < UInt256.size) :
     RDrev daiBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (okPc := ⟨2774⟩) rd2758 rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hoSize (by simp)
 
 abbrev permitEcrecoverReturnCopyLen (o : ByteArray) : Nat :=
@@ -4775,7 +4775,7 @@ abbrev permitEcrecoverStaticcallAw : UInt256 :=
 
 theorem permitEcrecoverReturnCopyLen_empty :
     permitEcrecoverReturnCopyLen ByteArray.empty = 0 := by
-  native_decide
+  decide +native
 
 theorem permitEcrecoverReturnMem_empty (mem : ByteArray) :
     permitEcrecoverReturnMem mem ByteArray.empty = mem := by
@@ -4835,8 +4835,8 @@ theorem permitEcrecoverMem5_mload450_zero
   exact mloadWordValue_of_readWithPadding
     (off := (⟨450⟩ : UInt256)) (aw := permitEcrecoverStaticcallAw)
     (v := (⟨0⟩ : UInt256))
-    (by rw [permitEcrecoverMem5_size]; native_decide)
-    (by native_decide)
+    (by rw [permitEcrecoverMem5_size]; decide +native)
+    (by decide +native)
     (by simpa using permitEcrecoverMem5_read450_zero I domainWord digestWord)
 
 theorem permitEcrecoverReturnCopyLen_le_size (o : ByteArray)
@@ -4910,7 +4910,7 @@ theorem permitEcrecoverReturnCopyLen_eq_32 (o : ByteArray)
     rw [ulit_toNat' o.size hoSize]
     exact ho32
   rw [hword]
-  native_decide
+  decide +native
 
 theorem permitEcrecoverReturnMem_size {mem o : ByteArray}
     (hmem : mem.size = 610) (hoSize : o.size < UInt256.size) :
@@ -4958,10 +4958,10 @@ theorem permitEcrecoverReturnMem_mload64 {mem o : ByteArray}
       (⟨482⟩ : UInt256) := by
   unfold permitMloadWord
   exact mloadWordValue_of_readWithPadding
-    (by rw [permitEcrecoverReturnMem_size hmem hoSize, hmem]; native_decide)
-    (by native_decide)
+    (by rw [permitEcrecoverReturnMem_size hmem hoSize, hmem]; decide +native)
+    (by decide +native)
     (by
-      rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
+      rw [show (⟨64⟩ : UInt256).toNat = 64 by decide +native]
       rw [permitEcrecoverReturnMem_read64 (by rw [hmem]; norm_num) hoSize]
       exact hread)
 
@@ -4973,9 +4973,9 @@ theorem permitEcrecoverReturnMem_mload450 {mem o : ByteArray}
   rw [mloadValue_eq_readWithPadding_of_lt_size
     (permitEcrecoverReturnMem mem o) permitEcrecoverStaticcallAw (⟨450⟩ : UInt256) mem.size
     (permitEcrecoverReturnMem_size hmem hoSize)
-    (by rw [show (⟨450⟩ : UInt256).toNat = 450 by native_decide, hmem]; norm_num)
-    (by native_decide)]
-  rw [show (⟨450⟩ : UInt256).toNat = 450 by native_decide]
+    (by rw [show (⟨450⟩ : UInt256).toNat = 450 by decide +native, hmem]; norm_num)
+    (by decide +native)]
+  rw [show (⟨450⟩ : UInt256).toNat = 450 by decide +native]
   rw [permitEcrecoverReturnMem,
     permitEcrecoverReturnCopyLen_eq_32 o ho32 hoSize]
   rw [write32_read_back o mem 450 ho32 (by rw [hmem]; norm_num)]
@@ -4991,10 +4991,10 @@ theorem permitTwoWordHashMem_mload64 {mem : ByteArray} (key slot : UInt256)
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := permitEcrecoverStaticcallAw)
     (v := (⟨482⟩ : UInt256))
-    (by rw [hsize]; native_decide)
-    (by native_decide)
+    (by rw [hsize]; decide +native)
+    (by decide +native)
     (by
-      rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
+      rw [show (⟨64⟩ : UInt256).toNat = 64 by decide +native]
       rw [permitTwoWordHashMem_read64 key slot (by rw [hmem]; norm_num)]
       exact hread64)
 
@@ -5009,10 +5009,10 @@ theorem permitApprovalLogMem_mload64 {mem : ByteArray} (I : ExecutionEnv)
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := permitEcrecoverStaticcallAw)
     (v := (⟨482⟩ : UInt256))
-    (by rw [hsize]; native_decide)
-    (by native_decide)
+    (by rw [hsize]; decide +native)
+    (by decide +native)
     (by
-      rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
+      rw [show (⟨64⟩ : UInt256).toNat = 64 by decide +native]
       unfold permitApprovalLogMem
       rw [permitWordMem_read_preserve
         (mem := mem) (off := 482) (read := 64) (word := permitWadWord I)
@@ -5082,48 +5082,48 @@ theorem daiPermitX_nonzeroHolderEcrecoverSuccessToRecoveredBranchAfter2758
   obtain ⟨_, _, rd2776⟩ :=
     RD.solcCallSuccessGuardOk (okPc := ⟨2774⟩) rd2758
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
       (by simp)
   have rd2778 := evm_run rd2776 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   have rd2784pre := evm_run rd2778 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨482⟩ permitEcrecoverStaticcallAw (by native_decide)
-      mem_cost (by simpa [memRet] using hmload64) (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov)]
-  rw [show UInt256.sub (⟨482⟩ : UInt256) ⟨32⟩ = ⟨450⟩ by native_decide] at rd2784pre
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨482⟩ permitEcrecoverStaticcallAw (by decide +native)
+      mem_cost (by simpa [memRet] using hmload64) (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov)]
+  rw [show UInt256.sub (⟨482⟩ : UInt256) ⟨32⟩ = ⟨450⟩ by decide +native] at rd2784pre
   have rd2785 := evm_run rd2784pre with [
-    raw mload 0 recoveredWord permitEcrecoverStaticcallAw (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov)]
+    raw mload 0 recoveredWord permitEcrecoverStaticcallAw (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov)]
   have rd2793 := evm_run rd2785 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov)]
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask by native_decide] at rd2793
+      solcAddrMask by decide +native] at rd2793
   have rd2804 := evm_run rd2793 with [
-    raw and (by native_decide) (by evm_ov),
-    raw dup10 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov)]
+    raw and (by decide +native) (by evm_ov),
+    raw dup10 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov)]
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask by native_decide] at rd2804
+      solcAddrMask by decide +native] at rd2804
   have hholderMask :
       UInt256.land solcAddrMask (permitHolderMaskedWord I) = permitHolderMaskedWord I := by
     rw [u256_land_comm]
     exact solcAddrMask_clean (permitHolderMaskedWord_canonical I)
   have rd2808 := evm_run rd2804 with [
-    raw and (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov),
-    raw push2 ⟨2874⟩ (by native_decide) (by evm_ov)]
+    raw and (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov),
+    raw push2 ⟨2874⟩ (by decide +native) (by evm_ov)]
   rw [hholderMask] at rd2808
   exact ⟨_, _, by simpa [evm, domainWord, digestWord, baseMem, memRet, recoveredWord] using rd2808⟩
 
@@ -5181,7 +5181,7 @@ theorem daiPermitX_nonzeroHolderRecoveredOkAfter2808
           (permitDigestWord (initState cA gh bl σ σ₀ g A I) I))
         o)
       permitEcrecoverStaticcallAw o (cA', σ') k' C' := by
-  exact ⟨_, _, rd2808.jumpiT (by native_decide) hcond (by jump_dest) (by evm_ov)⟩
+  exact ⟨_, _, rd2808.jumpiT (by decide +native) hcond (by jump_dest) (by evm_ov)⟩
 
 theorem daiPermitX_nonzeroHolderExpiryOkAfter2874
     {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -5217,56 +5217,56 @@ theorem daiPermitX_nonzeroHolderExpiryOkAfter2874
         o)
       permitEcrecoverStaticcallAw o (cA', σ') k' C' := by
   have rd2881 := evm_run rd2874 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨2887⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨2887⟩ (by decide +native) (by evm_ov)]
   rcases hexpiryOk with hexpiryZero | htimeLe
   · have hizero : UInt256.isZero (permitExpiryWord I) = ⟨1⟩ := by
       rw [hexpiryZero]
-      native_decide
+      decide +native
     rw [hizero] at rd2881
-    have rd2887 := rd2881.jumpiT (by native_decide) one_ne_zero_uint
+    have rd2887 := rd2881.jumpiT (by decide +native) one_ne_zero_uint
       (by jump_dest) (by evm_ov)
     have rd2891 := evm_run rd2887 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw push2 ⟨2957⟩ (by native_decide) (by evm_ov)]
-    exact ⟨_, _, rd2891.jumpiT (by native_decide) one_ne_zero_uint
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw push2 ⟨2957⟩ (by decide +native) (by evm_ov)]
+    exact ⟨_, _, rd2891.jumpiT (by decide +native) one_ne_zero_uint
       (by jump_dest) (by evm_ov)⟩
   · by_cases hexpiryZero : permitExpiryWord I = ⟨0⟩
     · have hizero : UInt256.isZero (permitExpiryWord I) = ⟨1⟩ := by
         rw [hexpiryZero]
-        native_decide
+        decide +native
       rw [hizero] at rd2881
-      have rd2887 := rd2881.jumpiT (by native_decide) one_ne_zero_uint
+      have rd2887 := rd2881.jumpiT (by decide +native) one_ne_zero_uint
         (by jump_dest) (by evm_ov)
       have rd2891 := evm_run rd2887 with [
-        raw jumpdest (by native_decide) (by evm_ov),
-        raw push2 ⟨2957⟩ (by native_decide) (by evm_ov)]
-      exact ⟨_, _, rd2891.jumpiT (by native_decide) one_ne_zero_uint
+        raw jumpdest (by decide +native) (by evm_ov),
+        raw push2 ⟨2957⟩ (by decide +native) (by evm_ov)]
+      exact ⟨_, _, rd2891.jumpiT (by decide +native) one_ne_zero_uint
         (by jump_dest) (by evm_ov)⟩
     have hnonzero : UInt256.isZero (permitExpiryWord I) = ⟨0⟩ :=
       isZero_eq_zero_of_ne hexpiryZero
     rw [hnonzero] at rd2881
-    have rd2882 := rd2881.jumpiNT (by native_decide) rfl (by evm_ov)
+    have rd2882 := rd2881.jumpiNT (by decide +native) rfl (by evm_ov)
     have hgt : UInt256.gt (UInt256.ofNat I.header.timestamp) (permitExpiryWord I) = ⟨0⟩ :=
       ugt_zero htimeLe
     have hiszero : UInt256.isZero (UInt256.gt (UInt256.ofNat I.header.timestamp)
         (permitExpiryWord I)) = ⟨1⟩ := by
       rw [hgt]
-      native_decide
+      decide +native
     have rd2887pre := evm_run rd2882 with [
-      raw pop (by native_decide) (by evm_ov),
-      raw dup6 (by native_decide) (by evm_ov),
-      raw timestamp (by native_decide) (by evm_ov),
-      raw gt (by native_decide) (by evm_ov),
-      raw iszero (by native_decide) (by evm_ov)]
+      raw pop (by decide +native) (by evm_ov),
+      raw dup6 (by decide +native) (by evm_ov),
+      raw timestamp (by decide +native) (by evm_ov),
+      raw gt (by decide +native) (by evm_ov),
+      raw iszero (by decide +native) (by evm_ov)]
     rw [hiszero] at rd2887pre
     have rd2891 := evm_run rd2887pre with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw push2 ⟨2957⟩ (by native_decide) (by evm_ov)]
-    exact ⟨_, _, rd2891.jumpiT (by native_decide) one_ne_zero_uint
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw push2 ⟨2957⟩ (by decide +native) (by evm_ov)]
+    exact ⟨_, _, rd2891.jumpiT (by decide +native) one_ne_zero_uint
       (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -5315,100 +5315,100 @@ theorem daiPermitX_nonzeroHolderExpiredAfter2874
           simpa [baseMem] using permitEcrecoverMem5_read64 I domainWord digestWord)
         (hoSize := hoSize)
   have rd2881 := evm_run rd2874 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨2887⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨2887⟩ (by decide +native) (by evm_ov)]
   have hnonzero : UInt256.isZero (permitExpiryWord I) = ⟨0⟩ :=
     isZero_eq_zero_of_ne hexpiryNonzero
   rw [hnonzero] at rd2881
-  have rd2882 := rd2881.jumpiNT (by native_decide) rfl (by evm_ov)
+  have rd2882 := rd2881.jumpiNT (by decide +native) rfl (by evm_ov)
   have hgt :
       UInt256.gt (UInt256.ofNat I.header.timestamp) (permitExpiryWord I) = ⟨1⟩ :=
     ugt_one hexpired
   have hiszero : UInt256.isZero (UInt256.gt (UInt256.ofNat I.header.timestamp)
       (permitExpiryWord I)) = ⟨0⟩ := by
     rw [hgt]
-    native_decide
+    decide +native
   have rd2887pre := evm_run rd2882 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw timestamp (by native_decide) (by evm_ov),
-    raw gt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw timestamp (by decide +native) (by evm_ov),
+    raw gt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov)]
   rw [hiszero] at rd2887pre
   have rd2891 := evm_run rd2887pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨2957⟩ (by native_decide) (by evm_ov)]
-  have rd2892 := rd2891.jumpiNT (by native_decide) rfl (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨2957⟩ (by decide +native) (by evm_ov)]
+  have rd2892 := rd2891.jumpiNT (by decide +native) rfl (by evm_ov)
   have rd2895 := evm_run rd2892 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   have rd2896 := RD.mload 0 (⟨482⟩ : UInt256) permitEcrecoverStaticcallAw rd2895
-    (by native_decide) mem_cost (by simpa [memRet] using hmload64)
-    (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by simpa [memRet] using hmload64)
+    (by decide +native) (by evm_ov)
   have rd2900 :=
     RD.pushConst rd2896 (⟨4594637⟩ : UInt256)
-      (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd2902 := RD.push1 rd2900 (⟨229⟩ : UInt256) (by native_decide) (by evm_ov)
-  have rd2903 := RD.shl rd2902 (by native_decide) (by evm_ov)
+      (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd2902 := RD.push1 rd2900 (⟨229⟩ : UInt256) (by decide +native) (by evm_ov)
+  have rd2903 := RD.shl rd2902 (by decide +native) (by evm_ov)
   rw [show UInt256.shiftLeft (⟨4594637⟩ : UInt256) ⟨229⟩ =
-      solcErrorStringSelector by native_decide] at rd2903
-  have rd2904pre := RD.dup2 rd2903 (by native_decide) (by evm_ov)
+      solcErrorStringSelector by decide +native] at rd2903
+  have rd2904pre := RD.dup2 rd2903 (by decide +native) (by evm_ov)
   have rd2905 := rd2904pre.mstore 0 err0 permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2911pre := evm_run rd2905 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  rw [show ((⟨482⟩ : UInt256) + (⟨4⟩ : UInt256)) = ⟨486⟩ by native_decide]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  rw [show ((⟨482⟩ : UInt256) + (⟨4⟩ : UInt256)) = ⟨486⟩ by decide +native]
     at rd2911pre
   have rd2912 := rd2911pre.mstore 0 err1 permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2918pre := evm_run rd2912 with [
-    raw push1 ⟨18⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  rw [show ((⟨482⟩ : UInt256) + (⟨36⟩ : UInt256)) = ⟨518⟩ by native_decide]
+    raw push1 ⟨18⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  rw [show ((⟨482⟩ : UInt256) + (⟨36⟩ : UInt256)) = ⟨518⟩ by decide +native]
     at rd2918pre
   have rd2919 := rd2918pre.mstore 0 err2 permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdErrRaw := rd2919.pushConst
     (⟨0x11185a4bdc195c9b5a5d0b595e1c1a5c9959⟩ : UInt256)
-    (width := 18) (op := .PUSH18) (by decide) (by native_decide) (by evm_ov)
+    (width := 18) (op := .PUSH18) (by decide) (by decide +native) (by evm_ov)
   have rdErrWord := evm_run rdErrRaw with [
-    raw push1 ⟨114⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov)]
+    raw push1 ⟨114⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov)]
   rw [show UInt256.shiftLeft
       (⟨0x11185a4bdc195c9b5a5d0b595e1c1a5c9959⟩ : UInt256) ⟨114⟩ =
       expiredPermitWord by rfl] at rdErrWord
   have rd2945pre := evm_run rdErrWord with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  rw [show ((⟨482⟩ : UInt256) + (⟨68⟩ : UInt256)) = ⟨550⟩ by native_decide]
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  rw [show ((⟨482⟩ : UInt256) + (⟨68⟩ : UInt256)) = ⟨550⟩ by decide +native]
     at rd2945pre
   have rd2946 := rd2945pre.mstore 0 err3 permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2956 := evm_run rd2946 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 free2 permitEcrecoverStaticcallAw (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 free2 permitEcrecoverStaticcallAw (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   exact rd2956.rev
     (Cₘ (UInt256.ofNat (MachineState.M permitEcrecoverStaticcallAw.toNat free2.toNat
       (((⟨100⟩ : UInt256) + UInt256.sub (⟨482⟩ : UInt256) free2).toNat))) -
       Cₘ permitEcrecoverStaticcallAw)
-    (by native_decide)
+    (by decide +native)
     (fun s haws hstks => by
       set_option linter.unusedSimpArgs false in
         simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -5481,10 +5481,10 @@ theorem daiPermitX_nonzeroHolderBadRecoveredAfter2808
         (hread := by
           simpa [baseMem] using permitEcrecoverMem5_read64 I domainWord digestWord)
         (hoSize := hoSize)
-  have rd2809 := rd2808.jumpiNT (by native_decide) hcond (by evm_ov)
+  have rd2809 := rd2808.jumpiNT (by decide +native) hcond (by evm_ov)
   have rd2812 := evm_run rd2809 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   have rd2813 :
       RD daiBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨2813⟩
         [⟨482⟩, ⟨64⟩, permitDigestWord (initState cA gh bl σ σ₀ g A I) I,
@@ -5495,69 +5495,69 @@ theorem daiPermitX_nonzeroHolderBadRecoveredAfter2808
         (k + 1 + 1 + 1 + 1) (C + 10 + 3 + 3 + (0 + 3)) := by
     simpa [evm, domainWord, digestWord, baseMem, memRet] using
       RD.mload 0 (⟨482⟩ : UInt256) permitEcrecoverStaticcallAw rd2812
-        (by native_decide) mem_cost (by simpa [memRet] using hmload64)
-        (by native_decide) (by evm_ov)
+        (by decide +native) mem_cost (by simpa [memRet] using hmload64)
+        (by decide +native) (by evm_ov)
   have rd2817 :=
     RD.pushConst rd2813 (⟨4594637⟩ : UInt256)
-      (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd2819 := RD.push1 rd2817 (⟨229⟩ : UInt256) (by native_decide) (by evm_ov)
-  have rd2820 := RD.shl rd2819 (by native_decide) (by evm_ov)
+      (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd2819 := RD.push1 rd2817 (⟨229⟩ : UInt256) (by decide +native) (by evm_ov)
+  have rd2820 := RD.shl rd2819 (by decide +native) (by evm_ov)
   rw [show UInt256.shiftLeft (⟨4594637⟩ : UInt256) ⟨229⟩ =
-      solcErrorStringSelector by native_decide] at rd2820
-  have rd2821pre := RD.dup2 rd2820 (by native_decide) (by evm_ov)
+      solcErrorStringSelector by decide +native] at rd2820
+  have rd2821pre := RD.dup2 rd2820 (by decide +native) (by evm_ov)
   have rd2822 := rd2821pre.mstore 0 err0 permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2828pre := evm_run rd2822 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  rw [show ((⟨482⟩ : UInt256) + (⟨4⟩ : UInt256)) = ⟨486⟩ by native_decide]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  rw [show ((⟨482⟩ : UInt256) + (⟨4⟩ : UInt256)) = ⟨486⟩ by decide +native]
     at rd2828pre
   have rd2829 := rd2828pre.mstore 0 err1 permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2835pre := evm_run rd2829 with [
-    raw push1 ⟨18⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  rw [show ((⟨482⟩ : UInt256) + (⟨36⟩ : UInt256)) = ⟨518⟩ by native_decide]
+    raw push1 ⟨18⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  rw [show ((⟨482⟩ : UInt256) + (⟨36⟩ : UInt256)) = ⟨518⟩ by decide +native]
     at rd2835pre
   have rd2836 := rd2835pre.mstore 0 err2 permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdErrRaw := rd2836.pushConst
     (⟨0x11185a4bda5b9d985b1a590b5c195c9b5a5d⟩ : UInt256)
-    (width := 18) (op := .PUSH18) (by decide) (by native_decide) (by evm_ov)
+    (width := 18) (op := .PUSH18) (by decide) (by decide +native) (by evm_ov)
   have rdErrWord := evm_run rdErrRaw with [
-    raw push1 ⟨114⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov)]
+    raw push1 ⟨114⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov)]
   rw [show UInt256.shiftLeft
       (⟨0x11185a4bda5b9d985b1a590b5c195c9b5a5d⟩ : UInt256) ⟨114⟩ =
       invalidPermitWord by rfl] at rdErrWord
   have rd2862pre := evm_run rdErrWord with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  rw [show ((⟨482⟩ : UInt256) + (⟨68⟩ : UInt256)) = ⟨550⟩ by native_decide]
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  rw [show ((⟨482⟩ : UInt256) + (⟨68⟩ : UInt256)) = ⟨550⟩ by decide +native]
     at rd2862pre
   have rd2863 := rd2862pre.mstore 0 err3 permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2873 := evm_run rd2863 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 free2 permitEcrecoverStaticcallAw (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 free2 permitEcrecoverStaticcallAw (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   exact rd2873.rev
     (Cₘ (UInt256.ofNat (MachineState.M permitEcrecoverStaticcallAw.toNat free2.toNat
       (((⟨100⟩ : UInt256) + UInt256.sub (⟨482⟩ : UInt256) free2).toNat))) -
       Cₘ permitEcrecoverStaticcallAw)
-    (by native_decide)
+    (by decide +native)
     (fun s haws hstks => by
       set_option linter.unusedSimpArgs false in
         simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -5590,7 +5590,7 @@ theorem daiPermitX_nonceBranchAfter2957
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
         permitHolderMaskedWord I := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by native_decide]
+      solcAddrMask from by decide +native]
     exact solcAddrMask_clean (permitHolderMaskedWord_canonical I)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
@@ -5600,54 +5600,54 @@ theorem daiPermitX_nonceBranchAfter2957
       permitTwoWordHashMem_slot (mem := memRet) (permitHolderMaskedWord I)
         (⟨4⟩ : UInt256) (by rw [hmem]; norm_num)
   have rd2968 := evm_run rd2957 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup10 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup10 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [hmask] at rd2968
   have rd2971 := evm_run rd2968 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2972 := rd2971.mstore 0
     (permitWordMem memRet 0 (permitHolderMaskedWord I)) permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2977 := evm_run rd2972 with [
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd2978 := rd2977.mstore 0 (permitNonceHashMem memRet I)
-    permitEcrecoverStaticcallAw (by native_decide) mem_cost
-    (by rfl) (by native_decide) (by evm_ov)
+    permitEcrecoverStaticcallAw (by decide +native) mem_cost
+    (by rfl) (by decide +native) (by evm_ov)
   have rd2981 := evm_run rd2978 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd2982 := rd2981.keccak256 0 (permitNonceStorageSlot I)
-    permitEcrecoverStaticcallAw (by native_decide) mem_cost hslot
-    (by native_decide) (by evm_ov)
+    permitEcrecoverStaticcallAw (by decide +native) mem_cost hslot
+    (by decide +native) (by evm_ov)
   have rd2983pre := evm_run rd2982 with [
-    raw dup1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2983raw⟩ := rd2983pre.sload (by native_decide)
+    raw dup1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2983raw⟩ := rd2983pre.sload (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; norm_num)
   have rd2984 := by
     simpa [permitEvmNonceWord, permitNonceStoredWord] using rd2983raw
   have rd2990 := evm_run rd2984 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2991raw⟩ := rd2990.sstore hperm (by native_decide)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2991raw⟩ := rd2990.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; norm_num)
   have rd2991 := by
     simpa [permitEvmAfterNonceAccountMap] using rd2991raw
   have rd2996 := evm_run rd2991 with [
-    raw dup8 (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov),
-    raw push2 ⟨3061⟩ (by native_decide) (by evm_ov)]
+    raw dup8 (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov),
+    raw push2 ⟨3061⟩ (by decide +native) (by evm_ov)]
   exact ⟨_, _, rd2996⟩
 
 set_option maxHeartbeats 1000000 in
@@ -5683,74 +5683,74 @@ theorem daiPermitX_nonceMismatchAfter2957
     daiPermitX_nonceBranchAfter2957 (g := g) hperm hmem hread64 rd2957
   have hcond : UInt256.eq (permitNonceWord I) (permitEvmNonceWord σ' I) = ⟨0⟩ :=
     u256_eq_of_ne hnonce
-  have rd2997 := rd2996.jumpiNT (by native_decide) hcond (by evm_ov)
+  have rd2997 := rd2996.jumpiNT (by decide +native) hcond (by evm_ov)
   have rd3000 := evm_run rd2997 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   have rd3001 := RD.mload 0 (⟨482⟩ : UInt256) permitEcrecoverStaticcallAw rd3000
-    (by native_decide) mem_cost (by simpa [memHash] using hmload64)
-    (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by simpa [memHash] using hmload64)
+    (by decide +native) (by evm_ov)
   have rd3005 :=
     RD.pushConst rd3001 (⟨4594637⟩ : UInt256)
-      (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd3007 := RD.push1 rd3005 (⟨229⟩ : UInt256) (by native_decide) (by evm_ov)
-  have rd3008 := RD.shl rd3007 (by native_decide) (by evm_ov)
+      (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd3007 := RD.push1 rd3005 (⟨229⟩ : UInt256) (by decide +native) (by evm_ov)
+  have rd3008 := RD.shl rd3007 (by decide +native) (by evm_ov)
   rw [show UInt256.shiftLeft (⟨4594637⟩ : UInt256) ⟨229⟩ =
-      solcErrorStringSelector by native_decide] at rd3008
-  have rd3009pre := RD.dup2 rd3008 (by native_decide) (by evm_ov)
+      solcErrorStringSelector by decide +native] at rd3008
+  have rd3009pre := RD.dup2 rd3008 (by decide +native) (by evm_ov)
   have rd3010 := rd3009pre.mstore 0 err0 permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd3016pre := evm_run rd3010 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  rw [show ((⟨482⟩ : UInt256) + (⟨4⟩ : UInt256)) = ⟨486⟩ by native_decide]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  rw [show ((⟨482⟩ : UInt256) + (⟨4⟩ : UInt256)) = ⟨486⟩ by decide +native]
     at rd3016pre
   have rd3017 := rd3016pre.mstore 0 err1 permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd3023pre := evm_run rd3017 with [
-    raw push1 ⟨17⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  rw [show ((⟨482⟩ : UInt256) + (⟨36⟩ : UInt256)) = ⟨518⟩ by native_decide]
+    raw push1 ⟨17⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  rw [show ((⟨482⟩ : UInt256) + (⟨36⟩ : UInt256)) = ⟨518⟩ by decide +native]
     at rd3023pre
   have rd3024 := rd3023pre.mstore 0 err2 permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdErrRaw := rd3024.pushConst
     (⟨0x4461692f696e76616c69642d6e6f6e6365⟩ : UInt256)
-    (width := 17) (op := .PUSH17) (by decide) (by native_decide) (by evm_ov)
+    (width := 17) (op := .PUSH17) (by decide) (by decide +native) (by evm_ov)
   have rdErrWord := evm_run rdErrRaw with [
-    raw push1 ⟨120⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov)]
+    raw push1 ⟨120⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov)]
   rw [show UInt256.shiftLeft
       (⟨0x4461692f696e76616c69642d6e6f6e6365⟩ : UInt256) ⟨120⟩ =
       invalidNonceWord by rfl] at rdErrWord
   have rd3049pre := evm_run rdErrWord with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  rw [show ((⟨482⟩ : UInt256) + (⟨68⟩ : UInt256)) = ⟨550⟩ by native_decide]
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  rw [show ((⟨482⟩ : UInt256) + (⟨68⟩ : UInt256)) = ⟨550⟩ by decide +native]
     at rd3049pre
   have rd3050 := rd3049pre.mstore 0 err3 permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd3060 := evm_run rd3050 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 free2 permitEcrecoverStaticcallAw (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 free2 permitEcrecoverStaticcallAw (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   exact rd3060.rev
     (Cₘ (UInt256.ofNat (MachineState.M permitEcrecoverStaticcallAw.toNat free2.toNat
       (((⟨100⟩ : UInt256) + UInt256.sub (⟨482⟩ : UInt256) free2).toNat))) -
       Cₘ permitEcrecoverStaticcallAw)
-    (by native_decide)
+    (by decide +native)
     (fun s haws hstks => by
       set_option linter.unusedSimpArgs false in
         simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -5785,63 +5785,63 @@ theorem daiPermitX_successLogStopAfter3124
     exact mloadWordValue_of_readWithPadding
       (off := (⟨64⟩ : UInt256)) (aw := permitEcrecoverStaticcallAw)
       (v := (⟨482⟩ : UInt256))
-      (by rw [hmem]; native_decide)
-      (by native_decide)
+      (by rw [hmem]; decide +native)
+      (by decide +native)
       (by
-        rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide]
+        rw [show (⟨64⟩ : UInt256).toNat = 64 by decide +native]
         exact hread64)
   have hmloadLog64 :
       permitMloadWord memLog permitEcrecoverStaticcallAw ⟨64⟩ =
         (⟨482⟩ : UInt256) := by
     simpa [memLog] using permitApprovalLogMem_mload64 (I := I) hmem hread64
-  have rd3125pre := RD.dup2 rd3124 (by native_decide) (by evm_ov)
+  have rd3125pre := RD.dup2 rd3124 (by decide +native) (by evm_ov)
   have rd3126 := RD.mload 0 (⟨482⟩ : UInt256) permitEcrecoverStaticcallAw rd3125pre
-    (by native_decide) mem_cost (by simpa using hmloadAllow64)
-    (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by simpa using hmloadAllow64)
+    (by decide +native) (by evm_ov)
   have rd3128pre := evm_run rd3126 with [
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3129 := rd3128pre.mstore 0 memLog permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd3130pre := RD.swap2 rd3129 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd3130pre := RD.swap2 rd3129 (by decide +native) (by evm_ov)
   have rd3131 := RD.mload 0 (⟨482⟩ : UInt256) permitEcrecoverStaticcallAw rd3130pre
-    (by native_decide) mem_cost (by simpa [memLog] using hmloadLog64)
-    (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by simpa [memLog] using hmloadLog64)
+    (by decide +native) (by evm_ov)
   have rd3138 := evm_run rd3131 with [
-    raw swap5 (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov)]
+    raw swap5 (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov)]
   have rd3171 := rd3138.pushConst permitApprovalTopic (width := 32) (op := .PUSH32)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd3178 := evm_run rd3171 with [
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  have rd3179 := rd3178.log3 0 permitEcrecoverStaticcallAw (by native_decide) hperm
-    mem_cost (by native_decide) (by simp only [List.length_cons, List.length_nil]; norm_num)
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  have rd3179 := rd3178.log3 0 permitEcrecoverStaticcallAw (by decide +native) hperm
+    mem_cost (by decide +native) (by simp only [List.length_cons, List.length_nil]; norm_num)
   have rd3189 := evm_run rd3179 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  have rd686 := rd3189.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd687 := rd686.jumpdest (by native_decide)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  have rd686 := rd3189.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd687 := rd686.jumpdest (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; norm_num)
-  exact rd687.stop (by native_decide)
+  exact rd687.stop (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; norm_num)
 
 set_option maxHeartbeats 1000000 in
@@ -5927,74 +5927,74 @@ theorem daiPermitX_successStorageAfter3079
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
         permitHolderMaskedWord I := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by native_decide]
+      solcAddrMask from by decide +native]
     exact solcAddrMask_clean (permitHolderMaskedWord_canonical I)
   have hspenderMask :
       UInt256.land (permitSpenderMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
         permitSpenderMaskedWord I := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by native_decide]
+      solcAddrMask from by decide +native]
     exact solcAddrMask_clean (permitSpenderMaskedWord_canonical I)
   have rd3091 := evm_run rd3079 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup13 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup13 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [hholderMask] at rd3091
   have rd3095 := evm_run rd3091 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3096 := rd3095.mstore 0 (permitWordMem memNonce 0 (permitHolderMaskedWord I))
-    permitEcrecoverStaticcallAw (by native_decide) mem_cost
-    (by rfl) (by native_decide) (by evm_ov)
+    permitEcrecoverStaticcallAw (by decide +native) mem_cost
+    (by rfl) (by decide +native) (by evm_ov)
   have rd3102 := evm_run rd3096 with [
-    raw push1 ⟨3⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨3⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3103 := rd3102.mstore 0 memOwner permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd3107 := evm_run rd3103 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have rd3108 := rd3107.keccak256 0 (mapSlot (permitHolderMaskedWord I) ⟨3⟩)
-    permitEcrecoverStaticcallAw (by native_decide) mem_cost hinnerSlot
-    (by native_decide) (by evm_ov)
+    permitEcrecoverStaticcallAw (by decide +native) mem_cost hinnerSlot
+    (by decide +native) (by evm_ov)
   have rd3111 := evm_run rd3108 with [
-    raw swap5 (by native_decide) (by evm_ov),
-    raw dup16 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw swap5 (by decide +native) (by evm_ov),
+    raw dup16 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [hspenderMask] at rd3111
   have rd3113 := evm_run rd3111 with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have rd3114 := rd3113.mstore 0 (permitWordMem memOwner 0 (permitSpenderMaskedWord I))
-    permitEcrecoverStaticcallAw (by native_decide) mem_cost
-    (by rfl) (by native_decide) (by evm_ov)
+    permitEcrecoverStaticcallAw (by decide +native) mem_cost
+    (by rfl) (by decide +native) (by evm_ov)
   have rd3116 := evm_run rd3114 with [
-    raw swap5 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw swap5 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
   have rd3117 := rd3116.mstore 0 memAllowance permitEcrecoverStaticcallAw
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd3120 := evm_run rd3117 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd3121 := rd3120.keccak256 0 (permitAllowanceStorageSlot I)
-    permitEcrecoverStaticcallAw (by native_decide) mem_cost houterSlot
-    (by native_decide) (by evm_ov)
+    permitEcrecoverStaticcallAw (by decide +native) mem_cost houterSlot
+    (by decide +native) (by evm_ov)
   have rd3123 := evm_run rd3121 with [
-    raw dup6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨k3124, C3124, rd3124raw⟩ := rd3123.sstore hperm (by native_decide)
+    raw dup6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  obtain ⟨k3124, C3124, rd3124raw⟩ := rd3123.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; norm_num)
   refine ⟨k3124, C3124, ?_⟩
   convert rd3124raw using 1
@@ -6079,16 +6079,16 @@ theorem daiPermitX_after3061_allowedZero_to3079
         (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
         (cA', permitEvmAfterNonceAccountMap σ' I) k' C' := by
   have rd3068 := evm_run rd3061 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw push2 ⟨3075⟩ (by native_decide) (by evm_ov)]
-  have rd3069 := rd3068.jumpiNT (by native_decide) hclean (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw push2 ⟨3075⟩ (by decide +native) (by evm_ov)]
+  have rd3069 := rd3068.jumpiNT (by decide +native) hclean (by evm_ov)
   have rd3074 := evm_run rd3069 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw push2 ⟨3079⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw push2 ⟨3079⟩ (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
-    simpa only [hwad] using rd3074.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    simpa only [hwad] using rd3074.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem daiPermitX_after3061_allowedNonzero_to3079
@@ -6114,17 +6114,17 @@ theorem daiPermitX_after3061_allowedNonzero_to3079
         (permitNonceHashMem memRet I) permitEcrecoverStaticcallAw o
         (cA', permitEvmAfterNonceAccountMap σ' I) k' C' := by
   have rd3068 := evm_run rd3061 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw push2 ⟨3075⟩ (by native_decide) (by evm_ov)]
-  have rd3075 := rd3068.jumpiT (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw push2 ⟨3075⟩ (by decide +native) (by evm_ov)]
+  have rd3075 := rd3068.jumpiT (by decide +native)
     (by rw [hclean]; exact one_ne_zero_uint)
     (by jump_dest) (by evm_ov)
   have rd3079raw := evm_run rd3075 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw not (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw not (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa only [hwad] using rd3079raw⟩
 
 set_option maxHeartbeats 1000000 in
@@ -6149,7 +6149,7 @@ theorem daiPermitX_successAfter3061_allowedZero
     unfold permitAllowedCleanWord
     have hzero : permitAllowedWord I = ⟨0⟩ := uint256_toNat_eq_zero hallowedZero
     rw [hzero]
-    native_decide
+    decide +native
   have hwad : permitWadWord I = ⟨0⟩ := by
     simp [permitWadWord, hallowedZero]
   obtain ⟨_, _, rd3079⟩ :=
@@ -6180,7 +6180,7 @@ theorem daiPermitX_successAfter3061_allowedNonzero
       intro hz
       exact hallowedNonzero (by rw [hz]; rfl)
     rw [isZero_eq_zero_of_ne hnz]
-    native_decide
+    decide +native
   have hwad : permitWadWord I = UInt256.lnot ⟨0⟩ := by
     simp [permitWadWord, hallowedNonzero]
   obtain ⟨_, _, rd3079⟩ :=
@@ -6212,7 +6212,7 @@ theorem daiPermitX_successAfter2957
   have hcond : UInt256.eq (permitNonceWord I) (permitEvmNonceWord σ' I) ≠ ⟨0⟩ := by
     rw [heqOne]
     exact one_ne_zero_uint
-  have rd3061 := rd2996.jumpiT (by native_decide) hcond (by jump_dest) (by evm_ov)
+  have rd3061 := rd2996.jumpiT (by decide +native) hcond (by jump_dest) (by evm_ov)
   by_cases hallowedZero : (permitAllowedWord I).toNat = 0
   · exact daiPermitX_successAfter3061_allowedZero (g := g)
       hperm hmem hread64 hallowedZero rd3061
@@ -6258,7 +6258,7 @@ theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (daiSelBytes 11) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (daiSelBytes 11) (by decide +native) hsel
   have hdispatch : dispatchMsg contract I.calldata = some permitTransition :=
     daiDispatchPermit hsel
   have hreach := daiReachPermitBody (cA := cA) (gh := gh) (bl := bl)
@@ -6473,8 +6473,8 @@ theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       (by
                         simpa [permitTransition] using
                           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none)
-                            (t := []) (dvs := []) rfl (by native_decide)
-                            (by native_decide)))
+                            (t := []) (dvs := []) rfl (by decide +native)
+                            (by decide +native)))
                 · have hnonceSolmNe :
                     permitNonceWord I ≠
                       Solm.EVM.storageLoad evmPostSolm
@@ -6581,7 +6581,7 @@ theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (permitMloadWord memRet permitEcrecoverStaticcallAw ⟨450⟩)) =
                   ⟨0⟩ := by
               rw [hmloadEmpty]
-              rw [show UInt256.land solcAddrMask (⟨0⟩ : UInt256) = ⟨0⟩ by native_decide]
+              rw [show UInt256.land solcAddrMask (⟨0⟩ : UInt256) = ⟨0⟩ by decide +native]
               exact u256_eq_of_ne hz
             have hcond :
                 UInt256.eq (permitHolderMaskedWord I)
@@ -6657,7 +6657,7 @@ theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           omega
         have hdepthEq : I.depth = (1024 : Fin 1025) := Fin.ext hdepthEqVal
         obtain ⟨_kStatic, _CStatic, rd2758⟩ :=
-          RD.solcStaticcallDepthLimit rd2757 (by native_decide) hdepthEq (by simp)
+          RD.solcStaticcallDepthLimit rd2757 (by decide +native) hdepthEq (by simp)
         let evmPostSolm :=
           { evmSolm with
             substate := (evmSolm.addAccessedAccount
@@ -6676,7 +6676,7 @@ theorem daiPermitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             (by simpa [evmSolm, initState] using hwv) hz hcallFailed
         exact
           (daiPermitX_nonzeroHolderEcrecoverFailureAfter2758
-            (g := Sat256.ofUInt256 g) rd2758 (by native_decide))
+            (g := Sat256.ofUInt256 g) rd2758 (by decide +native))
           |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · exact (daiPermitX_shortarg (g := Sat256.ofUInt256 g) hsz4 hsize (by omega) hreach)
       |>.reEquivDecodingFailed hcode hdispatch

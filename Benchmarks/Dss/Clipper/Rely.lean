@@ -51,7 +51,7 @@ abbrev clipperRelyAuthEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 theorem clipperRelyStore_wards (I : ExecutionEnv) :
     (clipperRelyStore I).get? "wards" = none := by
   unfold clipperRelyStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem clipperRelySourceWord_toNat (I : ExecutionEnv) :
@@ -370,7 +370,7 @@ macro "clipper_rely_decode" : tactic =>
   `(tactic| first
     | clipper_decode
     | exact clipperRelyDecodeMid _ (by assumption)
-        (by native_decide) (by native_decide) (by native_decide))
+        (by decide +native) (by decide +native) (by decide +native))
 
 /-! ## `rely(address)` dispatch, decode, and EVM trace -/
 
@@ -379,7 +379,7 @@ theorem clipperRelySelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     clipperSelWord I = clipperSelNat 17 := by
   simpa [clipperSelWord, solcSelectorWord, clipperSelNat] using
     solcSelectorWord_eq_of_beq I hsz 0x65 0xfa 0xe3 0x5e (clipperSelNat 17)
-      (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
+      (by decide +native) (by simpa [clipperSelBytes, selIs] using hsel)
 
 theorem clipperDispatch_rely (v : ClipperImmutables) {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 17)) :
@@ -401,39 +401,39 @@ theorem clipperDispatch_rely (v : ClipperImmutables) {I : ExecutionEnv}
     rcases ht with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
       | rfl | rfl | rfl | rfl | rfl | rfl | hfalse
     · rw [selectorOf, activeSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, bufSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, calcSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, chipSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, chostSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, countSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, cuspSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, denySelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, dogSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, fileUintSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, fileAddressSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, getStatusSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, ilkSelectorBytes v, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, kickSelectorBytes v, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, kicksSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, listSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, redoSelectorBytes v, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · cases hfalse
   · rw [selectorOf, relySelectorBytes]
     simpa [clipperSelBytes] using hsel
@@ -465,8 +465,8 @@ theorem clipperReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperIm
     (by
       change decode code (selArmJumpiPc (⟨32⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by native_decide))
+    (by rw [hword]; decide +native)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨260⟩ : UInt256) (by decide +native))
     (by simp)
   have h272 := clipperSplitNotTaken (pc := (⟨261⟩ : UInt256))
     (next := (⟨272⟩ : UInt256)) (pivot := clipperSelNat 9)
@@ -488,8 +488,8 @@ theorem clipperReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperIm
     (by
       change decode code (selArmJumpiPc (⟨261⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h283 := clipperSplitNotTaken (pc := (⟨272⟩ : UInt256))
     (next := (⟨283⟩ : UInt256)) (pivot := clipperSelNat 6)
@@ -508,8 +508,8 @@ theorem clipperReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperIm
     (by
       change decode code (selArmJumpiPc (⟨272⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h294 := clipperArmNotTaken (pc := (⟨283⟩ : UInt256))
     (next := (⟨294⟩ : UInt256)) (sel := clipperSelNat 6)
@@ -528,8 +528,8 @@ theorem clipperReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperIm
     (by
       change decode code (selArmJumpiPc (⟨283⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h305 := clipperArmNotTaken (pc := (⟨294⟩ : UInt256))
     (next := (⟨305⟩ : UInt256)) (sel := clipperSelNat 11)
@@ -548,8 +548,8 @@ theorem clipperReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperIm
     (by
       change decode code (selArmJumpiPc (⟨294⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h316 := clipperArmNotTaken (pc := (⟨305⟩ : UInt256))
     (next := (⟨316⟩ : UInt256)) (sel := clipperSelNat 26)
@@ -568,8 +568,8 @@ theorem clipperReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperIm
     (by
       change decode code (selArmJumpiPc (⟨305⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h837 := clipperArmTaken (pc := (⟨316⟩ : UInt256)) (sel := clipperSelNat 17)
     (tgt := (⟨837⟩ : UInt256)) h316
@@ -587,8 +587,8 @@ theorem clipperReachRelyBody {cA gh bl σ σ₀ A I} {g : Sat256} (v : ClipperIm
     (by
       change decode code (selArmJumpiPc (⟨316⟩ : UInt256) 2) = some (.JUMPI, .none)
       clipper_decode)
-    (by rw [hword]; native_decide)
-    (clipperJumpDestBeforeFirstPatch v hpatch (⟨837⟩ : UInt256) (by native_decide))
+    (by rw [hword]; decide +native)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨837⟩ : UInt256) (by decide +native))
     (by simp)
   exact ⟨_, _, h837⟩
 
@@ -622,7 +622,7 @@ theorem clipperRelyDecodedJumpDest (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
     (D_J code 0).contains (solcOneAddressExternalDecodedPc (⟨837⟩ : UInt256)) = true := by
   change (D_J code 0).contains (⟨859⟩ : UInt256) = true
-  exact clipperJumpDestBeforeFirstPatch v hpatch (⟨859⟩ : UInt256) (by native_decide)
+  exact clipperJumpDestBeforeFirstPatch v hpatch (⟨859⟩ : UInt256) (by decide +native)
 
 theorem clipperJumpDest3340 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
@@ -633,10 +633,10 @@ theorem clipperJumpDest3340 (v : ClipperImmutables) {code : ByteArray}
   cases hIlk : wordBytes? v.ilk with
   | none =>
       simp [hIlk]
-      native_decide
+      decide +native
   | some bs =>
       simp [hIlk]
-      native_decide
+      decide +native
 
 theorem clipperRelyRoutineJumpDest (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
@@ -646,7 +646,7 @@ theorem clipperRelyRoutineJumpDest (v : ClipperImmutables) {code : ByteArray}
 theorem clipperRelyReturnJumpDest (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
     (D_J code 0).contains (⟨502⟩ : UInt256) = true := by
-  exact clipperJumpDestBeforeFirstPatch v hpatch (⟨502⟩ : UInt256) (by native_decide)
+  exact clipperJumpDestBeforeFirstPatch v hpatch (⟨502⟩ : UInt256) (by decide +native)
 
 theorem clipperRelyX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (v : ClipperImmutables) {code : ByteArray}
@@ -816,7 +816,7 @@ theorem clipperRelyErrorMem2_mload0 (I : ExecutionEnv) :
 theorem clipperRelyNotAuthorizedWord :
     UInt256.shiftLeft (⟨0x461bcd⟩ : UInt256) ⟨229⟩ =
       ⟨0x08c379a000000000000000000000000000000000000000000000000000000000⟩ := by
-  native_decide
+  decide +native
 
 -- LIBRARY CANDIDATE: `spliceBytes?` preserves bytecode length when it succeeds.
 theorem spliceBytes_size_eq {template value out : ByteArray} {off : Nat}
@@ -863,7 +863,7 @@ theorem clipperPatchedBytecode_ge_9348 (v : ClipperImmutables) {code : ByteArray
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
     9348 ≤ code.size := by
   rw [clipperPatchedBytecode_size v hpatch]
-  native_decide
+  decide +native
 
 theorem clipperRelyPatchesWindowDisjointAfterLast (v : ClipperImmutables) (lo hi : Nat)
     (hlo : 8779 ≤ lo) :
@@ -882,12 +882,12 @@ theorem clipperRelyNotAuthorizedExtract (v : ClipperImmutables) {code : ByteArra
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
     code.extract 9316 9348 = clipperBytecode.extract 9316 9348 :=
   patchRuntime_extract_disjoint hpatch
-    (clipperRelyPatchesWindowDisjointAfterLast v 9316 9348 (by native_decide))
+    (clipperRelyPatchesWindowDisjointAfterLast v 9316 9348 (by decide +native))
 
 theorem clipperRelyNotAuthorizedExtract_toByteArray :
     clipperBytecode.extract 9316 9348 =
       UInt256.toByteArray clipperRelyNotAuthorizedStringWord := by
-  native_decide
+  decide +native
 
 -- LIBRARY CANDIDATE: destination-zero `CODECOPY` leaves at least the copied length in memory.
 theorem write0_from_size_ge_len (src base : ByteArray) (srcAddr len : ℕ)
@@ -1061,10 +1061,10 @@ theorem clipperJumpDest3422 (v : ClipperImmutables) {code : ByteArray}
   cases hIlk : wordBytes? v.ilk with
   | none =>
       simp [hIlk]
-      native_decide
+      decide +native
   | some bs =>
       simp [hIlk]
-      native_decide
+      decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem clipperRelyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -1092,20 +1092,20 @@ theorem clipperRelyX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     raw dup2 (by clipper_rely_decode) (by evm_ov)]
   have rd3347 := rd3346pre.mstore 0
     (wordAt0Mem (clipperRelySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3351pre := evm_run rd3347 with [
     raw push1 ⟨32⟩ (by clipper_rely_decode) (by evm_ov),
     raw dup2 (by clipper_rely_decode) (by evm_ov),
     raw swap1 (by clipper_rely_decode) (by evm_ov)]
   have rd3352 := rd3351pre.mstore 0 (clipperRelyAuthHashMem I)
-    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3355pre := evm_run rd3352 with [
     raw push1 ⟨64⟩ (by clipper_rely_decode) (by evm_ov),
     raw swap1 (by clipper_rely_decode) (by evm_ov)]
   have rd3356 := rd3355pre.keccak256 0 (mapSlot (clipperRelySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
   obtain ⟨k3357, C3357, rd3357raw⟩ := rd3356.sload (by clipper_rely_decode) (by evm_ov)
   have rd3357 : RD code I g s0 ⟨3357⟩
@@ -1146,20 +1146,20 @@ theorem clipperRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     raw dup2 (by clipper_rely_decode) (by evm_ov)]
   have rd3347 := rd3346pre.mstore 0
     (wordAt0Mem (clipperRelySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3351pre := evm_run rd3347 with [
     raw push1 ⟨32⟩ (by clipper_rely_decode) (by evm_ov),
     raw dup2 (by clipper_rely_decode) (by evm_ov),
     raw swap1 (by clipper_rely_decode) (by evm_ov)]
   have rd3352 := rd3351pre.mstore 0 (clipperRelyAuthHashMem I)
-    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3355pre := evm_run rd3352 with [
     raw push1 ⟨64⟩ (by clipper_rely_decode) (by evm_ov),
     raw swap1 (by clipper_rely_decode) (by evm_ov)]
   have rd3356 := rd3355pre.keccak256 0 (mapSlot (clipperRelySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
   obtain ⟨k3357, C3357, rd3357raw⟩ := rd3356.sload (by clipper_rely_decode) (by evm_ov)
   have rd3357 : RD code I g s0 ⟨3357⟩
@@ -1182,7 +1182,7 @@ theorem clipperRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost
       (mloadFreePtrValue (by rw [clipperRelyAuthHashMem_size]; decide)
         (by decide) (clipperRelyAuthHashMem_read64 I))
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   have rd3372 := rd3368.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) (by clipper_rely_decode) (by evm_ov)
   have rd3375 := evm_run rd3372 with [
@@ -1193,7 +1193,7 @@ theorem clipperRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     raw dup2 (by clipper_rely_decode) (by evm_ov)]
   have rd3377 := rd3377pre.mstore 6
     (solcErrorStringMem0 (clipperRelyAuthHashMem I))
-    (UInt256.ofNat 5) (by clipper_rely_decode) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 5) (by clipper_rely_decode) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3389pre := evm_run rd3377 with [
     raw push1 ⟨32⟩ (by clipper_rely_decode) (by evm_ov),
@@ -1202,7 +1202,7 @@ theorem clipperRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     raw add (by clipper_rely_decode) (by evm_ov)]
   have rd3390 := rd3389pre.mstore 3
     (solcErrorStringMem1 (clipperRelyAuthHashMem I))
-    (UInt256.ofNat 6) (by clipper_rely_decode) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 6) (by clipper_rely_decode) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3401pre := evm_run rd3390 with [
     raw push1 ⟨22⟩ (by clipper_rely_decode) (by evm_ov),
@@ -1211,12 +1211,12 @@ theorem clipperRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     raw add (by clipper_rely_decode) (by evm_ov),
     raw mstore 3 (clipperRelyErrorMem2 I)
       (UInt256.ofNat 7) (by clipper_rely_decode) mem_cost (by rfl)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     raw push1 ⟨0⟩ (by clipper_rely_decode) (by evm_ov),
     raw dup1 (by clipper_rely_decode) (by evm_ov),
     raw mload 0 (clipperRelySourceWord I) (UInt256.ofNat 7)
       (by clipper_rely_decode) mem_cost (clipperRelyErrorMem2_mload0 I)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     raw push1 ⟨32⟩ (by clipper_rely_decode) (by evm_ov)]
   have rd3400 := rd3401pre.pushConst (⟨9316⟩ : UInt256)
     (width := 2) (op := .PUSH2) (by decide) (by clipper_rely_decode) (by evm_ov)
@@ -1228,19 +1228,19 @@ theorem clipperRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       rw [show (⟨9316⟩ : UInt256).toNat = 9316 from by decide,
         show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       rfl)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd3404 := evm_run rd3402 with [
     raw dup2 (by clipper_rely_decode) (by evm_ov),
     raw mload 0 clipperRelyNotAuthorizedStringWord (UInt256.ofNat 7)
       (by clipper_rely_decode) mem_cost
       (by simpa [clipperRelyErrorCopiedMem, clipperRelyErrorMem2]
         using clipperRelyCodecopyMload0 v hpatch I)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     raw swap2 (by clipper_rely_decode) (by evm_ov)]
   have rd3405 := rd3404.mstore 0 (clipperRelyErrorRestoredMem code I)
     (UInt256.ofNat 7) (by clipper_rely_decode) mem_cost
     (by simp [clipperRelyErrorRestoredMem, clipperRelyErrorCopiedMem])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd3409pre := evm_run rd3405 with [
     raw push1 ⟨68⟩ (by clipper_rely_decode) (by evm_ov),
     raw dup3 (by clipper_rely_decode) (by evm_ov),
@@ -1249,12 +1249,12 @@ theorem clipperRelyX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (UInt256.ofNat 8) (by clipper_rely_decode) mem_cost
     (by
       rw [show ((⟨128⟩ : UInt256) + ⟨68⟩).toNat = 196 from by decide])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd3412 := evm_run rd3410 with [
     raw swap1 (by clipper_rely_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by clipper_rely_decode) mem_cost
       (clipperRelyErrorStringMem_mload64 v hpatch I)
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   exact evm_run rd3412 with [
     raw swap1 (by clipper_rely_decode) (by evm_ov),
     raw dup2 (by clipper_rely_decode) (by evm_ov),
@@ -1306,21 +1306,21 @@ theorem clipperRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
     raw dup2 (by clipper_rely_decode) (by evm_ov)]
   have rd3438 := rd3437pre.mstore 0
     (wordAt0Mem (clipperRelyUsrMaskedWord I) (clipperRelyAuthHashMem I))
-    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3442pre := evm_run rd3438 with [
     raw push1 ⟨32⟩ (by clipper_rely_decode) (by evm_ov),
     raw dup2 (by clipper_rely_decode) (by evm_ov),
     raw swap1 (by clipper_rely_decode) (by evm_ov)]
   have rd3443 := rd3442pre.mstore 0 (clipperRelyStoreHashMem I)
-    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3447 := evm_run rd3443 with [
     raw push1 ⟨64⟩ (by clipper_rely_decode) (by evm_ov),
     raw dup1 (by clipper_rely_decode) (by evm_ov),
     raw dup3 (by clipper_rely_decode) (by evm_ov)]
   have rd3448 := rd3447.keccak256 0 (mapSlot (clipperRelyUsrMaskedWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost hstoreSlot (by native_decide)
+    (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost hstoreSlot (by decide +native)
     (by evm_ov)
   have rd3451pre := evm_run rd3448 with [
     raw push1 ⟨1⟩ (by clipper_rely_decode) (by evm_ov),
@@ -1329,7 +1329,7 @@ theorem clipperRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd3453 := evm_run rd3452raw with [
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by clipper_rely_decode) mem_cost
-      (clipperRelyStoreHashMem_mload64 I) (by native_decide) (by evm_ov)]
+      (clipperRelyStoreHashMem_mload64 I) (by decide +native) (by evm_ov)]
   have rd3486 := rd3453.pushConst
     (⟨99986234382112180548053307940146098591310749102190014697170127658504464915040⟩ :
       UInt256)
@@ -1338,7 +1338,7 @@ theorem clipperRelyX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
     raw swap2 (by clipper_rely_decode) (by evm_ov),
     raw swap1 (by clipper_rely_decode) (by evm_ov)]
   have rd3489 := RD.log2 0 (UInt256.ofNat 3) rd3488 (by clipper_rely_decode) hperm mem_cost
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd3490 := rd3489.pop (by clipper_rely_decode) (by evm_ov)
   have rd502 := rd3490.jump (by clipper_rely_decode) (clipperRelyReturnJumpDest v hpatch)
     (by evm_ov)
@@ -1418,7 +1418,7 @@ theorem clipperRelyBodyCoreOk
       (by
         simpa [relyTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-            (dvs := []) rfl (by native_decide) (by native_decide)))
+            (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem clipperRelyBodyCoreUnauthorized
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -1480,7 +1480,7 @@ theorem clipperRelyBody (v : ClipperImmutables) {code : ByteArray}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (clipperSelBytes 17) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (clipperSelBytes 17) (by decide +native) hsel
   have hdispatch : dispatchMsg (contract v) I.calldata = some relyTransition :=
     clipperDispatch_rely v hsel
   have hreach := clipperReachRelyBody (cA := cA) (gh := gh) (bl := bl)

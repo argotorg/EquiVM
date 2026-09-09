@@ -87,7 +87,7 @@ routine while preserving the caller-supplied return/continuation pc.
 macro "uniswap_one_address_external_entry_wf" : term =>
   `(by
     unfold UniswapV2Pair.uniswapOneAddressExternalEntryWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapOneAddressExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}

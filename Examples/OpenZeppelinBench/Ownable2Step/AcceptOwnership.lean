@@ -585,7 +585,7 @@ theorem ownable2StepAcceptOwnershipBody {cA gh bl σ_evm σ_solm σ₀ A I}
             acceptOwnershipAfterPendingState_executionEnv, Solm.EVM.storageLoad,
             State.lookupAccount, Account.lookupStorage, acceptOwnershipSourceWord]))
         hσPost
-        (returnEquiv.fallthrough rfl rfl (by native_decide))
+        (returnEquiv.fallthrough rfl rfl (by decide +native))
   · have hpendingSolm :
         UInt256.land (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨1⟩) solcAddrMask ≠
           UInt256.ofNat evmS.executionEnv.source.val := by

@@ -837,8 +837,8 @@ theorem RD.vowCageSecondDaiExtcodesizeGuard {g : Sat256} {s0 : State}
       (vatDaiCalldataMem ee mem) (UInt256.ofNat 6) rdata acc k' C' := by
   let target := kissDaiTargetWord acc.2 ee
   let rawTarget := vowSlotWord ⟨1⟩ acc.2 ee
-  have rd2985 := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k2986, C2986, rd2986Raw⟩ := rd2985.sload (by native_decide) (by evm_ov)
+  have rd2985 := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k2986, C2986, rd2986Raw⟩ := rd2985.sload (by decide +native) (by evm_ov)
   have rd2986 : RD vowBytecode ee g s0 ⟨2986⟩
       (rawTarget :: d1 :: d2 :: R) mem (UInt256.ofNat 6) rdata acc k2986 C2986 := by
     simpa [rawTarget, vowSlotWord, solcSlotWord] using rd2986Raw
@@ -865,22 +865,22 @@ theorem RD.vowCageSecondDaiExtcodesizeGuard {g : Sat256} {s0 : State}
   have rd3058 := evm_run rd2986 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     push4 ⟨907205027⟩,
     push1 ⟨225⟩,
     shl,
     dup2,
     raw mstore 0 (vatDaiSelectorMem mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     address,
     push1 ⟨4⟩,
     dup3,
     add,
     raw mstore 0 (vatDaiCalldataMem ee mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Dai (by decide) (by evm_ov),
     push1 ⟨1⟩,
     push1 ⟨1⟩,
@@ -928,7 +928,7 @@ theorem RD.vowCageSecondDaiExtcodesizeGuard {g : Sat256} {s0 : State}
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ =
         ⟨3058⟩ := by
-    native_decide
+    decide +native
   rw [hpc3058] at rd3058
   exact ⟨_, _, by
     simpa [target, rawTarget, kissDaiTargetWord, kissDaiSelectorShifted,
@@ -937,8 +937,8 @@ theorem RD.vowCageSecondDaiExtcodesizeGuard {g : Sat256} {s0 : State}
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide,
       show UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩ = ⟨36⟩
-        from by native_decide,
-      show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by native_decide]
+        from by decide +native,
+      show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by decide +native]
       using rd3058⟩
 
 theorem RD.vowCageSecondDaiNoCode {g : Sat256} {s0 : State}
@@ -956,9 +956,9 @@ theorem RD.vowCageSecondDaiNoCode {g : Sat256} {s0 : State}
     rd hmem hread64 hov
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3058⟩) (okPc := ⟨3070⟩)
     rd3058 hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp; omega)
 
 theorem RD.vowCageSecondDaiStaticcallSetup {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -981,9 +981,9 @@ theorem RD.vowCageSecondDaiStaticcallSetup {g : Sat256} {s0 : State}
   obtain ⟨gasWord, k3073, C3073, rd3073⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3058⟩) (okPc := ⟨3070⟩) rd3058
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp; omega)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp; omega)
   exact ⟨gasWord, k3073, C3073, rd3073⟩
 
 theorem RD.vowCageSecondDaiStaticcall
@@ -1025,7 +1025,7 @@ theorem RD.vowCageSecondDaiStaticcall
     rd hmem hread64 hcodeSize hov
   obtain ⟨cA', σ', z, outDai, A_in, callGas, k3074, C3074, hΘpack, rd3074raw,
       houtsz⟩ :=
-    RD.solcStaticcall rd3073 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcall rd3073 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   let evmDaiIn := { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σCall
@@ -1035,7 +1035,7 @@ theorem RD.vowCageSecondDaiStaticcall
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           (⟨128⟩ : UInt256).toNat (⟨36⟩ : UInt256).toNat)
           (⟨128⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat) = UInt256.ofNat 6 := by
-      native_decide
+      decide +native
     exact haw ▸ rd3074raw
   · refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
       (callPerm := false) (targetWord := kissDaiTargetWord σCall I)
@@ -1056,9 +1056,9 @@ theorem RD.vowCageSecondDaiCallFailure {g : Sat256} {s0 : State}
     RDrev vowBytecode g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3074⟩) (okPc := ⟨3090⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) hosz hov
 
 theorem RD.vowCageSecondDaiCallSuccessToDecode {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -1071,8 +1071,8 @@ theorem RD.vowCageSecondDaiCallSuccessToDecode {g : Sat256} {s0 : State}
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨3074⟩) (okPc := ⟨3090⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simpa only [List.length_cons] using hov)
 
 theorem RD.vowCageSecondDaiReturnDecodeShortReverts {g : Sat256} {s0 : State}
@@ -1093,10 +1093,10 @@ theorem RD.vowCageSecondDaiReturnDecodeShortReverts {g : Sat256} {s0 : State}
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨3092⟩) (okPc := ⟨3112⟩) rd
     hshort hhi
     mem_cost (by decide) hMload64Value
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by simp; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by simp; omega)
 
 theorem RD.vowCageSecondDaiReturnDecodeOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -1123,10 +1123,10 @@ theorem RD.vowCageSecondDaiReturnDecodeOk {g : Sat256} {s0 : State}
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨3092⟩) (okPc := ⟨3112⟩) rd
     hlo hhi
     mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by jump_dest) (by native_decide) (by native_decide) (by native_decide) (by simp; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by jump_dest) (by decide +native) (by decide +native) (by decide +native) (by simp; omega)
 
 set_option maxHeartbeats 0 in
 theorem RD.vowCageVatSinExtcodesizeGuard {g : Sat256} {s0 : State}
@@ -1146,8 +1146,8 @@ theorem RD.vowCageVatSinExtcodesizeGuard {g : Sat256} {s0 : State}
       (healSinCalldataMem ee mem) (UInt256.ofNat 6) rdata acc k' C' := by
   let target := kissDaiTargetWord acc.2 ee
   let rawTarget := vowSlotWord ⟨1⟩ acc.2 ee
-  have rd3117 := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k3118, C3118, rd3118Raw⟩ := rd3117.sload (by native_decide) (by evm_ov)
+  have rd3117 := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k3118, C3118, rd3118Raw⟩ := rd3117.sload (by decide +native) (by evm_ov)
   have rd3118 : RD vowBytecode ee g s0 ⟨3118⟩
       (rawTarget :: vatDai :: ⟨3238⟩ :: ⟨4084909596⟩ :: target :: R)
       mem (UInt256.ofNat 6) rdata acc k3118 C3118 := by
@@ -1175,22 +1175,22 @@ theorem RD.vowCageVatSinExtcodesizeGuard {g : Sat256} {s0 : State}
   have rd3177 := evm_run rd3118 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     push4 ⟨2016186517⟩,
     push1 ⟨225⟩,
     shl,
     dup2,
-    raw mstore 0 (healSinSelectorMem mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (healSinSelectorMem mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     address,
     push1 ⟨4⟩,
     dup3,
     add,
-    raw mstore 0 (healSinCalldataMem ee mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (healSinCalldataMem ee mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Sin (by decide) (by evm_ov),
     push1 ⟨1⟩,
     push1 ⟨1⟩,
@@ -1229,15 +1229,15 @@ theorem RD.vowCageVatSinExtcodesizeGuard {g : Sat256} {s0 : State}
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨3177⟩ := by
-    native_decide
+    decide +native
   rw [hpc3177] at rd3177
   exact ⟨_, _, by
     simpa [target, rawTarget, kissDaiTargetWord, healSinSelectorShifted,
       healSinSelector, healSinSelectorMem, healSinCalldataMem, healSinOutPtr,
       healSinInSize, healSinEndPtr, vowSlotWord, solcSlotWord, solcAddrMask,
       show UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩ = ⟨36⟩
-        from by native_decide,
-      show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by native_decide]
+        from by decide +native,
+      show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by decide +native]
       using rd3177⟩
 
 theorem RD.vowCageVatSinNoCode {g : Sat256} {s0 : State}
@@ -1255,9 +1255,9 @@ theorem RD.vowCageVatSinNoCode {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd3177⟩ := RD.vowCageVatSinExtcodesizeGuard rd hmem hread64 hov
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3177⟩) (okPc := ⟨3189⟩)
     rd3177 hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp; omega)
 
 theorem RD.vowCageVatSinStaticcallSetup {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -1280,9 +1280,9 @@ theorem RD.vowCageVatSinStaticcallSetup {g : Sat256} {s0 : State}
   obtain ⟨gasWord, k3192, C3192, rd3192⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3177⟩) (okPc := ⟨3189⟩) rd3177
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp; omega)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp; omega)
   exact ⟨gasWord, k3192, C3192, by simpa using rd3192⟩
 
 set_option maxHeartbeats 0 in
@@ -1327,7 +1327,7 @@ theorem RD.vowCageVatSinStaticcall
     (vatDai := vatDai) (R := R) rd hmem hread64 hcodeSize hov
   obtain ⟨cA', σ', z, outSin, A_in, callGas, k3193, C3193, hΘpack,
       rd3193raw, houtsz⟩ :=
-    RD.solcStaticcall rd3192 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcall rd3192 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   let evmSinIn := { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σCall
@@ -1339,7 +1339,7 @@ theorem RD.vowCageVatSinStaticcall
           healSinOutPtr.toNat (⟨32⟩ : UInt256).toNat) = UInt256.ofNat 6 := by
       rw [healSinInSize_eq]
       unfold healSinOutPtr
-      native_decide
+      decide +native
     exact haw ▸ rd3193raw
   · refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
       (callPerm := false) (targetWord := kissDaiTargetWord σCall I)
@@ -1360,9 +1360,9 @@ theorem RD.vowCageVatSinCallFailure {g : Sat256} {s0 : State}
     RDrev vowBytecode g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3193⟩) (okPc := ⟨3209⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) hosz hov
 
 theorem RD.vowCageVatSinCallSuccessToDecode {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -1375,8 +1375,8 @@ theorem RD.vowCageVatSinCallSuccessToDecode {g : Sat256} {s0 : State}
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨3193⟩) (okPc := ⟨3209⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simpa only [List.length_cons] using hov)
 
 theorem RD.vowCageVatSinReturnDecodeShortReverts {g : Sat256} {s0 : State}
@@ -1397,10 +1397,10 @@ theorem RD.vowCageVatSinReturnDecodeShortReverts {g : Sat256} {s0 : State}
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨3211⟩) (okPc := ⟨3231⟩) rd
     hshort hhi
     mem_cost (by decide) hMload64Value
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by simp; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by simp; omega)
 
 theorem RD.vowCageVatSinReturnDecodeOk {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -1427,10 +1427,10 @@ theorem RD.vowCageVatSinReturnDecodeOk {g : Sat256} {s0 : State}
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨3211⟩) (okPc := ⟨3231⟩) rd
     hlo hhi
     mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by jump_dest) (by native_decide) (by native_decide) (by native_decide) (by simp; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by jump_dest) (by decide +native) (by decide +native) (by decide +native) (by simp; omega)
 
 theorem RD.vowCageMinReturnLeft {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -1441,31 +1441,31 @@ theorem RD.vowCageMinReturnLeft {g : Sat256} {s0 : State}
     (hle : vatDai.toNat ≤ vatSin.toNat)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD vowBytecode ee g s0 ⟨3238⟩ (vatDai :: R) mem aw o acc k' C' := by
-  have rd3237 := rd.push2 ⟨5112⟩ (by native_decide) (by evm_ov)
-  have rd5112 := rd3237.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd5113 := rd5112.jumpdest (by native_decide) (by evm_ov)
-  have rd5115 := rd5113.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd5116 := rd5115.dup2 (by native_decide) (by evm_ov)
-  have rd5117 := rd5116.dup4 (by native_decide) (by evm_ov)
-  have rd5118Raw := rd5117.gt (by native_decide) (by evm_ov)
+  have rd3237 := rd.push2 ⟨5112⟩ (by decide +native) (by evm_ov)
+  have rd5112 := rd3237.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd5113 := rd5112.jumpdest (by decide +native) (by evm_ov)
+  have rd5115 := rd5113.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd5116 := rd5115.dup2 (by decide +native) (by evm_ov)
+  have rd5117 := rd5116.dup4 (by decide +native) (by evm_ov)
+  have rd5118Raw := rd5117.gt (by decide +native) (by evm_ov)
   have hgt : UInt256.gt vatDai vatSin = ⟨0⟩ := ugt_zero hle
   have rd5118 := rd5118Raw
   rw [hgt] at rd5118
-  have rd5119Raw := rd5118.iszero (by native_decide) (by evm_ov)
+  have rd5119Raw := rd5118.iszero (by decide +native) (by evm_ov)
   have rd5119 := rd5119Raw
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd5119
-  have rd5122 := rd5119.push2 ⟨5128⟩ (by native_decide) (by evm_ov)
-  have rd5128 := rd5122.jumpiT (by native_decide)
+  have rd5122 := rd5119.push2 ⟨5128⟩ (by decide +native) (by evm_ov)
+  have rd5128 := rd5122.jumpiT (by decide +native)
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
-  have rd5129 := rd5128.jumpdest (by native_decide) (by evm_ov)
-  have rd5130 := rd5129.dup3 (by native_decide) (by evm_ov)
-  have rd5131 := rd5130.jumpdest (by native_decide) (by evm_ov)
-  have rd5132 := rd5131.swap4 (by native_decide) (by evm_ov)
-  have rd5133 := rd5132.swap3 (by native_decide) (by evm_ov)
-  have rd5134 := rd5133.pop (by native_decide) (by evm_ov)
-  have rd5135 := rd5134.pop (by native_decide) (by evm_ov)
-  have rd5136 := rd5135.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd5136.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  have rd5129 := rd5128.jumpdest (by decide +native) (by evm_ov)
+  have rd5130 := rd5129.dup3 (by decide +native) (by evm_ov)
+  have rd5131 := rd5130.jumpdest (by decide +native) (by evm_ov)
+  have rd5132 := rd5131.swap4 (by decide +native) (by evm_ov)
+  have rd5133 := rd5132.swap3 (by decide +native) (by evm_ov)
+  have rd5134 := rd5133.pop (by decide +native) (by evm_ov)
+  have rd5135 := rd5134.pop (by decide +native) (by evm_ov)
+  have rd5136 := rd5135.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd5136.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vowCageMinReturnRight {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -1476,32 +1476,32 @@ theorem RD.vowCageMinReturnRight {g : Sat256} {s0 : State}
     (hlt : vatSin.toNat < vatDai.toNat)
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD vowBytecode ee g s0 ⟨3238⟩ (vatSin :: R) mem aw o acc k' C' := by
-  have rd3237 := rd.push2 ⟨5112⟩ (by native_decide) (by evm_ov)
-  have rd5112 := rd3237.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd5113 := rd5112.jumpdest (by native_decide) (by evm_ov)
-  have rd5115 := rd5113.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd5116 := rd5115.dup2 (by native_decide) (by evm_ov)
-  have rd5117 := rd5116.dup4 (by native_decide) (by evm_ov)
-  have rd5118Raw := rd5117.gt (by native_decide) (by evm_ov)
+  have rd3237 := rd.push2 ⟨5112⟩ (by decide +native) (by evm_ov)
+  have rd5112 := rd3237.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd5113 := rd5112.jumpdest (by decide +native) (by evm_ov)
+  have rd5115 := rd5113.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd5116 := rd5115.dup2 (by decide +native) (by evm_ov)
+  have rd5117 := rd5116.dup4 (by decide +native) (by evm_ov)
+  have rd5118Raw := rd5117.gt (by decide +native) (by evm_ov)
   have hgt : UInt256.gt vatDai vatSin = ⟨1⟩ := ugt_one hlt
   have rd5118 := rd5118Raw
   rw [hgt] at rd5118
-  have rd5119Raw := rd5118.iszero (by native_decide) (by evm_ov)
+  have rd5119Raw := rd5118.iszero (by decide +native) (by evm_ov)
   have rd5119 := rd5119Raw
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd5119
-  have rd5122 := rd5119.push2 ⟨5128⟩ (by native_decide) (by evm_ov)
-  have rd5123 := rd5122.jumpiNT (by native_decide)
+  have rd5122 := rd5119.push2 ⟨5128⟩ (by decide +native) (by evm_ov)
+  have rd5123 := rd5122.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd5124 := rd5123.dup2 (by native_decide) (by evm_ov)
-  have rd5127 := rd5124.push2 ⟨5130⟩ (by native_decide) (by evm_ov)
-  have rd5130 := rd5127.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd5131 := rd5130.jumpdest (by native_decide) (by evm_ov)
-  have rd5132 := rd5131.swap4 (by native_decide) (by evm_ov)
-  have rd5133 := rd5132.swap3 (by native_decide) (by evm_ov)
-  have rd5134 := rd5133.pop (by native_decide) (by evm_ov)
-  have rd5135 := rd5134.pop (by native_decide) (by evm_ov)
-  have rd5136 := rd5135.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd5136.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  have rd5124 := rd5123.dup2 (by decide +native) (by evm_ov)
+  have rd5127 := rd5124.push2 ⟨5130⟩ (by decide +native) (by evm_ov)
+  have rd5130 := rd5127.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd5131 := rd5130.jumpdest (by decide +native) (by evm_ov)
+  have rd5132 := rd5131.swap4 (by decide +native) (by evm_ov)
+  have rd5133 := rd5132.swap3 (by decide +native) (by evm_ov)
+  have rd5134 := rd5133.pop (by decide +native) (by evm_ov)
+  have rd5135 := rd5134.pop (by decide +native) (by evm_ov)
+  have rd5136 := rd5135.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd5136.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 0 in
 theorem RD.vowCageHealExtcodesizeGuard {g : Sat256} {s0 : State}
@@ -1544,7 +1544,7 @@ theorem RD.vowCageHealExtcodesizeGuard {g : Sat256} {s0 : State}
   have rd3280 := evm_run rd with [
     jumpdest,
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     dup3,
     push4 ⟨4294967295⟩,
@@ -1552,7 +1552,7 @@ theorem RD.vowCageHealExtcodesizeGuard {g : Sat256} {s0 : State}
     push1 ⟨224⟩,
     shl,
     dup2,
-    raw mstore 0 (kissHealSelectorMem mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (kissHealSelectorMem mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩,
     add,
@@ -1560,7 +1560,7 @@ theorem RD.vowCageHealExtcodesizeGuard {g : Sat256} {s0 : State}
     dup3,
     dup2,
     raw mstore 0 (cageHealCalldataMem healRad mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩,
     add,
     swap2,
@@ -1568,7 +1568,7 @@ theorem RD.vowCageHealExtcodesizeGuard {g : Sat256} {s0 : State}
     pop,
     push1 kissHealOutSize,
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Heal (by decide) (by evm_ov),
     dup1,
     dup4,
@@ -1585,18 +1585,18 @@ theorem RD.vowCageHealExtcodesizeGuard {g : Sat256} {s0 : State}
           UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ =
         ⟨3280⟩ := by
-    native_decide
+    decide +native
   rw [hpc3280] at rd3280
   exact ⟨_, _, by
     simpa [target, kissDaiTargetWord, kissHealSelectorShifted, kissHealSelector,
       kissHealSelectorMem, cageHealCalldataMem, kissHealOutPtr, kissHealOutSize,
       kissHealInSize, kissHealEndPtr,
       show UInt256.shiftLeft (UInt256.land kissHealSelector ⟨4294967295⟩) ⟨224⟩ =
-        kissHealSelectorShifted from by native_decide,
-      show UInt256.sub (⟨164⟩ : UInt256) ⟨128⟩ = ⟨36⟩ from by native_decide,
+        kissHealSelectorShifted from by decide +native,
+      show UInt256.sub (⟨164⟩ : UInt256) ⟨128⟩ = ⟨36⟩ from by decide +native,
       show UInt256.sub ((⟨4⟩ : UInt256) + ⟨128⟩) ⟨128⟩ = ⟨4⟩
-        from by native_decide,
-      show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by native_decide]
+        from by decide +native,
+      show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by decide +native]
       using rd3280⟩
 
 theorem RD.vowCageHealNoCode {g : Sat256} {s0 : State}
@@ -1614,9 +1614,9 @@ theorem RD.vowCageHealNoCode {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd3280⟩ := RD.vowCageHealExtcodesizeGuard rd hmem hread64 hov
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3280⟩) (okPc := ⟨3292⟩)
     rd3280 hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp; omega)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vowCageHealCallSetup {g : Sat256} {s0 : State}
@@ -1639,9 +1639,9 @@ theorem RD.vowCageHealCallSetup {g : Sat256} {s0 : State}
   obtain ⟨gasWord, k3295, C3295, rd3295⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3280⟩) (okPc := ⟨3292⟩) rd3280
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp; omega)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp; omega)
   exact ⟨gasWord, k3295, C3295, by simpa using rd3295⟩
 
 set_option maxHeartbeats 1000000 in
@@ -1690,7 +1690,7 @@ theorem RD.vowCageHealPostCall
       rd hmem hread64 hcodeSize hov
   obtain ⟨cA', σ', z, out, A_in, callGas, k3296, C3296, hΘpack, rd3296raw,
       houtsz⟩ :=
-    RD.call rd3295 (by native_decide) hdepth (by evm_ov)
+    RD.call rd3295 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   let evmCall := { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := σCall
@@ -1702,7 +1702,7 @@ theorem RD.vowCageHealPostCall
           kissHealOutPtr.toNat kissHealOutSize.toNat) = UInt256.ofNat 6 := by
       rw [kissHealInSize_eq]
       unfold kissHealOutPtr kissHealOutSize
-      native_decide
+      decide +native
     have hmin : (min kissHealOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold kissHealOutSize
       rfl
@@ -1737,9 +1737,9 @@ theorem RD.vowCageHealCallFailure {g : Sat256} {s0 : State}
     RDrev vowBytecode g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3296⟩) (okPc := ⟨3312⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) hosz hov
 
 theorem RD.vowCageHealCallSuccessCleanup {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -1753,13 +1753,13 @@ theorem RD.vowCageHealCallSuccessCleanup {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd3314⟩ := RD.solcCallSuccessGuardOk
     (pc := ⟨3296⟩) (okPc := ⟨3312⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd3315 := rd3314.pop (by native_decide) (by simp; omega)
-  have rd3316 := rd3315.pop (by native_decide) (by simp; omega)
-  have rd3317 := rd3316.pop (by native_decide) (by simp; omega)
-  exact ⟨_, _, rd3317.jump (by native_decide) hret (by evm_ov)⟩
+  have rd3315 := rd3314.pop (by decide +native) (by simp; omega)
+  have rd3316 := rd3315.pop (by decide +native) (by simp; omega)
+  have rd3317 := rd3316.pop (by decide +native) (by simp; omega)
+  exact ⟨_, _, rd3317.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem RD.vowCageHealCallSuccess {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -1770,7 +1770,7 @@ theorem RD.vowCageHealCallSuccess {g : Sat256} {s0 : State}
     RDret vowBytecode g s0 acc ByteArray.empty := by
   obtain ⟨_, _, rd412⟩ := RD.vowCageHealCallSuccessCleanup rd
     (by jump_dest) (by simp)
-  have rd413 := rd412.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd413 (by native_decide) (by simp)
+  have rd413 := rd412.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd413 (by decide +native) (by simp)
 
 end Benchmarks.Dss.Vow

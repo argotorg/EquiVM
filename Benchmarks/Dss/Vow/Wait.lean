@@ -35,7 +35,7 @@ theorem vowDispatch_wait {I : ExecutionEnv} (hsel : selIs I ⟨#[0x64, 0xbd, 0x7
         flogSelectorBytes, flopSelectorBytes, flopperSelectorBytes, healSelectorBytes,
         humpSelectorBytes, kissSelectorBytes, liveSelectorBytes, relySelectorBytes,
         sinSelectorBytes, sumpSelectorBytes, vatSelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, waitSelectorBytes]
     exact hsel
 
@@ -54,25 +54,25 @@ theorem vowReachWaitBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vowSelWord I = ⟨1690136595⟩ :=
     vowSelWord_eq_of_beq I hsz 0x64 0xbd 0x70 0x13 ⟨1690136595⟩
-      (by native_decide) hsel
+      (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat vowBytecode vowLowSplitPc) (vowSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowLowHighFirstArmPc j))
         (vowSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowLowHighFirstArmPc 2))
         (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vowReachLowHighBody 2 (by omega) ⟨509⟩ hcode hwv hsz hsize hroot hlow heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem vowWaitBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -105,10 +105,10 @@ theorem vowWaitBodyCore
     hcode hdispatch hdecode hreach hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcWordSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by rfl)
     (by simpa [waitWord] using hbody)
 

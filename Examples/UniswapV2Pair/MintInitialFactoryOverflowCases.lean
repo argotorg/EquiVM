@@ -151,12 +151,12 @@ theorem uniswapMintInitialMinimumMintBalanceOverflowFromAfterFeeCase
     have hsourceSupplyFit :
         mintFunctionTotalSupplyNewNat evmAfter (⟨1000⟩ : UInt256) < UInt256.size := by
       simp [mintFunctionTotalSupplyNewNat, htotalSource]
-      native_decide
+      decide +native
     have hruntimeSupplyFit :
         (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
           UInt256.size := by
       rw [htotalRuntimeZero]
-      native_decide
+      decide +native
     have hsourceBalanceEq :
         mintFunctionToBalanceNewNat evmAfter (AccountAddress.ofNat 0)
             (⟨1000⟩ : UInt256) =
@@ -416,12 +416,12 @@ theorem uniswapMintInitialFeeOffKLastZeroMinimumMintBalanceOverflowFromFactoryCa
     have hsourceSupplyFit :
         mintFunctionTotalSupplyNewNat evmFeeS (⟨1000⟩ : UInt256) < UInt256.size := by
       simp [mintFunctionTotalSupplyNewNat, htotalSource]
-      native_decide
+      decide +native
     have hruntimeSupplyFit :
         (uniswapSlotWord ⟨0⟩ σFee I).toNat + (⟨1000⟩ : UInt256).toNat <
           UInt256.size := by
       rw [htotalZero]
-      native_decide
+      decide +native
     have hsourceBalanceEq :
         mintFunctionToBalanceNewNat evmFeeS (AccountAddress.ofNat 0)
             (⟨1000⟩ : UInt256) =

@@ -1680,7 +1680,7 @@ theorem vatFrobBodyCoreLiveSuccessGuards
           (by
             rw [show ilkRate = vatSlotWord (frobIlkRateSlot I) σ_solm I from rfl,
               hrateWord]
-            native_decide)
+            decide +native)
     have hbody :
         ExecTransitionBody config contract evm0 (frobStore I) frobTransition.body
           .reverted := by

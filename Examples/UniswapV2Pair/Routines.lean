@@ -101,7 +101,7 @@ routine while preserving the caller-supplied return/continuation pc.
 macro "uniswap_two_address_external_entry_wf" : term =>
   `(by
     unfold UniswapV2Pair.uniswapTwoAddressExternalEntryWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapTwoAddressExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -236,7 +236,7 @@ The wrapper checks that two static ABI words are present, masks the address word
 macro "uniswap_address_uint256_external_entry_wf" : term =>
   `(by
     unfold UniswapV2Pair.uniswapAddressUint256ExternalEntryWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.addressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -411,7 +411,7 @@ leaves the `uint256` word raw, and jumps to a routine while preserving the retur
 macro "uniswap_address_address_uint256_external_entry_wf" : term =>
   `(by
     unfold UniswapV2Pair.uniswapAddressAddressUint256ExternalEntryWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.addressAddressUint256ExternalLenOk {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -480,7 +480,7 @@ theorem RD.uniswapSafeMathSubSuccess {g : Sat256} {s0 : State} {ee : ExecutionEn
   exact RD.solcCheckedSubSuccess (pc := ⟨6879⟩) (okPc := ⟨2911⟩) h
     (by
       unfold solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hle hret (by jump_dest) hov
 
 set_option maxHeartbeats 1000000 in
@@ -573,7 +573,7 @@ theorem RD.uniswapSafeMathAddSuccess {g : Sat256} {s0 : State} {ee : ExecutionEn
   exact RD.solcCheckedAddSuccess (pc := ⟨8515⟩) (okPc := ⟨2911⟩) h
     (by
       unfold solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hfit hret (by jump_dest) hov
 
 set_option maxHeartbeats 1000000 in
@@ -619,7 +619,7 @@ theorem RD.uniswapSafeMathMulSuccess {g : Sat256} {s0 : State} {ee : ExecutionEn
       push2 ⟨6807⟩]
     rw [isZero_eq_zero_of_ne hb] at rd6804pre
     have rd6804 := evm_run rd6804pre with [
-      jumpiNT (by native_decide), pop, pop, dup1, dup3, mul, dup3, dup3, dup3,
+      jumpiNT (by decide +native), pop, pop, dup1, dup3, mul, dup3, dup3, dup3,
       dup2, push2 ⟨6804⟩, jumpiT hb (by jump_dest)]
     have rd6807 := evm_run rd6804 with [jumpdest, div, eq]
     rw [heq] at rd6807
@@ -663,7 +663,7 @@ theorem RD.uniswapTransferInternalFromBalanceLoadMem {g : Sat256} {s0 : State}
       (ret := ret) (R := R) h
       (by
         unfold solcSingleMappingLoadToRoutineMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hmem hcanonSrc (by jump_dest) (by decide) hov
 
 set_option maxHeartbeats 1000000 in
@@ -710,10 +710,10 @@ theorem RD.uniswapTransferInternalAfterDebitMem {g : Sat256} {s0 : State}
       (value := value) (aux := toWord) (key := src) (ret := ret) (R := R) h
       (by
         unfold solcSingleMappingLoadToRoutineMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by
         unfold solcCheckedSubSuccessWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hmem hcanonSrc hbalance (by jump_dest) (by decide) (by jump_dest) (by jump_dest) hov
 
 set_option maxHeartbeats 1000000 in
@@ -777,7 +777,7 @@ theorem RD.uniswapTransferInternalStoreDebitMem {g : Sat256} {s0 : State}
       (value := value) (aux := toWord) (key := src) (ret := ret) (R := R) h
       (by
         unfold solcSingleMappingStoreDebitMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hmem hperm hcanonSrc hov
 
 set_option maxHeartbeats 4000000 in
@@ -924,7 +924,7 @@ theorem RD.uniswapTransferInternalToBalanceLoadMem {g : Sat256} {s0 : State}
       (ret := ret) (R := R) h
       (by
         unfold solcPreparedSingleMappingLoadToRoutineMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (uniswapTransferToHashMemOf_slot src toWord hmem)
       hcanonTo (by jump_dest) (by decide) hov
 
@@ -971,10 +971,10 @@ theorem RD.uniswapTransferInternalAfterCreditCalcMem {g : Sat256} {s0 : State}
       (value := value) (key := toWord) (other := src) (ret := ret) (R := R) h
       (by
         unfold solcPreparedSingleMappingLoadToRoutineMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by
         unfold solcCheckedAddSuccessWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (uniswapTransferToHashMemOf_slot src toWord hmem)
       hcanonTo hfit (by jump_dest) (by decide) (by jump_dest) (by jump_dest) hov
 
@@ -1040,7 +1040,7 @@ theorem RD.uniswapTransferInternalStoreCredit {g : Sat256} {s0 : State}
       h
       (by
         unfold solcSingleMappingStoreCreditMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by
         simpa [uniswapTransferCreditHashMem, mapSlot, solcMappingSlot] using
           uniswapTransferCreditHashMem_slot src toWord)
@@ -1105,7 +1105,7 @@ theorem uniswapTransferLogMem_read64 (src toWord value : UInt256) :
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, uniswapTransferCreditHashMem_size,
         ByteArray_zeroes_size, toByteArray_size]
-      native_decide)]
+      decide +native)]
   rw [extract_append_left _ _ _ _ (by
       rw [ByteArray.size_append, uniswapTransferCreditHashMem_size, ByteArray_zeroes_size]
       omega)]
@@ -1216,7 +1216,7 @@ theorem RD.uniswapTransferInternalEmitAndJump {g : Sat256} {s0 : State}
       (mem := uniswapTransferCreditHashMem src toWord) h
       (by
         unfold solcMaskedTransferLog3AndJumpWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (uniswapTransferCreditHashMem_mload64 src toWord)
       (by simpa [uniswapTransferLogMem] using uniswapTransferLogMem_mload64 src toWord value)
       hperm hcanonSrc hret hov
@@ -1235,7 +1235,7 @@ theorem RD.uniswapInternalTransferReturnTrue {g : Sat256} {s0 : State}
   exact RD.solcDiscard2ReturnTrue (pc := ⟨2907⟩) h
     (by
       unfold solcDiscard2ReturnTrueWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hret hov
 
 /-! ## Shared internal `_approve` routine prefix -/
@@ -1308,7 +1308,7 @@ theorem RD.uniswapTransferFromAllowanceMaxBranch {g : Sat256} {s0 : State}
     (ret := ret) (R := R) (mem := solcFreePtrMem) h
     (by
       unfold solcNestedMappingCallerLoadWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     solcFreePtrMem_size hcanonSrc hov
   obtain ⟨_, _, rd3071⟩ := RD.solcUintMaxEqBranchTrue
     (code := UniswapV2Pair.uniswapV2PairBytecode)
@@ -1321,7 +1321,7 @@ theorem RD.uniswapTransferFromAllowanceMaxBranch {g : Sat256} {s0 : State}
     rd2975
     (by
       unfold solcUintMaxEqBranchWf solcNestedMappingCallerLoadOutPc
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hmax' (by jump_dest) (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by
     simpa [solcNestedMappingCallerLoadOutPc, solcNestedMappingCallerHashMem,
@@ -1343,7 +1343,7 @@ theorem RD.uniswapTransferFromMaxAllowanceToInternal {g : Sat256} {s0 : State}
     (pc := ⟨3071⟩) (contPc := ⟨3082⟩) (routinePc := ⟨7510⟩) h
     (by
       unfold solcInternalCallSetup3Wf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) hov
 
 theorem uniswapApproveLogMem_size (owner spender value : UInt256) :
@@ -1364,7 +1364,7 @@ theorem uniswapApproveLogMem_read64 (owner spender value : UInt256) :
   rw [readWithPadding_eq_extract _ 64 (by
       rw [ByteArray.size_append, ByteArray.size_append, uniswapApproveHashMem_size,
         ByteArray_zeroes_size, toByteArray_size]
-      native_decide)]
+      decide +native)]
   rw [extract_append_left _ _ _ _ (by
       rw [ByteArray.size_append, uniswapApproveHashMem_size, ByteArray_zeroes_size]
       omega)]
@@ -1469,7 +1469,7 @@ theorem RD.uniswapApproveInternalInnerHash {g : Sat256} {s0 : State} {ee : Execu
       (owner := owner) (ret := ret) (R := R) (mem := solcFreePtrMem) h
       (by
         unfold solcNestedMappingStoreInnerHashWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       solcFreePtrMem_size hcanonOwner hov
 
 set_option maxHeartbeats 1000000 in
@@ -1499,7 +1499,7 @@ theorem RD.uniswapApproveInternalStore {g : Sat256} {s0 : State} {ee : Execution
       (mem := twoWordHashMem owner ⟨2⟩ solcFreePtrMem) h
       (by
         unfold solcNestedMappingStoreOuterSstoreWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (twoWordHashMem_size_96 owner ⟨2⟩ solcFreePtrMem_size)
       hperm hcanonSpender hov
 
@@ -1523,7 +1523,7 @@ theorem RD.uniswapApproveInternalEmitAndJump {g : Sat256} {s0 : State} {ee : Exe
       (mem := uniswapApproveHashMem owner spender) h
       (by
         unfold solcPlainLog3AndJumpWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (uniswapApproveHashMem_mload64 owner spender)
       (by simpa [uniswapApproveLogMem] using uniswapApproveLogMem_mload64 owner spender value)
       hperm hret hov
@@ -1557,7 +1557,7 @@ theorem RD.uniswapReturnBool797FromMem {g : Sat256} {s0 : State} {ee : Execution
   exact RD.solcReturnBoolFromMem h
     (by
       unfold solcReturnBoolFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hmload64
     hmemout
     hmemoutLoad64

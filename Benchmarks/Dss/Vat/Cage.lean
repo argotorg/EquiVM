@@ -23,7 +23,7 @@ theorem vatDispatchCage {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some cageTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd, LineSelectorBytes, cageSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -34,17 +34,17 @@ theorem vatReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0x69245009⟩ :=
     vatSelWord_eq_of_beq I hsz 0x69 0x24 0x50 0x09 ⟨0x69245009⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlowhigh :
       UInt256.gt (armSelNat vatBytecode vatLowHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms272FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
@@ -54,9 +54,9 @@ theorem vatReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms272FirstPc 0))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms272Body 0 (by omega) ⟨855⟩ hcode hwv hsz hsize
-    hroot hlow hlowhigh heq0 htake (by jump_dest) (by native_decide)
+    hroot hlow hlowhigh heq0 htake (by jump_dest) (by decide +native)
 
 @[reducible] def vatCageStoreLiveZeroWf (code : ByteArray) (pc : UInt256) : Prop :=
   let p1 := pc + ⟨1⟩
@@ -105,7 +105,7 @@ theorem vatCageBodyCore : VatBodyTheorem 1 := by
     hreach
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
   let callerSlot := vatCallerWardsSlot I
   have hcallerWord : vatSlotWord callerSlot σ_evm I = vatSlotWord callerSlot σ_solm I :=
@@ -166,21 +166,21 @@ theorem vatCageBodyCore : VatBodyTheorem 1 := by
       (by simpa using hroutine)
       (by
         unfold vatAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by jump_dest) (by simp)
     obtain ⟨_, _, hretPc⟩ := RD.vatCageStoreLiveZero
       (code := vatBytecode) (pc := ⟨2950⟩) (ret := ⟨524⟩) (R := [vatSelWord I])
       (by simpa using hafterAuth)
       (by
         unfold vatCageStoreLiveZeroWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by jump_dest) hperm (by simp)
-    have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+    have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
     have hret :
         RDret vatBytecode (Sat256.ofUInt256 g)
           (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
           (cA, sstoreAccountMap I.codeOwner σ_evm ⟨10⟩ ⟨0⟩) ByteArray.empty := by
-      simpa using RD.stop hretPc' (by native_decide) (by simp)
+      simpa using RD.stop hretPc' (by decide +native) (by simp)
     have hcreated :
         (cA, sstoreAccountMap I.codeOwner σ_evm ⟨10⟩ ⟨0⟩).1 = evm1.createdAccounts := by
       simp [evm1, evm0, initState, storageStore_createdAccounts]
@@ -191,7 +191,7 @@ theorem vatCageBodyCore : VatBodyTheorem 1 := by
         accountMapEquiv_sstoreAccountMap I.codeOwner ⟨10⟩ ⟨0⟩ hAccounts
     have henc : returnEquiv ByteArray.empty none cageTransition.returnType := by
       rw [show cageTransition.returnType = [] by rfl]
-      exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+      exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
     exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
       hcreated haccounts henc
   · have hauthSolm : vatSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
@@ -220,10 +220,10 @@ theorem vatCageBodyCore : VatBodyTheorem 1 := by
       (by simpa using hroutine)
       (by
         unfold vatAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by
         unfold vatAuthRevertTailWf vatAuthTailPc
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

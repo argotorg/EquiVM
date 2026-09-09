@@ -16,7 +16,7 @@ theorem transferStore_get_dst (I : ExecutionEnv) :
   unfold transferStore
   rw [store_get_ne
     (L := (∅ : Store).insert "dst" (transferFromDstValue I))
-    (k := "wad") (a := "dst") (transferFromWadValue I) (by native_decide)]
+    (k := "wad") (a := "dst") (transferFromWadValue I) (by decide +native)]
   simp
 
 theorem transferStore_get_wad (I : ExecutionEnv) :
@@ -178,7 +178,7 @@ theorem daiTransferX_toTransferFrom {cA gh bl σ σ₀ A I} {g : Sat256}
     exact solcAddrMask_clean (solcSourceWord_canonical I)
   have hwf : solcCallerTransferThunkWf daiBytecode ⟨3855⟩ ⟨3868⟩ ⟨1411⟩ := by
     unfold solcCallerTransferThunkWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   obtain ⟨_, _, rd1411⟩ := RD.solcCallerTransferThunk
     (pc := ⟨3855⟩) (contPc := ⟨3868⟩) (routinePc := ⟨1411⟩)
     (ret := ⟨496⟩) (R := [daiSelWord I]) rd3855 hwf (by jump_dest)
@@ -208,19 +208,19 @@ theorem daiTransferFinish {cA gh bl σInit σFinal σ₀ A I} {g : Sat256}
     RDret daiBytecode g (initState cA gh bl σInit σ₀ g A I) (cA, σFinal)
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   have rd496raw := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  have rd496 := rd496raw.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  have rd496 := rd496raw.jump (by decide +native) (by jump_dest) (by evm_ov)
   have hretWf : solcReturnBoolFromMemWf daiBytecode ⟨496⟩ := by
     unfold solcReturnBoolFromMemWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   have hbool :
       UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ := by
-    native_decide
+    decide +native
   simpa [hbool, transferFromTailBoolReturnMem] using
     RD.solcReturnBoolFromMem rd496 hretWf
       (solcScratchReturnMem_mload64 (transferFromWadWord I) hscratch hread64)
@@ -250,7 +250,7 @@ theorem daiTransferBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (daiSelBytes 18) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (daiSelBytes 18) (by decide +native) hsel
   have hdispatch : dispatchMsg contract I.calldata = some transferTransition :=
     daiDispatchTransfer hsel
   have hreach := daiReachTransferBody (cA := cA) (gh := gh) (bl := bl)

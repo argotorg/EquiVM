@@ -128,7 +128,7 @@ theorem decodeCalldata_legacyBytes32_address_ok {cd : ByteArray} {x y : Solm.Ide
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [decodeABIValues_bytes32_address_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -148,7 +148,7 @@ theorem decodeCalldata_legacyBytes32_address_none_short {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64
   · rw [if_pos hbytes]
@@ -177,7 +177,7 @@ theorem catDispatch_fileAddress {I : ExecutionEnv}
     all_goals
       simp [selectorOf, biteSelectorBytes, boxSelectorBytes, cageSelectorBytes,
         clawSelectorBytes, denySelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, fileAddressSelectorBytes]
     exact hsel
 
@@ -393,13 +393,13 @@ theorem catReachFileAddressBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : catSelWord I = ⟨3572022915⟩ :=
     catSelWord_eq_of_beq I hsz 0xd4 0xe8 0xbe 0x83 ⟨3572022915⟩
-      (by native_decide) hsel
+      (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat catBytecode catHighSplitPc) (catSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catHighHighFirstArmPc j))
         (catSelWord I) = ⟨0⟩ := by
@@ -409,9 +409,9 @@ theorem catReachFileAddressBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catHighHighFirstArmPc 0))
         (catSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact catReachHighHighBody 0 (by omega) ⟨591⟩ hcode hwv hsz hsize hroot hhigh heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 /-! ### Entry bridge: decoded ⟨613⟩ → routine ⟨3080⟩ (load `what`@4, `data`@36, mask `data`) -/
 
@@ -426,25 +426,25 @@ theorem RD.catFileAddressDecodeToRoutine {g : Sat256} {s0 : State}
       (UInt256.land solcAddrMask (calldataWord ee.calldata 36) ::
         calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
-  have rd614 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd615 := rd614.pop (by native_decide) (by evm_ov)
-  have rd616 := rd615.dup1 (by native_decide) (by evm_ov)
-  have rd617 := rd616.calldataload (by native_decide) (by evm_ov)
-  have rd618 := rd617.swap1 (by native_decide) (by evm_ov)
-  have rd620 := rd618.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd621 := rd620.add (by native_decide) (by evm_ov)
-  have rd622 := rd621.calldataload (by native_decide) (by evm_ov)
-  have rd624 := rd622.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd626 := rd624.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd628 := rd626.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd629 := rd628.shl (by native_decide) (by evm_ov)
-  have rd630 := rd629.sub (by native_decide) (by evm_ov)
-  have rd631 := rd630.and (by native_decide) (by evm_ov)
-  have rd634 := rd631.push2 ⟨3080⟩ (by native_decide) (by evm_ov)
+  have rd614 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd615 := rd614.pop (by decide +native) (by evm_ov)
+  have rd616 := rd615.dup1 (by decide +native) (by evm_ov)
+  have rd617 := rd616.calldataload (by decide +native) (by evm_ov)
+  have rd618 := rd617.swap1 (by decide +native) (by evm_ov)
+  have rd620 := rd618.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd621 := rd620.add (by decide +native) (by evm_ov)
+  have rd622 := rd621.calldataload (by decide +native) (by evm_ov)
+  have rd624 := rd622.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd626 := rd624.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd628 := rd626.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd629 := rd628.shl (by decide +native) (by evm_ov)
+  have rd630 := rd629.sub (by decide +native) (by evm_ov)
+  have rd631 := rd630.and (by decide +native) (by evm_ov)
+  have rd634 := rd631.push2 ⟨3080⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide,
       show (⟨36⟩ : UInt256).toNat = 36 from by decide, solcAddrMask]
-      using rd634.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd634.jump (by decide +native) hroutine (by evm_ov)⟩
 
 /-! ### Auth wrappers (reach ⟨591⟩ → auth check at ⟨3080⟩, okPc ⟨3169⟩) -/
 
@@ -462,9 +462,9 @@ theorem RD.catFileAddressToSwitch {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := catBytecode) (sel := sel) (entry := ⟨591⟩) (ret := ⟨302⟩)
     (decoded := ⟨613⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz68 hsize
   obtain ⟨_, _, hroutine⟩ := RD.catFileAddressDecodeToRoutine
     (ret := ⟨302⟩) (sel := sel) (R := []) hdecoded (by jump_dest) (by simp)
@@ -474,7 +474,7 @@ theorem RD.catFileAddressToSwitch {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
     (by simpa [fileAddressDataKey, fileAddressDataWord] using hroutine)
     (by
       unfold catAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauth (by jump_dest) (by simp)
   exact ⟨_, _, hafterAuth⟩
 
@@ -489,9 +489,9 @@ theorem RD.catFileAddressAuthRevert {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := catBytecode) (sel := sel) (entry := ⟨591⟩) (ret := ⟨302⟩)
     (decoded := ⟨613⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz68 hsize
   obtain ⟨_, _, hroutine⟩ := RD.catFileAddressDecodeToRoutine
     (ret := ⟨302⟩) (sel := sel) (R := []) hdecoded (by jump_dest) (by simp)
@@ -501,10 +501,10 @@ theorem RD.catFileAddressAuthRevert {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
     (by simpa [fileAddressDataKey, fileAddressDataWord] using hroutine)
     (by
       unfold catAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcErrorStringRevertTailWf catAuthTailPc catNotAuthorizedRawWord
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauth (by simp)
 
 /-! ### `vow` store (read-modify-write, slot 4) at ⟨3169⟩ -/
@@ -531,53 +531,53 @@ theorem RD.catFileAddressStoreVow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       (cA, sstoreAccountMap ee.codeOwner σ ⟨4⟩
         (setAddressOffset0Word (solcSlotWord σ ee ⟨4⟩) dataKey)) k' C' := by
   -- switch 3169-3183 (vow matches → not taken)
-  have rd3170 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3171 := rd3170.dup2 (by native_decide) (by evm_ov)
+  have rd3170 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3171 := rd3170.dup2 (by decide +native) (by evm_ov)
   have rd3175 := rd3171.pushConst ⟨7761783⟩ (width := 3) (op := .PUSH3)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd3177 := rd3175.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd3178 := rd3177.shl (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
+  have rd3177 := rd3175.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd3178 := rd3177.shl (by decide +native) (by evm_ov)
   have hconst :
       UInt256.shiftLeft ⟨7761783⟩ ⟨232⟩ = ABI.bytesToWord fileAddressVowBytes := by
-    native_decide
+    decide +native
   rw [hmatch, ← hconst] at rd3178
-  have rd3179 := rd3178.eq (by native_decide) (by evm_ov)
+  have rd3179 := rd3178.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd3179
-  have rd3180 := rd3179.iszero (by native_decide) (by evm_ov)
+  have rd3180 := rd3179.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd3180
-  have rd3183 := rd3180.push2 ⟨953⟩ (by native_decide) (by evm_ov)
-  have rd3184 := rd3183.jumpiNT (by native_decide)
+  have rd3183 := rd3180.push2 ⟨953⟩ (by decide +native) (by evm_ov)
+  have rd3184 := rd3183.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   -- store 3184-3214
-  have rd3186 := rd3184.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd3187 := rd3186.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3188⟩ := rd3187.sload (by native_decide) (by evm_ov)
-  have rd3190 := rd3188.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3192 := rd3190.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3194 := rd3192.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd3195 := rd3194.shl (by native_decide) (by evm_ov)
-  have rd3196 := rd3195.sub (by native_decide) (by evm_ov)
-  have rd3197 := rd3196.not (by native_decide) (by evm_ov)
-  have rd3198 := rd3197.and (by native_decide) (by evm_ov)
-  have rd3200 := rd3198.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3202 := rd3200.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3204 := rd3202.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd3205 := rd3204.shl (by native_decide) (by evm_ov)
-  have rd3206 := rd3205.sub (by native_decide) (by evm_ov)
-  have rd3207 := rd3206.dup4 (by native_decide) (by evm_ov)
-  have rd3208 := rd3207.and (by native_decide) (by evm_ov)
-  have rd3209 := rd3208.or (by native_decide) (by evm_ov)
+  have rd3186 := rd3184.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd3187 := rd3186.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3188⟩ := rd3187.sload (by decide +native) (by evm_ov)
+  have rd3190 := rd3188.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3192 := rd3190.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3194 := rd3192.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd3195 := rd3194.shl (by decide +native) (by evm_ov)
+  have rd3196 := rd3195.sub (by decide +native) (by evm_ov)
+  have rd3197 := rd3196.not (by decide +native) (by evm_ov)
+  have rd3198 := rd3197.and (by decide +native) (by evm_ov)
+  have rd3200 := rd3198.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3202 := rd3200.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3204 := rd3202.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd3205 := rd3204.shl (by decide +native) (by evm_ov)
+  have rd3206 := rd3205.sub (by decide +native) (by evm_ov)
+  have rd3207 := rd3206.dup4 (by decide +native) (by evm_ov)
+  have rd3208 := rd3207.and (by decide +native) (by evm_ov)
+  have rd3209 := rd3208.or (by decide +native) (by evm_ov)
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
     solcAddrMask from by decide] at rd3209
   rw [setAddressOffset0Word_bytecode] at rd3209
-  have rd3210 := rd3209.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3211⟩ := rd3210.sstore hperm (by native_decide) (by evm_ov)
-  have rd3214 := rd3211.push2 ⟨1144⟩ (by native_decide) (by evm_ov)
-  have rd1144 := rd3214.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd1145 := rd1144.jumpdest (by native_decide) (by evm_ov)
-  have rd1146 := rd1145.pop (by native_decide) (by evm_ov)
-  have rd1147 := rd1146.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1147.jump (by native_decide) hret (by evm_ov)⟩
+  have rd3210 := rd3209.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3211⟩ := rd3210.sstore hperm (by decide +native) (by evm_ov)
+  have rd3214 := rd3211.push2 ⟨1144⟩ (by decide +native) (by evm_ov)
+  have rd1144 := rd3214.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd1145 := rd1144.jumpdest (by decide +native) (by evm_ov)
+  have rd1146 := rd1145.pop (by decide +native) (by evm_ov)
+  have rd1147 := rd1146.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1147.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem RD.catFileAddressSkipVow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {dataKey what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -588,24 +588,24 @@ theorem RD.catFileAddressSkipVow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD catBytecode ee g s0 ⟨953⟩ (dataKey :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd3170 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3171 := rd3170.dup2 (by native_decide) (by evm_ov)
+  have rd3170 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3171 := rd3170.dup2 (by decide +native) (by evm_ov)
   have rd3175 := rd3171.pushConst ⟨7761783⟩ (width := 3) (op := .PUSH3)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd3177 := rd3175.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd3178 := rd3177.shl (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
+  have rd3177 := rd3175.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd3178 := rd3177.shl (by decide +native) (by evm_ov)
   have hconst :
       UInt256.shiftLeft ⟨7761783⟩ ⟨232⟩ = ABI.bytesToWord fileAddressVowBytes := by
-    native_decide
+    decide +native
   rw [hconst] at rd3178
-  have rd3179 := rd3178.eq (by native_decide) (by evm_ov)
+  have rd3179 := rd3178.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord fileAddressVowBytes) what = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hneq h.symm)
   rw [heq0] at rd3179
-  have rd3180 := rd3179.iszero (by native_decide) (by evm_ov)
+  have rd3180 := rd3179.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd3180
-  have rd3183 := rd3180.push2 ⟨953⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd3183.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd3183 := rd3180.push2 ⟨953⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd3183.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)⟩
 
 /-! ### Unrecognized-param revert at ⟨953⟩ (byte-identical to Vow `file(bytes32,uint256)` @2156) -/
@@ -622,56 +622,56 @@ theorem RD.catFileAddressUnrecognizedRevert {g : Sat256} {s0 : State} {ee : Exec
     (hov : stk.length + 5 ≤ 1024) :
     RDrev catBytecode g s0 := by
   have rdMload := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨27⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨27⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 ⟨27⟩ mem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst catFileAddressUnrecognizedRawWord
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem3 ⟨27⟩ catFileAddressUnrecognizedRawWord mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨27⟩ catFileAddressUnrecognizedRawWord hmem hread64)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 /-! ### Success / revert wrappers -/
 
@@ -693,8 +693,8 @@ theorem RD.catFileAddressVowSuccess {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
   obtain ⟨_, _, hretPc⟩ := RD.catFileAddressStoreVow
     (dataKey := fileAddressDataKey I) (what := calldataWord I.calldata 4) (ret := ⟨302⟩)
     (sel := sel) (R := []) hswitch hword (by jump_dest) hperm (by simp)
-  have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop hretPc' (by native_decide) (by simp)
+  have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop hretPc' (by decide +native) (by simp)
 
 theorem RD.catFileAddressUnrecognizedParamRevert
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -708,7 +708,7 @@ theorem RD.catFileAddressUnrecognizedParamRevert
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, hswitch⟩ := RD.catFileAddressToSwitch hreach hsz68 hsize hauth
   have hvowNe : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileAddressVowBytes :=
-    fileAddressWhatWord_ne_of_bytes_ne (by omega) hnotVow (by native_decide)
+    fileAddressWhatWord_ne_of_bytes_ne (by omega) hnotVow (by decide +native)
   obtain ⟨_, _, htailPc⟩ := RD.catFileAddressSkipVow
     (dataKey := fileAddressDataKey I) (what := calldataWord I.calldata 4) (ret := ⟨302⟩)
     (sel := sel) (R := []) hswitch hvowNe (by simp)
@@ -744,7 +744,7 @@ theorem catFileAddressBodyCore
     accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
   have henc : returnEquiv ByteArray.empty none fileAddressTransition.returnType := by
     rw [show fileAddressTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   by_cases hauthEvm : catSlotWord callerSlot σ_evm I = ⟨1⟩
   · have hauthSolm : catSlotWord callerSlot σ_solm I = ⟨1⟩ := by
       rw [← hcallerWord]
@@ -850,10 +850,10 @@ theorem catFileAddressShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := catBytecode) (sel := catSelWord I) (entry := ⟨591⟩) (ret := ⟨302⟩)
     (decoded := ⟨613⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode (catDispatch_fileAddress hsel)
     (catDecode_fileAddress_none_short hsz4 hshort)
 
@@ -866,7 +866,7 @@ theorem catFileAddressBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0xd4, 0xe8, 0xbe, 0x83]⟩ (by native_decide) hsel
+    calldata_size_ge_of_selIs I ⟨#[0xd4, 0xe8, 0xbe, 0x83]⟩ (by decide +native) hsel
   by_cases hshort : I.calldata.size < 68
   · exact catFileAddressShort hcode hsize hperm hwv hsz hshort hsel hAccounts
   · have hsz68 : 68 ≤ I.calldata.size := by omega

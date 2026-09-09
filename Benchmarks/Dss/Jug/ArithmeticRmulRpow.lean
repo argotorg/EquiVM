@@ -99,7 +99,7 @@ theorem execRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
   have hDivRay :
       evalExpr? config { contract := contract, locals := localsZ } evm
         (.binary .div (.var "z") (.intLit one)) = .ok (.int (Int.ofNat q.toNat)) :=
-    evalExpr_div_uint256_ok hzZ hRayLit (by native_decide) hq
+    evalExpr_div_uint256_ok hzZ hRayLit (by decide +native) hq
   have hAssign :
       assignStorageRef? config { contract := contract, locals := localsZ } evm .localVar
           { base := "z" } (.int (Int.ofNat q.toNat)) =
@@ -233,7 +233,7 @@ theorem execRpowFunctionReturnXNonzeroNZero (evm : EVM.State) {x b : UInt256}
   have hHalfExpr :
       evalExpr? config { contract := contract, locals := localsZ } evm
         (.binary .div (.var "b") (.intLit 2)) = .ok (.int (Int.ofNat half.toNat)) :=
-    evalExpr_div_uint256_ok hbZ htwoLitZ (by native_decide) rfl
+    evalExpr_div_uint256_ok hbZ htwoLitZ (by decide +native) rfl
   have hnZH :
       evalExpr? config { contract := contract, locals := localsZH } evm (.var "n") =
         .ok (.int (Int.ofNat (⟨0⟩ : UInt256).toNat)) := by
@@ -376,7 +376,7 @@ theorem execRpowFunctionReturnXNonzeroNOne (evm : EVM.State) {x b : UInt256}
   have hHalfExpr :
       evalExpr? config { contract := contract, locals := localsZ } evm
         (.binary .div (.var "b") (.intLit 2)) = .ok (.int (Int.ofNat half.toNat)) :=
-    evalExpr_div_uint256_ok hbZ htwoLitZ (by native_decide) rfl
+    evalExpr_div_uint256_ok hbZ htwoLitZ (by decide +native) rfl
   have hnZH :
       evalExpr? config { contract := contract, locals := localsZH } evm (.var "n") =
         .ok (.int (Int.ofNat (⟨1⟩ : UInt256).toNat)) := by

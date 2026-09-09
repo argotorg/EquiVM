@@ -448,7 +448,7 @@ theorem RD.cureTellRoutineCountSuccess {code : ByteArray} {g : Sat256} {s0 : Sta
   have rd14 := rd10.iszero hd10 (by simp only [List.length_cons]; omega)
     |>.push2 guardPc hd11 (by simp only [List.length_cons]; omega)
   have rd14' := rd14
-  rw [show UInt256.isZero ⟨1⟩ = ⟨0⟩ by native_decide] at rd14'
+  rw [show UInt256.isZero ⟨1⟩ = ⟨0⟩ by decide +native] at rd14'
   have rd15 := rd14'.jumpiNT hd14 (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by simp only [List.length_cons]; omega)
   have rd18 := rd15.pop hd15 (by simp only [List.length_cons]; omega)
@@ -511,7 +511,7 @@ theorem RD.cureTellRoutineCountFalseToTimeTail {code : ByteArray} {g : Sat256}
   have rd14 := rd10.iszero hd10 (by simp only [List.length_cons]; omega)
     |>.push2 guardPc hd11 (by simp only [List.length_cons]; omega)
   have rd14' := rd14
-  rw [show UInt256.isZero ⟨1⟩ = ⟨0⟩ by native_decide] at rd14'
+  rw [show UInt256.isZero ⟨1⟩ = ⟨0⟩ by decide +native] at rd14'
   have rd15 := rd14'.jumpiNT hd14 (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by simp only [List.length_cons]; omega)
   have rd18 := rd15.pop hd15 (by simp only [List.length_cons]; omega)
@@ -601,7 +601,7 @@ theorem RD.cureTellTimeTailSuccess {code : ByteArray} {g : Sat256} {s0 : State}
   rw [ult_zero htime] at rd6'
   have rdg0 := rd6'.iszero hd6 (by simp only [List.length_cons]; omega)
   have rdg0' := rdg0
-  rw [show UInt256.isZero ⟨0⟩ = ⟨1⟩ by native_decide] at rdg0'
+  rw [show UInt256.isZero ⟨0⟩ = ⟨1⟩ by decide +native] at rdg0'
   rw [hguardPc] at hdg0 hdg1 hdg4
   have rdg4 := rdg0'.jumpdest hdg0 (by simp only [List.length_cons]; omega)
     |>.push2 successPc hdg1 (by simp only [List.length_cons]; omega)
@@ -617,13 +617,13 @@ theorem RD.cureTellTimeTailSuccess {code : ByteArray} {g : Sat256} {s0 : State}
 theorem cureTellCountSuccessWf_concrete :
     cureTellCountSuccessWf cureBytecode ⟨2232⟩ ⟨2267⟩ ⟨2326⟩ := by
   unfold cureTellCountSuccessWf
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem cureTellTimeTailSuccessWf_concrete :
     cureTellTimeTailSuccessWf cureBytecode (cureTellCountTimeTailPc ⟨2232⟩)
       ⟨2267⟩ ⟨2326⟩ := by
   unfold cureTellTimeTailSuccessWf cureTellCountTimeTailPc
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem RD.cureTellRoutineTimeSuccessConcrete {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret : UInt256} {R : List UInt256}
@@ -675,7 +675,7 @@ theorem RD.cureTellTimeTailGuardFalseConcrete {g : Sat256} {s0 : State}
   rw [ult_one htime] at rd6'
   have rdg0 := rd6'.iszero hd6 (by simp only [List.length_cons]; omega)
   have rdg0' := rdg0
-  rw [show UInt256.isZero ⟨1⟩ = ⟨0⟩ by native_decide] at rdg0'
+  rw [show UInt256.isZero ⟨1⟩ = ⟨0⟩ by decide +native] at rdg0'
   rw [hguardPc] at hdg0 hdg1 hdg4
   have rdg4 := rdg0'.jumpdest hdg0 (by simp only [List.length_cons]; omega)
     |>.push2 ⟨2326⟩ hdg1 (by simp only [List.length_cons]; omega)
@@ -718,7 +718,7 @@ theorem RD.cureTellRoutineLiveNonzeroToRevertConcrete {g : Sat256} {s0 : State}
   have rd14 := rd10.iszero hd10 (by simp only [List.length_cons]; omega)
     |>.push2 ⟨2267⟩ hd11 (by simp only [List.length_cons]; omega)
   have rd14' := rd14
-  rw [show UInt256.isZero ⟨0⟩ = ⟨1⟩ by native_decide] at rd14'
+  rw [show UInt256.isZero ⟨0⟩ = ⟨1⟩ by decide +native] at rd14'
   have rdg0 := rd14'.jumpiT hd14 one_ne_zero_uint (by jump_dest)
     (by simp only [List.length_cons]; omega)
   rw [hguardEq] at hdg0 hdg1 hdg4
@@ -742,7 +742,7 @@ theorem cureDispatchTell {I : ExecutionEnv}
     cureLoadSelectorBytes, cureLoadedSelectorBytes, curePosSelectorBytes,
     cureRelySelectorBytes, cureSaySelectorBytes, cureSrcsSelectorBytes,
     cureTCountSelectorBytes, cureTellSelectorBytes]
-  native_decide
+  decide +native
 
 theorem cureDecode_tell {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (tellTransition.params.map Param.name)
@@ -758,15 +758,15 @@ theorem cureReachTellBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x53d700e5⟩ :=
     cureSelWord_eq_of_beq I hsz 0x53 0xd7 0x00 0xe5 ⟨0x53d700e5⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h185⟩ := cureReachLowUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨570⟩ 1 h185 (fun j hj => cureLowUpperArmsWellFormed j (by omega))
     (fun j hj => by
       interval_cases j
-      · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+      · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureTellReturn_count {cA gh bl σ σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -783,10 +783,10 @@ theorem cureTellReturn_count {cA gh bl σ σ₀ A I} {g : UInt256}
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨570⟩ ⟨343⟩ ⟨2232⟩ := by
     unfold solcGetterEntryWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   have hretmem : solcReturnWordFromMemWf cureBytecode ⟨343⟩ := by
     unfold solcReturnWordFromMemWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   obtain ⟨_, _, hroutine⟩ := RD.solcGetterThunk hreach hentry (by jump_dest)
   obtain ⟨_, _, hretPc⟩ := RD.cureTellRoutineCountSuccess
     (code := cureBytecode) (g := Sat256.ofUInt256 g)
@@ -824,10 +824,10 @@ theorem cureTellReturn_time {cA gh bl σ σ₀ A I} {g : UInt256}
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨570⟩ ⟨343⟩ ⟨2232⟩ := by
     unfold solcGetterEntryWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   have hretmem : solcReturnWordFromMemWf cureBytecode ⟨343⟩ := by
     unfold solcReturnWordFromMemWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   obtain ⟨_, _, hroutine⟩ := RD.solcGetterThunk hreach hentry (by jump_dest)
   obtain ⟨_, _, hretPc⟩ := RD.cureTellRoutineTimeSuccessConcrete
     (g := Sat256.ofUInt256 g)
@@ -876,7 +876,7 @@ theorem cureTellRevertLiteralMem_size :
   rw [show (196 : Nat) = (solcErrorStringMem2 ⟨37⟩ solcFreePtrMem).size by
       rw [solcErrorStringMem2_size ⟨37⟩ solcFreePtrMem_size]]
   rw [write_end_size_from cureBytecode (solcErrorStringMem2 ⟨37⟩ solcFreePtrMem)
-    3826 37 (by decide) (by native_decide)]
+    3826 37 (by decide) (by decide +native)]
   rw [solcErrorStringMem2_size ⟨37⟩ solcFreePtrMem_size]
 
 theorem cureTellRevertLiteralMem_read64 :
@@ -885,7 +885,7 @@ theorem cureTellRevertLiteralMem_read64 :
   rw [show (196 : Nat) = (solcErrorStringMem2 ⟨37⟩ solcFreePtrMem).size by
       rw [solcErrorStringMem2_size ⟨37⟩ solcFreePtrMem_size]]
   rw [write_read_below_end_from cureBytecode (solcErrorStringMem2 ⟨37⟩ solcFreePtrMem)
-    3826 37 64 (by decide) (by native_decide)
+    3826 37 64 (by decide) (by decide +native)
     (by rw [solcErrorStringMem2_size ⟨37⟩ solcFreePtrMem_size]; omega)]
   exact solcErrorStringMem2_read64 ⟨37⟩ solcFreePtrMem_size solcFreePtrMem_read64
 
@@ -908,62 +908,62 @@ theorem RD.cureTellRevertTail {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C
     (hov : stk.length + 8 ≤ 1024) :
     RDrev cureBytecode g s0 := by
   have rdMload := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost solcFreePtrMem_mload64 (by rfl) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdHeader := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 solcFreePtrMem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 solcFreePtrMem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw push1 ⟨37⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw push1 ⟨37⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 ⟨37⟩ solcFreePtrMem) (UInt256.ofNat 7)
-      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨3826⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨37⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨3826⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨37⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
     raw codecopy
       (Cₘ (UInt256.ofNat (MachineState.M (UInt256.ofNat 7).toNat 196 37)) -
         Cₘ (UInt256.ofNat 7))
       cureTellRevertLiteralMem (UInt256.ofNat 8)
-      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)]
   exact evm_run rdHeader with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost cureTellRevertLiteralMem_mload64 (by rfl) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw rev
       (Cₘ (UInt256.ofNat (MachineState.M (UInt256.ofNat 8).toNat 128 132)) -
         Cₘ (UInt256.ofNat 8))
-      (by native_decide) mem_cost (by evm_ov)]
+      (by decide +native) mem_cost (by evm_ov)]
 
 theorem cureTellBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
@@ -1003,7 +1003,7 @@ theorem cureTellBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨570⟩ ⟨343⟩ ⟨2232⟩ := by
     unfold solcGetterEntryWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   obtain ⟨_, _, hroutine⟩ := RD.solcGetterThunk hreach hentry (by jump_dest)
   by_cases hliveEvm : tellLiveWord σ_evm I = ⟨0⟩
   · have hliveSolm : tellLiveWord σ_solm I = ⟨0⟩ := by

@@ -180,26 +180,26 @@ abbrev suckDebtEvaledRef : EvaledStorageRef :=
 theorem suckStore_get_u (I : ExecutionEnv) :
     (suckStore I).get? "u" = some (suckUValue I) := by
   unfold suckStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem suckStore_get_v (I : ExecutionEnv) :
     (suckStore I).get? "v" = some (suckVValue I) := by
   unfold suckStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem suckStoreSinNew_get_u (I : ExecutionEnv) (sinNew : UInt256) :
     (suckStoreSinNew I sinNew).get? "u" = some (suckUValue I) := by
-  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_get_u]
+  rw [suckStoreSinNew, store_get_ne _ _ (by decide +native), suckStore_get_u]
 
 theorem suckStoreSinNew_get_v (I : ExecutionEnv) (sinNew : UInt256) :
     (suckStoreSinNew I sinNew).get? "v" = some (suckVValue I) := by
-  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_get_v]
+  rw [suckStoreSinNew, store_get_ne _ _ (by decide +native), suckStore_get_v]
 
 theorem suckStoreDaiNew_get_v (I : ExecutionEnv) (sinNew daiNew : UInt256) :
     (suckStoreDaiNew I sinNew daiNew).get? "v" = some (suckVValue I) := by
-  rw [suckStoreDaiNew, store_get_ne _ _ (by native_decide),
+  rw [suckStoreDaiNew, store_get_ne _ _ (by decide +native),
     suckStoreSinNew_get_v]
 
 theorem suckStore_get_rad (I : ExecutionEnv) :
@@ -208,18 +208,18 @@ theorem suckStore_get_rad (I : ExecutionEnv) :
 
 theorem suckStoreSinNew_get_rad (I : ExecutionEnv) (sinNew : UInt256) :
     (suckStoreSinNew I sinNew).get? "rad" = some (suckRadValue I) := by
-  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_get_rad]
+  rw [suckStoreSinNew, store_get_ne _ _ (by decide +native), suckStore_get_rad]
 
 theorem suckStoreDaiNew_get_rad (I : ExecutionEnv) (sinNew daiNew : UInt256) :
     (suckStoreDaiNew I sinNew daiNew).get? "rad" = some (suckRadValue I) := by
-  rw [suckStoreDaiNew, store_get_ne _ _ (by native_decide),
+  rw [suckStoreDaiNew, store_get_ne _ _ (by decide +native),
     suckStoreSinNew_get_rad]
 
 theorem suckStoreViceNew_get_rad (I : ExecutionEnv)
     (sinNew daiNew viceNew : UInt256) :
     (suckStoreViceNew I sinNew daiNew viceNew).get? "rad" =
       some (suckRadValue I) := by
-  rw [suckStoreViceNew, store_get_ne _ _ (by native_decide),
+  rw [suckStoreViceNew, store_get_ne _ _ (by decide +native),
     suckStoreDaiNew_get_rad]
 
 theorem suckStoreSinNew_get_sinNew (I : ExecutionEnv) (sinNew : UInt256) :
@@ -247,63 +247,63 @@ theorem suckStoreDebtNew_get_debtNew (I : ExecutionEnv)
 theorem suckStore_sin (I : ExecutionEnv) :
     (suckStore I).get? "sin" = none := by
   unfold suckStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem suckStoreSinNew_sin (I : ExecutionEnv) (sinNew : UInt256) :
     (suckStoreSinNew I sinNew).get? "sin" = none := by
-  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_sin]
+  rw [suckStoreSinNew, store_get_ne _ _ (by decide +native), suckStore_sin]
 
 theorem suckStore_dai (I : ExecutionEnv) :
     (suckStore I).get? "dai" = none := by
   unfold suckStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem suckStoreSinNew_dai (I : ExecutionEnv) (sinNew : UInt256) :
     (suckStoreSinNew I sinNew).get? "dai" = none := by
-  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_dai]
+  rw [suckStoreSinNew, store_get_ne _ _ (by decide +native), suckStore_dai]
 
 theorem suckStoreDaiNew_dai (I : ExecutionEnv) (sinNew daiNew : UInt256) :
     (suckStoreDaiNew I sinNew daiNew).get? "dai" = none := by
-  rw [suckStoreDaiNew, store_get_ne _ _ (by native_decide), suckStoreSinNew_dai]
+  rw [suckStoreDaiNew, store_get_ne _ _ (by decide +native), suckStoreSinNew_dai]
 
 theorem suckStore_vice (I : ExecutionEnv) :
     (suckStore I).get? "vice" = none := by
   unfold suckStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem suckStoreDaiNew_vice (I : ExecutionEnv) (sinNew daiNew : UInt256) :
     (suckStoreDaiNew I sinNew daiNew).get? "vice" = none := by
-  rw [suckStoreDaiNew, store_get_ne _ _ (by native_decide)]
-  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_vice]
+  rw [suckStoreDaiNew, store_get_ne _ _ (by decide +native)]
+  rw [suckStoreSinNew, store_get_ne _ _ (by decide +native), suckStore_vice]
 
 theorem suckStoreViceNew_vice (I : ExecutionEnv) (sinNew daiNew viceNew : UInt256) :
     (suckStoreViceNew I sinNew daiNew viceNew).get? "vice" = none := by
-  rw [suckStoreViceNew, store_get_ne _ _ (by native_decide), suckStoreDaiNew_vice]
+  rw [suckStoreViceNew, store_get_ne _ _ (by decide +native), suckStoreDaiNew_vice]
 
 theorem suckStore_debt (I : ExecutionEnv) :
     (suckStore I).get? "debt" = none := by
   unfold suckStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem suckStoreViceNew_debt (I : ExecutionEnv) (sinNew daiNew viceNew : UInt256) :
     (suckStoreViceNew I sinNew daiNew viceNew).get? "debt" = none := by
-  rw [suckStoreViceNew, store_get_ne _ _ (by native_decide)]
-  rw [suckStoreDaiNew, store_get_ne _ _ (by native_decide)]
-  rw [suckStoreSinNew, store_get_ne _ _ (by native_decide), suckStore_debt]
+  rw [suckStoreViceNew, store_get_ne _ _ (by decide +native)]
+  rw [suckStoreDaiNew, store_get_ne _ _ (by decide +native)]
+  rw [suckStoreSinNew, store_get_ne _ _ (by decide +native), suckStore_debt]
 
 theorem suckStoreDebtNew_debt (I : ExecutionEnv)
     (sinNew daiNew viceNew debtNew : UInt256) :
     (suckStoreDebtNew I sinNew daiNew viceNew debtNew).get? "debt" = none := by
-  rw [suckStoreDebtNew, store_get_ne _ _ (by native_decide), suckStoreViceNew_debt]
+  rw [suckStoreDebtNew, store_get_ne _ _ (by decide +native), suckStoreViceNew_debt]
 
 theorem suckStore_wards (I : ExecutionEnv) :
     (suckStore I).get? "wards" = none := by
   unfold suckStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 set_option linter.unusedSimpArgs false in
@@ -1729,7 +1729,7 @@ theorem vatDispatchSuck {I : ExecutionEnv}
     healSelectorBytes, hopeSelectorBytes, ilksSelectorBytes, initSelectorBytes,
     liveSelectorBytes, moveSelectorBytes, nopeSelectorBytes, relySelectorBytes,
     sinSelectorBytes, slipSelectorBytes, suckSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachSuckBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -1740,29 +1740,29 @@ theorem vatReachSuckBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0xf24e23eb⟩ :=
     vatSelWord_eq_of_beq I hsz 0xf2 0x4e 0x23 0xeb ⟨0xf24e23eb⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhighhigh :
       UInt256.gt (armSelNat vatBytecode vatHighHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms65FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms65FirstPc 2))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms65Body 2 (by omega) ⟨1543⟩ hcode hwv hsz hsize
-    hroot hhigh hhighhigh heq0 htake (by jump_dest) (by native_decide)
+    hroot hhigh hhighhigh heq0 htake (by jump_dest) (by decide +native)
 
 theorem vatSuckX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz100 : 100 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1775,21 +1775,21 @@ theorem vatSuckX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨1543⟩) (ret := ⟨524⟩)
     (decoded := ⟨1565⟩) (need := ⟨96⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz100) hsize)
   obtain ⟨_, _, hmasked⟩ := RD.solcAddressAddressUint256ExternalMaskAndJumpMasked
     (code := vatBytecode) (decoded := ⟨1565⟩) (ret := ⟨524⟩) (routine := ⟨6190⟩)
     (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by simp)
   exact ⟨_, _, by
     simpa [suckRadWord, suckVMaskedWord, suckUMaskedWord, suckVWord, suckUWord,
       calldataWord] using hmasked⟩
@@ -1810,10 +1810,10 @@ theorem vatSuckX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨1543⟩) (ret := ⟨524⟩)
     (decoded := ⟨1565⟩) (need := ⟨96⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem vatSuckBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -1857,34 +1857,34 @@ theorem RD.vatSuckSinLoadToAdd
         solcMappingSlot ⟨6⟩ (suckUMaskedWord I) :=
     twoWordHashMem_solcMappingSlot ⟨6⟩ (suckUMaskedWord I) hmem
   have rd6283pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
-  have rd6283₀ := evm_run rd6283pre with [raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
+  have rd6283₀ := evm_run rd6283pre with [raw and (by decide +native) (by evm_ov)]
   have rd6283 := rd6283₀
   rw [hmaskLiteral] at rd6283
   have rd6287pre := evm_run rd6283 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6288 := rd6287pre.mstore 0 (wordAt0Mem (suckUMaskedWord I) memAuth)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6292pre := evm_run rd6288 with [
-    raw push1 ⟨6⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨6⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd6293 := rd6292pre.mstore 0
     (twoWordHashMem (suckUMaskedWord I) ⟨6⟩ memAuth)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6296pre := evm_run rd6293 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd6297 := rd6296pre.keccak256 0 (solcMappingSlot ⟨6⟩ (suckUMaskedWord I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨k6298, C6298, rd6298raw⟩ := rd6297.sload (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨k6298, C6298, rd6298raw⟩ := rd6297.sload (by decide +native) (by evm_ov)
   have rd6298 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6298⟩
       (solcSlotWord σ I (solcMappingSlot ⟨6⟩ (suckUMaskedWord I)) ::
@@ -1894,11 +1894,11 @@ theorem RD.vatSuckSinLoadToAdd
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k6298 C6298 := by
     simpa [solcSlotWord] using rd6298raw
   have rd6637pre := evm_run rd6298 with [
-    raw push2 ⟨6307⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨6637⟩ (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rd6637pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    raw push2 ⟨6307⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨6637⟩ (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rd6637pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vatSuckSinAddOverflow
     {cA gh bl σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
@@ -1924,7 +1924,7 @@ theorem RD.vatSuckSinAddOverflow
     (by simpa [hslotEq] using hroutine)
     (by
       unfold solcCheckedAddEmptyRevertWf solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hover (by simp)
 
 theorem RD.vatSuckSinAddSuccess
@@ -1955,7 +1955,7 @@ theorem RD.vatSuckSinAddSuccess
     (by simpa [hslotEq] using hroutine)
     (by
       unfold solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hfit (by jump_dest) (by jump_dest) (by simp)
   exact ⟨_, _, hafter⟩
 
@@ -1994,42 +1994,42 @@ theorem RD.vatSuckSinStore
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
     decide
   have rd6319pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov)]
-  have rd6319₀ := evm_run rd6319pre with [raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov)]
+  have rd6319₀ := evm_run rd6319pre with [raw and (by decide +native) (by evm_ov)]
   have rd6319 := rd6319₀
   rw [hmaskLiteral] at rd6319
   have rd6322pre := evm_run rd6319 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6323 := rd6322pre.mstore 0 (wordAt0Mem (suckUMaskedWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6330pre := evm_run rd6323 with [
-    raw push1 ⟨6⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨6⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6331 := rd6330pre.mstore 0
     (twoWordHashMem (suckUMaskedWord I) ⟨6⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6335pre := evm_run rd6331 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have rd6336 := rd6335pre.keccak256 0 (solcMappingSlot ⟨6⟩ (suckUMaskedWord I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
   have rd6339pre := evm_run rd6336 with [
-    raw swap5 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd6340raw⟩ := rd6339pre.sstore hperm (by native_decide) (by evm_ov)
+    raw swap5 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd6340raw⟩ := rd6339pre.sstore hperm (by decide +native) (by evm_ov)
   have hpc :
       ({ val := 6307 } + { val := 1 } + UInt256.ofNat 2 + UInt256.ofNat 2 +
           UInt256.ofNat 2 + { val := 1 } + { val := 1 } + { val := 1 } +
@@ -2038,7 +2038,7 @@ theorem RD.vatSuckSinStore
           { val := 1 } + { val := 1 } + { val := 1 } + UInt256.ofNat 2 +
           { val := 1 } + { val := 1 } + { val := 1 } + { val := 1 } +
           { val := 1 } + { val := 1 } + { val := 1 } : UInt256) = ⟨6340⟩ := by
-    native_decide
+    decide +native
   have rd6340 := rd6340raw
   rw [hpc] at rd6340
   exact ⟨_, _, by simpa [hslotEq, hmaskDef] using rd6340⟩
@@ -2069,24 +2069,24 @@ theorem RD.vatSuckDaiLoadToAdd
         solcMappingSlot ⟨5⟩ (suckVMaskedWord I) :=
     twoWordHashMem_solcMappingSlot ⟨5⟩ (suckVMaskedWord I) hmem
   have rd6342pre := evm_run h with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov)]
-  have rd6343₀ := evm_run rd6342pre with [raw and (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov)]
+  have rd6343₀ := evm_run rd6342pre with [raw and (by decide +native) (by evm_ov)]
   have rd6343 := rd6343₀
   rw [hmaskLiteral] at rd6343
-  have rd6344pre := evm_run rd6343 with [raw dup2 (by native_decide) (by evm_ov)]
+  have rd6344pre := evm_run rd6343 with [raw dup2 (by decide +native) (by evm_ov)]
   have rd6345 := rd6344pre.mstore 0 (wordAt0Mem (suckVMaskedWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6349pre := evm_run rd6345 with [
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd6350 := rd6349pre.mstore 0
     (twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6351 := rd6350.keccak256 0 (solcMappingSlot ⟨5⟩ (suckVMaskedWord I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨k6352, C6352, rd6352raw⟩ := rd6351.sload (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨k6352, C6352, rd6352raw⟩ := rd6351.sload (by decide +native) (by evm_ov)
   have rd6352 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6352⟩
       (solcSlotWord σ I (solcMappingSlot ⟨5⟩ (suckVMaskedWord I)) ::
@@ -2095,11 +2095,11 @@ theorem RD.vatSuckDaiLoadToAdd
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k6352 C6352 := by
     simpa [solcSlotWord] using rd6352raw
   have rd6637pre := evm_run rd6352 with [
-    raw push2 ⟨6361⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨6637⟩ (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rd6637pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    raw push2 ⟨6361⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨6637⟩ (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rd6637pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vatSuckDaiAddOverflow
     {cA gh bl σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
@@ -2126,7 +2126,7 @@ theorem RD.vatSuckDaiAddOverflow
     (by simpa [hslotEq] using hroutine)
     (by
       unfold solcCheckedAddEmptyRevertWf solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hover (by simp)
 
 theorem RD.vatSuckDaiAddSuccess
@@ -2158,7 +2158,7 @@ theorem RD.vatSuckDaiAddSuccess
     (by simpa [hslotEq] using hroutine)
     (by
       unfold solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hfit (by jump_dest) (by jump_dest) (by simp)
   exact ⟨_, _, hafter⟩
 
@@ -2193,34 +2193,34 @@ theorem RD.vatSuckDaiStore
   have hslotEq : solcMappingSlot ⟨5⟩ (suckVMaskedWord I) = suckDaiSlot I := by
     rw [suckDaiSlot_eq]
   have rd6371pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
-  have rd6372₀ := evm_run rd6371pre with [raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
+  have rd6372₀ := evm_run rd6371pre with [raw and (by decide +native) (by evm_ov)]
   have rd6372 := rd6372₀
   rw [hmaskLiteral] at rd6372
   have rd6375pre := evm_run rd6372 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6376 := rd6375pre.mstore 0 (wordAt0Mem (suckVMaskedWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6381pre := evm_run rd6376 with [
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd6382 := rd6381pre.mstore 0
     (twoWordHashMem (suckVMaskedWord I) ⟨5⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6385pre := evm_run rd6382 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd6386 := rd6385pre.keccak256 0 (solcMappingSlot ⟨5⟩ (suckVMaskedWord I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd6387raw⟩ := rd6386.sstore hperm (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd6387raw⟩ := rd6386.sstore hperm (by decide +native) (by evm_ov)
   have hpc :
       ({ val := 6361 } + { val := 1 } + UInt256.ofNat 2 + UInt256.ofNat 2 +
           UInt256.ofNat 2 + { val := 1 } + { val := 1 } + { val := 1 } +
@@ -2228,7 +2228,7 @@ theorem RD.vatSuckDaiStore
           { val := 1 } + UInt256.ofNat 2 + UInt256.ofNat 2 + { val := 1 } +
           UInt256.ofNat 2 + { val := 1 } + { val := 1 } + { val := 1 } : UInt256) =
         ⟨6387⟩ := by
-    native_decide
+    decide +native
   have rd6387 := rd6387raw
   rw [hpc] at rd6387
   exact ⟨_, _, by simpa [hslotEq] using rd6387⟩
@@ -2246,7 +2246,7 @@ theorem RD.vatSuckViceLoadToAdd
         suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨k6390, C6390, rd6390raw⟩ :=
-    (h.push1 ⟨8⟩ (by native_decide) (by evm_ov)).sload (by native_decide) (by evm_ov)
+    (h.push1 ⟨8⟩ (by decide +native) (by evm_ov)).sload (by decide +native) (by evm_ov)
   have rd6390 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6390⟩
       (vatSlotWord suckViceSlot σ I :: suckRadWord I :: suckVMaskedWord I ::
@@ -2254,11 +2254,11 @@ theorem RD.vatSuckViceLoadToAdd
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k6390 C6390 := by
     simpa [vatSlotWord, suckViceSlot, solcSlotWord] using rd6390raw
   have rd6637pre := evm_run rd6390 with [
-    raw push2 ⟨6399⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨6637⟩ (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rd6637pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    raw push2 ⟨6399⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨6637⟩ (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rd6637pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vatSuckViceAddOverflow
     {cA gh bl σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
@@ -2278,7 +2278,7 @@ theorem RD.vatSuckViceAddOverflow
     (by simpa using hroutine)
     (by
       unfold solcCheckedAddEmptyRevertWf solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hover (by simp)
 
 theorem RD.vatSuckViceAddSuccess
@@ -2302,7 +2302,7 @@ theorem RD.vatSuckViceAddSuccess
     (by simpa using hroutine)
     (by
       unfold solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hfit (by jump_dest) (by jump_dest) (by simp)
   exact ⟨_, _, hafter⟩
 
@@ -2321,9 +2321,9 @@ theorem RD.vatSuckViceStore
       mem (UInt256.ofNat 3) ByteArray.empty
       (cA, sstoreAccountMap I.codeOwner σ suckViceSlot viceNew) k' C' := by
   have rd6402pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
-  exact rd6402pre.sstore hperm (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨8⟩ (by decide +native) (by evm_ov)]
+  exact rd6402pre.sstore hperm (by decide +native) (by evm_ov)
 
 theorem RD.vatSuckDebtLoadToAdd
     {cA gh bl σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
@@ -2338,7 +2338,7 @@ theorem RD.vatSuckDebtLoadToAdd
         suckRadWord I :: suckVMaskedWord I :: suckUMaskedWord I :: ⟨524⟩ :: sel :: [])
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨k6406, C6406, rd6406raw⟩ :=
-    (h.push1 ⟨7⟩ (by native_decide) (by evm_ov)).sload (by native_decide) (by evm_ov)
+    (h.push1 ⟨7⟩ (by decide +native) (by evm_ov)).sload (by decide +native) (by evm_ov)
   have rd6406 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σi σ₀ (Sat256.ofUInt256 g) A I) ⟨6406⟩
       (vatSlotWord suckDebtSlot σ I :: suckRadWord I :: suckVMaskedWord I ::
@@ -2346,11 +2346,11 @@ theorem RD.vatSuckDebtLoadToAdd
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k6406 C6406 := by
     simpa [vatSlotWord, suckDebtSlot, solcSlotWord] using rd6406raw
   have rd6637pre := evm_run rd6406 with [
-    raw push2 ⟨6415⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨6637⟩ (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rd6637pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    raw push2 ⟨6415⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨6637⟩ (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rd6637pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vatSuckDebtAddOverflow
     {cA gh bl σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel : UInt256}
@@ -2370,7 +2370,7 @@ theorem RD.vatSuckDebtAddOverflow
     (by simpa using hroutine)
     (by
       unfold solcCheckedAddEmptyRevertWf solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hover (by simp)
 
 theorem RD.vatSuckDebtAddSuccess
@@ -2394,7 +2394,7 @@ theorem RD.vatSuckDebtAddSuccess
     (by simpa using hroutine)
     (by
       unfold solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hfit (by jump_dest) (by jump_dest) (by simp)
   exact ⟨_, _, hafter⟩
 
@@ -2412,14 +2412,14 @@ theorem RD.vatSuckDebtStoreReturn
       [sel] mem (UInt256.ofNat 3) ByteArray.empty
       (cA, sstoreAccountMap I.codeOwner σ suckDebtSlot debtNew) k' C' := by
   have rd6418pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨7⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd6419⟩ := rd6418pre.sstore hperm (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨7⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd6419⟩ := rd6418pre.sstore hperm (by decide +native) (by evm_ov)
   exact ⟨_, _, evm_run rd6419 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]⟩
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]⟩
 
 theorem RD.vatSuckDebtStoreStop
     {cA gh bl σi σ σ₀ A I} {g : UInt256} {k C : ℕ} {sel debtNew : UInt256}
@@ -2435,8 +2435,8 @@ theorem RD.vatSuckDebtStoreStop
       (cA, sstoreAccountMap I.codeOwner σ suckDebtSlot debtNew)
       ByteArray.empty := by
   obtain ⟨_, _, rd524⟩ := RD.vatSuckDebtStoreReturn h hperm
-  have rd525 := rd524.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd525 (by native_decide) (by evm_ov)
+  have rd525 := rd524.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd525 (by decide +native) (by evm_ov)
 
 theorem vatSuckFinishSuccess
     {cA gh bl σ_evm σ_solm σ₀ A I} {g sel sinNew daiNew viceNew debtNew : UInt256}
@@ -2516,7 +2516,7 @@ theorem vatSuckFinishSuccess
       hAccountsDebt
   have henc : returnEquiv ByteArray.empty none suckTransition.returnType := by
     rw [show suckTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     hcreated haccountsFinal henc
 
@@ -2977,7 +2977,7 @@ theorem vatSuckBodyCore : VatBodyTheorem 24 := by
         (by simpa using hdecoded)
         (by
           unfold vatAuthCheckWf
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         hauthSolc (by jump_dest) (by simp)
       let memAuth := twoWordHashMem (hopeSourceWord I) ⟨0⟩ solcFreePtrMem
       have hmemAuth : memAuth.size = 96 := by
@@ -3166,10 +3166,10 @@ theorem vatSuckBodyCore : VatBodyTheorem 24 := by
         (by simpa using hdecoded)
         (by
           unfold vatAuthCheckWf
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         (by
           unfold vatAuthRevertTailWf vatAuthTailPc
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         hauthSolc (by simp)
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · exact vatSuckBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hsel hreach

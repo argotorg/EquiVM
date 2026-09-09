@@ -314,10 +314,10 @@ theorem erc20SolmCtorExecSuccess
 /-! ## Constructor bytecode side -/
 
 theorem vyperERC20CtorPrefix_size : vyperERC20CtorPrefix.size = 107 := by
-  native_decide
+  decide +native
 
 theorem vyperERC20Bytecode_size : vyperERC20Bytecode.size = 819 := by
-  native_decide
+  decide +native
 
 theorem vyperERC20Initcode_size : vyperERC20Initcode.size = 926 := by
   rw [vyperERC20Initcode, ByteArray.size_append, vyperERC20CtorPrefix_size,
@@ -344,13 +344,13 @@ macro "vyper_erc20_ctor_decode" : tactic =>
     (first
       | rw [vyperERC20Initcode_decode_append _ _ (by decide)]
       | (unfold erc20CtorCode; rw [vyperERC20Initcode_decode_append _ _ (by decide)]);
-     native_decide))
+     decide +native))
 
 macro "vyper_erc20_ctor_jd" : tactic =>
   `(tactic|
     (first
-      | (apply Reasoning.Theory.D_J_contains_append_left; native_decide)
-      | (unfold erc20CtorCode; apply Reasoning.Theory.D_J_contains_append_left; native_decide)))
+      | (apply Reasoning.Theory.D_J_contains_append_left; decide +native)
+      | (unfold erc20CtorCode; apply Reasoning.Theory.D_J_contains_append_left; decide +native)))
 
 open Lean in
 macro "vyper_erc20_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do
@@ -724,7 +724,7 @@ theorem selectorMissDispatchMem_mload0 :
       else UInt256.ofNat
         (fromByteArrayBigEndian (selectorMissDispatchMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))
       = (⟨797⟩ : UInt256) := by
-  native_decide
+  decide +native
 
 theorem erc20Dispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg erc20Contract cd = none := by
@@ -983,7 +983,7 @@ theorem erc20X_balanceOfReach_of_mod0 {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       balanceOfDispatchMem_mload0
       (by decide) (by evm_ov)]
-  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_balance_decode) (by native_decide) (by evm_ov)⟩
+  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_balance_decode) (by decide +native) (by evm_ov)⟩
 
 theorem erc20X_approveReach_of_mod1 {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
@@ -1013,7 +1013,7 @@ theorem erc20X_approveReach_of_mod1 {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       approveDispatchMem_mload0
       (by decide) (by evm_ov)]
-  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_approve_decode) (by native_decide) (by evm_ov)⟩
+  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_approve_decode) (by decide +native) (by evm_ov)⟩
 
 theorem erc20X_transferFromReach_of_mod2 {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
@@ -1032,18 +1032,18 @@ theorem erc20X_transferFromReach_of_mod2 {cA gh bl σ σ₀ A I} {g : Sat256}
         UInt256.shiftLeft (UInt256.mod (vyperRuntimeSelectorWord I) ⟨7⟩) ⟨1⟩).toNat)
       ByteArray.empty 30 2)
     (UInt256.ofNat 1)
-    (by native_decide) mem_cost rfl (by decide) (by evm_ov)
+    (by decide +native) mem_cost rfl (by decide) (by evm_ov)
   have rdAfterCopy := by
     simpa [vyperRuntimeSelectorWord, transferFromDispatchMem, vyperDispatchSourceOfMod hmod]
       using rdAfterCopy0
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
     raw mload 0 ⟨331⟩ (UInt256.ofNat 1)
-      (by native_decide)
+      (by decide +native)
       mem_cost
       transferFromDispatchMem_mload0
       (by decide) (by evm_ov)]
-  exact ⟨_, _, rdBeforeJump.jump (by native_decide) (by native_decide) (by evm_ov)⟩
+  exact ⟨_, _, rdBeforeJump.jump (by decide +native) (by decide +native) (by evm_ov)⟩
 
 theorem erc20X_transferReach_of_mod3 {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
@@ -1073,7 +1073,7 @@ theorem erc20X_transferReach_of_mod3 {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       transferDispatchMem_mload0
       (by decide) (by evm_ov)]
-  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_transfer_decode) (by native_decide) (by evm_ov)⟩
+  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_transfer_decode) (by decide +native) (by evm_ov)⟩
 
 theorem erc20X_selectorMissReach_of_mod4 {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
@@ -1103,7 +1103,7 @@ theorem erc20X_selectorMissReach_of_mod4 {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       selectorMissDispatchMem_mload0
       (by decide) (by evm_ov)]
-  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_runtime_decode) (by native_decide) (by evm_ov)⟩
+  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_runtime_decode) (by decide +native) (by evm_ov)⟩
 
 theorem erc20X_totalSupplyReach_of_mod5 {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
@@ -1133,7 +1133,7 @@ theorem erc20X_totalSupplyReach_of_mod5 {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       runtimeDispatchMem_mload0
       (by decide) (by evm_ov)]
-  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_runtime_decode) (by native_decide) (by evm_ov)⟩
+  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_runtime_decode) (by decide +native) (by evm_ov)⟩
 
 theorem erc20X_allowanceReach_of_mod6 {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
@@ -1163,7 +1163,7 @@ theorem erc20X_allowanceReach_of_mod6 {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       allowanceDispatchMem_mload0
       (by decide) (by evm_ov)]
-  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_allowance_decode) (by native_decide) (by evm_ov)⟩
+  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_allowance_decode) (by decide +native) (by evm_ov)⟩
 
 theorem erc20BalanceOfSelectorMiss {cA gh bl σ σ₀ A I} {g : Sat256}
     (hneq : vyperRuntimeSelectorWord I ≠ balanceOfSelectorWord)
@@ -1204,9 +1204,9 @@ theorem erc20TransferFromSelectorMiss {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd331⟩ := hreach
   have rd797 := evm_run rd331 with [
     jumpdest,
-    raw push4 transferFromSelectorWord (by native_decide) (by evm_ov),
+    raw push4 transferFromSelectorWord (by decide +native) (by evm_ov),
     dup2, xor, push2 ⟨797⟩,
-    jumpiT (by simpa using u256_xor_ne_zero_of_ne hneq) (by native_decide)]
+    jumpiT (by simpa using u256_xor_ne_zero_of_ne hneq) (by decide +native)]
   exact vyperRuntimeRevert797 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
     (A := A) (I := I) (g := g) rd797 rfl (by norm_num)
 
@@ -1307,7 +1307,7 @@ theorem erc20NoDispatchRuntimeCore
       exact Nat.mod_lt _ (by decide)
     interval_cases m
     · have hneq : vyperRuntimeSelectorWord I ≠ balanceOfSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 3 (by decide))
+        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by decide +native) (hnm 3 (by decide))
       exact (erc20BalanceOfSelectorMiss
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1315,7 +1315,7 @@ theorem erc20NoDispatchRuntimeCore
           (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ approveSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 0 (by decide))
+        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by decide +native) (hnm 0 (by decide))
       exact (erc20ApproveSelectorMiss
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1323,7 +1323,7 @@ theorem erc20NoDispatchRuntimeCore
           (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ transferFromSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 2 (by decide))
+        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by decide +native) (hnm 2 (by decide))
       exact (erc20TransferFromSelectorMiss
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1331,7 +1331,7 @@ theorem erc20NoDispatchRuntimeCore
           (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ transferSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 4 (by decide))
+        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by decide +native) (hnm 4 (by decide))
       exact (erc20TransferSelectorMiss
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1340,7 +1340,7 @@ theorem erc20NoDispatchRuntimeCore
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · exact erc20SelectorMissRuntime_mod4 hcode hm.symm hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ totalSupplySelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 1 (by decide))
+        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by decide +native) (hnm 1 (by decide))
       exact (erc20TotalSupplySelectorMiss
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1348,7 +1348,7 @@ theorem erc20NoDispatchRuntimeCore
           (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ allowanceSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by native_decide) (hnm 5 (by decide))
+        exact vyperRuntimeSelectorWord_ne_of_selector_false hsz4 (by decide +native) (hnm 5 (by decide))
       exact (erc20AllowanceSelectorMiss
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1363,7 +1363,7 @@ theorem erc20NoDispatchRuntimeCore
       exact Nat.mod_lt _ (by decide)
     interval_cases m
     · have hneq : vyperRuntimeSelectorWord I ≠ balanceOfSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_short hshort (by native_decide)
+        exact vyperRuntimeSelectorWord_ne_of_short hshort (by decide +native)
       exact (erc20BalanceOfSelectorMiss
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1371,7 +1371,7 @@ theorem erc20NoDispatchRuntimeCore
           (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ approveSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_short hshort (by native_decide)
+        exact vyperRuntimeSelectorWord_ne_of_short hshort (by decide +native)
       exact (erc20ApproveSelectorMiss
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1379,7 +1379,7 @@ theorem erc20NoDispatchRuntimeCore
           (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ transferFromSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_short hshort (by native_decide)
+        exact vyperRuntimeSelectorWord_ne_of_short hshort (by decide +native)
       exact (erc20TransferFromSelectorMiss
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1387,7 +1387,7 @@ theorem erc20NoDispatchRuntimeCore
           (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ transferSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_short hshort (by native_decide)
+        exact vyperRuntimeSelectorWord_ne_of_short hshort (by decide +native)
       exact (erc20TransferSelectorMiss
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1396,7 +1396,7 @@ theorem erc20NoDispatchRuntimeCore
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · exact erc20SelectorMissRuntime_mod4 hcode hm.symm hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ totalSupplySelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_short hshort (by native_decide)
+        exact vyperRuntimeSelectorWord_ne_of_short hshort (by decide +native)
       exact (erc20TotalSupplySelectorMiss
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1404,7 +1404,7 @@ theorem erc20NoDispatchRuntimeCore
           (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A)
           (I := I) (g := Sat256.ofUInt256 g) hcode hm.symm)).reEquivNoDispatch hcode hdisp
     · have hneq : vyperRuntimeSelectorWord I ≠ allowanceSelectorWord := by
-        exact vyperRuntimeSelectorWord_ne_of_short hshort (by native_decide)
+        exact vyperRuntimeSelectorWord_ne_of_short hshort (by decide +native)
       exact (erc20AllowanceSelectorMiss
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
         (g := Sat256.ofUInt256 g) hneq
@@ -1448,7 +1448,7 @@ theorem erc20ApproveNonPayableRuntime
   have rd801 := evm_run rd206 with [
     jumpdest,
     raw push4 approveSelectorWord (by vyper_erc20_approve_decode) (by evm_ov),
-    dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
+    dup2, xor, push2 ⟨797⟩, jumpiNT (by decide +native),
     push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by
       simpa [u256_lor_comm] using
@@ -1473,7 +1473,7 @@ theorem erc20TotalSupplyNonPayableRuntime
   have rd801 := evm_run rd769 with [
     jumpdest,
     raw push4 totalSupplySelectorWord (by vyper_erc20_runtime_decode) (by evm_ov),
-    dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
+    dup2, xor, push2 ⟨797⟩, jumpiNT (by decide +native),
     callvalue, push2 ⟨801⟩,
     jumpiT hwv (by vyper_erc20_runtime_decode)]
   exact erc20RuntimeNonPayableOfDispatch hcode (erc20Dispatch_totalSupply hsel)
@@ -1507,15 +1507,15 @@ theorem erc20TransferFromNonPayableRuntime
     (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsel
   have rd801 := evm_run rd331 with [
     jumpdest,
-    raw push4 transferFromSelectorWord (by native_decide) (by evm_ov),
-    dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
+    raw push4 transferFromSelectorWord (by decide +native) (by evm_ov),
+    dup2, xor, push2 ⟨797⟩, jumpiNT (by decide +native),
     push1 ⟨100⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by
       simpa [u256_lor_comm] using
         (u256_lor_ne_zero_right
           (a := UInt256.lt (UInt256.ofNat I.calldata.size) ⟨100⟩)
           (b := I.weiValue) hwv))
-      (by native_decide)]
+      (by decide +native)]
   exact erc20RuntimeNonPayableOfDispatch hcode (erc20Dispatch_transferFrom hsel)
     (fun _ => bodyReverts_nonPayable (cfg := config) (contract := erc20Contract)
       (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) hwv)
@@ -1533,7 +1533,7 @@ theorem erc20BalanceOfNonPayableRuntime
   have rd801 := evm_run rd623 with [
     jumpdest,
     raw push4 balanceOfSelectorWord (by vyper_erc20_balance_decode) (by evm_ov),
-    dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
+    dup2, xor, push2 ⟨797⟩, jumpiNT (by decide +native),
     push1 ⟨36⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by
       simpa [u256_lor_comm] using
@@ -1558,7 +1558,7 @@ theorem erc20TransferNonPayableRuntime
   have rd801 := evm_run rd24 with [
     jumpdest,
     raw push4 transferSelectorWord (by vyper_erc20_transfer_decode) (by evm_ov),
-    dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
+    dup2, xor, push2 ⟨797⟩, jumpiNT (by decide +native),
     push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by
       simpa [u256_lor_comm] using
@@ -1583,7 +1583,7 @@ theorem erc20AllowanceNonPayableRuntime
   have rd801 := evm_run rd681 with [
     jumpdest,
     raw push4 allowanceSelectorWord (by vyper_erc20_allowance_decode) (by evm_ov),
-    dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
+    dup2, xor, push2 ⟨797⟩, jumpiNT (by decide +native),
     push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by
       simpa [u256_lor_comm] using

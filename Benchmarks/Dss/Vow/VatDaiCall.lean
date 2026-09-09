@@ -73,14 +73,14 @@ theorem vatDaiSelectorMem_size_of_size96 {mem : ByteArray} (hmem : mem.size = 96
     (vatDaiSelectorMem mem).size = 160 := by
   unfold vatDaiSelectorMem
   exact toByteArray_write32_size_of_ge mem kissDaiSelectorShifted 128 96 160 hmem
-    (by omega) (by native_decide) (by omega)
+    (by omega) (by decide +native) (by omega)
 
 theorem vatDaiSelectorMem_read64_of_size96 {mem : ByteArray} (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (vatDaiSelectorMem mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold vatDaiSelectorMem
   rw [toByteArray_write_read_below_of_gap kissDaiSelectorShifted mem 128 64
-    (by rw [hmem]) (by omega) (by rw [hmem]; native_decide), hread64]
+    (by rw [hmem]) (by omega) (by rw [hmem]; decide +native), hread64]
 
 theorem vatDaiCalldataMemFor_size_of_size96 (arg : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -119,17 +119,17 @@ theorem vatDaiSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 164) :
     extract_extract_BA,
     show 0 + 0 = 0 from rfl, show min (0 + 4) 32 = 4 from by omega,
     toByteArray_eq_toBytesBE]
-  native_decide
+  decide +native
 
 theorem vatDaiSelectorMem_selector_of_size96 {mem : ByteArray} (hmem : mem.size = 96) :
     (vatDaiSelectorMem mem).extract 128 132 = kissDaiSelector := by
   have hread : (vatDaiSelectorMem mem).readWithPadding 128 4 = kissDaiSelector := by
     unfold vatDaiSelectorMem
     rw [toByteArray_write_read_window_of_gap kissDaiSelectorShifted mem 128 0 4
-      (by omega) (by norm_num) (by norm_num) (by rw [hmem]; native_decide),
+      (by omega) (by norm_num) (by norm_num) (by rw [hmem]; decide +native),
       show 0 + 4 = 4 from rfl,
       toByteArray_eq_toBytesBE]
-    native_decide
+    decide +native
   rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
       (by rw [vatDaiSelectorMem_size_of_size96 hmem]; omega)] at hread
   simpa using hread

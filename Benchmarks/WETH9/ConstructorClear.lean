@@ -67,7 +67,7 @@ theorem weth9ClearLoopAndReturn
         UInt256.isZero (UInt256.gt (K + UInt256.ofNat a) (K + UInt256.ofNat a)) ≠ ⟨0⟩ := by
       rw [ugt_zero (le_refl _)]; decide
     exact ⟨_, _, evm_run hrd with [
-      jumpdest, dup1, dup3, gt, iszero, push2 ⟨244⟩, jumpiT hcond (by native_decide)]⟩
+      jumpdest, dup1, dup3, gt, iszero, push2 ⟨244⟩, jumpiT hcond (by decide +native)]⟩
   have hbody : ∀ (v : ℕ) (a : ℕ), a + (v + 1) = oldWords → ∀ k C,
       RD weth9CreationBytecode ee g s0 ⟨254⟩
         [K + UInt256.ofNat a, K + UInt256.ofNat oldWords, ⟨274⟩, ⟨244⟩, slot, retAddr]
@@ -88,8 +88,8 @@ theorem weth9ClearLoopAndReturn
     have hbefore := evm_run hrd with [
       jumpdest, dup1, dup3, gt, iszero, push2 ⟨244⟩, jumpiNT hcond,
       push1 ⟨0⟩, dup2]
-    obtain ⟨k', C', hafter⟩ := hbefore.sstore hperm (by native_decide) (by evm_ov)
-    have hnext := evm_run hafter with [push1 ⟨1⟩, add, push2 ⟨254⟩, jump (by native_decide)]
+    obtain ⟨k', C', hafter⟩ := hbefore.sstore hperm (by decide +native) (by evm_ov)
+    have hnext := evm_run hafter with [push1 ⟨1⟩, add, push2 ⟨254⟩, jump (by decide +native)]
     rw [weth9ClearCursor_succ K a, ← clearDataWordsForwardFrom_append ee.codeOwner σ' K a] at hnext
     exact ⟨a + 1, _, _, by omega, hnext⟩
   -- Feed the initial cursor state and run the loop to exhaustion.
@@ -110,8 +110,8 @@ theorem weth9ClearLoopAndReturn
   subst ha'
   -- Return dance ⟨244⟩ → ⟨274⟩ → ⟨244⟩ → retAddr, leaving `[slot]`.
   exact ⟨_, _, evm_run hexitRD with [
-    jumpdest, pop, swap1, jump (by native_decide),
-    jumpdest, swap1, jump (by native_decide),
+    jumpdest, pop, swap1, jump (by decide +native),
+    jumpdest, swap1, jump (by decide +native),
     jumpdest, pop, swap1, jump hRA]⟩
 
 /-! ## Reconciling the EVM store-then-clear order with the Solm clear-then-store order -/

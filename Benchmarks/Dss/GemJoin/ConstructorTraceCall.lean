@@ -40,7 +40,7 @@ theorem gemJoinCtorDecimalsSetupReach
       (gemJoinCtorWardsHashMem_mload64 I vat ilk gem) (by decide) (by evm_ov),
     push4 ⟨826074471⟩, push1 ⟨224⟩, shl, dup2]
   have rd153 := rd151pre.mstore 3 (gemJoinCtorDecimalsCalldataMem I vat ilk gem)
-    (UInt256.ofNat 8) (by gem_ctor_decode) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 8) (by gem_ctor_decode) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have hread64 :
       (gemJoinCtorDecimalsCalldataMem I vat ilk gem).readWithPadding 64 32 =
         UInt256.toByteArray ⟨224⟩ := by
@@ -49,7 +49,7 @@ theorem gemJoinCtorDecimalsSetupReach
       (gemJoinCtorWardsHashMem I vat ilk gem) 224 64
       (by rw [gemJoinCtorWardsHashMem_size]; omega)
       (by omega)
-      (by rw [gemJoinCtorWardsHashMem_size]; native_decide)]
+      (by rw [gemJoinCtorWardsHashMem_size]; decide +native)]
     exact gemJoinCtorWardsHashMem_read64 I vat ilk gem
   have hmload64 :
       (if (⟨64⟩ : UInt256).toNat ≥ (gemJoinCtorDecimalsCalldataMem I vat ilk gem).size ∨
@@ -80,7 +80,7 @@ theorem gemJoinCtorDecimalsSetupReach
             ⟨1⟩ + UInt256.ofNat 5 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
             ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
             ⟨1⟩ + ⟨1⟩ = ⟨184⟩
-        from by native_decide] using rd184⟩
+        from by decide +native] using rd184⟩
 
 theorem gemJoinCtorDecimalsStaticcallReach
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -134,7 +134,7 @@ theorem gemJoinCtorDecimalsStaticcallReach
   obtain ⟨createdAccounts', σ', z, out, Ain, callGas, k', C', hTheta, rd200, houtSize⟩ :=
     RD.solcStaticcall rd199 (by gem_ctor_decode) hdepth (by evm_ov)
   exact ⟨createdAccounts', σ', z, out, Ain, callGas, k', C', hTheta, by
-    simpa [show (⟨199⟩ : UInt256) + ⟨1⟩ = ⟨200⟩ from by native_decide] using rd200,
+    simpa [show (⟨199⟩ : UInt256) + ⟨1⟩ = ⟨200⟩ from by decide +native] using rd200,
     houtSize⟩
 
 theorem gemJoinCtorDecimalsStaticcallDepthLimitReach
@@ -176,7 +176,7 @@ theorem gemJoinCtorDecimalsStaticcallDepthLimitReach
   obtain ⟨k', C', rd200⟩ :=
     RD.solcStaticcallDepthLimit rd199 (by gem_ctor_decode) hdepth (by evm_ov)
   exact ⟨k', C', by
-    simpa [show (⟨199⟩ : UInt256) + ⟨1⟩ = ⟨200⟩ from by native_decide]
+    simpa [show (⟨199⟩ : UInt256) + ⟨1⟩ = ⟨200⟩ from by decide +native]
       using rd200⟩
 
 theorem gemJoinCtorDecimalsNoCodeReverts
@@ -399,7 +399,7 @@ theorem gemJoinCtorDecimalsReturnDecodeOkReach
     hMload224Cost hMload224Value hMload224Aw
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by
-    simpa [show (⟨238⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨241⟩ from by native_decide]
+    simpa [show (⟨238⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨241⟩ from by decide +native]
       using rdMload224⟩
 
 set_option maxHeartbeats 2000000 in

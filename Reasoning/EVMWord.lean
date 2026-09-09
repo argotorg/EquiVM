@@ -634,34 +634,34 @@ theorem uslt_eq_zero_of_ne_one {a b : UInt256}
         apply h
         unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
         rw [if_pos ha, if_pos hb, if_pos (decide_eq_true hab)]
-        native_decide
+        decide +native
       · have hdf : ¬ decide (a < b) = true := by
           rw [decide_eq_false hab]
           decide
         rw [if_neg hdf]
-        native_decide
+        decide +native
     · rw [if_neg hb]
       exfalso
       apply h
       unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
       rw [if_pos ha, if_neg hb]
-      native_decide
+      decide +native
   · rw [if_neg ha]
     by_cases hb : b.toNat ≥ 2 ^ 255
     · rw [if_pos hb]
-      native_decide
+      decide +native
     · rw [if_neg hb]
       by_cases hab : a < b
       · exfalso
         apply h
         unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
         rw [if_neg ha, if_neg hb, if_pos (decide_eq_true hab)]
-        native_decide
+        decide +native
       · have hdf : ¬ decide (a < b) = true := by
           rw [decide_eq_false hab]
           decide
         rw [if_neg hdf]
-        native_decide
+        decide +native
 
 /-- `SLT a m = 0` when both words are non-negative and `a ≥ m`. -/
 theorem slt_lit_zero {a : UInt256} {m : ℕ}

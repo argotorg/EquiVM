@@ -86,7 +86,7 @@ theorem evalExpr_daiJoinCtorLocalVat {evm : EVM.State} (vat dai : AccountAddress
     evalExpr? config { contract := contract, locals := daiJoinCtorLocals vat dai } evm
       (.var "vat_") = .ok (.address vat) := by
   simp only [evalExpr?, EvalResult.ofOption]
-  rw [daiJoinCtorLocals, store_get_ne _ _ (by native_decide), store_get_self]
+  rw [daiJoinCtorLocals, store_get_ne _ _ (by decide +native), store_get_self]
 
 theorem evalExpr_daiJoinCtorLocalDai {evm : EVM.State} (vat dai : AccountAddress) :
     evalExpr? config { contract := contract, locals := daiJoinCtorLocals vat dai } evm

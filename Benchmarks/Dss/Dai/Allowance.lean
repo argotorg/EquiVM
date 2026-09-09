@@ -40,7 +40,7 @@ theorem allowanceStore_get_arg0 (I : ExecutionEnv) :
   unfold allowanceStore
   rw [store_get_ne
     (L := (∅ : Store).insert "arg0" (allowanceOwnerValue I))
-    (k := "arg1") (a := "arg0") (allowanceSpenderValue I) (by native_decide)]
+    (k := "arg1") (a := "arg0") (allowanceSpenderValue I) (by decide +native)]
   simp
 
 theorem allowanceStore_get_arg1 (I : ExecutionEnv) :
@@ -267,7 +267,7 @@ theorem daiAllowanceBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (daiSelBytes 0) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (daiSelBytes 0) (by decide +native) hsel
   have hdispatch : dispatchMsg contract I.calldata = some allowanceTransition :=
     daiDispatchAllowance hsel
   have hreach := daiReachAllowanceBody (cA := cA) (gh := gh) (bl := bl)

@@ -27,7 +27,7 @@ abbrev endSkipStore (I : ExecutionEnv) : Store :=
 
 theorem endSkipStore_get_ilk (I : ExecutionEnv) :
     (endSkipStore I).get? "ilk" = some (.fixedBytes bytes32Width (endSkipIlkBytes I)) := by
-  rw [endSkipStore, store_get_ne _ _ (by native_decide), store_get_self]
+  rw [endSkipStore, store_get_ne _ _ (by decide +native), store_get_self]
 
 abbrev endSkipIlkKey (I : ExecutionEnv) : KeyValue := endBytes32ArgKey I
 
@@ -538,8 +538,8 @@ theorem endSkipCatIlksPostCallMem_size_long (I : ExecutionEnv) (out : ByteArray)
     (hlo : 96 ≤ out.size) :
     (endSkipCatIlksPostCallMem I out).size = 224 := by
   unfold endSkipCatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endSkipCatIlksOutSize.toNat = 96 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endSkipCatIlksOutSize.toNat = 96 by decide +native]
   rw [Nat.min_eq_left hlo]
   change (out.write 0 (endSkipCatIlksCalldataMem I) 128 96).size = 224
   rw [write_eq_gen_extend out (endSkipCatIlksCalldataMem I) 128 96
@@ -554,8 +554,8 @@ theorem endSkipCatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray) :
     (endSkipCatIlksPostCallMem I out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endSkipCatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endSkipCatIlksOutSize.toNat = 96 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endSkipCatIlksOutSize.toNat = 96 by decide +native]
   by_cases hlen0 : min 96 out.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     exact endSkipCatIlksCalldataMem_read64 I
@@ -565,7 +565,7 @@ theorem endSkipCatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray) :
       (by
         rw [endSkipCatIlksCalldataMem_size I]
         omega)
-      (by native_decide)]
+      (by decide +native)]
     exact endSkipCatIlksCalldataMem_read64 I
 
 theorem endSkipCatIlksPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray) :
@@ -578,8 +578,8 @@ theorem endSkipCatIlksPostCallMem_mload64 (I : ExecutionEnv) (out : ByteArray) :
   mloadFreePtrValue
     (by
       unfold endSkipCatIlksPostCallMem
-      rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-        show endSkipCatIlksOutSize.toNat = 96 by native_decide]
+      rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+        show endSkipCatIlksOutSize.toNat = 96 by decide +native]
       by_cases hlen0 : min 96 out.size = 0
       · rw [hlen0, byteArray_write_len_zero, endSkipCatIlksCalldataMem_size I]
         decide
@@ -605,8 +605,8 @@ theorem endSkipCatIlksPostCallMem_read128_long (I : ExecutionEnv) (out : ByteArr
     (hlo : 96 ≤ out.size) :
     (endSkipCatIlksPostCallMem I out).readWithPadding 128 32 = out.extract 0 32 := by
   unfold endSkipCatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endSkipCatIlksOutSize.toNat = 96 by native_decide,
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endSkipCatIlksOutSize.toNat = 96 by decide +native,
     Nat.min_eq_left hlo]
   rw [write_eq_gen_extend out (endSkipCatIlksCalldataMem I) 128 96
     (by omega) (by omega)
@@ -640,7 +640,7 @@ theorem endSkipCatIlksPostCallMem_mload128_long (I : ExecutionEnv) (out : ByteAr
         endSkipCatIlkFlipWord out
     rw [endSkipCatIlksPostCallMem_read128_long I out hlo]
   · rw [endSkipCatIlksPostCallMem_size_long I out hlo]
-    native_decide
+    decide +native
 
 theorem endSkipCatIlksDecode_ok {out : ByteArray} (hlo : 96 ≤ out.size) :
     config.externalABI.decode? "catIlks" out =
@@ -742,19 +742,19 @@ theorem endSkipVatIlksSelectorMem_size_long (I : ExecutionEnv) (catOut : ByteArr
     endFlowVatIlksSelectorShifted 128 224 224
     (endSkipVatIlksBaseMem_size_long I catOut hloCat)
     (by rw [endSkipVatIlksBaseMem_size_long I catOut hloCat]; omega)
-    (by native_decide)
+    (by decide +native)
 
 theorem endSkipVatIlksCalldataMem_size_long (I : ExecutionEnv) (catOut : ByteArray)
     (hloCat : 96 ≤ catOut.size) :
     (endSkipVatIlksCalldataMem I catOut).size = 224 := by
   unfold endSkipVatIlksCalldataMem endFlowVatIlksCalldataMem endFlowVatIlksArg0Mem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   exact toByteArray_write32_size_of_le
     (endFlowVatIlksSelectorMem (endSkipCatIlksPostCallMem I catOut))
     (endFlowIlkWord I) 132 224 224
     (endSkipVatIlksSelectorMem_size_long I catOut hloCat)
     (by rw [endSkipVatIlksSelectorMem_size_long I catOut hloCat]; omega)
-    (by native_decide)
+    (by decide +native)
 
 theorem endSkipVatIlksSelectorMem_read64_long (I : ExecutionEnv) (catOut : ByteArray)
     (hloCat : 96 ≤ catOut.size) :
@@ -768,7 +768,7 @@ theorem endSkipVatIlksSelectorMem_read64_long (I : ExecutionEnv) (catOut : ByteA
     (endSkipCatIlksPostCallMem I catOut) 128 64
     (by rw [endSkipVatIlksBaseMem_size_long I catOut hloCat]; omega)
     (by omega)
-    (by rw [endSkipVatIlksBaseMem_size_long I catOut hloCat]; native_decide)]
+    (by rw [endSkipVatIlksBaseMem_size_long I catOut hloCat]; decide +native)]
   exact endSkipCatIlksPostCallMem_read64 I catOut
 
 theorem endSkipVatIlksCalldataMem_read64_long (I : ExecutionEnv) (catOut : ByteArray)
@@ -776,7 +776,7 @@ theorem endSkipVatIlksCalldataMem_read64_long (I : ExecutionEnv) (catOut : ByteA
     (endSkipVatIlksCalldataMem I catOut).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endSkipVatIlksCalldataMem endFlowVatIlksCalldataMem endFlowVatIlksArg0Mem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   rw [write32_read_below _ _ 132 64 (by rw [toByteArray_size])
     (by rw [endSkipVatIlksSelectorMem_size_long I catOut hloCat]; omega) (by omega)]
   exact endSkipVatIlksSelectorMem_read64_long I catOut hloCat
@@ -794,9 +794,9 @@ theorem endSkipVatIlksSelectorMem_extract128_132_long (I : ExecutionEnv)
       ilksSelector
     rw [toByteArray_write_read_window_of_gap endFlowVatIlksSelectorShifted
       (endSkipCatIlksPostCallMem I catOut) 128 0 4
-      (by omega) (by omega) (by native_decide)
-      (by rw [endSkipVatIlksBaseMem_size_long I catOut hloCat]; native_decide)]
-    native_decide
+      (by omega) (by omega) (by decide +native)
+      (by rw [endSkipVatIlksBaseMem_size_long I catOut hloCat]; decide +native)]
+    decide +native
   rw [← hread]
   rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
     (by rw [endSkipVatIlksSelectorMem_size_long I catOut hloCat]; omega)]
@@ -806,13 +806,13 @@ theorem endSkipVatIlksCalldataMem_read128_36_long (I : ExecutionEnv)
     (endSkipVatIlksCalldataMem I catOut).readWithPadding 128 36 =
       ilksSelector ++ (endFlowIlkWord I).toByteArray := by
   unfold endSkipVatIlksCalldataMem endFlowVatIlksCalldataMem endFlowVatIlksArg0Mem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   let selMem := endFlowVatIlksSelectorMem (endSkipCatIlksPostCallMem I catOut)
   have hselSize : selMem.size = 224 := by
     simpa [selMem] using endSkipVatIlksSelectorMem_size_long I catOut hloCat
   have hfinalSize : ((endFlowIlkWord I).toByteArray.write 0 selMem 132 32).size = 224 := by
     exact toByteArray_write32_size_of_le selMem (endFlowIlkWord I) 132 224 224
-      hselSize (by rw [hselSize]; omega) (by native_decide)
+      hselSize (by rw [hselSize]; omega) (by decide +native)
   rw [readWithPadding_eq_extract' _ 128 36 (by norm_num) (by norm_num)
     (by rw [hfinalSize]; omega)]
   rw [write32_eq _ _ 132 (by rw [toByteArray_size]) (by rw [hselSize]; omega)]
@@ -883,8 +883,8 @@ theorem endSkipVatIlksPostCallMem_size_long (I : ExecutionEnv)
     (hloVat : 160 ≤ vatOut.size) :
     (endSkipVatIlksPostCallMem I catOut vatOut).size = 288 := by
   unfold endSkipVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   rw [Nat.min_eq_left hloVat]
   rw [write_eq_gen_extend vatOut (endSkipVatIlksCalldataMem I catOut) 128 160
     (by omega) (by omega)
@@ -899,23 +899,23 @@ theorem endSkipVatIlksPostCallMem_read64 (I : ExecutionEnv)
     (endSkipVatIlksPostCallMem I catOut vatOut).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endSkipVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   by_cases hlen0 : min 160 vatOut.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     exact endSkipVatIlksCalldataMem_read64_long I catOut hloCat
   · rw [write_read_below_gen_extend vatOut (endSkipVatIlksCalldataMem I catOut)
       128 (min 160 vatOut.size) 64 hlen0 (Nat.min_le_right _ _)
       (by rw [endSkipVatIlksCalldataMem_size_long I catOut hloCat]; omega)
-      (by native_decide)]
+      (by decide +native)]
     exact endSkipVatIlksCalldataMem_read64_long I catOut hloCat
 
 theorem endSkipVatIlksPostCallMem_size_gt64 (I : ExecutionEnv)
     (catOut vatOut : ByteArray) (hloCat : 96 ≤ catOut.size) :
     64 < (endSkipVatIlksPostCallMem I catOut vatOut).size := by
   unfold endSkipVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   by_cases hlen0 : min 160 vatOut.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     rw [endSkipVatIlksCalldataMem_size_long I catOut hloCat]
@@ -957,8 +957,8 @@ theorem endSkipVatIlksPostCallMem_read160_long (I : ExecutionEnv)
     (endSkipVatIlksPostCallMem I catOut vatOut).readWithPadding 160 32 =
       vatOut.extract 32 64 := by
   unfold endSkipVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   rw [Nat.min_eq_left hloVat]
   rw [write_eq_gen_extend vatOut (endSkipVatIlksCalldataMem I catOut) 128 160
     (by omega) (by omega)
@@ -1006,7 +1006,7 @@ theorem endSkipVatIlksPostCallMem_mload160_long (I : ExecutionEnv)
   · exact not_or.mpr
       ⟨by rw [endSkipVatIlksPostCallMem_size_long I catOut vatOut hloCat hloVat];
           decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem endSkipBidsSelectorMem_size_long (I : ExecutionEnv)
     (catOut vatOut : ByteArray) (hloCat : 96 ≤ catOut.size)
@@ -1017,19 +1017,19 @@ theorem endSkipBidsSelectorMem_size_long (I : ExecutionEnv)
     (endSkipVatIlksPostCallMem I catOut vatOut) endSkipBidsSelectorShifted 128 288 288
     (endSkipVatIlksPostCallMem_size_long I catOut vatOut hloCat hloVat)
     (by rw [endSkipVatIlksPostCallMem_size_long I catOut vatOut hloCat hloVat]; omega)
-    (by native_decide)
+    (by decide +native)
 
 theorem endSkipBidsCalldataMem_size_long (I : ExecutionEnv)
     (catOut vatOut : ByteArray) (hloCat : 96 ≤ catOut.size)
     (hloVat : 160 ≤ vatOut.size) :
     (endSkipBidsCalldataMem I catOut vatOut).size = 288 := by
   unfold endSkipBidsCalldataMem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   exact toByteArray_write32_size_of_le
     (endSkipBidsSelectorMem I catOut vatOut) (endSkipIdWord I) 132 288 288
     (endSkipBidsSelectorMem_size_long I catOut vatOut hloCat hloVat)
     (by rw [endSkipBidsSelectorMem_size_long I catOut vatOut hloCat hloVat]; omega)
-    (by native_decide)
+    (by decide +native)
 
 theorem endSkipBidsSelectorMem_read64_long (I : ExecutionEnv)
     (catOut vatOut : ByteArray) (hloCat : 96 ≤ catOut.size)
@@ -1037,14 +1037,14 @@ theorem endSkipBidsSelectorMem_read64_long (I : ExecutionEnv)
     (endSkipBidsSelectorMem I catOut vatOut).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endSkipBidsSelectorMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native]
   rw [toByteArray_write_read_below_of_gap endSkipBidsSelectorShifted
     (endSkipVatIlksPostCallMem I catOut vatOut) 128 64
     (by rw [endSkipVatIlksPostCallMem_size_long I catOut vatOut hloCat hloVat]; omega)
     (by omega)
     (by
       rw [endSkipVatIlksPostCallMem_size_long I catOut vatOut hloCat hloVat]
-      native_decide)]
+      decide +native)]
   exact endSkipVatIlksPostCallMem_read64 I catOut vatOut hloCat
 
 theorem endSkipBidsCalldataMem_read64_long (I : ExecutionEnv)
@@ -1053,7 +1053,7 @@ theorem endSkipBidsCalldataMem_read64_long (I : ExecutionEnv)
     (endSkipBidsCalldataMem I catOut vatOut).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endSkipBidsCalldataMem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   rw [write32_read_below _ _ 132 64 (by rw [toByteArray_size])
     (by rw [endSkipBidsSelectorMem_size_long I catOut vatOut hloCat hloVat]; omega)
     (by omega)]
@@ -1073,7 +1073,7 @@ theorem endSkipBidsSelectorMem_extract128_132_long (I : ExecutionEnv)
     rw [write32_read_prefix_len _ _ 128 4 (by rw [toByteArray_size])
       (by rw [endSkipVatIlksPostCallMem_size_long I catOut vatOut hloCat hloVat]; omega)
       (by omega) (by omega) (by omega)]
-    native_decide
+    decide +native
   rw [← hread]
   rw [readWithPadding_eq_extract' _ 128 4 (by norm_num) (by norm_num)
     (by rw [endSkipBidsSelectorMem_size_long I catOut vatOut hloCat hloVat]; omega)]
@@ -1084,13 +1084,13 @@ theorem endSkipBidsCalldataMem_read128_36_long (I : ExecutionEnv)
     (endSkipBidsCalldataMem I catOut vatOut).readWithPadding 128 36 =
       bidsSelector ++ (endSkipIdWord I).toByteArray := by
   unfold endSkipBidsCalldataMem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   let selMem := endSkipBidsSelectorMem I catOut vatOut
   have hselSize : selMem.size = 288 := by
     simpa [selMem] using endSkipBidsSelectorMem_size_long I catOut vatOut hloCat hloVat
   have hfinalSize : ((endSkipIdWord I).toByteArray.write 0 selMem 132 32).size = 288 := by
     exact toByteArray_write32_size_of_le selMem (endSkipIdWord I) 132 288 288
-      hselSize (by rw [hselSize]; omega) (by native_decide)
+      hselSize (by rw [hselSize]; omega) (by decide +native)
   rw [readWithPadding_eq_extract' _ 128 36 (by norm_num) (by norm_num)
     (by rw [hfinalSize]; omega)]
   rw [write32_eq _ _ 132 (by rw [toByteArray_size]) (by rw [hselSize]; omega)]
@@ -1174,8 +1174,8 @@ theorem endSkipBidsPostCallMem_size_long (I : ExecutionEnv)
     (hloVat : 160 ≤ vatOut.size) (hloBid : 256 ≤ bidOut.size) :
     (endSkipBidsPostCallMem I catOut vatOut bidOut).size = 384 := by
   unfold endSkipBidsPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endSkipBidsOutSize.toNat = 256 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endSkipBidsOutSize.toNat = 256 by decide +native]
   rw [Nat.min_eq_left hloBid]
   rw [write_eq_gen_extend bidOut (endSkipBidsCalldataMem I catOut vatOut) 128 256
     (by omega) (by omega)
@@ -1191,15 +1191,15 @@ theorem endSkipBidsPostCallMem_read64 (I : ExecutionEnv)
     (endSkipBidsPostCallMem I catOut vatOut bidOut).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endSkipBidsPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endSkipBidsOutSize.toNat = 256 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endSkipBidsOutSize.toNat = 256 by decide +native]
   by_cases hlen0 : min 256 bidOut.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     exact endSkipBidsCalldataMem_read64_long I catOut vatOut hloCat hloVat
   · rw [write_read_below_gen_extend bidOut (endSkipBidsCalldataMem I catOut vatOut)
       128 (min 256 bidOut.size) 64 hlen0 (Nat.min_le_right _ _)
       (by rw [endSkipBidsCalldataMem_size_long I catOut vatOut hloCat hloVat]; omega)
-      (by native_decide)]
+      (by decide +native)]
     exact endSkipBidsCalldataMem_read64_long I catOut vatOut hloCat hloVat
 
 theorem endSkipBidsPostCallMem_size_gt64 (I : ExecutionEnv)
@@ -1207,8 +1207,8 @@ theorem endSkipBidsPostCallMem_size_gt64 (I : ExecutionEnv)
     (hloVat : 160 ≤ vatOut.size) :
     64 < (endSkipBidsPostCallMem I catOut vatOut bidOut).size := by
   unfold endSkipBidsPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endSkipBidsOutSize.toNat = 256 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endSkipBidsOutSize.toNat = 256 by decide +native]
   by_cases hlen0 : min 256 bidOut.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     rw [endSkipBidsCalldataMem_size_long I catOut vatOut hloCat hloVat]
@@ -1253,8 +1253,8 @@ theorem endSkipBidsPostCallMem_read_long (I : ExecutionEnv)
     (endSkipBidsPostCallMem I catOut vatOut bidOut).readWithPadding (128 + off) 32 =
       bidOut.extract off (off + 32) := by
   unfold endSkipBidsPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endSkipBidsOutSize.toNat = 256 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endSkipBidsOutSize.toNat = 256 by decide +native]
   rw [Nat.min_eq_left hloBid]
   rw [write_eq_gen_extend bidOut (endSkipBidsCalldataMem I catOut vatOut) 128 256
     (by omega) (by omega)
@@ -1307,7 +1307,7 @@ theorem endSkipBidsPostCallMem_mload128_long (I : ExecutionEnv)
   · exact not_or.mpr
       ⟨by rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat
           hloBid]; decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem endSkipBidsPostCallMem_mload160_long (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) (hloCat : 96 ≤ catOut.size)
@@ -1329,7 +1329,7 @@ theorem endSkipBidsPostCallMem_mload160_long (I : ExecutionEnv)
   · exact not_or.mpr
       ⟨by rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat
           hloBid]; decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem endSkipBidsPostCallMem_mload288_long (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) (hloCat : 96 ≤ catOut.size)
@@ -1351,7 +1351,7 @@ theorem endSkipBidsPostCallMem_mload288_long (I : ExecutionEnv)
   · exact not_or.mpr
       ⟨by rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat
           hloBid]; decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem endSkipBidsPostCallMem_mload352_long (I : ExecutionEnv)
     (catOut vatOut bidOut : ByteArray) (hloCat : 96 ≤ catOut.size)
@@ -1373,7 +1373,7 @@ theorem endSkipBidsPostCallMem_mload352_long (I : ExecutionEnv)
   · exact not_or.mpr
       ⟨by rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat
           hloBid]; decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem decodeScalarWordWithMode_legacy_uint48_ok {bytes : List UInt8} {start : Nat}
     (hlen : ((bytes.drop start).take 32).length = 32) :
@@ -1608,9 +1608,9 @@ theorem endSkipSuck1CalldataMem_read128_4 (σ : AccountMap) (I : ExecutionEnv)
       (164, endPackVowWord σ I),
       (196, endSkipTabWord bidOut) ]]
   · unfold endSkipSuckSelectorShifted suckSelector selectorBytes
-    native_decide
+    decide +native
   · rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat hloBid]
-    native_decide
+    decide +native
   · simp [WindowDisjointFromWrites]
   · norm_num
   · norm_num
@@ -1632,10 +1632,10 @@ theorem endSkipSuck1CalldataMem_read132_32 (σ : AccountMap) (I : ExecutionEnv)
       rw [writeWord_size]
       · rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat
           hloBid]
-        native_decide)
+        decide +native)
     (hgap := by
       rw [endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat hloBid]
-      native_decide)
+      decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipSuck1CalldataMem_read164_32 (σ : AccountMap) (I : ExecutionEnv)
@@ -1659,7 +1659,7 @@ theorem endSkipSuck1CalldataMem_read164_32 (σ : AccountMap) (I : ExecutionEnv)
         [(128, endSkipSuckSelectorShifted), (132, endPackVowWord σ I)]
         (endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat hloBid)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipSuck1CalldataMem_read196_32 (σ : AccountMap) (I : ExecutionEnv)
@@ -1687,7 +1687,7 @@ theorem endSkipSuck1CalldataMem_read196_32 (σ : AccountMap) (I : ExecutionEnv)
           (164, endPackVowWord σ I)]
         (endSkipBidsPostCallMem_size_long I catOut vatOut bidOut hloCat hloVat hloBid)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipSuck1CalldataMem_read128_100 (σ : AccountMap) (I : ExecutionEnv)
@@ -1940,10 +1940,10 @@ theorem endSkipSuck2CalldataMemFor_read128_4 (σmem σcall : AccountMap)
       (164, endSkipThisWord I),
       (196, endSkipBidWord bidOut) ]]
   · unfold endSkipSuckSelectorShifted suckSelector selectorBytes
-    native_decide
+    decide +native
   · rw [endSkipSuck1PostCallMem_eq]
     rw [endSkipSuck1CalldataMem_size σmem I catOut vatOut bidOut hloCat hloVat hloBid]
-    native_decide
+    decide +native
   · simp [WindowDisjointFromWrites]
   · norm_num
   · norm_num
@@ -1967,11 +1967,11 @@ theorem endSkipSuck2CalldataMemFor_read132_32 (σmem σcall : AccountMap)
       · rw [endSkipSuck1PostCallMem_eq]
         rw [endSkipSuck1CalldataMem_size σmem I catOut vatOut bidOut hloCat hloVat
           hloBid]
-        native_decide)
+        decide +native)
     (hgap := by
       rw [endSkipSuck1PostCallMem_eq]
       rw [endSkipSuck1CalldataMem_size σmem I catOut vatOut bidOut hloCat hloVat hloBid]
-      native_decide)
+      decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipSuck2CalldataMemFor_read164_32 (σmem σcall : AccountMap)
@@ -2001,7 +2001,7 @@ theorem endSkipSuck2CalldataMemFor_read164_32 (σmem σcall : AccountMap)
             endSkipSuck1CalldataMem_size σmem I catOut vatOut bidOut hloCat hloVat
               hloBid)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipSuck2CalldataMemFor_read196_32 (σmem σcall : AccountMap)
@@ -2036,7 +2036,7 @@ theorem endSkipSuck2CalldataMemFor_read196_32 (σmem σcall : AccountMap)
             endSkipSuck1CalldataMem_size σmem I catOut vatOut bidOut hloCat hloVat
               hloBid)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipSuck2CalldataMemFor_read128_100 (σmem σcall : AccountMap)
@@ -2193,11 +2193,11 @@ theorem endSkipHopeCalldataMemFor_read128_4 (σmem σcall : AccountMap)
     128 0 4 endSkipHopeSelectorShifted
     [ (132, endSkipCatIlkFlipTargetWord catOut) ]]
   · unfold endSkipHopeSelectorShifted hopeSelector selectorBytes
-    native_decide
+    decide +native
   · rw [endSkipSuck2PostCallMemFor_eq]
     rw [endSkipSuck2CalldataMemFor_size σmem σcall I catOut vatOut bidOut
       hloCat hloVat hloBid]
-    native_decide
+    decide +native
   · simp [WindowDisjointFromWrites]
   · norm_num
   · norm_num
@@ -2222,12 +2222,12 @@ theorem endSkipHopeCalldataMemFor_read132_32 (σmem σcall : AccountMap)
       · rw [endSkipSuck2PostCallMemFor_eq]
         rw [endSkipSuck2CalldataMemFor_size σmem σcall I catOut vatOut bidOut
           hloCat hloVat hloBid]
-        native_decide)
+        decide +native)
     (hgap := by
       rw [endSkipSuck2PostCallMemFor_eq]
       rw [endSkipSuck2CalldataMemFor_size σmem σcall I catOut vatOut bidOut
         hloCat hloVat hloBid]
-      native_decide)
+      decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipHopeCalldataMemFor_read128_36 (σmem σcall : AccountMap)
@@ -2355,11 +2355,11 @@ theorem endSkipYankCalldataMemFor_read128_4 (σmem σcall : AccountMap)
     128 0 4 endSkipYankSelectorShifted
     [ (132, endSkipIdWord I) ]]
   · unfold endSkipYankSelectorShifted yankSelector selectorBytes
-    native_decide
+    decide +native
   · rw [endSkipHopePostCallMemFor_eq]
     rw [endSkipHopeCalldataMemFor_size σmem σcall I catOut vatOut bidOut
       hloCat hloVat hloBid]
-    native_decide
+    decide +native
   · simp [WindowDisjointFromWrites]
   · norm_num
   · norm_num
@@ -2384,12 +2384,12 @@ theorem endSkipYankCalldataMemFor_read132_32 (σmem σcall : AccountMap)
       · rw [endSkipHopePostCallMemFor_eq]
         rw [endSkipHopeCalldataMemFor_size σmem σcall I catOut vatOut bidOut
           hloCat hloVat hloBid]
-        native_decide)
+        decide +native)
     (hgap := by
       rw [endSkipHopePostCallMemFor_eq]
       rw [endSkipHopeCalldataMemFor_size σmem σcall I catOut vatOut bidOut
         hloCat hloVat hloBid]
-      native_decide)
+      decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipYankCalldataMemFor_read128_36 (σmem σcall : AccountMap)
@@ -2578,10 +2578,10 @@ theorem endSkipGrabCalldataMemForTrace_read128_4
       (260, endSkipLotWord bidOut),
       (292, endSkipArtWord vatOut bidOut) ]]
   · unfold endFreeGrabSelectorShifted grabSelector selectorBytes
-    native_decide
+    decide +native
   · rw [endSkipArtStoreHashMemFor_size σmem σcall I catOut vatOut bidOut
       hloCat hloVat hloBid]
-    native_decide
+    decide +native
   · simp [WindowDisjointFromWrites]
   · norm_num
   · norm_num
@@ -2611,11 +2611,11 @@ theorem endSkipGrabCalldataMemForTrace_read132_32
       rw [writeWord_size]
       · rw [endSkipArtStoreHashMemFor_size σmem σcall I catOut vatOut bidOut
           hloCat hloVat hloBid]
-        native_decide)
+        decide +native)
     (hgap := by
       rw [endSkipArtStoreHashMemFor_size σmem σcall I catOut vatOut bidOut
         hloCat hloVat hloBid]
-      native_decide)
+      decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipGrabCalldataMemForTrace_read164_32
@@ -2649,7 +2649,7 @@ theorem endSkipGrabCalldataMemForTrace_read164_32
         (endSkipArtStoreHashMemFor_size σmem σcall I catOut vatOut bidOut
           hloCat hloVat hloBid)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipGrabCalldataMemForTrace_read196_32
@@ -2686,7 +2686,7 @@ theorem endSkipGrabCalldataMemForTrace_read196_32
         (endSkipArtStoreHashMemFor_size σmem σcall I catOut vatOut bidOut
           hloCat hloVat hloBid)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipGrabCalldataMemForTrace_read228_32
@@ -2722,7 +2722,7 @@ theorem endSkipGrabCalldataMemForTrace_read228_32
         (endSkipArtStoreHashMemFor_size σmem σcall I catOut vatOut bidOut
           hloCat hloVat hloBid)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipGrabCalldataMemForTrace_read260_32
@@ -2763,7 +2763,7 @@ theorem endSkipGrabCalldataMemForTrace_read260_32
         (endSkipArtStoreHashMemFor_size σmem σcall I catOut vatOut bidOut
           hloCat hloVat hloBid)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipGrabCalldataMemForTrace_read292_32
@@ -2806,7 +2806,7 @@ theorem endSkipGrabCalldataMemForTrace_read292_32
         (endSkipArtStoreHashMemFor_size σmem σcall I catOut vatOut bidOut
           hloCat hloVat hloBid)
         (by simp [WriteGapsOk]) (by simp [writeCascadeSize]))
-    (hgap := by native_decide)
+    (hgap := by decide +native)
     (hlater := by simp [WindowDisjointFromWrites])
 
 theorem endSkipGrabCalldataMemForTrace_read128_196
@@ -3151,14 +3151,14 @@ theorem endSkipLogDataMem3ForTrace_size
   have h1 : mem1.size = 384 := by
     unfold mem1 endSkipLogDataMemForTrace
     exact toByteArray_write32_size_of_le mem0 (endSkipTabWord bidOut) 128 384 384 h0
-      (by rw [h0]; omega) (by native_decide)
+      (by rw [h0]; omega) (by decide +native)
   have h2 : mem2.size = 384 := by
     unfold mem2 endSkipLogDataMem2ForTrace
     exact toByteArray_write32_size_of_le mem1 (endSkipLotWord bidOut) 160 384 384 h1
-      (by rw [h1]; omega) (by native_decide)
+      (by rw [h1]; omega) (by decide +native)
   unfold endSkipLogDataMem3ForTrace
   exact toByteArray_write32_size_of_le mem2 (endSkipArtWord vatOut bidOut) 192 384 384 h2
-    (by rw [h2]; omega) (by native_decide)
+    (by rw [h2]; omega) (by decide +native)
 
 theorem endSkipLogDataMem3ForTrace_read64
     (σCall σmem σcall : AccountMap) (I : ExecutionEnv)
@@ -3176,11 +3176,11 @@ theorem endSkipLogDataMem3ForTrace_read64
   have h1 : mem1.size = 384 := by
     unfold mem1 endSkipLogDataMemForTrace
     exact toByteArray_write32_size_of_le mem0 (endSkipTabWord bidOut) 128 384 384 h0
-      (by rw [h0]; omega) (by native_decide)
+      (by rw [h0]; omega) (by decide +native)
   have h2 : mem2.size = 384 := by
     unfold mem2 endSkipLogDataMem2ForTrace
     exact toByteArray_write32_size_of_le mem1 (endSkipLotWord bidOut) 160 384 384 h1
-      (by rw [h1]; omega) (by native_decide)
+      (by rw [h1]; omega) (by decide +native)
   unfold endSkipLogDataMem3ForTrace endSkipLogDataMem2ForTrace endSkipLogDataMemForTrace
   rw [toByteArray_write_read_below_of_gap _ _ 192 64
       (by change 64 + 32 ≤ mem2.size; rw [h2]; omega)
@@ -3228,27 +3228,27 @@ theorem endReachSkipBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : endSelWord I = ⟨0x503ecf06⟩ :=
     endSelWord_eq_of_beq I hsz 0x50 0x3e 0xcf 0x06 ⟨0x503ecf06⟩
-      (by native_decide)
+      (by decide +native)
       (by simpa [selIs, endSkipConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
     endReachGroup403FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-      (by rw [hword]; native_decide)
-      (by rw [hword]; native_decide)
-      (by rw [hword]; native_decide)
+      (by rw [hword]; decide +native)
+      (by rw [hword]; decide +native)
+      (by rw [hword]; decide +native)
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup403FirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup403FirstArmPc 2))
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo endSkipEntryPc 2 hfirst
     (fun j hj => endGroup403ArmsWellFormed j (by omega))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem RD.endSkipDecodeToBody {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
@@ -3263,20 +3263,20 @@ theorem RD.endSkipDecodeToBody {code : ByteArray} {g : Sat256} {s0 : State}
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
-  have rd694 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd695 := rd694.pop (by native_decide) (by evm_ov)
-  have rd696 := rd695.dup1 (by native_decide) (by evm_ov)
-  have rd697 := rd696.calldataload (by native_decide) (by evm_ov)
-  have rd698 := rd697.swap1 (by native_decide) (by evm_ov)
-  have rd700 := rd698.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd701 := rd700.add (by native_decide) (by evm_ov)
-  have rd702 := rd701.calldataload (by native_decide) (by evm_ov)
-  have rd703 := rd702.push2 endSkipBodyPc (by native_decide) (by evm_ov)
+  have rd694 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd695 := rd694.pop (by decide +native) (by evm_ov)
+  have rd696 := rd695.dup1 (by decide +native) (by evm_ov)
+  have rd697 := rd696.calldataload (by decide +native) (by evm_ov)
+  have rd698 := rd697.swap1 (by decide +native) (by evm_ov)
+  have rd700 := rd698.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd701 := rd700.add (by decide +native) (by evm_ov)
+  have rd702 := rd701.calldataload (by decide +native) (by evm_ov)
+  have rd703 := rd702.push2 endSkipBodyPc (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [endSkipBodyPc, endSkipDecodedPc, calldataWord,
       show (⟨4⟩ : UInt256).toNat = 4 from by decide,
       show (⟨36⟩ : UInt256).toNat = 36 from by decide]
-      using rd703.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd703.jump (by decide +native) hroutine (by evm_ov)⟩
 
 theorem endSkipX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -3291,9 +3291,9 @@ theorem endSkipX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (code := endBytecode) (sel := sel)
     (entry := endSkipEntryPc) (ret := endSkipReturnPc)
     (decoded := endSkipDecodedPc) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz68 hsize
   obtain ⟨_, _, hroutine⟩ := RD.endSkipDecodeToBody
     (code := endBytecode) (ret := endSkipReturnPc) (sel := sel) (R := [])
@@ -3312,34 +3312,34 @@ theorem endSkipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hslot : endSkipTagSlot I = solcMappingSlot ⟨12⟩ key := by
     simpa [key] using endSkipTagSlot_eq (I := I) hsz68
   have rd3229pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3230 := rd3229pre.mstore 0 (wordAt0Mem key solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3234pre := evm_run rd3230 with [
-    raw push1 ⟨12⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨12⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd3235 := rd3234pre.mstore 0 (twoWordHashMem key ⟨12⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3238pre := evm_run rd3235 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd3239pre := rd3238pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost
+    (UInt256.ofNat 3) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3240raw⟩ := rd3239pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3240raw⟩ := rd3239pre.sload (by decide +native) (by evm_ov)
   have htagRaw :
       solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = ⟨0⟩ := by
     rw [← hslot]
@@ -3356,8 +3356,8 @@ theorem endSkipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         (twoWordHashMem key ⟨12⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
         (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [endSkipBodyPc, key] using rd3240zero⟩
-  have rd3243pre := rd3240.push2 ⟨3314⟩ (by native_decide) (by evm_ov)
-  have rd3244pre := rd3243pre.jumpiNT (by native_decide)
+  have rd3243pre := rd3240.push2 ⟨3314⟩ (by decide +native) (by evm_ov)
+  have rd3244pre := rd3243pre.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   obtain ⟨_, _, rd3244⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3244⟩
@@ -3375,7 +3375,7 @@ theorem endSkipX_tagZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rd3244
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) rfl
     (twoWordHashMem_size_96 key ⟨12⟩ solcFreePtrMem_size)
     (twoWordHashMem_read64 key ⟨12⟩ solcFreePtrMem_size solcFreePtrMem_read64)
@@ -3396,34 +3396,34 @@ theorem endSkipX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hslot : endSkipTagSlot I = solcMappingSlot ⟨12⟩ key := by
     simpa [key] using endSkipTagSlot_eq (I := I) hsz68
   have rd3229pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd3230 := rd3229pre.mstore 0 (wordAt0Mem key solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3234pre := evm_run rd3230 with [
-    raw push1 ⟨12⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨12⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd3235 := rd3234pre.mstore 0 (twoWordHashMem key ⟨12⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3238pre := evm_run rd3235 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd3239pre := rd3238pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost
+    (UInt256.ofNat 3) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3240raw⟩ := rd3239pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3240raw⟩ := rd3239pre.sload (by decide +native) (by evm_ov)
   have htagRaw :
       solcSlotWord σ I (solcMappingSlot ⟨12⟩ key) = endSkipTagWord σ I := by
     rw [← hslot]
@@ -3442,8 +3442,8 @@ theorem endSkipX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         (twoWordHashMem key ⟨12⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
         (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [endSkipBodyPc, key] using rd3240nzRaw⟩
-  have rd3243pre := rd3240nz.push2 ⟨3314⟩ (by native_decide) (by evm_ov)
-  have rd3314pre := rd3243pre.jumpiT (by native_decide) htag (by jump_dest) (by evm_ov)
+  have rd3243pre := rd3240nz.push2 ⟨3314⟩ (by decide +native) (by evm_ov)
+  have rd3314pre := rd3243pre.jumpiT (by decide +native) htag (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa [key] using rd3314pre⟩
 
 theorem endSkipX_catIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -3481,14 +3481,14 @@ theorem endSkipX_catIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
         endFlowVatIlksSelectorShifted := by
-    native_decide
+    decide +native
   have hcatMask :
       UInt256.land solcAddrMask (endSlotWord ⟨2⟩ σ I) = endSkipCatWord σ I := by
     simpa [endSkipCatWord, solcAddrMask] using
       u256_land_comm solcAddrMask (endSlotWord ⟨2⟩ σ I)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have hcatMaskRight :
       (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩).land
           (endSlotWord ⟨2⟩ σ I) = endSkipCatWord σ I := by
@@ -3496,13 +3496,13 @@ theorem endSkipX_catIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     exact hcatMask
   have hinSize :
       (UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩) = endFlowVatIlksInSize := by
-    native_decide
+    decide +native
   have hendPtr : ((⟨128⟩ : UInt256) + ⟨36⟩) = endFlowVatIlksEndPtr := by
-    native_decide
+    decide +native
   have rd3317 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd3318raw⟩ := rd3317.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd3318raw⟩ := rd3317.sload (by decide +native) (by evm_ov)
   have rd3318 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3318⟩
         (endSlotWord ⟨2⟩ σ I :: endSkipIdWord I :: endSkipIlkWord I ::
@@ -3512,69 +3512,69 @@ theorem endSkipX_catIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3318raw⟩
   obtain ⟨_, _, rd3318⟩ := rd3318
   have rd3379 := evm_run rd3318 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost hmload64Hash (by decide) (by evm_ov),
-    raw push4 ⟨0x6cb1c69b⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨225⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 ⟨0x6cb1c69b⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨225⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (endFlowVatIlksSelectorMem (endSkipCatIlksBaseMem I))
-      (UInt256.ofNat 5) (by native_decide) mem_cost
+      (UInt256.ofNat 5) (by decide +native) mem_cost
       (by
         simp [endFlowVatIlksSelectorMem, endFlowVatIlksOutPtr,
           endSkipCatIlksBaseMem, hselectorShift])
       (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 3 (endSkipCatIlksCalldataMem I) (UInt256.ofNat 6)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [endSkipCatIlksCalldataMem, endFlowVatIlksCalldataMem,
           endFlowVatIlksArg0Mem, endFlowVatIlksOutPtr, endSkipCatIlksBaseMem])
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 endFlowVatIlksSelectorWord (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨96⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 endFlowVatIlksSelectorWord (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨96⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     convert rd3379 using 1
     all_goals
-      try native_decide
+      try decide +native
       try simp [endFlowVatIlksOutPtr, endFlowVatIlksInSize,
         endSkipCatIlksOutSize, endFlowVatIlksEndPtr, hcatMaskRight, hinSize, hendPtr]
-      try native_decide⟩
+      try decide +native⟩
 
 theorem endSkipX_catIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
@@ -3587,9 +3587,9 @@ theorem endSkipX_catIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd3379⟩ := endSkipX_catIlksExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3379⟩) (okPc := ⟨3391⟩) rd3379
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_catIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
@@ -3609,9 +3609,9 @@ theorem endSkipX_catIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨gasWord, k', C', rd3394⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3379⟩) (okPc := ⟨3391⟩) rd3379
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd3394⟩
 
 theorem endSkipX_catIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -3642,7 +3642,7 @@ theorem endSkipX_catIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
           (endSkipCatIlksPostCallMem I out) (UInt256.ofNat 7) out (cA', σ') k' C'
       ∧ out.size < UInt256.size := by
   obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd3395raw, hout⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endSkipCatIlksWriteLen_eq (out := out) hout
@@ -3651,7 +3651,7 @@ theorem endSkipX_catIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
           endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
           endFlowVatIlksOutPtr.toNat endSkipCatIlksOutSize.toNat) = UInt256.ofNat 7 := by
       unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endSkipCatIlksOutSize
-      native_decide
+      decide +native
     simpa [endSkipCatIlksPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endSkipCatIlksOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd3395raw
 
@@ -3672,7 +3672,7 @@ theorem endSkipX_catIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
       (endSkipCatIlksCalldataMem I) (UInt256.ofNat 7)
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨k', C', rd3395raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endSkipCatIlksOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -3682,7 +3682,7 @@ theorem endSkipX_catIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
         endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
         endFlowVatIlksOutPtr.toNat endSkipCatIlksOutSize.toNat) = UInt256.ofNat 7 := by
     unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endSkipCatIlksOutSize
-    native_decide
+    decide +native
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endSkipCatIlksOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd3395raw
 
@@ -3697,9 +3697,9 @@ theorem endSkipX_catIlksCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3395⟩) (okPc := ⟨3411⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_catIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
@@ -3715,13 +3715,13 @@ theorem endSkipX_catIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat25
   obtain ⟨_, _, rd3413⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨3395⟩) (okPc := ⟨3411⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp)
   have rd3416 := evm_run rd3413 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3416⟩
 
 theorem endSkipX_catIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
@@ -3741,23 +3741,23 @@ theorem endSkipX_catIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
     rw [show (⟨96⟩ : UInt256).toNat = 96 from by decide, ulit_toNat' out.size hout]
     exact hlo
   have rd3425 := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨96⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨3433⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨96⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨3433⟩ (by decide +native) (by evm_ov)]
   have rdJump := rd3425
   rw [hlt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rdJump
   have rd3436 := evm_run rdJump with [
-    raw jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    raw jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw mload 0 (endSkipCatIlkFlipWord out) (UInt256.ofNat 7) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw mload 0 (endSkipCatIlkFlipWord out) (UInt256.ofNat 7) (by decide +native)
       mem_cost hmload128 (by decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3436⟩
 
@@ -3774,21 +3774,21 @@ theorem endSkipX_catIlksReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
     rw [show (⟨96⟩ : UInt256).toNat = 96 from by decide, ulit_toNat' out.size hout]
     exact hshort
   have rd3425 := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨96⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨3433⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨96⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨3433⟩ (by decide +native) (by evm_ov)]
   have rdShort := rd3425
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
-  have rdFall := rdShort.jumpiNT (by native_decide)
+  have rdFall := rdShort.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFall
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
@@ -3823,14 +3823,14 @@ theorem endSkipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
         endFlowVatIlksSelectorShifted := by
-    native_decide
+    decide +native
   have hvatMask :
       UInt256.land solcAddrMask (endSlotWord ⟨1⟩ σ' I) = endPackVatWord σ' I := by
     simpa [endPackVatWord, solcAddrMask] using
       u256_land_comm solcAddrMask (endSlotWord ⟨1⟩ σ' I)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have hvatMaskRight :
       (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩).land
           (endSlotWord ⟨1⟩ σ' I) = endPackVatWord σ' I := by
@@ -3838,12 +3838,12 @@ theorem endSkipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     exact hvatMask
   have hinSize :
       (UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩) = endFlowVatIlksInSize := by
-    native_decide
+    decide +native
   have hendPtr : ((⟨128⟩ : UInt256) + ⟨36⟩) = endFlowVatIlksEndPtr := by
-    native_decide
+    decide +native
   have rd3438 := evm_run h with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd3439raw⟩ := rd3438.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd3439raw⟩ := rd3438.sload (by decide +native) (by evm_ov)
   have rd3439 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3439⟩
         (endSlotWord ⟨1⟩ σ' I :: endSkipCatIlkFlipWord catOut :: ⟨0⟩ ::
@@ -3853,73 +3853,73 @@ theorem endSkipX_vatIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3439raw⟩
   obtain ⟨_, _, rd3439⟩ := rd3439
   have rd3505 := evm_run rd3439 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide +native)
       mem_cost hmload64Base (by decide) (by evm_ov),
-    raw push4 ⟨0x6cb1c69b⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨225⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 ⟨0x6cb1c69b⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨225⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (endFlowVatIlksSelectorMem (endSkipCatIlksPostCallMem I catOut))
-      (UInt256.ofNat 7) (by native_decide) mem_cost
+      (UInt256.ofNat 7) (by decide +native) mem_cost
       (by
         simp [endFlowVatIlksSelectorMem, endFlowVatIlksOutPtr, hselectorShift])
       (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipVatIlksCalldataMem I catOut) (UInt256.ofNat 7)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [endSkipVatIlksCalldataMem, endFlowVatIlksCalldataMem,
           endFlowVatIlksArg0Mem, endFlowVatIlksOutPtr])
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 endFlowVatIlksSelectorWord (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 endFlowVatIlksSelectorWord (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     convert rd3505 using 1
     all_goals
-      try native_decide
+      try decide +native
       try simp [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endFlowVatIlksOutSize,
         endFlowVatIlksEndPtr, hvatMaskRight, hinSize, hendPtr]
-      try native_decide⟩
+      try decide +native⟩
 
 theorem endSkipX_vatIlksNoCode {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {catOut : ByteArray} {k C : ℕ}
@@ -3935,9 +3935,9 @@ theorem endSkipX_vatIlksNoCode {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd3505⟩ := endSkipX_vatIlksExtcodesizeGuard hloCat h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3505⟩) (okPc := ⟨3517⟩) rd3505
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_vatIlksCallReady {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
     {sel : UInt256} {catOut : ByteArray} {k C : ℕ}
@@ -3961,9 +3961,9 @@ theorem endSkipX_vatIlksCallReady {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
   obtain ⟨gasWord, k', C', rd3520⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3505⟩) (okPc := ⟨3517⟩) rd3505
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd3520⟩
 
 theorem endSkipX_vatIlksPostCall {cA cAcur gh bl σ σcur σ₀ A I}
@@ -3997,7 +3997,7 @@ theorem endSkipX_vatIlksPostCall {cA cAcur gh bl σ σcur σ₀ A I}
           (cA', σ') k' C'
       ∧ out.size < UInt256.size := by
   obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd3521raw, hout⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endSkipVatIlksWriteLen_eq (out := out) hout
@@ -4006,7 +4006,7 @@ theorem endSkipX_vatIlksPostCall {cA cAcur gh bl σ σcur σ₀ A I}
           endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
           endFlowVatIlksOutPtr.toNat endFlowVatIlksOutSize.toNat) = UInt256.ofNat 9 := by
       unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endFlowVatIlksOutSize
-      native_decide
+      decide +native
     simpa [endSkipVatIlksPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endFlowVatIlksOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd3521raw
 
@@ -4029,7 +4029,7 @@ theorem endSkipX_vatIlksCallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
       (endSkipVatIlksCalldataMem I catOut) (UInt256.ofNat 9) ByteArray.empty
       (cAcur, σcur) k' C' := by
   obtain ⟨k', C', rd3521raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endFlowVatIlksOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -4039,7 +4039,7 @@ theorem endSkipX_vatIlksCallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
         endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
         endFlowVatIlksOutPtr.toNat endFlowVatIlksOutSize.toNat) = UInt256.ofNat 9 := by
     unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endFlowVatIlksOutSize
-    native_decide
+    decide +native
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endFlowVatIlksOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd3521raw
 
@@ -4056,9 +4056,9 @@ theorem endSkipX_vatIlksCallFailed {cA cA' gh bl σ σcur σ' σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3521⟩) (okPc := ⟨3537⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_vatIlksCallSucceeded {cA cA' gh bl σ σcur σ' σ₀ A I}
@@ -4077,8 +4077,8 @@ theorem endSkipX_vatIlksCallSucceeded {cA cA' gh bl σ σcur σ' σ₀ A I}
       mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨3521⟩) (okPc := ⟨3537⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp)
 
 theorem endSkipX_vatIlksReturnDecodeOk {cA cA' gh bl σ σcur σ' σ₀ A I}
@@ -4105,28 +4105,28 @@ theorem endSkipX_vatIlksReturnDecodeOk {cA cA' gh bl σ σcur σ' σ₀ A I}
       ulit_toNat' vatOut.size hout]
     exact hloVat
   have rd3551 := evm_run h with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨3559⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨3559⟩ (by decide +native) (by evm_ov)]
   have rdJump := rd3551
   rw [hlt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rdJump
   have rd3565 := evm_run rdJump with [
-    raw jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    raw jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mload 0 (endFlowVatIlkRateWord vatOut) (UInt256.ofNat 9) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mload 0 (endFlowVatIlkRateWord vatOut) (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload160 (by decide) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endFlowVatIlksEndPtr, endFlowVatIlksSelectorWord, endFlowVatIlksOutPtr,
@@ -4150,24 +4150,24 @@ theorem endSkipX_vatIlksReturnDecodeShort {cA cA' gh bl σ σcur σ' σ₀ A I}
       ulit_toNat' vatOut.size hout]
     exact hshort
   have rd3551 := evm_run h with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨3559⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨3559⟩ (by decide +native) (by evm_ov)]
   have rdShort := rd3551
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
-  have rdFall := rdShort.jumpiNT (by native_decide)
+  have rdFall := rdShort.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFall
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_bidsExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
@@ -4195,11 +4195,11 @@ theorem endSkipX_bidsExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
   have hselectorShift :
       UInt256.shiftLeft endSkipBidsSelectorWord ⟨224⟩ =
         endSkipBidsSelectorShifted := by
-    native_decide
+    decide +native
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask := by
-    native_decide
+    decide +native
   have hflipMaskRight :
       (endSkipCatIlkFlipWord catOut).land
           (((⟨1⟩ : UInt256).shiftLeft ⟨160⟩).sub ⟨1⟩) =
@@ -4210,80 +4210,80 @@ theorem endSkipX_bidsExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
   have hinSize :
       (UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩) =
         endFlowVatIlksInSize := by
-    native_decide
+    decide +native
   have hendPtr : ((⟨128⟩ : UInt256) + ⟨36⟩) = endFlowVatIlksEndPtr := by
-    native_decide
+    decide +native
   have rd3637 := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64Base (by decide) (by evm_ov),
-    raw push4 endSkipBidsSelectorWord (by native_decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 endSkipBidsSelectorWord (by decide +native) (by evm_ov),
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipBidsSelectorMem I catOut vatOut) (UInt256.ofNat 9)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [endSkipBidsSelectorMem, endFlowVatIlksOutPtr, hselectorShift])
       (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipBidsCalldataMem I catOut vatOut) (UInt256.ofNat 9)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by simp [endSkipBidsCalldataMem, endFlowVatIlksOutPtr])
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 endSkipBidsSelectorWord (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push2 endSkipBidsOutSize (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 endSkipBidsSelectorWord (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push2 endSkipBidsOutSize (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     convert rd3637 using 1
     all_goals
-      try native_decide
+      try decide +native
       try simp [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endSkipBidsOutSize,
         endFlowVatIlksEndPtr, hflipMaskRight, hinSize, hendPtr]
-      try native_decide⟩
+      try decide +native⟩
 
 theorem endSkipX_bidsNoCode {cA cA' gh bl σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut : ByteArray} {k C : ℕ}
@@ -4301,9 +4301,9 @@ theorem endSkipX_bidsNoCode {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨_, _, rd3637⟩ := endSkipX_bidsExtcodesizeGuard hloCat hloVat h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3637⟩) (okPc := ⟨3649⟩) rd3637
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_bidsCallReady {cA cA' gh bl σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut : ByteArray} {k C : ℕ}
@@ -4331,9 +4331,9 @@ theorem endSkipX_bidsCallReady {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨gasWord, k', C', rd3652⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3637⟩) (okPc := ⟨3649⟩) rd3637
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd3652⟩
 
 theorem endSkipX_bidsPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
@@ -4373,7 +4373,7 @@ theorem endSkipX_bidsPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
           bidOut (cA', σ') k' C'
       ∧ bidOut.size < UInt256.size := by
   obtain ⟨cA', σ', z, bidOut, Ain, callGas, k', C', hΘ, rd3653raw, hout⟩ :=
-    RD.solcStaticcall h (by native_decide) hdepth
+    RD.solcStaticcall h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨cA', σ', z, bidOut, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
@@ -4383,7 +4383,7 @@ theorem endSkipX_bidsPostStaticcall {cA cAcur gh bl σ σcur σ₀ A I}
           endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
           endFlowVatIlksOutPtr.toNat endSkipBidsOutSize.toNat) = UInt256.ofNat 12 := by
       unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endSkipBidsOutSize
-      native_decide
+      decide +native
     simpa [endSkipBidsPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endSkipBidsOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd3653raw
 
@@ -4409,7 +4409,7 @@ theorem endSkipX_bidsStaticcallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
       (endSkipBidsCalldataMem I catOut vatOut) (UInt256.ofNat 12) ByteArray.empty
       (cAcur, σcur) k' C' := by
   obtain ⟨k', C', rd3653raw⟩ :=
-    RD.solcStaticcallDepthLimit h (by native_decide) hdepth
+    RD.solcStaticcallDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endSkipBidsOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -4419,7 +4419,7 @@ theorem endSkipX_bidsStaticcallDepthLimit {cA cAcur gh bl σ σcur σ₀ A I}
         endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
         endFlowVatIlksOutPtr.toNat endSkipBidsOutSize.toNat) = UInt256.ofNat 12 := by
     unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endSkipBidsOutSize
-    native_decide
+    decide +native
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endSkipBidsOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd3653raw
 
@@ -4437,9 +4437,9 @@ theorem endSkipX_bidsCallFailed {cA cA' gh bl σ σ' σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3653⟩) (okPc := ⟨3669⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_bidsCallSucceeded {cA cA' gh bl σ σ' σ₀ A I}
@@ -4460,13 +4460,13 @@ theorem endSkipX_bidsCallSucceeded {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨_, _, rd3671⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨3653⟩) (okPc := ⟨3669⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp)
   have rd3674 := evm_run rd3671 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3674⟩
 
 theorem endSkipX_bidsReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
@@ -4502,40 +4502,40 @@ theorem endSkipX_bidsReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
       ulit_toNat' bidOut.size hout]
     exact hloBid
   have rd3684 := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push2 endSkipBidsOutSize (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨3692⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push2 endSkipBidsOutSize (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨3692⟩ (by decide +native) (by evm_ov)]
   have rdJump := rd3684
   rw [hlt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rdJump
   have rd3712 := evm_run rdJump with [
-    raw jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    raw jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 (endSkipBidWord bidOut) (UInt256.ofNat 12) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 (endSkipBidWord bidOut) (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload128 (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mload 0 (endSkipLotWord bidOut) (UInt256.ofNat 12) (by native_decide)
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mload 0 (endSkipLotWord bidOut) (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload160 (by decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mload 0 (endSkipUsrWord bidOut) (UInt256.ofNat 12) (by native_decide)
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mload 0 (endSkipUsrWord bidOut) (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload288 (by decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw mload 0 (endSkipTabWord bidOut) (UInt256.ofNat 12) (by native_decide)
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw mload 0 (endSkipTabWord bidOut) (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload352 (by decide) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3712⟩
 
@@ -4557,21 +4557,21 @@ theorem endSkipX_bidsReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
       ulit_toNat' bidOut.size hout]
     exact hshort
   have rd3684 := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push2 endSkipBidsOutSize (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨3692⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push2 endSkipBidsOutSize (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨3692⟩ (by decide +native) (by evm_ov)]
   have rdShort := rd3684
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
-  have rdFall := rdShort.jumpiNT (by native_decide)
+  have rdFall := rdShort.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFall
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_suck1ExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
@@ -4603,11 +4603,11 @@ theorem endSkipX_suck1ExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
   have hselectorShift :
       UInt256.shiftLeft endSkipSuckSelectorWord ⟨224⟩ =
         endSkipSuckSelectorShifted := by
-    native_decide
+    decide +native
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask := by
-    native_decide
+    decide +native
   have hvatMask :
       UInt256.land (endSlotWord ⟨1⟩ σ' I) solcAddrMask = endPackVatWord σ' I := by
     rfl
@@ -4623,8 +4623,8 @@ theorem endSkipX_suck1ExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     simpa [endPackVowWord] using
       u256_land_comm solcAddrMask (endSlotWord ⟨4⟩ σ' I)
   have rd3714 := evm_run h with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd3715raw⟩ := rd3714.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd3715raw⟩ := rd3714.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd3715⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3715⟩
         (endSlotWord ⟨1⟩ σ' I :: endSkipTabWord bidOut ::
@@ -4636,9 +4636,9 @@ theorem endSkipX_suck1ExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         bidOut (cA', σ') k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3715raw⟩
   have rd3718 := evm_run rd3715 with [
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd3719raw⟩ := rd3718.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd3719raw⟩ := rd3718.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd3719⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3719⟩
         (endSlotWord ⟨4⟩ σ' I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σ' I ::
@@ -4651,54 +4651,54 @@ theorem endSkipX_suck1ExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         bidOut (cA', σ') k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3719raw⟩
   have rd3770 := evm_run rd3719 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload64Base (by decide) (by evm_ov),
-    raw push4 endSkipSuckSelectorWord (by native_decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 endSkipSuckSelectorWord (by decide +native) (by evm_ov),
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0
       (writeWord (endSkipBidsPostCallMem I catOut vatOut bidOut) 128
         endSkipSuckSelectorShifted)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 by native_decide]
+        rw [show (⟨128⟩ : UInt256).toNat = 128 by decide +native]
         unfold Reasoning.Theory.writeWord
         rw [hselectorShift])
       (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0
       (writeWord
         (writeWord (endSkipBidsPostCallMem I catOut vatOut bidOut) 128
           endSkipSuckSelectorShifted)
         132 (endPackVowWord σ' I))
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 by decide +native]
         rw [haddrMask, hvowMaskLeft]
         unfold Reasoning.Theory.writeWord
         rfl)
       (by decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
     raw mstore 0
       (writeWord
         (writeWord
@@ -4706,22 +4706,22 @@ theorem endSkipX_suck1ExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
             endSkipSuckSelectorShifted)
           132 (endPackVowWord σ' I))
         164 (endPackVowWord σ' I))
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨36⟩).toNat = 164 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨36⟩).toNat = 164 by decide +native]
         rw [haddrMask, hvowMaskLeft]
         unfold Reasoning.Theory.writeWord
         rfl)
       (by decide) (by evm_ov),
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipSuck1CalldataMem σ' I catOut vatOut bidOut)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨68⟩).toNat = 196 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨68⟩).toNat = 196 by decide +native]
         change (endSkipTabWord bidOut).toByteArray.write 0
           (writeWord
             (writeWord
@@ -4732,51 +4732,51 @@ theorem endSkipX_suck1ExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
           endSkipSuck1CalldataMem σ' I catOut vatOut bidOut
         simp [endSkipSuck1CalldataMem, writeCascade, Reasoning.Theory.writeWord])
       (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw swap11 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov)]
-  have rd3771 := RD.swap9 rd3770 (by native_decide) (by evm_ov)
+    raw swap6 (by decide +native) (by evm_ov),
+    raw swap11 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov)]
+  have rd3771 := RD.swap9 rd3770 (by decide +native) (by evm_ov)
   have rd3805raw := evm_run rd3771 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw swap7 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 endSkipSuckSelectorWord (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 endSkipSuckInSize (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 endSkipSuckOutSize (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw swap7 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 endSkipSuckSelectorWord (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 endSkipSuckInSize (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 endSkipSuckOutSize (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     convert rd3805raw using 1
     all_goals
-      try native_decide
+      try decide +native
       try simp [endSkipSuckOutPtr, endSkipSuckInSize, endSkipSuckOutSize,
         endSkipSuckEndPtr, endSkipSuckSelectorWord, endPackVatWord, endPackVowWord,
         endSlotWord, solcSlotWord, solcAddrMask, haddrMask, hvatMask, hvatMaskLeft,
         hvowMask, hvowMaskLeft]
-      try native_decide⟩
+      try decide +native⟩
 
 theorem endSkipX_suck1NoCode {cA cA' gh bl σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut : ByteArray} {k C : ℕ}
@@ -4796,9 +4796,9 @@ theorem endSkipX_suck1NoCode {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨_, _, rd3805⟩ := endSkipX_suck1ExtcodesizeGuard hloCat hloVat hloBid h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3805⟩) (okPc := ⟨3817⟩) rd3805
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_suck1CallReady {cA cA' gh bl σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut : ByteArray} {k C : ℕ}
@@ -4828,9 +4828,9 @@ theorem endSkipX_suck1CallReady {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨gasWord, k', C', rd3820⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3805⟩) (okPc := ⟨3817⟩) rd3805
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd3820⟩
 
 theorem endSkipX_suck1PostCall {cA cA' gh bl σ σpre σ₀ A I}
@@ -4868,7 +4868,7 @@ theorem endSkipX_suck1PostCall {cA cA' gh bl σ σpre σ₀ A I}
           (UInt256.ofNat 12) ret (cA'', σ'') k' C'
       ∧ ret.size < UInt256.size := by
   obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd3821raw, hret⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endSkipSuckOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
@@ -4881,7 +4881,7 @@ theorem endSkipX_suck1PostCall {cA cA' gh bl σ σpre σ₀ A I}
           endSkipSuckOutPtr.toNat endSkipSuckInSize.toNat)
           endSkipSuckOutPtr.toNat endSkipSuckOutSize.toNat) = UInt256.ofNat 12 := by
       unfold endSkipSuckOutPtr endSkipSuckInSize endSkipSuckOutSize
-      native_decide
+      decide +native
     simpa [endSkipSuck1PostCallMem, endSkipSuckOutPtr, endSkipSuckInSize,
       endSkipSuckOutSize, endSkipSuckEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd3821raw
@@ -4908,7 +4908,7 @@ theorem endSkipX_suck1CallDepthLimit {cA cA' gh bl σ σpre σ₀ A I}
       (endSkipSuck1CalldataMem σpre I catOut vatOut bidOut) (UInt256.ofNat 12)
       ByteArray.empty (cA', σpre) k' C' := by
   obtain ⟨k', C', rd3821raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endSkipSuckOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -4918,7 +4918,7 @@ theorem endSkipX_suck1CallDepthLimit {cA cA' gh bl σ σpre σ₀ A I}
         endSkipSuckOutPtr.toNat endSkipSuckInSize.toNat)
         endSkipSuckOutPtr.toNat endSkipSuckOutSize.toNat) = UInt256.ofNat 12 := by
     unfold endSkipSuckOutPtr endSkipSuckInSize endSkipSuckOutSize
-    native_decide
+    decide +native
   simpa [endSkipSuckOutPtr, endSkipSuckInSize, endSkipSuckOutSize,
     endSkipSuckEndPtr, hmin, byteArray_write_len_zero, haw] using rd3821raw
 
@@ -4935,9 +4935,9 @@ theorem endSkipX_suck1CallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3821⟩) (okPc := ⟨3837⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_suck1CallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
@@ -4959,11 +4959,11 @@ theorem endSkipX_suck1CallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
   obtain ⟨_, _, rd3839⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨3821⟩) (okPc := ⟨3837⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp)
   have rd3840 := evm_run rd3839 with [
-    raw pop (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3840⟩
 
 theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
@@ -5006,11 +5006,11 @@ theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
   have hselectorShift :
       UInt256.shiftLeft endSkipSuckSelectorWord ⟨224⟩ =
         endSkipSuckSelectorShifted := by
-    native_decide
+    decide +native
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask := by
-    native_decide
+    decide +native
   have hvatMask :
       UInt256.land (endSlotWord ⟨1⟩ σpost I) solcAddrMask = endPackVatWord σpost I := by
     rfl
@@ -5027,8 +5027,8 @@ theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
     simpa [endPackVowWord] using
       u256_land_comm solcAddrMask (endSlotWord ⟨4⟩ σpost I)
   have rd3842 := evm_run h with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd3843raw⟩ := rd3842.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd3843raw⟩ := rd3842.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd3843⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3843⟩
         (endSlotWord ⟨1⟩ σpost I :: endSkipSuckSelectorWord ::
@@ -5040,9 +5040,9 @@ theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
         (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3843raw⟩
   have rd3846 := evm_run rd3843 with [
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd3847raw⟩ := rd3846.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd3847raw⟩ := rd3846.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd3847⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3847⟩
         (endSlotWord ⟨4⟩ σpost I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σpost I ::
@@ -5055,54 +5055,54 @@ theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
         (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3847raw⟩
   have rd3879 := evm_run rd3847 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload64Base (by decide) (by evm_ov),
-    raw push4 endSkipSuckSelectorWord (by native_decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 endSkipSuckSelectorWord (by decide +native) (by evm_ov),
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0
       (writeWord (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata) 128
         endSkipSuckSelectorShifted)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 by native_decide]
+        rw [show (⟨128⟩ : UInt256).toNat = 128 by decide +native]
         unfold Reasoning.Theory.writeWord
         rw [hselectorShift])
       (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
     raw mstore 0
       (writeWord
         (writeWord (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata) 128
           endSkipSuckSelectorShifted)
         132 (endPackVowWord σpost I))
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 by decide +native]
         rw [haddrMask, hvowMaskLeft]
         unfold Reasoning.Theory.writeWord
         rfl)
       (by decide) (by evm_ov)]
-  have rd3880 := RD.address rd3879 (by native_decide) (by evm_ov)
+  have rd3880 := RD.address rd3879 (by decide +native) (by evm_ov)
   have rd3924raw := evm_run rd3880 with [
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0
       (writeWord
         (writeWord
@@ -5110,9 +5110,9 @@ theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
             endSkipSuckSelectorShifted)
           132 (endPackVowWord σpost I))
         164 (endSkipThisWord I))
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨36⟩).toNat = 164 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨36⟩).toNat = 164 by decide +native]
         change (endSkipThisWord I).toByteArray.write 0
           (writeWord
             (writeWord (endSkipSuck1PostCallMem σmem I catOut vatOut bidOut rdata) 128
@@ -5127,15 +5127,15 @@ theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
         unfold Reasoning.Theory.writeWord
         rfl)
       (by decide) (by evm_ov),
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup11 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup11 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipSuck2CalldataMemFor σmem σpost I catOut vatOut bidOut)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨68⟩).toNat = 196 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨68⟩).toNat = 196 by decide +native]
         change (endSkipBidWord bidOut).toByteArray.write 0
           (writeWord
             (writeWord
@@ -5147,42 +5147,42 @@ theorem endSkipX_suck2ExtcodesizeGuard {cA cA' gh bl σ σmem σpost σ₀ A I}
         simp [endSkipSuck2CalldataMemFor, endSkipSuck1PostCallMem_eq, writeCascade,
           Reasoning.Theory.writeWord])
       (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push4 endSkipSuckSelectorWord (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 endSkipSuckInSize (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 endSkipSuckOutSize (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw swap3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push4 endSkipSuckSelectorWord (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 endSkipSuckInSize (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 endSkipSuckOutSize (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     convert rd3924raw using 1
     all_goals
-      try native_decide
+      try decide +native
       try simp [endSkipSuckOutPtr, endSkipSuckInSize, endSkipSuckOutSize,
         endSkipSuckEndPtr, endSkipSuckSelectorWord, endPackVatWord, endPackVowWord,
         endSlotWord, solcSlotWord, solcAddrMask, haddrMask, hvatMask, hvatMaskLeft,
         hvowMask, hvowMaskLeft]
-      try native_decide⟩
+      try decide +native⟩
 
 theorem endSkipX_suck2NoCode {cA cA' gh bl σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
@@ -5202,9 +5202,9 @@ theorem endSkipX_suck2NoCode {cA cA' gh bl σ σmem σpost σ₀ A I}
   obtain ⟨_, _, rd3924⟩ := endSkipX_suck2ExtcodesizeGuard hloCat hloVat hloBid h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3924⟩) (okPc := ⟨3936⟩) rd3924
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_suck2CallReady {cA cA' gh bl σ σmem σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
@@ -5234,9 +5234,9 @@ theorem endSkipX_suck2CallReady {cA cA' gh bl σ σmem σpost σ₀ A I}
   obtain ⟨gasWord, k', C', rd3939⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3924⟩) (okPc := ⟨3936⟩) rd3924
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd3939⟩
 
 theorem endSkipX_suck2PostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
@@ -5275,7 +5275,7 @@ theorem endSkipX_suck2PostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
           (UInt256.ofNat 12) ret (cA'', σ'') k' C'
       ∧ ret.size < UInt256.size := by
   obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd3940raw, hret⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endSkipSuckOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
@@ -5288,7 +5288,7 @@ theorem endSkipX_suck2PostCall {cA cA' gh bl σ σmem σpost σ₀ A I}
           endSkipSuckOutPtr.toNat endSkipSuckInSize.toNat)
           endSkipSuckOutPtr.toNat endSkipSuckOutSize.toNat) = UInt256.ofNat 12 := by
       unfold endSkipSuckOutPtr endSkipSuckInSize endSkipSuckOutSize
-      native_decide
+      decide +native
     simpa [endSkipSuck2PostCallMemFor, endSkipSuckOutPtr, endSkipSuckInSize,
       endSkipSuckOutSize, endSkipSuckEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd3940raw
@@ -5316,7 +5316,7 @@ theorem endSkipX_suck2CallDepthLimit {cA cA' gh bl σ σmem σpost σ₀ A I}
       (endSkipSuck2CalldataMemFor σmem σpost I catOut vatOut bidOut)
       (UInt256.ofNat 12) ByteArray.empty (cA', σpost) k' C' := by
   obtain ⟨k', C', rd3940raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endSkipSuckOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -5326,7 +5326,7 @@ theorem endSkipX_suck2CallDepthLimit {cA cA' gh bl σ σmem σpost σ₀ A I}
         endSkipSuckOutPtr.toNat endSkipSuckInSize.toNat)
         endSkipSuckOutPtr.toNat endSkipSuckOutSize.toNat) = UInt256.ofNat 12 := by
     unfold endSkipSuckOutPtr endSkipSuckInSize endSkipSuckOutSize
-    native_decide
+    decide +native
   simpa [endSkipSuckOutPtr, endSkipSuckInSize, endSkipSuckOutSize,
     endSkipSuckEndPtr, hmin, byteArray_write_len_zero, haw] using rd3940raw
 
@@ -5343,9 +5343,9 @@ theorem endSkipX_suck2CallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3940⟩) (okPc := ⟨3956⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_suck2CallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
@@ -5367,11 +5367,11 @@ theorem endSkipX_suck2CallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
   obtain ⟨_, _, rd3958⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨3940⟩) (okPc := ⟨3956⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp)
   have rd3959 := evm_run rd3958 with [
-    raw pop (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3959⟩
 
 theorem endSkipX_hopeExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
@@ -5414,11 +5414,11 @@ theorem endSkipX_hopeExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
   have hselectorShift :
       UInt256.shiftLeft (⟨0x28ec8bf1⟩ : UInt256) ⟨226⟩ =
         endSkipHopeSelectorShifted := by
-    native_decide
+    decide +native
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask := by
-    native_decide
+    decide +native
   have hvatMask :
       UInt256.land (endSlotWord ⟨1⟩ σpost I) solcAddrMask = endPackVatWord σpost I := by
     rfl
@@ -5437,8 +5437,8 @@ theorem endSkipX_hopeExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
     simpa [endSkipCatIlkFlipTargetWord] using
       u256_land_comm (endSkipCatIlkFlipWord catOut) solcAddrMask
   have rd3961 := evm_run h with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd3962raw⟩ := rd3961.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd3962raw⟩ := rd3961.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd3962⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3962⟩
         (endSlotWord ⟨1⟩ σpost I :: endSkipSuckSelectorWord ::
@@ -5450,38 +5450,38 @@ theorem endSkipX_hopeExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
         (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd3962raw⟩
   have rd4026raw := evm_run rd3962 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload64Base (by decide) (by evm_ov),
-    raw push4 ⟨0x28ec8bf1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨226⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 ⟨0x28ec8bf1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨226⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0
       (writeWord (endSkipSuck2PostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
         128 endSkipHopeSelectorShifted)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show (⟨128⟩ : UInt256).toNat = 128 by native_decide]
+        rw [show (⟨128⟩ : UInt256).toNat = 128 by decide +native]
         unfold Reasoning.Theory.writeWord
         rw [hselectorShift])
       (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup12 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup12 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipHopeCalldataMemFor σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 by decide +native]
         rw [haddrMask, hflipMaskLeft]
         change (endSkipCatIlkFlipTargetWord catOut).toByteArray.write 0
           (writeWord
@@ -5491,44 +5491,44 @@ theorem endSkipX_hopeExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
         simp [endSkipHopeCalldataMemFor, endSkipSuck2PostCallMemFor_eq, writeCascade,
           Reasoning.Theory.writeWord])
       (by decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
+    raw swap2 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push4 endSkipHopeSelectorWord (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 endSkipHopeInSize (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 endSkipHopeOutSize (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push4 endSkipHopeSelectorWord (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 endSkipHopeInSize (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 endSkipHopeOutSize (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     convert rd4026raw using 1
     all_goals
-      try native_decide
+      try decide +native
       try simp [endSkipHopeOutPtr, endSkipHopeInSize, endSkipHopeOutSize,
         endSkipHopeEndPtr, endSkipHopeSelectorWord, endPackVatWord, endSlotWord,
         solcSlotWord, solcAddrMask, haddrMask, hvatMask, hvatMaskLeft,
         hflipMaskLeft, hflipMaskRight]
-      try native_decide⟩
+      try decide +native⟩
 
 theorem endSkipX_hopeNoCode {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
@@ -5548,9 +5548,9 @@ theorem endSkipX_hopeNoCode {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
   obtain ⟨_, _, rd4026⟩ := endSkipX_hopeExtcodesizeGuard hloCat hloVat hloBid h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4026⟩) (okPc := ⟨4038⟩) rd4026
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_hopeCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
@@ -5580,9 +5580,9 @@ theorem endSkipX_hopeCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
   obtain ⟨gasWord, k', C', rd4041⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4026⟩) (okPc := ⟨4038⟩) rd4026
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd4041⟩
 
 theorem endSkipX_hopePostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
@@ -5621,7 +5621,7 @@ theorem endSkipX_hopePostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
           (UInt256.ofNat 12) ret (cA'', σ'') k' C'
       ∧ ret.size < UInt256.size := by
   obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd4042raw, hret⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endSkipHopeOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
@@ -5634,7 +5634,7 @@ theorem endSkipX_hopePostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
           endSkipHopeOutPtr.toNat endSkipHopeInSize.toNat)
           endSkipHopeOutPtr.toNat endSkipHopeOutSize.toNat) = UInt256.ofNat 12 := by
       unfold endSkipHopeOutPtr endSkipHopeInSize endSkipHopeOutSize
-      native_decide
+      decide +native
     simpa [endSkipHopePostCallMemFor, endSkipHopeOutPtr, endSkipHopeInSize,
       endSkipHopeOutSize, endSkipHopeEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd4042raw
@@ -5662,7 +5662,7 @@ theorem endSkipX_hopeCallDepthLimit {cA cA' gh bl σ σmem σcall σpost σ₀ A
       (endSkipHopeCalldataMemFor σmem σcall I catOut vatOut bidOut)
       (UInt256.ofNat 12) ByteArray.empty (cA', σpost) k' C' := by
   obtain ⟨k', C', rd4042raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endSkipHopeOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -5672,7 +5672,7 @@ theorem endSkipX_hopeCallDepthLimit {cA cA' gh bl σ σmem σcall σpost σ₀ A
         endSkipHopeOutPtr.toNat endSkipHopeInSize.toNat)
         endSkipHopeOutPtr.toNat endSkipHopeOutSize.toNat) = UInt256.ofNat 12 := by
     unfold endSkipHopeOutPtr endSkipHopeInSize endSkipHopeOutSize
-    native_decide
+    decide +native
   simpa [endSkipHopeOutPtr, endSkipHopeInSize, endSkipHopeOutSize,
     endSkipHopeEndPtr, hmin, byteArray_write_len_zero, haw] using rd4042raw
 
@@ -5689,9 +5689,9 @@ theorem endSkipX_hopeCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4042⟩) (okPc := ⟨4058⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_hopeCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
@@ -5712,13 +5712,13 @@ theorem endSkipX_hopeCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
   obtain ⟨_, _, rd4060⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨4042⟩) (okPc := ⟨4058⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp)
   have rd4063 := evm_run rd4060 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa using rd4063⟩
 
 theorem endSkipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
@@ -5761,7 +5761,7 @@ theorem endSkipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask := by
-    native_decide
+    decide +native
   have hflipMaskLeft :
       UInt256.land solcAddrMask (endSkipCatIlkFlipWord catOut) =
         endSkipCatIlkFlipTargetWord catOut := by
@@ -5774,45 +5774,45 @@ theorem endSkipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
   have hselectorMaskShift :
       UInt256.shiftLeft (UInt256.land endSkipYankSelectorWord ⟨0xffffffff⟩) ⟨224⟩ =
         endSkipYankSelectorShifted := by
-    native_decide
+    decide +native
   have hselectorMaskShiftLeft :
       UInt256.shiftLeft (UInt256.land ⟨0xffffffff⟩ endSkipYankSelectorWord) ⟨224⟩ =
         endSkipYankSelectorShifted := by
-    native_decide
+    decide +native
   have rd4120raw := evm_run h with [
-    raw dup6 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push4 endSkipYankSelectorWord (by native_decide) (by evm_ov),
-    raw dup10 (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
+    raw dup6 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push4 endSkipYankSelectorWord (by decide +native) (by evm_ov),
+    raw dup10 (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload64Base (by decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push4 ⟨0xffffffff⟩ (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push4 ⟨0xffffffff⟩ (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0
       (writeWord (endSkipHopePostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
         128 endSkipYankSelectorShifted)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by rw [hselectorMaskShiftLeft]; rfl)
       (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipYankCalldataMemFor σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show ((⟨4⟩ : UInt256) + ⟨128⟩).toNat = 132 by native_decide]
+        rw [show ((⟨4⟩ : UInt256) + ⟨128⟩).toNat = 132 by decide +native]
         change (endSkipIdWord I).toByteArray.write 0
           (writeWord
             (endSkipHopePostCallMemFor σmem σcall I catOut vatOut bidOut rdata)
@@ -5821,22 +5821,22 @@ theorem endSkipX_yankExtcodesizeGuard {cA cA' gh bl σ σmem σcall σpost σ₀
         simp [endSkipYankCalldataMemFor, endSkipHopePostCallMemFor_eq, writeCascade,
           Reasoning.Theory.writeWord])
       (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endSkipYankOutPtr, endSkipYankInSize, endSkipYankOutSize,
       endSkipYankEndPtr, endSkipYankSelectorWord, haddrMask, hflipMaskLeft,
@@ -5860,9 +5860,9 @@ theorem endSkipX_yankNoCode {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
   obtain ⟨_, _, rd4120⟩ := endSkipX_yankExtcodesizeGuard hloCat hloVat hloBid h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4120⟩) (okPc := ⟨4132⟩) rd4120
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_yankCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
@@ -5893,9 +5893,9 @@ theorem endSkipX_yankCallReady {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
   obtain ⟨gasWord, k', C', rd4135⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4120⟩) (okPc := ⟨4132⟩) rd4120
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd4135⟩
 
 theorem endSkipX_yankPostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
@@ -5935,7 +5935,7 @@ theorem endSkipX_yankPostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
           (UInt256.ofNat 12) ret (cA'', σ'') k' C'
       ∧ ret.size < UInt256.size := by
   obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd4136raw, hret⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endSkipYankOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
@@ -5948,7 +5948,7 @@ theorem endSkipX_yankPostCall {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
           endSkipYankOutPtr.toNat endSkipYankInSize.toNat)
           endSkipYankOutPtr.toNat endSkipYankOutSize.toNat) = UInt256.ofNat 12 := by
       unfold endSkipYankOutPtr endSkipYankInSize endSkipYankOutSize
-      native_decide
+      decide +native
     simpa [endSkipYankPostCallMemFor, endSkipYankOutPtr, endSkipYankInSize,
       endSkipYankOutSize, endSkipYankEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd4136raw
@@ -5978,7 +5978,7 @@ theorem endSkipX_yankCallDepthLimit {cA cA' gh bl σ σmem σcall σpost σ₀ A
       (endSkipYankCalldataMemFor σmem σcall I catOut vatOut bidOut)
       (UInt256.ofNat 12) ByteArray.empty (cA', σpost) k' C' := by
   obtain ⟨k', C', rd4136raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endSkipYankOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -5988,7 +5988,7 @@ theorem endSkipX_yankCallDepthLimit {cA cA' gh bl σ σmem σcall σpost σ₀ A
         endSkipYankOutPtr.toNat endSkipYankInSize.toNat)
         endSkipYankOutPtr.toNat endSkipYankOutSize.toNat) = UInt256.ofNat 12 := by
     unfold endSkipYankOutPtr endSkipYankInSize endSkipYankOutSize
-    native_decide
+    decide +native
   simpa [endSkipYankOutPtr, endSkipYankInSize, endSkipYankOutSize,
     endSkipYankEndPtr, hmin, byteArray_write_len_zero, haw] using rd4136raw
 
@@ -6006,9 +6006,9 @@ theorem endSkipX_yankCallFailed {cA cA' gh bl σ σpost σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4136⟩) (okPc := ⟨4152⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_yankCallSucceeded {cA cA' gh bl σ σpost σ₀ A I}
@@ -6030,13 +6030,13 @@ theorem endSkipX_yankCallSucceeded {cA cA' gh bl σ σpost σ₀ A I}
   obtain ⟨_, _, rd4154⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨4136⟩) (okPc := ⟨4152⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp)
   have rd4157 := evm_run rd4154 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa using rd4157⟩
 
 theorem endSkipX_artDivZeroInvalid {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
@@ -6054,13 +6054,13 @@ theorem endSkipX_artDivZeroInvalid {cA cA' gh bl σ σmem σcall σpost σ₀ A 
       X (g.toNat + 1) (D_J endBytecode 0)
         (initState cA gh bl σ σ₀ g A I) = .error .InvalidInstruction := by
   have rd4165 := evm_run h with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨4167⟩ (by native_decide) (by evm_ov)]
-  have rd4166 := rd4165.jumpiNT (by native_decide) (by simpa using hrate) (by evm_ov)
-  exact endFlowInvalidError rd4166 (by native_decide)
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨4167⟩ (by decide +native) (by evm_ov)]
+  have rd4166 := rd4165.jumpiNT (by decide +native) (by simpa using hrate) (by evm_ov)
+  exact endFlowInvalidError rd4166 (by decide +native)
 
 theorem endSkipX_artAddEntry {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
@@ -6101,38 +6101,38 @@ theorem endSkipX_artAddEntry {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem0) ⟨14⟩ key
         (by rw [hmem0Size]; omega)
   have rd4165 := evm_run h with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨4167⟩ (by native_decide) (by evm_ov)]
-  have rd4167 := rd4165.jumpiT (by native_decide) hrate (by jump_dest) (by evm_ov)
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨4167⟩ (by decide +native) (by evm_ov)]
+  have rd4167 := rd4165.jumpiT (by decide +native) hrate (by jump_dest) (by evm_ov)
   have rd4171 := evm_run rd4167 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup13 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup13 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd4172 := rd4171.mstore 0 (wordAt0Mem key mem0) (UInt256.ofNat 12)
-    (by native_decide) mem_cost (by simp [wordAt0Mem, key, mem0])
-    (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by simp [wordAt0Mem, key, mem0])
+    (by decide +native) (by evm_ov)
   have rd4177 := evm_run rd4172 with [
-    raw push1 ⟨14⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨14⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd4177' := rd4177.mstore 0 mem14 (UInt256.ofNat 12)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (by
       change (⟨14⟩ : UInt256).toByteArray.write 0 (wordAt0Mem key mem0) 32 32 =
         mem14
       simp [mem14, endSkipArtHashMemFor, twoWordHashMem, wordAt32Mem, key, mem0,
         endSkipYankPostCallMemFor_eq])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd4181 := evm_run rd4177' with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd4182 := rd4181.keccak256 0 (endSkipArtSlot I) (UInt256.ofNat 12)
-    (by native_decide) mem_cost (by simpa [key, hslot] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4183raw⟩ := rd4182.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by simpa [key, hslot] using hhash)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4183raw⟩ := rd4182.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd4183⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4183⟩
         (endSkipArtOldWord σpost I :: endSkipTabWord bidOut ::
@@ -6146,18 +6146,18 @@ theorem endSkipX_artAddEntry {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       simpa [endSkipArtOldWord, endSlotWord, solcSlotWord, hslot, key, mem14]
         using rd4183raw⟩
   have rd4196 := evm_run rd4183 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push2 ⟨4197⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨10092⟩ (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push2 ⟨4197⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨10092⟩ (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endSkipArtWord, mem14] using
-      rd4196.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      rd4196.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem endSkipX_artAddReturns {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut ret : ByteArray} {k C : ℕ}
@@ -6191,30 +6191,30 @@ theorem endSkipX_artAddReturns {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
   have hlt : UInt256.lt (art + old) old = ⟨0⟩ :=
     ult_zero (by rw [haddNat]; omega)
   have rd10099pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
-  have rd10099 := evm_run rd10099pre with [raw lt (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
+  have rd10099 := evm_run rd10099pre with [raw lt (by decide +native) (by evm_ov)]
   have rd10099' := by
     simpa [old, art] using rd10099
   rw [hlt] at rd10099'
-  have rd10100pre := evm_run rd10099' with [raw iszero (by native_decide) (by evm_ov)]
+  have rd10100pre := evm_run rd10099' with [raw iszero (by decide +native) (by evm_ov)]
   have rd10100 := by
     simpa using rd10100pre
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd10100
   have rd10108pre := evm_run rd10100 with [
-    raw push2 ⟨10108⟩ (by native_decide) (by evm_ov),
-    raw jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)]
+    raw push2 ⟨10108⟩ (by decide +native) (by evm_ov),
+    raw jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)]
   have rd4197 := evm_run rd10108pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have hcomm : art + old = old + art := u256_add_comm art old
   exact ⟨_, _, by simpa [endSkipArtNewWord, old, art, hcomm] using rd4197⟩
 
@@ -6254,25 +6254,25 @@ theorem endSkipX_artAddOverflow {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
     have hartLt : art.toNat < UInt256.size := art.val.isLt
     omega
   have rd10099pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
-  have rd10099 := evm_run rd10099pre with [raw lt (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
+  have rd10099 := evm_run rd10099pre with [raw lt (by decide +native) (by evm_ov)]
   have rd10099' := by
     simpa [old, art] using rd10099
   rw [hlt] at rd10099'
-  have rd10100pre := evm_run rd10099' with [raw iszero (by native_decide) (by evm_ov)]
+  have rd10100pre := evm_run rd10099' with [raw iszero (by decide +native) (by evm_ov)]
   have rd10100 := by
     simpa using rd10100pre
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd10100
-  have rd10104pre := evm_run rd10100 with [raw push2 ⟨10108⟩ (by native_decide) (by evm_ov)]
-  have rd10104 := rd10104pre.jumpiNT (by native_decide) (by decide)
+  have rd10104pre := evm_run rd10100 with [raw push2 ⟨10108⟩ (by decide +native) (by evm_ov)]
+  have rd10104 := rd10104pre.jumpiNT (by decide +native) (by decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact RD.solcPush1Dup1Revert0 rd10104 (by native_decide) (by native_decide)
-    (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rd10104 (by decide +native) (by decide +native)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_artStoreAtHash {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
@@ -6324,34 +6324,34 @@ theorem endSkipX_artStoreAtHash {cA cA' gh bl σ σmem σcall σpost σ₀ A I}
       endFlow_twoWordHashMem_solcMappingSlot_of_ge64 (mem := mem14) ⟨14⟩ key
         (by rw [hmem14Size]; omega)
   have rd4201 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup12 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup12 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd4202 := rd4201.mstore 0 (wordAt0Mem key mem14) (UInt256.ofNat 12)
-    (by native_decide) mem_cost (by simp [wordAt0Mem, key, mem14])
-    (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by simp [wordAt0Mem, key, mem14])
+    (by decide +native) (by evm_ov)
   have rd4207 := evm_run rd4202 with [
-    raw push1 ⟨14⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨14⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd4207' := rd4207.mstore 0 memStore (UInt256.ofNat 12)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (by
       change (⟨14⟩ : UInt256).toByteArray.write 0 (wordAt0Mem key mem14) 32 32 =
         memStore
       simp [memStore, endSkipArtStoreHashMemFor, twoWordHashMem, wordAt32Mem, key, mem14])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd4211 := evm_run rd4207' with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd4212 := rd4211.keccak256 0 (endSkipArtSlot I) (UInt256.ofNat 12)
-    (by native_decide) mem_cost (by simpa [key, hslot] using hhash)
-    (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by simpa [key, hslot] using hhash)
+    (by decide +native) (by evm_ov)
   have rd4215 := evm_run rd4212 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd4216raw⟩ := rd4215.sstore hperm (by native_decide)
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd4216raw⟩ := rd4215.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [endSkipPostArtAccountMap, memStore] using rd4216raw⟩
 
@@ -6392,26 +6392,26 @@ theorem endSkipX_artStoreIntGuardOk {cA cA' gh bl σ σmem σcall σpost σ₀ A
       (slt_lit_zero (a := endSkipArtWord vatOut bidOut) (m := 0)
         (by norm_num) (by omega) hart)
   have rd4224pre := evm_run rd4216 with [
-    raw dup5 (by native_decide) (by evm_ov),
-    raw slt (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push2 ⟨4231⟩ (by native_decide) (by evm_ov)]
+    raw dup5 (by decide +native) (by evm_ov),
+    raw slt (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push2 ⟨4231⟩ (by decide +native) (by evm_ov)]
   rw [hsltLot, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd4224pre
-  have rd4225 := rd4224pre.jumpiNT (by native_decide)
+  have rd4225 := rd4224pre.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   have rd4230pre := evm_run rd4225 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw slt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw slt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov)]
   rw [hsltArt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd4230pre
   have rd4295 := evm_run rd4230pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨4295⟩ (by native_decide) (by evm_ov),
-    raw jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨4295⟩ (by decide +native) (by evm_ov),
+    raw jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa using rd4295⟩
 
@@ -6438,19 +6438,19 @@ theorem endSkipX_artStoreIntGuardLotOverflow {cA cA' gh bl σ σmem σcall σpos
       (slt_lit_one_high (a := endSkipLotWord bidOut) (m := 0)
         (by norm_num) hlot)
   have rd4224pre := evm_run rd4216 with [
-    raw dup5 (by native_decide) (by evm_ov),
-    raw slt (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push2 ⟨4231⟩ (by native_decide) (by evm_ov)]
+    raw dup5 (by decide +native) (by evm_ov),
+    raw slt (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push2 ⟨4231⟩ (by decide +native) (by evm_ov)]
   rw [hsltLot, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd4224pre
-  have rd4231 := rd4224pre.jumpiT (by native_decide)
+  have rd4231 := rd4224pre.jumpiT (by decide +native)
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
   have rd4235pre := evm_run rd4231 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨4295⟩ (by native_decide) (by evm_ov)]
-  have rd4236 := rd4235pre.jumpiNT (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨4295⟩ (by decide +native) (by evm_ov)]
+  have rd4236 := rd4235pre.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact endSkip_solcErrorStringRevertTail_aw12
     (pc := ⟨4236⟩) (len := ⟨12⟩)
@@ -6460,7 +6460,7 @@ theorem endSkipX_artStoreIntGuardLotOverflow {cA cA' gh bl σ σmem σcall σpos
     rd4236
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) rfl
     (endSkipArtStoreHashMemFor_size σmem σcall I catOut vatOut bidOut
       hloCat hloVat hloBid)
@@ -6497,26 +6497,26 @@ theorem endSkipX_artStoreIntGuardArtOverflow {cA cA' gh bl σ σmem σcall σpos
       (slt_lit_one_high (a := endSkipArtWord vatOut bidOut) (m := 0)
         (by norm_num) hart)
   have rd4224pre := evm_run rd4216 with [
-    raw dup5 (by native_decide) (by evm_ov),
-    raw slt (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push2 ⟨4231⟩ (by native_decide) (by evm_ov)]
+    raw dup5 (by decide +native) (by evm_ov),
+    raw slt (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push2 ⟨4231⟩ (by decide +native) (by evm_ov)]
   rw [hsltLot, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd4224pre
-  have rd4225 := rd4224pre.jumpiNT (by native_decide)
+  have rd4225 := rd4224pre.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   have rd4230pre := evm_run rd4225 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw slt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw slt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov)]
   rw [hsltArt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd4230pre
   have rd4235pre := evm_run rd4230pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨4295⟩ (by native_decide) (by evm_ov)]
-  have rd4236 := rd4235pre.jumpiNT (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨4295⟩ (by decide +native) (by evm_ov)]
+  have rd4236 := rd4235pre.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact endSkip_solcErrorStringRevertTail_aw12
     (pc := ⟨4236⟩) (len := ⟨12⟩)
@@ -6526,7 +6526,7 @@ theorem endSkipX_artStoreIntGuardArtOverflow {cA cA' gh bl σ σmem σcall σpos
     rd4236
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) rfl
     (endSkipArtStoreHashMemFor_size σmem σcall I catOut vatOut bidOut
       hloCat hloVat hloBid)
@@ -6586,7 +6586,7 @@ theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀
   have hselectorShift :
       UInt256.shiftLeft (⟨0x01eeacfd⟩ : UInt256) ⟨230⟩ =
         endFreeGrabSelectorShifted := by
-    native_decide
+    decide +native
   have hthisWord : EVM.word ↑I.codeOwner = endSkipThisWord I :=
     endSkipThisWordOfAddr I
   have husrMask :
@@ -6614,11 +6614,11 @@ theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀
       u256_land_comm solcAddrMask (endSlotWord ⟨1⟩ σCall I)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have rd4298 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd4299raw⟩ := rd4298.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd4299raw⟩ := rd4298.sload (by decide +native) (by evm_ov)
   have rd4299 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4299⟩
         (endSlotWord ⟨1⟩ σCall I :: endSkipArtWord vatOut bidOut ::
@@ -6631,9 +6631,9 @@ theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4299raw⟩
   obtain ⟨_, _, rd4299⟩ := rd4299
   have rd4302 := evm_run rd4299 with [
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd4303raw⟩ := rd4302.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd4303raw⟩ := rd4302.sload (by decide +native) (by evm_ov)
   have rd4303 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4303⟩
         (endSlotWord ⟨4⟩ σCall I :: ⟨4⟩ :: endSlotWord ⟨1⟩ σCall I ::
@@ -6647,112 +6647,112 @@ theorem endSkipX_grabExtcodesizeGuard {cA cA' gh bl σ σCall σmem σcall σ₀
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd4303raw⟩
   obtain ⟨_, _, rd4303⟩ := rd4303
   have rd4397raw := evm_run rd4303 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw push4 ⟨0x01eeacfd⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨230⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 ⟨0x01eeacfd⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨230⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipGrabMem1Trace σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by rw [hselectorShift]; rfl) (by decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup15 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup15 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipGrabMem2Trace σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (UInt256.ofNat 12) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipGrabMem3Trace σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨36⟩).toNat = 164 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨36⟩).toNat = 164 by decide +native]
         rw [haddrMask, husrMaskLeft]
         rfl)
       (by decide) (by evm_ov),
-    raw address (by native_decide) (by evm_ov),
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw address (by decide +native) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipGrabMem4Trace σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨68⟩).toNat = 196 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨68⟩).toNat = 196 by decide +native]
         simp [endSkipGrabMem4Trace, Reasoning.Theory.writeWord, endSkipThisWord])
       (by decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipGrabMem5Trace σCall σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨100⟩).toNat = 228 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨100⟩).toNat = 228 by decide +native]
         rw [haddrMask, hvowMaskLeft]
         rfl)
       (by decide) (by evm_ov),
-    raw push1 ⟨132⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨132⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipGrabMem6Trace σCall σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨132⟩).toNat = 260 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨132⟩).toNat = 260 by decide +native]
         rfl)
       (by decide) (by evm_ov),
-    raw push1 ⟨164⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨164⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endSkipGrabMem7Trace σCall σmem σcall I catOut vatOut bidOut)
-      (UInt256.ofNat 12) (by native_decide) mem_cost
+      (UInt256.ofNat 12) (by decide +native) mem_cost
       (by
-        rw [show ((⟨128⟩ : UInt256) + ⟨164⟩).toNat = 292 by native_decide]
+        rw [show ((⟨128⟩ : UInt256) + ⟨164⟩).toNat = 292 by decide +native]
         rfl)
       (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
       mem_cost hmload64Grab (by decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 ⟨0x7bab3f40⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨196⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw swap3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 ⟨0x7bab3f40⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨196⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   have rd4397 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4397⟩
         (endPackVatWord σCall I :: endPackVatWord σCall I :: ⟨0⟩ ::
@@ -6791,9 +6791,9 @@ theorem endSkipX_grabNoCode {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
   obtain ⟨_, _, rd4397⟩ := endSkipX_grabExtcodesizeGuard hloCat hloVat hloBid h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4397⟩) (okPc := ⟨4409⟩) rd4397
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_grabCallReady {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
     {g : Sat256} {sel : UInt256} {catOut vatOut bidOut rdata : ByteArray} {k C : ℕ}
@@ -6824,9 +6824,9 @@ theorem endSkipX_grabCallReady {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
   obtain ⟨gasWord, k', C', rd4412⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4397⟩) (okPc := ⟨4409⟩) rd4397
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd4412⟩
 
 theorem endSkipX_grabPostCall {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
@@ -6867,7 +6867,7 @@ theorem endSkipX_grabPostCall {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
           (UInt256.ofNat 12) ret (cA'', σ'') k' C'
       ∧ ret.size < UInt256.size := by
   obtain ⟨cA'', σ'', z, ret, Ain, callGas, k', C', hΘ, rd4413raw, hret⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA'', σ'', z, ret, Ain, callGas, k', C', ?_, ?_, hret⟩
   · simpa [initState] using hΘ
   · have hmin : (min endFreeGrabOutSize (UInt256.ofNat ret.size)).toNat = 0 := by
@@ -6880,7 +6880,7 @@ theorem endSkipX_grabPostCall {cA cA' gh bl σ σCall σmem σcall σ₀ A I}
           endFreeGrabOutPtr.toNat endFreeGrabInSize.toNat)
           endFreeGrabOutPtr.toNat endFreeGrabOutSize.toNat) = UInt256.ofNat 12 := by
       unfold endFreeGrabOutPtr endFreeGrabInSize endFreeGrabOutSize
-      native_decide
+      decide +native
     simpa [endSkipGrabPostCallMemForTrace, endFreeGrabOutPtr, endFreeGrabInSize,
       endFreeGrabOutSize, endFreeGrabEndPtr, hmin, byteArray_write_len_zero, haw]
       using rd4413raw
@@ -6910,7 +6910,7 @@ theorem endSkipX_grabCallDepthLimit {cA cA' gh bl σ σCall σmem σcall σ₀ A
       (endSkipGrabCalldataMemForTrace σCall σmem σcall I catOut vatOut bidOut)
       (UInt256.ofNat 12) ByteArray.empty (cA', σCall) k' C' := by
   obtain ⟨k', C', rd4413raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endFreeGrabOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -6920,7 +6920,7 @@ theorem endSkipX_grabCallDepthLimit {cA cA' gh bl σ σCall σmem σcall σ₀ A
         endFreeGrabOutPtr.toNat endFreeGrabInSize.toNat)
         endFreeGrabOutPtr.toNat endFreeGrabOutSize.toNat) = UInt256.ofNat 12 := by
     unfold endFreeGrabOutPtr endFreeGrabInSize endFreeGrabOutSize
-    native_decide
+    decide +native
   simpa [endFreeGrabOutPtr, endFreeGrabInSize, endFreeGrabOutSize,
     endFreeGrabEndPtr, hmin, byteArray_write_len_zero, haw] using rd4413raw
 
@@ -6939,9 +6939,9 @@ theorem endSkipX_grabCallFailed {cA cA' gh bl σ σpre σpost σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4413⟩) (okPc := ⟨4429⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endSkipX_grabCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
@@ -6965,8 +6965,8 @@ theorem endSkipX_grabCallSucceeded {cA cA' gh bl σ σpre σpost σ₀ A I}
       mem (UInt256.ofNat 12) rdata (cA', σpost) k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨4413⟩) (okPc := ⟨4429⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp)
 
 theorem endSkipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -7015,7 +7015,7 @@ theorem endSkipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
         bidOut ret hloCat hloVat hloBid)
   have haddrMask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have husrMaskLeft :
       UInt256.land solcAddrMask (endSkipUsrWord bidOut) =
         endSkipUsrAddrWord bidOut := by
@@ -7028,61 +7028,61 @@ theorem endSkipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
   let skipEvent : UInt256 :=
     ⟨0xbfa2310a8897203a59922debd0db38279196d8de5050df84608e2bb3e7790f69⟩
   have rd4438pre := evm_run h with [
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
-      mem_cost hmload64 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
+      mem_cost hmload64 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rdTabMem := rd4438pre.mstore 0
     (endSkipLogDataMemForTrace σCall σmem σcall I catOut vatOut bidOut ret)
-    (UInt256.ofNat 12) (by native_decide) mem_cost (by rfl)
-    (by native_decide) (by evm_ov)
+    (UInt256.ofNat 12) (by decide +native) mem_cost (by rfl)
+    (by decide +native) (by evm_ov)
   have rd4445pre := evm_run rdTabMem with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rdLotMem := rd4445pre.mstore 0
     (endSkipLogDataMem2ForTrace σCall σmem σcall I catOut vatOut bidOut ret)
-    (UInt256.ofNat 12) (by native_decide) mem_cost
+    (UInt256.ofNat 12) (by decide +native) mem_cost
     (by
-      rw [show ((⟨128⟩ : UInt256) + ⟨32⟩).toNat = 160 by native_decide]
+      rw [show ((⟨128⟩ : UInt256) + ⟨32⟩).toNat = 160 by decide +native]
       rfl)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd4451pre := evm_run rdLotMem with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rdArtMem := rd4451pre.mstore 0
     (endSkipLogDataMem3ForTrace σCall σmem σcall I catOut vatOut bidOut ret)
-    (UInt256.ofNat 12) (by native_decide) mem_cost
+    (UInt256.ofNat 12) (by decide +native) mem_cost
     (by
-      rw [show ((⟨64⟩ : UInt256) + ⟨128⟩).toNat = 192 by native_decide]
+      rw [show ((⟨64⟩ : UInt256) + ⟨128⟩).toNat = 192 by decide +native]
       rfl)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd4471raw := evm_run rdArtMem with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by native_decide)
-      mem_cost hmload64Log (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup13 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup14 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 12) (by decide +native)
+      mem_cost hmload64Log (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup13 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup14 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd4471 : ∃ k' C', RD endBytecode I g s0 ⟨4471⟩
       (⟨128⟩ :: ⟨128⟩ :: endSkipIlkWord I :: endSkipIdWord I ::
         endSkipUsrAddrWord bidOut :: endSkipArtWord vatOut bidOut ::
@@ -7095,16 +7095,16 @@ theorem endSkipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     exact ⟨_, _, by simpa [haddrMask, husrMask] using rd4471raw⟩
   obtain ⟨_, _, rd4471⟩ := rd4471
   have rdEvent := rd4471.pushConst skipEvent (width := 32) (op := .PUSH32)
-    (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by evm_ov)
   have rd4513raw := evm_run rdEvent with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨96⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨96⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd4513 : ∃ k' C', RD endBytecode I g s0 ⟨4513⟩
       (⟨128⟩ :: ⟨96⟩ :: skipEvent :: endSkipIlkWord I :: endSkipIdWord I ::
         endSkipUsrAddrWord bidOut :: endSkipArtWord vatOut bidOut ::
@@ -7129,57 +7129,57 @@ theorem endSkipX_grabLogReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 12).toNat (⟨128⟩ : UInt256).toNat
         (⟨96⟩ : UInt256).toNat))
-    rd4513 (by native_decide) hperm mem_cost (by native_decide)
+    rd4513 (by decide +native) hperm mem_cost (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdPopArt := RD.pop (a := endSkipArtWord vatOut bidOut)
     (t := [endSkipTabWord bidOut, endSkipUsrWord bidOut, endSkipLotWord bidOut,
       endSkipBidWord bidOut, endFlowVatIlkRateWord vatOut,
       endSkipCatIlkFlipWord catOut, endSkipCatIlkFlipWord catOut,
       endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel])
-    rdLog (by native_decide) (by evm_ov)
+    rdLog (by decide +native) (by evm_ov)
   have rdPopTab := RD.pop (a := endSkipTabWord bidOut)
     (t := [endSkipUsrWord bidOut, endSkipLotWord bidOut, endSkipBidWord bidOut,
       endFlowVatIlkRateWord vatOut, endSkipCatIlkFlipWord catOut,
       endSkipCatIlkFlipWord catOut, endSkipIdWord I, endSkipIlkWord I,
       endSkipReturnPc, sel])
-    rdPopArt (by native_decide) (by evm_ov)
+    rdPopArt (by decide +native) (by evm_ov)
   have rdPopUsr := RD.pop (a := endSkipUsrWord bidOut)
     (t := [endSkipLotWord bidOut, endSkipBidWord bidOut, endFlowVatIlkRateWord vatOut,
       endSkipCatIlkFlipWord catOut, endSkipCatIlkFlipWord catOut,
       endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel])
-    rdPopTab (by native_decide) (by evm_ov)
+    rdPopTab (by decide +native) (by evm_ov)
   have rdPopLot := RD.pop (a := endSkipLotWord bidOut)
     (t := [endSkipBidWord bidOut, endFlowVatIlkRateWord vatOut,
       endSkipCatIlkFlipWord catOut, endSkipCatIlkFlipWord catOut,
       endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel])
-    rdPopUsr (by native_decide) (by evm_ov)
+    rdPopUsr (by decide +native) (by evm_ov)
   have rdPopBid := RD.pop (a := endSkipBidWord bidOut)
     (t := [endFlowVatIlkRateWord vatOut, endSkipCatIlkFlipWord catOut,
       endSkipCatIlkFlipWord catOut, endSkipIdWord I, endSkipIlkWord I,
       endSkipReturnPc, sel])
-    rdPopLot (by native_decide) (by evm_ov)
+    rdPopLot (by decide +native) (by evm_ov)
   have rdPopRate := RD.pop (a := endFlowVatIlkRateWord vatOut)
     (t := [endSkipCatIlkFlipWord catOut, endSkipCatIlkFlipWord catOut,
       endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel])
-    rdPopBid (by native_decide) (by evm_ov)
+    rdPopBid (by decide +native) (by evm_ov)
   have rdPopFlipA := RD.pop (a := endSkipCatIlkFlipWord catOut)
     (t := [endSkipCatIlkFlipWord catOut, endSkipIdWord I, endSkipIlkWord I,
       endSkipReturnPc, sel])
-    rdPopRate (by native_decide) (by evm_ov)
+    rdPopRate (by decide +native) (by evm_ov)
   have rdPopFlipB := RD.pop (a := endSkipCatIlkFlipWord catOut)
     (t := [endSkipIdWord I, endSkipIlkWord I, endSkipReturnPc, sel])
-    rdPopFlipA (by native_decide) (by evm_ov)
+    rdPopFlipA (by decide +native) (by evm_ov)
   have rdPopId := RD.pop (a := endSkipIdWord I)
     (t := [endSkipIlkWord I, endSkipReturnPc, sel])
-    rdPopFlipB (by native_decide) (by evm_ov)
+    rdPopFlipB (by decide +native) (by evm_ov)
   have rdPopIlk := RD.pop (a := endSkipIlkWord I)
     (t := [endSkipReturnPc, sel])
-    rdPopId (by native_decide) (by evm_ov)
+    rdPopId (by decide +native) (by evm_ov)
   have rd562 := RD.jump (a := endSkipReturnPc) (t := [sel]) rdPopIlk
-    (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) (by jump_dest) (by evm_ov)
   have rd563 := RD.jumpdest (pc := endSkipReturnPc) (stk := [sel]) rd562
-    (by native_decide) (by evm_ov)
-  exact RD.stop rd563 (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  exact RD.stop rd563 (by decide +native) (by evm_ov)
 
 theorem evalExpr_endSkip_ilk (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := endSkipStore I } evm (.var "ilk") =
@@ -7827,8 +7827,8 @@ theorem evalExprs_endSkip_vatIlksArgs_afterFlip (evm : EVM.State)
     change EvalResult.ofOption EvalError.unboundVariable
       ((endSkipStoreFlip I catOut).get? "ilk") =
         .ok (.fixedBytes bytes32Width (endBytes32ArgBytes I))
-    rw [endSkipStoreFlip, store_get_ne _ _ (by native_decide),
-      endSkipStoreCatIlk, store_get_ne _ _ (by native_decide), endSkipStore_get_ilk]
+    rw [endSkipStoreFlip, store_get_ne _ _ (by decide +native),
+      endSkipStoreCatIlk, store_get_ne _ _ (by decide +native), endSkipStore_get_ilk]
     rfl
   simp [evalExprs?, hilk, endSkipIlkBytes, endBytes32ArgBytes, EvalResult.bind, bind, pure]
 
@@ -8105,8 +8105,8 @@ theorem endSkipBidsReceiver_afterRate {I catOut vatOut evm} :
   change EvalResult.ofOption EvalError.unboundVariable
       ((endSkipStoreRate I catOut vatOut).get? "flip") =
     .ok (.address (endSkipCatIlkFlipAddr catOut))
-  rw [endSkipStoreRate, store_get_ne _ _ (by native_decide),
-    endSkipStoreVatIlk, store_get_ne _ _ (by native_decide),
+  rw [endSkipStoreRate, store_get_ne _ _ (by decide +native),
+    endSkipStoreVatIlk, store_get_ne _ _ (by decide +native),
     endSkipStoreFlip, store_get_self]
   rfl
 
@@ -8174,10 +8174,10 @@ theorem evalExprs_endSkip_bidsArgs_afterRate (evm : EVM.State)
     change EvalResult.ofOption EvalError.unboundVariable
         ((endSkipStoreRate I catOut vatOut).get? "id") =
       .ok (.int (Int.ofNat (endSkipIdWord I).toNat))
-    rw [endSkipStoreRate, store_get_ne _ _ (by native_decide),
-      endSkipStoreVatIlk, store_get_ne _ _ (by native_decide),
-      endSkipStoreFlip, store_get_ne _ _ (by native_decide),
-      endSkipStoreCatIlk, store_get_ne _ _ (by native_decide),
+    rw [endSkipStoreRate, store_get_ne _ _ (by decide +native),
+      endSkipStoreVatIlk, store_get_ne _ _ (by decide +native),
+      endSkipStoreFlip, store_get_ne _ _ (by decide +native),
+      endSkipStoreCatIlk, store_get_ne _ _ (by decide +native),
       endSkipStore, store_get_self]
     rfl
   simp [evalExprs?, hid, EvalResult.bind, bind, pure]
@@ -8359,7 +8359,7 @@ theorem evalExpr_endSkip_flipBid_lot (evm : EVM.State) (I : ExecutionEnv)
     rw [evalExpr?]
     change EvalResult.ofOption EvalError.unboundVariable
       ((endSkipStoreBid I catOut vatOut bidOut).get? "flipBid") = _
-    rw [endSkipStoreBid, store_get_ne _ _ (by native_decide),
+    rw [endSkipStoreBid, store_get_ne _ _ (by decide +native),
       endSkipStoreFlipBid, store_get_self]
     rfl
   rw [evalExpr?]
@@ -8384,8 +8384,8 @@ theorem evalExpr_endSkip_flipBid_usr (evm : EVM.State) (I : ExecutionEnv)
     rw [evalExpr?]
     change EvalResult.ofOption EvalError.unboundVariable
       ((endSkipStoreLot I catOut vatOut bidOut).get? "flipBid") = _
-    rw [endSkipStoreLot, store_get_ne _ _ (by native_decide),
-      endSkipStoreBid, store_get_ne _ _ (by native_decide),
+    rw [endSkipStoreLot, store_get_ne _ _ (by decide +native),
+      endSkipStoreBid, store_get_ne _ _ (by decide +native),
       endSkipStoreFlipBid, store_get_self]
     rfl
   rw [evalExpr?]
@@ -8410,9 +8410,9 @@ theorem evalExpr_endSkip_flipBid_tab (evm : EVM.State) (I : ExecutionEnv)
     rw [evalExpr?]
     change EvalResult.ofOption EvalError.unboundVariable
       ((endSkipStoreUsr I catOut vatOut bidOut).get? "flipBid") = _
-    rw [endSkipStoreUsr, store_get_ne _ _ (by native_decide),
-      endSkipStoreLot, store_get_ne _ _ (by native_decide),
-      endSkipStoreBid, store_get_ne _ _ (by native_decide),
+    rw [endSkipStoreUsr, store_get_ne _ _ (by decide +native),
+      endSkipStoreLot, store_get_ne _ _ (by decide +native),
+      endSkipStoreBid, store_get_ne _ _ (by decide +native),
       endSkipStoreFlipBid, store_get_self]
     rfl
   rw [evalExpr?]
@@ -8763,10 +8763,10 @@ theorem evalExprs_endSkip_suck2Args_afterSuck1 (evm : EVM.State)
         (locals := endSkipStoreSuck1 I catOut vatOut bidOut)
         (name := "bid") (value := endSkipBidWord bidOut)
         (by
-          rw [endSkipStoreSuck1, store_get_ne _ _ (by native_decide),
-            endSkipStoreTab, store_get_ne _ _ (by native_decide),
-            endSkipStoreUsr, store_get_ne _ _ (by native_decide),
-            endSkipStoreLot, store_get_ne _ _ (by native_decide),
+          rw [endSkipStoreSuck1, store_get_ne _ _ (by decide +native),
+            endSkipStoreTab, store_get_ne _ _ (by decide +native),
+            endSkipStoreUsr, store_get_ne _ _ (by decide +native),
+            endSkipStoreLot, store_get_ne _ _ (by decide +native),
             endSkipStoreBid, store_get_self])
   simp [evalExprs?, hvow, hthis, hbid, EvalResult.bind, bind, pure]
 
@@ -8905,15 +8905,15 @@ theorem evalExprs_endSkip_hopeArgs_afterSuck2 (evm : EVM.State)
     change EvalResult.ofOption EvalError.unboundVariable
         ((endSkipStoreSuck2 I catOut vatOut bidOut).get? "flip") =
       .ok (.address (endSkipCatIlkFlipAddr catOut))
-    rw [endSkipStoreSuck2, store_get_ne _ _ (by native_decide),
-      endSkipStoreSuck1, store_get_ne _ _ (by native_decide),
-      endSkipStoreTab, store_get_ne _ _ (by native_decide),
-      endSkipStoreUsr, store_get_ne _ _ (by native_decide),
-      endSkipStoreLot, store_get_ne _ _ (by native_decide),
-      endSkipStoreBid, store_get_ne _ _ (by native_decide),
-      endSkipStoreFlipBid, store_get_ne _ _ (by native_decide),
-      endSkipStoreRate, store_get_ne _ _ (by native_decide),
-      endSkipStoreVatIlk, store_get_ne _ _ (by native_decide),
+    rw [endSkipStoreSuck2, store_get_ne _ _ (by decide +native),
+      endSkipStoreSuck1, store_get_ne _ _ (by decide +native),
+      endSkipStoreTab, store_get_ne _ _ (by decide +native),
+      endSkipStoreUsr, store_get_ne _ _ (by decide +native),
+      endSkipStoreLot, store_get_ne _ _ (by decide +native),
+      endSkipStoreBid, store_get_ne _ _ (by decide +native),
+      endSkipStoreFlipBid, store_get_ne _ _ (by decide +native),
+      endSkipStoreRate, store_get_ne _ _ (by decide +native),
+      endSkipStoreVatIlk, store_get_ne _ _ (by decide +native),
       endSkipStoreFlip, store_get_self]
     rfl
   simp [evalExprs?, hflip, EvalResult.bind, bind, pure]
@@ -9024,16 +9024,16 @@ theorem endSkipFlipReceiver_afterHope {I catOut vatOut bidOut evm} :
   change EvalResult.ofOption EvalError.unboundVariable
       ((endSkipStoreHope I catOut vatOut bidOut).get? "flip") =
     .ok (.address (endSkipCatIlkFlipAddr catOut))
-  rw [endSkipStoreHope, store_get_ne _ _ (by native_decide),
-    endSkipStoreSuck2, store_get_ne _ _ (by native_decide),
-    endSkipStoreSuck1, store_get_ne _ _ (by native_decide),
-    endSkipStoreTab, store_get_ne _ _ (by native_decide),
-    endSkipStoreUsr, store_get_ne _ _ (by native_decide),
-    endSkipStoreLot, store_get_ne _ _ (by native_decide),
-    endSkipStoreBid, store_get_ne _ _ (by native_decide),
-    endSkipStoreFlipBid, store_get_ne _ _ (by native_decide),
-    endSkipStoreRate, store_get_ne _ _ (by native_decide),
-    endSkipStoreVatIlk, store_get_ne _ _ (by native_decide),
+  rw [endSkipStoreHope, store_get_ne _ _ (by decide +native),
+    endSkipStoreSuck2, store_get_ne _ _ (by decide +native),
+    endSkipStoreSuck1, store_get_ne _ _ (by decide +native),
+    endSkipStoreTab, store_get_ne _ _ (by decide +native),
+    endSkipStoreUsr, store_get_ne _ _ (by decide +native),
+    endSkipStoreLot, store_get_ne _ _ (by decide +native),
+    endSkipStoreBid, store_get_ne _ _ (by decide +native),
+    endSkipStoreFlipBid, store_get_ne _ _ (by decide +native),
+    endSkipStoreRate, store_get_ne _ _ (by decide +native),
+    endSkipStoreVatIlk, store_get_ne _ _ (by decide +native),
     endSkipStoreFlip, store_get_self]
   rfl
 
@@ -9050,18 +9050,18 @@ theorem evalExprs_endSkip_yankArgs_afterHope (evm : EVM.State)
     change EvalResult.ofOption EvalError.unboundVariable
         ((endSkipStoreHope I catOut vatOut bidOut).get? "id") =
       .ok (.int (Int.ofNat (endSkipIdWord I).toNat))
-    rw [endSkipStoreHope, store_get_ne _ _ (by native_decide),
-      endSkipStoreSuck2, store_get_ne _ _ (by native_decide),
-      endSkipStoreSuck1, store_get_ne _ _ (by native_decide),
-      endSkipStoreTab, store_get_ne _ _ (by native_decide),
-      endSkipStoreUsr, store_get_ne _ _ (by native_decide),
-      endSkipStoreLot, store_get_ne _ _ (by native_decide),
-      endSkipStoreBid, store_get_ne _ _ (by native_decide),
-      endSkipStoreFlipBid, store_get_ne _ _ (by native_decide),
-      endSkipStoreRate, store_get_ne _ _ (by native_decide),
-      endSkipStoreVatIlk, store_get_ne _ _ (by native_decide),
-      endSkipStoreFlip, store_get_ne _ _ (by native_decide),
-      endSkipStoreCatIlk, store_get_ne _ _ (by native_decide),
+    rw [endSkipStoreHope, store_get_ne _ _ (by decide +native),
+      endSkipStoreSuck2, store_get_ne _ _ (by decide +native),
+      endSkipStoreSuck1, store_get_ne _ _ (by decide +native),
+      endSkipStoreTab, store_get_ne _ _ (by decide +native),
+      endSkipStoreUsr, store_get_ne _ _ (by decide +native),
+      endSkipStoreLot, store_get_ne _ _ (by decide +native),
+      endSkipStoreBid, store_get_ne _ _ (by decide +native),
+      endSkipStoreFlipBid, store_get_ne _ _ (by decide +native),
+      endSkipStoreRate, store_get_ne _ _ (by decide +native),
+      endSkipStoreVatIlk, store_get_ne _ _ (by decide +native),
+      endSkipStoreFlip, store_get_ne _ _ (by decide +native),
+      endSkipStoreCatIlk, store_get_ne _ _ (by decide +native),
       endSkipStore, store_get_self]
     rfl
   simp [evalExprs?, hid, EvalResult.bind, bind, pure]
@@ -9175,10 +9175,10 @@ theorem evalExpr_endSkip_tab_afterYank (evm : EVM.State) (I : ExecutionEnv)
       (locals := endSkipStoreYank I catOut vatOut bidOut)
       (name := "tab") (value := endSkipTabWord bidOut)
       (by
-        rw [endSkipStoreYank, store_get_ne _ _ (by native_decide),
-          endSkipStoreHope, store_get_ne _ _ (by native_decide),
-          endSkipStoreSuck2, store_get_ne _ _ (by native_decide),
-          endSkipStoreSuck1, store_get_ne _ _ (by native_decide),
+        rw [endSkipStoreYank, store_get_ne _ _ (by decide +native),
+          endSkipStoreHope, store_get_ne _ _ (by decide +native),
+          endSkipStoreSuck2, store_get_ne _ _ (by decide +native),
+          endSkipStoreSuck1, store_get_ne _ _ (by decide +native),
           endSkipStoreTab, store_get_self])
 
 theorem evalExpr_endSkip_rate_afterYank (evm : EVM.State) (I : ExecutionEnv)
@@ -9192,15 +9192,15 @@ theorem evalExpr_endSkip_rate_afterYank (evm : EVM.State) (I : ExecutionEnv)
       (locals := endSkipStoreYank I catOut vatOut bidOut)
       (name := "rate") (value := endFlowVatIlkRateWord vatOut)
       (by
-        rw [endSkipStoreYank, store_get_ne _ _ (by native_decide),
-          endSkipStoreHope, store_get_ne _ _ (by native_decide),
-          endSkipStoreSuck2, store_get_ne _ _ (by native_decide),
-          endSkipStoreSuck1, store_get_ne _ _ (by native_decide),
-          endSkipStoreTab, store_get_ne _ _ (by native_decide),
-          endSkipStoreUsr, store_get_ne _ _ (by native_decide),
-          endSkipStoreLot, store_get_ne _ _ (by native_decide),
-          endSkipStoreBid, store_get_ne _ _ (by native_decide),
-          endSkipStoreFlipBid, store_get_ne _ _ (by native_decide),
+        rw [endSkipStoreYank, store_get_ne _ _ (by decide +native),
+          endSkipStoreHope, store_get_ne _ _ (by decide +native),
+          endSkipStoreSuck2, store_get_ne _ _ (by decide +native),
+          endSkipStoreSuck1, store_get_ne _ _ (by decide +native),
+          endSkipStoreTab, store_get_ne _ _ (by decide +native),
+          endSkipStoreUsr, store_get_ne _ _ (by decide +native),
+          endSkipStoreLot, store_get_ne _ _ (by decide +native),
+          endSkipStoreBid, store_get_ne _ _ (by decide +native),
+          endSkipStoreFlipBid, store_get_ne _ _ (by decide +native),
           endSkipStoreRate, store_get_self])
 
 theorem endSkipStmtArt (evm : EVM.State) (I : ExecutionEnv)
@@ -9230,20 +9230,20 @@ theorem endSkipStmtArtReverts (evm : EVM.State) (I : ExecutionEnv)
 
 theorem endSkipStoreArt_get_ilk (I : ExecutionEnv) (catOut vatOut bidOut : ByteArray) :
     (endSkipStoreArt I catOut vatOut bidOut).get? "ilk" = some (endFlowIlkValue I) := by
-  rw [endSkipStoreArt, store_get_ne _ _ (by native_decide),
-    endSkipStoreYank, store_get_ne _ _ (by native_decide),
-    endSkipStoreHope, store_get_ne _ _ (by native_decide),
-    endSkipStoreSuck2, store_get_ne _ _ (by native_decide),
-    endSkipStoreSuck1, store_get_ne _ _ (by native_decide),
-    endSkipStoreTab, store_get_ne _ _ (by native_decide),
-    endSkipStoreUsr, store_get_ne _ _ (by native_decide),
-    endSkipStoreLot, store_get_ne _ _ (by native_decide),
-    endSkipStoreBid, store_get_ne _ _ (by native_decide),
-    endSkipStoreFlipBid, store_get_ne _ _ (by native_decide),
-    endSkipStoreRate, store_get_ne _ _ (by native_decide),
-    endSkipStoreVatIlk, store_get_ne _ _ (by native_decide),
-    endSkipStoreFlip, store_get_ne _ _ (by native_decide),
-    endSkipStoreCatIlk, store_get_ne _ _ (by native_decide)]
+  rw [endSkipStoreArt, store_get_ne _ _ (by decide +native),
+    endSkipStoreYank, store_get_ne _ _ (by decide +native),
+    endSkipStoreHope, store_get_ne _ _ (by decide +native),
+    endSkipStoreSuck2, store_get_ne _ _ (by decide +native),
+    endSkipStoreSuck1, store_get_ne _ _ (by decide +native),
+    endSkipStoreTab, store_get_ne _ _ (by decide +native),
+    endSkipStoreUsr, store_get_ne _ _ (by decide +native),
+    endSkipStoreLot, store_get_ne _ _ (by decide +native),
+    endSkipStoreBid, store_get_ne _ _ (by decide +native),
+    endSkipStoreFlipBid, store_get_ne _ _ (by decide +native),
+    endSkipStoreRate, store_get_ne _ _ (by decide +native),
+    endSkipStoreVatIlk, store_get_ne _ _ (by decide +native),
+    endSkipStoreFlip, store_get_ne _ _ (by decide +native),
+    endSkipStoreCatIlk, store_get_ne _ _ (by decide +native)]
   simpa [endFlowIlkValue, endBytes32ArgValue, endBytes32ArgBytes, endSkipIlkBytes]
     using endSkipStore_get_ilk I
 
@@ -9425,7 +9425,7 @@ theorem endSkipStmtArtAssign (evm : EVM.State) (I : ExecutionEnv)
     have hget :
         (endSkipStoreArtNew σ I catOut vatOut bidOut).get? "ilk" =
           some (endFlowIlkValue I) := by
-      rw [endSkipStoreArtNew, store_get_ne _ _ (by native_decide)]
+      rw [endSkipStoreArtNew, store_get_ne _ _ (by decide +native)]
       exact endSkipStoreArt_get_ilk I catOut vatOut bidOut
     exact endSkipAssignArt evm I (endSkipArtNewWord σ I vatOut bidOut) hbase hget hsz68
   exact ExecStmt.assign hArtNew hassign
@@ -9442,14 +9442,14 @@ theorem evalExpr_endSkip_lot_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
       (locals := endSkipStoreArtNew σ I catOut vatOut bidOut)
       (name := "lot") (value := endSkipLotWord bidOut)
       (by
-        rw [endSkipStoreArtNew, store_get_ne _ _ (by native_decide),
-          endSkipStoreArt, store_get_ne _ _ (by native_decide),
-          endSkipStoreYank, store_get_ne _ _ (by native_decide),
-          endSkipStoreHope, store_get_ne _ _ (by native_decide),
-          endSkipStoreSuck2, store_get_ne _ _ (by native_decide),
-          endSkipStoreSuck1, store_get_ne _ _ (by native_decide),
-          endSkipStoreTab, store_get_ne _ _ (by native_decide),
-          endSkipStoreUsr, store_get_ne _ _ (by native_decide),
+        rw [endSkipStoreArtNew, store_get_ne _ _ (by decide +native),
+          endSkipStoreArt, store_get_ne _ _ (by decide +native),
+          endSkipStoreYank, store_get_ne _ _ (by decide +native),
+          endSkipStoreHope, store_get_ne _ _ (by decide +native),
+          endSkipStoreSuck2, store_get_ne _ _ (by decide +native),
+          endSkipStoreSuck1, store_get_ne _ _ (by decide +native),
+          endSkipStoreTab, store_get_ne _ _ (by decide +native),
+          endSkipStoreUsr, store_get_ne _ _ (by decide +native),
           endSkipStoreLot, store_get_self])
 
 theorem evalExpr_endSkip_art_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
@@ -9462,7 +9462,7 @@ theorem evalExpr_endSkip_art_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
       (locals := endSkipStoreArtNew σ I catOut vatOut bidOut)
       (name := "art") (value := endSkipArtWord vatOut bidOut)
       (by
-        rw [endSkipStoreArtNew, store_get_ne _ _ (by native_decide),
+        rw [endSkipStoreArtNew, store_get_ne _ _ (by decide +native),
           endSkipStoreArt, store_get_self])
 
 theorem endSkipEvalExpr_intGuard_true (evm : EVM.State) (I : ExecutionEnv)
@@ -9473,7 +9473,7 @@ theorem endSkipEvalExpr_intGuard_true (evm : EVM.State) (I : ExecutionEnv)
       (.binary .and
         (.binary .lt (.var "lot") (.intLit int256Limit))
         (.binary .lt (.var "art") (.intLit int256Limit))) = .ok (.bool true) := by
-  have hlimit : int256Limit = Int.ofNat (2 ^ 255) := by native_decide
+  have hlimit : int256Limit = Int.ofNat (2 ^ 255) := by decide +native
   have hlotExpr := evalExpr_endSkip_lot_afterArtNew evm I σ catOut vatOut bidOut
   have hartExpr := evalExpr_endSkip_art_afterArtNew evm I σ catOut vatOut bidOut
   have hlimitExpr :
@@ -9501,7 +9501,7 @@ theorem endSkipEvalExpr_intGuard_false_lot (evm : EVM.State) (I : ExecutionEnv)
       (.binary .and
         (.binary .lt (.var "lot") (.intLit int256Limit))
         (.binary .lt (.var "art") (.intLit int256Limit))) = .ok (.bool false) := by
-  have hlimit : int256Limit = Int.ofNat (2 ^ 255) := by native_decide
+  have hlimit : int256Limit = Int.ofNat (2 ^ 255) := by decide +native
   have hlotExpr := evalExpr_endSkip_lot_afterArtNew evm I σ catOut vatOut bidOut
   have hlimitExpr :
       evalExpr? config { contract := contract, locals := endSkipStoreArtNew σ I catOut vatOut bidOut } evm
@@ -9523,7 +9523,7 @@ theorem endSkipEvalExpr_intGuard_false_art (evm : EVM.State) (I : ExecutionEnv)
       (.binary .and
         (.binary .lt (.var "lot") (.intLit int256Limit))
         (.binary .lt (.var "art") (.intLit int256Limit))) = .ok (.bool false) := by
-  have hlimit : int256Limit = Int.ofNat (2 ^ 255) := by native_decide
+  have hlimit : int256Limit = Int.ofNat (2 ^ 255) := by decide +native
   have hlotExpr := evalExpr_endSkip_lot_afterArtNew evm I σ catOut vatOut bidOut
   have hartExpr := evalExpr_endSkip_art_afterArtNew evm I σ catOut vatOut bidOut
   have hlimitExpr :
@@ -9565,7 +9565,7 @@ theorem evalExpr_endSkip_ilk_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
       evm (.var "ilk") =
       .ok (.fixedBytes bytes32Width (endBytes32ArgBytes I)) := by
   apply endEvalExpr_varFixedBytes
-  rw [endSkipStoreArtNew, store_get_ne _ _ (by native_decide)]
+  rw [endSkipStoreArtNew, store_get_ne _ _ (by decide +native)]
   simpa [endFlowIlkValue, endBytes32ArgValue] using
     endSkipStoreArt_get_ilk I catOut vatOut bidOut
 
@@ -9577,13 +9577,13 @@ theorem evalExpr_endSkip_usr_afterArtNew (evm : EVM.State) (I : ExecutionEnv)
   change EvalResult.ofOption EvalError.unboundVariable
     ((endSkipStoreArtNew σ I catOut vatOut bidOut).get? "usr") =
       .ok (.address (endSkipUsrAddr bidOut))
-  rw [endSkipStoreArtNew, store_get_ne _ _ (by native_decide),
-    endSkipStoreArt, store_get_ne _ _ (by native_decide),
-    endSkipStoreYank, store_get_ne _ _ (by native_decide),
-    endSkipStoreHope, store_get_ne _ _ (by native_decide),
-    endSkipStoreSuck2, store_get_ne _ _ (by native_decide),
-    endSkipStoreSuck1, store_get_ne _ _ (by native_decide),
-    endSkipStoreTab, store_get_ne _ _ (by native_decide),
+  rw [endSkipStoreArtNew, store_get_ne _ _ (by decide +native),
+    endSkipStoreArt, store_get_ne _ _ (by decide +native),
+    endSkipStoreYank, store_get_ne _ _ (by decide +native),
+    endSkipStoreHope, store_get_ne _ _ (by decide +native),
+    endSkipStoreSuck2, store_get_ne _ _ (by decide +native),
+    endSkipStoreSuck1, store_get_ne _ _ (by decide +native),
+    endSkipStoreTab, store_get_ne _ _ (by decide +native),
     endSkipStoreUsr, store_get_self]
   rfl
 
@@ -10422,10 +10422,10 @@ theorem endSkipX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (code := endBytecode) (sel := sel)
     (entry := endSkipEntryPc) (ret := endSkipReturnPc)
     (decoded := endSkipDecodedPc) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem endSkipBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -11863,7 +11863,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                               let int256Bound : Nat :=
                                                 57896044618658097711785492504343953926634992332820282019728792003956564819968
                                               have hint256Bound : int256Bound = 2 ^ 255 := by
-                                                native_decide
+                                                decide +native
                                               by_cases hlotBound :
                                                   (endSkipLotWord bidOut).toNat < int256Bound
                                               · have hlot :
@@ -12254,8 +12254,8 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                             (returnEquiv.fallthrough
                                                               (o := ByteArray.empty) (r := none)
                                                               (t := []) (dvs := []) rfl
-                                                              (by native_decide)
-                                                              (by native_decide)))
+                                                              (by decide +native)
+                                                              (by decide +native)))
                                                 · have hartOverflowBound :
                                                     int256Bound ≤
                                                       (endSkipArtWord vatOut bidOut).toNat :=
@@ -12345,7 +12345,7 @@ theorem endSkipBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 (out := ByteArray.empty)
                 hwv hsz68 htagSolmNE hcatCodeSolmNE
                 (by simpa using hcallSolm)
-          exact (endSkipX_catIlksCallFailed rd3395 (by native_decide))
+          exact (endSkipX_catIlksCallFailed rd3395 (by decide +native))
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · exact endSkipBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 

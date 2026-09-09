@@ -278,7 +278,7 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
           have hbase0 : clearCurrentBaseWord + UInt256.ofNat 0 = clearCurrentBaseWord := by
             simpa using uint256_add_zero_right clearCurrentBaseWord
           have hstride : UInt256.ofNat 32 = (⟨32⟩ : UInt256) := by
-            native_decide
+            decide +native
           rw [hsolmMap]
           simpa [hclearFuelEq, htailClearZero, htailClearZero', hbase0, hstride,
             clearDataWordsForwardFrom] using
@@ -409,7 +409,7 @@ theorem stringStoreLiteX_setLongValueLongValidNoClearResidual
           have hbase0 : clearCurrentBaseWord + UInt256.ofNat 0 = clearCurrentBaseWord := by
             simpa using uint256_add_zero_right clearCurrentBaseWord
           have hstride : UInt256.ofNat 32 = (⟨32⟩ : UInt256) := by
-            native_decide
+            decide +native
           rw [hsolmMap]
           simpa [hclearFuelEq, htailClearZero, htailClearZero', htailClearZero'', hceilTail,
             hbase0, hstride, clearDataWordsForwardFrom] using
@@ -761,7 +761,7 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
           have hbase0 : clearCurrentBaseWord + UInt256.ofNat 0 = clearCurrentBaseWord := by
             simpa using uint256_add_zero_right clearCurrentBaseWord
           have hstride : UInt256.ofNat 32 = (⟨32⟩ : UInt256) := by
-            native_decide
+            decide +native
           rw [hsolmMap]
           simpa [hclearFuelEq, htailSub, tailBase, hbase0, hstride] using
             accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header
@@ -918,7 +918,7 @@ theorem stringStoreLiteX_setLongValueLongValidClearResidual
           have hbase0 : clearCurrentBaseWord + UInt256.ofNat 0 = clearCurrentBaseWord := by
             simpa using uint256_add_zero_right clearCurrentBaseWord
           have hstride : UInt256.ofNat 32 = (⟨32⟩ : UInt256) := by
-            native_decide
+            decide +native
           rw [hsolmMap]
           simpa [hclearFuelEq, htailSub, htailSubTail, tailBase, hceilTail, hbase0, hstride] using
             accountMapEquiv_sstoreAccountMap I.codeOwner ⟨0⟩ header

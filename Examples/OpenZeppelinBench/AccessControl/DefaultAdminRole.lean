@@ -21,7 +21,7 @@ abbrev defaultAdminRoleValue : Value :=
 
 theorem defaultAdminRole_zeroBytes :
     (List.replicate 32 0 : List UInt8) = EVM.Word.toBytesBE defaultAdminRoleWord := by
-  native_decide
+  decide +native
 
 theorem accessControlDefaultAdminRoleSelector_size {I : ExecutionEnv}
     (hsel : selIs I ⟨#[0xa2, 0x17, 0xfd, 0xdf]⟩) :

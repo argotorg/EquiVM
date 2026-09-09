@@ -96,56 +96,56 @@ theorem RD.spotFileUnrecognizedRevert {g : Sat256} {s0 : State} {ee : ExecutionE
     (hov : stk.length + 5 ≤ 1024) :
     RDrev spotBytecode g s0 := by
   have rdMload := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨31⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨31⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 ⟨31⟩ mem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst spotFileUnrecognizedRawWord
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem3 ⟨31⟩ spotFileUnrecognizedRawWord mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨31⟩ spotFileUnrecognizedRawWord hmem hread64)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 /-! ## `file(bytes32,uint256)` -/
 
@@ -482,22 +482,22 @@ theorem spotReachFileParBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : spotSelWord I = ⟨0x29ae8114⟩ :=
     spotSelWord_eq_of_beq I hsz 0x29 0xae 0x81 0x14 ⟨0x29ae8114⟩
-      (by native_decide) (by simpa [spotSelBytes] using hsel)
+      (by decide +native) (by simpa [spotSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat spotBytecode spotRootSplitPc) (spotSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat spotBytecode (nthArmPc spotBytecode spotLowFirstArmPc j))
         (spotSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat spotBytecode (nthArmPc spotBytecode spotLowFirstArmPc 2))
         (spotSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact spotReachLowBody 2 (by omega) ⟨257⟩ hcode hwv hsz hsize hroot heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem RD.spotFileParDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
@@ -511,19 +511,19 @@ theorem RD.spotFileParDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : Stat
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
-  have rd280 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd281 := rd280.pop (by native_decide) (by evm_ov)
-  have rd282 := rd281.dup1 (by native_decide) (by evm_ov)
-  have rd283 := rd282.calldataload (by native_decide) (by evm_ov)
-  have rd284 := rd283.swap1 (by native_decide) (by evm_ov)
-  have rd286 := rd284.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd287 := rd286.add (by native_decide) (by evm_ov)
-  have rd288 := rd287.calldataload (by native_decide) (by evm_ov)
-  have rd291 := rd288.push2 ⟨1271⟩ (by native_decide) (by evm_ov)
+  have rd280 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd281 := rd280.pop (by decide +native) (by evm_ov)
+  have rd282 := rd281.dup1 (by decide +native) (by evm_ov)
+  have rd283 := rd282.calldataload (by decide +native) (by evm_ov)
+  have rd284 := rd283.swap1 (by decide +native) (by evm_ov)
+  have rd286 := rd284.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd287 := rd286.add (by decide +native) (by evm_ov)
+  have rd288 := rd287.calldataload (by decide +native) (by evm_ov)
+  have rd291 := rd288.push2 ⟨1271⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide,
       show (⟨36⟩ : UInt256).toNat = 36 from by decide]
-      using rd291.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd291.jump (by decide +native) hroutine (by evm_ov)⟩
 
 theorem spotFileParX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -536,9 +536,9 @@ theorem spotFileParX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := spotBytecode) (sel := sel) (entry := ⟨257⟩) (ret := ⟨214⟩)
     (decoded := ⟨279⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz68) hsize)
   obtain ⟨_, _, hroutine⟩ := RD.spotFileParDecodeToRoutine
@@ -562,37 +562,37 @@ theorem spotFileParX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd1277pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1278 := rd1277pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1282pre := evm_run rd1278 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1283 := rd1282pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1286pre := evm_run rd1283 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1287 := rd1286pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k1288, C1288, rd1288raw⟩ := rd1287.sload (by native_decide) (by evm_ov)
+  obtain ⟨k1288, C1288, rd1288raw⟩ := rd1287.sload (by decide +native) (by evm_ov)
   have rd1288 : RD spotBytecode I g s0 ⟨1288⟩
       (relyAuthWord σ I :: fileParData I :: calldataWord I.calldata 4 :: ⟨214⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1288 C1288 := by
     simpa [relyAuthWord, spotSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1288raw
   have rd1291pre := evm_run rd1288 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hauth, u256_eq_refl] at rd1291pre
   have rd1294 := rd1291pre.pushConst (⟨1353⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1294.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1294.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 theorem spotFileParX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -609,46 +609,46 @@ theorem spotFileParX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd1277pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1278 := rd1277pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1282pre := evm_run rd1278 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1283 := rd1282pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1286pre := evm_run rd1283 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1287 := rd1286pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k1288, C1288, rd1288raw⟩ := rd1287.sload (by native_decide) (by evm_ov)
+  obtain ⟨k1288, C1288, rd1288raw⟩ := rd1287.sload (by decide +native) (by evm_ov)
   have rd1288 : RD spotBytecode I g s0 ⟨1288⟩
       (relyAuthWord σ I :: fileParData I :: calldataWord I.calldata 4 :: ⟨214⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1288 C1288 := by
     simpa [relyAuthWord, spotSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1288raw
   have rd1291pre := evm_run rd1288 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq : UInt256.eq (⟨1⟩ : UInt256) (relyAuthWord σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne (by intro hbad; exact hauth hbad.symm)
   rw [heq] at rd1291pre
   have rd1294 := rd1291pre.pushConst (⟨1353⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1295 := rd1294.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1295 := rd1294.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.spotCodecopyAuthRevertTail ⟨2134⟩ ⟨22⟩ rd1295
     (by
       unfold spotCodecopyAuthRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (relyAuthHashMem_size I)
     (relyAuthHashMem_read64 I)
-    (by native_decide)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem spotFileParX_liveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -659,21 +659,21 @@ theorem spotFileParX_liveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     ∃ k' C', RD spotBytecode I g s0 ⟨1427⟩
       [fileParData I, calldataWord I.calldata 4, ⟨214⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
-  have rd1356 := h.jumpdest (by native_decide) (by evm_ov)
-    |>.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1357raw⟩ := rd1356.sload (by native_decide) (by evm_ov)
+  have rd1356 := h.jumpdest (by decide +native) (by evm_ov)
+    |>.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1357raw⟩ := rd1356.sload (by decide +native) (by evm_ov)
   have hliveRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨4⟩ ⟨0⟩)) = ⟨1⟩ := by
     simpa [spotLiveWord, spotSlotWord, solcSlotWord] using hlive
   rw [hliveRaw] at rd1357raw
   have rd1360pre := evm_run rd1357raw with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [uInt256_eq_self] at rd1360pre
   have rd1363 := rd1360pre.pushConst (⟨1427⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1363.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1363.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 theorem spotFileParX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -682,12 +682,12 @@ theorem spotFileParX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [fileParData I, calldataWord I.calldata 4, ⟨214⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev spotBytecode g s0 := by
-  have rd1356 := h.jumpdest (by native_decide) (by evm_ov)
-    |>.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1357raw⟩ := rd1356.sload (by native_decide) (by evm_ov)
+  have rd1356 := h.jumpdest (by decide +native) (by evm_ov)
+    |>.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1357raw⟩ := rd1356.sload (by decide +native) (by evm_ov)
   have rd1360pre := evm_run rd1357raw with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have hliveRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ⟨4⟩ ⟨0⟩)) ≠ ⟨1⟩ := by
@@ -699,8 +699,8 @@ theorem spotFileParX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     exact u256_eq_of_ne (fun h1 => hliveRaw h1.symm)
   rw [heq0] at rd1360pre
   have rd1363 := rd1360pre.pushConst (⟨1427⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1364 := rd1363.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1364 := rd1363.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨1364⟩)
     (len := ⟨16⟩)
@@ -712,7 +712,7 @@ theorem spotFileParX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     rd1364
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide)
     rfl
     (relyAuthHashMem_size I)
@@ -728,30 +728,30 @@ theorem spotFileParX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
     RDret spotBytecode g s0
       (cA, sstoreAccountMap I.codeOwner σ ⟨3⟩ (fileParData I))
       ByteArray.empty := by
-  have rd1428 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1429 := rd1428.dup2 (by native_decide) (by evm_ov)
+  have rd1428 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1429 := rd1428.dup2 (by decide +native) (by evm_ov)
   have rd1433 := rd1429.pushConst (⟨3682489⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1435 := rd1433.push1 ⟨233⟩ (by native_decide) (by evm_ov)
-  have rd1436 := rd1435.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1435 := rd1433.push1 ⟨233⟩ (by decide +native) (by evm_ov)
+  have rd1436 := rd1435.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft (⟨3682489⟩ : UInt256) ⟨233⟩ =
       ABI.bytesToWord fileParBytes := by
-    native_decide
+    decide +native
   rw [hmatch, ← hconst] at rd1436
-  have rd1437 := rd1436.eq (by native_decide) (by evm_ov)
+  have rd1437 := rd1436.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd1437
-  have rd1438 := rd1437.iszero (by native_decide) (by evm_ov)
+  have rd1438 := rd1437.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1438
   have rd1441 := rd1438.pushConst (⟨1189⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1442 := rd1441.jumpiNT (by native_decide)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1442 := rd1441.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd1444 := rd1442.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1445raw⟩ := rd1444.sstore hperm (by native_decide) (by evm_ov)
-  have rd1446 := rd1445raw.pop (by native_decide) (by evm_ov)
-  have rd214 := rd1446.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd215 := rd214.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd215 (by native_decide) (by evm_ov)
+  have rd1444 := rd1442.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1445raw⟩ := rd1444.sstore hperm (by decide +native) (by evm_ov)
+  have rd1446 := rd1445raw.pop (by decide +native) (by evm_ov)
+  have rd214 := rd1446.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd215 := rd214.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd215 (by decide +native) (by evm_ov)
 
 theorem spotFileParX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
@@ -760,25 +760,25 @@ theorem spotFileParX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       [fileParData I, calldataWord I.calldata 4, ⟨214⟩, sel]
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev spotBytecode g s0 := by
-  have rd1428 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1429 := rd1428.dup2 (by native_decide) (by evm_ov)
+  have rd1428 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1429 := rd1428.dup2 (by decide +native) (by evm_ov)
   have rd1433 := rd1429.pushConst (⟨3682489⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd1435 := rd1433.push1 ⟨233⟩ (by native_decide) (by evm_ov)
-  have rd1436 := rd1435.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd1435 := rd1433.push1 ⟨233⟩ (by decide +native) (by evm_ov)
+  have rd1436 := rd1435.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft (⟨3682489⟩ : UInt256) ⟨233⟩ =
       ABI.bytesToWord fileParBytes := by
-    native_decide
+    decide +native
   rw [hconst] at rd1436
-  have rd1437 := rd1436.eq (by native_decide) (by evm_ov)
+  have rd1437 := rd1436.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord fileParBytes) (calldataWord I.calldata 4) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hneq h.symm)
   rw [heq0] at rd1437
-  have rd1438 := rd1437.iszero (by native_decide) (by evm_ov)
+  have rd1438 := rd1437.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1438
   have rd1441 := rd1438.pushConst (⟨1189⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1189 := rd1441.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1189 := rd1441.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
   exact RD.spotFileUnrecognizedRevert rd1189
     (relyAuthHashMem_size I)
@@ -801,10 +801,10 @@ theorem spotFileParX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
   exact RD.solcExternalStaticArgsShortReverts
     (code := spotBytecode) (sel := sel) (entry := ⟨257⟩) (ret := ⟨214⟩)
     (decoded := ⟨279⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem spotFileParBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -858,7 +858,7 @@ theorem spotFileParBodyCoreOk
     (by
       simpa [fileParTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+          (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem spotFileParBodyCoreUnauthorized
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -970,7 +970,7 @@ theorem spotFileParBodyCoreUnrecognized
   obtain ⟨_, _, hauthz⟩ := spotFileParX_authorized (I := I) hauth hdecoded
   obtain ⟨_, _, hlivez⟩ := spotFileParX_liveOk (I := I) hlive hauthz
   have hneq : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileParBytes :=
-    fileParWhatWord_ne_of_bytes_ne (by omega) hwhat (by native_decide)
+    fileParWhatWord_ne_of_bytes_ne (by omega) hwhat (by decide +native)
   exact (spotFileParX_unrecognized hneq hlivez)
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

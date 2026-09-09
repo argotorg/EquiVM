@@ -505,7 +505,7 @@ def vatBytecode : ByteArray :=
   vatRuntimeChunk36
 
 theorem vatBytecode_size : vatBytecode.size = 6965 := by
-  native_decide
+  decide +native
 
 theorem vatBytecode_notAuthorized_extract :
     vatBytecode.extract 6921 (6921 + 32) =
@@ -513,7 +513,7 @@ theorem vatBytecode_notAuthorized_extract :
         86, 97, 116, 47, 110, 111, 116, 45, 97, 117, 116, 104, 111, 114, 105, 122,
         101, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
       ]⟩ := by
-  native_decide
+  decide +native
 
 
 /-- The `JUMPDEST` set of `vatBytecode`, computed from bytecode. -/
@@ -542,7 +542,7 @@ theorem vatBytecode_notAuthorized_extract :
       ⟨6621⟩, ⟨6637⟩, ⟨6653⟩, ⟨6672⟩, ⟨6681⟩, ⟨6697⟩, ⟨6706⟩, ⟨6723⟩, ⟨6741⟩, ⟨6752⟩,
       ⟨6776⟩, ⟨6787⟩, ⟨6791⟩, ⟨6795⟩, ⟨6814⟩, ⟨6823⟩, ⟨6847⟩, ⟨6873⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def vatCreationChunk0 : ByteArray :=
@@ -1054,7 +1054,7 @@ def vatCreationBytecode : ByteArray :=
       ⟨6671⟩, ⟨6677⟩, ⟨6693⟩, ⟨6709⟩, ⟨6728⟩, ⟨6737⟩, ⟨6753⟩, ⟨6762⟩, ⟨6779⟩, ⟨6797⟩,
       ⟨6808⟩, ⟨6832⟩, ⟨6843⟩, ⟨6847⟩, ⟨6851⟩, ⟨6870⟩, ⟨6879⟩, ⟨6903⟩, ⟨6929⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.Vat

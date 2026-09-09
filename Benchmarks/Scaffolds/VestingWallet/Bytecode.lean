@@ -264,7 +264,7 @@ def vestingWalletBenchCreationBytecode : ByteArray :=
       ⟨1980⟩, ⟨2003⟩, ⟨2008⟩, ⟨2024⟩, ⟨2033⟩, ⟨2055⟩, ⟨2071⟩, ⟨2080⟩, ⟨2097⟩, ⟨2106⟩,
       ⟨2120⟩, ⟨2129⟩, ⟨2149⟩, ⟨2168⟩, ⟨2184⟩, ⟨2191⟩, ⟨2210⟩, ⟨2233⟩, ⟨2259⟩
       ]
-  := by native_decide
+  := by decide +native
 
 /-- The `JUMPDEST` set of `vestingWalletBenchCreationBytecode`, computed from creation bytecode. -/
 @[valid_jumps] theorem validCreationJumps :
@@ -284,6 +284,6 @@ def vestingWalletBenchCreationBytecode : ByteArray :=
       ⟨2279⟩, ⟨2288⟩, ⟨2305⟩, ⟨2314⟩, ⟨2328⟩, ⟨2337⟩, ⟨2357⟩, ⟨2376⟩, ⟨2392⟩, ⟨2399⟩,
       ⟨2418⟩, ⟨2441⟩, ⟨2467⟩
       ]
-  := by native_decide
+  := by decide +native
 
 end OpenZeppelinBench.VestingWallet

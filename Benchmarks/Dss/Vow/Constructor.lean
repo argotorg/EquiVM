@@ -163,8 +163,8 @@ theorem vowCtorDeployment_shape {args : List Value} {deployedInitcode : ByteArra
 macro "ctor_decode" : tactic =>
   `(tactic|
     (rw [Reasoning.Theory.decode_append_left_window
-      vowCreationBytecode _ _ (by native_decide) (by native_decide)]
-     native_decide))
+      vowCreationBytecode _ _ (by decide +native) (by decide +native)]
+     decide +native))
 
 macro "ctor_jump_dest" : tactic =>
   `(tactic|
@@ -195,7 +195,7 @@ theorem vowCtorNonpayableRDrev
       |>.push2 ⟨16⟩ (by ctor_decode) (by simp only [List.length_cons, List.length_nil]; omega)
       |>.jumpiNT (by ctor_decode) (isZero_eq_zero_of_ne hwv)
         (by simp only [List.length_cons, List.length_nil]; omega))
-  simpa [code, show ((⟨8⟩ : UInt256) + UInt256.ofNat 3 + ⟨1⟩) = ⟨12⟩ from by native_decide]
+  simpa [code, show ((⟨8⟩ : UInt256) + UInt256.ofNat 3 + ⟨1⟩) = ⟨12⟩ from by decide +native]
     using
       RD.solcPush1Dup1Revert0 (code := code) (ee := I) (g := g)
         (s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) rd12
@@ -221,7 +221,7 @@ theorem vowCtorArgsTail_size (vat flapper flopper : AccountAddress) :
   omega
 
 private theorem vowCreationBytecode_size : vowCreationBytecode.size = 5410 := by
-  native_decide
+  decide +native
 
 theorem vowCtorCopiedMem_eq (vat flapper flopper : AccountAddress) :
     vowCtorCopiedMem vat flapper flopper =
@@ -232,12 +232,12 @@ theorem vowCtorCopiedMem_eq (vat flapper flopper : AccountAddress) :
   · rw [extract_append_right' vowCreationBytecode (vowCtorArgsTail vat flapper flopper)
       5410 (5410 + 96)]
     · rw [solcFreePtrMem_size]
-    · native_decide
+    · decide +native
     · rw [vowCtorArgsTail_size]
-      native_decide
+      decide +native
   · decide
   · rw [ByteArray.size_append, vowCtorArgsTail_size]
-    native_decide
+    decide +native
   · rw [solcFreePtrMem_size]
     decide
   · rw [solcFreePtrMem_size]
@@ -259,7 +259,7 @@ theorem vowCtorArgsMem_size (vat flapper flopper : AccountAddress) :
   · exact vowCtorArgsMem_base_size vat flapper flopper
   · rw [vowCtorArgsMem_base_size]
     omega
-  · native_decide
+  · decide +native
 
 private theorem vowCtorArgsTail_extract_first (vat flapper flopper : AccountAddress) :
     (vowCtorArgsTail vat flapper flopper).extract 0 32 =
@@ -485,8 +485,8 @@ private theorem vowCtorArgsGuardReach
   exact ⟨_, _, by
     simpa [code,
       show ((⟨38⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
-          UInt256.ofNat 3) = ⟨46⟩ from by native_decide,
-      show (UInt256.lt (⟨96⟩ : UInt256) ⟨96⟩).isZero = ⟨1⟩ from by native_decide]
+          UInt256.ofNat 3) = ⟨46⟩ from by decide +native,
+      show (UInt256.lt (⟨96⟩ : UInt256) ⟨96⟩).isZero = ⟨1⟩ from by decide +native]
       using rd47⟩
 
 private theorem vowCtorArgsCopyReach
@@ -580,7 +580,7 @@ theorem vowCtorArgsReach
       RD (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper) I g
         (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨18⟩
         [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σ) k18 C18 := by
-    simpa [code, show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by native_decide]
+    simpa [code, show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by decide +native]
       using rd18
   obtain ⟨_, _, rd47⟩ := vowCtorArgsCopyReach vat flapper flopper rd18'
   have rd51 := rd47.jumpiT (by ctor_decode) (by decide) (by ctor_jump_dest) (by evm_ov)
@@ -913,7 +913,7 @@ theorem vowCtorFlapperStoreReach
       (⟨116⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨131⟩ := by
-    native_decide
+    decide +native
   rw [hpc131] at rd131
   have hwordStore :
       UInt256.lor (EVM.word flapper.val)
@@ -1002,7 +1002,7 @@ theorem vowCtorFlopperStoreReach
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ =
         ⟨147⟩ := by
-    native_decide
+    decide +native
   rw [hpc147] at rd147
   have hwordStore :
       UInt256.lor (UInt256.land (UInt256.lnot solcAddrMask) (solcSlotWord σFlapper I ⟨3⟩))
@@ -1043,7 +1043,7 @@ theorem vowCtorHopeSelectorMem_size {mem : ByteArray} (hmem : mem.size = 224) :
     (vowCtorHopeSelectorMem mem).size = 256 := by
   unfold vowCtorHopeSelectorMem
   exact toByteArray_write32_size_of_ge mem vowCtorHopeSelectorShifted 224 224 256 hmem
-    (by omega) (by native_decide) (by omega)
+    (by omega) (by decide +native) (by omega)
 
 theorem vowCtorHopeCalldataMem_size (arg : UInt256) {mem : ByteArray}
     (hmem : mem.size = 224) :
@@ -1330,7 +1330,7 @@ theorem vowCtorHopePostCall
           vowCtorCallOutPtr.toNat vowCtorCallInSize.toNat)
           vowCtorCallOutPtr.toNat vowCtorCallOutSize.toNat) = UInt256.ofNat 9 := by
       unfold vowCtorCallOutPtr vowCtorCallInSize vowCtorCallOutSize
-      native_decide
+      decide +native
     have hmin : (min vowCtorCallOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold vowCtorCallOutSize
       rfl

@@ -21,29 +21,29 @@ theorem RD.vatHealSinSubUnderflow
         vatSlotWord (healSinSlot I) σ I := by
     simp [vatSlotWord, healSinSlot_eq_mapSlot I]
   have rd6429pre := evm_run rd with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6430 := rd6429pre.mstore 0 (wordAt0Mem (healSourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6434pre := evm_run rd6430 with [
-    raw push1 ⟨6⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨6⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd6435 := rd6434pre.mstore 0 (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6438pre := evm_run rd6435 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem).readWithPadding 0 64))) =
         solcMappingSlot ⟨6⟩ (healSourceWord I) :=
     twoWordHashMem_solcMappingSlot ⟨6⟩ (healSourceWord I) solcFreePtrMem_size
   have rd6439 := rd6438pre.keccak256 0 (solcMappingSlot ⟨6⟩ (healSourceWord I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨k6440, C6440, rd6440raw⟩ := rd6439.sload (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨k6440, C6440, rd6440raw⟩ := rd6439.sload (by decide +native) (by evm_ov)
   have rd6440 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6440⟩
       (vatSlotWord (healSinSlot I) σ I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
@@ -51,11 +51,11 @@ theorem RD.vatHealSinSubUnderflow
       ByteArray.empty (cA, σ) k6440 C6440 := by
     simpa [hslotEq, solcSlotWord, healSourceWord] using rd6440raw
   have rd6621pre := evm_run rd6440 with [
-    raw push2 ⟨6449⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw push2 ⟨6621⟩ (by native_decide) (by evm_ov)]
-  have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨6449⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw push2 ⟨6621⟩ (by decide +native) (by evm_ov)]
+  have rd6621 := rd6621pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
     (a := vatSlotWord (healSinSlot I) σ I) (b := rad) (ret := ⟨6449⟩)
@@ -63,7 +63,7 @@ theorem RD.vatHealSinSubUnderflow
     (by simpa using rd6621)
     (by
       unfold solcCheckedSubEmptyRevertWf solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hlt
     (by simp)
 
@@ -85,29 +85,29 @@ theorem RD.vatHealSinSubSuccess
         vatSlotWord (healSinSlot I) σ I := by
     simp [vatSlotWord, healSinSlot_eq_mapSlot I]
   have rd6429pre := evm_run rd with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6430 := rd6429pre.mstore 0 (wordAt0Mem (healSourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6434pre := evm_run rd6430 with [
-    raw push1 ⟨6⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨6⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd6435 := rd6434pre.mstore 0 (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6438pre := evm_run rd6435 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem).readWithPadding 0 64))) =
         solcMappingSlot ⟨6⟩ (healSourceWord I) :=
     twoWordHashMem_solcMappingSlot ⟨6⟩ (healSourceWord I) solcFreePtrMem_size
   have rd6439 := rd6438pre.keccak256 0 (solcMappingSlot ⟨6⟩ (healSourceWord I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨k6440, C6440, rd6440raw⟩ := rd6439.sload (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨k6440, C6440, rd6440raw⟩ := rd6439.sload (by decide +native) (by evm_ov)
   have rd6440 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6440⟩
       (vatSlotWord (healSinSlot I) σ I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
@@ -115,11 +115,11 @@ theorem RD.vatHealSinSubSuccess
       ByteArray.empty (cA, σ) k6440 C6440 := by
     simpa [hslotEq, solcSlotWord, healSourceWord] using rd6440raw
   have rd6621pre := evm_run rd6440 with [
-    raw push2 ⟨6449⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw push2 ⟨6621⟩ (by native_decide) (by evm_ov)]
-  have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨6449⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw push2 ⟨6621⟩ (by decide +native) (by evm_ov)]
+  have rd6621 := rd6621pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubSuccess
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
     (a := vatSlotWord (healSinSlot I) σ I) (b := rad) (ret := ⟨6449⟩)
@@ -127,7 +127,7 @@ theorem RD.vatHealSinSubSuccess
     (by simpa using rd6621)
     (by
       unfold solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hle (by jump_dest) (by jump_dest) (by simp)
 
 theorem RD.vatHealDaiLoaded
@@ -167,33 +167,33 @@ theorem RD.vatHealDaiLoaded
         vatSlotWord (healDaiSlot I) σSin I := by
     simp [vatSlotWord, healDaiSlot_eq_mapSlot I]
   have rd6459pre := evm_run rd with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
-  have rd6460₀ := evm_run rd6459pre with [raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
+  have rd6460₀ := evm_run rd6459pre with [raw and (by decide +native) (by evm_ov)]
   have rd6460 := rd6460₀
   rw [hmask] at rd6460
   have rd6464pre := evm_run rd6460 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6465 := rd6464pre.mstore 0
     (wordAt0Mem (healSourceWord I)
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6471pre := evm_run rd6465 with [
-    raw push1 ⟨6⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨6⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6472 := rd6471pre.mstore 0
     (twoWordHashMem (healSourceWord I) ⟨6⟩
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have hsinHash :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC (((twoWordHashMem (healSourceWord I) ⟨6⟩
@@ -202,16 +202,16 @@ theorem RD.vatHealDaiLoaded
     exact twoWordHashMem_solcMappingSlot ⟨6⟩ (healSourceWord I)
       (twoWordHashMem_size_96 (healSourceWord I) ⟨6⟩ solcFreePtrMem_size)
   have rd6476pre := evm_run rd6472 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have rd6477 := rd6476pre.keccak256 0 (solcMappingSlot ⟨6⟩ (healSourceWord I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost hsinHash (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hsinHash (by decide +native) (by evm_ov)
   have rd6480pre := evm_run rd6477 with [
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov)]
-  obtain ⟨k6481, C6481, rd6481raw⟩ := rd6480pre.sstore hperm (by native_decide) (by evm_ov)
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov)]
+  obtain ⟨k6481, C6481, rd6481raw⟩ := rd6480pre.sstore hperm (by decide +native) (by evm_ov)
   have rd6481 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6481⟩
       (⟨32⟩ :: ⟨0⟩ :: ⟨64⟩ :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
@@ -220,13 +220,13 @@ theorem RD.vatHealDaiLoaded
       (UInt256.ofNat 3) ByteArray.empty (cA, σSin) k6481 C6481 := by
     simpa [σSin, hsinSlot] using rd6481raw
   have rd6484pre := evm_run rd6481 with [
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   let daiMem := wordAt32Mem ⟨5⟩
     (twoWordHashMem (healSourceWord I) ⟨6⟩
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem))
   have rd6485 := rd6484pre.mstore 0 daiMem
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have hdaiMemSize :
       (twoWordHashMem (healSourceWord I) ⟨6⟩
         (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem)).size = 96 :=
@@ -244,8 +244,8 @@ theorem RD.vatHealDaiLoaded
         solcMappingSlot ⟨5⟩ (healSourceWord I) := by
     exact wordAt32Mem_solcMappingSlot_of_read0 (healSourceWord I) ⟨5⟩ hdaiMemSize hdaiRead0
   have rd6486 := rd6485.keccak256 0 (solcMappingSlot ⟨5⟩ (healSourceWord I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost hdaiHash (by native_decide) (by evm_ov)
-  obtain ⟨k6487, C6487, rd6487raw⟩ := rd6486.sload (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hdaiHash (by decide +native) (by evm_ov)
+  obtain ⟨k6487, C6487, rd6487raw⟩ := rd6486.sload (by decide +native) (by evm_ov)
   have rd6487 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6487⟩
       (vatSlotWord (healDaiSlot I) σSin I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
@@ -267,11 +267,11 @@ theorem RD.vatHealDaiSubUnderflow
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd6487⟩ := RD.vatHealDaiLoaded hperm rd
   have rd6621pre := evm_run rd6487 with [
-    raw push2 ⟨6496⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw push2 ⟨6621⟩ (by native_decide) (by evm_ov)]
-  have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨6496⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw push2 ⟨6621⟩ (by decide +native) (by evm_ov)]
+  have rd6621 := rd6621pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
     (a := vatSlotWord (healDaiSlot I)
@@ -281,7 +281,7 @@ theorem RD.vatHealDaiSubUnderflow
     (by simpa using rd6621)
     (by
       unfold solcCheckedSubEmptyRevertWf solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hlt
     (by simp)
 
@@ -309,11 +309,11 @@ theorem RD.vatHealDaiSubSuccess
       (cA, sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew) k' C' := by
   obtain ⟨_, _, rd6487⟩ := RD.vatHealDaiLoaded hperm rd
   have rd6621pre := evm_run rd6487 with [
-    raw push2 ⟨6496⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw push2 ⟨6621⟩ (by native_decide) (by evm_ov)]
-  have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨6496⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw push2 ⟨6621⟩ (by decide +native) (by evm_ov)]
+  have rd6621 := rd6621pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubSuccess
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
     (a := vatSlotWord (healDaiSlot I)
@@ -323,7 +323,7 @@ theorem RD.vatHealDaiSubSuccess
     (by simpa using rd6621)
     (by
       unfold solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hle (by jump_dest) (by jump_dest) (by simp)
 
 theorem RD.vatHealViceLoaded
@@ -372,27 +372,27 @@ theorem RD.vatHealViceLoaded
       (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem))
   let daiHashMem := twoWordHashMem (healSourceWord I) ⟨5⟩ daiMem
   have rd6505pre := evm_run rd with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
-  have rd6506₀ := evm_run rd6505pre with [raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
+  have rd6506₀ := evm_run rd6505pre with [raw and (by decide +native) (by evm_ov)]
   have rd6506 := rd6506₀
   rw [hmask] at rd6506
   have rd6510pre := evm_run rd6506 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6511 := rd6510pre.mstore 0 (wordAt0Mem (healSourceWord I) daiMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6516pre := evm_run rd6511 with [
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd6517 := rd6516pre.mstore 0 daiHashMem
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have hdaiMemSize : daiMem.size = 96 := by
     dsimp [daiMem]
     exact wordAt32Mem_size_96 ⟨5⟩
@@ -405,18 +405,18 @@ theorem RD.vatHealViceLoaded
     dsimp [daiHashMem]
     exact twoWordHashMem_solcMappingSlot ⟨5⟩ (healSourceWord I) hdaiMemSize
   have rd6520pre := evm_run rd6517 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd6521 := rd6520pre.keccak256 0 (solcMappingSlot ⟨5⟩ (healSourceWord I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost hdaiHash (by native_decide) (by evm_ov)
-  obtain ⟨k6522, C6522, rd6522raw⟩ := rd6521.sstore hperm (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hdaiHash (by decide +native) (by evm_ov)
+  obtain ⟨k6522, C6522, rd6522raw⟩ := rd6521.sstore hperm (by decide +native) (by evm_ov)
   have rd6522 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6522⟩
       (healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       daiHashMem (UInt256.ofNat 3) ByteArray.empty (cA, σDai) k6522 C6522 := by
     simpa [σSin, σDai, hdaiSlot, daiHashMem] using rd6522raw
-  have rd6524 := rd6522.push1 ⟨8⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k6525, C6525, rd6525raw⟩ := rd6524.sload (by native_decide) (by evm_ov)
+  have rd6524 := rd6522.push1 ⟨8⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k6525, C6525, rd6525raw⟩ := rd6524.sload (by decide +native) (by evm_ov)
   have rd6525 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6525⟩
       (vatSlotWord healViceSlot σDai I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
@@ -443,11 +443,11 @@ theorem RD.vatHealViceSubUnderflow
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd6525⟩ := RD.vatHealViceLoaded hperm rd
   have rd6621pre := evm_run rd6525 with [
-    raw push2 ⟨6534⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw push2 ⟨6621⟩ (by native_decide) (by evm_ov)]
-  have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨6534⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw push2 ⟨6621⟩ (by decide +native) (by evm_ov)]
+  have rd6621 := rd6621pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
     (a := vatSlotWord healViceSlot
@@ -459,7 +459,7 @@ theorem RD.vatHealViceSubUnderflow
     (by simpa using rd6621)
     (by
       unfold solcCheckedSubEmptyRevertWf solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hlt
     (by simp)
 
@@ -496,11 +496,11 @@ theorem RD.vatHealViceSubSuccess
         (healDaiSlot I) daiNew) k' C' := by
   obtain ⟨_, _, rd6525⟩ := RD.vatHealViceLoaded hperm rd
   have rd6621pre := evm_run rd6525 with [
-    raw push2 ⟨6534⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw push2 ⟨6621⟩ (by native_decide) (by evm_ov)]
-  have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨6534⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw push2 ⟨6621⟩ (by decide +native) (by evm_ov)]
+  have rd6621 := rd6621pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubSuccess
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
     (a := vatSlotWord healViceSlot
@@ -512,7 +512,7 @@ theorem RD.vatHealViceSubSuccess
     (by simpa using rd6621)
     (by
       unfold solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hle (by jump_dest) (by jump_dest) (by simp)
 
 theorem RD.vatHealDebtLoaded
@@ -555,16 +555,16 @@ theorem RD.vatHealDebtLoaded
     (wordAt32Mem ⟨5⟩
       (twoWordHashMem (healSourceWord I) ⟨6⟩
         (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem)))
-  have rd6535 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd6537 := rd6535.push1 ⟨8⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k6538, C6538, rd6538raw⟩ := rd6537.sstore hperm (by native_decide) (by evm_ov)
+  have rd6535 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd6537 := rd6535.push1 ⟨8⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k6538, C6538, rd6538raw⟩ := rd6537.sstore hperm (by decide +native) (by evm_ov)
   have rd6538 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6538⟩
       (healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σVice) k6538 C6538 := by
     simpa [σDai, σVice, healViceSlot, mem] using rd6538raw
-  have rd6540 := rd6538.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k6541, C6541, rd6541raw⟩ := rd6540.sload (by native_decide) (by evm_ov)
+  have rd6540 := rd6538.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k6541, C6541, rd6541raw⟩ := rd6540.sload (by decide +native) (by evm_ov)
   have rd6541 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6541⟩
       (vatSlotWord healDebtSlot σVice I :: healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
@@ -596,11 +596,11 @@ theorem RD.vatHealDebtSubUnderflow
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   obtain ⟨_, _, rd6541⟩ := RD.vatHealDebtLoaded hperm rd
   have rd6621pre := evm_run rd6541 with [
-    raw push2 ⟨6550⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw push2 ⟨6621⟩ (by native_decide) (by evm_ov)]
-  have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨6550⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw push2 ⟨6621⟩ (by decide +native) (by evm_ov)]
+  have rd6621 := rd6621pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
     (a := vatSlotWord healDebtSlot
@@ -614,7 +614,7 @@ theorem RD.vatHealDebtSubUnderflow
     (by simpa using rd6621)
     (by
       unfold solcCheckedSubEmptyRevertWf solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hlt
     (by simp)
 
@@ -660,11 +660,11 @@ theorem RD.vatHealDebtSubSuccess
         healViceSlot viceNew) k' C' := by
   obtain ⟨_, _, rd6541⟩ := RD.vatHealDebtLoaded hperm rd
   have rd6621pre := evm_run rd6541 with [
-    raw push2 ⟨6550⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw push2 ⟨6621⟩ (by native_decide) (by evm_ov)]
-  have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨6550⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw push2 ⟨6621⟩ (by decide +native) (by evm_ov)]
+  have rd6621 := rd6621pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubSuccess
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
     (a := vatSlotWord healDebtSlot
@@ -678,7 +678,7 @@ theorem RD.vatHealDebtSubSuccess
     (by simpa using rd6621)
     (by
       unfold solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hle (by jump_dest) (by jump_dest) (by simp)
 
 theorem RD.vatHealStoreDebtReturn
@@ -712,9 +712,9 @@ theorem RD.vatHealStoreDebtReturn
       (sstoreAccountMap I.codeOwner σ (healSinSlot I) sinNew)
       (healDaiSlot I) daiNew) healViceSlot viceNew
   let σDebt := sstoreAccountMap I.codeOwner σVice healDebtSlot debtNew
-  have rd6551 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd6553 := rd6551.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k6554, C6554, rd6554raw⟩ := rd6553.sstore hperm (by native_decide) (by evm_ov)
+  have rd6551 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd6553 := rd6551.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k6554, C6554, rd6554raw⟩ := rd6553.sstore hperm (by decide +native) (by evm_ov)
   have rd6554 : RD vatBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨6554⟩
       (healSourceWord I :: rad :: ⟨524⟩ :: sel :: [])
@@ -724,11 +724,11 @@ theorem RD.vatHealStoreDebtReturn
             (twoWordHashMem (healSourceWord I) ⟨6⟩ solcFreePtrMem))))
       (UInt256.ofNat 3) ByteArray.empty (cA, σDebt) k6554 C6554 := by
     simpa [σVice, σDebt, healDebtSlot] using rd6554raw
-  have rd6555 := rd6554.pop (by native_decide) (by evm_ov)
-  have rd6556 := rd6555.pop (by native_decide) (by evm_ov)
-  have rd524 := rd6556.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd525 := rd524.jumpdest (by native_decide) (by evm_ov)
-  simpa [σVice, σDebt] using RD.stop rd525 (by native_decide) (by evm_ov)
+  have rd6555 := rd6554.pop (by decide +native) (by evm_ov)
+  have rd6556 := rd6555.pop (by decide +native) (by evm_ov)
+  have rd524 := rd6556.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd525 := rd524.jumpdest (by decide +native) (by evm_ov)
+  simpa [σVice, σDebt] using RD.stop rd525 (by decide +native) (by evm_ov)
 
 theorem vatHealFinishSuccess
     {cA gh bl σ_evm σ_solm σ₀ A I} {g sel sinNew daiNew viceNew debtNew : UInt256}
@@ -806,7 +806,7 @@ theorem vatHealFinishSuccess
       hAccountsDebt
   have henc : returnEquiv ByteArray.empty none healTransition.returnType := by
     rw [show healTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     hcreated haccountsFinal henc
 
@@ -1208,7 +1208,7 @@ theorem vatDispatchHeal {I : ExecutionEnv}
     fileIlkSelectorBytes, fileLineSelectorBytes, fluxSelectorBytes, foldSelectorBytes,
     forkSelectorBytes, frobSelectorBytes, gemSelectorBytes, grabSelectorBytes,
     healSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachHealBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -1219,29 +1219,29 @@ theorem vatReachHealBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0xf37ac61c⟩ :=
     vatSelWord_eq_of_beq I hsz 0xf3 0x7a 0xc6 0x1c ⟨0xf37ac61c⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhighhigh :
       UInt256.gt (armSelNat vatBytecode vatHighHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms65FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms65FirstPc 3))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms65Body 3 (by omega) ⟨1597⟩ hcode hwv hsz hsize
-    hroot hhigh hhighhigh heq0 htake (by jump_dest) (by native_decide)
+    hroot hhigh hhighhigh heq0 htake (by jump_dest) (by decide +native)
 
 theorem RD.vatHealDecodeToRoutine
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -1258,17 +1258,17 @@ theorem RD.vatHealDecodeToRoutine
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨1597⟩) (ret := ⟨524⟩)
     (decoded := ⟨1619⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
-  have rd1620 := hdecoded.jumpdest (by native_decide) (by evm_ov)
-  have rd1621 := rd1620.pop (by native_decide) (by evm_ov)
-  have rd1622 := rd1621.calldataload (by native_decide) (by evm_ov)
-  have rd1625 := rd1622.push2 ⟨6423⟩ (by native_decide) (by evm_ov)
+  have rd1620 := hdecoded.jumpdest (by decide +native) (by evm_ov)
+  have rd1621 := rd1620.pop (by decide +native) (by evm_ov)
+  have rd1622 := rd1621.calldataload (by decide +native) (by evm_ov)
+  have rd1625 := rd1622.push2 ⟨6423⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [rad, healRad, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-      using rd1625.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      using rd1625.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem vatHealShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = vatBytecode) (hsize : I.calldata.size < UInt256.size)
@@ -1290,10 +1290,10 @@ theorem vatHealShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := vatSelWord I) (entry := ⟨1597⟩) (ret := ⟨524⟩)
     (decoded := ⟨1619⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode (vatDispatchHeal hsel)
     (vatDecode_heal_none_short hsz4 hshort)
 

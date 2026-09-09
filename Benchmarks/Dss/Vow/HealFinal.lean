@@ -1002,7 +1002,7 @@ theorem vowHealHealSuccessBodyCore
     hvatCodeHeal hcallHeal hdecHeal
   have henc : returnEquiv ByteArray.empty none healTransition.returnType := by
     rw [show healTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     hcreated hAccountsFinal henc
 

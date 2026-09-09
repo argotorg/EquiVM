@@ -22,7 +22,7 @@ theorem catDispatch_box {I : ExecutionEnv} (hsel : selIs I ⟨#[0x75, 0x42, 0x15
     simp at ht
     rcases ht with rfl
     simp only [selectorOf, biteSelectorBytes, hcd]
-    native_decide
+    decide +native
   · rw [selectorOf, boxSelectorBytes]; exact hsel
 
 theorem catDecode_box {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
@@ -38,21 +38,21 @@ theorem catReachBoxBody {cA gh bl σ σ₀ A I} {g : Sat256}
     ∃ k C, RD catBytecode I g (initState cA gh bl σ σ₀ g A I)
         ⟨491⟩ [catSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hword : catSelWord I = ⟨1967265185⟩ :=
-    catSelWord_eq_of_beq I hsz 0x75 0x42 0x15 0xa1 ⟨1967265185⟩ (by native_decide) hsel
+    catSelWord_eq_of_beq I hsz 0x75 0x42 0x15 0xa1 ⟨1967265185⟩ (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) ≠ ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   have hlow : UInt256.gt (armSelNat catBytecode catLowSplitPc) (catSelWord I) = ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catLowHighFirstArmPc j))
         (catSelWord I) = ⟨0⟩ := by
-    intro j hj; interval_cases j <;> (rw [hword]; native_decide)
+    intro j hj; interval_cases j <;> (rw [hword]; decide +native)
   have htake :
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catLowHighFirstArmPc 3))
         (catSelWord I) ≠ ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   exact catReachLowHighBody 3 (by omega) ⟨491⟩ hcode hwv hsz hsize hroot hlow heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem catBoxBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = catBytecode)
@@ -80,8 +80,8 @@ theorem catBoxBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   exact catUint256GetterBodyCore (entry := ⟨491⟩) (routine := ⟨2929⟩) (slot := ⟨5⟩)
     hcode (catDispatch_box hsel) (catDecode_box hsz)
     (catReachBoxBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
-    (by unfold solcGetterEntryWf; repeat' first | apply And.intro | native_decide)
-    (by unfold solcWordSlotGetterWf; repeat' first | apply And.intro | native_decide)
+    (by unfold solcGetterEntryWf; repeat' first | apply And.intro | decide +native)
+    (by unfold solcWordSlotGetterWf; repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by rfl) (by simpa [catSlotWord] using hbody)
 
 end Benchmarks.Dss.Cat

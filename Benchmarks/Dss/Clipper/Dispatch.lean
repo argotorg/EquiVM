@@ -120,7 +120,7 @@ theorem clipperDispatch_none_short (v : ClipperImmutables) {cd : ByteArray}
       | rfl | rfl | rfl
     all_goals
       simp [selectorOf]
-      native_decide) h
+      decide +native) h
 
 theorem clipperDispatch_none_nomatch (v : ClipperImmutables) {cd : ByteArray}
     (hnm : ∀ i, i < 29 → (clipperSelBytes i == cd.extract 0 4) = false) :

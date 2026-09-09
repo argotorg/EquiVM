@@ -171,7 +171,7 @@ theorem evalExpr_liftPosZero_true (evm : EVM.State) (I : ExecutionEnv)
   simp only [EvalResult.bind, bind]
   rw [evalExpr_liftPosStorage evm I]
   simp [evalExpr?, evalBinaryOp?, hpos]
-  all_goals native_decide
+  all_goals decide +native
 
 theorem evalExpr_liftPosZero_false (evm : EVM.State) (I : ExecutionEnv)
     (hpos : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner (liftPosSlotFor I) ≠ ⟨0⟩) :
@@ -185,7 +185,7 @@ theorem evalExpr_liftPosZero_false (evm : EVM.State) (I : ExecutionEnv)
   apply hpos
   apply u256_inj
   simpa using hnat
-  all_goals native_decide
+  all_goals decide +native
 
 theorem evalExpr_liftSrcsLength (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := liftLocals I } evm
@@ -353,48 +353,48 @@ theorem RD.cureLiftPosZeroOk {g : Sat256} {s0 : State}
     rw [u256_land_comm key (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)]
     exact hmaskLiteral
   have rdMasked := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [hmaskLiteral'] at rdMasked
   have rdMstoreKeyPrefix := evm_run rdMasked with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by
       simp only [List.length_cons]; omega)]
   have rdAfterKey := rdMstoreKeyPrefix.mstore 0 (wordAt0Mem key mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by
       simp only [List.length_cons]; omega)]
   have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem key ⟨5⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by
       simp only [List.length_cons]; omega)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨5⟩ key hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨5⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rdLoad⟩ := rdSlot.sload (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rdLoad⟩ := rdSlot.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   have hposRaw :
       (σ.find? ee.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (solcMappingSlot ⟨5⟩ key) ⟨0⟩)) = ⟨0⟩ := by
     simpa [solcSlotWord] using hpos
   rw [hposRaw] at rdLoad
-  have rdIsZero := rdLoad.iszero (by native_decide) (by simp only [List.length_cons]; omega)
+  have rdIsZero := rdLoad.iszero (by decide +native) (by simp only [List.length_cons]; omega)
   have rdIsZero' := rdIsZero
-  rw [show UInt256.isZero ⟨0⟩ = ⟨1⟩ by native_decide] at rdIsZero'
-  have rdPush := rdIsZero'.push2 ⟨2092⟩ (by native_decide)
+  rw [show UInt256.isZero ⟨0⟩ = ⟨1⟩ by decide +native] at rdIsZero'
+  have rdPush := rdIsZero'.push2 ⟨2092⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
-  exact ⟨_, _, rdPush.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  exact ⟨_, _, rdPush.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by simp only [List.length_cons]; omega)⟩
 
 abbrev cureSrcAlreadyDefinedRawWord : UInt256 :=
@@ -425,48 +425,48 @@ theorem RD.cureLiftPosNonzeroRevert {g : Sat256} {s0 : State}
     rw [u256_land_comm key (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)]
     exact hmaskLiteral
   have rdMasked := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [hmaskLiteral'] at rdMasked
   have rdMstoreKeyPrefix := evm_run rdMasked with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by
       simp only [List.length_cons]; omega),
-    raw dup2 (by native_decide) (by
+    raw dup2 (by decide +native) (by
       simp only [List.length_cons]; omega)]
   have rdAfterKey := rdMstoreKeyPrefix.mstore 0 (wordAt0Mem key mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by
       simp only [List.length_cons]; omega)]
   have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem key ⟨5⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by
       simp only [List.length_cons]; omega)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨5⟩ key hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨5⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rdLoad⟩ := rdSlot.sload (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rdLoad⟩ := rdSlot.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   have hposRaw :
       (σ.find? ee.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (solcMappingSlot ⟨5⟩ key) ⟨0⟩)) ≠ ⟨0⟩ := by
     simpa [solcSlotWord] using hpos
-  have rdIsZero := rdLoad.iszero (by native_decide) (by simp only [List.length_cons]; omega)
+  have rdIsZero := rdLoad.iszero (by decide +native) (by simp only [List.length_cons]; omega)
   have rdIsZero' := rdIsZero
   rw [isZero_eq_zero_of_ne hposRaw] at rdIsZero'
-  have rdPush := rdIsZero'.push2 ⟨2092⟩ (by native_decide)
+  have rdPush := rdIsZero'.push2 ⟨2092⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdTail := rdPush.jumpiNT (by native_decide) (by rfl)
+  have rdTail := rdPush.jumpiNT (by decide +native) (by rfl)
     (by simp only [List.length_cons]; omega)
   have htailMem : (twoWordHashMem key ⟨5⟩ mem).size = 96 :=
     twoWordHashMem_size_96 key ⟨5⟩ hmem
@@ -475,56 +475,56 @@ theorem RD.cureLiftPosNonzeroRevert {g : Sat256} {s0 : State}
         UInt256.toByteArray ⟨128⟩ :=
     twoWordHashMem_read64 key ⟨5⟩ hmem hread64
   have rdMload := evm_run rdTail with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [htailMem]; decide) (by decide) htailRead64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 (twoWordHashMem key ⟨5⟩ mem))
-      (UInt256.ofNat 5) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (UInt256.ofNat 5) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 (twoWordHashMem key ⟨5⟩ mem))
-      (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨28⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (UInt256.ofNat 6) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨28⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 ⟨28⟩ (twoWordHashMem key ⟨5⟩ mem))
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst cureSrcAlreadyDefinedRawWord
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem3 ⟨28⟩ cureSrcAlreadyDefinedRawWord
       (twoWordHashMem key ⟨5⟩ mem)) (UInt256.ofNat 8)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨28⟩ cureSrcAlreadyDefinedRawWord htailMem htailRead64)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 abbrev cureLiftEventTopic : UInt256 :=
   ⟨0x2b07094bdf192088dc9d18c2c3a2b11b7f1df5d6f3460343964c059221e3f048⟩
@@ -577,53 +577,53 @@ theorem RD.cureLiftStoreAndLog {g : Sat256} {s0 : State}
       liftSrcsDataSlotLiteral = srcsDataSlot := by
     simpa [liftSrcsDataSlotLiteral] using cureSrcsDataSlot_trusted
   have rdLenPrefix := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rdLenLoaded'⟩ := rdLenPrefix.sload (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rdLenLoaded'⟩ := rdLenPrefix.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rdLenLoaded⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨2097⟩
       (len :: ⟨2⟩ :: key :: ret :: R) mem (UInt256.ofNat 3) rdata (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [len, solcSlotWord] using rdLenLoaded'⟩
   have rdBeforeLenStore := evm_run rdLenLoaded with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rdAfterLenStore'⟩ := rdBeforeLenStore.sstore hperm (by native_decide)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rdAfterLenStore'⟩ := rdBeforeLenStore.sstore hperm (by decide +native)
     (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rdAfterLenStore⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨2103⟩
       (len :: ⟨2⟩ :: key :: ret :: R) mem (UInt256.ofNat 3) rdata (cA, σLen) k' C' := by
     exact ⟨_, _, by simpa [σLen, len, u256_add_comm] using rdAfterLenStore'⟩
   have rdBase := rdAfterLenStore.pushConst liftSrcsDataSlotLiteral
-    (op := .PUSH32) (width := 32) (by decide) (by native_decide) (by evm_ov)
-  have rdElemSlotPrefix := rdBase.add (by native_decide) (by evm_ov)
+    (op := .PUSH32) (width := 32) (by decide) (by decide +native) (by evm_ov)
+  have rdElemSlotPrefix := rdBase.add (by decide +native) (by evm_ov)
   obtain ⟨_, _, rdElemSlot⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨2137⟩
       (elemSlot :: ⟨2⟩ :: key :: ret :: R) mem (UInt256.ofNat 3) rdata
       (cA, σLen) k' C' := by
     exact ⟨_, _, by simpa [elemSlot, hslotLiteral, u256_add_comm] using rdElemSlotPrefix⟩
-  have rdElemLoadPrefix := rdElemSlot.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rdElemLoaded'⟩ := rdElemLoadPrefix.sload (by native_decide)
+  have rdElemLoadPrefix := rdElemSlot.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rdElemLoaded'⟩ := rdElemLoadPrefix.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rdElemLoaded⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨2139⟩
       (solcSlotWord σLen ee elemSlot :: elemSlot :: ⟨2⟩ :: key :: ret :: R)
       mem (UInt256.ofNat 3) rdata (cA, σLen) k' C' := by
     exact ⟨_, _, by simpa [solcSlotWord] using rdElemLoaded'⟩
   have rdCleared := evm_run rdElemLoaded with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw not (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw not (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   rw [hmaskR] at rdCleared
   have hnewWord :
       UInt256.lor key
@@ -638,48 +638,48 @@ theorem RD.cureLiftStoreAndLog {g : Sat256} {s0 : State}
     rw [u256_land_comm (UInt256.lnot solcAddrMask) (solcSlotWord σLen ee elemSlot)]
     rw [hmaskKey, u256_lor_comm]
   have rdElemStorePre := evm_run rdCleared with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov)]
   rw [hnewWord] at rdElemStorePre
   have rdElemStoreReady := evm_run rdElemStorePre with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rdAfterElemStore'⟩ := rdElemStoreReady.sstore hperm (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rdAfterElemStore'⟩ := rdElemStoreReady.sstore hperm (by decide +native)
     (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rdAfterElemStore⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨2165⟩
       (key :: ⟨2⟩ :: key :: ret :: R) mem (UInt256.ofNat 3) rdata (cA, σElem) k' C' := by
     exact ⟨_, _, by simpa [σElem] using rdAfterElemStore'⟩
-  have rdReloadLenPrefix := rdAfterElemStore.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rdReloadedLen'⟩ := rdReloadLenPrefix.sload (by native_decide)
+  have rdReloadLenPrefix := rdAfterElemStore.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rdReloadedLen'⟩ := rdReloadLenPrefix.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rdReloadedLen⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨2167⟩
       (solcSlotWord σElem ee ⟨2⟩ :: key :: key :: ret :: R) mem (UInt256.ofNat 3)
       rdata (cA, σElem) k' C' := by
     exact ⟨_, _, by simpa [solcSlotWord] using rdReloadedLen'⟩
   have rdMstoreKeyPrefix := evm_run rdReloadedLen with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rdAfterKey := rdMstoreKeyPrefix.mstore 0 (wordAt0Mem key mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem key ⟨5⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
   have hposSlot := twoWordHashMem_solcMappingSlot ⟨5⟩ key hmem
   have rdPosSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨5⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hposSlot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hposSlot (by decide +native) (by evm_ov)
   have rdPosStoreReady := evm_run rdPosSlot with [
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rdAfterPosStore'⟩ := rdPosStoreReady.sstore hperm (by native_decide)
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rdAfterPosStore'⟩ := rdPosStoreReady.sstore hperm (by decide +native)
     (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rdAfterPosStore⟩ : ∃ k' C', RD cureBytecode ee g s0 ⟨2186⟩
       (⟨0⟩ :: ⟨64⟩ :: key :: key :: ret :: R) (twoWordHashMem key ⟨5⟩ mem)
@@ -687,7 +687,7 @@ theorem RD.cureLiftStoreAndLog {g : Sat256} {s0 : State}
       (cA, sstoreAccountMap ee.codeOwner σElem (solcMappingSlot ⟨5⟩ key)
         (solcSlotWord σElem ee ⟨2⟩)) k' C' := by
     exact ⟨_, _, by simpa [solcSlotWord] using rdAfterPosStore'⟩
-  have rdMloadPrefix := rdAfterPosStore.swap1 (by native_decide) (by evm_ov)
+  have rdMloadPrefix := rdAfterPosStore.swap1 (by decide +native) (by evm_ov)
   have hread64' :
       (twoWordHashMem key ⟨5⟩ mem).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩ :=
@@ -700,22 +700,22 @@ theorem RD.cureLiftStoreAndLog {g : Sat256} {s0 : State}
             (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
     rw [if_neg (by
       rw [twoWordHashMem_size_96 key ⟨5⟩ hmem]
-      native_decide)]
+      decide +native)]
     rw [show (⟨64⟩ : UInt256).toNat = 64 from rfl, hread64']
-    native_decide
-  have rdMload := rdMloadPrefix.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
-    mem_cost hmload64 (by native_decide) (by evm_ov)
+    decide +native
+  have rdMload := rdMloadPrefix.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
+    mem_cost hmload64 (by decide +native) (by evm_ov)
   have rdTopic := rdMload.pushConst cureLiftEventTopic
-    (op := .PUSH32) (width := 32) (by decide) (by native_decide) (by evm_ov)
+    (op := .PUSH32) (width := 32) (by decide) (by decide +native) (by evm_ov)
   have rdLogPrefix := evm_run rdTopic with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rdLogged := RD.cureLog2 0 (UInt256.ofNat 3) rdLogPrefix
-    (by native_decide) hperm mem_cost (by native_decide) (by evm_ov)
-  have rdPop := rdLogged.pop (by native_decide) (by evm_ov)
+    (by decide +native) hperm mem_cost (by decide +native) (by evm_ov)
+  have rdPop := rdLogged.pop (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [liftStoreLogAccountMap, len, σLen, elemSlot, σElem] using
-      rdPop.jump (by native_decide) hret (by evm_ov)⟩
+      rdPop.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem cureDispatchLift {I : ExecutionEnv}
     (hsel : selIs I (cureSelBytes 6)) :
@@ -728,7 +728,7 @@ theorem cureDispatchLift {I : ExecutionEnv}
     cureAmtSelectorBytes, cureCageSelectorBytes, cureDenySelectorBytes,
     cureDropSelectorBytes, cureFileSelectorBytes, cureLCountSelectorBytes,
     cureLiftSelectorBytes]
-  native_decide
+  decide +native
 
 theorem cureDecode_lift_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (liftTransition.params.map Param.name)
@@ -752,13 +752,13 @@ theorem cureReachLiftBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x3c278bd5⟩ :=
     cureSelWord_eq_of_beq I hsz 0x3c 0x27 0x8b 0xd5 ⟨0x3c278bd5⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h125⟩ := cureReachLowLowerFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨524⟩ 4 h125 (fun j hj => cureLowLowerArmsWellFormed j (by omega))
-    (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (fun j hj => by interval_cases j <;> · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureLiftBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
@@ -799,16 +799,16 @@ theorem cureLiftBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
       (code := cureBytecode) (sel := sel) (entry := ⟨524⟩) (ret := ⟨484⟩)
       (decoded := ⟨546⟩) hreach
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
       (by jump_dest) hsz36 hsize
     obtain ⟨_, _, hroutine⟩ := RD.solcOneAddressExternalMaskAndJumpMasked
       (code := cureBytecode) (decoded := ⟨546⟩) (ret := ⟨484⟩) (routine := ⟨1824⟩)
       (R := [sel]) hdecoded
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by jump_dest) (by simp)
     by_cases hauthEvm : cureSlotWord callerSlot σ_evm I = ⟨1⟩
     · have hauthSolm : cureSlotWord callerSlot σ_solm I = ⟨1⟩ := by
         rw [← hcallerWord]
@@ -822,7 +822,7 @@ theorem cureLiftBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (by simpa [key] using hroutine)
         (by
           unfold cureAuthCheckWf
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         hauthSolc (by jump_dest) (by simp)
       by_cases hliveEvm : cureSlotWord ⟨1⟩ σ_evm I = ⟨1⟩
       · have hliveSolm : cureSlotWord ⟨1⟩ σ_solm I = ⟨1⟩ := by
@@ -835,7 +835,7 @@ theorem cureLiftBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (key := key) (ret := ⟨484⟩) (R := [sel]) hafterAuth
           (by
             unfold cureLiveGuardWf
-            repeat' first | apply And.intro | native_decide)
+            repeat' first | apply And.intro | decide +native)
           hliveSolc (by jump_dest) (by simp)
         have hmemAuth :
             (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -887,12 +887,12 @@ theorem cureLiftBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             (s0 := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
             (ee := I) (key := key) (ret := ⟨484⟩) (R := [sel])
             hposPc (by jump_dest) hperm hmemPos hreadPos64 hcanonKey (by simp)
-          have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+          have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
           have hret :
               RDret cureBytecode (Sat256.ofUInt256 g)
                 (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
                 (cA, liftStoreLogAccountMap σ_evm I key) ByteArray.empty := by
-            simpa using RD.stop hretPc' (by native_decide) (by simp)
+            simpa using RD.stop hretPc' (by decide +native) (by simp)
           have hcreated :
               (cA, liftStoreLogAccountMap σ_evm I key).1 = evm3.createdAccounts := by
             simp [evm3, evm2, evm1, evm0, liftAfterPosState, liftAfterSrcsElemState,
@@ -956,7 +956,7 @@ theorem cureLiftBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               liftSrcsElemSlotForLen, liftSrcsLenWord, cureSlotWord, solcSlotWord, len] using haccountsFinal
           have henc : returnEquiv ByteArray.empty none liftTransition.returnType := by
             rw [show liftTransition.returnType = [] by rfl]
-            exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+            exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
           exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
             hcreated haccounts henc
         · have hposSolm : cureSlotWord (liftPosSlotFor I) σ_solm I ≠ ⟨0⟩ := by
@@ -1020,10 +1020,10 @@ theorem cureLiftBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (key := key) (ret := ⟨484⟩) (R := [sel]) hafterAuth
           (by
             unfold cureLiveGuardWf
-            repeat' first | apply And.intro | native_decide)
+            repeat' first | apply And.intro | decide +native)
           (by
             unfold solcErrorStringRevertTailWf cureLiveGuardTailPc cureNotLiveRawWord
-            repeat' first | apply And.intro | native_decide)
+            repeat' first | apply And.intro | decide +native)
           hliveSolc hmemAuth hread64 (by simp)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hauthSolm : cureSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
@@ -1057,10 +1057,10 @@ theorem cureLiftBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (by simpa [key] using hroutine)
         (by
           unfold cureAuthCheckWf
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         (by
           unfold solcErrorStringRevertTailWf cureAuthTailPc cureNotAuthorizedRawWord
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         hauthSolc (by simp)
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hlt :
@@ -1072,10 +1072,10 @@ theorem cureLiftBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     have hrev := RD.solcExternalStaticArgsShortReverts
       (code := cureBytecode) (sel := sel) (entry := ⟨524⟩) (ret := ⟨484⟩)
       (decoded := ⟨546⟩) (need := ⟨32⟩) hreach
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) hlt
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) hlt
     exact hrev.reEquivDecodingFailed hcode hdispatch
       (cureDecode_lift_none_short hsz4 (by omega))
 

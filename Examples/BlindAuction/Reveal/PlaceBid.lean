@@ -1527,7 +1527,7 @@ theorem scratch_RD_placeBid_true_nonzero_anyMem {g : Sat256} {s0 : State} {I : E
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw2])
       (by
-        rw [show (⟨32⟩ : UInt256).toNat = 32 by native_decide]
+        rw [show (⟨32⟩ : UInt256).toNat = 32 by decide +native]
         simp [memHash, scratch_placeBidPendingHashMem, memKey])
       (by rfl) (by evm_ov),
     push1 ⟨64⟩, dup2]
@@ -1538,7 +1538,7 @@ theorem scratch_RD_placeBid_true_nonzero_anyMem {g : Sat256} {s0 : State} {I : E
     raw keccak256 (Cₘ aw3 - Cₘ aw2) (scratch_placeBidPendingSlot σ I) aw3 (by decide)
       (fun s haws hstks => by
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks, aw3,
-          show (⟨64⟩ : UInt256).toNat = 64 by native_decide])
+          show (⟨64⟩ : UInt256).toNat = 64 by decide +native])
       (by simpa [memHash, key, scratch_placeBidPendingSlot] using hslot) (by rfl) (by evm_ov),
     dup1]
   obtain ⟨_, _, rd1598₀⟩ := rd1597.sload (by decide) (by evm_ov)

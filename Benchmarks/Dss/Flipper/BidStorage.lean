@@ -49,10 +49,10 @@ theorem flipperStorageLocLoad_uint48_offset20 (evm : EVM.State) (slot : UInt256)
     (hoff := by decide) (hsize := by decide)
   have hmask : UInt256.ofNat (256 ^ (⟨6, by decide⟩ : Fin 33).val - 1) =
       uint48Mask := by
-    native_decide
+    decide +native
   have hdiv : UInt256.ofNat (256 ^ (⟨20, by decide⟩ : Fin 32).val) =
       uint48Divisor20 := by
-    native_decide
+    decide +native
   simpa [uint48Loc, uint48Int, hmask, hdiv] using h
 
 theorem flipperStorageLocLoad_uint48_offset26 (evm : EVM.State) (slot : UInt256) :
@@ -66,10 +66,10 @@ theorem flipperStorageLocLoad_uint48_offset26 (evm : EVM.State) (slot : UInt256)
     (hoff := by decide) (hsize := by decide)
   have hmask : UInt256.ofNat (256 ^ (⟨6, by decide⟩ : Fin 33).val - 1) =
       uint48Mask := by
-    native_decide
+    decide +native
   have hdiv : UInt256.ofNat (256 ^ (⟨26, by decide⟩ : Fin 32).val) =
       uint48Divisor26 := by
-    native_decide
+    decide +native
   simpa [uint48Loc, uint48Int, hmask, hdiv] using h
 
 theorem natLandClearMiddle160_208 (n : Nat) (hn : n < 2 ^ 256) :
@@ -143,7 +143,7 @@ theorem setUint48Offset20Word_toNat (old val : UInt256) (hval : val.toNat < 2 ^ 
   have hclearMask :
       UInt256.lnot (UInt256.shiftLeft uint48Mask ⟨160⟩) =
         UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ 208 + 2 ^ 160 - 1) := by
-    native_decide
+    decide +native
   have hvalLow : (UInt256.land val uint48Mask).toNat = val.toNat := by
     rw [u256_land_toNat]
     change Nat.land val.toNat (2 ^ 48 - 1) % UInt256.size = val.toNat
@@ -287,7 +287,7 @@ theorem uint48MulDivisor26_eq_shiftLeft (w : UInt256) :
   rw [if_neg (by decide : ¬ ((⟨208⟩ : UInt256).val ≥ 256))]
   change w.toNat * uint48Divisor26.toNat % UInt256.size =
     (w.toNat <<< 208) % UInt256.size
-  rw [show uint48Divisor26.toNat = 2 ^ 208 by native_decide]
+  rw [show uint48Divisor26.toNat = 2 ^ 208 by decide +native]
   rw [Nat.shiftLeft_eq]
 
 theorem setUint48Offset26RuntimeWord (old data : UInt256) :
@@ -302,7 +302,7 @@ theorem setUint48Offset26RuntimeWord (old data : UInt256) :
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨208⟩) ⟨1⟩ =
         UInt256.lnot (UInt256.shiftLeft uint48Mask ⟨208⟩) := by
-    native_decide
+    decide +native
   have hshift :
       UInt256.mul (UInt256.land data uint48Mask) uint48Divisor26 =
         UInt256.shiftLeft (UInt256.land data uint48Mask) ⟨208⟩ := by
@@ -330,7 +330,7 @@ theorem setUint48Offset26Word_toNat (old val : UInt256) (hval : val.toNat < 2 ^ 
   have hclearMask :
       UInt256.lnot (UInt256.shiftLeft uint48Mask ⟨208⟩) =
         UInt256.ofNat ((2 : Nat) ^ 208 - 1) := by
-    native_decide
+    decide +native
   have hvalLow : (UInt256.land val uint48Mask).toNat = val.toNat := by
     rw [u256_land_toNat]
     change Nat.land val.toNat (2 ^ 48 - 1) % UInt256.size = val.toNat

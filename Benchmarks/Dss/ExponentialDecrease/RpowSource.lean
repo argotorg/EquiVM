@@ -852,7 +852,7 @@ theorem execRpowFunctionReturnXNonzeroWithLoop
   have hHalfExpr :
       evalExpr? config { contract := contract, locals := localsZ } evm
         (.binary .div (.var "b") (.intLit 2)) = .ok (.int (Int.ofNat half.toNat)) :=
-    evalExpr_div_uint256_ok hbZ htwoLitZ (by native_decide) rfl
+    evalExpr_div_uint256_ok hbZ htwoLitZ (by decide +native) rfl
   have hnZH :
       evalExpr? config { contract := contract, locals := localsZH } evm (.var "n") =
         .ok (.int (Int.ofNat n.toNat)) := by
@@ -1011,7 +1011,7 @@ theorem execRpowFunctionRevertXNonzeroWithLoop
   have hHalfExpr :
       evalExpr? config { contract := contract, locals := localsZ } evm
         (.binary .div (.var "b") (.intLit 2)) = .ok (.int (Int.ofNat half.toNat)) :=
-    evalExpr_div_uint256_ok hbZ htwoLitZ (by native_decide) rfl
+    evalExpr_div_uint256_ok hbZ htwoLitZ (by decide +native) rfl
   have hnZH :
       evalExpr? config { contract := contract, locals := localsZH } evm (.var "n") =
         .ok (.int (Int.ofNat n.toNat)) := by

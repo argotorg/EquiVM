@@ -83,7 +83,7 @@ theorem vowFlapSin0CallDepthLimitBody
   exact vowFlapSin0CallFailureBodyCore (acc := (cA, σ_evm))
     (evmSin := { evm0 with accountMap := σ_solm, substate := A_sin, createdAccounts := cA })
     (outSin := ByteArray.empty) hcode hwv hdispatch hdecode rd937
-    (by native_decide) hvatCodeSolm hcallSinDepth
+    (by decide +native) hvatCodeSolm hcallSinDepth
 
 theorem RD.vowFlapSin0PostCallDecodeOk
     {cA gh bl σ σ₀ A I} {g sel target : UInt256}
@@ -141,7 +141,7 @@ theorem RD.vowFlapSin0PostCallDecodeOk
               (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size
             ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
       rw [hmem]
-      native_decide
+      decide +native
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
       initialHealSinWrite_read128_32 I outSin ho32]
   obtain ⟨k', C', rd978Raw⟩ :=
@@ -208,7 +208,7 @@ theorem RD.vowFlapDai0PostCallDecodeOk
               (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size
             ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
       rw [hmemWrite]
-      native_decide
+      decide +native
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
       vatDaiWrite_read128_32 I outDai hmem ho32]
   obtain ⟨k', C', rd1113Raw⟩ :=
@@ -275,7 +275,7 @@ theorem RD.vowFlapSin1PostCallDecodeOk
               (outSin1.write 0 (healSinCalldataMem I mem) 128 32).size
             ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
       rw [hmemWrite]
-      native_decide
+      decide +native
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
       healSinWrite_read128_32 I mem outSin1 hmem ho32]
   obtain ⟨k', C', rd1318Raw⟩ :=
@@ -1522,7 +1522,7 @@ theorem vowFlapBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (min flapKickOutSize (UInt256.ofNat outKick.size)).toNat = outKick.size := by
         simpa [flapKickOutSize] using kissDaiMin32_toNat_of_lt hshortKick
       have rd1498Short := rd1498True
-      rw [hminKick, show flapKickOutPtr.toNat = 128 from by native_decide] at rd1498Short
+      rw [hminKick, show flapKickOutPtr.toNat = 128 from by decide +native] at rd1498Short
       obtain ⟨k1516, C1516, rd1516⟩ :=
         RD.vowFlapKickCallSuccessToDecode rd1498Short (by simp)
       have hmemKickShort :

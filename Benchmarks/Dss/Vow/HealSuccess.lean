@@ -152,8 +152,8 @@ theorem RD.vowHealSinCallSuccessToDecode
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨1277⟩) (okPc := ⟨1293⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simpa only [List.length_cons] using hov)
 
 theorem RD.vowHealSinReturnDecodeShortReverts
@@ -177,10 +177,10 @@ theorem RD.vowHealSinReturnDecodeShortReverts
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨1295⟩) (okPc := ⟨1315⟩) rd
     hshort hhi
     mem_cost (by decide) hMload64Value
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by simp)
 
 theorem RD.vowHealSinReturnDecodeOk
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
@@ -211,10 +211,10 @@ theorem RD.vowHealSinReturnDecodeOk
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨1295⟩) (okPc := ⟨1315⟩) rd
     hlo hhi
     mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by jump_dest) (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by jump_dest) (by decide +native) (by decide +native) (by decide +native) (by evm_ov)
 
 theorem RD.solcCheckedSubEmptyRevertAnyWords {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {pc okPc a b ret : UInt256} {R : List UInt256}
@@ -272,15 +272,15 @@ theorem RD.vowHealFreeSinSubUnderflow
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let SinVal := vowSlotWord ⟨5⟩ acc.2 I
-  have rd1320 := rd.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1321, C1321, rd1321Raw⟩ := rd1320.sload (by native_decide) (by evm_ov)
+  have rd1320 := rd.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1321, C1321, rd1321Raw⟩ := rd1320.sload (by decide +native) (by evm_ov)
   have rd1321 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
       (SinVal :: vatSin :: ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1321 C1321 := by
     simpa [SinVal, vowSlotWord, solcSlotWord] using rd1321Raw
-  have rd1324 := rd1321.push2 ⟨5096⟩ (by native_decide) (by evm_ov)
-  have rd5096 := rd1324.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd1324 := rd1321.push2 ⟨5096⟩ (by decide +native) (by evm_ov)
+  have rd5096 := rd1324.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
     (code := vowBytecode) (pc := ⟨5096⟩) (okPc := ⟨5090⟩)
     (a := vatSin) (b := SinVal) (ret := ⟨1325⟩)
@@ -288,7 +288,7 @@ theorem RD.vowHealFreeSinSubUnderflow
     (by simpa [SinVal] using rd5096)
     (by
       unfold solcCheckedSubEmptyRevertWf solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [SinVal] using hlt)
     (by simp)
 
@@ -307,15 +307,15 @@ theorem RD.vowHealFreeSinSubSuccess
         ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
   let SinVal := vowSlotWord ⟨5⟩ acc.2 I
-  have rd1320 := rd.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1321, C1321, rd1321Raw⟩ := rd1320.sload (by native_decide) (by evm_ov)
+  have rd1320 := rd.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1321, C1321, rd1321Raw⟩ := rd1320.sload (by decide +native) (by evm_ov)
   have rd1321 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1321⟩
       (SinVal :: vatSin :: ⟨1325⟩ :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1321 C1321 := by
     simpa [SinVal, vowSlotWord, solcSlotWord] using rd1321Raw
-  have rd1324 := rd1321.push2 ⟨5096⟩ (by native_decide) (by evm_ov)
-  have rd5096 := rd1324.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd1324 := rd1321.push2 ⟨5096⟩ (by decide +native) (by evm_ov)
+  have rd5096 := rd1324.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨k1325, C1325, rd1325⟩ := RD.solcCheckedSubSuccess
     (code := vowBytecode) (pc := ⟨5096⟩) (okPc := ⟨5090⟩)
     (a := vatSin) (b := SinVal) (ret := ⟨1325⟩)
@@ -323,7 +323,7 @@ theorem RD.vowHealFreeSinSubSuccess
     (by simpa [SinVal] using rd5096)
     (by
       unfold solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [SinVal] using hle) (by jump_dest) (by jump_dest) (by simp)
   exact ⟨k1325, C1325, by simpa [SinVal] using rd1325⟩
 
@@ -339,16 +339,16 @@ theorem RD.vowHealDebtSubUnderflow
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let AshVal := vowSlotWord ⟨6⟩ acc.2 I
-  have rd1326 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd1328 := rd1326.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1329, C1329, rd1329Raw⟩ := rd1328.sload (by native_decide) (by evm_ov)
+  have rd1326 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd1328 := rd1326.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1329, C1329, rd1329Raw⟩ := rd1328.sload (by decide +native) (by evm_ov)
   have rd1329 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
       (AshVal :: freeSin :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1329 C1329 := by
     simpa [AshVal, vowSlotWord, solcSlotWord] using rd1329Raw
-  have rd1332 := rd1329.push2 ⟨5096⟩ (by native_decide) (by evm_ov)
-  have rd5096 := rd1332.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd1332 := rd1329.push2 ⟨5096⟩ (by decide +native) (by evm_ov)
+  have rd5096 := rd1332.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
     (code := vowBytecode) (pc := ⟨5096⟩) (okPc := ⟨5090⟩)
     (a := freeSin) (b := AshVal) (ret := ⟨4921⟩)
@@ -356,7 +356,7 @@ theorem RD.vowHealDebtSubUnderflow
     (by simpa [AshVal] using rd5096)
     (by
       unfold solcCheckedSubEmptyRevertWf solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [AshVal] using hlt)
     (by simp)
 
@@ -374,16 +374,16 @@ theorem RD.vowHealDebtSubSuccess
       (UInt256.sub freeSin (vowSlotWord ⟨6⟩ acc.2 I) :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k' C' := by
   let AshVal := vowSlotWord ⟨6⟩ acc.2 I
-  have rd1326 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd1328 := rd1326.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1329, C1329, rd1329Raw⟩ := rd1328.sload (by native_decide) (by evm_ov)
+  have rd1326 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd1328 := rd1326.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1329, C1329, rd1329Raw⟩ := rd1328.sload (by decide +native) (by evm_ov)
   have rd1329 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1329⟩
       (AshVal :: freeSin :: ⟨4921⟩ :: healRad I :: ⟨412⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1329 C1329 := by
     simpa [AshVal, vowSlotWord, solcSlotWord] using rd1329Raw
-  have rd1332 := rd1329.push2 ⟨5096⟩ (by native_decide) (by evm_ov)
-  have rd5096 := rd1332.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd1332 := rd1329.push2 ⟨5096⟩ (by decide +native) (by evm_ov)
+  have rd5096 := rd1332.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨k4921, C4921, rd4921⟩ := RD.solcCheckedSubSuccess
     (code := vowBytecode) (pc := ⟨5096⟩) (okPc := ⟨5090⟩)
     (a := freeSin) (b := AshVal) (ret := ⟨4921⟩)
@@ -391,7 +391,7 @@ theorem RD.vowHealDebtSubSuccess
     (by simpa [AshVal] using rd5096)
     (by
       unfold solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [AshVal] using hle) (by jump_dest) (by jump_dest) (by simp)
   exact ⟨k4921, C4921, by simpa [AshVal] using rd4921⟩
 
@@ -409,48 +409,48 @@ theorem RD.vowHealInsufficientDebt
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  have rd4922 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd4923 := rd4922.dup2 (by native_decide) (by evm_ov)
-  have rd4924₀ := rd4923.gt (by native_decide) (by evm_ov)
+  have rd4922 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd4923 := rd4922.dup2 (by decide +native) (by evm_ov)
+  have rd4924₀ := rd4923.gt (by decide +native) (by evm_ov)
   have hgt : UInt256.gt (healRad I) healDebt = ⟨1⟩ :=
     ugt_one hinsuff
   have rd4924 := rd4924₀
   rw [hgt] at rd4924
-  have rd4925₀ := rd4924.iszero (by native_decide) (by evm_ov)
+  have rd4925₀ := rd4924.iszero (by decide +native) (by evm_ov)
   have rd4925 := rd4925₀
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd4925
-  have rd4928 := rd4925.push2 ⟨4997⟩ (by native_decide) (by evm_ov)
-  have rd4929 := rd4928.jumpiNT (by native_decide)
+  have rd4928 := rd4925.push2 ⟨4997⟩ (by decide +native) (by evm_ov)
+  have rd4929 := rd4928.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   have rd4933 := evm_run rd4929 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rd4937 := rd4933.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
   have rd4956 := evm_run rd4937 with [
     push1 ⟨229⟩,
     shl,
     dup2,
-    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩,
     push1 ⟨4⟩,
     dup3,
     add,
-    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨21⟩,
     push1 ⟨36⟩,
     dup3,
     add,
     raw mstore 3 (solcErrorStringMem2 (⟨21⟩ : UInt256) mem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd4978 := rd4956.pushConst vowInsufficientDebtRawWord
-    (width := 21) (op := .PUSH21) (by decide) (by native_decide) (by evm_ov)
+    (width := 21) (op := .PUSH21) (by decide) (by decide +native) (by evm_ov)
   have rd4981₀ := evm_run rd4978 with [
     push1 ⟨90⟩,
     shl]
@@ -463,9 +463,9 @@ theorem RD.vowHealInsufficientDebt
     add,
     raw mstore 3
       (solcErrorStringMem3 (⟨21⟩ : UInt256) vowInsufficientDebtStringWord mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64_of_size164 (⟨21⟩ : UInt256)
         vowInsufficientDebtStringWord hmem hread64)
@@ -477,7 +477,7 @@ theorem RD.vowHealInsufficientDebt
     push1 ⟨100⟩,
     add,
     swap1,
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 theorem RD.vowHealDebtEnough
     {cA gh bl σ σ₀ A I} {g sel healDebt : UInt256}
@@ -491,18 +491,18 @@ theorem RD.vowHealDebtEnough
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨4997⟩
       [healRad I, ⟨412⟩, sel] mem (UInt256.ofNat 6) o acc k' C' := by
-  have rd4922 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd4923 := rd4922.dup2 (by native_decide) (by evm_ov)
-  have rd4924₀ := rd4923.gt (by native_decide) (by evm_ov)
+  have rd4922 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd4923 := rd4922.dup2 (by decide +native) (by evm_ov)
+  have rd4924₀ := rd4923.gt (by decide +native) (by evm_ov)
   have hgt : UInt256.gt (healRad I) healDebt = ⟨0⟩ :=
     ugt_zero henough
   have rd4924 := rd4924₀
   rw [hgt] at rd4924
-  have rd4925₀ := rd4924.iszero (by native_decide) (by evm_ov)
+  have rd4925₀ := rd4924.iszero (by decide +native) (by evm_ov)
   have rd4925 := rd4925₀
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd4925
-  have rd4928 := rd4925.push2 ⟨4997⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd4928.jumpiT (by native_decide)
+  have rd4928 := rd4925.push2 ⟨4997⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd4928.jumpiT (by decide +native)
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -523,9 +523,9 @@ theorem RD.vowHealToHealExtcodesizeGuard
         healRad I :: ⟨412⟩ :: sel :: [])
       (kissHealCalldataMem I mem) (UInt256.ofNat 6) o acc k' C' := by
   let target := kissDaiTargetWord acc.2 I
-  have rd4998 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd5000 := rd4998.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k5001, C5001, rd5001Raw⟩ := rd5000.sload (by native_decide) (by evm_ov)
+  have rd4998 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd5000 := rd4998.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k5001, C5001, rd5001Raw⟩ := rd5000.sload (by decide +native) (by evm_ov)
   have rd5001 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨5001⟩
       (vowSlotWord ⟨1⟩ acc.2 I :: healRad I :: ⟨412⟩ :: sel :: [])
@@ -554,23 +554,23 @@ theorem RD.vowHealToHealExtcodesizeGuard
   have rd5062 := evm_run rd5001 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     push4 ⟨1021227399⟩,
     push1 ⟨226⟩,
     shl,
     dup2,
-    raw mstore 0 (kissHealSelectorMem mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (kissHealSelectorMem mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩,
     dup2,
     add,
     dup5,
     swap1,
-    raw mstore 0 (kissHealCalldataMem I mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (kissHealCalldataMem I mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Heal (by decide) (by evm_ov),
     push1 ⟨1⟩,
     push1 ⟨1⟩,
@@ -623,9 +623,9 @@ theorem RD.vowHealHealNoCode
   obtain ⟨_, _, rd5062⟩ := RD.vowHealToHealExtcodesizeGuard rd hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨5062⟩) (okPc := ⟨1915⟩) rd5062
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.vowHealToHealCall
     {cA gh bl σ σ₀ A I} {g sel : UInt256}
@@ -648,9 +648,9 @@ theorem RD.vowHealToHealCall
   obtain ⟨gasWord, k1918, C1918, rd1918⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨5062⟩) (okPc := ⟨1915⟩) rd5062
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k1918, C1918, by simpa [healRad, kissRad] using rd1918⟩
 
 theorem RD.vowHealHealPostCall
@@ -683,7 +683,7 @@ theorem RD.vowHealHealPostCall
     ∧ out.size < UInt256.size := by
   obtain ⟨_, _, _, rd1918⟩ := RD.vowHealToHealCall rd hmem hread64 hcodeSize
   obtain ⟨cA', σ', z, out, A_in, callGas, k1919, C1919, hΘpack, rd1919raw, houtsz⟩ :=
-    RD.call rd1918 (by native_decide) hdepth (by evm_ov)
+    RD.call rd1918 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, out, A', k1919, C1919, ?_, ?_, houtsz⟩
   · have haw :
@@ -692,7 +692,7 @@ theorem RD.vowHealHealPostCall
           kissHealOutPtr.toNat kissHealOutSize.toNat) = UInt256.ofNat 6 := by
       rw [kissHealInSize_eq]
       unfold kissHealOutPtr kissHealOutSize
-      native_decide
+      decide +native
     have hmin : (min kissHealOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold kissHealOutSize
       rfl

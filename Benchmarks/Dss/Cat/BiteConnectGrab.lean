@@ -62,7 +62,7 @@ theorem catBiteGrabCalldataMemP_read_window
     unfold catBiteGrabSelMemP
     rw [write32_read_prefix_len _ _ p.toNat 4 (by rw [toByteArray_size]) hpmem (by norm_num)
       (by norm_num) (by norm_num)]
-    native_decide
+    decide +native
   -- ilk [p+4, p+36)
   have hIlk : final.readWithPadding (p.toNat + 4) 32 = ilk.toByteArray := by
     rw [hfinal]
@@ -237,7 +237,7 @@ theorem catBiteGrabEncode_eq (p ilk urn thisW vowRaw dink dart : UInt256) {mem :
   have hilkLen : (EVM.Word.toBytesBE ilk).length = 32 := by
     simpa using word_toBytesBE_toByteArray_size ilk
   -- address masks are canonical
-  have hmaskEq : biteAddrMaskWord = solcAddrMask := by native_decide
+  have hmaskEq : biteAddrMaskWord = solcAddrMask := by decide +native
   have hurnCanon : (UInt256.land biteAddrMaskWord urn).toNat < EVM.addressModulus := by
     rw [hmaskEq, u256_land_comm]; exact solcAddrMask_result_canonical urn
   have hvowCanon : (UInt256.land biteAddrMaskWord vowRaw).toNat < EVM.addressModulus := by

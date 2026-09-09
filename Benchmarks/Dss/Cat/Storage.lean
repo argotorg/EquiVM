@@ -59,7 +59,7 @@ theorem catAuthGuardEval_true {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Sto
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
-  all_goals native_decide
+  all_goals decide +native
 
 theorem catAuthGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
@@ -93,7 +93,7 @@ theorem catAuthGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256} {locals : St
     apply hload
     apply u256_inj
     simpa using hnat
-  all_goals native_decide
+  all_goals decide +native
 
 /-! ## Auth-check bytecode helper (`Cat/not-authorized`)
 
@@ -183,19 +183,19 @@ theorem RD.catAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := rd6.mstore 0 (wordAt0Mem (solcSourceWord ee) solcFreePtrMem)
-    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd11 := evm_run rd7 with [
     raw push1 ⟨32⟩ hd7 (by evm_ov),
     raw dup2 hd9 (by evm_ov),
     raw swap1 hd10 (by evm_ov)]
   have rd12 := rd11.mstore 0 (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := evm_run rd12 with [
     raw push1 ⟨64⟩ hd12 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ (solcSourceWord ee) solcFreePtrMem_size
   have rd16 := rd15.keccak256 0 (solcMappingSlot ⟨0⟩ (solcSourceWord ee))
-    (UInt256.ofNat 3) hd15 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd15 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd17⟩ := rd16.sload hd16 (by evm_ov)
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
@@ -229,19 +229,19 @@ theorem RD.catAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := rd6.mstore 0 (wordAt0Mem (solcSourceWord ee) solcFreePtrMem)
-    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd11 := evm_run rd7 with [
     raw push1 ⟨32⟩ hd7 (by evm_ov),
     raw dup2 hd9 (by evm_ov),
     raw swap1 hd10 (by evm_ov)]
   have rd12 := rd11.mstore 0 (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := evm_run rd12 with [
     raw push1 ⟨64⟩ hd12 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ (solcSourceWord ee) solcFreePtrMem_size
   have rd16 := rd15.keccak256 0 (solcMappingSlot ⟨0⟩ (solcSourceWord ee))
-    (UInt256.ofNat 3) hd15 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd15 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd17⟩ := rd16.sload hd16 (by evm_ov)
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
@@ -346,19 +346,19 @@ theorem RD.catDenyStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd12 (by evm_ov),
     raw dup2 hd13 (by evm_ov)]
   have rdAfterKey := rdMstore0Prefix.mstore 0 (wordAt0Mem key mem)
-    (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
     raw push1 ⟨32⟩ hd15 (by evm_ov),
     raw dup2 hd17 (by evm_ov),
     raw swap1 hd18 (by evm_ov)]
   have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem key ⟨0⟩ mem)
-    (UInt256.ofNat 3) hd19 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd19 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩ hd20 (by evm_ov),
     raw dup2 hd22 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ key hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨0⟩ key)
-    (UInt256.ofNat 3) hd23 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd23 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rdOut⟩ := rdSlot.sstore hperm hd24 (by evm_ov)
   exact ⟨_, _, rdOut.jump hd25 hret (by evm_ov)⟩
 
@@ -444,19 +444,19 @@ theorem RD.catRelyStoreOne {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd12 (by evm_ov),
     raw dup2 hd13 (by evm_ov)]
   have rdAfterKey := rdMstore0Prefix.mstore 0 (wordAt0Mem key mem)
-    (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
     raw push1 ⟨32⟩ hd15 (by evm_ov),
     raw dup2 hd17 (by evm_ov),
     raw swap1 hd18 (by evm_ov)]
   have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem key ⟨0⟩ mem)
-    (UInt256.ofNat 3) hd19 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd19 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩ hd20 (by evm_ov),
     raw swap1 hd22 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ key hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨0⟩ key)
-    (UInt256.ofNat 3) hd23 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd23 mem_cost hslot (by decide +native) (by evm_ov)
   have rdBeforeStore := evm_run rdSlot with [
     raw push1 ⟨1⟩ hd24 (by evm_ov),
     raw swap1 hd26 (by evm_ov)]

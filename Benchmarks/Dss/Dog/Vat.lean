@@ -21,27 +21,27 @@ theorem dogReachVatBody {v : DogImmutables} {code : ByteArray}
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hword : solcSelectorWord I = ⟨0x36569e77⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0x36 0x56 0x9e 0x77 ⟨0x36569e77⟩
-      (by native_decide) (by simpa [dogSelBytes] using hsel)
+      (by decide +native) (by simpa [dogSelBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
     dogReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hpatch hcode hwv hsz hsize
   have hrootTgt : armTgt code (⟨32⟩ : UInt256) = ⟨162⟩ := by
     dsimp [armTgt]
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPushTgtPc (⟨32⟩ : UInt256))
-      hpatch (by native_decide)]
-    native_decide
+      hpatch (by decide +native)]
+    decide +native
   have hlowTgt : armTgt code (⟨163⟩ : UInt256) = ⟨222⟩ := by
     dsimp [armTgt]
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPushTgtPc (⟨163⟩ : UInt256))
-      hpatch (by native_decide)]
-    native_decide
+      hpatch (by decide +native)]
+    decide +native
   have hroot :
       UInt256.gt (armSelNat code (⟨32⟩ : UInt256)) (solcSelectorWord I) ≠ ⟨0⟩ := by
     rw [hword]
     dsimp [armSelNat]
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨32⟩ : UInt256))
-      hpatch (by native_decide)]
-    native_decide
+      hpatch (by decide +native)]
+    decide +native
   have h162 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨162⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ) (k32 + 5) (C32 + 22) := by
@@ -49,7 +49,7 @@ theorem dogReachVatBody {v : DogImmutables} {code : ByteArray}
       RD.selectorSplitTakenAuto h32 (dogRootSplitWellFormed hpatch) hroot
         (by
           rw [hrootTgt]
-          exact dogPatchedDJumpPrefix1405 ⟨162⟩ hpatch (by native_decide))
+          exact dogPatchedDJumpPrefix1405 ⟨162⟩ hpatch (by decide +native))
         (by simp)
   have h163 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨163⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
@@ -57,16 +57,16 @@ theorem dogReachVatBody {v : DogImmutables} {code : ByteArray}
     simpa using
       h162.jumpdest
         (by
-          rw [dogDecodePatchedEqTemplate1405 (pc := ⟨162⟩) hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 (pc := ⟨162⟩) hpatch (by decide +native)]
+          decide +native)
         (by simp only [List.length_singleton]; omega)
   have hlow :
       UInt256.gt (armSelNat code (⟨163⟩ : UInt256)) (solcSelectorWord I) ≠ ⟨0⟩ := by
     rw [hword]
     dsimp [armSelNat]
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨163⟩ : UInt256))
-      hpatch (by native_decide)]
-    native_decide
+      hpatch (by decide +native)]
+    decide +native
   have h222 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨222⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
@@ -74,7 +74,7 @@ theorem dogReachVatBody {v : DogImmutables} {code : ByteArray}
       RD.selectorSplitTakenAuto h163 (dogLowSplitWellFormed hpatch) hlow
         (by
           rw [hlowTgt]
-          exact dogPatchedDJumpPrefix1405 ⟨222⟩ hpatch (by native_decide))
+          exact dogPatchedDJumpPrefix1405 ⟨222⟩ hpatch (by decide +native))
         (by simp)
   have h223 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨223⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
@@ -82,38 +82,38 @@ theorem dogReachVatBody {v : DogImmutables} {code : ByteArray}
     simpa using
       h222.jumpdest
         (by
-          rw [dogDecodePatchedEqTemplate1405 (pc := ⟨222⟩) hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 (pc := ⟨222⟩) hpatch (by decide +native)]
+          decide +native)
         (by simp only [List.length_singleton]; omega)
   have hfileIlkUint : UInt256.eq (dogSelectorWord 7) (solcSelectorWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hfileUint : UInt256.eq (dogSelectorWord 8) (solcSelectorWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hvat : UInt256.eq (dogSelectorWord 14) (solcSelectorWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have h234 := by
     simpa [selArmNextPc] using
       h223.selectorArmNotTaken (selNat := dogSelectorWord 7) (tgt := (⟨272⟩ : UInt256))
         (width := 2) (op := .PUSH2)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by decide)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         hfileIlkUint
         (by simp)
   have h245 := by
@@ -121,21 +121,21 @@ theorem dogReachVatBody {v : DogImmutables} {code : ByteArray}
       h234.selectorArmNotTaken (selNat := dogSelectorWord 8) (tgt := (⟨315⟩ : UInt256))
         (width := 2) (op := .PUSH2)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by decide)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         hfileUint
         (by simp)
   have h350 := by
@@ -143,23 +143,23 @@ theorem dogReachVatBody {v : DogImmutables} {code : ByteArray}
       h245.selectorArmTaken (selNat := dogSelectorWord 14) (tgt := (⟨350⟩ : UInt256))
         (width := 2) (op := .PUSH2)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by decide)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         hvat
-        (dogPatchedDJumpPrefix1405 ⟨350⟩ hpatch (by native_decide))
+        (dogPatchedDJumpPrefix1405 ⟨350⟩ hpatch (by decide +native))
         (by simp)
   exact ⟨_, _, h350⟩
 
@@ -187,8 +187,8 @@ theorem dogVatGetterJumpdestDecode {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
     decode code ⟨1403⟩ = some (.JUMPDEST, .none) := by
   refine dogDecodePatchedNoArg (pc := ⟨1403⟩) (byte := 0x5b) (op := .JUMPDEST)
-    hpatch (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide)
+    hpatch (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native)
 
 theorem dogVatConstDecode {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
@@ -200,11 +200,11 @@ theorem dogVatConstDecode {v : DogImmutables} {code : ByteArray}
     change code.get? 1404 = dogBytecode.get? 1404
     apply get?_eq_of_extract_one
     · rw [hsize]
-      native_decide
-    · native_decide
+      decide +native
+    · decide +native
     · exact patchRuntime_extract_eq (start := 1404) (stop := 1405)
         (template := dogBytecode) (out := code) (ps := patches v)
-        (by omega) (by native_decide)
+        (by omega) (by decide +native)
         (by
           intro p hp
           have hm := dogPatchOffsetMem v p hp
@@ -225,14 +225,14 @@ theorem dogVatConstDecode {v : DogImmutables} {code : ByteArray}
     change code.extract' 1405 1437 = UInt256.toByteArray (EVM.Word.ofNat v.vat.toNat)
     unfold ByteArray.extract'
     have hguard : (decide (1405 < 2 ^ 64) && decide (1437 < 2 ^ 64)) = true := by
-      native_decide
+      decide +native
     rw [if_pos hguard]
     exact dogVatPatchWord hpatch
   have hgetSome : code.get? ({ val := 1404 } : UInt256).toNat = some 0x7f := by
     rw [hget]
-    native_decide
+    decide +native
   have hparse : (some (0x7f : UInt8) >>= parseInstr) = some (.Push .PUSH32) := by
-    native_decide
+    decide +native
   unfold decode
   rw [hgetSome, hparse]
   change some (Operation.Push Operation.POp.PUSH32,
@@ -246,21 +246,21 @@ theorem dogVatGetterDupDecode {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
     decode code ⟨1437⟩ = some (.DUP2, .none) := by
   refine dogDecodePatchedNoArg (pc := ⟨1437⟩) (byte := 0x81) (op := .DUP2)
-    hpatch (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide)
+    hpatch (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native)
 
 theorem dogVatGetterJumpDecode {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
     decode code ⟨1438⟩ = some (.JUMP, .none) := by
   refine dogDecodePatchedNoArg (pc := ⟨1438⟩) (byte := 0x56) (op := .JUMP)
-    hpatch (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide)
+    hpatch (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native)
 
 theorem dogVatGetterWf {v : DogImmutables} {code : ByteArray}
     (hpatch : patchRuntime dogBytecode (patches v) = some code) :
     solcConstGetterWf code ⟨1403⟩ (EVM.Word.ofNat v.vat.toNat) 32 .PUSH32 := by
   dsimp [solcConstGetterWf]
-  exact ⟨dogVatGetterJumpdestDecode hpatch, by native_decide, dogVatConstDecode hpatch,
+  exact ⟨dogVatGetterJumpdestDecode hpatch, by decide +native, dogVatConstDecode hpatch,
     dogVatGetterDupDecode hpatch, dogVatGetterJumpDecode hpatch⟩
 
 theorem dogVatBodyCore {v : DogImmutables} {code : ByteArray}
@@ -313,17 +313,17 @@ theorem dogVatBodyCore {v : DogImmutables} {code : ByteArray}
       unfold solcGetterEntryWf
       repeat' first
         | apply And.intro
-        | rw [dogDecodePatchedEqTemplate1405 _hpatch (by native_decide)]
-          native_decide)
+        | rw [dogDecodePatchedEqTemplate1405 _hpatch (by decide +native)]
+          decide +native)
     (dogVatGetterWf _hpatch)
-    (dogPatchedJumpDest _hpatch (by native_decide))
-    (dogPatchedDJumpPrefix1405 ⟨358⟩ _hpatch (by native_decide))
+    (dogPatchedJumpDest _hpatch (by decide +native))
+    (dogPatchedDJumpPrefix1405 ⟨358⟩ _hpatch (by decide +native))
     (by
       unfold solcReturnAddressFromMemWf
       repeat' first
         | apply And.intro
-        | rw [dogDecodePatchedEqTemplate1405 _hpatch (by native_decide)]
-          native_decide)
+        | rw [dogDecodePatchedEqTemplate1405 _hpatch (by decide +native)]
+          decide +native)
   have henc :
       returnEquiv
         (UInt256.toByteArray (UInt256.land (EVM.Word.ofNat v.vat.toNat) solcAddrMask))

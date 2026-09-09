@@ -1508,7 +1508,7 @@ theorem ballotGiveRightToVoteBodyCore
                   simp [giveRightPostState, giveRightVoterSlot, initState,
                     storageStore_accountMap]))
                 hσPost
-                (returnEquiv.fallthrough rfl rfl (by native_decide))
+                (returnEquiv.fallthrough rfl rfl (by decide +native))
             · have hbody := ballotGiveRightToVoteBodyReverts_weight
                 (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
                 (by simp only [initState]; exact hwv)

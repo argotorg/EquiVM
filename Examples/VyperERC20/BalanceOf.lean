@@ -103,7 +103,7 @@ def balanceOfDispatchMem : ByteArray :=
   vyperERC20Bytecode.write 805 ByteArray.empty 30 2
 
 theorem balanceOfDispatchMem_size : balanceOfDispatchMem.size = 32 := by
-  native_decide
+  decide +native
 
 def balanceOfOwnerArgMem (owner : UInt256) : ByteArray :=
   (UInt256.toByteArray owner).write 0 balanceOfDispatchMem 64 32
@@ -207,7 +207,7 @@ theorem balanceOfReturnMem_read96 (owner val : UInt256) :
     (by rw [balanceOfHashMem_size]; exact lt_usize 0 (by norm_num))
 
 macro "vyper_erc20_balance_decode" : tactic =>
-  `(tactic| native_decide)
+  `(tactic| decide +native)
 
 theorem erc20X_balanceOfFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -235,7 +235,7 @@ theorem erc20X_balanceOfFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     unfold UInt256.lt UInt256.fromBool Bool.toUInt256
     rw [show decide (UInt256.ofNat I.calldata.size < (⟨36⟩ : UInt256)) = false from by
       exact decide_eq_false hnot]
-    native_decide
+    decide +native
   have hcanonGuard : UInt256.shiftRight (balanceOfOwnerWord I) ⟨160⟩ = ⟨0⟩ :=
     u256_shiftRight160_zero_of_lt (balanceOfOwnerWord I) hcanon
   have rdBeforeLoad := evm_run rd623 with [
@@ -244,7 +244,7 @@ theorem erc20X_balanceOfFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     dup2,
     xor,
     push2 ⟨797⟩,
-    jumpiNT (by native_decide),
+    jumpiNT (by decide +native),
     push1 ⟨36⟩,
     calldatasize,
     lt,
@@ -330,7 +330,7 @@ theorem balanceOfSelectorWord_of_calldata {I : ExecutionEnv}
     (hsel : ((⟨#[0x70, 0xa0, 0x82, 0x31]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ =
       balanceOfSelectorWord := by
-  have h := evmSelectorDecode hsz 0x70 0xa0 0x82 0x31 balanceOfSelectorWord (by native_decide)
+  have h := evmSelectorDecode hsz 0x70 0xa0 0x82 0x31 balanceOfSelectorWord (by decide +native)
   rw [hsel] at h
   unfold UInt256.eq at h
   by_cases heq :
@@ -348,7 +348,7 @@ theorem balanceOfDispatchMem_mload0 :
       else UInt256.ofNat
         (fromByteArrayBigEndian (balanceOfDispatchMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))
       = (⟨623⟩ : UInt256) := by
-  native_decide
+  decide +native
 
 theorem erc20X_balanceOfReach {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vyperERC20Bytecode)
@@ -379,7 +379,7 @@ theorem erc20X_balanceOfReach {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdAfterCopy := rdBeforeCopy.codecopy 3 balanceOfDispatchMem (UInt256.ofNat 1)
     (by vyper_erc20_balance_decode)
     mem_cost
-    (by native_decide)
+    (by decide +native)
     (by decide)
     (by evm_ov)
   have rdBeforeJump := evm_run rdAfterCopy with [
@@ -389,7 +389,7 @@ theorem erc20X_balanceOfReach {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       balanceOfDispatchMem_mload0
       (by decide) (by evm_ov)]
-  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_balance_decode) (by native_decide) (by evm_ov)⟩
+  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_balance_decode) (by decide +native) (by evm_ov)⟩
 
 theorem erc20BalanceOfX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -410,7 +410,7 @@ theorem erc20BalanceOfX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     dup2,
     xor,
     push2 ⟨797⟩,
-    jumpiNT (by native_decide),
+    jumpiNT (by decide +native),
     push1 ⟨36⟩,
     calldatasize,
     lt,
@@ -443,7 +443,7 @@ theorem erc20BalanceOfX_noncanon_owner {cA gh bl σ σ₀ A I} {g : Sat256}
     dup2,
     xor,
     push2 ⟨797⟩,
-    jumpiNT (by native_decide),
+    jumpiNT (by decide +native),
     push1 ⟨36⟩,
     calldatasize,
     lt,

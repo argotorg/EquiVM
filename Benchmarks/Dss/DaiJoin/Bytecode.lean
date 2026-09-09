@@ -190,7 +190,7 @@ def daiJoinBytecode : ByteArray :=
       ⟨1029⟩, ⟨1077⟩, ⟨1083⟩, ⟨1176⟩, ⟨1244⟩, ⟨1262⟩, ⟨1336⟩, ⟨1377⟩, ⟨1463⟩, ⟨1483⟩,
       ⟨1572⟩, ⟨1592⟩, ⟨1663⟩, ⟨1678⟩, ⟨1702⟩, ⟨1705⟩, ⟨1714⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def daiJoinCreationChunk0 : ByteArray :=
@@ -370,7 +370,7 @@ def daiJoinCreationBytecode : ByteArray :=
       ⟨1010⟩, ⟨1079⟩, ⟨1172⟩, ⟨1220⟩, ⟨1226⟩, ⟨1319⟩, ⟨1387⟩, ⟨1405⟩, ⟨1479⟩, ⟨1520⟩,
       ⟨1606⟩, ⟨1626⟩, ⟨1715⟩, ⟨1735⟩, ⟨1806⟩, ⟨1821⟩, ⟨1845⟩, ⟨1848⟩, ⟨1857⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.DaiJoin

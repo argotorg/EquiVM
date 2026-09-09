@@ -239,12 +239,12 @@ theorem storageLocStore_int_some (evm : EVM.State) (loc : StorageLoc) (n : Int) 
 
 theorem solidityDecodeBytesLengthHeader_zero :
     solidityDecodeBytesLengthHeader ⟨0⟩ = .ok 0 := by
-  have hflag : UInt256.land (⟨0⟩ : UInt256) ⟨1⟩ = ⟨0⟩ := by native_decide
-  have hraw : UInt256.div (⟨0⟩ : UInt256) ⟨2⟩ = ⟨0⟩ := by native_decide
-  have hmask : UInt256.land (⟨0⟩ : UInt256) ⟨127⟩ = ⟨0⟩ := by native_decide
+  have hflag : UInt256.land (⟨0⟩ : UInt256) ⟨1⟩ = ⟨0⟩ := by decide +native
+  have hraw : UInt256.div (⟨0⟩ : UInt256) ⟨2⟩ = ⟨0⟩ := by decide +native
+  have hmask : UInt256.land (⟨0⟩ : UInt256) ⟨127⟩ = ⟨0⟩ := by decide +native
   have hvalidFinal : UInt256.sub (⟨0⟩ : UInt256)
       (UInt256.lt (⟨0⟩ : UInt256) ⟨32⟩) ≠ ⟨0⟩ := by
-    native_decide
+    decide +native
   simp [solidityDecodeBytesLengthHeader, hflag, hraw, hmask, hvalidFinal]
 
 theorem solidityDecodeBytesLengthHeader_short_valid {header len : UInt256}
@@ -371,7 +371,7 @@ theorem addressOffset0High160Mask_toNat (old : UInt256) :
       (old.toNat / 2 ^ 160) * 2 ^ 160 := by
   rw [u256_land_toNat]
   have hlnot : (UInt256.lnot solcAddrMask).toNat = 2 ^ 256 - 2 ^ 160 := by
-    native_decide
+    decide +native
   rw [hlnot]
   have hwlt : old.toNat < 2 ^ 256 := by
     change old.val.val < 2 ^ 256
@@ -556,7 +556,7 @@ theorem packedSetTrueWord_eq (w : UInt256) :
       UInt256.size) 1) %
       UInt256.size = (1 + 256 * (w.toNat / 256)) % UInt256.size
   have hlnot : (UInt256.lnot (⟨255⟩ : UInt256)).toNat = 2 ^ 256 - 2 ^ 8 := by
-    native_decide
+    decide +native
   rw [hlnot]
   change (Nat.lor ((Nat.land w.toNat (2 ^ 256 - 2 ^ 8)) % UInt256.size) 1) %
       UInt256.size = (1 + 256 * (w.toNat / 256)) % UInt256.size
@@ -613,7 +613,7 @@ theorem packedAddressAfterBoolTrueWord_eq (old val : UInt256)
       UInt256.ofNat (1 + val.toNat * 2 ^ 8 + (old.toNat / 2 ^ 168) * 2 ^ 168) := by
   have hmask :
       UInt256.lnot (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨168⟩) ⟨1⟩) =
-        UInt256.ofNat (2 ^ 256 - 2 ^ 168) := by native_decide
+        UInt256.ofNat (2 ^ 256 - 2 ^ 168) := by decide +native
   apply u256_inj
   rw [u256_lor_toNat, u256_lor_toNat, hmask, u256_mul_toNat, u256_land_toNat,
     u256_land_high_mask_toNat old 168 (by norm_num)]
@@ -714,7 +714,7 @@ theorem packedSetFalseWord_eq (w : UInt256) :
   apply u256_inj
   rw [u256_land_toNat]
   have hlnot : (UInt256.lnot (⟨255⟩ : UInt256)).toNat = 2 ^ 256 - 2 ^ 8 := by
-    native_decide
+    decide +native
   rw [hlnot]
   have hwlt : w.toNat < 2 ^ 256 := by
     change w.val.val < UInt256.size
@@ -761,7 +761,7 @@ theorem storageLocStore_bool_true_offset0 (evm : EVM.State) (slot : UInt256) :
     List.take_zero, List.nil_append]
   rw [show List.take 1 (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat 1)).1 =
       [1] by
-        native_decide]
+        decide +native]
   rw [fromBytes'_append, fromBytes'_drop_wordLE]
   simp [fromBytes']
   rw [packedSetTrueWord_toNat]
@@ -784,7 +784,7 @@ theorem storageLocStore_bool_false_offset0 (evm : EVM.State) (slot : UInt256) :
     List.take_zero, List.nil_append]
   rw [show List.take 1 (EVM.Word.toBytesLEWithSizeProof (UInt256.ofNat 0)).1 =
       [0] by
-        native_decide]
+        decide +native]
   rw [fromBytes'_append, fromBytes'_drop_wordLE]
   simp [fromBytes']
   rw [packedSetFalseWord_toNat]
@@ -796,7 +796,7 @@ theorem storageLocStore_bool_word_offset0 (evm : EVM.State) (slot word : UInt256
   by_cases hzero : word = ⟨0⟩
   · subst hzero
     have hbool : UInt256.isZero (UInt256.isZero (⟨0⟩ : UInt256)) = ⟨0⟩ := by
-      native_decide
+      decide +native
     simp only [wordToElem, beq_self_eq_true, ↓reduceIte]
     simpa [setBoolOffset0Word, hbool, u256_lor_zero] using
       storageLocStore_bool_false_offset0 evm slot
@@ -1730,7 +1730,7 @@ theorem clearSolidityStringShortZero
   simp [clearStorage?, hcfg, solidityStorageLayout, solidityClearValue?,
     solidityPrepareBytesWrite?, hslot, checkBytesPacked, hload,
     solidityBytesHeaderWord, storagePrepareResultToEval]
-  rw [show UInt256.ofNat 0 = ({ val := 0 } : UInt256) by native_decide]
+  rw [show UInt256.ofNat 0 = ({ val := 0 } : UInt256) by decide +native]
 
 theorem clearSolidityStringShortPacked
     {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
@@ -1753,7 +1753,7 @@ theorem clearSolidityStringShortPacked
   simp [clearStorage?, hcfg, solidityStorageLayout, solidityClearValue?,
     solidityPrepareBytesWrite?, hslot, hpacked, solidityBytesHeaderWord,
     storagePrepareResultToEval]
-  rw [show UInt256.ofNat 0 = ({ val := 0 } : UInt256) by native_decide]
+  rw [show UInt256.ofNat 0 = ({ val := 0 } : UInt256) by decide +native]
 
 theorem clearSolidityStringLongPrepared
     {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}
@@ -1779,7 +1779,7 @@ theorem clearSolidityStringLongPrepared
   simp [clearStorage?, hcfg, solidityStorageLayout, solidityClearValue?,
     solidityPrepareBytesWrite?, hslot, hpacked, solidityBytesHeaderWord,
     storagePrepareResultToEval]
-  rw [show UInt256.ofNat 0 = ({ val := 0 } : UInt256) by native_decide]
+  rw [show UInt256.ofNat 0 = ({ val := 0 } : UInt256) by decide +native]
 
 theorem deleteSolidityStringShortZero
     {cfg : Config} {layout : EvaledStorageRef → EVM.State → Option StorageLoc}

@@ -290,7 +290,7 @@ theorem dentMoveSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
     (dentMoveSelectorMem mem).size = 160 := by
   unfold dentMoveSelectorMem
   exact toByteArray_write32_size_of_ge mem dentMoveSelectorShifted 128 96 160 hmem
-    (by omega) (by native_decide) (by omega)
+    (by omega) (by decide +native) (by omega)
 
 theorem dentMoveSrcMem_size (src : UInt256) {mem : ByteArray} (hmem : mem.size = 96) :
     (dentMoveSrcMem src mem).size = 164 := by
@@ -320,7 +320,7 @@ theorem dentMoveSelectorMem_read64 {mem : ByteArray} (hmem : mem.size = 96)
     (dentMoveSelectorMem mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold dentMoveSelectorMem
   rw [toByteArray_write_read_below_of_gap dentMoveSelectorShifted mem 128 64
-    (by omega) (by native_decide) (by rw [hmem]; native_decide),
+    (by omega) (by decide +native) (by rw [hmem]; decide +native),
     hread64]
 
 theorem dentMoveSrcMem_read64 (src : UInt256) {mem : ByteArray}
@@ -402,7 +402,7 @@ theorem dentAshSelectorMem_read64 {mem : ByteArray}
     (by omega) (by omega)
     (by
       have hle : 128 - mem.size ≤ 32 := by omega
-      exact lt_of_le_of_lt hle (by native_decide : 32 < USize.size)),
+      exact lt_of_le_of_lt hle (by decide +native : 32 < USize.size)),
     hread64]
 
 theorem dentAshSelectorMem_read128_4 {mem : ByteArray} (hmem : 96 ≤ mem.size) :
@@ -411,11 +411,11 @@ theorem dentAshSelectorMem_read128_4 {mem : ByteArray} (hmem : 96 ≤ mem.size) 
   change (dentAshSelectorMem mem).readWithPadding 128 4 = AshSelector
   unfold dentAshSelectorMem
   rw [toByteArray_write_read_window_of_gap dentAshSelectorShifted mem 128 0 4
-    (by omega) (by native_decide) (by native_decide)
+    (by omega) (by decide +native) (by decide +native)
     (by
       have hle : 128 - mem.size ≤ 32 := by omega
-      exact lt_of_le_of_lt hle (by native_decide : 32 < USize.size))]
-  native_decide
+      exact lt_of_le_of_lt hle (by decide +native : 32 < USize.size))]
+  decide +native
 
 theorem dentAshEncode_eq {mem : ByteArray} (hmem : 96 ≤ mem.size) :
     config.externalABI.encode? "Ash" [] =
@@ -433,7 +433,7 @@ theorem dentKissSelectorMem_read64 {mem : ByteArray}
     (by omega) (by omega)
     (by
       have hle : 128 - mem.size ≤ 32 := by omega
-      exact lt_of_le_of_lt hle (by native_decide : 32 < USize.size)),
+      exact lt_of_le_of_lt hle (by decide +native : 32 < USize.size)),
     hread64]
 
 theorem dentKissCalldataMem_read64 (amt : UInt256) {mem : ByteArray}
@@ -449,7 +449,7 @@ theorem dentKissCalldataMem_read64 (amt : UInt256) {mem : ByteArray}
         toByteArray_write_size_ge_off_add32 dentKissSelectorShifted mem 128
           (by
             have hle : 128 - mem.size ≤ 32 := by omega
-            exact lt_of_le_of_lt hle (by native_decide : 32 < USize.size))
+            exact lt_of_le_of_lt hle (by decide +native : 32 < USize.size))
       omega)
     (by omega)]
   exact dentKissSelectorMem_read64 hmem hread64
@@ -458,11 +458,11 @@ theorem dentKissSelectorMem_read128_4 {mem : ByteArray} :
     (dentKissSelectorMem mem).readWithPadding 128 4 = kissSelector := by
   unfold dentKissSelectorMem
   rw [toByteArray_write_read_window_of_gap dentKissSelectorShifted mem 128 0 4
-    (by omega) (by native_decide) (by native_decide)
+    (by omega) (by decide +native) (by decide +native)
     (by
       exact lt_of_le_of_lt (Nat.sub_le 128 mem.size)
-        (by native_decide : 128 < USize.size))]
-  native_decide
+        (by decide +native : 128 < USize.size))]
+  decide +native
 
 theorem dentKissCalldataMem_read128_4 (amt : UInt256) {mem : ByteArray} :
     (dentKissCalldataMem amt mem).readWithPadding 128 4 = kissSelector := by
@@ -473,12 +473,12 @@ theorem dentKissCalldataMem_read128_4 (amt : UInt256) {mem : ByteArray} :
       have hsize := toByteArray_write_size_ge_off_add32 dentKissSelectorShifted mem 128
         (by
           exact lt_of_le_of_lt (Nat.sub_le 128 mem.size)
-            (by native_decide : 128 < USize.size))
+            (by decide +native : 128 < USize.size))
       omega)
-    (by omega) (by native_decide) (by native_decide)
+    (by omega) (by decide +native) (by decide +native)
     (by
       exact lt_of_le_of_lt (Nat.sub_le 132 (dentKissSelectorMem mem).size)
-        (by native_decide : 132 < USize.size))]
+        (by decide +native : 132 < USize.size))]
   exact dentKissSelectorMem_read128_4
 
 theorem dentKissCalldataMem_read132_32 (amt : UInt256) {mem : ByteArray} :
@@ -487,7 +487,7 @@ theorem dentKissCalldataMem_read132_32 (amt : UInt256) {mem : ByteArray} :
   rw [toByteArray_write_read_back_of_gap amt (dentKissSelectorMem mem) 132
     (by
       exact lt_of_le_of_lt (Nat.sub_le 132 (dentKissSelectorMem mem).size)
-        (by native_decide : 132 < USize.size))]
+        (by decide +native : 132 < USize.size))]
 
 theorem dentKissCalldataMem_read128_36 (amt : UInt256) {mem : ByteArray} :
     (dentKissCalldataMem amt mem).readWithPadding 128 36 =
@@ -498,7 +498,7 @@ theorem dentKissCalldataMem_read128_36 (amt : UInt256) {mem : ByteArray} :
       toByteArray_write_size_ge_off_add32 amt (dentKissSelectorMem mem) 132
         (by
           exact lt_of_le_of_lt (Nat.sub_le 132 (dentKissSelectorMem mem).size)
-            (by native_decide : 132 < USize.size))
+            (by decide +native : 132 < USize.size))
   rw [show 36 = 4 + 32 from rfl,
     byteArray_readWithPadding_split (dentKissCalldataMem amt mem) 128 4 32
       (by omega) (by omega) (by omega) (by omega) (by omega) (by omega)]
@@ -530,19 +530,19 @@ theorem dentMoveCalldataMem_read128_4 (src guy bid : UInt256) {mem : ByteArray}
   unfold dentMoveCalldataMem
   rw [toByteArray_write_read_below_len_of_gap bid (dentMoveGuyMem src guy mem) 196 128 4
       (by rw [hGuySize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hGuySize]; native_decide)]
+      (by rw [hGuySize]; decide +native)]
   unfold dentMoveGuyMem
   rw [toByteArray_write_read_below_len_of_gap guy (dentMoveSrcMem src mem) 164 128 4
       (by rw [hSrcSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hSrcSize]; native_decide)]
+      (by rw [hSrcSize]; decide +native)]
   unfold dentMoveSrcMem
   rw [toByteArray_write_read_below_len_of_gap src (dentMoveSelectorMem mem) 132 128 4
       (by rw [hSelectorSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hSelectorSize]; native_decide)]
+      (by rw [hSelectorSize]; decide +native)]
   unfold dentMoveSelectorMem
   rw [toByteArray_write_read_window_of_gap dentMoveSelectorShifted mem 128 0 4
-      (by omega) (by omega) (by omega) (by rw [hmem]; native_decide)]
-  native_decide
+      (by omega) (by omega) (by omega) (by rw [hmem]; decide +native)]
+  decide +native
 
 theorem dentMoveCalldataMem_read132_32 (src guy bid : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -553,14 +553,14 @@ theorem dentMoveCalldataMem_read132_32 (src guy bid : UInt256) {mem : ByteArray}
   unfold dentMoveCalldataMem
   rw [toByteArray_write_read_below_len_of_gap bid (dentMoveGuyMem src guy mem) 196 132 32
       (by rw [hGuySize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hGuySize]; native_decide)]
+      (by rw [hGuySize]; decide +native)]
   unfold dentMoveGuyMem
   rw [toByteArray_write_read_below_len_of_gap guy (dentMoveSrcMem src mem) 164 132 32
       (by rw [hSrcSize]) (by omega) (by omega) (by omega)
-      (by rw [hSrcSize]; native_decide)]
+      (by rw [hSrcSize]; decide +native)]
   unfold dentMoveSrcMem
   rw [toByteArray_write_read_back_of_gap src (dentMoveSelectorMem mem) 132
-    (by rw [hSelectorSize]; native_decide)]
+    (by rw [hSelectorSize]; decide +native)]
 
 theorem dentMoveCalldataMem_read164_32 (src guy bid : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -570,10 +570,10 @@ theorem dentMoveCalldataMem_read164_32 (src guy bid : UInt256) {mem : ByteArray}
   unfold dentMoveCalldataMem
   rw [toByteArray_write_read_below_len_of_gap bid (dentMoveGuyMem src guy mem) 196 164 32
       (by rw [hGuySize]) (by omega) (by omega) (by omega)
-      (by rw [hGuySize]; native_decide)]
+      (by rw [hGuySize]; decide +native)]
   unfold dentMoveGuyMem
   rw [toByteArray_write_read_back_of_gap guy (dentMoveSrcMem src mem) 164
-    (by rw [hSrcSize]; native_decide)]
+    (by rw [hSrcSize]; decide +native)]
 
 theorem dentMoveCalldataMem_read196_32 (src guy bid : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -581,7 +581,7 @@ theorem dentMoveCalldataMem_read196_32 (src guy bid : UInt256) {mem : ByteArray}
   have hGuySize := dentMoveGuyMem_size src guy hmem
   unfold dentMoveCalldataMem
   rw [toByteArray_write_read_back_of_gap bid (dentMoveGuyMem src guy mem) 196
-    (by rw [hGuySize]; native_decide)]
+    (by rw [hGuySize]; decide +native)]
 
 theorem dentMoveCalldataMem_read128_100 (src guy bid : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96) :

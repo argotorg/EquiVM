@@ -34,7 +34,7 @@ theorem erc20X_transferFromAllowanceStoreAfterInnerKeyStore {cA gh bl σ σ₀ A
         (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
         (transferFromCurrentAllowanceRaw σ I)))
     (UInt256.ofNat 5)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     rfl
     (by decide) (by evm_ov)
   exact ⟨_, _, rd473⟩

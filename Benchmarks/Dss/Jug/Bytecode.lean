@@ -210,7 +210,7 @@ def jugBytecode : ByteArray :=
       ⟨2289⟩, ⟨2296⟩, ⟨2307⟩, ⟨2313⟩, ⟨2329⟩, ⟨2333⟩, ⟨2335⟩, ⟨2343⟩, ⟨2364⟩, ⟨2367⟩,
       ⟨2376⟩, ⟨2397⟩, ⟨2418⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def jugCreationChunk0 : ByteArray :=
@@ -409,7 +409,7 @@ def jugCreationBytecode : ByteArray :=
       ⟨2355⟩, ⟨2393⟩, ⟨2409⟩, ⟨2416⟩, ⟨2427⟩, ⟨2433⟩, ⟨2449⟩, ⟨2453⟩, ⟨2455⟩, ⟨2463⟩,
       ⟨2484⟩, ⟨2487⟩, ⟨2496⟩, ⟨2517⟩, ⟨2538⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.Jug

@@ -106,7 +106,7 @@ theorem storageLocStore_addr_zero (evm : EVM.State) (slot : UInt256) :
     List.take_zero, List.nil_append]
   rw [fromBytes'_append, fromBytes'_take20_wordLE_solcAddrMask, fromBytes'_drop_wordLE]
   have hclean : (UInt256.land (⟨0⟩ : UInt256) solcAddrMask).toNat = (0 : Nat) := by
-    native_decide
+    decide +native
   rw [hclean]
   have hlen20 :
       ((EVM.Word.toBytesLEWithSizeProof (⟨0⟩ : UInt256)).1.take 20).length = 20 := by
@@ -115,7 +115,7 @@ theorem storageLocStore_addr_zero (evm : EVM.State) (slot : UInt256) :
   rw [hlen20]
   rw [show 2 ^ (8 * 20) = 2 ^ 160 by norm_num]
   rw [show 256 ^ 20 = 2 ^ 160 by norm_num]
-  rw [setAddressOffset0Word_toNat _ _ (by native_decide)]
+  rw [setAddressOffset0Word_toNat _ _ (by decide +native)]
   rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl]
   ring
 
@@ -284,7 +284,7 @@ theorem setUint48Offset20RawWord_eq_setUint48Offset20Word (old data : UInt256) :
   have hnot :
       UInt256.lnot (UInt256.shiftLeft flopperUint48Mask ⟨160⟩) =
         UInt256.ofNat (Nat.lor (2 ^ 160 - 1) (((2 : Nat) ^ (256 - 208) - 1) <<< 208)) := by
-    native_decide
+    decide +native
   have hcleared :
       (UInt256.land old (UInt256.lnot (UInt256.shiftLeft flopperUint48Mask ⟨160⟩))).toNat =
         Nat.lor (old.toNat % 2 ^ 160) ((old.toNat / 2 ^ 208) * 2 ^ 208) := by
@@ -296,7 +296,7 @@ theorem setUint48Offset20RawWord_eq_setUint48Offset20Word (old data : UInt256) :
     have hmaskLt :
         Nat.lor (2 ^ 160 - 1) (((2 : Nat) ^ (256 - 208) - 1) <<< 208) <
           UInt256.size := by
-      native_decide
+      decide +native
     have hlandLt :
         Nat.land old.toNat
             (Nat.lor (2 ^ 160 - 1) (((2 : Nat) ^ (256 - 208) - 1) <<< 208)) <
@@ -312,7 +312,7 @@ theorem setUint48Offset20RawWord_eq_setUint48Offset20Word (old data : UInt256) :
         (UInt256.land data flopperUint48Mask).toNat * 2 ^ 160 := by
     rw [u256_mul_toNat]
     rw [show (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩).toNat = 2 ^ 160 by
-      native_decide]
+      decide +native]
     rw [show (UInt256.land flopperUint48Mask data).toNat =
       (UInt256.land data flopperUint48Mask).toNat by rw [u256_land_comm]]
     rw [Nat.mul_comm (2 ^ 160) (UInt256.land data flopperUint48Mask).toNat]
@@ -383,7 +383,7 @@ theorem clearUint48Offset26_after_offset20_after_address_zero (old : UInt256) :
       ⟨0⟩ := by
   apply u256_inj
   rw [clearUint48Offset26Word_toNat, clearUint48Offset20Word_toNat]
-  rw [setAddressOffset0Word_toNat _ _ (by native_decide)]
+  rw [setAddressOffset0Word_toNat _ _ (by decide +native)]
   rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl]
   simp
 
@@ -1267,45 +1267,45 @@ theorem RD.flopperCheckedMulReturns
       mem aw rdata acc k C) :
     ∃ k' C', RD flopperBytecode I g s0 ret (x * y :: R) mem aw rdata acc k' C' := by
   have rd4701prep := evm_run rd4674 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨4701⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨4701⟩ (by decide +native) (by evm_ov)]
   by_cases hy0 : y = ⟨0⟩
   · have hcond : UInt256.isZero y ≠ ⟨0⟩ := by
       rw [hy0]
       decide
-    have rd4701 := rd4701prep.jumpiT (by native_decide) hcond (by jump_dest)
+    have rd4701 := rd4701prep.jumpiT (by decide +native) hcond (by jump_dest)
       (by evm_ov)
     have rd4705 := evm_run rd4701 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw push2 ⟨4710⟩ (by native_decide) (by evm_ov)]
-    have rd4710 := rd4705.jumpiT (by native_decide) hcond (by jump_dest)
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw push2 ⟨4710⟩ (by decide +native) (by evm_ov)]
+    have rd4710 := rd4705.jumpiT (by decide +native) hcond (by jump_dest)
       (by evm_ov)
     have rd4715 := evm_run rd4710 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw swap3 (by native_decide) (by evm_ov),
-      raw swap2 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov)]
-    have rdret := rd4715.jump (by native_decide) hret (by evm_ov)
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw swap3 (by decide +native) (by evm_ov),
+      raw swap2 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov)]
+    have rdret := rd4715.jump (by decide +native) hret (by evm_ov)
     exact ⟨_, _, by simpa [hy0] using rdret⟩
   · have hcond : UInt256.isZero y = ⟨0⟩ := isZero_eq_zero_of_ne hy0
-    have rd4684 := rd4701prep.jumpiNT (by native_decide) hcond (by evm_ov)
+    have rd4684 := rd4701prep.jumpiNT (by decide +native) hcond (by evm_ov)
     have rd4696 := evm_run rd4684 with [
-      raw pop (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw dup1 (by native_decide) (by evm_ov),
-      raw dup3 (by native_decide) (by evm_ov),
-      raw mul (by native_decide) (by evm_ov),
-      raw dup3 (by native_decide) (by evm_ov),
-      raw dup3 (by native_decide) (by evm_ov),
-      raw dup3 (by native_decide) (by evm_ov),
-      raw dup2 (by native_decide) (by evm_ov),
-      raw push2 ⟨4698⟩ (by native_decide) (by evm_ov)]
-    have rd4698 := rd4696.jumpiT (by native_decide) hy0 (by jump_dest) (by evm_ov)
+      raw pop (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw dup1 (by decide +native) (by evm_ov),
+      raw dup3 (by decide +native) (by evm_ov),
+      raw mul (by decide +native) (by evm_ov),
+      raw dup3 (by decide +native) (by evm_ov),
+      raw dup3 (by decide +native) (by evm_ov),
+      raw dup3 (by decide +native) (by evm_ov),
+      raw dup2 (by decide +native) (by evm_ov),
+      raw push2 ⟨4698⟩ (by decide +native) (by evm_ov)]
+    have rd4698 := rd4696.jumpiT (by decide +native) hy0 (by jump_dest) (by evm_ov)
     have hyNatNe : y.toNat ≠ 0 := by
       intro hzero
       exact hy0 (uint256_toNat_eq_zero hzero)
@@ -1318,23 +1318,23 @@ theorem RD.flopperCheckedMulReturns
       simpa [Nat.mul_comm] using Nat.mul_div_right x.toNat
         (Nat.pos_of_ne_zero hyNatNe)
     have rd4705 := evm_run rd4698 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw div (by native_decide) (by evm_ov),
-      raw eq (by native_decide) (by evm_ov),
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw push2 ⟨4710⟩ (by native_decide) (by evm_ov)]
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw div (by decide +native) (by evm_ov),
+      raw eq (by decide +native) (by evm_ov),
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw push2 ⟨4710⟩ (by decide +native) (by evm_ov)]
     have heqCond : UInt256.eq (UInt256.div (x * y) y) x ≠ ⟨0⟩ := by
       rw [hdivWord, u256_eq_refl]
       exact one_ne_zero_uint
-    have rd4710 := rd4705.jumpiT (by native_decide) heqCond (by jump_dest)
+    have rd4710 := rd4705.jumpiT (by decide +native) heqCond (by jump_dest)
       (by evm_ov)
     have rd4715 := evm_run rd4710 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw swap3 (by native_decide) (by evm_ov),
-      raw swap2 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov)]
-    have rdret := rd4715.jump (by native_decide) hret (by evm_ov)
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw swap3 (by decide +native) (by evm_ov),
+      raw swap2 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov)]
+    have rdret := rd4715.jump (by decide +native) hret (by evm_ov)
     exact ⟨_, _, by simpa using rdret⟩
 
 theorem RD.flopperCheckedMulOverflowReverts
@@ -1361,37 +1361,37 @@ theorem RD.flopperCheckedMulOverflowReverts
       rw [hcomm]
       exact hbad)
   have rd4701prep := evm_run rd4674 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨4701⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨4701⟩ (by decide +native) (by evm_ov)]
   have hcond : UInt256.isZero y = ⟨0⟩ := isZero_eq_zero_of_ne hyNe
-  have rd4684 := rd4701prep.jumpiNT (by native_decide) hcond (by evm_ov)
+  have rd4684 := rd4701prep.jumpiNT (by decide +native) hcond (by evm_ov)
   have rd4696 := evm_run rd4684 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨4698⟩ (by native_decide) (by evm_ov)]
-  have rd4698 := rd4696.jumpiT (by native_decide) hyNe (by jump_dest) (by evm_ov)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨4698⟩ (by decide +native) (by evm_ov)]
+  have rd4698 := rd4696.jumpiT (by decide +native) hyNe (by jump_dest) (by evm_ov)
   have rd4705 := evm_run rd4698 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨4710⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨4710⟩ (by decide +native) (by evm_ov)]
   have heqCond : UInt256.eq (UInt256.div (x * y) y) x = ⟨0⟩ :=
     u256_eq_of_ne hdivNe
-  have rd4706 := rd4705.jumpiNT (by native_decide) heqCond (by evm_ov)
+  have rd4706 := rd4705.jumpiNT (by decide +native) heqCond (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rd4706
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
@@ -1419,16 +1419,16 @@ theorem RD.flopperAuctionDeleteTail
   let mem2 := twoWordHashMem id ⟨1⟩ mem
   let base := solcMappingSlot ⟨1⟩ id
   have rd1184 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   have rd1188 := evm_run rd1184 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
   have rd1189 := rd1188.mstore 0 mem1 aw
-    (by native_decide)
+    (by decide +native)
     (by
       intro s haw hstk
       exact mstoreCost_of_stack haw hstk (by
@@ -1438,13 +1438,13 @@ theorem RD.flopperAuctionDeleteTail
     hMstore0Aw
     (by evm_ov)
   have rd1196pre := evm_run rd1189 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1197 := rd1196pre.mstore 0 mem2 aw
-    (by native_decide)
+    (by decide +native)
     (by
       intro s haw hstk
       exact mstoreCost_of_stack haw hstk (by
@@ -1456,14 +1456,14 @@ theorem RD.flopperAuctionDeleteTail
     hMstore32Aw
     (by evm_ov)
   have rd1200pre := evm_run rd1197 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC (mem2.readWithPadding 0 64))) = base := by
     simpa [base, mem2] using twoWordHashMem_solcMappingSlot_any ⟨1⟩ id mem
   have rd1201raw := rd1200pre.keccak256 0 base aw
-    (by native_decide)
+    (by decide +native)
     (by
       intro s haws hstks
       simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
@@ -1479,27 +1479,27 @@ theorem RD.flopperAuctionDeleteTail
       exact hKeccakAw)
     (by evm_ov)
   have rd1203pre := evm_run rd1201raw with [
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1204raw⟩ := rd1203pre.sstore hperm (by native_decide)
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd1204raw⟩ := rd1203pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd1209pre := evm_run rd1204raw with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1210raw⟩ := rd1209pre.sstore hperm (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd1210raw⟩ := rd1209pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd1213pre := evm_run rd1210raw with [
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1214raw⟩ := rd1213pre.sstore hperm (by native_decide)
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd1214raw⟩ := rd1213pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd334 := rd1214raw.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd335 := rd334.jumpdest (by native_decide) (by evm_ov)
+  have rd334 := rd1214raw.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd335 := rd334.jumpdest (by decide +native) (by evm_ov)
   have hslot2 : (⟨2⟩ : UInt256) + base = base + ⟨2⟩ := u256_add_comm _ _
-  have hstop := RD.stop rd335 (by native_decide) (by evm_ov)
+  have hstop := RD.stop rd335 (by decide +native) (by evm_ov)
   rw [hslot2] at hstop
   simpa only [base, auctionBidSlot, auctionLotSlot_eq, auctionPackedSlot_eq,
     auctionBaseSlot_eq] using hstop

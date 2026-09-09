@@ -290,9 +290,9 @@ theorem blindAuctionBidsReturnEncoding (blinded deposit : UInt256) :
       encodeABIValue? uint256 (.int (Int.ofNat deposit.toNat)) =
         some (EVM.Word.toBytesBE deposit) := by
     simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
-  have hhead : abiTupleHeadSize? [bytes32, uint256] = some 64 := by native_decide
-  have hdynBytes : isDynamicABIType bytes32 = false := by native_decide
-  have hdynUint : isDynamicABIType uint256 = false := by native_decide
+  have hhead : abiTupleHeadSize? [bytes32, uint256] = some 64 := by decide +native
+  have hdynBytes : isDynamicABIType bytes32 = false := by decide +native
+  have hdynUint : isDynamicABIType uint256 = false := by decide +native
   rw [toByteArray_eq_toBytesBE blinded, toByteArray_eq_toBytesBE deposit]
   simp only [encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?,
     hhead, hencBlinded, hencDeposit, hdynBytes, hdynUint, bind, Option.bind,

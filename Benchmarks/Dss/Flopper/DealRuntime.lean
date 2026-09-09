@@ -38,13 +38,13 @@ theorem flopperDealX_ticLtReadyToMint
     apply ult_one
     simpa [id] using hticLt
   have rd4049 := evm_run rd4045 with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨4087⟩ (by native_decide) (by evm_ov)]
-  have rd4087 := rd4049.jumpiT (by native_decide)
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨4087⟩ (by decide +native) (by evm_ov)]
+  have rd4087 := rd4049.jumpiT (by decide +native)
     (by rw [hticLtWord]; exact one_ne_zero_uint) (by jump_dest) (by evm_ov)
-  have rd4088 := rd4087.jumpdest (by native_decide) (by evm_ov)
-  have rd4091 := rd4088.push2 ⟨4159⟩ (by native_decide) (by evm_ov)
-  have rd4159 := rd4091.jumpiT (by native_decide)
+  have rd4088 := rd4087.jumpdest (by decide +native) (by evm_ov)
+  have rd4091 := rd4088.push2 ⟨4159⟩ (by decide +native) (by evm_ov)
+  have rd4159 := rd4091.jumpiT (by decide +native)
     (by rw [hticLtWord]; exact one_ne_zero_uint) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa [id, mem0, memTic, hticLtWord] using rd4159⟩
 
@@ -83,13 +83,13 @@ theorem flopperDealX_endLtReadyToMint
     apply ult_zero
     simpa [id] using hticGe
   have rd4049 := evm_run rd4045 with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨4087⟩ (by native_decide) (by evm_ov)]
-  have rd4050 := rd4049.jumpiNT (by native_decide) hticLtWord (by evm_ov)
-  have rd4051raw := rd4050.pop (by native_decide) (by evm_ov)
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨4087⟩ (by decide +native) (by evm_ov)]
+  have rd4050 := rd4049.jumpiNT (by decide +native) hticLtWord (by evm_ov)
+  have rd4051raw := rd4050.pop (by decide +native) (by evm_ov)
   have hpc4051 : (⟨4045⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ + ⟨1⟩ =
       ⟨4051⟩ := by
-    native_decide
+    decide +native
   rw [hpc4051] at rd4051raw
   obtain ⟨_, _, rd4051⟩ : ∃ k C,
       RD flopperBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4051⟩
@@ -102,9 +102,9 @@ theorem flopperDealX_endLtReadyToMint
         ⟨1⟩ := by
     apply ult_one
     simpa [id] using hendLt
-  have rd4088 := rd4087.jumpdest (by native_decide) (by evm_ov)
-  have rd4091 := rd4088.push2 ⟨4159⟩ (by native_decide) (by evm_ov)
-  have rd4159 := rd4091.jumpiT (by native_decide)
+  have rd4088 := rd4087.jumpdest (by decide +native) (by evm_ov)
+  have rd4091 := rd4088.push2 ⟨4159⟩ (by decide +native) (by evm_ov)
+  have rd4159 := rd4091.jumpiT (by decide +native)
     (by rw [hendLtWord]; exact one_ne_zero_uint) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa [id, mem0, memTic, memEnd, hendLtWord] using rd4159⟩
 
@@ -217,68 +217,68 @@ theorem flopperDealX_toMintExtcodesizeGuard
         ⟨128⟩ :=
     mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
   have rd4162pre := evm_run rd4159 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨3⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨k4163, C4163, rd4163raw⟩ := rd4162pre.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨3⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨k4163, C4163, rd4163raw⟩ := rd4162pre.sload (by decide +native) (by evm_ov)
   have rd4163 : RD flopperBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4163⟩
       (flopperSlotWord ⟨3⟩ σ I :: id :: ⟨334⟩ :: [sel])
       memStart (UInt256.ofNat 3) ByteArray.empty (cA, σ) k4163 C4163 := by
     simpa [id, flopperSlotWord] using rd4163raw
   have rd4166pre := evm_run rd4163 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd4167 := rd4166pre.mstore 0 memKey (UInt256.ofNat 3)
-    (by native_decide)
+    (by decide +native)
     (by
       intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      exact mstoreCost_of_stack haw hstk (by decide +native))
     (by simp [memKey, id, wordAt0Mem])
-    (by native_decide)
+    (by decide +native)
     (by evm_ov)
   have rd4173pre := evm_run rd4167 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd4174 := rd4173pre.mstore 0 memMap (UInt256.ofNat 3)
-    (by native_decide)
+    (by decide +native)
     (by
       intro s haw hstk
-      exact mstoreCost_of_stack haw hstk (by native_decide))
+      exact mstoreCost_of_stack haw hstk (by decide +native))
     (by
       rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide]
       simp [memKey, memMap, id, twoWordHashMem, wordAt32Mem])
-    (by native_decide)
+    (by decide +native)
     (by evm_ov)
   have rd4178pre := evm_run rd4174 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have hbase :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC (memMap.readWithPadding 0 64))) = base := by
     simpa [base, memMap, id] using twoWordHashMem_solcMappingSlot_any ⟨1⟩ id memStart
   have rd4179 := rd4178pre.keccak256 0 base (UInt256.ofNat 3)
-    (by native_decide)
+    (by decide +native)
     (by
       intro s haw hstk
       simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk,
         List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+      decide +native)
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hbase)
-    (by native_decide)
+    (by decide +native)
     (by evm_ov)
   have rd4183pre := evm_run rd4179 with [
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
   have hpackedSlot : base + ⟨2⟩ = auctionPackedSlot id := by
     simp [base, auctionPackedSlot_eq, id]
   rw [hpackedSlot] at rd4183pre
-  obtain ⟨k4185, C4185, rd4185raw⟩ := rd4183pre.sload (by native_decide) (by evm_ov)
+  obtain ⟨k4185, C4185, rd4185raw⟩ := rd4183pre.sload (by decide +native) (by evm_ov)
   have rd4185 : RD flopperBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4185⟩
       (flopperSlotWord (auctionPackedSlot id) σ I :: base :: ⟨64⟩ :: ⟨1⟩ ::
@@ -286,13 +286,13 @@ theorem flopperDealX_toMintExtcodesizeGuard
       memMap (UInt256.ofNat 3) ByteArray.empty (cA, σ) k4185 C4185 := by
     simpa [flopperSlotWord] using rd4185raw
   have rd4186pre := evm_run rd4185 with [
-    raw swap3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
+    raw swap3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
   have hlotSlot : ⟨1⟩ + base = auctionLotSlot id := by
     rw [u256_add_comm]
     simp [base, auctionLotSlot, auctionBaseSlot_eq, id]
   rw [hlotSlot] at rd4186pre
-  obtain ⟨k4188, C4188, rd4188raw⟩ := rd4186pre.sload (by native_decide) (by evm_ov)
+  obtain ⟨k4188, C4188, rd4188raw⟩ := rd4186pre.sload (by decide +native) (by evm_ov)
   have rd4188 : RD flopperBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4188⟩
       (lot :: ⟨64⟩ :: flopperSlotWord (auctionPackedSlot id) σ I :: ⟨0⟩ ::
@@ -300,67 +300,67 @@ theorem flopperDealX_toMintExtcodesizeGuard
       memMap (UInt256.ofNat 3) ByteArray.empty (cA, σ) k4188 C4188 := by
     simpa [lot, flopperSlotWord] using rd4188raw
   have rd4253 := evm_run rd4188 with [
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost hmload64Map (by decide) (by evm_ov),
-    raw push4 dealMintSelectorWord (by native_decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 dealMintSelectorWord (by decide +native) (by evm_ov),
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (dealMintSelectorMem memMap) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (dealMintGuyMem guy memMap) (UInt256.ofNat 6)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [dealMintGuyMem, guy, u256_land_comm,
           show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
             solcAddrMask from by decide,
-          show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 from by native_decide])
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
+          show ((⟨128⟩ : UInt256) + ⟨4⟩).toNat = 132 from by decide +native])
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
     raw mstore 3 (dealMintCalldataMem guy lot memMap) (UInt256.ofNat 7)
-      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by native_decide)
+      (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push4 dealMintSelectorWord (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 dealMintInSize (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push4 dealMintSelectorWord (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 dealMintInSize (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   have hpc4253 :
       (⟨4188⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 5 + UInt256.ofNat 2 +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
@@ -372,7 +372,7 @@ theorem flopperDealX_toMintExtcodesizeGuard
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨4253⟩ := by
-    native_decide
+    decide +native
   rw [hpc4253] at rd4253
   exact ⟨_, _, by
     simpa [gem, guy, lot, dealMintSelectorMem, dealMintGuyMem, dealMintCalldataMem,
@@ -381,12 +381,12 @@ theorem flopperDealX_toMintExtcodesizeGuard
       u256_land_comm,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide,
-      show (⟨128⟩ : UInt256) + ⟨4⟩ = ⟨132⟩ from by native_decide,
-      show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by native_decide,
+      show (⟨128⟩ : UInt256) + ⟨4⟩ = ⟨132⟩ from by decide +native,
+      show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by decide +native,
       show UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + dealMintInSize =
-        dealMintInSize from by native_decide,
-      show (⟨128⟩ : UInt256) + dealMintInSize = dealMintEndPtr from by native_decide,
-      show dealMintInSize + dealMintOutPtr = dealMintEndPtr from by native_decide]
+        dealMintInSize from by decide +native,
+      show (⟨128⟩ : UInt256) + dealMintInSize = dealMintEndPtr from by decide +native,
+      show dealMintInSize + dealMintOutPtr = dealMintEndPtr from by decide +native]
       using rd4253⟩
 
 theorem flopperDealX_mintNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -410,9 +410,9 @@ theorem flopperDealX_mintNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     flopperDealX_toMintExtcodesizeGuard hmemStart hread64Start rd4159
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4253⟩) (okPc := ⟨1160⟩) rd4253
     hnoCode
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem flopperDealX_mintCall
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -461,12 +461,12 @@ theorem flopperDealX_mintCall
   obtain ⟨gasWord, _, _, rd1163⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4253⟩) (okPc := ⟨1160⟩) rd4253
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   obtain ⟨cA', σ', z, out, A_in, callGas, k1164, C1164, hΘpack, rd1164raw,
       houtsz⟩ :=
-    RD.call rd1163 (by native_decide) hdepth (by simp)
+    RD.call rd1163 (by decide +native) hdepth (by simp)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, out, A', dealMintCalldataMem guy lot memMap, k1164, C1164,
     ?_, ?_, houtsz⟩
@@ -475,7 +475,7 @@ theorem flopperDealX_mintCall
           dealMintOutPtr.toNat dealMintInSize.toNat)
           dealMintOutPtr.toNat dealMintOutSize.toNat) = UInt256.ofNat 7 := by
       unfold dealMintOutPtr dealMintInSize dealMintOutSize
-      native_decide
+      decide +native
     have hmin : (min dealMintOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold dealMintOutSize
       rfl
@@ -530,11 +530,11 @@ theorem flopperDealX_mintCallDepthLimit
   obtain ⟨gasWord, _, _, rd1163⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4253⟩) (okPc := ⟨1160⟩) rd4253
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   obtain ⟨k1164, C1164, rd1164raw⟩ :=
-    RD.callDepthLimit rd1163 (by native_decide) hdepth
+    RD.callDepthLimit rd1163 (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨dealMintCalldataMem guy lot memMap, k1164, C1164, ?_⟩
   have hmin : (min dealMintOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -545,7 +545,7 @@ theorem flopperDealX_mintCallDepthLimit
         dealMintOutPtr.toNat dealMintInSize.toNat)
         dealMintOutPtr.toNat dealMintOutSize.toNat) = UInt256.ofNat 7 := by
     unfold dealMintOutPtr dealMintInSize dealMintOutSize
-    native_decide
+    decide +native
   simpa [gem, guy, lot, memMap, dealMintOutPtr, dealMintInSize, dealMintOutSize, hmin,
     byteArray_write_len_zero, haw] using rd1164raw
 
@@ -561,9 +561,9 @@ theorem flopperDealX_mintCallFailure
     RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1164⟩) (okPc := ⟨1180⟩) rd1164
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     houtSize (by simp)
 
 theorem flopperDealX_mintCallSuccessDelete
@@ -579,17 +579,17 @@ theorem flopperDealX_mintCallSuccessDelete
     RDret flopperBytecode g (initState cA gh bl σ σ₀ g A I)
       (cA', auctionRuntimeDeleteAccountMap I.codeOwner (dealIdWord I) σ')
       ByteArray.empty := by
-  have rd1165 := rd1164.iszero (by native_decide) (by evm_ov)
-  have rd1166 := rd1165.dup1 (by native_decide) (by evm_ov)
-  have rd1167 := rd1166.iszero (by native_decide) (by evm_ov)
-  have rd1170 := rd1167.push2 ⟨1180⟩ (by native_decide) (by evm_ov)
+  have rd1165 := rd1164.iszero (by decide +native) (by evm_ov)
+  have rd1166 := rd1165.dup1 (by decide +native) (by evm_ov)
+  have rd1167 := rd1166.iszero (by decide +native) (by evm_ov)
+  have rd1170 := rd1167.push2 ⟨1180⟩ (by decide +native) (by evm_ov)
   have hcond : UInt256.isZero (UInt256.isZero status) ≠ ⟨0⟩ := by
     rw [Reasoning.Theory.isZero_eq_zero_of_ne hstatus]
     decide
-  have rd1180 := rd1170.jumpiT (by native_decide) hcond (by jump_dest) (by evm_ov)
+  have rd1180 := rd1170.jumpiT (by decide +native) hcond (by jump_dest) (by evm_ov)
   simpa [auctionRuntimeDeleteAccountMap] using
     RD.flopperAuctionDeleteTail hperm
-      (by native_decide) (by native_decide) (by native_decide) (by simp) rd1180
+      (by decide +native) (by decide +native) (by decide +native) (by simp) rd1180
 
 theorem flopperDealBodyCoreNotLive
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -996,7 +996,7 @@ theorem flopperDealBodyCoreMintCallDepthLimit
   obtain ⟨_, _, _, rd1164⟩ :=
     flopperDealX_mintCallDepthLimit (g := Sat256.ofUInt256 g) hcodeSize hdepth htic
       hfinished ⟨_, _, rd3966⟩
-  exact (flopperDealX_mintCallFailure rd1164 (by native_decide))
+  exact (flopperDealX_mintCallFailure rd1164 (by decide +native))
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flopperDealBodyCoreMintCallSuccess
@@ -1139,7 +1139,7 @@ theorem flopperDealBodyCoreMintCallSuccess
     (by
       simpa [dealTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+          (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem flopperDealBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

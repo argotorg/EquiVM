@@ -65,12 +65,12 @@ theorem transferOwnershipStore_newOwner (I : ExecutionEnv) :
 theorem transferOwnershipStore_owner (I : ExecutionEnv) :
     (transferOwnershipStore I).get? "_owner" = none := by
   rw [transferOwnershipStore, store_get_ne _ _ (by decide)]
-  native_decide
+  decide +native
 
 theorem transferOwnershipStore_pendingOwner (I : ExecutionEnv) :
     (transferOwnershipStore I).get? "_pendingOwner" = none := by
   rw [transferOwnershipStore, store_get_ne _ _ (by decide)]
-  native_decide
+  decide +native
 
 theorem evalExpr_transferOwnership_owner (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := transferOwnershipStore I } evm
@@ -591,7 +591,7 @@ theorem ownable2StepTransferOwnershipBody {cA gh bl σ_evm σ_solm σ₀ A I}
                   transferOwnershipSetPendingWord, transferOwnershipPendingOwnerWord,
                   Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage]))
               hσPost
-              (returnEquiv.fallthrough rfl rfl (by native_decide))
+              (returnEquiv.fallthrough rfl rfl (by decide +native))
         · have hownerSolm :
               UInt256.land (Solm.EVM.storageLoad evmS evmS.executionEnv.codeOwner ⟨0⟩)
                   solcAddrMask ≠

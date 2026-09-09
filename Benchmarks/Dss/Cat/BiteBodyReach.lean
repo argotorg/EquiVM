@@ -131,13 +131,13 @@ theorem catBiteReachGrabRegionC {cA gh bl σ σ₀ A I} {g : UInt256}
     (solcSlotWord σ' I ⟨4⟩) dink dart hp96 hpmem (by omega) hthisCanon hdink hdart
   obtain ⟨gasWord, _, _, rd2192⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd2177 hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   obtain ⟨cA'', σ'', z, o', A_in, callGas, k', C', hΘpack, rd2193raw, hosz⟩ :=
-    RD.call rd2192 (by native_decide) hdepth (by simp)
+    RD.call rd2192 (by decide +native) hdepth (by simp)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  have hpc : ((⟨2189⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨2193⟩ : UInt256) := by native_decide
+  have hpc : ((⟨2189⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨2193⟩ : UInt256) := by decide +native
   rw [hpc] at rd2193raw
   have hz : (min (⟨0⟩ : UInt256) (UInt256.ofNat o'.size)).toNat = 0 := by
     have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o'.size := by
@@ -202,11 +202,11 @@ theorem catBiteReachFessRegionC {cA gh bl σ σ₀ A I} {g : UInt256}
   have hencode := catBiteFessEncode_eq p2 dartRate hpmem (by omega)
   obtain ⟨gasWord, _, _, rd2299⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd2284 hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   obtain ⟨cA'', σ'', z, o', A_in, callGas, k', C', hΘpack, rd2300, hosz⟩ :=
-    RD.call (pc := ⟨2299⟩) rd2299 (by native_decide) hdepth (by simp)
+    RD.call (pc := ⟨2299⟩) rd2299 (by decide +native) hdepth (by simp)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   have hz : (min (⟨0⟩ : UInt256) (UInt256.ofNat o'.size)).toNat = 0 := by
     have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat o'.size := by
@@ -359,7 +359,7 @@ theorem kickSelectorMemP_selector (p : UInt256) {mem : ByteArray}
     rw [write32_read_prefix_len _ _ p.toNat 4 (by rw [toByteArray_size]) (by omega)
       (by omega) (by omega) (by norm_num)]
     unfold kickSelectorShifted kickerKickSelector selectorBytes
-    native_decide
+    decide +native
   rw [readWithPadding_eq_extract' _ p.toNat 4 (by norm_num) (by norm_num)
       (by rw [kickSelectorMemP_size p hpmem]; omega)] at hread
   simpa using hread

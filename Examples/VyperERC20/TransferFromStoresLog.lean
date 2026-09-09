@@ -142,7 +142,7 @@ theorem erc20X_transferFromBeforeLog {cA gh bl σ σ₀ A I} {g : Sat256}
       (⟨602⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ +
           UInt256.ofNat 2 + UInt256.ofNat 2 =
         (⟨612⟩ : UInt256) := by
-    native_decide
+    decide +native
   exact ⟨_, _, by simpa [hpc612] using rdBeforeLog⟩
 
 theorem erc20X_transferFromAfterLog {cA gh bl σ σ₀ A I} {g : Sat256}

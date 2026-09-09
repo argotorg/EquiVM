@@ -3882,16 +3882,16 @@ macro_rules
             acc ← `($(acc).$op $args*)
         | `(evmStep| $op:ident $args*) =>
             -- The first auto-supplied proof is the `decode code pc = …` obligation; discharge it
-            -- with `native_decide` rather than `decide`.  `decode` kernel-reduces by scanning the
+            -- with `decide +native` rather than `decide`.  `decode` kernel-reduces by scanning the
             -- bytecode `ByteArray` literal (O(pc) per step), so `decide` costs ~300–450ms per
-            -- opcode on large bytecode; `native_decide` compiles the check and runs it in
+            -- opcode on large bytecode; `decide +native` compiles the check and runs it in
             -- ~15ms.  This adds no new trust category: every `jump (by jump_dest)` already trusts the
-            -- compiler via `native_decide`, so the proofs depend on it pervasively already.
+            -- compiler via `decide +native`, so the proofs depend on it pervasively already.
             match op.getId with
-            | `jump    => acc ← `($(acc).jump (by native_decide) $(args[0]!) (by evm_ov))
-            | `jumpiT  => acc ← `($(acc).jumpiT (by native_decide) $(args[0]!) $(args[1]!) (by evm_ov))
-            | `jumpiNT => acc ← `($(acc).jumpiNT (by native_decide) $(args[0]!) (by evm_ov))
-            | _        => acc ← `($(acc).$op $args* (by native_decide) (by evm_ov))
+            | `jump    => acc ← `($(acc).jump (by decide +native) $(args[0]!) (by evm_ov))
+            | `jumpiT  => acc ← `($(acc).jumpiT (by decide +native) $(args[0]!) $(args[1]!) (by evm_ov))
+            | `jumpiNT => acc ← `($(acc).jumpiNT (by decide +native) $(args[0]!) (by evm_ov))
+            | _        => acc ← `($(acc).$op $args* (by decide +native) (by evm_ov))
         | _ => Macro.throwUnsupported
       return acc
 

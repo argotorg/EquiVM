@@ -400,7 +400,7 @@ def vowBytecode : ByteArray :=
       ⟨4735⟩, ⟨4757⟩, ⟨4838⟩, ⟨4921⟩, ⟨4997⟩, ⟨5074⟩, ⟨5090⟩, ⟨5096⟩, ⟨5112⟩, ⟨5128⟩,
       ⟨5130⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def vowCreationChunk0 : ByteArray :=
@@ -800,7 +800,7 @@ def vowCreationBytecode : ByteArray :=
       ⟨4874⟩, ⟨4894⟩, ⟨4900⟩, ⟨4975⟩, ⟨4995⟩, ⟨5017⟩, ⟨5098⟩, ⟨5181⟩, ⟨5257⟩, ⟨5334⟩,
       ⟨5350⟩, ⟨5356⟩, ⟨5372⟩, ⟨5388⟩, ⟨5390⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.Vow

@@ -25,7 +25,7 @@ abbrev endCashStore (I : ExecutionEnv) : Store :=
 
 theorem endCashStore_get_ilk (I : ExecutionEnv) :
     (endCashStore I).get? "ilk" = some (.fixedBytes bytes32Width (endCashIlkBytes I)) := by
-  rw [endCashStore, store_get_ne _ _ (by native_decide), store_get_self]
+  rw [endCashStore, store_get_ne _ _ (by decide +native), store_get_self]
 
 abbrev endCashIlkKey (I : ExecutionEnv) : KeyValue := endBytes32ArgKey I
 
@@ -192,16 +192,16 @@ theorem endCashFluxSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
     (endCashFluxSelectorMem mem).size = 160 := by
   unfold endCashFluxSelectorMem
   exact toByteArray_write32_size_of_ge mem endCashFluxSelectorShifted
-    endCashFluxOutPtr.toNat 96 160 hmem (by native_decide) (by native_decide)
-    (by native_decide)
+    endCashFluxOutPtr.toNat 96 160 hmem (by decide +native) (by decide +native)
+    (by decide +native)
 
 theorem endCashFluxSelectorMem_read64 {mem : ByteArray} (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (endCashFluxSelectorMem mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold endCashFluxSelectorMem
   rw [toByteArray_write_read_below_of_gap endCashFluxSelectorShifted mem
-    endCashFluxOutPtr.toNat 64 (by rw [hmem]) (by native_decide)
-    (by rw [hmem]; native_decide), hread64]
+    endCashFluxOutPtr.toNat 64 (by rw [hmem]) (by decide +native)
+    (by rw [hmem]; decide +native), hread64]
 
 theorem endCashFluxArg0Mem_size (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -228,7 +228,7 @@ theorem endCashFluxArg1Mem_size (I : ExecutionEnv) {mem : ByteArray}
   unfold endCashFluxArg1Mem
   exact toByteArray_write32_size_of_ge (endCashFluxArg0Mem I mem) (endCashThisWord I)
     164 164 196 (endCashFluxArg0Mem_size I hmem)
-    (by omega) (by native_decide) (by omega)
+    (by omega) (by decide +native) (by omega)
 
 theorem endCashFluxArg1Mem_read64 (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 96)
@@ -239,8 +239,8 @@ theorem endCashFluxArg1Mem_read64 (I : ExecutionEnv) {mem : ByteArray}
       164 32).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩
   rw [toByteArray_write_read_below_of_gap (endCashThisWord I)
     (endCashFluxArg0Mem I mem) 164 64
-    (by rw [endCashFluxArg0Mem_size I hmem]; native_decide)
-    (by native_decide) (by rw [endCashFluxArg0Mem_size I hmem]; native_decide),
+    (by rw [endCashFluxArg0Mem_size I hmem]; decide +native)
+    (by decide +native) (by rw [endCashFluxArg0Mem_size I hmem]; decide +native),
     endCashFluxArg0Mem_read64 I hmem hread64]
 
 theorem endCashFluxArg2Mem_size (I : ExecutionEnv) {mem : ByteArray}
@@ -249,7 +249,7 @@ theorem endCashFluxArg2Mem_size (I : ExecutionEnv) {mem : ByteArray}
   unfold endCashFluxArg2Mem
   exact toByteArray_write32_size_of_ge (endCashFluxArg1Mem I mem) (solcSourceWord I)
     196 196 228 (endCashFluxArg1Mem_size I hmem)
-    (by omega) (by native_decide) (by omega)
+    (by omega) (by decide +native) (by omega)
 
 theorem endCashFluxArg2Mem_read64 (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 96)
@@ -260,8 +260,8 @@ theorem endCashFluxArg2Mem_read64 (I : ExecutionEnv) {mem : ByteArray}
       196 32).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩
   rw [toByteArray_write_read_below_of_gap (solcSourceWord I)
     (endCashFluxArg1Mem I mem) 196 64
-    (by rw [endCashFluxArg1Mem_size I hmem]; native_decide)
-    (by native_decide) (by rw [endCashFluxArg1Mem_size I hmem]; native_decide),
+    (by rw [endCashFluxArg1Mem_size I hmem]; decide +native)
+    (by decide +native) (by rw [endCashFluxArg1Mem_size I hmem]; decide +native),
     endCashFluxArg1Mem_read64 I hmem hread64]
 
 theorem endCashFluxCalldataMem_size (σ : AccountMap) (I : ExecutionEnv)
@@ -270,7 +270,7 @@ theorem endCashFluxCalldataMem_size (σ : AccountMap) (I : ExecutionEnv)
   unfold endCashFluxCalldataMem
   exact toByteArray_write32_size_of_ge (endCashFluxArg2Mem I mem) amt
     228 228 260 (endCashFluxArg2Mem_size I hmem)
-    (by omega) (by native_decide) (by omega)
+    (by omega) (by decide +native) (by omega)
 
 theorem endCashFluxCalldataMem_read64 (σ : AccountMap) (I : ExecutionEnv)
     (amt : UInt256) {mem : ByteArray} (hmem : mem.size = 96)
@@ -281,8 +281,8 @@ theorem endCashFluxCalldataMem_read64 (σ : AccountMap) (I : ExecutionEnv)
   change (amt.toByteArray.write 0 (endCashFluxArg2Mem I mem) 228 32).readWithPadding
       64 32 = UInt256.toByteArray ⟨128⟩
   rw [toByteArray_write_read_below_of_gap amt (endCashFluxArg2Mem I mem) 228 64
-    (by rw [endCashFluxArg2Mem_size I hmem]; native_decide)
-    (by native_decide) (by rw [endCashFluxArg2Mem_size I hmem]; native_decide),
+    (by rw [endCashFluxArg2Mem_size I hmem]; decide +native)
+    (by decide +native) (by rw [endCashFluxArg2Mem_size I hmem]; decide +native),
     endCashFluxArg2Mem_read64 I hmem hread64]
 
 theorem endCashFluxPostCallMem_eq (σ : AccountMap) (I : ExecutionEnv)
@@ -646,7 +646,7 @@ theorem endCashLogDataMem_read64 (σ : AccountMap) (I : ExecutionEnv)
   rw [toByteArray_write_read_below_of_gap (endCashWadWord I)
     (endCashOutHashMemAfterBag σ I amt out) 128 64
     (by rw [endCashOutHashMemAfterBag_size σ I amt out]; omega) (by omega)
-    (by rw [endCashOutHashMemAfterBag_size σ I amt out]; native_decide)]
+    (by rw [endCashOutHashMemAfterBag_size σ I amt out]; decide +native)]
   exact endCashOutHashMemAfterBag_read64 σ I amt out
 
 theorem endCashFluxCalldataMem_read128_4
@@ -654,22 +654,22 @@ theorem endCashFluxCalldataMem_read128_4
     (hmem : mem.size = 96) :
     (endCashFluxCalldataMem σ I amt mem).readWithPadding 128 4 = fluxSelector := by
   unfold endCashFluxCalldataMem
-  rw [show (endCashFluxOutPtr + ⟨100⟩).toNat = 228 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨100⟩).toNat = 228 by decide +native]
   rw [write32_read_below_len _ _ 228 128 4 (by rw [toByteArray_size])
     (by rw [endCashFluxArg2Mem_size I hmem]) (by omega)
     (by rw [endCashFluxArg2Mem_size I hmem]; omega) (by omega) (by norm_num)]
   unfold endCashFluxArg2Mem
-  rw [show (endCashFluxOutPtr + ⟨68⟩).toNat = 196 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨68⟩).toNat = 196 by decide +native]
   rw [write32_read_below_len _ _ 196 128 4 (by rw [toByteArray_size])
     (by rw [endCashFluxArg1Mem_size I hmem]) (by omega)
     (by rw [endCashFluxArg1Mem_size I hmem]; omega) (by omega) (by norm_num)]
   unfold endCashFluxArg1Mem
-  rw [show (endCashFluxOutPtr + ⟨36⟩).toNat = 164 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨36⟩).toNat = 164 by decide +native]
   rw [write32_read_below_len _ _ 164 128 4 (by rw [toByteArray_size])
     (by rw [endCashFluxArg0Mem_size I hmem]) (by omega)
     (by rw [endCashFluxArg0Mem_size I hmem]; omega) (by omega) (by norm_num)]
   unfold endCashFluxArg0Mem
-  rw [show (endCashFluxOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   rw [write32_read_below_len _ _ 132 128 4 (by rw [toByteArray_size])
     (by rw [endCashFluxSelectorMem_size hmem]; omega) (by omega)
     (by rw [endCashFluxSelectorMem_size hmem]; omega) (by omega) (by norm_num)]
@@ -678,9 +678,9 @@ theorem endCashFluxCalldataMem_read128_4
     (endCashFluxSelectorShifted.toByteArray.write 0 mem 128 32).readWithPadding 128 4 =
       fluxSelector
   rw [toByteArray_write_read_window_of_gap endCashFluxSelectorShifted mem 128 0 4
-    (by omega) (by omega) (by omega) (by rw [hmem]; native_decide)]
+    (by omega) (by omega) (by omega) (by rw [hmem]; decide +native)]
   unfold endCashFluxSelectorShifted fluxSelector selectorBytes
-  native_decide
+  decide +native
 
 theorem endCashFluxCalldataMem_read132_32
     (σ : AccountMap) (I : ExecutionEnv) (amt : UInt256) {mem : ByteArray}
@@ -688,22 +688,22 @@ theorem endCashFluxCalldataMem_read132_32
     (endCashFluxCalldataMem σ I amt mem).readWithPadding 132 32 =
       (endCashIlkWord I).toByteArray := by
   unfold endCashFluxCalldataMem
-  rw [show (endCashFluxOutPtr + ⟨100⟩).toNat = 228 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨100⟩).toNat = 228 by decide +native]
   rw [write32_read_below_len _ _ 228 132 32 (by rw [toByteArray_size])
     (by rw [endCashFluxArg2Mem_size I hmem]) (by omega)
     (by rw [endCashFluxArg2Mem_size I hmem]; omega) (by omega) (by norm_num)]
   unfold endCashFluxArg2Mem
-  rw [show (endCashFluxOutPtr + ⟨68⟩).toNat = 196 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨68⟩).toNat = 196 by decide +native]
   rw [write32_read_below_len _ _ 196 132 32 (by rw [toByteArray_size])
     (by rw [endCashFluxArg1Mem_size I hmem]) (by omega)
     (by rw [endCashFluxArg1Mem_size I hmem]; omega) (by omega) (by norm_num)]
   unfold endCashFluxArg1Mem
-  rw [show (endCashFluxOutPtr + ⟨36⟩).toNat = 164 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨36⟩).toNat = 164 by decide +native]
   rw [write32_read_below_len _ _ 164 132 32 (by rw [toByteArray_size])
     (by rw [endCashFluxArg0Mem_size I hmem]) (by omega)
     (by rw [endCashFluxArg0Mem_size I hmem]) (by omega) (by norm_num)]
   unfold endCashFluxArg0Mem
-  rw [show (endCashFluxOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   rw [write32_read_prefix_len _ _ 132 32 (by rw [toByteArray_size])
     (by rw [endCashFluxSelectorMem_size hmem]; omega) (by omega) (by omega)
     (by norm_num)]
@@ -715,17 +715,17 @@ theorem endCashFluxCalldataMem_read164_32
     (endCashFluxCalldataMem σ I amt mem).readWithPadding 164 32 =
       (endCashThisWord I).toByteArray := by
   unfold endCashFluxCalldataMem
-  rw [show (endCashFluxOutPtr + ⟨100⟩).toNat = 228 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨100⟩).toNat = 228 by decide +native]
   rw [write32_read_below_len _ _ 228 164 32 (by rw [toByteArray_size])
     (by rw [endCashFluxArg2Mem_size I hmem]) (by omega)
     (by rw [endCashFluxArg2Mem_size I hmem]; omega) (by omega) (by norm_num)]
   unfold endCashFluxArg2Mem
-  rw [show (endCashFluxOutPtr + ⟨68⟩).toNat = 196 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨68⟩).toNat = 196 by decide +native]
   rw [write32_read_below_len _ _ 196 164 32 (by rw [toByteArray_size])
     (by rw [endCashFluxArg1Mem_size I hmem]) (by omega)
     (by rw [endCashFluxArg1Mem_size I hmem]) (by omega) (by norm_num)]
   unfold endCashFluxArg1Mem
-  rw [show (endCashFluxOutPtr + ⟨36⟩).toNat = 164 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨36⟩).toNat = 164 by decide +native]
   rw [write32_read_prefix_len _ _ 164 32 (by rw [toByteArray_size])
     (by rw [endCashFluxArg0Mem_size I hmem]) (by omega) (by omega)
     (by norm_num)]
@@ -737,12 +737,12 @@ theorem endCashFluxCalldataMem_read196_32
     (endCashFluxCalldataMem σ I amt mem).readWithPadding 196 32 =
       (solcSourceWord I).toByteArray := by
   unfold endCashFluxCalldataMem
-  rw [show (endCashFluxOutPtr + ⟨100⟩).toNat = 228 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨100⟩).toNat = 228 by decide +native]
   rw [write32_read_below_len _ _ 228 196 32 (by rw [toByteArray_size])
     (by rw [endCashFluxArg2Mem_size I hmem]) (by omega)
     (by rw [endCashFluxArg2Mem_size I hmem]) (by omega) (by norm_num)]
   unfold endCashFluxArg2Mem
-  rw [show (endCashFluxOutPtr + ⟨68⟩).toNat = 196 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨68⟩).toNat = 196 by decide +native]
   rw [write32_read_prefix_len _ _ 196 32 (by rw [toByteArray_size])
     (by rw [endCashFluxArg1Mem_size I hmem]) (by omega) (by omega)
     (by norm_num)]
@@ -753,7 +753,7 @@ theorem endCashFluxCalldataMem_read228_32
     (hmem : mem.size = 96) :
     (endCashFluxCalldataMem σ I amt mem).readWithPadding 228 32 = amt.toByteArray := by
   unfold endCashFluxCalldataMem
-  rw [show (endCashFluxOutPtr + ⟨100⟩).toNat = 228 by native_decide]
+  rw [show (endCashFluxOutPtr + ⟨100⟩).toNat = 228 by decide +native]
   rw [write32_read_back _ _ 228 (by rw [toByteArray_size])
     (by rw [endCashFluxArg2Mem_size I hmem])]
   rw [toByteArray_extract_all]
@@ -836,55 +836,55 @@ theorem RD.endCashFixUndefinedRevert {g : Sat256} {s0 : State} {ee : ExecutionEn
     (hov : stk.length + 5 ≤ 1024) :
     RDrev endBytecode g s0 := by
   have rdMload := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨23⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨23⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 ⟨23⟩ mem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst endCashFixUndefinedRawWord
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem3 ⟨23⟩ endCashFixUndefinedRawWord mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨23⟩ endCashFixUndefinedRawWord hmem hread64)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 theorem endDecode_cash_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (cashTransition.params.map Param.name)
@@ -917,27 +917,27 @@ theorem endReachCashBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : endSelWord I = ⟨0xfe8507c6⟩ :=
     endSelWord_eq_of_beq I hsz 0xfe 0x85 0x07 0xc6 ⟨0xfe8507c6⟩
-      (by native_decide)
+      (by decide +native)
       (by simpa [selIs, endCashConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
     endReachGroup65FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-      (by rw [hword]; native_decide)
-      (by rw [hword]; native_decide)
-      (by rw [hword]; native_decide)
+      (by rw [hword]; decide +native)
+      (by rw [hword]; decide +native)
+      (by rw [hword]; decide +native)
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup65FirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup65FirstArmPc 3))
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo endCashEntryPc 3 hfirst
     (fun j hj => endGroup65ArmsWellFormed j (by omega))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 -- GENERALIZES Benchmarks.Dss.End.RD.endFileUintDecodeToRoutine:
 -- parameterize the decoded PC and target routine for any unmasked two-word static decoder.
@@ -954,20 +954,20 @@ theorem RD.endCashDecodeToBody {code : ByteArray} {g : Sat256} {s0 : State}
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
-  have rd1296 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1297 := rd1296.pop (by native_decide) (by evm_ov)
-  have rd1298 := rd1297.dup1 (by native_decide) (by evm_ov)
-  have rd1299 := rd1298.calldataload (by native_decide) (by evm_ov)
-  have rd1300 := rd1299.swap1 (by native_decide) (by evm_ov)
-  have rd1302 := rd1300.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd1303 := rd1302.add (by native_decide) (by evm_ov)
-  have rd1304 := rd1303.calldataload (by native_decide) (by evm_ov)
-  have rd1305 := rd1304.push2 endCashBodyPc (by native_decide) (by evm_ov)
+  have rd1296 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1297 := rd1296.pop (by decide +native) (by evm_ov)
+  have rd1298 := rd1297.dup1 (by decide +native) (by evm_ov)
+  have rd1299 := rd1298.calldataload (by decide +native) (by evm_ov)
+  have rd1300 := rd1299.swap1 (by decide +native) (by evm_ov)
+  have rd1302 := rd1300.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd1303 := rd1302.add (by decide +native) (by evm_ov)
+  have rd1304 := rd1303.calldataload (by decide +native) (by evm_ov)
+  have rd1305 := rd1304.push2 endCashBodyPc (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [endCashBodyPc, endCashDecodedPc, calldataWord,
       show (⟨4⟩ : UInt256).toNat = 4 from by decide,
       show (⟨36⟩ : UInt256).toNat = 36 from by decide]
-      using rd1305.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd1305.jump (by decide +native) hroutine (by evm_ov)⟩
 
 theorem endCashX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -982,9 +982,9 @@ theorem endCashX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (code := endBytecode) (sel := sel)
     (entry := endCashEntryPc) (ret := endCashReturnPc)
     (decoded := endCashDecodedPc) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz68 hsize
   obtain ⟨_, _, hroutine⟩ := RD.endCashDecodeToBody
     (code := endBytecode) (ret := endCashReturnPc) (sel := sel) (R := [])
@@ -1003,34 +1003,34 @@ theorem endCashX_fixZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have hslot : endCashFixSlot I = solcMappingSlot ⟨15⟩ key := by
     simpa [key] using endCashFixSlot_eq (I := I) hsz68
   have rd9614pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd9615 := rd9614pre.mstore 0 (wordAt0Mem key solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd9619pre := evm_run rd9615 with [
-    raw push1 ⟨15⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨15⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd9620 := rd9619pre.mstore 0 (twoWordHashMem key ⟨15⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd9623pre := evm_run rd9620 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((twoWordHashMem key ⟨15⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨15⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨15⟩ key solcFreePtrMem_size
   have rd9624pre := rd9623pre.keccak256 0 (solcMappingSlot ⟨15⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost
+    (UInt256.ofNat 3) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd9625raw⟩ := rd9624pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd9625raw⟩ := rd9624pre.sload (by decide +native) (by evm_ov)
   have hfixRaw :
       solcSlotWord σ I (solcMappingSlot ⟨15⟩ key) = ⟨0⟩ := by
     rw [← hslot]
@@ -1047,8 +1047,8 @@ theorem endCashX_fixZero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         (twoWordHashMem key ⟨15⟩ solcFreePtrMem) (UInt256.ofNat 3) ByteArray.empty
         (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [endCashBodyPc, key] using rd9625zero⟩
-  have rd9628pre := rd9625.push2 ⟨9705⟩ (by native_decide) (by evm_ov)
-  have rd9629pre := rd9628pre.jumpiNT (by native_decide)
+  have rd9628pre := rd9625.push2 ⟨9705⟩ (by decide +native) (by evm_ov)
+  have rd9629pre := rd9628pre.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   obtain ⟨_, _, rd9629⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨9629⟩
@@ -1077,34 +1077,34 @@ theorem endCashX_fixNonzeroVatLoaded {cA gh bl σ σ₀ A I} {g : Sat256} {sel :
   have hslot : endCashFixSlot I = solcMappingSlot ⟨15⟩ key := by
     simpa [key] using endCashFixSlot_eq (I := I) hsz68
   have rd9614pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd9615 := rd9614pre.mstore 0 (wordAt0Mem key solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd9619pre := evm_run rd9615 with [
-    raw push1 ⟨15⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨15⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd9620 := rd9619pre.mstore 0 (twoWordHashMem key ⟨15⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd9623pre := evm_run rd9620 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((twoWordHashMem key ⟨15⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨15⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨15⟩ key solcFreePtrMem_size
   have rd9624pre := rd9623pre.keccak256 0 (solcMappingSlot ⟨15⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost
+    (UInt256.ofNat 3) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd9625raw⟩ := rd9624pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd9625raw⟩ := rd9624pre.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd9625⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨9625⟩
         (endCashFixWord σ I :: endCashWadWord I :: endCashIlkWord I ::
@@ -1114,12 +1114,12 @@ theorem endCashX_fixNonzeroVatLoaded {cA gh bl σ σ₀ A I} {g : Sat256} {sel :
     exact ⟨_, _, by
       simpa [endCashBodyPc, key, endCashFixWord, endSlotWord, solcSlotWord, hslot]
         using rd9625raw⟩
-  have rd9628 := rd9625.push2 ⟨9705⟩ (by native_decide) (by evm_ov)
-  have rd9705 := rd9628.jumpiT (by native_decide) hfix (by jump_dest) (by evm_ov)
+  have rd9628 := rd9625.push2 ⟨9705⟩ (by decide +native) (by evm_ov)
+  have rd9705 := rd9628.jumpiT (by decide +native) hfix (by jump_dest) (by evm_ov)
   have rd9708 := evm_run rd9705 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd9709raw⟩ := rd9708.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd9709raw⟩ := rd9708.sload (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [key, endSlotWord, solcSlotWord] using rd9709raw⟩
 
@@ -1150,30 +1150,30 @@ theorem endCashX_rmulArgsLoaded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
       simpa [endCashFixHashMem2, key] using
         twoWordHashMem_solcMappingSlot ⟨15⟩ key hmem1
   have rd9714pre := evm_run h with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd9714 := rd9714pre.mstore 0
     (wordAt0Mem key (endCashFixHashMem I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd9718pre := evm_run rd9714 with [
-    raw push1 ⟨15⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨15⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd9719 := rd9718pre.mstore 0
     (endCashFixHashMem2 I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd9722pre := evm_run rd9719 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd9723pre := rd9722pre.keccak256 0 (solcMappingSlot ⟨15⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost
+    (UInt256.ofNat 3) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd9724raw⟩ := rd9723pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd9724raw⟩ := rd9723pre.sload (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [key, endCashFixHashMem2, endCashFixWord, endSlotWord, solcSlotWord, hslot]
       using rd9724raw⟩
@@ -1191,32 +1191,32 @@ theorem endCashX_rmulStackReady {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
         endCashReturnPc, sel]
       (endCashFixHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd9736 := evm_run h with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd9744 := evm_run rd9736 with [
-    raw push4 endCashFluxSelectorWord (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  have rd9745 := RD.address rd9744 (by native_decide) (by evm_ov)
+    raw push4 endCashFluxSelectorWord (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  have rd9745 := RD.address rd9744 (by decide +native) (by evm_ov)
   have rd9754 := evm_run rd9745 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push2 ⟨9758⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push2 ⟨9758⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd10114 := evm_run rd9754 with [
-    raw push2 ⟨10114⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨10114⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endCashVatWord, endCashThisWord, endCashFluxSelectorWord,
       endSlotWord, solcSlotWord, solcAddrMask, u256_land_comm] using rd10114⟩
@@ -1256,16 +1256,16 @@ theorem endCashX_rmulMulEntry {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
         endCashReturnPc, sel]
       (endCashFixHashMem2 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd10130 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov)]
   have rd10130ray := rd10130.pushConst endRayWord
-    (width := 12) (op := .PUSH12) (by decide) (by native_decide) (by evm_ov)
+    (width := 12) (op := .PUSH12) (by decide) (by decide +native) (by evm_ov)
   have rd10170 := evm_run rd10130ray with [
-    raw push2 ⟨10139⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw push2 ⟨10170⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨10139⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw push2 ⟨10170⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endRayWord] using rd10170⟩
 
@@ -1291,39 +1291,39 @@ theorem endCashX_mulHelperOverflow {cA gh bl σ σ₀ A I} {g : Sat256}
     have hsizePos : 0 < UInt256.size := by norm_num [UInt256.size]
     omega
   have rd10179 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨10197⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨10197⟩ (by decide +native) (by evm_ov)]
   have hyNonzero : UInt256.isZero y = ⟨0⟩ :=
     isZero_eq_zero_of_ne hyCond
-  have rd10180 := rd10179.jumpiNT (by native_decide) hyNonzero (by evm_ov)
+  have rd10180 := rd10179.jumpiNT (by decide +native) hyNonzero (by evm_ov)
   have rd10192 := evm_run rd10180 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨10194⟩ (by native_decide) (by evm_ov)]
-  have rd10194 := rd10192.jumpiT (by native_decide) hyCond (by jump_dest) (by evm_ov)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨10194⟩ (by decide +native) (by evm_ov)]
+  have rd10194 := rd10192.jumpiT (by decide +native) hyCond (by jump_dest) (by evm_ov)
   have rd10201 := evm_run rd10194 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨10108⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨10108⟩ (by decide +native) (by evm_ov)]
   have heqCond :
       UInt256.eq (UInt256.div (x * y) y) x = ⟨0⟩ :=
     u256_eq_of_ne hdivNe
-  have rdFallthrough := rd10201.jumpiNT (by native_decide) heqCond (by evm_ov)
+  have rdFallthrough := rd10201.jumpiNT (by decide +native) heqCond (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 theorem endCashX_mulHelperReturns {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1351,44 +1351,44 @@ theorem endCashX_mulHelperReturns {cA gh bl σ σ₀ A I} {g : Sat256}
     rw [hprod]
     simpa [Nat.mul_comm] using Nat.mul_div_right x.toNat hyPos
   have rd10179 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨10197⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨10197⟩ (by decide +native) (by evm_ov)]
   have hyNonzero : UInt256.isZero y = ⟨0⟩ :=
     isZero_eq_zero_of_ne hy
-  have rd10180 := rd10179.jumpiNT (by native_decide) hyNonzero (by evm_ov)
+  have rd10180 := rd10179.jumpiNT (by decide +native) hyNonzero (by evm_ov)
   have rd10192 := evm_run rd10180 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨10194⟩ (by native_decide) (by evm_ov)]
-  have rd10194 := rd10192.jumpiT (by native_decide) hy (by jump_dest) (by evm_ov)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨10194⟩ (by decide +native) (by evm_ov)]
+  have rd10194 := rd10192.jumpiT (by decide +native) hy (by jump_dest) (by evm_ov)
   have rd10201 := evm_run rd10194 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨10108⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨10108⟩ (by decide +native) (by evm_ov)]
   have heqCond : UInt256.eq (UInt256.div (x * y) y) x ≠ ⟨0⟩ := by
     rw [hdiv, u256_eq_refl]
     exact one_ne_zero_uint
-  have rd10108 := rd10201.jumpiT (by native_decide) heqCond (by jump_dest) (by evm_ov)
+  have rd10108 := rd10201.jumpiT (by decide +native) heqCond (by jump_dest) (by evm_ov)
   have rdRet := evm_run rd10108 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) hret (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) hret (by evm_ov)]
   exact ⟨_, _, by simpa using rdRet⟩
 
 theorem endCashX_rmulOverflow {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -1430,22 +1430,22 @@ theorem endCashX_rmulReturns {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
       hfit hfix hmul (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)
   have hrayNonzero : endRayWord ≠ ⟨0⟩ := by
-    native_decide
+    decide +native
   have rd10146pre := evm_run hretMul with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨10146⟩ (by native_decide) (by evm_ov)]
-  have rd10146 := rd10146pre.jumpiT (by native_decide) hrayNonzero
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨10146⟩ (by decide +native) (by evm_ov)]
+  have rd10146 := rd10146pre.jumpiT (by decide +native) hrayNonzero
     (by jump_dest) (by evm_ov)
   have rd9758 := evm_run rd10146 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endCashAmtWord, endRayWord] using rd9758⟩
 
@@ -1493,14 +1493,14 @@ theorem endCashX_fluxExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
   have hselectorMask :
       UInt256.land endCashFluxSelectorWord (⟨0xffffffff⟩ : UInt256) =
         endCashFluxSelectorWord := by
-    native_decide
+    decide +native
   have hthisMask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
           (endCashThisWord I) = endCashThisWord I := by
     rw [u256_land_comm]
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by native_decide]
+      solcAddrMask from by decide +native]
     unfold endCashThisWord
     have haddr : I.codeOwner.val < UInt256.size :=
       lt_of_lt_of_le I.codeOwner.isLt (show AccountAddress.size ≤ UInt256.size from by decide)
@@ -1514,101 +1514,101 @@ theorem endCashX_fluxExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
           (solcSourceWord I) = solcSourceWord I := by
     rw [u256_land_comm]
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by native_decide]
+      solcAddrMask from by decide +native]
     exact solcAddrMask_clean (solcSourceWord_canonical I)
   have rd9839 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw push4 ⟨0xffffffff⟩ (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw push4 ⟨0xffffffff⟩ (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (endCashFluxSelectorMem (endCashFixHashMem2 I)) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 3 (endCashFluxArg0Mem I (endCashFixHashMem2 I)) (UInt256.ofNat 6)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp only [endCashFluxArg0Mem, endCashFluxOutPtr]
         rw [show ((⟨4⟩ : UInt256) + ⟨128⟩).toNat =
-          ((⟨128⟩ : UInt256) + ⟨4⟩).toNat from by native_decide])
+          ((⟨128⟩ : UInt256) + ⟨4⟩).toNat from by decide +native])
       (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 3 (endCashFluxArg1Mem I (endCashFixHashMem2 I)) (UInt256.ofNat 7)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         rw [hthisMask]
         simp only [endCashFluxArg1Mem, endCashFluxOutPtr]
         rw [show ((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + ⟨128⟩)).toNat =
-          ((⟨128⟩ : UInt256) + ⟨36⟩).toNat from by native_decide])
+          ((⟨128⟩ : UInt256) + ⟨36⟩).toNat from by decide +native])
       (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 3 (endCashFluxArg2Mem I (endCashFixHashMem2 I)) (UInt256.ofNat 8)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         rw [hsourceMask]
         simp only [endCashFluxArg2Mem, endCashFluxOutPtr]
         rw [show ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) +
             ((⟨4⟩ : UInt256) + ⟨128⟩))).toNat =
-          ((⟨128⟩ : UInt256) + ⟨68⟩).toNat from by native_decide])
+          ((⟨128⟩ : UInt256) + ⟨68⟩).toNat from by decide +native])
       (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 3 (endCashFluxCalldataMem σ I amt (endCashFixHashMem2 I))
-      (UInt256.ofNat 9) (by native_decide) mem_cost
+      (UInt256.ofNat 9) (by decide +native) mem_cost
       (by
         simp only [endCashFluxCalldataMem, endCashFluxOutPtr]
         rw [show ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) +
             ((⟨4⟩ : UInt256) + ⟨128⟩)))).toNat =
-          ((⟨128⟩ : UInt256) + ⟨100⟩).toNat from by native_decide])
+          ((⟨128⟩ : UInt256) + ⟨100⟩).toNat from by decide +native])
       (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endCashFluxSelectorMem, endCashFluxArg0Mem, endCashFluxArg1Mem,
       endCashFluxArg2Mem, endCashFluxCalldataMem, endCashFluxOutPtr, endCashFluxInSize,
@@ -1629,9 +1629,9 @@ theorem endCashX_fluxNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {sel amt : UInt
   obtain ⟨_, _, rd9839⟩ := endCashX_fluxExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨9839⟩) (okPc := ⟨9851⟩) rd9839
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem endCashX_fluxCallReady {cA gh bl σ σ₀ A I} {g : Sat256} {sel amt : UInt256}
     {k C : ℕ}
@@ -1653,9 +1653,9 @@ theorem endCashX_fluxCallReady {cA gh bl σ σ₀ A I} {g : Sat256} {sel amt : U
   obtain ⟨gasWord, k', C', rd9854⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨9839⟩) (okPc := ⟨9851⟩) rd9839
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd9854⟩
 
 theorem endCashX_fluxPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -1688,7 +1688,7 @@ theorem endCashX_fluxPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
           (endCashFluxPostCallMem σ I amt out) (UInt256.ofNat 9) out (cA', σ') k' C'
       ∧ out.size < UInt256.size := by
   obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd9855raw, hout⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have haw :
@@ -1696,7 +1696,7 @@ theorem endCashX_fluxPostCall {cA gh bl σ σ₀ A I} {g : UInt256}
           endCashFluxOutPtr.toNat endCashFluxInSize.toNat)
           endCashFluxOutPtr.toNat endCashFluxOutSize.toNat) = UInt256.ofNat 9 := by
       unfold endCashFluxOutPtr endCashFluxInSize endCashFluxOutSize
-      native_decide
+      decide +native
     simpa [endCashFluxPostCallMem, endCashFluxOutPtr, endCashFluxInSize,
       endCashFluxOutSize, endCashFluxEndPtr, haw] using rd9855raw
 
@@ -1718,7 +1718,7 @@ theorem endCashX_fluxCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
       (endCashFluxCalldataMem σ I amt (endCashFixHashMem2 I)) (UInt256.ofNat 9)
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨k', C', rd9855raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endCashFluxOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -1728,7 +1728,7 @@ theorem endCashX_fluxCallDepthLimit {cA gh bl σ σ₀ A I} {g : UInt256}
         endCashFluxOutPtr.toNat endCashFluxInSize.toNat)
         endCashFluxOutPtr.toNat endCashFluxOutSize.toNat) = UInt256.ofNat 9 := by
     unfold endCashFluxOutPtr endCashFluxInSize endCashFluxOutSize
-    native_decide
+    decide +native
   simpa [endCashFluxOutPtr, endCashFluxInSize, endCashFluxOutSize, endCashFluxEndPtr,
     hmin, byteArray_write_len_zero, haw] using rd9855raw
 
@@ -1744,9 +1744,9 @@ theorem endCashX_fluxCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨9855⟩) (okPc := ⟨9871⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp)
 
 theorem endCashX_fluxCallSucceeded {cA gh bl σ σ₀ A I} {g sel : UInt256}
@@ -1764,8 +1764,8 @@ theorem endCashX_fluxCallSucceeded {cA gh bl σ σ₀ A I} {g sel : UInt256}
       mem (UInt256.ofNat 9) rdata acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨9855⟩) (okPc := ⟨9871⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endCashX_outAddEntry {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256}
@@ -1785,53 +1785,53 @@ theorem endCashX_outAddEntry {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256}
       (cA', σ') k' C' := by
   obtain ⟨_, _, rd9873⟩ := endCashX_fluxCallSucceeded (g := g) h
   have rd9879pre := evm_run rd9873 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rdInnerKey := rd9879pre.mstore 0
     (wordAt0Mem (endCashIlkWord I)
       (endCashFluxPostCallMem σ I (endCashAmtWord σ I) out))
-    (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 9) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rdInnerMemPrefix := evm_run rdInnerKey with [
-    raw push1 ⟨17⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨17⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rdInnerMem := rdInnerMemPrefix.mstore 0
     (endCashOutInnerHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdInnerHashPrefix := evm_run rdInnerMem with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have rdInnerHash := rdInnerHashPrefix.keccak256 0
     (solcMappingSlot ⟨17⟩ (endCashIlkWord I)) (UInt256.ofNat 9)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (endCashOutInnerHashMem_slot σ I (endCashAmtWord σ I) out)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rdOuterKeyPrefix := evm_run rdInnerHash with [
-    raw caller (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw caller (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have rdOuterKey := rdOuterKeyPrefix.mstore 0
     (wordAt0Mem (solcSourceWord I) (endCashOutInnerHashMem σ I (endCashAmtWord σ I) out))
-    (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 9) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rdOuterMemPrefix := evm_run rdOuterKey with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rdOuterMem := rdOuterMemPrefix.mstore 0
     (endCashOutHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdOuterHashPrefix := evm_run rdOuterMem with [
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov)]
   have rdSlot := rdOuterHashPrefix.keccak256 0 (endCashOutSlot I) (UInt256.ofNat 9)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (endCashOutHashMem_slot σ I (endCashAmtWord σ I) out hsz68)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rdLoadedRaw⟩ := rdSlot.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rdLoadedRaw⟩ := rdSlot.sload (by decide +native) (by evm_ov)
   have rdLoaded : ∃ k' C', RD endBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨9901⟩
       (endCashOutWord σ' I :: endCashVatWord σ I :: endCashWadWord I ::
@@ -1841,12 +1841,12 @@ theorem endCashX_outAddEntry {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256}
     exact ⟨_, _, by simpa [endCashOutWord, endSlotWord, solcSlotWord] using rdLoadedRaw⟩
   obtain ⟨_, _, rdLoaded⟩ := rdLoaded
   have rdJumpTarget := evm_run rdLoaded with [
-    raw push2 ⟨9911⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨10092⟩ (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rdJumpTarget.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    raw push2 ⟨9911⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨10092⟩ (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rdJumpTarget.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem endCashX_outAddOverflow {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256}
     {out : ByteArray} {k C : ℕ}
@@ -1881,25 +1881,25 @@ theorem endCashX_outAddOverflow {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256
     have hwadLt : wad.toNat < UInt256.size := wad.val.isLt
     omega
   have rd10099pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
-  have rd10099 := evm_run rd10099pre with [raw lt (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
+  have rd10099 := evm_run rd10099pre with [raw lt (by decide +native) (by evm_ov)]
   have rd10099' := by
     simpa [outWord, wad] using rd10099
   rw [hlt] at rd10099'
-  have rd10100pre := evm_run rd10099' with [raw iszero (by native_decide) (by evm_ov)]
+  have rd10100pre := evm_run rd10099' with [raw iszero (by decide +native) (by evm_ov)]
   have rd10100 := by
     simpa using rd10100pre
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd10100
-  have rd10104pre := evm_run rd10100 with [raw push2 ⟨10108⟩ (by native_decide) (by evm_ov)]
-  have rd10104 := rd10104pre.jumpiNT (by native_decide) (by decide)
+  have rd10104pre := evm_run rd10100 with [raw push2 ⟨10108⟩ (by decide +native) (by evm_ov)]
+  have rd10104 := rd10104pre.jumpiNT (by decide +native) (by decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  exact RD.solcPush1Dup1Revert0 rd10104 (by native_decide) (by native_decide)
-    (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rd10104 (by decide +native) (by decide +native)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endCashX_outAddSuccess {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256}
@@ -1927,30 +1927,30 @@ theorem endCashX_outAddSuccess {cA cA' gh bl σ σ' σ₀ A I} {g sel : UInt256}
   have hlt : UInt256.lt (wad + outWord) outWord = ⟨0⟩ :=
     ult_zero (by rw [haddNat]; omega)
   have rd10099pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
-  have rd10099 := evm_run rd10099pre with [raw lt (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
+  have rd10099 := evm_run rd10099pre with [raw lt (by decide +native) (by evm_ov)]
   have rd10099' := by
     simpa [outWord, wad] using rd10099
   rw [hlt] at rd10099'
-  have rd10100pre := evm_run rd10099' with [raw iszero (by native_decide) (by evm_ov)]
+  have rd10100pre := evm_run rd10099' with [raw iszero (by decide +native) (by evm_ov)]
   have rd10100 := by
     simpa using rd10100pre
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd10100
   have rd10108pre := evm_run rd10100 with [
-    raw push2 ⟨10108⟩ (by native_decide) (by evm_ov),
-    raw jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)]
+    raw push2 ⟨10108⟩ (by decide +native) (by evm_ov),
+    raw jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)]
   have rd9911 := evm_run rd10108pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have hcomm :
       endCashWadWord I + endCashOutWord σ' I =
         endCashOutWord σ' I + endCashWadWord I :=
@@ -1972,56 +1972,56 @@ theorem endCashX_outStoreHash {cA cA' gh bl σ σ' σ₀ A I} {g sel outNew : UI
       (endCashOutStoreHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
       (cA', σ') k' C' := by
   have rd9916pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rdInnerKey := rd9916pre.mstore 0
     (wordAt0Mem (endCashIlkWord I)
       (endCashOutHashMem σ I (endCashAmtWord σ I) out))
-    (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 9) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rdInnerMemPrefix := evm_run rdInnerKey with [
-    raw push1 ⟨17⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨17⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rdInnerMem := rdInnerMemPrefix.mstore 0
     (endCashOutStoreInnerHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdInnerHashPrefix := evm_run rdInnerMem with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have rdInnerHash := rdInnerHashPrefix.keccak256 0
     (solcMappingSlot ⟨17⟩ (endCashIlkWord I)) (UInt256.ofNat 9)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (endCashOutStoreInnerHashMem_slot σ I (endCashAmtWord σ I) out)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rdOuterKeyPrefix := evm_run rdInnerHash with [
-    raw caller (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw caller (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have rdOuterKey := rdOuterKeyPrefix.mstore 0
     (wordAt0Mem (solcSourceWord I)
       (endCashOutStoreInnerHashMem σ I (endCashAmtWord σ I) out))
-    (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 9) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rdOuterMemPrefix := evm_run rdOuterKey with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have rdOuterMem := rdOuterMemPrefix.mstore 0
     (endCashOutStoreHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdOutSlotPrefix := evm_run rdOuterMem with [
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have rdOutSlot := rdOutSlotPrefix.keccak256 0 (endCashOutSlot I) (UInt256.ofNat 9)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (endCashOutStoreHashMem_slot σ I (endCashAmtWord σ I) out hsz68)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rdSstoreReady := evm_run rdOutSlot with [
-    raw dup6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw dup6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, rdSstoreReady⟩
 
 theorem endCashX_outStoreAtHash {cA cA' gh bl σ σ' σ₀ A I}
@@ -2039,7 +2039,7 @@ theorem endCashX_outStoreAtHash {cA cA' gh bl σ σ' σ₀ A I}
         endCashWadWord I, endCashIlkWord I, endCashReturnPc, sel]
       (endCashOutStoreHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
       (cA', endCashPostAccountMap σ' I outNew) k' C' := by
-  obtain ⟨_, _, rdStoredRaw⟩ := h.sstore hperm (by native_decide)
+  obtain ⟨_, _, rdStoredRaw⟩ := h.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa [endCashPostAccountMap] using rdStoredRaw⟩
 
@@ -2058,17 +2058,17 @@ theorem endCashX_bagSlotReady {cA cA' gh bl σ σ' σ₀ A I}
       (endCashBagHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
       (cA', endCashPostAccountMap σ' I outNew) k' C' := by
   have rdBagMemPrefix := evm_run h with [
-    raw push1 ⟨16⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push1 ⟨16⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have rdBagMem := rdBagMemPrefix.mstore 0
     (endCashBagHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdBagSlotPrefix := evm_run rdBagMem with [
-    raw swap3 (by native_decide) (by evm_ov)]
+    raw swap3 (by decide +native) (by evm_ov)]
   have rdBagSlot := rdBagSlotPrefix.keccak256 0 (endCashBagSlot I) (UInt256.ofNat 9)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (endCashBagHashMem_slot σ I (endCashAmtWord σ I) out)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   exact ⟨_, _, rdBagSlot⟩
 
 theorem endCashX_bagLoaded {cA cA' gh bl σ σ' σ₀ A I}
@@ -2086,7 +2086,7 @@ theorem endCashX_bagLoaded {cA cA' gh bl σ σ' σ₀ A I}
         endCashIlkWord I, endCashReturnPc, sel]
       (endCashBagHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
       (cA', endCashPostAccountMap σ' I outNew) k' C' := by
-  obtain ⟨_, _, rdBagLoadedRaw⟩ := h.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rdBagLoadedRaw⟩ := h.sload (by decide +native) (by evm_ov)
   exact ⟨_, _, rdBagLoadedRaw⟩
 
 theorem endCashX_bagRestoreReady {cA cA' gh bl σ σ' σ₀ A I}
@@ -2106,8 +2106,8 @@ theorem endCashX_bagRestoreReady {cA cA' gh bl σ σ' σ₀ A I}
       (endCashBagHashMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9) out
       (cA', endCashPostAccountMap σ' I outNew) k' C' := by
   have rdRestorePrefix := evm_run h with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, rdRestorePrefix⟩
 
 theorem endCashX_bagRestoreMem {cA cA' gh bl σ σ' σ₀ A I}
@@ -2127,7 +2127,7 @@ theorem endCashX_bagRestoreMem {cA cA' gh bl σ σ' σ₀ A I}
       (cA', endCashPostAccountMap σ' I outNew) k' C' := by
   have rdRestored := h.mstore 0
     (endCashOutHashMemAfterBag σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   exact ⟨_, _, rdRestored⟩
 
 theorem endCashX_bagLoadRestore {cA cA' gh bl σ σ' σ₀ A I}
@@ -2200,42 +2200,42 @@ theorem endCashX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
       acc k C) :
     RDret endBytecode g s0 acc ByteArray.empty := by
   have rd10040pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide) mem_cost
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native) mem_cost
       (mloadFreePtrValue
         (by rw [endCashOutHashMemAfterBag_size σ I (endCashAmtWord σ I) out]; decide)
         (by decide) (endCashOutHashMemAfterBag_read64 σ I (endCashAmtWord σ I) out))
-      (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rdLogMem := rd10040pre.mstore 0
     (endCashLogDataMem σ I (endCashAmtWord σ I) out) (UInt256.ofNat 9)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd10047pre := evm_run rdLogMem with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide) mem_cost
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native) mem_cost
       (mloadFreePtrValue
         (by rw [endCashLogDataMem_size σ I (endCashAmtWord σ I) out]; decide)
         (by decide) (endCashLogDataMem_read64 σ I (endCashAmtWord σ I) out))
-      (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rdTopic := rd10047pre.pushConst
     (⟨0x888c7c01b06fd8004523e2bc9a274be1feaa9f03579ae5f568061dac078793c9⟩ :
       UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native) (by evm_ov)
   have rd10088pre := evm_run rdTopic with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rdLog := RD.log3
     (a := ⟨128⟩) (b := ⟨32⟩)
     (c := ⟨0x888c7c01b06fd8004523e2bc9a274be1feaa9f03579ae5f568061dac078793c9⟩)
@@ -2245,18 +2245,18 @@ theorem endCashX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 9).toNat (⟨128⟩ : UInt256).toNat
         (⟨32⟩ : UInt256).toNat))
-    rd10088pre (by native_decide) hperm mem_cost (by native_decide)
+    rd10088pre (by decide +native) hperm mem_cost (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdPopWad := RD.pop (a := endCashWadWord I)
     (t := [endCashIlkWord I, endCashReturnPc, sel]) rdLog
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rdPopIlk := RD.pop (a := endCashIlkWord I) (t := [endCashReturnPc, sel])
-    rdPopWad (by native_decide) (by evm_ov)
+    rdPopWad (by decide +native) (by evm_ov)
   have rd562 := RD.jump (a := endCashReturnPc) (t := [sel]) rdPopIlk
-    (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) (by jump_dest) (by evm_ov)
   have rd563 := RD.jumpdest (pc := endCashReturnPc) (stk := [sel]) rd562
-    (by native_decide) (by evm_ov)
-  exact RD.stop rd563 (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  exact RD.stop rd563 (by decide +native) (by evm_ov)
 
 theorem endCashX_outRequireReturns {cA cA' gh bl σ σ' σ₀ A I}
     {g sel outNew : UInt256} {out : ByteArray} {k C : ℕ}
@@ -2276,17 +2276,17 @@ theorem endCashX_outRequireReturns {cA cA' gh bl σ σ' σ₀ A I}
     apply ult_zero
     dsimp [bagWord]
     exact hle
-  have rd9952pre := evm_run h with [raw lt (by native_decide) (by evm_ov)]
+  have rd9952pre := evm_run h with [raw lt (by decide +native) (by evm_ov)]
   have rd9952 := by
     simpa [bagWord] using rd9952pre
   rw [hlt] at rd9952
-  have rd9953pre := evm_run rd9952 with [raw iszero (by native_decide) (by evm_ov)]
+  have rd9953pre := evm_run rd9952 with [raw iszero (by decide +native) (by evm_ov)]
   have rd9953 := by
     simpa using rd9953pre
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd9953
   have rd10033 := evm_run rd9953 with [
-    raw push2 ⟨10033⟩ (by native_decide) (by evm_ov),
-    raw jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)]
+    raw push2 ⟨10033⟩ (by decide +native) (by evm_ov),
+    raw jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)]
   exact endCashX_logReturn hperm rd10033
 
 theorem endCash_solcErrorStringMem0_size_260 {mem : ByteArray} (hmem : mem.size = 260) :
@@ -2349,44 +2349,44 @@ theorem RD.endCashInsufficientBagRevert {g : Sat256} {s0 : State} {ee : Executio
     (hov : stk.length + 5 ≤ 1024) :
     RDrev endBytecode g s0 := by
   have rdMload := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 9)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 9)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨28⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨28⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0 (solcErrorStringMem2 ⟨28⟩ mem)
-      (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 9) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst endCashInsufficientBagRawWord
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0 (solcErrorStringMem3 ⟨28⟩ endCashInsufficientBagRawWord mem)
-      (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+      (UInt256.ofNat 9) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost
       (mloadFreePtrValue
         (by rw [endCash_solcErrorStringMem3_size_260 ⟨28⟩ endCashInsufficientBagRawWord hmem]; decide)
@@ -2394,14 +2394,14 @@ theorem RD.endCashInsufficientBagRevert {g : Sat256} {s0 : State} {ee : Executio
         (endCash_solcErrorStringMem3_read64_260 ⟨28⟩ endCashInsufficientBagRawWord
           hmem hread64))
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 theorem endCashX_outRequireReverts {cA cA' gh bl σ σ' σ₀ A I}
     {g sel outNew : UInt256} {out : ByteArray} {k C : ℕ}
@@ -2419,17 +2419,17 @@ theorem endCashX_outRequireReverts {cA cA' gh bl σ σ' σ₀ A I}
     apply ult_one
     dsimp [bagWord]
     exact hgt
-  have rd9952pre := evm_run h with [raw lt (by native_decide) (by evm_ov)]
+  have rd9952pre := evm_run h with [raw lt (by decide +native) (by evm_ov)]
   have rd9952 := by
     simpa [bagWord] using rd9952pre
   rw [hlt] at rd9952
-  have rd9953pre := evm_run rd9952 with [raw iszero (by native_decide) (by evm_ov)]
+  have rd9953pre := evm_run rd9952 with [raw iszero (by decide +native) (by evm_ov)]
   have rd9953 := by
     simpa using rd9953pre
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd9953
   have rd9957pre := evm_run rd9953 with [
-    raw push2 ⟨10033⟩ (by native_decide) (by evm_ov)]
-  have rd9957 := rd9957pre.jumpiNT (by native_decide) (by decide)
+    raw push2 ⟨10033⟩ (by decide +native) (by evm_ov)]
+  have rd9957 := rd9957pre.jumpiNT (by decide +native) (by decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact RD.endCashInsufficientBagRevert rd9957
     (endCashOutHashMemAfterBag_size σ I (endCashAmtWord σ I) out)
@@ -2911,7 +2911,7 @@ theorem endCashBodyReverts_fluxCallFailed {cA gh bl σ σ₀ A I} {g : UInt256}
     have hget :
         (endCashStoreAmt σ I).get? "ilk" =
           some (.fixedBytes bytes32Width (endCashIlkBytes I)) := by
-      rw [endCashStoreAmt, store_get_ne _ _ (by native_decide), endCashStore_get_ilk]
+      rw [endCashStoreAmt, store_get_ne _ _ (by decide +native), endCashStore_get_ilk]
     rw [evalExpr?]
     change EvalResult.ofOption EvalError.unboundVariable ((endCashStoreAmt σ I).get? "ilk") =
       .ok (.fixedBytes bytes32Width (endCashIlkBytes I))
@@ -2992,8 +2992,8 @@ theorem evalStorageRef_endCash_out (evm : EVM.State) (I : ExecutionEnv)
   have hget :
       (endCashStoreFlux σ I).get? "ilk" =
         some (.fixedBytes bytes32Width (endCashIlkBytes I)) := by
-    rw [endCashStoreFlux, store_get_ne _ _ (by native_decide),
-      endCashStoreAmt, store_get_ne _ _ (by native_decide), endCashStore_get_ilk]
+    rw [endCashStoreFlux, store_get_ne _ _ (by decide +native),
+      endCashStoreAmt, store_get_ne _ _ (by decide +native), endCashStore_get_ilk]
   simp [evalStorageRef, evalStorageRefSteps, evalStorageRefStep, outRef, sender,
     envValue, endCashEvaledOutRef, endCashIlkKey, endCashOutKey, hsrc, valueToKey?,
     EvalResult.bind, EvalResult.ofOption, bind, pure, evalExpr?,
@@ -3015,10 +3015,10 @@ theorem evalExpr_endCash_out (evm : EVM.State) (I : ExecutionEnv)
     (loc := wordLoc (endCashOutSlot I))
     (hbase := by
       change (endCashStoreFlux σ I).get? "out" = none
-      rw [endCashStoreFlux, store_get_ne _ _ (by native_decide),
-        endCashStoreAmt, store_get_ne _ _ (by native_decide),
-        endCashStore, store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide)]
+      rw [endCashStoreFlux, store_get_ne _ _ (by decide +native),
+        endCashStoreAmt, store_get_ne _ _ (by decide +native),
+        endCashStore, store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native)]
       simp)
     (her := evalStorageRef_endCash_out evm I σ hsrc hsz68)
     (hty := by simp [storageTypeAt?, storageTypeStep?, contract, storageDecls, uint256St])
@@ -3157,7 +3157,7 @@ theorem endCashTailReverts_outAddOverflow (evm : EVM.State) (I : ExecutionEnv)
         (name := "wad") (value := endCashWadWord I)
         (by
           rw [endCashStoreFlux, endCashStoreAmt, endCashStore,
-            store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
+            store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
             store_get_self])
   have hargs :
       evalExprs? config { contract := contract, locals := endCashStoreFlux σ I } evm
@@ -3216,7 +3216,7 @@ theorem endCashTailPrefixOutAssigned (evm : EVM.State) (I : ExecutionEnv)
         (name := "wad") (value := endCashWadWord I)
         (by
           rw [endCashStoreFlux, endCashStoreAmt, endCashStore,
-            store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
+            store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
             store_get_self])
   have hargs :
       evalExprs? config { contract := contract, locals := endCashStoreFlux σ I } evm
@@ -3260,9 +3260,9 @@ theorem endCashTailPrefixOutAssigned (evm : EVM.State) (I : ExecutionEnv)
     exact endCashAssignOut evm I outNew
       (by simp [endCashStoreOutNew, endCashStoreFlux, endCashStoreAmt, endCashStore])
       (by
-        rw [endCashStoreOutNew, store_get_ne _ _ (by native_decide),
-          endCashStoreFlux, store_get_ne _ _ (by native_decide),
-          endCashStoreAmt, store_get_ne _ _ (by native_decide), endCashStore_get_ilk])
+        rw [endCashStoreOutNew, store_get_ne _ _ (by decide +native),
+          endCashStoreFlux, store_get_ne _ _ (by decide +native),
+          endCashStoreAmt, store_get_ne _ _ (by decide +native), endCashStore_get_ilk])
       hsrc hsz68
   refine ExecBlock.consNormal haddStmt ?_
   exact ExecBlock.consNormal (ExecStmt.assign houtNew hassign) ExecBlock.nil
@@ -3461,7 +3461,7 @@ theorem endCashPrefixFluxSuccess {cA gh bl σ σ₀ A I} {g : UInt256}
     have hget :
         (endCashStoreAmt σ I).get? "ilk" =
           some (.fixedBytes bytes32Width (endCashIlkBytes I)) := by
-      rw [endCashStoreAmt, store_get_ne _ _ (by native_decide), endCashStore_get_ilk]
+      rw [endCashStoreAmt, store_get_ne _ _ (by decide +native), endCashStore_get_ilk]
     rw [evalExpr?]
     change EvalResult.ofOption EvalError.unboundVariable ((endCashStoreAmt σ I).get? "ilk") =
       .ok (.fixedBytes bytes32Width (endCashIlkBytes I))
@@ -3701,10 +3701,10 @@ theorem endCashX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (code := endBytecode) (sel := sel)
     (entry := endCashEntryPc) (ret := endCashReturnPc)
     (decoded := endCashDecodedPc) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem endCashBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -4062,8 +4062,8 @@ theorem endCashBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (by
                       simpa [cashTransition] using
                         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none)
-                          (t := []) (dvs := []) rfl (by native_decide)
-                          (by native_decide)))
+                          (t := []) (dvs := []) rfl (by decide +native)
+                          (by decide +native)))
           · rw [not_lt] at hdepthLt
             have hdepthEq : I.depth = 1024 :=
               Fin.ext (by have := I.depth.isLt; omega)
@@ -4100,7 +4100,7 @@ theorem endCashBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   (out := ByteArray.empty)
                   hwv hsz68 hfixSolm hfitSolm hvatCodeSolmNE
                   (by simpa [evmSolm] using hcallSolm)
-            exact (endCashX_fluxCallFailed (g := g) rd9855 (by native_decide))
+            exact (endCashX_fluxCallFailed (g := g) rd9855 (by decide +native))
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · exact endCashBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega) hdispatch hreach
 

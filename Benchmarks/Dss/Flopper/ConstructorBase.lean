@@ -68,11 +68,11 @@ macro "flopper_ctor_decode" : tactic =>
   `(tactic|
     (first
       | rw [Reasoning.Theory.decode_append_left_window
-          flopperCreationBytecode _ _ (by native_decide) (by native_decide)]
+          flopperCreationBytecode _ _ (by decide +native) (by decide +native)]
       | (unfold flopperCtorCode
          rw [Reasoning.Theory.decode_append_left_window
-          flopperCreationBytecode _ _ (by native_decide) (by native_decide)]);
-     native_decide))
+          flopperCreationBytecode _ _ (by decide +native) (by decide +native)]);
+     decide +native))
 
 macro "flopper_ctor_jd" : tactic =>
   `(tactic|
@@ -99,10 +99,10 @@ macro "flopper_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => d
   return acc
 
 theorem flopperCreationBytecode_size : flopperCreationBytecode.size = 5000 := by
-  native_decide
+  decide +native
 
 theorem flopperBytecode_size : flopperBytecode.size = 4780 := by
-  native_decide
+  decide +native
 
 theorem flopperCtorArgsTail_size (vat gem : AccountAddress) :
     (flopperCtorArgsTail vat gem).size = 64 := by
@@ -122,11 +122,11 @@ theorem flopperCtorCode_size (vat gem : AccountAddress) :
 theorem flopperCtorArgLen_eq (vat gem : AccountAddress) :
     (UInt256.ofNat (flopperCtorCode vat gem).size).sub ⟨5000⟩ = (⟨64⟩ : UInt256) := by
   rw [flopperCtorCode_size]
-  native_decide
+  decide +native
 
 theorem flopperCreationBytecode_runtime_window :
     flopperCreationBytecode.extract 220 (220 + 4780) = flopperBytecode := by
-  native_decide
+  decide +native
 
 private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : ℕ)
     (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
@@ -183,7 +183,7 @@ theorem flopperCtorCopiedMem_eq (vat gem : AccountAddress) :
     · rw [solcFreePtrMem_size]
     · exact flopperCreationBytecode_size.symm
     · rw [flopperCtorArgsTail_size]
-      native_decide
+      decide +native
   · decide
   · rw [ByteArray.size_append, flopperCreationBytecode_size, flopperCtorArgsTail_size]
   · rw [solcFreePtrMem_size]
@@ -207,7 +207,7 @@ theorem flopperCtorArgsMem_size (vat gem : AccountAddress) :
   · exact flopperCtorArgsMem_base_size vat gem
   · rw [flopperCtorArgsMem_base_size]
     omega
-  · native_decide
+  · decide +native
 
 private theorem flopperCtorArgsTail_extract_first (vat gem : AccountAddress) :
     (flopperCtorArgsTail vat gem).extract 0 32 =

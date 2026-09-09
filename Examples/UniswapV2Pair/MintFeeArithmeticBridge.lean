@@ -117,7 +117,7 @@ theorem mintFeeLiquidityInt_not_pos_of_totalSupply_zero
     simp [mintFeeNumeratorNat, htotal]
   have hnumWord : mintFeeNumeratorWord evm rootK rootKLast = ⟨0⟩ := by
     rw [mintFeeNumeratorWord, hnumNat]
-    native_decide
+    decide +native
   have hnumToNat : (mintFeeNumeratorWord evm rootK rootKLast).toNat = 0 := by
     rw [hnumWord]
     rfl

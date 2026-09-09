@@ -250,10 +250,10 @@ theorem RD.uniswapUpdateElapsedZeroSkipsCumulatives {g : Sat256} {s0 : State}
         reserve1 :: reserve0 :: balance1 :: balance0 :: R)
       mem aw rdata acc k' C' := by
   have rd7063 := evm_run h with [jumpdest, push1 ⟨8⟩]
-  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by native_decide)
+  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd7069 := evm_run rd7064 with [push4 ⟨4294967295⟩]
-  have rd7070 := RD.timestamp rd7069 (by native_decide) (by evm_ov)
+  have rd7070 := RD.timestamp rd7069 (by decide +native) (by evm_ov)
   have rd7091₀ := evm_run rd7070 with [
     dup2, and, swap2, push1 ⟨1⟩, push1 ⟨224⟩, shl, swap1, div, dup2, and,
     dup3, sub, swap1, dup2, and, iszero, dup1, iszero, swap1, push2 ⟨7108⟩]
@@ -313,10 +313,10 @@ theorem RD.uniswapUpdateReserve0ZeroSkipsCumulatives {g : Sat256} {s0 : State}
         ⟨0⟩ := by
     simpa [reserve112Mask, reserve112Shift] using hreserve0Zero
   have rd7063 := evm_run h with [jumpdest, push1 ⟨8⟩]
-  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by native_decide)
+  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd7069 := evm_run rd7064 with [push4 ⟨4294967295⟩]
-  have rd7070 := RD.timestamp rd7069 (by native_decide) (by evm_ov)
+  have rd7070 := RD.timestamp rd7069 (by decide +native) (by evm_ov)
   have rd7091₀ := evm_run rd7070 with [
     dup2, and, swap2, push1 ⟨1⟩, push1 ⟨224⟩, shl, swap1, div, dup2, and,
     dup3, sub, swap1, dup2, and, iszero, dup1, iszero, swap1, push2 ⟨7108⟩]
@@ -393,10 +393,10 @@ theorem RD.uniswapUpdateReserve1ZeroSkipsCumulatives {g : Sat256} {s0 : State}
         ⟨0⟩ := by
     simpa [reserve112Mask, reserve112Shift] using hreserve1Zero
   have rd7063 := evm_run h with [jumpdest, push1 ⟨8⟩]
-  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by native_decide)
+  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd7069 := evm_run rd7064 with [push4 ⟨4294967295⟩]
-  have rd7070 := RD.timestamp rd7069 (by native_decide) (by evm_ov)
+  have rd7070 := RD.timestamp rd7069 (by decide +native) (by evm_ov)
   have rd7091₀ := evm_run rd7070 with [
     dup2, and, swap2, push1 ⟨1⟩, push1 ⟨224⟩, shl, swap1, div, dup2, and,
     dup3, sub, swap1, dup2, and, iszero, dup1, iszero, swap1, push2 ⟨7108⟩]
@@ -443,7 +443,7 @@ theorem RD.uniswapUpdateStorePackedReserves {g : Sat256} {s0 : State}
           balance0))
       k' C' := by
   have rd7244 := evm_run h with [jumpdest, push1 ⟨8⟩, dup1]
-  obtain ⟨_, _, rd7246⟩ := rd7244.sload (by native_decide)
+  obtain ⟨_, _, rd7246⟩ := rd7244.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd7261 := rd7246.pushConst reserve112Mask (width := 14) (op := .PUSH14)
     (by decide) (by decide) (by evm_ov)
@@ -459,7 +459,7 @@ theorem RD.uniswapUpdateStorePackedReserves {g : Sat256} {s0 : State}
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨224⟩, shl, sub, and,
     push1 ⟨1⟩, push1 ⟨224⟩, shl, push4 ⟨4294967295⟩, dup8, and, mul,
     or, swap3, dup4, swap1]
-  obtain ⟨_, _, rd7339⟩ := rd7338.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd7339⟩ := rd7338.sstore hperm (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by
     simpa [uniswapUpdatePackedReserveWord, uniswapSlotWord, reserve112Shift, reserve112Mask,

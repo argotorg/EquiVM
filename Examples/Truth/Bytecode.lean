@@ -48,4 +48,4 @@ axiom truthSelectorBytes :
 @[valid_jumps] theorem truthValidJumps :
     Ethereum.EVM.D_J truthBytecode 0
       = #[⟨14⟩, ⟨38⟩, ⟨42⟩, ⟨48⟩, ⟨59⟩, ⟨68⟩, ⟨76⟩, ⟨87⟩, ⟨94⟩, ⟨100⟩, ⟨117⟩]
-  := by native_decide
+  := by decide +native

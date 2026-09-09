@@ -253,7 +253,7 @@ theorem zeroes_zero {n : Nat} (hn : n = 0) : ffi.ByteArray.zeroes n = ByteArray.
 
 theorem zero_toByteArray_eq_zeroes32 :
     UInt256.toByteArray (⟨0⟩ : UInt256) = ffi.ByteArray.zeroes 32 := by
-  native_decide
+  decide +native
 
 /-- Reading zero bytes with padding returns the empty bytearray. -/
 theorem byteArray_readWithPadding_zero (mem : ByteArray) (addr : ℕ) :

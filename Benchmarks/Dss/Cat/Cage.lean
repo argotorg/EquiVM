@@ -33,7 +33,7 @@ theorem catDispatch_cage {I : ExecutionEnv}
     rcases ht with rfl | rfl
     all_goals
       simp [selectorOf, biteSelectorBytes, boxSelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, cageSelectorBytes]
     exact hsel
 
@@ -52,25 +52,25 @@ theorem catReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : catSelWord I = ⟨1763987465⟩ :=
     catSelWord_eq_of_beq I hsz 0x69 0x24 0x50 0x09 ⟨1763987465⟩
-      (by native_decide) hsel
+      (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat catBytecode catLowSplitPc) (catSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catLowHighFirstArmPc j))
         (catSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catLowHighFirstArmPc 2))
         (catSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact catReachLowHighBody 2 (by omega) ⟨483⟩ hcode hwv hsz hsize hroot hlow heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 /-! ### Body core -/
 
@@ -97,8 +97,8 @@ theorem catCageBodyCore
       RD catBytecode I (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2833⟩ (⟨302⟩ :: [sel])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) _ _ :=
-    (((hentry.jumpdest (by native_decide) (by evm_ov)).push2 ⟨302⟩ (by native_decide) (by evm_ov)).push2
-        ⟨2833⟩ (by native_decide) (by evm_ov)).jump (by native_decide) (by jump_dest) (by evm_ov)
+    (((hentry.jumpdest (by decide +native) (by evm_ov)).push2 ⟨302⟩ (by decide +native) (by evm_ov)).push2
+        ⟨2833⟩ (by decide +native) (by evm_ov)).jump (by decide +native) (by jump_dest) (by evm_ov)
   by_cases hauthEvm : catSlotWord callerSlot σ_evm I = ⟨1⟩
   · have hauthSolm : catSlotWord callerSlot σ_solm I = ⟨1⟩ := by
       rw [← hcallerWord]
@@ -149,21 +149,21 @@ theorem catCageBodyCore
       hauthReach
       (by
         unfold catAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by jump_dest) (by simp)
     obtain ⟨_, _, hretPc⟩ := RD.catStoreLiveZero
       (code := catBytecode) (pc := ⟨2922⟩) (ret := ⟨302⟩) (R := [sel])
       hokPc
       (by
         unfold catStoreLiveZeroWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by jump_dest) hperm (by simp)
-    have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+    have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
     have hret :
         RDret catBytecode (Sat256.ofUInt256 g)
           (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
           (cA, sstoreAccountMap I.codeOwner σ_evm ⟨2⟩ ⟨0⟩) ByteArray.empty :=
-      RD.stop hretPc' (by native_decide) (by simp)
+      RD.stop hretPc' (by decide +native) (by simp)
     have hcreated :
         (cA, sstoreAccountMap I.codeOwner σ_evm ⟨2⟩ ⟨0⟩).1 = evm1.createdAccounts := by
       simp [evm1, evm0, initState, storageStore_createdAccounts]
@@ -174,7 +174,7 @@ theorem catCageBodyCore
         accountMapEquiv_sstoreAccountMap I.codeOwner ⟨2⟩ ⟨0⟩ hAccounts
     have henc : returnEquiv ByteArray.empty none cageTransition.returnType := by
       rw [show cageTransition.returnType = [] by rfl]
-      exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+      exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
     exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
       hcreated haccounts henc
   · have hauthSolm : catSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
@@ -203,10 +203,10 @@ theorem catCageBodyCore
       hauthReach
       (by
         unfold catAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by
         unfold solcErrorStringRevertTailWf catAuthTailPc catNotAuthorizedRawWord
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -219,7 +219,7 @@ theorem catCageBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩ (by native_decide) hsel
+    calldata_size_ge_of_selIs I ⟨#[0x69, 0x24, 0x50, 0x09]⟩ (by decide +native) hsel
   exact catCageBodyCore hcode hwv hperm (catDispatch_cage hsel)
     (catDecode_cage hsz)
     (catReachCageBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel)

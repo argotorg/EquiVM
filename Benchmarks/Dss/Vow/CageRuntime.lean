@@ -1066,7 +1066,7 @@ theorem RD.vowCageFirstDaiPostCallDecodeOk
         ¬ ((⟨128⟩ : UInt256).toNat ≥ (outDai.write 0 base 128 32).size
             ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
       rw [hmemWrite]
-      native_decide
+      decide +native
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
       returnWrite_read128_32 outDai hbase ho32]
   obtain ⟨k', C', rd2795Raw⟩ :=

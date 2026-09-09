@@ -14,7 +14,7 @@ abbrev daiJoinRadWord (wad : UInt256) : UInt256 :=
 
 theorem daiJoinONEWord_toNat :
     daiJoinONEWord.toNat = 1000000000000000000000000000 := by
-  native_decide
+  decide +native
 
 theorem daiJoinONE_eq_ONEWord_toNat :
     ONE = Int.ofNat daiJoinONEWord.toNat := by
@@ -542,7 +542,7 @@ theorem daiJoinMulRoutine_shape :
     (D_J daiJoinBytecode 0).contains ⟨1705⟩ = true ∧
     (D_J daiJoinBytecode 0).contains ⟨1702⟩ = true ∧
     (D_J daiJoinBytecode 0).contains ⟨1714⟩ = true := by
-  and_intros <;> native_decide
+  and_intros <;> decide +native
 
 theorem daiJoinMulRoutine_revert_shape :
     decode daiJoinBytecode ⟨1678⟩ = some (.JUMPDEST, .none) ∧
@@ -573,6 +573,6 @@ theorem daiJoinMulRoutine_revert_shape :
     decode daiJoinBytecode ⟨1712⟩ = some (.DUP1, .none) ∧
     decode daiJoinBytecode ⟨1713⟩ = some (.REVERT, .none) ∧
     (D_J daiJoinBytecode 0).contains ⟨1702⟩ = true := by
-  and_intros <;> native_decide
+  and_intros <;> decide +native
 
 end Benchmarks.Dss.DaiJoin

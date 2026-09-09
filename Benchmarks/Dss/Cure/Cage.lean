@@ -18,7 +18,7 @@ theorem cureDispatchCage {I : ExecutionEnv}
   unfold transitions
   simp [dispatchList, selectorOf, hcd, cureSelBytes, cureAmtSelectorBytes,
     cureCageSelectorBytes]
-  native_decide
+  decide +native
 
 theorem cureDecode_cage {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (cageTransition.params.map Param.name)
@@ -326,13 +326,13 @@ theorem cureReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x69245009⟩ :=
     cureSelWord_eq_of_beq I hsz 0x69 0x24 0x50 0x09 ⟨0x69245009⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h114⟩ := cureReachMidLowFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨632⟩ 0 h114 (fun j hj => cureMidLowArmsWellFormed j (by omega))
     (fun j hj => by omega)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 @[reducible] def solcNoArgsExternalEntryWf
     (code : ByteArray) (pc ret routine : UInt256) : Prop :=
@@ -449,7 +449,7 @@ theorem evalExpr_cageWaitAfterLiveStore {cA gh bl σ σ₀ A I} {g : Sat256}
           Solm.EVM.storageLoad evm0 evm0.executionEnv.codeOwner ⟨3⟩ := by
       simpa [evmLive, evm0, initState, storageStore_executionEnv] using
         storageLoad_storageStore_ne evm0 I.codeOwner (readSlot := ⟨3⟩)
-          (writeSlot := ⟨1⟩) (val := ⟨0⟩) (by native_decide)
+          (writeSlot := ⟨1⟩) (val := ⟨0⟩) (by decide +native)
     rw [hload]
     simp [cageWaitWord, cureSlotWord, solcSlotWord, evm0, initState, Solm.EVM.storageLoad,
       State.lookupAccount, Account.lookupStorage]
@@ -693,7 +693,7 @@ theorem cureCageReachAfterLiveStore {cA gh bl σ σ₀ A I} {g : UInt256}
     hbodyEntry
     (by
       unfold solcNoArgsExternalEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
   have hauthSolc :
       solcSlotWord σ I (solcMappingSlot ⟨0⟩ (solcSourceWord I)) = ⟨1⟩ := by
@@ -704,7 +704,7 @@ theorem cureCageReachAfterLiveStore {cA gh bl σ σ₀ A I} {g : UInt256}
     (by simpa using hentry)
     (by
       unfold cureAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ I ⟨1⟩ = ⟨1⟩ := by
     simpa [cureSlotWord] using hlive
@@ -714,14 +714,14 @@ theorem cureCageReachAfterLiveStore {cA gh bl σ σ₀ A I} {g : UInt256}
     hafterAuth
     (by
       unfold cureLiveGuardWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hliveSolc (by jump_dest) (by simp)
   obtain ⟨_, _, hafterStore⟩ := RD.cureCageLiveStore
     (code := cureBytecode) (pc := ⟨2736⟩) (ret := ⟨484⟩) (R := [cureSelWord I])
     hafterLive
     (by
       unfold cureCageLiveStoreWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hperm (by simp)
   exact ⟨_, _, by simpa [cureCageLiveStoreOutPc] using hafterStore⟩
 
@@ -748,19 +748,19 @@ theorem RD.cureCageSuccessTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         cageWaitWord σ I := by
     simpa [cageWaitWord, cureSlotWord, solcSlotWord] using
       sstoreAccountMap_storage_findD_ne σ I.codeOwner ⟨3⟩ ⟨1⟩ ⟨0⟩
-        (by native_decide)
+        (by decide +native)
   have rd2744 := evm_run h with [
-    raw push1 ⟨3⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2745₀⟩ := rd2744.sload (by native_decide) (by simp)
+    raw push1 ⟨3⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2745₀⟩ := rd2744.sload (by decide +native) (by simp)
   have rd2745 := rd2745₀
   rw [hwaitLive] at rd2745
   have rd2754 := evm_run rd2745 with [
-    raw push2 ⟨2755⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw timestamp (by native_decide) (by simp),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push2 ⟨3749⟩ (by native_decide) (by evm_ov)]
-  have rd3749 := rd2754.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨2755⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw timestamp (by decide +native) (by simp),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push2 ⟨3749⟩ (by decide +native) (by evm_ov)]
+  have rd3749 := rd2754.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd2755⟩ := RD.solcCheckedAddSuccess
       (code := cureBytecode) (ee := I) (g := g) (s0 := s0)
       (pc := ⟨3749⟩) (okPc := ⟨3743⟩) (a := cageTimestampWord I)
@@ -768,16 +768,16 @@ theorem RD.cureCageSuccessTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       rd3749
       (by
         unfold solcCheckedAddSuccessWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hfit (by jump_dest) (by jump_dest) (by simp)
   have hsum :
       cageTimestampWord I + cageWaitWord σ I = cageWhenWord σ I := by
     rfl
   rw [hsum] at rd2755
   have rd2758 := evm_run rd2755 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2759⟩ := rd2758.sstore hperm (by native_decide) (by simp)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2759⟩ := rd2758.sstore hperm (by decide +native) (by simp)
   have hmem : mem.size = 96 := by
     simpa [mem] using twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩
       solcFreePtrMem_size
@@ -792,20 +792,20 @@ theorem RD.cureCageSuccessTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         = ⟨128⟩ :=
     mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
   have rd2761 := evm_run rd2759 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov)]
-  have rd2762 := rd2761.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
-    mem_cost hmload64 (by native_decide) (by evm_ov)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov)]
+  have rd2762 := rd2761.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
+    mem_cost hmload64 (by decide +native) (by evm_ov)
   have rd2795 := rd2762.pushConst cureCageEventTopic
-    (op := .PUSH32) (width := 32) (by decide) (by native_decide) (by evm_ov)
+    (op := .PUSH32) (width := 32) (by decide) (by decide +native) (by evm_ov)
   have rd2799 := evm_run rd2795 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd2800 := RD.log1 0 (UInt256.ofNat 3) rd2799
-    (by native_decide) hperm mem_cost (by native_decide) (by evm_ov)
-  have rd2801 := rd2800.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rdStop := rd2801.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rdStop (by native_decide) (by evm_ov)
+    (by decide +native) hperm mem_cost (by decide +native) (by evm_ov)
+  have rd2801 := rd2800.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rdStop := rd2801.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rdStop (by decide +native) (by evm_ov)
 
 theorem RD.cureCageAddRevertTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
@@ -823,19 +823,19 @@ theorem RD.cureCageAddRevertTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         cageWaitWord σ I := by
     simpa [cageWaitWord, cureSlotWord, solcSlotWord] using
       sstoreAccountMap_storage_findD_ne σ I.codeOwner ⟨3⟩ ⟨1⟩ ⟨0⟩
-        (by native_decide)
+        (by decide +native)
   have rd2744 := evm_run h with [
-    raw push1 ⟨3⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2745₀⟩ := rd2744.sload (by native_decide) (by simp)
+    raw push1 ⟨3⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2745₀⟩ := rd2744.sload (by decide +native) (by simp)
   have rd2745 := rd2745₀
   rw [hwaitLive] at rd2745
   have rd2754 := evm_run rd2745 with [
-    raw push2 ⟨2755⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw timestamp (by native_decide) (by simp),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push2 ⟨3749⟩ (by native_decide) (by evm_ov)]
-  have rd3749 := rd2754.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨2755⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw timestamp (by decide +native) (by simp),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push2 ⟨3749⟩ (by decide +native) (by evm_ov)]
+  have rd3749 := rd2754.jump (by decide +native) (by jump_dest) (by evm_ov)
   have hmem : mem.size = 96 := by
     simpa [mem] using twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩
       solcFreePtrMem_size
@@ -856,10 +856,10 @@ theorem RD.cureCageAddRevertTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     rd3749
     (by
       unfold solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcErrorStringRevertTailWf solcCheckedArithmeticRevertPc
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide)
     hover
     (by rfl)
@@ -892,7 +892,7 @@ theorem cureCageBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     hbodyEntry
     (by
       unfold solcNoArgsExternalEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
   have hcallerWord : cureSlotWord callerSlot σ_evm I = cureSlotWord callerSlot σ_solm I :=
     accountMapEquiv_storage_findD hAccounts I.codeOwner callerSlot ⟨0⟩
@@ -913,7 +913,7 @@ theorem cureCageBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       (by simpa [sel] using hentry)
       (by
         unfold cureAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by jump_dest) (by simp)
     by_cases hliveEvm : cureSlotWord ⟨1⟩ σ_evm I = ⟨1⟩
     · have hliveSolm : cureSlotWord ⟨1⟩ σ_solm I = ⟨1⟩ := by
@@ -961,7 +961,7 @@ theorem cureCageBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               ⟨1⟩ ⟨0⟩ ⟨4⟩ (cageWhenWord σ_evm I) hAccounts
         have henc : returnEquiv ByteArray.empty none cageTransition.returnType := by
           rw [show cageTransition.returnType = [] by rfl]
-          exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+          exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
         exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
           hcreated haccounts henc
       · have hoverEvm :
@@ -1027,10 +1027,10 @@ theorem cureCageBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         (key := ⟨484⟩) (ret := sel) (R := []) hafterAuth
         (by
           unfold cureLiveGuardWf
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         (by
           unfold solcErrorStringRevertTailWf cureLiveGuardTailPc cureNotLiveRawWord
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         hliveSolc hmemAuth hread64 (by simp)
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hauthSolm : cureSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
@@ -1064,10 +1064,10 @@ theorem cureCageBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       (by simpa [sel] using hentry)
       (by
         unfold cureAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by
         unfold solcErrorStringRevertTailWf cureAuthTailPc cureNotAuthorizedRawWord
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

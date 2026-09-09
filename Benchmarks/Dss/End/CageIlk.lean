@@ -196,8 +196,8 @@ theorem endCageIlkVatIlksPostCallMem_size_long (I : ExecutionEnv) (out : ByteArr
     (hlo : 160 ≤ out.size) :
     (endCageIlkVatIlksPostCallMem I out).size = 288 := by
   unfold endCageIlkVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   rw [Nat.min_eq_left hlo]
   rw [write_eq_gen_extend out (endCageIlkVatIlksCalldataMem I) 128 160
     (by omega) (by omega)
@@ -222,8 +222,8 @@ theorem endCageIlkVatIlksPostCallMem_read64_long (I : ExecutionEnv) (out : ByteA
     (endCageIlkVatIlksPostCallMem I out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endCageIlkVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   rw [Nat.min_eq_left hlo]
   rw [write_read_below_gen_extend out (endCageIlkVatIlksCalldataMem I)
     128 160 64 (by omega) (by omega)
@@ -255,8 +255,8 @@ theorem endCageIlkVatIlksPostCallMem_mload64_long (I : ExecutionEnv) (out : Byte
 theorem endCageIlkVatIlksPostCallMem_size_gt64 (I : ExecutionEnv) (out : ByteArray) :
     64 < (endCageIlkVatIlksPostCallMem I out).size := by
   unfold endCageIlkVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   by_cases hlen0 : min 160 out.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     rw [endCageIlkVatIlksCalldataMem, endCageIlkTagHashMem]
@@ -313,8 +313,8 @@ theorem endCageIlkVatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray)
     (endCageIlkVatIlksPostCallMem I out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endCageIlkVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   by_cases hlen0 : min 160 out.size = 0
   · rw [hlen0, byteArray_write_len_zero]
     rw [endCageIlkVatIlksCalldataMem, endCageIlkTagHashMem]
@@ -329,7 +329,7 @@ theorem endCageIlkVatIlksPostCallMem_read64 (I : ExecutionEnv) (out : ByteArray)
         rw [endFlowVatIlksCalldataMem_size I
           (twoWordHashMem_size_96 (endCageIlkIlkWord I) ⟨12⟩ solcFreePtrMem_size)]
         omega)
-      (by native_decide)]
+      (by decide +native)]
     rw [endCageIlkVatIlksCalldataMem, endCageIlkTagHashMem]
     exact endFlowVatIlksCalldataMem_read64 I
       (twoWordHashMem_size_96 (endCageIlkIlkWord I) ⟨12⟩ solcFreePtrMem_size)
@@ -352,8 +352,8 @@ theorem endCageIlkVatIlksPostCallMem_read128_long (I : ExecutionEnv) (out : Byte
     (hlo : 160 ≤ out.size) :
     (endCageIlkVatIlksPostCallMem I out).readWithPadding 128 32 = out.extract 0 32 := by
   unfold endCageIlkVatIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
-    show endFlowVatIlksOutSize.toNat = 160 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
+    show endFlowVatIlksOutSize.toNat = 160 by decide +native]
   rw [Nat.min_eq_left hlo]
   rw [write_eq_gen_extend out (endCageIlkVatIlksCalldataMem I) 128 160
     (by omega) (by omega)
@@ -409,7 +409,7 @@ theorem endCageIlkVatIlksPostCallMem_mload128_long (I : ExecutionEnv) (out : Byt
         128 32)) = UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))
     rw [endCageIlkVatIlksPostCallMem_read128_long I out hlo]
   · exact not_or.mpr
-      ⟨by rw [endCageIlkVatIlksPostCallMem_size_long I out hlo]; decide, by native_decide⟩
+      ⟨by rw [endCageIlkVatIlksPostCallMem_size_long I out hlo]; decide, by decide +native⟩
 
 theorem endCageIlkArtHashMem_size_long (I : ExecutionEnv) (vatOut : ByteArray)
     (hlo : 160 ≤ vatOut.size) :
@@ -466,11 +466,11 @@ theorem endCageIlkSpotIlksCalldataMem_read64_long (I : ExecutionEnv) (vatOut : B
     exact toByteArray_write32_size_of_le (endCageIlkArtHashMem I vatOut)
       endFlowVatIlksSelectorShifted 128 288 288 hhashSize (by omega) (by omega)
   unfold endCageIlkSpotIlksCalldataMem endFlowVatIlksCalldataMem endFlowVatIlksArg0Mem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   rw [write32_read_below _ _ 132 64 (by rw [toByteArray_size])
     (by rw [hselectorSize]; omega) (by omega)]
   unfold endFlowVatIlksSelectorMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native]
   rw [toByteArray_write_read_below_of_gap endFlowVatIlksSelectorShifted
     (endCageIlkArtHashMem I vatOut) 128 64
     (by rw [hhashSize]; norm_num) (by omega) (by rw [hhashSize]; norm_num)]
@@ -486,16 +486,16 @@ theorem endCageIlkSpotIlksCalldataMem_read128_4
     exact toByteArray_write32_size_of_le (endCageIlkArtHashMem I vatOut)
       endFlowVatIlksSelectorShifted 128 288 288 hhashSize (by omega) (by omega)
   unfold endCageIlkSpotIlksCalldataMem endFlowVatIlksCalldataMem endFlowVatIlksArg0Mem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   rw [write32_read_below_len _ _ 132 128 4 (by rw [toByteArray_size])
     (by rw [hselectorSize]; omega) (by omega) (by rw [hselectorSize]; omega)
     (by omega) (by norm_num)]
   unfold endFlowVatIlksSelectorMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native]
   rw [write32_read_prefix_len _ _ 128 4 (by rw [toByteArray_size])
     (by rw [hhashSize]; omega) (by omega) (by omega) (by norm_num)]
   unfold endFlowVatIlksSelectorShifted ilksSelector selectorBytes
-  native_decide
+  decide +native
 
 theorem endCageIlkSpotIlksCalldataMem_read132_32
     (I : ExecutionEnv) (vatOut : ByteArray) (hlo : 160 ≤ vatOut.size) :
@@ -508,7 +508,7 @@ theorem endCageIlkSpotIlksCalldataMem_read132_32
     exact toByteArray_write32_size_of_le (endCageIlkArtHashMem I vatOut)
       endFlowVatIlksSelectorShifted 128 288 288 hhashSize (by omega) (by omega)
   unfold endCageIlkSpotIlksCalldataMem endFlowVatIlksCalldataMem endFlowVatIlksArg0Mem
-  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by native_decide]
+  rw [show (endFlowVatIlksOutPtr + ⟨4⟩).toNat = 132 by decide +native]
   rw [write32_read_back _ _ 132 (by rw [toByteArray_size])
     (by rw [hselectorSize]; omega)]
   rw [toByteArray_extract_all]
@@ -553,7 +553,7 @@ theorem endCageIlkSpotIlksPostCallMem_size (I : ExecutionEnv)
     (hout : spotOut.size < UInt256.size) :
     (endCageIlkSpotIlksPostCallMem I vatOut spotOut).size = 288 := by
   unfold endCageIlkSpotIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
     endCageIlkSpotIlksWriteLen_eq hout]
   by_cases hlen0 : min 64 spotOut.size = 0
   · rw [hlen0, byteArray_write_len_zero, endCageIlkSpotIlksCalldataMem_size_long I vatOut hvat]
@@ -572,7 +572,7 @@ theorem endCageIlkSpotIlksPostCallMem_read64 (I : ExecutionEnv)
     (endCageIlkSpotIlksPostCallMem I vatOut spotOut).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endCageIlkSpotIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
     endCageIlkSpotIlksWriteLen_eq hout]
   by_cases hlen0 : min 64 spotOut.size = 0
   · rw [hlen0, byteArray_write_len_zero]
@@ -580,7 +580,7 @@ theorem endCageIlkSpotIlksPostCallMem_read64 (I : ExecutionEnv)
   · rw [write_read_below_gen spotOut (endCageIlkSpotIlksCalldataMem I vatOut)
       128 (min 64 spotOut.size) 64 hlen0 (Nat.min_le_right _ _)
       (by rw [endCageIlkSpotIlksCalldataMem_size_long I vatOut hvat]; omega)
-      (by native_decide)]
+      (by decide +native)]
     exact endCageIlkSpotIlksCalldataMem_read64_long I vatOut hvat
 
 theorem endCageIlkSpotIlksPostCallMem_read128 (I : ExecutionEnv)
@@ -589,7 +589,7 @@ theorem endCageIlkSpotIlksPostCallMem_read128 (I : ExecutionEnv)
     (endCageIlkSpotIlksPostCallMem I vatOut spotOut).readWithPadding 128 32 =
       spotOut.extract 0 32 := by
   unfold endCageIlkSpotIlksPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
     endCageIlkSpotIlksWriteLen_eq hout, show min 64 spotOut.size = 64 from Nat.min_eq_left hlo]
   rw [write_eq_gen spotOut (endCageIlkSpotIlksCalldataMem I vatOut) 128 64
     (by decide) (by omega)
@@ -648,7 +648,7 @@ theorem endCageIlkNoArgCalldataMem_size {selectorShifted mem : ByteArray}
     (hselector : selectorShifted.size = 32) (hmem : mem.size = 288) :
     (endCageIlkNoArgCalldataMem selectorShifted mem).size = 288 := by
   unfold endCageIlkNoArgCalldataMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native]
   rw [write_eq_gen selectorShifted mem 128 32 (by decide)
     (by rw [hselector]) (by rw [hmem]; decide)]
   rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
@@ -661,7 +661,7 @@ theorem endCageIlkNoArgCalldataMem_read64 {selectorShifted mem : ByteArray}
     (endCageIlkNoArgCalldataMem selectorShifted mem).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endCageIlkNoArgCalldataMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native]
   rw [write32_read_below selectorShifted mem 128 64 (by rw [hselector])
     (by rw [hmem]; omega) (by omega), hread64]
 
@@ -670,7 +670,7 @@ theorem endCageIlkNoArgCalldataMem_read128_4 {selectorShifted mem : ByteArray}
     (endCageIlkNoArgCalldataMem selectorShifted mem).readWithPadding 128 4 =
       selectorShifted.extract 0 4 := by
   unfold endCageIlkNoArgCalldataMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide]
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native]
   exact write32_read_prefix_len selectorShifted mem 128 4
     (by rw [hselector]) (by rw [hmem]; omega) (by omega) (by omega) (by omega)
 
@@ -713,7 +713,7 @@ theorem endCageIlkParCalldataMem_read128_4 (I : ExecutionEnv)
   unfold endCageIlkParCalldataMem
   rw [endCageIlkNoArgCalldataMem_read128_4 hselector hmem]
   unfold endCageIlkParSelectorWord parSelector selectorBytes
-  native_decide
+  decide +native
 
 theorem endCageIlkParEncode_eq (I : ExecutionEnv) (vatOut spotOut : ByteArray)
     (hvat : 160 ≤ vatOut.size) (hspot : spotOut.size < UInt256.size) :
@@ -755,7 +755,7 @@ theorem endCageIlkNoArgPostCallMem_size {selectorShifted mem out : ByteArray}
     (hout : out.size < UInt256.size) :
     (endCageIlkNoArgPostCallMem selectorShifted mem out).size = 288 := by
   unfold endCageIlkNoArgPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
     endCageIlkNoArgWriteLen_eq hout]
   by_cases hlen0 : min 32 out.size = 0
   · rw [hlen0, byteArray_write_len_zero,
@@ -776,7 +776,7 @@ theorem endCageIlkNoArgPostCallMem_read64 {selectorShifted mem out : ByteArray}
     (endCageIlkNoArgPostCallMem selectorShifted mem out).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
   unfold endCageIlkNoArgPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
     endCageIlkNoArgWriteLen_eq hout]
   by_cases hlen0 : min 32 out.size = 0
   · rw [hlen0, byteArray_write_len_zero]
@@ -784,7 +784,7 @@ theorem endCageIlkNoArgPostCallMem_read64 {selectorShifted mem out : ByteArray}
   · rw [write_read_below_gen out (endCageIlkNoArgCalldataMem selectorShifted mem)
       128 (min 32 out.size) 64 hlen0 (Nat.min_le_right _ _)
       (by rw [endCageIlkNoArgCalldataMem_size hselector hmem]; omega)
-      (by native_decide)]
+      (by decide +native)]
     exact endCageIlkNoArgCalldataMem_read64 hselector hmem hread64
 
 theorem endCageIlkReadCalldataMem_read128_4 (I : ExecutionEnv)
@@ -808,7 +808,7 @@ theorem endCageIlkReadCalldataMem_read128_4 (I : ExecutionEnv)
   unfold endCageIlkReadCalldataMem
   rw [endCageIlkNoArgCalldataMem_read128_4 hreadSelectorSize hbaseSize]
   unfold endCageIlkReadSelectorRaw readSelector selectorBytes
-  native_decide
+  decide +native
 
 theorem endCageIlkReadEncode_eq (I : ExecutionEnv)
     (vatOut spotOut parOut : ByteArray) (hvat : 160 ≤ vatOut.size)
@@ -827,7 +827,7 @@ theorem endCageIlkNoArgPostCallMem_read128 {selectorShifted mem out : ByteArray}
     (endCageIlkNoArgPostCallMem selectorShifted mem out).readWithPadding 128 32 =
       out.extract 0 32 := by
   unfold endCageIlkNoArgPostCallMem
-  rw [show endFlowVatIlksOutPtr.toNat = 128 by native_decide,
+  rw [show endFlowVatIlksOutPtr.toNat = 128 by decide +native,
     endCageIlkNoArgWriteLen_eq hout, show min 32 out.size = 32 from Nat.min_eq_left hlo]
   rw [write_eq_gen out (endCageIlkNoArgCalldataMem selectorShifted mem) 128 32
     (by decide) (by omega)
@@ -989,7 +989,7 @@ theorem endCageIlkReadDecode_ok {out : ByteArray} (hlo : 32 ≤ out.size) :
   change Option.map (fun v => [v])
       (ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 abiBytes32 out) = _
   unfold ABI.decodeReturnValueWithMode? ABI.decodeReturnValuesWithMode?
-  rw [show abiTupleHeadSize? [abiBytes32] = some 32 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32] = some 32 by decide +native]
   simp only [bind, Option.bind]
   have hlen : out.toList.length = out.size := by
     rw [byteArray_toList_eq, Array.length_toList]
@@ -1012,55 +1012,55 @@ theorem RD.endCageIlkTagDefinedRevert {g : Sat256} {s0 : State} {ee : ExecutionE
     (hov : stk.length + 5 ≤ 1024) :
     RDrev endBytecode g s0 := by
   have rdMload := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨27⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨27⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 ⟨27⟩ mem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst endCageIlkTagDefinedRawWord
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem3 ⟨27⟩ endCageIlkTagDefinedRawWord mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨27⟩ endCageIlkTagDefinedRawWord hmem hread64)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 theorem endDecode_cageIlk_ok {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (cageIlkTransition.params.map Param.name)
@@ -1088,27 +1088,27 @@ theorem endReachCageIlkBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : endSelWord I = ⟨0xe2702fdc⟩ :=
     endSelWord_eq_of_beq I hsz 0xe2 0x70 0x2f 0xdc ⟨0xe2702fdc⟩
-      (by native_decide)
+      (by decide +native)
       (by simpa [selIs, endCageIlkConcreteSelector, selectorBytes] using hsel)
   obtain ⟨_, _, hfirst⟩ :=
     endReachGroup114FirstArm (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
-      (by rw [hword]; native_decide)
-      (by rw [hword]; native_decide)
-      (by rw [hword]; native_decide)
+      (by rw [hword]; decide +native)
+      (by rw [hword]; decide +native)
+      (by rw [hword]; decide +native)
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup114FirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endGroup114FirstArmPc 2))
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo endCageIlkEntryPc 2 hfirst
     (fun j hj => endGroup114ArmsWellFormed j (by omega))
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem endCageIlkX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -1122,15 +1122,15 @@ theorem endCageIlkX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := endBytecode) (sel := sel) (entry := endCageIlkEntryPc)
     (ret := endCageIlkReturnPc) (decoded := endCageIlkDecodedPc) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcOneWordExternalJump
     (code := endBytecode) (decoded := endCageIlkDecodedPc) (ret := endCageIlkReturnPc)
     (routine := endCageIlkBodyPc) (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [endCageIlkIlkWord, calldataWord] using hroutine⟩
 
 theorem endCageIlkX_liveNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -1141,9 +1141,9 @@ theorem endCageIlkX_liveNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have rd8835 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd8836raw⟩ := rd8835.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨8⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd8836raw⟩ := rd8835.sload (by decide +native) (by evm_ov)
   have rd8836 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨8836⟩
         (endCageIlkLiveWord σ I :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
@@ -1151,13 +1151,13 @@ theorem endCageIlkX_liveNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     exact ⟨_, _, by
       simpa [endCageIlkLiveWord, endSlotWord, solcSlotWord] using rd8836raw⟩
   obtain ⟨_, _, rd8836⟩ := rd8836
-  have rd8837raw := rd8836.iszero (by native_decide) (by evm_ov)
+  have rd8837raw := rd8836.iszero (by decide +native) (by evm_ov)
   have hzero : UInt256.isZero (endCageIlkLiveWord σ I) = ⟨0⟩ :=
     isZero_eq_zero_of_ne hlive
   have rd8837 := rd8837raw
   rw [hzero] at rd8837
-  have rd8840 := rd8837.push2 ⟨8902⟩ (by native_decide) (by evm_ov)
-  have rd8841 := rd8840.jumpiNT (by native_decide)
+  have rd8840 := rd8837.push2 ⟨8902⟩ (by decide +native) (by evm_ov)
+  have rd8841 := rd8840.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨8841⟩) (len := ⟨14⟩)
@@ -1167,7 +1167,7 @@ theorem endCageIlkX_liveNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (by simpa using rd8841)
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) rfl
     solcFreePtrMem_size solcFreePtrMem_read64
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -1185,9 +1185,9 @@ theorem endCageIlkX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
   have hslot : endCageIlkTagSlot I = solcMappingSlot ⟨12⟩ key := by
     simpa [key] using endCageIlkTagSlot_eq (I := I) hsz36
   have rd8835 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd8836raw⟩ := rd8835.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨8⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd8836raw⟩ := rd8835.sload (by decide +native) (by evm_ov)
   have hliveRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
@@ -1199,41 +1199,41 @@ theorem endCageIlkX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
         (⟨0⟩ :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [endCageIlkBodyPc] using rd8836zero⟩
-  have rd8837raw := rd8836.iszero (by native_decide) (by evm_ov)
+  have rd8837raw := rd8836.iszero (by decide +native) (by evm_ov)
   have rd8837 := rd8837raw
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd8837
-  have rd8840 := rd8837.push2 ⟨8902⟩ (by native_decide) (by evm_ov)
-  have rd8902 := rd8840.jumpiT (by native_decide)
+  have rd8840 := rd8837.push2 ⟨8902⟩ (by decide +native) (by evm_ov)
+  have rd8902 := rd8840.jumpiT (by decide +native)
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
   have rd8906pre := evm_run rd8902 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd8907 := rd8906pre.mstore 0 (wordAt0Mem key solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd8912pre := evm_run rd8907 with [
-    raw push1 ⟨12⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨12⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd8913 := rd8912pre.mstore 0 (twoWordHashMem key ⟨12⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd8916pre := evm_run rd8913 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd8917pre := rd8916pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost
+    (UInt256.ofNat 3) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd8918raw⟩ := rd8917pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd8918raw⟩ := rd8917pre.sload (by decide +native) (by evm_ov)
   have rd8918 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨8918⟩
         (endCageIlkTagWord σ I :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
@@ -1245,13 +1245,13 @@ theorem endCageIlkX_tagNonzero {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
       simp [endCageIlkTagWord, endSlotWord]
     exact ⟨_, _, by simpa [htagRaw] using rd8918raw⟩
   obtain ⟨_, _, rd8918⟩ := rd8918
-  have rd8919raw := rd8918.iszero (by native_decide) (by evm_ov)
+  have rd8919raw := rd8918.iszero (by decide +native) (by evm_ov)
   have hzero : UInt256.isZero (endCageIlkTagWord σ I) = ⟨0⟩ :=
     isZero_eq_zero_of_ne htag
   have rd8919 := rd8919raw
   rw [hzero] at rd8919
-  have rd8922 := rd8919.push2 ⟨8999⟩ (by native_decide) (by evm_ov)
-  have rd8923 := rd8922.jumpiNT (by native_decide)
+  have rd8922 := rd8919.push2 ⟨8999⟩ (by decide +native) (by evm_ov)
+  have rd8923 := rd8922.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   obtain ⟨_, _, rdTail⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨8923⟩
@@ -1319,20 +1319,20 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
         endFlowVatIlksSelectorShifted := by
-    native_decide
+    decide +native
   have hvatMask :
       UInt256.land solcAddrMask (endSlotWord ⟨1⟩ σ I) = endPackVatWord σ I := by
     simpa [endPackVatWord, solcAddrMask] using
       u256_land_comm solcAddrMask (endSlotWord ⟨1⟩ σ I)
   have hinSize :
       (UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩) = endFlowVatIlksInSize := by
-    native_decide
+    decide +native
   have hendPtr : ((⟨128⟩ : UInt256) + ⟨36⟩) = endFlowVatIlksEndPtr := by
-    native_decide
+    decide +native
   have rd8835 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd8836raw⟩ := rd8835.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨8⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd8836raw⟩ := rd8835.sload (by decide +native) (by evm_ov)
   have hliveRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨8⟩ ⟨0⟩)) =
         ⟨0⟩ := by
@@ -1344,41 +1344,41 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
         (⟨0⟩ :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [endCageIlkBodyPc] using rd8836zero⟩
-  have rd8837raw := rd8836.iszero (by native_decide) (by evm_ov)
+  have rd8837raw := rd8836.iszero (by decide +native) (by evm_ov)
   have rd8837 := rd8837raw
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd8837
-  have rd8840 := rd8837.push2 ⟨8902⟩ (by native_decide) (by evm_ov)
-  have rd8902 := rd8840.jumpiT (by native_decide)
+  have rd8840 := rd8837.push2 ⟨8902⟩ (by decide +native) (by evm_ov)
+  have rd8902 := rd8840.jumpiT (by decide +native)
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
   have rd8906pre := evm_run rd8902 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd8907 := rd8906pre.mstore 0 (wordAt0Mem key solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd8912pre := evm_run rd8907 with [
-    raw push1 ⟨12⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨12⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd8913 := rd8912pre.mstore 0 (twoWordHashMem key ⟨12⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd8916pre := evm_run rd8913 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((twoWordHashMem key ⟨12⟩ solcFreePtrMem).readWithPadding 0 64))) =
           solcMappingSlot ⟨12⟩ key :=
     twoWordHashMem_solcMappingSlot ⟨12⟩ key solcFreePtrMem_size
   have rd8917pre := rd8916pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
-    (UInt256.ofNat 3) (by native_decide) mem_cost
+    (UInt256.ofNat 3) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd8918raw⟩ := rd8917pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd8918raw⟩ := rd8917pre.sload (by decide +native) (by evm_ov)
   have htagRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun ac => ac.storage.findD (solcMappingSlot ⟨12⟩ key) ⟨0⟩)) = ⟨0⟩ := by
@@ -1395,16 +1395,16 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
         (endCageIlkTagHashMem I) (UInt256.ofNat 3) ByteArray.empty
         (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [endCageIlkTagHashMem, key] using rd8918zero⟩
-  have rd8919raw := rd8918.iszero (by native_decide) (by evm_ov)
+  have rd8919raw := rd8918.iszero (by decide +native) (by evm_ov)
   have rd8919 := rd8919raw
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd8919
-  have rd8922 := rd8919.push2 ⟨8999⟩ (by native_decide) (by evm_ov)
-  have rd8999 := rd8922.jumpiT (by native_decide)
+  have rd8922 := rd8919.push2 ⟨8999⟩ (by decide +native) (by evm_ov)
+  have rd8999 := rd8922.jumpiT (by decide +native)
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
   have rd9002 := evm_run rd8999 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd9003raw⟩ := rd9002.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd9003raw⟩ := rd9002.sload (by decide +native) (by evm_ov)
   have rd9003 : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨9003⟩
         (endSlotWord ⟨1⟩ σ I :: endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
@@ -1412,63 +1412,63 @@ theorem endCageIlkX_vatIlksExtcodesizeGuard {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd9003raw⟩
   obtain ⟨_, _, rd9003⟩ := rd9003
   have rd9065 := evm_run rd9003 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost hmload64Hash (by decide) (by evm_ov),
-    raw push4 ⟨0x6cb1c69b⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨225⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 ⟨0x6cb1c69b⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨225⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (endFlowVatIlksSelectorMem (endCageIlkTagHashMem I)) (UInt256.ofNat 5)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [endFlowVatIlksSelectorMem, endFlowVatIlksOutPtr, endCageIlkTagHashMem,
           hselectorShift])
       (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 3 (endCageIlkVatIlksCalldataMem I) (UInt256.ofNat 6)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [endCageIlkVatIlksCalldataMem, endFlowVatIlksCalldataMem,
           endFlowVatIlksArg0Mem, endFlowVatIlksOutPtr, endCageIlkTagHashMem])
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 endFlowVatIlksSelectorWord (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 endFlowVatIlksSelectorWord (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endFlowVatIlksSelectorMem, endFlowVatIlksArg0Mem,
       endFlowVatIlksCalldataMem, endCageIlkVatIlksCalldataMem, endCageIlkTagHashMem,
@@ -1493,9 +1493,9 @@ theorem endCageIlkX_vatIlksNoCode {cA gh bl σ σ₀ A I} {g : Sat256}
     endCageIlkX_vatIlksExtcodesizeGuard hsz36 hlive htag h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨9065⟩) (okPc := ⟨9077⟩)
     rd9065 hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endCageIlkX_vatIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256} {k C : ℕ}
@@ -1519,9 +1519,9 @@ theorem endCageIlkX_vatIlksCallReady {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨gasWord, k', C', rd9080⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨9065⟩) (okPc := ⟨9077⟩)
       rd9065 hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd9080⟩
 
 theorem endCageIlkX_vatIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1552,7 +1552,7 @@ theorem endCageIlkX_vatIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
           (endCageIlkVatIlksPostCallMem I out) (UInt256.ofNat 9) out (cA', σ') k' C'
       ∧ out.size < UInt256.size := by
   obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd9081raw, hout⟩ :=
-    RD.call h (by native_decide) hdepth (by evm_ov)
+    RD.call h (by decide +native) hdepth (by evm_ov)
   refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin := endFlowVatIlksWriteLen_eq (out := out) hout
@@ -1561,7 +1561,7 @@ theorem endCageIlkX_vatIlksPostCall {cA gh bl σ σ₀ A I} {g : Sat256}
           endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
           endFlowVatIlksOutPtr.toNat endFlowVatIlksOutSize.toNat) = UInt256.ofNat 9 := by
       unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endFlowVatIlksOutSize
-      native_decide
+      decide +native
     simpa [endCageIlkVatIlksPostCallMem, endFlowVatIlksOutPtr, endFlowVatIlksInSize,
       endFlowVatIlksOutSize, endFlowVatIlksEndPtr, hmin, haw] using rd9081raw
 
@@ -1581,7 +1581,7 @@ theorem endCageIlkX_vatIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
       (endCageIlkVatIlksCalldataMem I) (UInt256.ofNat 9)
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨k', C', rd9081raw⟩ :=
-    RD.callDepthLimit h (by native_decide) hdepth
+    RD.callDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin : (min endFlowVatIlksOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -1591,7 +1591,7 @@ theorem endCageIlkX_vatIlksCallDepthLimit {cA gh bl σ σ₀ A I} {g : Sat256}
         endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
         endFlowVatIlksOutPtr.toNat endFlowVatIlksOutSize.toNat) = UInt256.ofNat 9 := by
     unfold endFlowVatIlksOutPtr endFlowVatIlksInSize endFlowVatIlksOutSize
-    native_decide
+    decide +native
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endFlowVatIlksOutSize,
     endFlowVatIlksEndPtr, hmin, byteArray_write_len_zero, haw] using rd9081raw
 
@@ -1605,9 +1605,9 @@ theorem endCageIlkX_vatIlksCallFailed {cA cA' gh bl σ σ' σ₀ A I} {g : Sat25
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨9081⟩) (okPc := ⟨9097⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endCageIlkX_vatIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256}
@@ -1622,8 +1622,8 @@ theorem endCageIlkX_vatIlksCallSucceeded {cA cA' gh bl σ σ' σ₀ A I} {g : Sa
       mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨9081⟩) (okPc := ⟨9097⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp)
 
 theorem endCageIlkX_vatIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
@@ -1644,26 +1644,26 @@ theorem endCageIlkX_vatIlksReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
     rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide, ulit_toNat' out.size hout]
     exact hlo
   have rd9114 := evm_run h with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨9119⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨9119⟩ (by decide +native) (by evm_ov)]
   have rdJump := rd9114
   rw [hlt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rdJump
   have rd9122 := evm_run rdJump with [
-    raw jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    raw jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw mload 0 (endFlowVatIlkArtWord out) (UInt256.ofNat 9) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw mload 0 (endFlowVatIlkArtWord out) (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload128 (by decide) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endFlowVatIlksEndPtr, endFlowVatIlksSelectorWord, endFlowVatIlksOutPtr,
@@ -1683,24 +1683,24 @@ theorem endCageIlkX_vatIlksReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
     rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide, ulit_toNat' out.size hout]
     exact hshort
   have rd9114 := evm_run h with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨9119⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨9119⟩ (by decide +native) (by evm_ov)]
   have rdShort := rd9114
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
-  have rdFall := rdShort.jumpiNT (by native_decide)
+  have rdFall := rdShort.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFall
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endCageIlkX_spotIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
@@ -1741,7 +1741,7 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
   have hselectorShift :
       UInt256.shiftLeft (⟨0x6cb1c69b⟩ : UInt256) ⟨225⟩ =
         endFlowVatIlksSelectorShifted := by
-    native_decide
+    decide +native
   have hspotMask :
       UInt256.land solcAddrMask (endSlotWord ⟨6⟩ σArt I) =
         endCageIlkSpotWord σArt I := by
@@ -1749,9 +1749,9 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
       u256_land_comm solcAddrMask (endSlotWord ⟨6⟩ σArt I)
   have hinSize :
       (UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨36⟩) = endFlowVatIlksInSize := by
-    native_decide
+    decide +native
   have hendPtr : ((⟨128⟩ : UInt256) + ⟨36⟩) = endFlowVatIlksEndPtr := by
-    native_decide
+    decide +native
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((endCageIlkArtHashMem I vatOut).readWithPadding 0 64))) =
@@ -1760,18 +1760,18 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     exact endFlow_twoWordHashMem_solcMappingSlot_of_ge64 ⟨14⟩ key
       (by rw [endCageIlkVatIlksPostCallMem_size_long I vatOut hlo]; omega)
   have rd9125pre := evm_run h with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd9126 := rd9125pre.mstore 0
     (wordAt0Mem key (endCageIlkVatIlksPostCallMem I vatOut))
-    (UInt256.ofNat 9) (by native_decide) mem_cost
-    (by simp [wordAt0Mem, key]) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 9) (by decide +native) mem_cost
+    (by simp [wordAt0Mem, key]) (by decide +native) (by evm_ov)
   have rd9131pre := evm_run rd9126 with [
-    raw push1 ⟨14⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨14⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd9132 := rd9131pre.mstore 0 (endCageIlkArtHashMem I vatOut)
-    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (UInt256.ofNat 9) (by decide +native) mem_cost
     (by
       change (⟨14⟩ : UInt256).toByteArray.write 0
           (wordAt0Mem key (endCageIlkVatIlksPostCallMem I vatOut)) 32 32 =
@@ -1779,22 +1779,22 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
           (wordAt0Mem (endCageIlkIlkWord I) (endCageIlkVatIlksPostCallMem I vatOut))
           32 32
       simp [key])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd9136pre := evm_run rd9132 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
   have rd9137pre := rd9136pre.keccak256 0 (solcMappingSlot ⟨14⟩ key)
-    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (UInt256.ofNat 9) (by decide +native) mem_cost
     (by
       simpa [endCageIlkArtHashMem, key, show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd9140 := evm_run rd9137pre with [
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd9141raw⟩ := rd9140.sstore hperm (by native_decide)
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd9141raw⟩ := rd9140.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨_, _, rd9141⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨9141⟩
@@ -1804,8 +1804,8 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
     exact ⟨_, _, by
       simpa [σArt, endCageIlkPostArtAccountMap, hslot, key] using rd9141raw⟩
   have rd9143 := evm_run rd9141 with [
-    raw push1 ⟨6⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd9144raw⟩ := rd9143.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨6⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd9144raw⟩ := rd9143.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd9144⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨9144⟩
         (endSlotWord ⟨6⟩ (endCageIlkPostArtAccountMap σ' I vatOut) I ::
@@ -1814,60 +1814,60 @@ theorem endCageIlkX_spotIlksExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         (cA', endCageIlkPostArtAccountMap σ' I vatOut) k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd9144raw⟩
   have rd9201 := evm_run rd9144 with [
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64Hash (by decide) (by evm_ov),
-    raw push4 ⟨0x6cb1c69b⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨225⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 ⟨0x6cb1c69b⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨225⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (endFlowVatIlksSelectorMem (endCageIlkArtHashMem I vatOut))
-      (UInt256.ofNat 9) (by native_decide) mem_cost
+      (UInt256.ofNat 9) (by decide +native) mem_cost
       (by
         simp [endFlowVatIlksSelectorMem, endFlowVatIlksOutPtr, hselectorShift])
       (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (endCageIlkSpotIlksCalldataMem I vatOut) (UInt256.ofNat 9)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         simp [endCageIlkSpotIlksCalldataMem, endFlowVatIlksCalldataMem,
           endFlowVatIlksArg0Mem, endFlowVatIlksOutPtr])
       (by decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw dup4 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64Spot (by decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push4 endFlowVatIlksSelectorWord (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push4 endFlowVatIlksSelectorWord (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [σArt, endCageIlkSpotWord, endAddressReturnWord,
       endFlowVatIlksSelectorMem, endFlowVatIlksArg0Mem, endFlowVatIlksCalldataMem,
@@ -1894,9 +1894,9 @@ theorem endCageIlkX_spotIlksNoCode {cA cA' gh bl σ σ' σ₀ A I}
     endCageIlkX_spotIlksExtcodesizeGuard hsz36 hperm hlo h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨9201⟩) (okPc := ⟨9213⟩)
     rd9201 hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endCageIlkX_spotIlksCallReady {cA cA' gh bl σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {vatOut : ByteArray} {k C : ℕ}
@@ -1924,9 +1924,9 @@ theorem endCageIlkX_spotIlksCallReady {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨gasWord, k', C', rd9216⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨9201⟩) (okPc := ⟨9213⟩)
       rd9201 hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd9216⟩
 
 theorem endCageIlkX_spotIlksPostStaticcall {cA cA' gh bl σ σ' σ₀ A I}
@@ -1966,7 +1966,7 @@ theorem endCageIlkX_spotIlksPostStaticcall {cA cA' gh bl σ σ' σ₀ A I}
           spotOut (cA'', σ'') k' C'
       ∧ spotOut.size < UInt256.size := by
   obtain ⟨cA'', σ'', z, spotOut, Ain, callGas, k', C', hΘ, rd9217raw, hout⟩ :=
-    RD.solcStaticcall h (by native_decide) hdepth
+    RD.solcStaticcall h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨cA'', σ'', z, spotOut, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
@@ -1976,7 +1976,7 @@ theorem endCageIlkX_spotIlksPostStaticcall {cA cA' gh bl σ σ' σ₀ A I}
           endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
           endFlowVatIlksOutPtr.toNat (⟨64⟩ : UInt256).toNat) = UInt256.ofNat 9 := by
       unfold endFlowVatIlksOutPtr endFlowVatIlksInSize
-      native_decide
+      decide +native
     simpa [endCageIlkSpotIlksPostCallMem, endFlowVatIlksOutPtr,
       endFlowVatIlksInSize, endFlowVatIlksEndPtr, hmin, haw] using rd9217raw
 
@@ -1998,7 +1998,7 @@ theorem endCageIlkX_spotIlksStaticcallDepthLimit {cA cA' gh bl σ σ' σ₀ A I}
       (endCageIlkSpotIlksCalldataMem I vatOut) (UInt256.ofNat 9)
       ByteArray.empty (cA', endCageIlkPostArtAccountMap σ' I vatOut) k' C' := by
   obtain ⟨k', C', rd9217raw⟩ :=
-    RD.solcStaticcallDepthLimit h (by native_decide) hdepth
+    RD.solcStaticcallDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin :
@@ -2009,7 +2009,7 @@ theorem endCageIlkX_spotIlksStaticcallDepthLimit {cA cA' gh bl σ σ' σ₀ A I}
         endFlowVatIlksOutPtr.toNat endFlowVatIlksInSize.toNat)
         endFlowVatIlksOutPtr.toNat (⟨64⟩ : UInt256).toNat) = UInt256.ofNat 9 := by
     unfold endFlowVatIlksOutPtr endFlowVatIlksInSize
-    native_decide
+    decide +native
   simpa [endFlowVatIlksOutPtr, endFlowVatIlksInSize, endFlowVatIlksEndPtr,
     hmin, byteArray_write_len_zero, haw] using rd9217raw
 
@@ -2025,9 +2025,9 @@ theorem endCageIlkX_spotIlksCallFailed {cA cA' gh bl σ σTarget σ' σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨9217⟩) (okPc := ⟨9233⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endCageIlkX_spotIlksCallSucceeded {cA cA' gh bl σ σTarget σ' σ₀ A I}
@@ -2045,8 +2045,8 @@ theorem endCageIlkX_spotIlksCallSucceeded {cA cA' gh bl σ σTarget σ' σ₀ A 
       mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨9217⟩) (okPc := ⟨9233⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp)
 
 theorem endCageIlkX_spotIlksReturnDecodeOk {cA cA' gh bl σ σTarget σ' σ₀ A I}
@@ -2071,27 +2071,27 @@ theorem endCageIlkX_spotIlksReturnDecodeOk {cA cA' gh bl σ σTarget σ' σ₀ A
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, ulit_toNat' spotOut.size hout]
     exact hlo
   have rd9250 := evm_run h with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨9255⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨9255⟩ (by decide +native) (by evm_ov)]
   have rdJump := rd9250
   rw [hlt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rdJump
   have rd9258 := evm_run rdJump with [
-    raw jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
+    raw jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
     raw mload 0 (endCageIlkSpotIlkPipWord spotOut) (UInt256.ofNat 9)
-      (by native_decide) mem_cost hmload128 (by decide) (by evm_ov)]
+      (by decide +native) mem_cost hmload128 (by decide) (by evm_ov)]
   exact ⟨_, _, by
     simpa [endFlowVatIlksEndPtr, endFlowVatIlksSelectorWord] using rd9258⟩
 
@@ -2112,24 +2112,24 @@ theorem endCageIlkX_spotIlksReturnDecodeShort {cA cA' gh bl σ σTarget σ' σ�
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, ulit_toNat' spotOut.size hout]
     exact hshort
   have rd9250 := evm_run h with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw returndatasize (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨9255⟩ (by native_decide) (by evm_ov)]
+    raw returndatasize (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨9255⟩ (by decide +native) (by evm_ov)]
   have rdShort := rd9250
   rw [hlt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rdShort
-  have rdFall := rdShort.jumpiNT (by native_decide)
+  have rdFall := rdShort.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFall
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endCageIlkX_parExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
@@ -2184,16 +2184,16 @@ theorem endCageIlkX_parExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
         endCageIlkSpotWord σ' I := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by native_decide]
+      solcAddrMask from by decide +native]
   have hinSize :
       UInt256.sub endFlowVatIlksOutPtr endFlowVatIlksOutPtr + endCageIlkNoArgInSize =
         endCageIlkNoArgInSize := by
-    native_decide
+    decide +native
   have hendPtr : endFlowVatIlksOutPtr + endCageIlkNoArgInSize = endCageIlkNoArgEndPtr := by
-    native_decide
+    decide +native
   have rd9259 := evm_run h with [
-    raw push1 ⟨6⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd9261raw⟩ := rd9259.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨6⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd9261raw⟩ := rd9259.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd9261⟩ : ∃ k' C',
       RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨9261⟩
         (endSlotWord ⟨6⟩ σ' I :: endCageIlkSpotIlkPipWord spotOut ::
@@ -2202,55 +2202,55 @@ theorem endCageIlkX_parExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
         spotOut (cA', σ') k' C' := by
     exact ⟨_, _, by simpa [endSlotWord, solcSlotWord] using rd9261raw⟩
   have rd9321pre := evm_run rd9261 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw push4 endCageIlkParSelectorWord (by native_decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 endCageIlkParSelectorWord (by decide +native) (by evm_ov),
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (endCageIlkParCalldataMem I vatOut spotOut) (UInt256.ofNat 9)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by simp [endCageIlkParCalldataMem, endCageIlkNoArgCalldataMem,
         endFlowVatIlksOutPtr])
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push2 ⟨9490⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 endCageIlkParSelectorWord (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push2 ⟨9490⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 endCageIlkParSelectorWord (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     have rd9321norm := rd9321pre
     rw [hspotMask] at rd9321norm
@@ -2272,9 +2272,9 @@ theorem endCageIlkX_parNoCode {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨_, _, rd9321⟩ := endCageIlkX_parExtcodesizeGuard hvat hspot h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨9321⟩) (okPc := ⟨9333⟩)
     rd9321 hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endCageIlkX_parCallReady {cA cA' gh bl σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {vatOut spotOut : ByteArray} {k C : ℕ}
@@ -2298,9 +2298,9 @@ theorem endCageIlkX_parCallReady {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨gasWord, k', C', rd9336⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨9321⟩) (okPc := ⟨9333⟩)
       rd9321 hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd9336⟩
 
 theorem endCageIlkX_parPostStaticcall {cA cA' gh bl σ σ' σ₀ A I}
@@ -2335,7 +2335,7 @@ theorem endCageIlkX_parPostStaticcall {cA cA' gh bl σ σ' σ₀ A I}
           parOut (cA'', σ'') k' C'
       ∧ parOut.size < UInt256.size := by
   obtain ⟨cA'', σ'', z, parOut, Ain, callGas, k', C', hΘ, rd9337raw, hout⟩ :=
-    RD.solcStaticcall h (by native_decide) hdepth
+    RD.solcStaticcall h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨cA'', σ'', z, parOut, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
@@ -2345,7 +2345,7 @@ theorem endCageIlkX_parPostStaticcall {cA cA' gh bl σ σ' σ₀ A I}
           endFlowVatIlksOutPtr.toNat endCageIlkNoArgInSize.toNat)
           endFlowVatIlksOutPtr.toNat endCageIlkNoArgOutSize.toNat) = UInt256.ofNat 9 := by
       unfold endFlowVatIlksOutPtr endCageIlkNoArgInSize endCageIlkNoArgOutSize
-      native_decide
+      decide +native
     simpa [endCageIlkParPostCallMem, endCageIlkNoArgPostCallMem,
       endFlowVatIlksOutPtr, endCageIlkNoArgInSize, endCageIlkNoArgOutSize,
       endCageIlkNoArgEndPtr, hmin, haw] using rd9337raw
@@ -2368,7 +2368,7 @@ theorem endCageIlkX_parStaticcallDepthLimit {cA cA' gh bl σ σ' σ₀ A I}
       (endCageIlkParCalldataMem I vatOut spotOut) (UInt256.ofNat 9)
       ByteArray.empty (cA', σ') k' C' := by
   obtain ⟨k', C', rd9337raw⟩ :=
-    RD.solcStaticcallDepthLimit h (by native_decide) hdepth
+    RD.solcStaticcallDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin :
@@ -2379,7 +2379,7 @@ theorem endCageIlkX_parStaticcallDepthLimit {cA cA' gh bl σ σ' σ₀ A I}
         endFlowVatIlksOutPtr.toNat endCageIlkNoArgInSize.toNat)
         endFlowVatIlksOutPtr.toNat endCageIlkNoArgOutSize.toNat) = UInt256.ofNat 9 := by
     unfold endFlowVatIlksOutPtr endCageIlkNoArgInSize endCageIlkNoArgOutSize
-    native_decide
+    decide +native
   simpa [endFlowVatIlksOutPtr, endCageIlkNoArgInSize, endCageIlkNoArgOutSize,
     endCageIlkNoArgEndPtr, hmin, byteArray_write_len_zero, haw] using rd9337raw
 
@@ -2395,9 +2395,9 @@ theorem endCageIlkX_parCallFailed {cA cA' gh bl σ σTarget σ' σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨9337⟩) (okPc := ⟨9353⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endCageIlkX_parCallSucceeded {cA cA' gh bl σ σTarget σ' σ₀ A I}
@@ -2415,8 +2415,8 @@ theorem endCageIlkX_parCallSucceeded {cA cA' gh bl σ σTarget σ' σ₀ A I}
       mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨9337⟩) (okPc := ⟨9353⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp)
 
 theorem endCageIlkX_parReturnDecodeOk {cA cA' gh bl σ σTarget σ' σ₀ A I}
@@ -2447,7 +2447,7 @@ theorem endCageIlkX_parReturnDecodeOk {cA cA' gh bl σ σTarget σ' σ₀ A I}
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨9355⟩) (okPc := ⟨9375⟩)
     (retWord := endCageIlkReturnWord parOut) h hlo hout
     mem_cost
-    (by native_decide)
+    (by decide +native)
     (by
       unfold endCageIlkParPostCallMem
       exact endCageIlkNoArgPostCallMem_mload64 hselectorSize hbaseSize hbaseRead64 hout)
@@ -2455,12 +2455,12 @@ theorem endCageIlkX_parReturnDecodeOk {cA cA' gh bl σ σTarget σ' σ₀ A I}
       unfold endCageIlkParPostCallMem
       exact endCageIlkNoArgPostCallMem_mload128 hselectorSize hbaseSize hout hlo)
     mem_cost
-    (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp)
 
 theorem endCageIlkX_parReturnDecodeShort {cA cA' gh bl σ σTarget σ' σ₀ A I}
@@ -2487,14 +2487,14 @@ theorem endCageIlkX_parReturnDecodeShort {cA cA' gh bl σ σTarget σ' σ₀ A I
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨9355⟩) (okPc := ⟨9375⟩)
     h hshort hout
     mem_cost
-    (by native_decide)
+    (by decide +native)
     (by
       unfold endCageIlkParPostCallMem
       exact endCageIlkNoArgPostCallMem_mload64 hselectorSize hbaseSize hbaseRead64 hout)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp)
 
 theorem endCageIlkX_readExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
@@ -2566,56 +2566,56 @@ theorem endCageIlkX_readExtcodesizeGuard {cA cA' gh bl σ σ' σ₀ A I}
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
         endCageIlkPipCallWord spotOut := by
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-      solcAddrMask from by native_decide]
+      solcAddrMask from by decide +native]
   have hinSize :
       UInt256.sub endFlowVatIlksOutPtr endFlowVatIlksOutPtr + endCageIlkNoArgInSize =
         endCageIlkNoArgInSize := by
-    native_decide
+    decide +native
   have hendPtr : endFlowVatIlksOutPtr + endCageIlkNoArgInSize = endCageIlkNoArgEndPtr := by
-    native_decide
+    decide +native
   have rd9429pre := evm_run h with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw push4 endCageIlkReadSelectorRaw (by native_decide) (by evm_ov),
-    raw push1 ⟨226⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 endCageIlkReadSelectorRaw (by decide +native) (by evm_ov),
+    raw push1 ⟨226⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (endCageIlkReadCalldataMem I vatOut spotOut parOut)
-      (UInt256.ofNat 9) (by native_decide) mem_cost
+      (UInt256.ofNat 9) (by decide +native) mem_cost
       (by simp [endCageIlkReadCalldataMem, endCageIlkNoArgCalldataMem,
         endFlowVatIlksOutPtr])
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 endCageIlkReadSelectorWord (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 endCageIlkReadSelectorWord (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     have rd9429norm := rd9429pre
     rw [hpipMask] at rd9429norm
@@ -2638,9 +2638,9 @@ theorem endCageIlkX_readNoCode {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨_, _, rd9429⟩ := endCageIlkX_readExtcodesizeGuard hvat hspot hpar h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨9429⟩) (okPc := ⟨9441⟩)
     rd9429 hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endCageIlkX_readCallReady {cA cA' gh bl σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {vatOut spotOut parOut : ByteArray} {k C : ℕ}
@@ -2666,9 +2666,9 @@ theorem endCageIlkX_readCallReady {cA cA' gh bl σ σ' σ₀ A I}
   obtain ⟨gasWord, k', C', rd9444⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨9429⟩) (okPc := ⟨9441⟩)
       rd9429 hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd9444⟩
 
 theorem endCageIlkX_readPostStaticcall {cA cA' gh bl σ σ' σ₀ A I}
@@ -2705,7 +2705,7 @@ theorem endCageIlkX_readPostStaticcall {cA cA' gh bl σ σ' σ₀ A I}
           readOut (cA'', σ'') k' C'
       ∧ readOut.size < UInt256.size := by
   obtain ⟨cA'', σ'', z, readOut, Ain, callGas, k', C', hΘ, rd9445raw, hout⟩ :=
-    RD.solcStaticcall h (by native_decide) hdepth
+    RD.solcStaticcall h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨cA'', σ'', z, readOut, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
@@ -2715,7 +2715,7 @@ theorem endCageIlkX_readPostStaticcall {cA cA' gh bl σ σ' σ₀ A I}
           endFlowVatIlksOutPtr.toNat endCageIlkNoArgInSize.toNat)
           endFlowVatIlksOutPtr.toNat endCageIlkNoArgOutSize.toNat) = UInt256.ofNat 9 := by
       unfold endFlowVatIlksOutPtr endCageIlkNoArgInSize endCageIlkNoArgOutSize
-      native_decide
+      decide +native
     simpa [endCageIlkReadPostCallMem, endCageIlkNoArgPostCallMem,
       endFlowVatIlksOutPtr, endCageIlkNoArgInSize, endCageIlkNoArgOutSize,
       endCageIlkNoArgEndPtr, hmin, haw] using rd9445raw
@@ -2741,7 +2741,7 @@ theorem endCageIlkX_readStaticcallDepthLimit {cA cA' gh bl σ σ' σ₀ A I}
       (endCageIlkReadCalldataMem I vatOut spotOut parOut) (UInt256.ofNat 9)
       ByteArray.empty (cA', σ') k' C' := by
   obtain ⟨k', C', rd9445raw⟩ :=
-    RD.solcStaticcallDepthLimit h (by native_decide) hdepth
+    RD.solcStaticcallDepthLimit h (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin :
@@ -2752,7 +2752,7 @@ theorem endCageIlkX_readStaticcallDepthLimit {cA cA' gh bl σ σ' σ₀ A I}
         endFlowVatIlksOutPtr.toNat endCageIlkNoArgInSize.toNat)
         endFlowVatIlksOutPtr.toNat endCageIlkNoArgOutSize.toNat) = UInt256.ofNat 9 := by
     unfold endFlowVatIlksOutPtr endCageIlkNoArgInSize endCageIlkNoArgOutSize
-    native_decide
+    decide +native
   simpa [endFlowVatIlksOutPtr, endCageIlkNoArgInSize, endCageIlkNoArgOutSize,
     endCageIlkNoArgEndPtr, hmin, byteArray_write_len_zero, haw] using rd9445raw
 
@@ -2769,9 +2769,9 @@ theorem endCageIlkX_readCallFailed {cA cA' gh bl σ σ' σ₀ A I}
     RDrev endBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨9445⟩) (okPc := ⟨9461⟩) h
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem endCageIlkX_readCallSucceeded {cA cA' gh bl σ σ' σ₀ A I}
@@ -2791,8 +2791,8 @@ theorem endCageIlkX_readCallSucceeded {cA cA' gh bl σ σ' σ₀ A I}
       mem (UInt256.ofNat 9) rdata (cA', σ') k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨9445⟩) (okPc := ⟨9461⟩) h
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp)
 
 theorem endCageIlkX_readReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
@@ -2839,7 +2839,7 @@ theorem endCageIlkX_readReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨9463⟩) (okPc := ⟨9483⟩)
     (retWord := endCageIlkReturnWord readOut) h hlo hout
     mem_cost
-    (by native_decide)
+    (by decide +native)
     (by
       unfold endCageIlkReadPostCallMem
       exact endCageIlkNoArgPostCallMem_mload64 hreadSelectorSize hbaseSize
@@ -2848,12 +2848,12 @@ theorem endCageIlkX_readReturnDecodeOk {cA cA' gh bl σ σ' σ₀ A I}
       unfold endCageIlkReadPostCallMem
       exact endCageIlkNoArgPostCallMem_mload128 hreadSelectorSize hbaseSize hout hlo)
     mem_cost
-    (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp)
 
 theorem endCageIlkX_readReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
@@ -2895,15 +2895,15 @@ theorem endCageIlkX_readReturnDecodeShort {cA cA' gh bl σ σ' σ₀ A I}
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨9463⟩) (okPc := ⟨9483⟩)
     h hshort hout
     mem_cost
-    (by native_decide)
+    (by decide +native)
     (by
       unfold endCageIlkReadPostCallMem
       exact endCageIlkNoArgPostCallMem_mload64 hreadSelectorSize hbaseSize
         hbaseRead64 hout)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp)
 
 theorem endCageIlkX_wdivEntry {cA cA' gh bl σ σ' σ₀ A I}
@@ -2921,20 +2921,20 @@ theorem endCageIlkX_wdivEntry {cA cA' gh bl σ σ' σ₀ A I}
         endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
       mem (UInt256.ofNat 9) readOut (cA', σ') k' C' := by
   have rd10231 := evm_run h with [
-    raw push2 ⟨10231⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨10231⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd10239pre := evm_run rd10231 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨10139⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨10139⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have rd10248 := rd10239pre.pushConst endWadWord
-    (width := 8) (op := .PUSH8) (by decide) (by native_decide)
+    (width := 8) (op := .PUSH8) (by decide) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd10170 := evm_run rd10248 with [
-    raw push2 ⟨10170⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨10170⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [endWadWord] using rd10170⟩
 
 theorem endCageIlkInvalidError {code : ByteArray} {ee : ExecutionEnv} {g : Sat256}
@@ -2994,7 +2994,7 @@ theorem endCageIlkX_wdivDivZeroInvalid {cA cA' gh bl σ σ' σ₀ A I}
       X (g.toNat + 1) (D_J endBytecode 0)
         (initState cA gh bl σ σ₀ g A I) = .error .InvalidInstruction := by
   obtain ⟨_, _, rd10170⟩ := endCageIlkX_wdivEntry (vatOut := vatOut) h
-  have hWadNonzero : endWadWord ≠ ⟨0⟩ := by native_decide
+  have hWadNonzero : endWadWord ≠ ⟨0⟩ := by decide +native
   obtain ⟨_, _, rd10139⟩ :=
     endFlowX_mulHelperReturns
       (x := endCageIlkReturnWord parOut) (y := endWadWord) (ret := ⟨10139⟩)
@@ -3004,11 +3004,11 @@ theorem endCageIlkX_wdivDivZeroInvalid {cA cA' gh bl σ σ' σ₀ A I}
       (mem := mem) (rdata := readOut) (acc := (cA', σ')) hfit hWadNonzero rd10170
       (by jump_dest) (by simp only [List.length_cons, List.length_nil]; omega)
   have rd10144 := evm_run rd10139 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨10146⟩ (by native_decide) (by evm_ov)]
-  have rd10145 := rd10144.jumpiNT (by native_decide) (by simpa using hden) (by evm_ov)
-  exact endCageIlkInvalidError rd10145 (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨10146⟩ (by decide +native) (by evm_ov)]
+  have rd10145 := rd10144.jumpiNT (by decide +native) (by simpa using hden) (by evm_ov)
+  exact endCageIlkInvalidError rd10145 (by decide +native)
 
 theorem endCageIlkX_wdivReturns {cA cA' gh bl σ σ' σ₀ A I}
     {g : Sat256} {sel : UInt256} {vatOut spotOut parOut readOut : ByteArray}
@@ -3025,7 +3025,7 @@ theorem endCageIlkX_wdivReturns {cA cA' gh bl σ σ' σ₀ A I}
         endCageIlkIlkWord I :: endCageIlkReturnPc :: sel :: [])
       mem (UInt256.ofNat 9) readOut (cA', σ') k' C' := by
   obtain ⟨_, _, rd10170⟩ := endCageIlkX_wdivEntry (vatOut := vatOut) h
-  have hWadNonzero : endWadWord ≠ ⟨0⟩ := by native_decide
+  have hWadNonzero : endWadWord ≠ ⟨0⟩ := by decide +native
   obtain ⟨_, _, rd10139⟩ :=
     endFlowX_mulHelperReturns
       (x := endCageIlkReturnWord parOut) (y := endWadWord) (ret := ⟨10139⟩)
@@ -3035,23 +3035,23 @@ theorem endCageIlkX_wdivReturns {cA cA' gh bl σ σ' σ₀ A I}
       (mem := mem) (rdata := readOut) (acc := (cA', σ')) hfit hWadNonzero rd10170
       (by jump_dest) (by simp only [List.length_cons, List.length_nil]; omega)
   have rd10144 := evm_run rd10139 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨10146⟩ (by native_decide) (by evm_ov)]
-  have rd10146 := rd10144.jumpiT (by native_decide) hden (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨10146⟩ (by decide +native) (by evm_ov)]
+  have rd10146 := rd10144.jumpiT (by decide +native) hden (by jump_dest) (by evm_ov)
   have rd10153 := evm_run rd10146 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   have rd9490raw := RD.jump (a := ⟨9490⟩)
     (t := [UInt256.div (endCageIlkReturnWord parOut * endWadWord)
         (endCageIlkReturnWord readOut),
       endCageIlkSpotIlkPipWord spotOut, endCageIlkIlkWord I, endCageIlkReturnPc, sel])
-    rd10153 (by native_decide) (by jump_dest) (by evm_ov)
+    rd10153 (by decide +native) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa [endCageIlkTagVWord, endCageIlkWdivProductWord] using rd9490raw⟩
 
 theorem endCageIlkX_finish {cA cA' gh bl σ σ' σ₀ A I}
@@ -3124,27 +3124,27 @@ theorem endCageIlkX_finish {cA cA' gh bl σ σ' σ₀ A I}
   have hslot : endCageIlkTagSlot I = solcMappingSlot ⟨12⟩ key := by
     simpa [key] using endCageIlkTagSlot_eq (I := I) hsz36
   have rd9495pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd9496 := rd9495pre.mstore 0 (wordAt0Mem key memBase)
-    (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 9) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd9500pre := evm_run rd9496 with [
-    raw push1 ⟨12⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨12⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd9501 := rd9500pre.mstore 0 memHash
-    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (UInt256.ofNat 9) (by decide +native) mem_cost
     (by
       change (UInt256.toByteArray (⟨12⟩ : UInt256)).write 0 (wordAt0Mem key memBase) 32 32 =
         wordAt32Mem ⟨12⟩ (wordAt0Mem key memBase)
       rfl)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd9505pre := evm_run rd9501 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
   have hhash :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC (memHash.readWithPadding 0 64))) =
@@ -3153,16 +3153,16 @@ theorem endCageIlkX_finish {cA cA' gh bl σ σ' σ₀ A I}
     exact endFlow_twoWordHashMem_solcMappingSlot_of_ge64 ⟨12⟩ key
       (by rw [hmemBaseSize]; omega)
   have rd9506 := rd9505pre.keccak256 0 (solcMappingSlot ⟨12⟩ key)
-    (UInt256.ofNat 9) (by native_decide) mem_cost
+    (UInt256.ofNat 9) (by decide +native) mem_cost
     (by
       simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
         show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hhash)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd9509pre := evm_run rd9506 with [
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov)]
-  obtain ⟨k9510, C9510, rd9510raw⟩ := rd9509pre.sstore hperm (by native_decide)
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov)]
+  obtain ⟨k9510, C9510, rd9510raw⟩ := rd9509pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd9510 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨9510⟩
       (⟨0⟩ :: ⟨64⟩ :: pip :: key :: endCageIlkReturnPc :: sel :: [])
@@ -3170,15 +3170,15 @@ theorem endCageIlkX_finish {cA cA' gh bl σ σ' σ₀ A I}
       (cA', endCageIlkPostTagAccountMap σ' I tagV) k9510 C9510 := by
     simpa [endCageIlkPostTagAccountMap, hslot, tagV, key, pip] using rd9510raw
   have rd9547pre := evm_run rd9510 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
-      mem_cost hmload64Hash (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
+      mem_cost hmload64Hash (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd9547 := rd9547pre.pushConst endCageIlkCageIlkLogTopic
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native) (by evm_ov)
   have rd9548 := evm_run rd9547 with [
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov)]
   have rdLog := RD.log2
     (a := ⟨128⟩) (b := ⟨0⟩) (c := endCageIlkCageIlkLogTopic) (d := key)
     (t := [pip, key, endCageIlkReturnPc, sel])
@@ -3186,17 +3186,17 @@ theorem endCageIlkX_finish {cA cA' gh bl σ σ' σ₀ A I}
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 9).toNat (⟨128⟩ : UInt256).toNat
         (⟨0⟩ : UInt256).toNat))
-    rd9548 (by native_decide) hperm mem_cost (by native_decide)
+    rd9548 (by decide +native) hperm mem_cost (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd9550 := RD.pop (a := pip) (t := [key, endCageIlkReturnPc, sel]) rdLog
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd9551 := RD.pop (a := key) (t := [endCageIlkReturnPc, sel]) rd9550
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd562 := RD.jump (a := endCageIlkReturnPc) (t := [sel]) rd9551
-    (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) (by jump_dest) (by evm_ov)
   have rd563 := RD.jumpdest (pc := endCageIlkReturnPc) (stk := [sel]) rd562
-    (by native_decide) (by evm_ov)
-  exact RD.stop rd563 (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  exact RD.stop rd563 (by decide +native) (by evm_ov)
 
 theorem evalStorageRef_endCageIlk_live (evm : EVM.State) (I : ExecutionEnv) :
     evalStorageRef config { contract := contract, locals := endCageIlkStore I } evm
@@ -3557,7 +3557,7 @@ theorem endCageIlkReadDecode_none_short {out : ByteArray} (hshort : out.size < 3
   have hdec :
       ABI.decodeReturnValueWithMode? DecodeMode.legacySolc05 abiBytes32 out = none := by
     unfold ABI.decodeReturnValueWithMode? ABI.decodeReturnValuesWithMode?
-    rw [show abiTupleHeadSize? [abiBytes32] = some 32 by native_decide]
+    rw [show abiTupleHeadSize? [abiBytes32] = some 32 by decide +native]
     simp only [bind, Option.bind]
     have hlen : out.toList.length = out.size := by
       rw [byteArray_toList_eq, Array.length_toList]
@@ -5780,10 +5780,10 @@ theorem endCageIlkX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
     (code := endBytecode) (sel := sel) (entry := endCageIlkEntryPc)
     (ret := endCageIlkReturnPc)
     (decoded := endCageIlkDecodedPc) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem endCageIlkBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -7010,7 +7010,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                                   (returnEquiv.fallthrough
                                                     (o := ByteArray.empty) (r := none)
                                                     (t := []) (dvs := []) rfl
-                                                    (by native_decide) (by native_decide)))
+                                                    (by decide +native) (by decide +native)))
                                   · rw [not_lt] at hdepthLtRead
                                     have hdepthEqRead : I.depth = 1024 :=
                                       Fin.ext (by have := I.depth.isLt; omega)
@@ -7050,7 +7050,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                       (tailPipFromParTail htailRead)
                                     exact
                                       (endCageIlkX_readCallFailed
-                                        (rdata := ByteArray.empty) rd9445 (by native_decide))
+                                        (rdata := ByteArray.empty) rd9445 (by decide +native))
                                         |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
                           · rw [not_lt] at hdepthLtPar
                             have hdepthEqPar : I.depth = 1024 :=
@@ -7120,7 +7120,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                   (by simpa [evmVatSolm, evmSolm] using hcallSolm)
                                   hloVat htail
                             exact (endCageIlkX_parCallFailed
-                              (rdata := ByteArray.empty) rd9337 (by native_decide))
+                              (rdata := ByteArray.empty) rd9337 (by decide +native))
                               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
                   · rw [not_lt] at hdepthLtSpot
                     have hdepthEqSpot : I.depth = 1024 :=
@@ -7185,7 +7185,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           (by simpa [evmVatSolm, evmSolm] using hcallSolm)
                           hloVat htail
                     exact (endCageIlkX_spotIlksCallFailed
-                      (vatOut := vatOut) (rdata := ByteArray.empty) rd9217 (by native_decide))
+                      (vatOut := vatOut) (rdata := ByteArray.empty) rd9217 (by decide +native))
                       |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
           · rw [not_lt] at hdepthLt
             have hdepthEq : I.depth = 1024 :=
@@ -7219,7 +7219,7 @@ theorem endCageIlkBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   (evmVat := { evmSolm with substate := A_vat })
                   (out := ByteArray.empty)
                   hwv hsz36 hliveSolm htagSolm hvatCodeSolmNE hcallSolm
-            exact (endCageIlkX_vatIlksCallFailed rd9081 (by native_decide))
+            exact (endCageIlkX_vatIlksCallFailed rd9081 (by decide +native))
               |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have htagSolm : endCageIlkTagWord σ_solm I ≠ ⟨0⟩ := by
           intro hbad

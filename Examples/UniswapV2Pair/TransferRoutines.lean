@@ -126,10 +126,10 @@ theorem RD.uniswapSafeMathSubUnderflow {g : Sat256} {s0 : State} {ee : Execution
     (R := R) (mem := mem) h
     (by
       unfold solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcErrorStringRevertTailWf solcCheckedArithmeticRevertPc
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) hlt (by rfl) hmem hread64 hov
 
 set_option maxHeartbeats 1000000 in
@@ -224,10 +224,10 @@ theorem RD.uniswapSafeMathAddOverflow {g : Sat256} {s0 : State} {ee : ExecutionE
     (R := R) (mem := mem) h
     (by
       unfold solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcErrorStringRevertTailWf solcCheckedArithmeticRevertPc
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) hover (by rfl) hmem hread64 hov
 
 /-! # Shared `_transfer` suffix helpers
@@ -282,7 +282,7 @@ theorem RD.uniswapTransferInternalStoreCreditMem {g : Sat256} {s0 : State}
       h
       (by
         unfold solcSingleMappingStoreCreditMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by
         simpa [uniswapTransferCreditHashMemOf, mapSlot, solcMappingSlot] using
           uniswapTransferCreditHashMemOf_slot src toWord hmem)
@@ -457,7 +457,7 @@ theorem RD.uniswapTransferInternalEmitAndJumpMem {g : Sat256} {s0 : State}
       (mem := uniswapTransferCreditHashMemOf src toWord mem) h
       (by
         unfold solcMaskedTransferLog3AndJumpWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (uniswapTransferCreditHashMemOf_mload64 src toWord hmem hmem64)
       (by
         simpa [uniswapTransferLogMemOf] using
@@ -478,7 +478,7 @@ theorem RD.uniswapTransferFromContinuationReturnTrue {g : Sat256} {s0 : State}
   exact RD.solcDiscard4ReturnTrue (pc := ⟨3082⟩) h
     (by
       unfold solcDiscard4ReturnTrueWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hret hov
 
 noncomputable abbrev uniswapTransferFromAllowanceStoreMemOf
@@ -564,7 +564,7 @@ theorem RD.uniswapTransferFromFiniteAllowanceStoreMem {g : Sat256} {s0 : State}
       (R := R) (mem := mem) h
       (by
         unfold solcNestedMappingCallerStoreMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hmem hperm hcanonSrc hov
 
 set_option maxHeartbeats 1000000 in
@@ -620,7 +620,7 @@ theorem RD.uniswapTransferFromAllowanceBranchToSubRoutine {g : Sat256} {s0 : Sta
     (ret := ret) (R := R) (mem := solcFreePtrMem) h
     (by
       unfold solcNestedMappingCallerLoadWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     solcFreePtrMem_size hcanonSrc hov
   obtain ⟨_, _, rd2983⟩ := RD.solcUintMaxEqBranchFalse
     (code := UniswapV2Pair.uniswapV2PairBytecode)
@@ -633,7 +633,7 @@ theorem RD.uniswapTransferFromAllowanceBranchToSubRoutine {g : Sat256} {s0 : Sta
     rd2975
     (by
       unfold solcUintMaxEqBranchWf solcNestedMappingCallerLoadOutPc
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hnotMax' (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rd6879⟩ := RD.solcNestedMappingCallerReloadToRoutineMem
     (code := UniswapV2Pair.uniswapV2PairBytecode)
@@ -648,7 +648,7 @@ theorem RD.uniswapTransferFromAllowanceBranchToSubRoutine {g : Sat256} {s0 : Sta
     (by
       unfold solcNestedMappingCallerReloadToRoutineMemWf
         solcUintMaxEqBranchFallthroughPc solcNestedMappingCallerLoadOutPc
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (uniswapApproveHashMem_size src (uniswapSourceWord ee))
     hcanonSrc (by jump_dest) (by decide) hov
   exact ⟨_, _, by

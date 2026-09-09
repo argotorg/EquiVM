@@ -10,7 +10,7 @@ theorem uInt256_land_one_eq_zero_of_even {n : UInt256} (heven : n.toNat % 2 = 0)
     UInt256.land n ⟨1⟩ = ⟨0⟩ := by
   apply u256_inj
   rw [uInt256_land_one_toNat, heven]
-  native_decide
+  decide +native
 
 theorem uInt256_land_one_eq_one_of_odd {n : UInt256} (hodd : n.toNat % 2 ≠ 0) :
     UInt256.land n ⟨1⟩ = ⟨1⟩ := by
@@ -38,67 +38,67 @@ theorem RD.potDripRpowToLoop
       mem aw out acc k' C' := by
   intro half z n'
   have rd2361 := evm_run rd2352 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨2512⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨2512⟩ (by decide +native) (by evm_ov)]
   have hxNonzero : UInt256.isZero x = ⟨0⟩ := isZero_eq_zero_of_ne hx
-  have rd2362 := rd2361.jumpiNT (by native_decide) hxNonzero (by evm_ov)
+  have rd2362 := rd2361.jumpiNT (by decide +native) hxNonzero (by evm_ov)
   have rd2371 := evm_run rd2362 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨2379⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨2379⟩ (by decide +native) (by evm_ov)]
   by_cases heven : n.toNat % 2 = 0
   · have hland : UInt256.land n ⟨1⟩ = ⟨0⟩ :=
       uInt256_land_one_eq_zero_of_even heven
     have hoddZero : UInt256.isZero (UInt256.land n ⟨1⟩) ≠ ⟨0⟩ := by
       rw [hland]
       decide
-    have rd2379 := rd2371.jumpiT (by native_decide) hoddZero (by jump_dest) (by evm_ov)
+    have rd2379 := rd2371.jumpiT (by decide +native) hoddZero (by jump_dest) (by evm_ov)
     have rd2395 := evm_run rd2379 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw dup4 (by native_decide) (by evm_ov),
-      raw swap3 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-      raw dup4 (by native_decide) (by evm_ov),
-      raw div (by native_decide) (by evm_ov),
-      raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-      raw dup6 (by native_decide) (by evm_ov),
-      raw div (by native_decide) (by evm_ov),
-      raw swap5 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov)]
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw dup4 (by decide +native) (by evm_ov),
+      raw swap3 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+      raw dup4 (by decide +native) (by evm_ov),
+      raw div (by decide +native) (by evm_ov),
+      raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+      raw dup6 (by decide +native) (by evm_ov),
+      raw div (by decide +native) (by evm_ov),
+      raw swap5 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov)]
     exact ⟨x, _, _, by simpa [half, z, n', heven] using rd2395⟩
   · have hland : UInt256.land n ⟨1⟩ = ⟨1⟩ :=
       uInt256_land_one_eq_one_of_odd heven
     have hoddNonzero : UInt256.isZero (UInt256.land n ⟨1⟩) = ⟨0⟩ := by
       rw [hland]
       decide
-    have rd2372 := rd2371.jumpiNT (by native_decide) hoddNonzero (by evm_ov)
+    have rd2372 := rd2371.jumpiNT (by decide +native) hoddNonzero (by evm_ov)
     have rd2383pre := evm_run rd2372 with [
-      raw dup6 (by native_decide) (by evm_ov),
-      raw swap3 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw push2 ⟨2383⟩ (by native_decide) (by evm_ov)]
-    have rd2383 := rd2383pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+      raw dup6 (by decide +native) (by evm_ov),
+      raw swap3 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw push2 ⟨2383⟩ (by decide +native) (by evm_ov)]
+    have rd2383 := rd2383pre.jump (by decide +native) (by jump_dest) (by evm_ov)
     have rd2395 := evm_run rd2383 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-      raw dup4 (by native_decide) (by evm_ov),
-      raw div (by native_decide) (by evm_ov),
-      raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-      raw dup6 (by native_decide) (by evm_ov),
-      raw div (by native_decide) (by evm_ov),
-      raw swap5 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov)]
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+      raw dup4 (by decide +native) (by evm_ov),
+      raw div (by decide +native) (by evm_ov),
+      raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+      raw dup6 (by decide +native) (by evm_ov),
+      raw div (by decide +native) (by evm_ov),
+      raw swap5 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov)]
     exact ⟨x, _, _, by simpa [half, z, n', heven] using rd2395⟩
 
 theorem execRpowFunctionReturnXNonzeroWithLoop
@@ -194,7 +194,7 @@ theorem execRpowFunctionReturnXNonzeroWithLoop
   have hHalfExpr :
       evalExpr? config { contract := contract, locals := localsZ } evm
         (.binary .div (.var "base") (.intLit 2)) = .ok (.int (Int.ofNat half.toNat)) :=
-    evalExpr_div_uint256_ok hbZ htwoLitZ (by native_decide) rfl
+    evalExpr_div_uint256_ok hbZ htwoLitZ (by decide +native) rfl
   have hnZH :
       evalExpr? config { contract := contract, locals := localsZH } evm (.var "n") =
         .ok (.int (Int.ofNat n.toNat)) := by
@@ -330,7 +330,7 @@ theorem execRpowFunctionRevertXNonzeroWithLoop
   have hHalfExpr :
       evalExpr? config { contract := contract, locals := localsZ } evm
         (.binary .div (.var "base") (.intLit 2)) = .ok (.int (Int.ofNat half.toNat)) :=
-    evalExpr_div_uint256_ok hbZ htwoLitZ (by native_decide) rfl
+    evalExpr_div_uint256_ok hbZ htwoLitZ (by decide +native) rfl
   have hnZH :
       evalExpr? config { contract := contract, locals := localsZH } evm (.var "n") =
         .ok (.int (Int.ofNat n.toNat)) := by

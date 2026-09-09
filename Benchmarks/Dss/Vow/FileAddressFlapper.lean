@@ -77,7 +77,7 @@ theorem fileAddressHopeSelectorMem_selector {mem : ByteArray} (hmem : mem.size =
     show 128 - 128 = 0 from rfl, show 132 - 128 = 4 from rfl,
     extract_append_left _ _ 0 4 (by rw [hBsz]; omega), extract_extract_BA,
     show (0 : ℕ) + 0 = 0 from rfl, show min (0 + 4) 32 = 4 from by omega]
-  native_decide
+  decide +native
 
 theorem fileAddressHopeCalldataMem_read128_36 (arg : UInt256) {mem : ByteArray}
     (hmem : mem.size = 164) :
@@ -231,7 +231,7 @@ theorem fileAddress_extCodeSizeWord_zero_lookup_code_zero
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+        (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
@@ -689,14 +689,14 @@ theorem RD.vowFileAddressNopeCallDepthLimit
     RD.vowFileAddressFlapperToNopeCall rd hmatch hmem hread64 hcodeSize
   obtain ⟨k4300, C4300, rd4300raw⟩ := RD.callDepthLimit
     (by simpa [fileAddressCallOutSize] using rd4299)
-    (by native_decide) hdepth (by evm_ov)
+    (by decide +native) hdepth (by evm_ov)
   have haw :
       UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
         fileAddressCallOutPtr.toNat fileAddressCallInSize.toNat)
         fileAddressCallOutPtr.toNat fileAddressCallOutSize.toNat) = UInt256.ofNat 6 := by
     rw [fileAddressCallInSize_eq]
     unfold fileAddressCallOutPtr fileAddressCallOutSize
-    native_decide
+    decide +native
   have hmin : (min fileAddressCallOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     unfold fileAddressCallOutSize
     rfl
@@ -729,9 +729,9 @@ theorem RD.vowFileAddressNopeNoCode
     RD.vowFileAddressFlapperToNopeExtcodesizeGuard rd hmatch hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4284⟩) (okPc := ⟨4296⟩) rd4284
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.vowFileAddressNopeSuccessStoreFlapperWithTarget
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -750,39 +750,39 @@ theorem RD.vowFileAddressNopeSuccessStoreFlapperWithTarget
   obtain ⟨k4318, C4318, rd4318⟩ := RD.solcCallSuccessGuardOk
     (pc := ⟨4300⟩) (okPc := ⟨4316⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native) (by simp)
   have rd4318' : RD vowBytecode ee g s0 ⟨4318⟩
       (fileAddressCallEndPtr :: ⟨3696042234⟩ ::
         target :: data :: what :: ret :: sel :: [])
       mem (UInt256.ofNat 6) rdata (cA, σ) k4318 C4318 := by
-    simpa [show ((⟨4316⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨4318⟩ from by native_decide]
+    simpa [show ((⟨4316⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨4318⟩ from by decide +native]
       using rd4318
-  have rd4319 := rd4318'.pop (by native_decide) (by evm_ov)
-  have rd4321 := rd4319.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd4322 := rd4321.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4323⟩ := rd4322.sload (by native_decide) (by evm_ov)
-  have rd4325 := rd4323.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4327 := rd4325.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4329 := rd4327.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4330 := rd4329.shl (by native_decide) (by evm_ov)
-  have rd4331 := rd4330.sub (by native_decide) (by evm_ov)
-  have rd4332 := rd4331.not (by native_decide) (by evm_ov)
-  have rd4333 := rd4332.and (by native_decide) (by evm_ov)
-  have rd4335 := rd4333.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4337 := rd4335.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4339 := rd4337.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4340 := rd4339.shl (by native_decide) (by evm_ov)
-  have rd4341 := rd4340.sub (by native_decide) (by evm_ov)
-  have rd4342 := rd4341.dup6 (by native_decide) (by evm_ov)
-  have rd4343 := rd4342.dup2 (by native_decide) (by evm_ov)
-  have rd4344 := rd4343.and (by native_decide) (by evm_ov)
-  have rd4345 := rd4344.swap2 (by native_decide) (by evm_ov)
-  have rd4346 := rd4345.dup3 (by native_decide) (by evm_ov)
-  have rd4347 := rd4346.or (by native_decide) (by evm_ov)
-  have rd4348 := rd4347.swap1 (by native_decide) (by evm_ov)
-  have rd4349 := rd4348.swap3 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4350⟩ := rd4349.sstore hperm (by native_decide) (by evm_ov)
+  have rd4319 := rd4318'.pop (by decide +native) (by evm_ov)
+  have rd4321 := rd4319.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd4322 := rd4321.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4323⟩ := rd4322.sload (by decide +native) (by evm_ov)
+  have rd4325 := rd4323.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4327 := rd4325.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4329 := rd4327.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4330 := rd4329.shl (by decide +native) (by evm_ov)
+  have rd4331 := rd4330.sub (by decide +native) (by evm_ov)
+  have rd4332 := rd4331.not (by decide +native) (by evm_ov)
+  have rd4333 := rd4332.and (by decide +native) (by evm_ov)
+  have rd4335 := rd4333.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4337 := rd4335.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4339 := rd4337.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4340 := rd4339.shl (by decide +native) (by evm_ov)
+  have rd4341 := rd4340.sub (by decide +native) (by evm_ov)
+  have rd4342 := rd4341.dup6 (by decide +native) (by evm_ov)
+  have rd4343 := rd4342.dup2 (by decide +native) (by evm_ov)
+  have rd4344 := rd4343.and (by decide +native) (by evm_ov)
+  have rd4345 := rd4344.swap2 (by decide +native) (by evm_ov)
+  have rd4346 := rd4345.dup3 (by decide +native) (by evm_ov)
+  have rd4347 := rd4346.or (by decide +native) (by evm_ov)
+  have rd4348 := rd4347.swap1 (by decide +native) (by evm_ov)
+  have rd4349 := rd4348.swap3 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4350⟩ := rd4349.sstore hperm (by decide +native) (by evm_ov)
   have hword :
       UInt256.lor (UInt256.land solcAddrMask data)
           (UInt256.land (UInt256.lnot solcAddrMask) (solcSlotWord σ ee ⟨2⟩)) =
@@ -805,7 +805,7 @@ theorem RD.vowFileAddressNopeSuccessStoreFlapperWithTarget
           ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ = ⟨4350⟩ := by
-    native_decide
+    decide +native
   rw [hpc4350] at rd4350
   exact ⟨_, _, by
     simpa [fileAddressSetFlapperAccountMap, solcSlotWord, hword,
@@ -832,8 +832,8 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuard
         data :: what :: ret :: sel :: [])
       (fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem)
       (UInt256.ofNat 6) rdata (cA, σ) k' C' := by
-  have rd4352 := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k4353, C4353, rd4353₀⟩ := rd4352.sload (by native_decide) (by evm_ov)
+  have rd4352 := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k4353, C4353, rd4353₀⟩ := rd4352.sload (by decide +native) (by evm_ov)
   have rd4353 : RD vowBytecode ee g s0 ⟨4353⟩
       (vowSlotWord ⟨1⟩ σ ee :: UInt256.land solcAddrMask data :: solcAddrMask ::
         ⟨3696042234⟩ :: fileAddressVatTargetWord σ ee :: data :: what :: ret :: sel :: [])
@@ -867,13 +867,13 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuard
   have rd4407 := evm_run rd4353 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     push4 ⟨686590961⟩,
     push1 ⟨226⟩,
     shl,
     dup2,
-    raw mstore 0 (fileAddressHopeSelectorMem mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (fileAddressHopeSelectorMem mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩,
     dup2,
@@ -882,8 +882,8 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuard
     swap1,
     swap4,
     raw mstore 0 (fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem)
-      (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+      (UInt256.ofNat 6) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Hope (by decide) (by evm_ov),
     swap3,
     and,
@@ -918,7 +918,7 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuard
           ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨4407⟩ := by
-    native_decide
+    decide +native
   rw [hpc4407] at rd4407
   exact ⟨_, _, by
     simpa [fileAddressVatTargetWord, fileAddressHopeSelectorShifted, fileAddressHopeSelector,
@@ -947,8 +947,8 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuardWithTarget
         data :: what :: ret :: sel :: [])
       (fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem)
       (UInt256.ofNat 6) rdata (cA, σ) k' C' := by
-  have rd4352 := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k4353, C4353, rd4353₀⟩ := rd4352.sload (by native_decide) (by evm_ov)
+  have rd4352 := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k4353, C4353, rd4353₀⟩ := rd4352.sload (by decide +native) (by evm_ov)
   have rd4353 : RD vowBytecode ee g s0 ⟨4353⟩
       (vowSlotWord ⟨1⟩ σ ee :: UInt256.land solcAddrMask data :: solcAddrMask ::
         ⟨3696042234⟩ :: target :: data :: what :: ret :: sel :: [])
@@ -982,13 +982,13 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuardWithTarget
   have rd4407 := evm_run rd4353 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     push4 ⟨686590961⟩,
     push1 ⟨226⟩,
     shl,
     dup2,
-    raw mstore 0 (fileAddressHopeSelectorMem mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (fileAddressHopeSelectorMem mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩,
     dup2,
@@ -997,8 +997,8 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuardWithTarget
     swap1,
     swap4,
     raw mstore 0 (fileAddressHopeCalldataMem (UInt256.land solcAddrMask data) mem)
-      (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+      (UInt256.ofNat 6) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Hope (by decide) (by evm_ov),
     swap3,
     and,
@@ -1033,7 +1033,7 @@ theorem RD.vowFileAddressFlapperToHopeExtcodesizeGuardWithTarget
           ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨4407⟩ := by
-    native_decide
+    decide +native
   rw [hpc4407] at rd4407
   exact ⟨_, _, by
     simpa [fileAddressVatTargetWord, fileAddressHopeSelectorShifted, fileAddressHopeSelector,
@@ -1067,9 +1067,9 @@ theorem RD.vowFileAddressFlapperToHopeCall
   obtain ⟨gasWord, k', C', rd4422⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4407⟩) (okPc := ⟨4419⟩) rd4407
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd4422⟩
 
 theorem RD.vowFileAddressFlapperToHopeCallWithTarget
@@ -1096,9 +1096,9 @@ theorem RD.vowFileAddressFlapperToHopeCallWithTarget
   obtain ⟨gasWord, k', C', rd4422⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4407⟩) (okPc := ⟨4419⟩) rd4407
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd4422⟩
 
 theorem RD.vowFileAddressHopeNoCode
@@ -1118,9 +1118,9 @@ theorem RD.vowFileAddressHopeNoCode
     RD.vowFileAddressFlapperToHopeExtcodesizeGuard rd hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4407⟩) (okPc := ⟨4419⟩) rd4407
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.vowFileAddressHopeNoCodeWithTarget
     {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -1139,9 +1139,9 @@ theorem RD.vowFileAddressHopeNoCodeWithTarget
     RD.vowFileAddressFlapperToHopeExtcodesizeGuardWithTarget rd hmem hread64
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4407⟩) (okPc := ⟨4419⟩) rd4407
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.vowFileAddressHopePostCall
     {cA gh bl σ σ₀ A I} {g sel data what ret : UInt256}
@@ -1177,7 +1177,7 @@ theorem RD.vowFileAddressHopePostCall
   obtain ⟨gasWord, _, _, rd4422⟩ :=
     RD.vowFileAddressFlapperToHopeCall rd hmem hread64 hcodeSize
   obtain ⟨cA'', σ'', z, out, A_in, callGas, k4423, C4423, hΘpack, rd4423raw, houtsz⟩ :=
-    RD.call rd4422 (by native_decide) hdepth (by evm_ov)
+    RD.call rd4422 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A'', hΘ⟩ := hΘpack
   refine ⟨cA'', σ'', z, out, A'', k4423, C4423, ?_, ?_, houtsz⟩
   · have haw :
@@ -1186,7 +1186,7 @@ theorem RD.vowFileAddressHopePostCall
           fileAddressCallOutPtr.toNat fileAddressCallOutSize.toNat) = UInt256.ofNat 6 := by
       rw [fileAddressCallInSize_eq]
       unfold fileAddressCallOutPtr fileAddressCallOutSize
-      native_decide
+      decide +native
     have hmin : (min fileAddressCallOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold fileAddressCallOutSize
       rfl
@@ -1244,7 +1244,7 @@ theorem RD.vowFileAddressHopePostCallWithTarget
   obtain ⟨gasWord, _, _, rd4422⟩ :=
     RD.vowFileAddressFlapperToHopeCallWithTarget rd hmem hread64 hcodeSize
   obtain ⟨cA'', σ'', z, out, A_in, callGas, k4423, C4423, hΘpack, rd4423raw, houtsz⟩ :=
-    RD.call rd4422 (by native_decide) hdepth (by evm_ov)
+    RD.call rd4422 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A'', hΘ⟩ := hΘpack
   refine ⟨cA'', σ'', z, out, A'', k4423, C4423, ?_, ?_, houtsz⟩
   · have haw :
@@ -1253,7 +1253,7 @@ theorem RD.vowFileAddressHopePostCallWithTarget
           fileAddressCallOutPtr.toNat fileAddressCallOutSize.toNat) = UInt256.ofNat 6 := by
       rw [fileAddressCallInSize_eq]
       unfold fileAddressCallOutPtr fileAddressCallOutSize
-      native_decide
+      decide +native
     have hmin : (min fileAddressCallOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold fileAddressCallOutSize
       rfl
@@ -1301,14 +1301,14 @@ theorem RD.vowFileAddressHopeCallDepthLimitWithTarget
     RD.vowFileAddressFlapperToHopeCallWithTarget rd hmem hread64 hcodeSize
   obtain ⟨k4423, C4423, rd4423raw⟩ := RD.callDepthLimit
     (by simpa [fileAddressCallOutSize] using rd4422)
-    (by native_decide) hdepth (by evm_ov)
+    (by decide +native) hdepth (by evm_ov)
   have haw :
       UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
         fileAddressCallOutPtr.toNat fileAddressCallInSize.toNat)
         fileAddressCallOutPtr.toNat fileAddressCallOutSize.toNat) = UInt256.ofNat 6 := by
     rw [fileAddressCallInSize_eq]
     unfold fileAddressCallOutPtr fileAddressCallOutSize
-    native_decide
+    decide +native
   have hmin : (min fileAddressCallOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     unfold fileAddressCallOutSize
     rfl
@@ -1380,9 +1380,9 @@ theorem RD.vowFileAddressHopeCallFailure
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4423⟩) (okPc := ⟨4439⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp)
 
 theorem RD.vowFileAddressHopeCallSuccessToReturn
@@ -1401,17 +1401,17 @@ theorem RD.vowFileAddressHopeCallSuccessToReturn
   obtain ⟨_, _, rd4441⟩ := RD.solcCallSuccessGuardOk
     (pc := ⟨4423⟩) (okPc := ⟨4439⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by simp)
-  have rd4442 := rd4441.pop (by native_decide) (by evm_ov)
-  have rd4443 := rd4442.pop (by native_decide) (by evm_ov)
-  have rd4444 := rd4443.pop (by native_decide) (by evm_ov)
-  have rd4447 := rd4444.push2 ⟨2233⟩ (by native_decide) (by evm_ov)
-  have rd2233 := rd4447.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd2234 := rd2233.jumpdest (by native_decide) (by evm_ov)
-  have rd2235 := rd2234.pop (by native_decide) (by evm_ov)
-  have rd2236 := rd2235.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd2236.jump (by native_decide) hret (by evm_ov)⟩
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native) (by simp)
+  have rd4442 := rd4441.pop (by decide +native) (by evm_ov)
+  have rd4443 := rd4442.pop (by decide +native) (by evm_ov)
+  have rd4444 := rd4443.pop (by decide +native) (by evm_ov)
+  have rd4447 := rd4444.push2 ⟨2233⟩ (by decide +native) (by evm_ov)
+  have rd2233 := rd4447.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd2234 := rd2233.jumpdest (by decide +native) (by evm_ov)
+  have rd2235 := rd2234.pop (by decide +native) (by evm_ov)
+  have rd2236 := rd2235.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd2236.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem RD.vowFileAddressHopeCallSuccess
     {cA gh bl σ σ₀ A I} {g sel target data what : UInt256}
@@ -1425,8 +1425,8 @@ theorem RD.vowFileAddressHopeCallSuccess
     RDret vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) acc ByteArray.empty := by
   obtain ⟨_, _, rd412⟩ := RD.vowFileAddressHopeCallSuccessToReturn rd (by jump_dest)
-  have rd413 := rd412.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd413 (by native_decide) (by simp)
+  have rd413 := rd412.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd413 (by decide +native) (by simp)
 
 theorem vowFileAddressFlapperNopeNoCodeBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -1720,7 +1720,7 @@ theorem vowFileAddressFlapperHopeSuccessBodyCore
   have hret := RD.vowFileAddressHopeCallSuccess rd4423
   have henc : returnEquiv ByteArray.empty none fileAddressTransition.returnType := by
     rw [show fileAddressTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     hcreated hAccountsFinal henc
 

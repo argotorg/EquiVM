@@ -23,7 +23,7 @@ theorem cureDispatchWait {I : ExecutionEnv}
     cureLoadSelectorBytes, cureLoadedSelectorBytes, curePosSelectorBytes,
     cureRelySelectorBytes, cureSaySelectorBytes, cureSrcsSelectorBytes,
     cureTCountSelectorBytes, cureTellSelectorBytes, cureWaitSelectorBytes]
-  native_decide
+  decide +native
 
 theorem cureDecode_wait {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (waitTransition.params.map Param.name)
@@ -62,15 +62,15 @@ theorem cureWaitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (cureReachWaitBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcWordSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [waitWord] using hbody)
 
 end Benchmarks.Dss.Cure

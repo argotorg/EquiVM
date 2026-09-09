@@ -695,7 +695,7 @@ def timelockControllerBenchCreationBytecode : ByteArray :=
       ⟨6123⟩, ⟨6143⟩, ⟨6166⟩, ⟨6203⟩, ⟨6230⟩, ⟨6244⟩, ⟨6255⟩, ⟨6279⟩, ⟨6291⟩, ⟨6309⟩,
       ⟨6334⟩, ⟨6355⟩, ⟨6386⟩, ⟨6426⟩, ⟨6450⟩, ⟨6481⟩
       ]
-  := by native_decide
+  := by decide +native
 
 /-- The `JUMPDEST` set of `timelockControllerBenchCreationBytecode`, computed from bytecode. -/
 @[valid_jumps] theorem validCreationJumps :
@@ -737,6 +737,6 @@ def timelockControllerBenchCreationBytecode : ByteArray :=
       ⟨6750⟩, ⟨6775⟩, ⟨6795⟩, ⟨6818⟩, ⟨6855⟩, ⟨6882⟩, ⟨6896⟩, ⟨6907⟩, ⟨6931⟩, ⟨6943⟩,
       ⟨6961⟩, ⟨6986⟩, ⟨7007⟩, ⟨7038⟩, ⟨7078⟩, ⟨7102⟩, ⟨7133⟩
       ]
-  := by native_decide
+  := by decide +native
 
 end OpenZeppelinBench.TimelockController

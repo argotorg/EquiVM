@@ -107,7 +107,7 @@ theorem yankCatSelectorMem_size (I : ExecutionEnv) :
     (yankCatSelectorMem I).size = 160 := by
   unfold yankCatSelectorMem
   exact toByteArray_write32_size_of_ge (yankCatHashMem I) yankCatSelectorWord 128 96 160
-    (yankCatHashMem_size I) (by omega) (by native_decide) (by omega)
+    (yankCatHashMem_size I) (by omega) (by decide +native) (by omega)
 
 theorem yankCatSelectorMem_read64 (I : ExecutionEnv) :
     (yankCatSelectorMem I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
@@ -117,7 +117,7 @@ theorem yankCatSelectorMem_read64 (I : ExecutionEnv) :
   · rw [yankCatHashMem_size]
   · omega
   · rw [yankCatHashMem_size]
-    native_decide
+    decide +native
 
 theorem yankCatCallMem_size (σ : AccountMap) (I : ExecutionEnv) :
     (yankCatCallMem σ I).size = 164 := by
@@ -126,7 +126,7 @@ theorem yankCatCallMem_size (σ : AccountMap) (I : ExecutionEnv) :
     (bidTabWord (yankId I) σ I) 132 160 164
     (yankCatSelectorMem_size I)
     (by rw [yankCatSelectorMem_size]; omega)
-    (by native_decide)
+    (by decide +native)
 
 theorem yankCatCallMem_read64 (σ : AccountMap) (I : ExecutionEnv) :
     (yankCatCallMem σ I).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
@@ -138,11 +138,11 @@ theorem yankCatCallMem_read64 (σ : AccountMap) (I : ExecutionEnv) :
     omega
   · omega
   · rw [yankCatSelectorMem_size]
-    native_decide
+    decide +native
 
 theorem yankCatSelectorWord_prefix :
     (UInt256.toByteArray yankCatSelectorWord).extract 0 4 = catClawSelector := by
-  native_decide
+  decide +native
 
 theorem yankCatCallMem_read (σ : AccountMap) (I : ExecutionEnv) :
     (yankCatCallMem σ I).readWithPadding 128 36 =
@@ -165,16 +165,16 @@ theorem yankCatCallMem_read (σ : AccountMap) (I : ExecutionEnv) :
         rw [toByteArray_write_read_back_of_gap (bidTabWord (yankId I) σ I)
           (yankCatSelectorMem I) 132 (by
             rw [yankCatSelectorMem_size]
-            native_decide)]
+            decide +native)]
       · rw [yankCatHashMem_size]
-        native_decide
+        decide +native
     · rw [yankCatSelectorMem_size]
       omega
     · omega
     · omega
     · omega
     · rw [yankCatSelectorMem_size]
-      native_decide
+      decide +native
 
 theorem yankEncodeABIValue_uint256_word (w : UInt256) :
     encodeABIValue? uint256 (.int (Int.ofNat w.toNat)) =
@@ -197,10 +197,10 @@ theorem yankCatCallMem_encode (σ : AccountMap) (I : ExecutionEnv) :
         [Value.int (Int.ofNat (bidTabWord (yankId I) σ I).toNat)] =
           some (UInt256.toByteArray (bidTabWord (yankId I) σ I)).toList := by
     unfold encodeABIValues?
-    rw [show abiTupleHeadSize? [uint256] = some 32 by native_decide]
+    rw [show abiTupleHeadSize? [uint256] = some 32 by decide +native]
     simp only [encodeABIValuesFrom?, Option.bind, bind]
     rw [yankEncodeABIValue_uint256_word]
-    simp [show isDynamicABIType uint256 = false by native_decide]
+    simp [show isDynamicABIType uint256 = false by decide +native]
   rw [hpayload]
   apply congrArg some
   apply ByteArray.ext
@@ -321,7 +321,7 @@ theorem yankVatFluxCallMem_size (σmem σ : AccountMap) (I : ExecutionEnv) :
      (196, solcSourceWord I),
      (228, bidLotWord (yankId I) σ I)]
     (yankVatHashMem_size σmem I)
-    (by simp [WriteGapsOk] <;> native_decide)
+    (by simp [WriteGapsOk] <;> decide +native)
     (by norm_num [writeCascadeSize])
 
 theorem yankVatFluxCallMem_read64 (σmem σ : AccountMap) (I : ExecutionEnv) :
@@ -335,7 +335,7 @@ theorem yankVatFluxCallMem_read64 (σmem σ : AccountMap) (I : ExecutionEnv) :
      (196, solcSourceWord I),
      (228, bidLotWord (yankId I) σ I)]
     (yankVatHashMem_size σmem I)
-    (by simp [WindowDisjointFromWrites] <;> native_decide)]
+    (by simp [WindowDisjointFromWrites] <;> decide +native)]
   exact yankVatHashMem_read64 σmem I
 
 theorem yankLocals_get_id (I : ExecutionEnv) :
@@ -377,15 +377,15 @@ theorem flipperReachYankBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : flipperSelWord I = ⟨0x26e027f1⟩ :=
     flipperSelWord_eq_of_beq I hsz 0x26 0xe0 0x27 0xf1 ⟨0x26e027f1⟩
-      (by native_decide) (by simpa [flipperSelBytes] using hsel)
+      (by decide +native) (by simpa [flipperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flipperBytecode flipperRootSplitPc)
       (flipperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat flipperBytecode flipperHighSplitPc)
       (flipperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperHighLowFirstArmPc j))
@@ -397,9 +397,9 @@ theorem flipperReachYankBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (nthArmPc flipperBytecode flipperHighLowFirstArmPc 0))
         (flipperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact flipperReachHighLowBody 0 (by omega) ⟨294⟩ hcode hwv hsz hsize hroot hhigh
-    heq0 htake (by jump_dest) (by native_decide)
+    heq0 htake (by jump_dest) (by decide +native)
 
 theorem RD.flipperYankDecodeToRoutine {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256}
@@ -413,17 +413,17 @@ theorem RD.flipperYankDecodeToRoutine {code : ByteArray} {g : Sat256}
       (calldataWord ee.calldata 4 :: ret :: sel :: R) mem aw rdata acc k' C' := by
   subst hwf
   have rd967 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw push2 ⟨967⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) hroutine (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw push2 ⟨967⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) hroutine (by evm_ov)]
   exact ⟨_, _, by simpa [calldataWord] using rd967⟩
 
 theorem flipperYankDecodePushAlreadyDent1201 :
     decode flipperBytecode (⟨1201⟩ : UInt256) =
       some (.Push .PUSH32, some (flipperYankAlreadyDentWord, 32)) := by
-  native_decide
+  decide +native
 
 theorem flipperYankX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -436,9 +436,9 @@ theorem flipperYankX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flipperBytecode) (sel := sel) (entry := ⟨294⟩) (ret := ⟨323⟩)
     (decoded := ⟨316⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by
       exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
@@ -1052,7 +1052,7 @@ theorem flipperYankX_authOk {cA σ I} {g : Sat256} {s0 : State}
     (ret := ret) (R := [sel]) h
     (by
       unfold flipperAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [yankAuthMem] using hafterAuth⟩
 
@@ -1064,26 +1064,26 @@ theorem flipperYankX_guyNonzero {cA σ I} {g : Sat256} {s0 : State}
     ∃ k' C', RD flipperBytecode I g s0 ⟨1147⟩ [yankId I, ret, sel]
       (yankHashMem0 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd1064 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (wordAt0Mem (yankId I) (yankAuthMem I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
     raw mstore 0 (yankHashMem0 I) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw keccak256 0 (solcMappingSlot ⟨1⟩ (yankId I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (twoWordHashMem_solcMappingSlot ⟨1⟩ (yankId I)
         (twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size))
       (by decide) (by evm_ov),
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  obtain ⟨k1068, C1068, rd1068raw⟩ := rd1064.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  obtain ⟨k1068, C1068, rd1068raw⟩ := rd1064.sload (by decide +native) (by evm_ov)
   have rd1068 : RD flipperBytecode I g s0 ⟨1068⟩
       [flipperSlotWord (bidPackedSlotOfWord (yankId I)) σ I, yankId I, ret, sel]
       (yankHashMem0 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1068 C1068 := by
@@ -1094,12 +1094,12 @@ theorem flipperYankX_guyNonzero {cA σ I} {g : Sat256} {s0 : State}
     simpa [yankHashMem0, yankAuthMem, bidPackedSlotOfWord, bidBaseOfWord,
       flipperSlotWord, hslotAdd] using rd1068raw
   have rd1077 := evm_run rd1068 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hraw :
       UInt256.land
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -1108,12 +1108,12 @@ theorem flipperYankX_guyNonzero {cA σ I} {g : Sat256} {s0 : State}
     have hmask :
         UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask := by
-      native_decide
+      decide +native
     simp [bidGuyWord, flipperAddressReturnWord, hmask, u256_land_comm]
   rw [hraw] at rd1077
   have rd1147 := evm_run rd1077 with [
-    raw push2 ⟨1147⟩ (by native_decide) (by evm_ov),
-    raw jumpiT (by native_decide) hguy (by jump_dest) (by evm_ov)]
+    raw push2 ⟨1147⟩ (by decide +native) (by evm_ov),
+    raw jumpiT (by decide +native) hguy (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa using rd1147⟩
 
 theorem flipperYankX_guyZero {cA σ I} {g : Sat256} {s0 : State}
@@ -1123,26 +1123,26 @@ theorem flipperYankX_guyZero {cA σ I} {g : Sat256} {s0 : State}
       (yankAuthMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   have rd1064 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (wordAt0Mem (yankId I) (yankAuthMem I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
     raw mstore 0 (yankHashMem0 I) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw keccak256 0 (solcMappingSlot ⟨1⟩ (yankId I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (twoWordHashMem_solcMappingSlot ⟨1⟩ (yankId I)
         (twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size))
       (by decide) (by evm_ov),
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  obtain ⟨k1068, C1068, rd1068raw⟩ := rd1064.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  obtain ⟨k1068, C1068, rd1068raw⟩ := rd1064.sload (by decide +native) (by evm_ov)
   have rd1068 : RD flipperBytecode I g s0 ⟨1068⟩
       [flipperSlotWord (bidPackedSlotOfWord (yankId I)) σ I, yankId I, ret, sel]
       (yankHashMem0 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1068 C1068 := by
@@ -1153,12 +1153,12 @@ theorem flipperYankX_guyZero {cA σ I} {g : Sat256} {s0 : State}
     simpa [yankHashMem0, yankAuthMem, bidPackedSlotOfWord, bidBaseOfWord,
       flipperSlotWord, hslotAdd] using rd1068raw
   have rd1077 := evm_run rd1068 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hraw :
       UInt256.land
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -1166,8 +1166,8 @@ theorem flipperYankX_guyZero {cA σ I} {g : Sat256} {s0 : State}
     simpa [bidGuyWord, flipperAddressReturnWord, solcAddrMask, u256_land_comm] using hguy
   rw [hraw] at rd1077
   have rd1081 := evm_run rd1077 with [
-    raw push2 ⟨1147⟩ (by native_decide) (by evm_ov),
-    raw jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)]
+    raw push2 ⟨1147⟩ (by decide +native) (by evm_ov),
+    raw jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)]
   exact RD.solcErrorStringRevertTail
     (pc := ⟨1081⟩) (len := ⟨19⟩)
     (rawWord := (⟨392624042470857692800460698066570017893046621⟩ : UInt256))
@@ -1177,7 +1177,7 @@ theorem flipperYankX_guyZero {cA σ I} {g : Sat256} {s0 : State}
     rd1081
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) (by rfl)
     (twoWordHashMem_size_96 (yankId I) ⟨1⟩
       (twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size))
@@ -1195,28 +1195,28 @@ theorem flipperYankX_bidLt {cA σ I} {g : Sat256} {s0 : State}
     ∃ k' C', RD flipperBytecode I g s0 ⟨1250⟩ [yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd1162 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (wordAt0Mem (yankId I) (yankHashMem0 I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
     raw mstore 0 (yankHashMem1 I) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw keccak256 0 (solcMappingSlot ⟨1⟩ (yankId I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (twoWordHashMem_solcMappingSlot ⟨1⟩ (yankId I)
         (twoWordHashMem_size_96 (yankId I) ⟨1⟩
           (twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size)))
       (by decide) (by evm_ov),
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  obtain ⟨k1167, C1167, rd1167raw⟩ := rd1162.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  obtain ⟨k1167, C1167, rd1167raw⟩ := rd1162.sload (by decide +native) (by evm_ov)
   have rd1167 : RD flipperBytecode I g s0 ⟨1167⟩
       [bidTabWord (yankId I) σ I, solcMappingSlot ⟨1⟩ (yankId I), yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1167 C1167 := by
@@ -1228,20 +1228,20 @@ theorem flipperYankX_bidLt {cA σ I} {g : Sat256} {s0 : State}
       bidBaseOfWord, flipperSlotWord, hslotAdd] using rd1167raw
   obtain ⟨k1169, C1169, rd1169raw⟩ :=
     (evm_run rd1167 with [
-      raw swap1 (by native_decide) (by evm_ov)]).sload (by native_decide) (by evm_ov)
+      raw swap1 (by decide +native) (by evm_ov)]).sload (by decide +native) (by evm_ov)
   have rd1169 : RD flipperBytecode I g s0 ⟨1169⟩
       [bidBidWord (yankId I) σ I, bidTabWord (yankId I) σ I, yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1169 C1169 := by
     simpa [bidBidWord, bidBaseOfWord, flipperSlotWord] using rd1169raw
   have rd1170 := evm_run rd1169 with [
-    raw lt (by native_decide) (by evm_ov)]
+    raw lt (by decide +native) (by evm_ov)]
   have hltWord : UInt256.lt (bidBidWord (yankId I) σ I) (bidTabWord (yankId I) σ I) =
       ⟨1⟩ :=
     Reasoning.Theory.ult_one hlt
   rw [hltWord] at rd1170
   have rd1250 := evm_run rd1170 with [
-    raw push2 ⟨1250⟩ (by native_decide) (by evm_ov),
-    raw jumpiT (by native_decide) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest)
+    raw push2 ⟨1250⟩ (by decide +native) (by evm_ov),
+    raw jumpiT (by decide +native) (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest)
       (by evm_ov)]
   exact ⟨_, _, by simpa using rd1250⟩
 
@@ -1255,9 +1255,9 @@ theorem flipperYankX_toCatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
         flipperCatTargetWord σ I :: yankId I :: ret :: sel :: [])
       (yankCatCallMem σ I) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k' C' := by
   let rawTarget := flipperSlotWord ⟨7⟩ σ I
-  have rd1253 := h.jumpdest (by native_decide) (by evm_ov)
-    |>.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1254, C1254, rd1254raw⟩ := rd1253.sload (by native_decide) (by evm_ov)
+  have rd1253 := h.jumpdest (by decide +native) (by evm_ov)
+    |>.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1254, C1254, rd1254raw⟩ := rd1253.sload (by decide +native) (by evm_ov)
   have rd1254 : RD flipperBytecode I g s0 ⟨1254⟩
       (rawTarget :: yankId I :: ret :: sel :: [])
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1254 C1254 := by
@@ -1281,25 +1281,25 @@ theorem flipperYankX_toCatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
     mloadFreePtrValue (by rw [yankCatCallMem_size]; decide) (by decide)
       (yankCatCallMem_read64 σ I)
   have rd1272 := evm_run rd1254 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (wordAt0Mem (yankId I) (yankHashMem1 I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
     raw mstore 0 (yankCatHashMem I) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
     raw keccak256 0 (solcMappingSlot ⟨1⟩ (yankId I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (twoWordHashMem_solcMappingSlot ⟨1⟩ (yankId I) (yankHashMem1_size I))
       (by decide) (by evm_ov),
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  obtain ⟨k1273, C1273, rd1273raw⟩ := rd1272.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  obtain ⟨k1273, C1273, rd1273raw⟩ := rd1272.sload (by decide +native) (by evm_ov)
   have rd1273 : RD flipperBytecode I g s0 ⟨1273⟩
       (bidTabWord (yankId I) σ I :: ⟨64⟩ :: ⟨0⟩ :: rawTarget ::
         yankId I :: ret :: sel :: [])
@@ -1311,53 +1311,53 @@ theorem flipperYankX_toCatExtcodesizeGuard {cA σ I} {g : Sat256} {s0 : State}
     simpa [yankCatHashMem, bidTabWord, bidSlotOfWord, bidBaseOfWord,
       flipperSlotWord, hslotAdd] using rd1273raw
   have rd1330 := evm_run rd1273 with [
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost hmload64Hash (by decide) (by evm_ov),
-    raw push4 ⟨3865913243⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨224⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 ⟨3865913243⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨224⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (yankCatSelectorMem I) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
     raw mstore 3 (yankCatCallMem σ I) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push4 ⟨3865913243⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push4 ⟨3865913243⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [rawTarget, flipperCatTargetWord, flipperAddressReturnWord, flipperSlotWord,
       solcSlotWord, solcAddrMask, yankCatSelectorWord] using rd1330⟩
@@ -1372,9 +1372,9 @@ theorem flipperYankX_catNoCode {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd1330⟩ := flipperYankX_toCatExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1330⟩) (okPc := ⟨1342⟩) rd1330
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem flipperYankX_toCatCall {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
@@ -1391,9 +1391,9 @@ theorem flipperYankX_toCatCall {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨gasWord, k1345, C1345, rd1345⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1330⟩) (okPc := ⟨1342⟩) rd1330
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k1345, C1345, by simpa using rd1345⟩
 
 theorem flipperYankX_catPostCall
@@ -1425,14 +1425,14 @@ theorem flipperYankX_catPostCall
   obtain ⟨gasWord, _, _, rd1345⟩ := flipperYankX_toCatCall hcodeSize h
   obtain ⟨cA', σ', z, out, A_in, callGas, k1346, C1346, hΘpack, rd1346raw,
       houtsz⟩ :=
-    RD.call rd1345 (by native_decide) hdepth (by evm_ov)
+    RD.call rd1345 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, out, A', k1346, C1346, ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           (⟨128⟩ : UInt256).toNat (⟨36⟩ : UInt256).toNat)
           (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) = UInt256.ofNat 6 := by
-      native_decide
+      decide +native
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
       rfl
     have rd1346 : RD flipperBytecode I (Sat256.ofUInt256 g)
@@ -1466,9 +1466,9 @@ theorem flipperYankX_catCallFailure {I} {g : Sat256} {s0 : State}
     RDrev flipperBytecode g s0 := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1346⟩) (okPc := ⟨1362⟩) h
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     houtsz (by simp)
 
 theorem flipperYankX_catCallDepthLimit {cA σ I} {g : Sat256} {s0 : State}
@@ -1487,12 +1487,12 @@ theorem flipperYankX_catCallDepthLimit {cA σ I} {g : Sat256} {s0 : State}
       (cA := cA) (σ := σ) (gasArg := gasWord) (target := flipperCatTargetWord σ I)
       (inOffset := ⟨128⟩) (inSize := ⟨36⟩) (outOffset := ⟨128⟩) (outSize := ⟨0⟩)
       (t := [⟨164⟩, ⟨3865913243⟩, flipperCatTargetWord σ I, yankId I, ret, sel])
-      rd1345 (by native_decide) hdepth (by simp)
+      rd1345 (by decide +native) hdepth (by simp)
   have haw :
       UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
         (⟨128⟩ : UInt256).toNat (⟨36⟩ : UInt256).toNat)
         (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) = UInt256.ofNat 6 := by
-    native_decide
+    decide +native
   have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     rfl
   have rd1346 : RD flipperBytecode I g s0 ⟨1346⟩
@@ -1502,7 +1502,7 @@ theorem flipperYankX_catCallDepthLimit {cA σ I} {g : Sat256} {s0 : State}
     by
       rw [hmin, byteArray_write_len_zero] at rd1346raw
       exact haw ▸ rd1346raw
-  exact flipperYankX_catCallFailure rd1346 (by native_decide)
+  exact flipperYankX_catCallFailure rd1346 (by decide +native)
 
 theorem flipperYankX_catCallSuccessToVatStart {I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out mem : ByteArray} {aw target id ret sel selector : UInt256}
@@ -1516,10 +1516,10 @@ theorem flipperYankX_catCallSuccessToVatStart {I} {g : Sat256} {s0 : State}
   obtain ⟨k1364, C1364, rd1364⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨1346⟩) (okPc := ⟨1362⟩) h
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp)
-  have rd1365 := rd1364.pop (by native_decide) (by evm_ov)
+  have rd1365 := rd1364.pop (by decide +native) (by evm_ov)
   exact ⟨k1364 + 1, C1364 + 2, by simpa using rd1365⟩
 
 theorem flipperYankX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : State}
@@ -1537,7 +1537,7 @@ theorem flipperYankX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : St
   let base := solcMappingSlot ⟨1⟩ (yankId I)
   have hmask160 :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have hvatClean : UInt256.land rawVat solcAddrMask = flipperVatTargetWord σ I := by
     simp [rawVat, flipperVatTargetWord, flipperAddressReturnWord]
   have hmload64Hash :
@@ -1558,41 +1558,41 @@ theorem flipperYankX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : St
         ⟨128⟩ :=
     mloadFreePtrValue (by rw [yankVatFluxCallMem_size]; decide) (by decide)
       (yankVatFluxCallMem_read64 σmem σ I)
-  have rd1367pre := h.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1367, C1367, rd1367raw⟩ := rd1367pre.sload (by native_decide) (by evm_ov)
+  have rd1367pre := h.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1367, C1367, rd1367raw⟩ := rd1367pre.sload (by decide +native) (by evm_ov)
   have rd1368 : RD flipperBytecode I g s0 ⟨1368⟩
       (rawVat :: selector :: target :: yankId I :: ret :: sel :: [])
       (yankCatCallMem σmem I) (UInt256.ofNat 6) out (cA, σ) k1367 C1367 := by
     simpa [rawVat, flipperSlotWord, solcSlotWord] using rd1367raw
-  have rd1370pre := rd1368.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1370, C1370, rd1370raw⟩ := rd1370pre.sload (by native_decide) (by evm_ov)
+  have rd1370pre := rd1368.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1370, C1370, rd1370raw⟩ := rd1370pre.sload (by decide +native) (by evm_ov)
   have rd1371 : RD flipperBytecode I g s0 ⟨1371⟩
       (rawIlk :: rawVat :: selector :: target :: yankId I :: ret :: sel :: [])
       (yankCatCallMem σmem I) (UInt256.ofNat 6) out (cA, σ) k1370 C1370 := by
     simpa [rawIlk, flipperSlotWord, solcSlotWord] using rd1370raw
   have rd1391pre := evm_run rd1371 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (wordAt0Mem (yankId I) (yankCatCallMem σmem I)) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (yankVatHashMem σmem I) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
     raw keccak256 0 base (UInt256.ofNat 6)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by simpa [base] using yankVatHashMem_solcMappingSlot σmem I)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  obtain ⟨k1392, C1392, rd1392raw⟩ := rd1391pre.sload (by native_decide) (by evm_ov)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  obtain ⟨k1392, C1392, rd1392raw⟩ := rd1391pre.sload (by decide +native) (by evm_ov)
   have rd1392 : RD flipperBytecode I g s0 ⟨1392⟩
       (bidLotWord (yankId I) σ I :: ⟨64⟩ :: ⟨0⟩ :: rawIlk :: rawVat ::
         selector :: target :: yankId I :: ret :: sel :: [])
@@ -1604,74 +1604,74 @@ theorem flipperYankX_toVatExtcodesizeGuard {cA σmem σ I} {g : Sat256} {s0 : St
     simpa [bidLotWord, bidSlotOfWord, bidBaseOfWord, flipperSlotWord, hslotAdd]
       using rd1392raw
   have rd1412 := evm_run rd1392 with [
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Hash (by decide) (by evm_ov),
-    raw push4 ⟨814276375⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨225⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 ⟨814276375⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨225⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (yankVatFluxSelectorMem σmem I) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
     raw mstore 0 (yankVatFluxIlkMem σmem σ I) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
-  have rd1413 := RD.address rd1412 (by native_decide) (by evm_ov)
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
+  have rd1413 := RD.address rd1412 (by decide +native) (by evm_ov)
   have rd1466 := evm_run rd1413 with [
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (yankVatFluxThisMem σmem σ I) (UInt256.ofNat 7)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (yankVatFluxSenderMem σmem σ I) (UInt256.ofNat 8)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (yankVatFluxCallMem σmem σ I) (UInt256.ofNat 9)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push4 ⟨1628552750⟩ (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨132⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push4 ⟨1628552750⟩ (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨132⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   rw [hmask160, hvatClean] at rd1466
   exact ⟨_, _, by
-    convert rd1466 using 1 <;> native_decide⟩
+    convert rd1466 using 1 <;> decide +native⟩
 
 theorem flipperYankX_vatNoCode {cA σmem σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {out : ByteArray} {ret sel selector target : UInt256}
@@ -1684,9 +1684,9 @@ theorem flipperYankX_vatNoCode {cA σmem σ I} {g : Sat256} {s0 : State}
   obtain ⟨_, _, rd1466⟩ := flipperYankX_toVatExtcodesizeGuard h
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1466⟩) (okPc := ⟨1478⟩) rd1466
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem flipperYankX_bidNotLt {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256}
@@ -1695,28 +1695,28 @@ theorem flipperYankX_bidNotLt {cA σ I} {g : Sat256} {s0 : State}
       (yankHashMem0 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
   have rd1162 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (wordAt0Mem (yankId I) (yankHashMem0 I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
     raw mstore 0 (yankHashMem1 I) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw keccak256 0 (solcMappingSlot ⟨1⟩ (yankId I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (twoWordHashMem_solcMappingSlot ⟨1⟩ (yankId I)
         (twoWordHashMem_size_96 (yankId I) ⟨1⟩
           (twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size)))
       (by decide) (by evm_ov),
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov)]
-  obtain ⟨k1167, C1167, rd1167raw⟩ := rd1162.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov)]
+  obtain ⟨k1167, C1167, rd1167raw⟩ := rd1162.sload (by decide +native) (by evm_ov)
   have rd1167 : RD flipperBytecode I g s0 ⟨1167⟩
       [bidTabWord (yankId I) σ I, solcMappingSlot ⟨1⟩ (yankId I), yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1167 C1167 := by
@@ -1728,20 +1728,20 @@ theorem flipperYankX_bidNotLt {cA σ I} {g : Sat256} {s0 : State}
       bidBaseOfWord, flipperSlotWord, hslotAdd] using rd1167raw
   obtain ⟨k1169, C1169, rd1169raw⟩ :=
     (evm_run rd1167 with [
-      raw swap1 (by native_decide) (by evm_ov)]).sload (by native_decide) (by evm_ov)
+      raw swap1 (by decide +native) (by evm_ov)]).sload (by decide +native) (by evm_ov)
   have rd1169 : RD flipperBytecode I g s0 ⟨1169⟩
       [bidBidWord (yankId I) σ I, bidTabWord (yankId I) σ I, yankId I, ret, sel]
       (yankHashMem1 I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1169 C1169 := by
     simpa [bidBidWord, bidBaseOfWord, flipperSlotWord] using rd1169raw
   have rd1170 := evm_run rd1169 with [
-    raw lt (by native_decide) (by evm_ov)]
+    raw lt (by decide +native) (by evm_ov)]
   have hlt : UInt256.lt (bidBidWord (yankId I) σ I) (bidTabWord (yankId I) σ I) =
       ⟨0⟩ :=
     Reasoning.Theory.ult_zero hge
   rw [hlt] at rd1170
   have rd1174 := evm_run rd1170 with [
-    raw push2 ⟨1250⟩ (by native_decide) (by evm_ov),
-    raw jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)]
+    raw push2 ⟨1250⟩ (by decide +native) (by evm_ov),
+    raw jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)]
   have hmem : (yankHashMem1 I).size = 96 := by
     unfold yankHashMem1 yankHashMem0 yankAuthMem
     exact twoWordHashMem_size_96 (yankId I) ⟨1⟩
@@ -1758,54 +1758,54 @@ theorem flipperYankX_bidNotLt {cA σ I} {g : Sat256} {s0 : State}
         (twoWordHashMem_read64 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size
           solcFreePtrMem_read64))
   have rdMload := evm_run rd1174 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 (yankHashMem1 I)) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 (yankHashMem1 I)) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨26⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨26⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 (⟨26⟩ : UInt256) (yankHashMem1 I))
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst flipperYankAlreadyDentWord
     (width := 32) (op := .PUSH32) (by decide) flipperYankDecodePushAlreadyDent1201
     (by evm_ov)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3
       (solcErrorStringMem3 (⟨26⟩ : UInt256) flipperYankAlreadyDentWord (yankHashMem1 I))
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide) mem_cost
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native) mem_cost
       (solcErrorStringMem3_mload64 (⟨26⟩ : UInt256) flipperYankAlreadyDentWord
         hmem hread64)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 set_option maxRecDepth 2000000 in
 theorem flipperYankX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -1824,9 +1824,9 @@ theorem flipperYankX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
   exact RD.solcExternalStaticArgsShortReverts
     (code := flipperBytecode) (sel := sel) (entry := ⟨294⟩) (ret := ⟨323⟩)
     (decoded := ⟨316⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 end Benchmarks.Dss.Flipper

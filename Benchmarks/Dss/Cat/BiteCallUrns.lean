@@ -150,7 +150,7 @@ theorem biteUrnsCalldataMem_read128_68 {ilkW urnW : UInt256} {mem : ByteArray}
     rw [write32_read_prefix_len _ _ 128 4 (by rw [toByteArray_size]) (by omega)
       (by omega) (by omega) (by norm_num)]
     unfold biteUrnsSelectorShifted vatUrnsSelector selectorBytes
-    native_decide
+    decide +native
   -- ilk at [132,164)
   have hilkRead : final.readWithPadding 132 32 = ilkW.toByteArray := by
     dsimp only [final]
@@ -236,9 +236,9 @@ theorem RD.catBiteUrnsNoCode
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) :=
   RD.solcExtcodesizeGuardMissing (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_cons]; omega)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_cons]; omega)
 
 /-- **guard + `STATICCALL` (target has code).**  Steps the `EXTCODESIZE` guard and the `STATICCALL`,
     landing just after the call at pc `1399` with the success flag on top, and exposes the `Θ`-link
@@ -270,11 +270,11 @@ theorem RD.catBiteUrnsStaticcall
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd1398⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by simp only [List.length_cons]; omega)
   obtain ⟨cA', σ', z, o', A_in, callGas, k', C', hΘpack, rd1399, hosz⟩ :=
-    RD.solcStaticcall rd1398 (by native_decide) hdepth (by omega)
+    RD.solcStaticcall rd1398 (by decide +native) hdepth (by omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, o', A', _, k', C', rd1399, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
@@ -303,11 +303,11 @@ theorem RD.catBiteUrnsDepthLimit
       awout ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨gasWord, _, _, rd1398⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by simp only [List.length_cons]; omega)
   obtain ⟨k', C', rd1399⟩ :=
-    RD.solcStaticcallDepthLimit rd1398 (by native_decide) hdepth (by omega)
+    RD.solcStaticcallDepthLimit rd1398 (by decide +native) hdepth (by omega)
   exact ⟨_, k', C', rd1399⟩
 
 /-- **call failed** (`status = 0`) — the success guard bubbles the revert. -/
@@ -323,9 +323,9 @@ theorem RD.catBiteUrnsCallFailed
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) :=
   RD.solcCallSuccessGuardMissing (pc := ⟨1399⟩) (okPc := ⟨1415⟩) rd rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) hosz hov
 
 /-- **call succeeded** (`status ≠ 0`) — clear the success guard (one `POP`) and the three scratch
     `POP`s, landing at pc `1420` ready for the 2-word return decode. -/
@@ -343,12 +343,12 @@ theorem RD.catBiteUrnsCallSucceeded
       R mem aw o acc k' C' := by
   obtain ⟨_, _, rd1417⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨1399⟩) (okPc := ⟨1415⟩) rd hstatus
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
       (by simp only [List.length_cons]; omega)
-  have rd1418 := RD.pop rd1417 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1419 := RD.pop rd1418 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1420 := RD.pop rd1419 (by native_decide) (by omega)
+  have rd1418 := RD.pop rd1417 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1419 := RD.pop rd1418 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1420 := RD.pop rd1419 (by decide +native) (by omega)
   exact ⟨_, _, rd1420⟩
 
 /-- **return too short** (`returndatasize < 64`) — the ABI-length guard reverts. -/
@@ -370,28 +370,28 @@ theorem RD.catBiteUrnsReturnDecodeShortReverts
     (hov : R.length + 4 ≤ 1024) :
     RDrev catBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  have rdPush64 := RD.push1 rd ⟨64⟩ (by native_decide) (by omega)
-  have rdMload64 := RD.mload 0 ⟨128⟩ aw rdPush64 (by native_decide) hMload64Cost
+  have rdPush64 := RD.push1 rd ⟨64⟩ (by decide +native) (by omega)
+  have rdMload64 := RD.mload 0 ⟨128⟩ aw rdPush64 (by decide +native) hMload64Cost
     hMload64Value hMload64Aw (by omega)
-  have rdRds := RD.returndatasize rdMload64 (by native_decide)
+  have rdRds := RD.returndatasize rdMload64 (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdPush64' := RD.push1 rdRds ⟨64⟩ (by native_decide)
+  have rdPush64' := RD.push1 rdRds ⟨64⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdDup2 := RD.dup2 rdPush64' (by native_decide) (by simp only [List.length_cons]; omega)
-  have rdLt := RD.lt rdDup2 (by native_decide) (by simp only [List.length_cons]; omega)
+  have rdDup2 := RD.dup2 rdPush64' (by decide +native) (by simp only [List.length_cons]; omega)
+  have rdLt := RD.lt rdDup2 (by decide +native) (by simp only [List.length_cons]; omega)
   have hlt : UInt256.lt (UInt256.ofNat o.size) (⟨64⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, ulit_toNat' o.size hhi]
     exact hshort
-  have rdIszero := RD.iszero rdLt (by native_decide) (by simp only [List.length_cons]; omega)
-  have rdPushOk := RD.push2 rdIszero ⟨1437⟩ (by native_decide)
+  have rdIszero := RD.iszero rdLt (by decide +native) (by simp only [List.length_cons]; omega)
+  have rdPushOk := RD.push2 rdIszero ⟨1437⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
   have hcond : UInt256.isZero (UInt256.lt (UInt256.ofNat o.size) (⟨64⟩ : UInt256)) = ⟨0⟩ := by
     rw [hlt]; decide
-  have rdFallthrough := RD.jumpiNT rdPushOk (by native_decide) hcond
+  have rdFallthrough := RD.jumpiNT rdPushOk (by decide +native) hcond
     (by simp only [List.length_cons]; omega)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 /-- **return decode OK** (`returndatasize ≥ 64`) — reads `ink = ret[0]` (offset `128`) and
@@ -431,40 +431,40 @@ theorem RD.catBiteUrnsReturnDecodeOk
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1447⟩
       (artW :: inkW :: R) mem aw2 o acc k' C' := by
-  have rdPush64 := RD.push1 rd ⟨64⟩ (by native_decide) (by omega)
-  have rdMload64 := RD.mload 0 ⟨128⟩ aw rdPush64 (by native_decide) hMload64Cost
+  have rdPush64 := RD.push1 rd ⟨64⟩ (by decide +native) (by omega)
+  have rdMload64 := RD.mload 0 ⟨128⟩ aw rdPush64 (by decide +native) hMload64Cost
     hMload64Value hMload64Aw (by omega)
-  have rdRds := RD.returndatasize rdMload64 (by native_decide)
+  have rdRds := RD.returndatasize rdMload64 (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdPush64' := RD.push1 rdRds ⟨64⟩ (by native_decide)
+  have rdPush64' := RD.push1 rdRds ⟨64⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdDup2 := RD.dup2 rdPush64' (by native_decide) (by simp only [List.length_cons]; omega)
-  have rdLt := RD.lt rdDup2 (by native_decide) (by simp only [List.length_cons]; omega)
+  have rdDup2 := RD.dup2 rdPush64' (by decide +native) (by simp only [List.length_cons]; omega)
+  have rdLt := RD.lt rdDup2 (by decide +native) (by simp only [List.length_cons]; omega)
   have hlt : UInt256.lt (UInt256.ofNat o.size) (⟨64⟩ : UInt256) = ⟨0⟩ := by
     apply Reasoning.Theory.ult_zero
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, ulit_toNat' o.size hhi]
     exact hlo
-  have rdIszero := RD.iszero rdLt (by native_decide) (by simp only [List.length_cons]; omega)
-  have rdPushOk := RD.push2 rdIszero ⟨1437⟩ (by native_decide)
+  have rdIszero := RD.iszero rdLt (by decide +native) (by simp only [List.length_cons]; omega)
+  have rdPushOk := RD.push2 rdIszero ⟨1437⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
   have hcond : UInt256.isZero (UInt256.lt (UInt256.ofNat o.size) (⟨64⟩ : UInt256)) ≠ ⟨0⟩ := by
     rw [hlt]; decide
-  have rdJumpi := RD.jumpiT rdPushOk (by native_decide) hcond (by jump_dest)
+  have rdJumpi := RD.jumpiT rdPushOk (by decide +native) hcond (by jump_dest)
     (by simp only [List.length_cons]; omega)
-  have rdJumpdest := RD.jumpdest rdJumpi (by native_decide)
+  have rdJumpdest := RD.jumpdest rdJumpi (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdPop := RD.pop rdJumpdest (by native_decide) (by simp only [List.length_cons]; omega)
-  have rdDup1 := RD.dup1 rdPop (by native_decide) (by omega)
-  have rdMload128 := RD.mload 0 inkW aw1 rdDup1 (by native_decide) hMload128Cost
+  have rdPop := RD.pop rdJumpdest (by decide +native) (by simp only [List.length_cons]; omega)
+  have rdDup1 := RD.dup1 rdPop (by decide +native) (by omega)
+  have rdMload128 := RD.mload 0 inkW aw1 rdDup1 (by decide +native) hMload128Cost
     hMload128Value hMload128Aw (by simp only [List.length_cons]; omega)
-  have rdPush32 := RD.push1 rdMload128 ⟨32⟩ (by native_decide)
+  have rdPush32 := RD.push1 rdMload128 ⟨32⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdSwap1 := RD.swap1 rdPush32 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rdSwap2 := RD.swap2 rdSwap1 (by native_decide) (by omega)
-  have rdAdd := RD.add rdSwap2 (by native_decide) (by simp only [List.length_cons]; omega)
+  have rdSwap1 := RD.swap1 rdPush32 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rdSwap2 := RD.swap2 rdSwap1 (by decide +native) (by omega)
+  have rdAdd := RD.add rdSwap2 (by decide +native) (by simp only [List.length_cons]; omega)
   have hadd : (⟨128⟩ : UInt256) + ⟨32⟩ = ⟨160⟩ := by decide
   rw [hadd] at rdAdd
-  have rdMload160 := RD.mload 0 artW aw2 rdAdd (by native_decide) hMload160Cost
+  have rdMload160 := RD.mload 0 artW aw2 rdAdd (by decide +native) hMload160Cost
     hMload160Value hMload160Aw (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by simpa using rdMload160⟩
 

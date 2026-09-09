@@ -24,14 +24,14 @@ abbrev blockTimestampLastWord (σ : AccountMap) (I : ExecutionEnv) : UInt256 :=
 theorem reserve112Word_lt (w : UInt256) :
     (UInt256.land w reserve112Mask).toNat < EVM.twoPow 112 := by
   rw [uland_toNat]
-  have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+  have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
   rw [hmask]
   exact lt_of_le_of_lt Nat.and_le_right (by norm_num [EVM.twoPow])
 
 theorem reserve32Word_lt (w : UInt256) :
     (UInt256.land w reserve32Mask).toNat < EVM.twoPow 32 := by
   rw [uland_toNat]
-  have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by native_decide
+  have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by decide +native
   rw [hmask]
   exact lt_of_le_of_lt Nat.and_le_right (by norm_num [EVM.twoPow])
 
@@ -39,7 +39,7 @@ theorem reserve112Mask_clean_of_lt (w : UInt256) (h : w.toNat < EVM.twoPow 112) 
     UInt256.land w reserve112Mask = w := by
   apply u256_inj
   rw [uland_toNat]
-  have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+  have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
   rw [hmask]
   change Nat.land w.toNat (2 ^ 112 - 1) = w.toNat
   rw [nat_land_mask_eq_mod]
@@ -49,7 +49,7 @@ theorem reserve32Mask_clean_of_lt (w : UInt256) (h : w.toNat < EVM.twoPow 32) :
     UInt256.land w reserve32Mask = w := by
   apply u256_inj
   rw [uland_toNat]
-  have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by native_decide
+  have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by decide +native
   rw [hmask]
   change Nat.land w.toNat (2 ^ 32 - 1) = w.toNat
   rw [nat_land_mask_eq_mod]
@@ -79,9 +79,9 @@ theorem getReservesReturnEncoding (r0 r1 ts : UInt256)
         some (EVM.Word.toBytesBE ts) := by
     simp [uint32, uint32Int, encodeABIValue?, encodeABIWord?, hwordTs, hts]
   have hhead : abiTupleHeadSize? [uint112, uint112, uint32] = some 96 := by
-    native_decide
-  have hdyn112 : isDynamicABIType uint112 = false := by native_decide
-  have hdyn32 : isDynamicABIType uint32 = false := by native_decide
+    decide +native
+  have hdyn112 : isDynamicABIType uint112 = false := by decide +native
+  have hdyn32 : isDynamicABIType uint32 = false := by decide +native
   rw [toByteArray_eq_toBytesBE r0, toByteArray_eq_toBytesBE r1, toByteArray_eq_toBytesBE ts]
   simp only [encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?, hhead, henc0,
     henc1, hencTs, hdyn112, hdyn32, bind, Option.bind, Bool.false_eq_true, if_false,
@@ -222,7 +222,7 @@ theorem getReservesReturn0Mem_read64 (r0 : UInt256) :
       rw [ByteArray.size_append, ByteArray.size_append, solcFreePtrMem_size,
         ByteArray_zeroes_size, 
         toByteArray_size]
-      native_decide)]
+      decide +native)]
   rw [extract_append_left _ _ _ _ (by
       rw [ByteArray.size_append, solcFreePtrMem_size, ByteArray_zeroes_size]
       omega)]
@@ -338,13 +338,13 @@ theorem RD.uniswapGetReservesRoutine {g : Sat256} {s0 : State} {ee : ExecutionEn
         UniswapV2Pair.reserve0Word σ ee :: R)
       mem aw rdata (cA, σ) k' C' := by
   have rd2855 := evm_run h with [jumpdest, push1 ⟨8⟩]
-  obtain ⟨_, _, rd2856⟩ := rd2855.sload (by native_decide)
+  obtain ⟨_, _, rd2856⟩ := rd2855.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd2893 := evm_run rd2856 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨112⟩, shl, sub, dup1, dup3, and, swap3,
     push1 ⟨1⟩, push1 ⟨112⟩, shl, dup4, div, swap1, swap2, and, swap2,
     push1 ⟨1⟩, push1 ⟨224⟩, shl, swap1, div, push4 ⟨0xffffffff⟩, and, swap1]
-  have rdRet := rd2893.jump (by native_decide) hret (by simp only [List.length_cons]; omega)
+  have rdRet := rd2893.jump (by decide +native) hret (by simp only [List.length_cons]; omega)
   rw [u256_land_comm UniswapV2Pair.reserve32Mask] at rdRet
   rw [u256_land_comm UniswapV2Pair.reserve112Mask] at rdRet
   exact ⟨_, _, by simpa [UniswapV2Pair.blockTimestampLastWord,

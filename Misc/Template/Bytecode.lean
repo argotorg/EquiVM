@@ -36,8 +36,8 @@ private def xxxCreationChunk0 : ByteArray :=
 def xxxCreationBytecode : ByteArray :=
   xxxCreationChunk0  -- TODO
 
--- Jump-destination facts. `native_decide` is the accepted mechanism here (deliberate; a scoped
--- `first | decide | native_decide` fallback was tried and rejected).
-theorem xxxJumpDests : jump_dest xxxBytecode ⟨0x10⟩ := by native_decide  -- TODO: per dest
+-- Jump-destination facts. `decide +native` is the accepted mechanism here (deliberate; a scoped
+-- `first | decide | decide +native` fallback was tried and rejected).
+theorem xxxJumpDests : jump_dest xxxBytecode ⟨0x10⟩ := by decide +native  -- TODO: per dest
 
 end Benchmarks.Xxx

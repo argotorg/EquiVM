@@ -65,10 +65,10 @@ theorem weth9DepositReachBody {cA gh bl σ σ₀ A I} {R : List UInt256} {g : Sa
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k' C', RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨760⟩ (⟨164⟩ :: R)
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
-  have h760 := h.jumpdest (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.push2 ⟨164⟩ (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.push2 ⟨760⟩ (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.jump (by native_decide) (by jump_dest) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+  have h760 := h.jumpdest (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.push2 ⟨164⟩ (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.push2 ⟨760⟩ (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.jump (by decide +native) (by jump_dest) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
   exact ⟨_, _, h760⟩
 
 /-- Deposit store: from pc 760 with `[164, w]`, run the caller-keyed keccak + load-add-store,
@@ -84,40 +84,40 @@ theorem weth9DepositStore {cA gh bl σ σ₀ A I} {R : List UInt256} {g : Sat256
         (I.weiValue + solcSlotWord σ I (callerBalSlot I))) k' C' := by
   have hpermI : (initState cA gh bl σ σ₀ g A I).executionEnv.perm = true := by
     simp [initState]; exact hperm
-  have h779 := h.jumpdest (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.caller (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.push1 ⟨0⟩ (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.dup2 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.dup2 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+  have h779 := h.jumpdest (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.caller (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.push1 ⟨0⟩ (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.dup2 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.dup2 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
     |>.mstore 0 (wordAt0Mem (solcSourceWord I) solcFreePtrMem) (UInt256.ofNat 3)
-        (by native_decide) mem_cost (by rfl) (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.push1 ⟨3⟩ (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.push1 ⟨32⟩ (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.swap1 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.dup2 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+        (by decide +native) mem_cost (by rfl) (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.push1 ⟨3⟩ (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.push1 ⟨32⟩ (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.swap1 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.dup2 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
     |>.mstore 0 (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem) (UInt256.ofNat 3)
-        (by native_decide) mem_cost
-        (by rw [show (⟨32⟩ : UInt256).toNat = 32 from rfl]; rfl) (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.push1 ⟨64⟩ (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.swap2 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.dup3 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.swap1 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+        (by decide +native) mem_cost
+        (by rw [show (⟨32⟩ : UInt256).toNat = 32 from rfl]; rfl) (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.push1 ⟨64⟩ (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.swap2 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.dup3 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.swap1 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
   have hkecval : UInt256.ofNat (fromByteArrayBigEndian
       (ffi.KEC ((twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem).readWithPadding 0 64)))
         = callerBalSlot I := by
     rw [twoWordHashMem_solcMappingSlot ⟨3⟩ (solcSourceWord I) solcFreePtrMem_size]
     exact (callerBalSlot_eq I).symm
   have h780 := h779.keccak256 0 (callerBalSlot I) (UInt256.ofNat 3)
-      (by native_decide) mem_cost hkecval (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.dup1 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-  obtain ⟨_, _, h782⟩ := h780.sload (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-  have h788 := h782.callvalue (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.swap1 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.dup2 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.add (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.swap1 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.swap2 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-  obtain ⟨_, _, h789⟩ := h788.sstore hpermI (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+      (by decide +native) mem_cost hkecval (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.dup1 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+  obtain ⟨_, _, h782⟩ := h780.sload (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+  have h788 := h782.callvalue (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.swap1 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.dup2 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.add (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.swap1 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.swap2 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+  obtain ⟨_, _, h789⟩ := h788.sstore hpermI (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
   exact ⟨_, _, h789⟩
 
 /-- The Deposit LOG2 tail (789→STOP): terminates with empty output (the log is invisible to `RD`). -/
@@ -139,7 +139,7 @@ theorem weth9DepositLog {cA gh bl σ σ₀ A I acc} {R : List UInt256} {g : Sat2
       then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian (thm.readWithPadding
         (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
     rw [if_neg (by rw [hthmsize]; decide), show (⟨64⟩ : UInt256).toNat = 64 from rfl, hthm, hread64]
-    native_decide
+    decide +native
   have hgap32 : (128 : ℕ) - thm.size = 32 := by rw [hthmsize]
   set dlm := (UInt256.toByteArray I.weiValue).write 0 thm 128 32 with hdlm
   have hgapeq : dlm = thm ++ ffi.ByteArray.zeroes 32
@@ -165,31 +165,31 @@ theorem weth9DepositLog {cA gh bl σ σ₀ A I acc} {R : List UInt256} {g : Sat2
       then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian (dlm.readWithPadding
         (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
     rw [if_neg (by rw [hdlmsize]; decide), show (⟨64⟩ : UInt256).toNat = 64 from rfl, hdlmread64]
-    native_decide
-  have h837 := h.dup3 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost hmload64 (by native_decide)
+    decide +native
+  have h837 := h.dup3 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost hmload64 (by decide +native)
         (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.swap1 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.dup2 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.mstore 6 dlm (UInt256.ofNat 5) (by native_decide) mem_cost
-        (by rw [hdlm, show (⟨128⟩ : UInt256).toNat = 128 from rfl]) (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.swap2 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost hdlm_mload64 (by native_decide)
+    |>.swap1 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.dup2 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.mstore 6 dlm (UInt256.ofNat 5) (by decide +native) mem_cost
+        (by rw [hdlm, show (⟨128⟩ : UInt256).toNat = 128 from rfl]) (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.swap2 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide +native) mem_cost hdlm_mload64 (by decide +native)
         (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
     |>.pushConst (⟨102222681472383059465863322013072701928378550215632170212813623808969952268444⟩ : UInt256)
-        (op := .PUSH32) (width := 32) (by decide) (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.swap3 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.dup2 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.swap1 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.sub (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.swap1 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.swap2 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.add (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.swap1 (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-  have h838 := RD.log2 0 (UInt256.ofNat 5) h837 (by native_decide) hpermI mem_cost (by native_decide)
+        (op := .PUSH32) (width := 32) (by decide) (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.swap3 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.dup2 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.swap1 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.sub (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.swap1 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.swap2 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.add (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.swap1 (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+  have h838 := RD.log2 0 (UInt256.ofNat 5) h837 (by decide +native) hpermI mem_cost (by decide +native)
     (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-  exact (h838.jump (by native_decide) (by jump_dest) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)).jumpdest (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
-    |>.stop (by native_decide) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+  exact (h838.jump (by decide +native) (by jump_dest) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)).jumpdest (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
+    |>.stop (by decide +native) (by (try simp only [List.length_cons, List.length_singleton, List.length_nil]); omega)
 
 /-- The full deposit body EVM run (shared handler pc 156 → `STOP`): credits `balanceOf[msg.sender]`
     by `msg.value` and halts with empty output. -/
@@ -214,7 +214,7 @@ theorem weth9SelectorDispatchDeposit {I : ExecutionEnv} (hsel : selIs I (weth9Se
     weth9TransferFromSelectorBytes, weth9WithdrawSelectorBytes, weth9DecimalsSelectorBytes,
     weth9BalanceOfSelectorBytes, weth9SymbolSelectorBytes, weth9TransferSelectorBytes,
     weth9DepositSelectorBytes]
-  native_decide
+  decide +native
 
 /-- The deposit source body's post-state accountMap is the caller-keyed store (commuted). -/
 theorem weth9DepositBody_accountMap {cA gh bl σ σ₀ A I} {g : Sat256} :
@@ -236,7 +236,7 @@ theorem weth9DepositBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (weth9SelBytes 9) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (weth9SelBytes 9) (by decide +native) hsel
   obtain ⟨_, _, h156⟩ := weth9ReachDepositEntry (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
   have hX := weth9DepositX (g := Sat256.ofUInt256 g) hperm (by simp) h156
@@ -254,7 +254,7 @@ theorem weth9DepositBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   · simp [storageStore_createdAccounts, initState]
   · rw [hvaleq, weth9DepositBody_accountMap]
     exact accountMapEquiv_sstoreAccountMap I.codeOwner (callerBalSlot I) _ hAccounts
-  · exact returnEquiv.fallthrough (dvs := []) rfl rfl (by native_decide)
+  · exact returnEquiv.fallthrough (dvs := []) rfl rfl (by decide +native)
 
 /-! ## Fallback dispatch (no selector / receive) -/
 
@@ -307,18 +307,18 @@ theorem weth9ReachShort156 {cA gh bl σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have h5 := (RD.initState (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode)
-    |>.push1 ⟨128⟩ (by native_decide) (by decide)
-    |>.push1 ⟨64⟩ (by native_decide) (by decide)
-    |>.mstore 9 solcFreePtrMem (UInt256.ofNat 3) (by native_decide)
+    |>.push1 ⟨128⟩ (by decide +native) (by decide)
+    |>.push1 ⟨64⟩ (by decide +native) (by decide)
+    |>.mstore 9 solcFreePtrMem (UInt256.ofNat 3) (by decide +native)
         mem_cost (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
         (by decide) (by decide)
   have h156 := h5
-    |>.push1 ⟨4⟩ (by native_decide) (by simp)
-    |>.calldatasize (by native_decide) (by simp)
-    |>.lt (by native_decide) (by simp)
-    |>.pushConst (⟨156⟩ : UInt256) (width := 2) (op := .PUSH2) (by native_decide)
-        (by native_decide) (by simp)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hshort) (by jump_dest) (by simp)
+    |>.push1 ⟨4⟩ (by decide +native) (by simp)
+    |>.calldatasize (by decide +native) (by simp)
+    |>.lt (by decide +native) (by simp)
+    |>.pushConst (⟨156⟩ : UInt256) (width := 2) (op := .PUSH2) (by decide +native)
+        (by decide +native) (by simp)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hshort) (by jump_dest) (by simp)
   exact ⟨_, _, h156⟩
 
 theorem weth9SelDispatch_none_short {cd : ByteArray} (hshort : cd.size < 4) :
@@ -361,7 +361,7 @@ theorem weth9FallbackConnect {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   · simp [storageStore_createdAccounts, initState]
   · rw [hvaleq, weth9DepositBody_accountMap]
     exact accountMapEquiv_sstoreAccountMap I.codeOwner (callerBalSlot I) _ hAccounts
-  · exact returnDataEquiv.abi (returnEquiv.fallthrough (dvs := []) rfl rfl (by native_decide))
+  · exact returnDataEquiv.abi (returnEquiv.fallthrough (dvs := []) rfl rfl (by decide +native))
 
 /-- No named selector matches (`calldata ≥ 4`): the binary-search dispatch walks every arm and
     falls through to the shared fallback handler (pc 156) with the selector word on the stack. -/
@@ -384,21 +384,21 @@ theorem weth9ReachNoMatch156 {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat weth9Bytecode (nthArmPc weth9Bytecode ⟨30⟩ j)) (weth9SelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hmiss 5 (by omega) 0x31 0x3c 0xe5 0x67 _ (by native_decide) rfl
-    · exact hmiss 6 (by omega) 0x70 0xa0 0x82 0x31 _ (by native_decide) rfl
-    · exact hmiss 7 (by omega) 0x95 0xd8 0x9b 0x41 _ (by native_decide) rfl
-    · exact hmiss 8 (by omega) 0xa9 0x05 0x9c 0xbb _ (by native_decide) rfl
-    · exact hmiss 9 (by omega) 0xd0 0xe3 0x0d 0xb0 _ (by native_decide) rfl
-    · exact hmiss 10 (by omega) 0xdd 0x62 0xed 0x3e _ (by native_decide) rfl
+    · exact hmiss 5 (by omega) 0x31 0x3c 0xe5 0x67 _ (by decide +native) rfl
+    · exact hmiss 6 (by omega) 0x70 0xa0 0x82 0x31 _ (by decide +native) rfl
+    · exact hmiss 7 (by omega) 0x95 0xd8 0x9b 0x41 _ (by decide +native) rfl
+    · exact hmiss 8 (by omega) 0xa9 0x05 0x9c 0xbb _ (by decide +native) rfl
+    · exact hmiss 9 (by omega) 0xd0 0xe3 0x0d 0xb0 _ (by decide +native) rfl
+    · exact hmiss 10 (by omega) 0xdd 0x62 0xed 0x3e _ (by decide +native) rfl
   have hLower : ∀ j, j < 5 →
       UInt256.eq (armSelNat weth9Bytecode (nthArmPc weth9Bytecode ⟨101⟩ j)) (weth9SelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hmiss 0 (by omega) 0x06 0xfd 0xde 0x03 _ (by native_decide) rfl
-    · exact hmiss 1 (by omega) 0x09 0x5e 0xa7 0xb3 _ (by native_decide) rfl
-    · exact hmiss 2 (by omega) 0x18 0x16 0x0d 0xdd _ (by native_decide) rfl
-    · exact hmiss 3 (by omega) 0x23 0xb8 0x72 0xdd _ (by native_decide) rfl
-    · exact hmiss 4 (by omega) 0x2e 0x1a 0x7d 0x4d _ (by native_decide) rfl
+    · exact hmiss 0 (by omega) 0x06 0xfd 0xde 0x03 _ (by decide +native) rfl
+    · exact hmiss 1 (by omega) 0x09 0x5e 0xa7 0xb3 _ (by decide +native) rfl
+    · exact hmiss 2 (by omega) 0x18 0x16 0x0d 0xdd _ (by decide +native) rfl
+    · exact hmiss 3 (by omega) 0x23 0xb8 0x72 0xdd _ (by decide +native) rfl
+    · exact hmiss 4 (by omega) 0x2e 0x1a 0x7d 0x4d _ (by decide +native) rfl
   obtain ⟨_, _, h19⟩ := weth9ReachSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize
   by_cases hroot : UInt256.gt (armSelNat weth9Bytecode ⟨19⟩) (weth9SelWord I) = ⟨0⟩
@@ -410,11 +410,11 @@ theorem weth9ReachNoMatch156 {cA gh bl σ σ₀ A I} {g : Sat256}
       |>.selectorArmNotTakenAuto (weth9UpperArmsWellFormed 3 (by omega)) (hUpper 3 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (weth9UpperArmsWellFormed 4 (by omega)) (hUpper 4 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (weth9UpperArmsWellFormed 5 (by omega)) (hUpper 5 (by omega)) (by simp)
-    have h156 := h96.push2 ⟨156⟩ (by native_decide) (by simp)
-      |>.jump (by native_decide) (by jump_dest) (by simp)
+    have h156 := h96.push2 ⟨156⟩ (by decide +native) (by simp)
+      |>.jump (by decide +native) (by jump_dest) (by simp)
     exact ⟨_, _, h156⟩
   · have h100 := RD.selectorSplitTakenAuto h19 weth9RootSplitWellFormed hroot (by jump_dest) (by simp)
-    have h156 := h100.jumpdest (by native_decide) (by simp)
+    have h156 := h100.jumpdest (by decide +native) (by simp)
       |>.selectorArmNotTakenAuto (weth9LowerArmsWellFormed 0 (by omega)) (hLower 0 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (weth9LowerArmsWellFormed 1 (by omega)) (hLower 1 (by omega)) (by simp)
       |>.selectorArmNotTakenAuto (weth9LowerArmsWellFormed 2 (by omega)) (hLower 2 (by omega)) (by simp)

@@ -30,7 +30,7 @@ theorem daiJoinCtorLiveStoreReach
   have rdBeforeStore := daiJoin_ctor_run rd82 with [push1 ⟨3⟩, dup2, swap1]
   obtain ⟨k', C', rd87⟩ := rdBeforeStore.sstore hperm (by daiJoin_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [show (⟨86⟩ : UInt256) + ⟨1⟩ = ⟨87⟩ from by native_decide] using rd87⟩
+    simpa [show (⟨86⟩ : UInt256) + ⟨1⟩ = ⟨87⟩ from by decide +native] using rd87⟩
 
 theorem daiJoinCtorVatStoreReach
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -63,11 +63,11 @@ theorem daiJoinCtorVatStoreReach
     simpa [oldVat, daiJoinCtorVatStored, setAddressOffset0Word, solcSlotWord, solcAddrMask,
       u256_land_comm,
       show UInt256.shiftLeft (⟨1⟩ : UInt256) (⟨160⟩ : UInt256) - ⟨1⟩ = solcAddrMask
-        from by native_decide,
+        from by decide +native,
       show (⟨87⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
         UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 +
         UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
-        ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨116⟩ from by native_decide] using rd116⟩
+        ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨116⟩ from by decide +native] using rd116⟩
 
 theorem daiJoinCtorDaiStoreReach
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -98,7 +98,7 @@ theorem daiJoinCtorDaiStoreReach
     simpa [oldDai, daiJoinCtorDaiStored, setAddressOffset0Word, solcSlotWord,
       u256_land_comm,
       show (⟨116⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
-        ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨129⟩ from by native_decide]
+        ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨129⟩ from by decide +native]
       using rd129⟩
 
 theorem daiJoinCtorStoresReach

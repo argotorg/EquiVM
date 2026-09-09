@@ -9,7 +9,7 @@ namespace SimpleAuction
 
 These are the Phase 0 facts the proof needs but `Bytecode.lean` intentionally did not contain.
 The selector facts are trusted because `ffi.KEC` is opaque to Lean.  The jump-destination table is
-computed from the byte array by `native_decide`.
+computed from the byte array by `decide +native`.
 -/
 
 /-- `keccak("bid()")[0:4] = 0x1998aeef`. -/
@@ -55,6 +55,6 @@ axiom simpleAuctionHighestBidSelectorBytes :
         ⟨305⟩, ⟨316⟩, ⟨326⟩, ⟨361⟩, ⟨401⟩, ⟨410⟩, ⟨462⟩, ⟨468⟩, ⟨555⟩,
         ⟨590⟩, ⟨626⟩, ⟨788⟩, ⟨793⟩, ⟨806⟩, ⟨809⟩, ⟨908⟩, ⟨913⟩, ⟨946⟩,
         ⟨948⟩, ⟨956⟩, ⟨987⟩] := by
-  native_decide
+  decide +native
 
 end SimpleAuction

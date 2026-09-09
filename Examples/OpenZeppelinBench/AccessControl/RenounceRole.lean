@@ -422,7 +422,7 @@ theorem renounceRoleStore_callerConfirmation (I : ExecutionEnv) :
 theorem renounceRoleStore_roles (I : ExecutionEnv) :
     (renounceRoleStore I).get? "_roles" = none := by
   rw [renounceRoleStore, store_get_ne _ _ (by decide), store_get_ne _ _ (by decide)]
-  native_decide
+  decide +native
 
 theorem evalExpr_renounceRole_role (evm : EVM.State) (I : ExecutionEnv) :
     evalExpr? config { contract := contract, locals := renounceRoleStore I } evm
@@ -796,7 +796,7 @@ theorem accessControlRenounceRoleX_caller_revert {cA gh bl σ σ₀ A I} {g : Sa
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      native_decide)
+      decide +native)
     (by simp)
 
 theorem accessControlRenounceRoleX_revoke_noop {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -1010,7 +1010,7 @@ theorem accessControlRenounceRoleX_revoke_write {cA gh bl σ σ₀ A I} {g : Sat
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      native_decide)
+      decide +native)
     (by decide) (by simp)
   have rd233 := evm_run rd781 with [
     pop, push1 ⟨1⟩, push2 ⟨347⟩, jump (by jump_dest),
@@ -1073,7 +1073,7 @@ theorem accessControlRenounceRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
               (by simp only [evmS, initState]; exact hwv) hcallerSolm htargetSolm
             exact (accessControlRenounceRoleX_revoke_noop (g := Sat256.ofUInt256 g)
                 hsz68 hcanon htarget rd436)
-              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.fallthrough rfl rfl (by native_decide))
+              |>.reEquivExecution hcode hd hdec hbody hAccounts (returnEquiv.fallthrough rfl rfl (by decide +native))
           · have htargetNonzero : renounceRoleMaskedWord σ_evm I ≠ ⟨0⟩ := htarget
             have htargetSolm :
                 UInt256.land
@@ -1112,7 +1112,7 @@ theorem accessControlRenounceRoleBody {cA gh bl σ_evm σ_solm σ₀ A I}
                     storageStore_accountMap, Solm.EVM.storageLoad, State.lookupAccount,
                     Account.lookupStorage, renounceRoleStorageWord]))
                 hσPost
-                (returnEquiv.fallthrough rfl rfl (by native_decide))
+                (returnEquiv.fallthrough rfl rfl (by decide +native))
         · have hcallerSolm :
               AccountAddress.ofNat (renounceRoleCallerWord I).toNat ≠ evmS.executionEnv.source := by
             simpa [evmS, initState] using hcaller

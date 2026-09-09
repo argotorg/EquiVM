@@ -219,7 +219,7 @@ theorem weth9SelectorDispatchSymbol {I : ExecutionEnv} (hsel : selIs I (weth9Sel
     weth9TransferFromSelectorBytes, weth9WithdrawSelectorBytes, weth9DecimalsSelectorBytes,
     weth9BalanceOfSelectorBytes, weth9SymbolSelectorBytes, weth9TransferSelectorBytes,
     weth9DepositSelectorBytes, weth9AllowanceSelectorBytes]
-  native_decide
+  decide +native
 
 /-- `symbol()` has no parameters: its ABI decode yields the empty store. -/
 theorem weth9Decode_symbol_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
@@ -234,7 +234,7 @@ theorem weth9SymbolBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (weth9SelBytes 7) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (weth9SelBytes 7) (by decide +native) hsel
   by_cases hwv : I.weiValue = ⟨0⟩
   · -- string return: the Solm `.return [.storage symbolRef]` body ABI-encodes to the EVM encoder's
     -- output (`StringReturnSymbol2.lean`); `weth9SymbolReturnSizeBound` handles the ≥2^64-byte regime.
@@ -280,8 +280,8 @@ theorem weth9SymbolBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     obtain ⟨_, _, h623⟩ := weth9ReachSymbol (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := weth9GuardPeelRev (gt := ⟨635⟩) h623 hwv
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     exact weth9NonpayableRevert hcode hrev (weth9SelectorDispatchSymbol hsel)
       (fun callargs _ => bodyReverts_nonPayable (by simp only [initState]; exact hwv))
 

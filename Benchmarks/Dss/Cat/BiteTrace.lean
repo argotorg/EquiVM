@@ -56,29 +56,29 @@ theorem catReachBiteRoutine {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd397⟩ := RD.solcExternalStaticArgsLenOk
     (code := catBytecode) (sel := catSelWord I) (entry := ⟨375⟩) (ret := ⟨419⟩)
     (decoded := ⟨397⟩) (need := ⟨64⟩) hentry
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) hlt
   -- 397 → 1163 explicit stack trace
-  have rd398 := rd397.jumpdest (by native_decide) (by evm_ov)
-  have rd399 := rd398.pop (by native_decide) (by evm_ov)
-  have rd400 := rd399.dup1 (by native_decide) (by evm_ov)
-  have rd401 := rd400.calldataload (by native_decide) (by evm_ov)
-  have rd402 := rd401.swap1 (by native_decide) (by evm_ov)
-  have rd404 := rd402.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd405 := rd404.add (by native_decide) (by evm_ov)
-  have rd406 := rd405.calldataload (by native_decide) (by evm_ov)
-  have rd408 := rd406.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd410 := rd408.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd412 := rd410.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd413 := rd412.shl (by native_decide) (by evm_ov)
-  have rd414 := rd413.sub (by native_decide) (by evm_ov)
-  have rd415 := rd414.and (by native_decide) (by evm_ov)
-  have rd418 := rd415.push2 ⟨1163⟩ (by native_decide) (by evm_ov)
-  have rd1163 := rd418.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have h4 : (⟨4⟩ : UInt256).toNat = 4 := by native_decide
-  have hadd36 : ((⟨32⟩ : UInt256) + ⟨4⟩).toNat = 36 := by native_decide
+  have rd398 := rd397.jumpdest (by decide +native) (by evm_ov)
+  have rd399 := rd398.pop (by decide +native) (by evm_ov)
+  have rd400 := rd399.dup1 (by decide +native) (by evm_ov)
+  have rd401 := rd400.calldataload (by decide +native) (by evm_ov)
+  have rd402 := rd401.swap1 (by decide +native) (by evm_ov)
+  have rd404 := rd402.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd405 := rd404.add (by decide +native) (by evm_ov)
+  have rd406 := rd405.calldataload (by decide +native) (by evm_ov)
+  have rd408 := rd406.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd410 := rd408.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd412 := rd410.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd413 := rd412.shl (by decide +native) (by evm_ov)
+  have rd414 := rd413.sub (by decide +native) (by evm_ov)
+  have rd415 := rd414.and (by decide +native) (by evm_ov)
+  have rd418 := rd415.push2 ⟨1163⟩ (by decide +native) (by evm_ov)
+  have rd1163 := rd418.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have h4 : (⟨4⟩ : UInt256).toNat = 4 := by decide +native
+  have hadd36 : ((⟨32⟩ : UInt256) + ⟨4⟩).toNat = 36 := by decide +native
   exact ⟨_, _, by simpa only [biteAddrMaskWord, calldataWord, h4, hadd36] using rd1163⟩
 
 /-!
@@ -116,22 +116,22 @@ theorem RD.catBiteCheckedMul {cA gh bl σ σ₀ A I} {g : Sat256}
     subst ha
     have hmul0 : UInt256.mul b ⟨0⟩ = ⟨0⟩ := by
       apply u256_inj; rw [u256_mul_toNat]; simp
-    have rd3721 := rd.jumpdest (by native_decide) (by evm_ov)
-    have rd3723 := rd3721.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-    have rd3724 := rd3723.dup2 (by native_decide) (by evm_ov)
-    have rd3725 := rd3724.iszero (by native_decide) (by evm_ov)
-    have rd3726 := rd3725.dup1 (by native_decide) (by evm_ov)
-    have rd3729 := rd3726.push2 ⟨3747⟩ (by native_decide) (by evm_ov)
-    have rd3747 := rd3729.jumpiT (by native_decide) (by decide) (by jump_dest) (by evm_ov)
-    have rd3748 := rd3747.jumpdest (by native_decide) (by evm_ov)
-    have rd3751 := rd3748.push2 ⟨3756⟩ (by native_decide) (by evm_ov)
-    have rd3756 := rd3751.jumpiT (by native_decide) (by decide) (by jump_dest) (by evm_ov)
-    have rd3757 := rd3756.jumpdest (by native_decide) (by evm_ov)
-    have rd3758 := rd3757.swap3 (by native_decide) (by evm_ov)
-    have rd3759 := rd3758.swap2 (by native_decide) (by evm_ov)
-    have rd3760 := rd3759.pop (by native_decide) (by evm_ov)
-    have rd3761 := rd3760.pop (by native_decide) (by evm_ov)
-    have rdRet := rd3761.jump (by native_decide) hret (by evm_ov)
+    have rd3721 := rd.jumpdest (by decide +native) (by evm_ov)
+    have rd3723 := rd3721.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+    have rd3724 := rd3723.dup2 (by decide +native) (by evm_ov)
+    have rd3725 := rd3724.iszero (by decide +native) (by evm_ov)
+    have rd3726 := rd3725.dup1 (by decide +native) (by evm_ov)
+    have rd3729 := rd3726.push2 ⟨3747⟩ (by decide +native) (by evm_ov)
+    have rd3747 := rd3729.jumpiT (by decide +native) (by decide) (by jump_dest) (by evm_ov)
+    have rd3748 := rd3747.jumpdest (by decide +native) (by evm_ov)
+    have rd3751 := rd3748.push2 ⟨3756⟩ (by decide +native) (by evm_ov)
+    have rd3756 := rd3751.jumpiT (by decide +native) (by decide) (by jump_dest) (by evm_ov)
+    have rd3757 := rd3756.jumpdest (by decide +native) (by evm_ov)
+    have rd3758 := rd3757.swap3 (by decide +native) (by evm_ov)
+    have rd3759 := rd3758.swap2 (by decide +native) (by evm_ov)
+    have rd3760 := rd3759.pop (by decide +native) (by evm_ov)
+    have rd3761 := rd3760.pop (by decide +native) (by evm_ov)
+    have rdRet := rd3761.jump (by decide +native) hret (by evm_ov)
     exact ⟨_, _, by rw [hmul0]; exact rdRet⟩
   · -- a ≠ 0: full mul + overflow check
     have hbafit : b.toNat * a.toNat < UInt256.size := by rw [Nat.mul_comm]; exact hmulfit
@@ -145,37 +145,37 @@ theorem RD.catBiteCheckedMul {cA gh bl σ σ₀ A I} {g : Sat256}
     have heq1 : UInt256.eq (UInt256.div (UInt256.mul b a) a) b = ⟨1⟩ := by
       rw [hdiv]; exact uInt256_eq_self b
     have hiszero0 : UInt256.isZero a = ⟨0⟩ := isZero_eq_zero_of_ne ha
-    have rd3721 := rd.jumpdest (by native_decide) (by evm_ov)
-    have rd3723 := rd3721.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-    have rd3724 := rd3723.dup2 (by native_decide) (by evm_ov)
-    have rd3725 := rd3724.iszero (by native_decide) (by evm_ov)
-    have rd3726 := rd3725.dup1 (by native_decide) (by evm_ov)
-    have rd3729 := rd3726.push2 ⟨3747⟩ (by native_decide) (by evm_ov)
-    have rd3730 := rd3729.jumpiNT (by native_decide) hiszero0 (by evm_ov)
-    have rd3731 := rd3730.pop (by native_decide) (by evm_ov)
-    have rd3732 := rd3731.pop (by native_decide) (by evm_ov)
-    have rd3733 := rd3732.dup1 (by native_decide) (by evm_ov)
-    have rd3734 := rd3733.dup3 (by native_decide) (by evm_ov)
-    have rd3735 := rd3734.mul (by native_decide) (by evm_ov)
-    have rd3736 := rd3735.dup3 (by native_decide) (by evm_ov)
-    have rd3737 := rd3736.dup3 (by native_decide) (by evm_ov)
-    have rd3738 := rd3737.dup3 (by native_decide) (by evm_ov)
-    have rd3739 := rd3738.dup2 (by native_decide) (by evm_ov)
-    have rd3742 := rd3739.push2 ⟨3744⟩ (by native_decide) (by evm_ov)
-    have rd3744 := rd3742.jumpiT (by native_decide) ha (by jump_dest) (by evm_ov)
-    have rd3745 := rd3744.jumpdest (by native_decide) (by evm_ov)
-    have rd3746 := rd3745.div (by native_decide) (by evm_ov)
-    have rd3747 := rd3746.eq (by native_decide) (by evm_ov)
+    have rd3721 := rd.jumpdest (by decide +native) (by evm_ov)
+    have rd3723 := rd3721.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+    have rd3724 := rd3723.dup2 (by decide +native) (by evm_ov)
+    have rd3725 := rd3724.iszero (by decide +native) (by evm_ov)
+    have rd3726 := rd3725.dup1 (by decide +native) (by evm_ov)
+    have rd3729 := rd3726.push2 ⟨3747⟩ (by decide +native) (by evm_ov)
+    have rd3730 := rd3729.jumpiNT (by decide +native) hiszero0 (by evm_ov)
+    have rd3731 := rd3730.pop (by decide +native) (by evm_ov)
+    have rd3732 := rd3731.pop (by decide +native) (by evm_ov)
+    have rd3733 := rd3732.dup1 (by decide +native) (by evm_ov)
+    have rd3734 := rd3733.dup3 (by decide +native) (by evm_ov)
+    have rd3735 := rd3734.mul (by decide +native) (by evm_ov)
+    have rd3736 := rd3735.dup3 (by decide +native) (by evm_ov)
+    have rd3737 := rd3736.dup3 (by decide +native) (by evm_ov)
+    have rd3738 := rd3737.dup3 (by decide +native) (by evm_ov)
+    have rd3739 := rd3738.dup2 (by decide +native) (by evm_ov)
+    have rd3742 := rd3739.push2 ⟨3744⟩ (by decide +native) (by evm_ov)
+    have rd3744 := rd3742.jumpiT (by decide +native) ha (by jump_dest) (by evm_ov)
+    have rd3745 := rd3744.jumpdest (by decide +native) (by evm_ov)
+    have rd3746 := rd3745.div (by decide +native) (by evm_ov)
+    have rd3747 := rd3746.eq (by decide +native) (by evm_ov)
     rw [heq1] at rd3747
-    have rd3748 := rd3747.jumpdest (by native_decide) (by evm_ov)
-    have rd3751 := rd3748.push2 ⟨3756⟩ (by native_decide) (by evm_ov)
-    have rd3756 := rd3751.jumpiT (by native_decide) (by decide) (by jump_dest) (by evm_ov)
-    have rd3757 := rd3756.jumpdest (by native_decide) (by evm_ov)
-    have rd3758 := rd3757.swap3 (by native_decide) (by evm_ov)
-    have rd3759 := rd3758.swap2 (by native_decide) (by evm_ov)
-    have rd3760 := rd3759.pop (by native_decide) (by evm_ov)
-    have rd3761 := rd3760.pop (by native_decide) (by evm_ov)
-    exact ⟨_, _, rd3761.jump (by native_decide) hret (by evm_ov)⟩
+    have rd3748 := rd3747.jumpdest (by decide +native) (by evm_ov)
+    have rd3751 := rd3748.push2 ⟨3756⟩ (by decide +native) (by evm_ov)
+    have rd3756 := rd3751.jumpiT (by decide +native) (by decide) (by jump_dest) (by evm_ov)
+    have rd3757 := rd3756.jumpdest (by decide +native) (by evm_ov)
+    have rd3758 := rd3757.swap3 (by decide +native) (by evm_ov)
+    have rd3759 := rd3758.swap2 (by decide +native) (by evm_ov)
+    have rd3760 := rd3759.pop (by decide +native) (by evm_ov)
+    have rd3761 := rd3760.pop (by decide +native) (by evm_ov)
+    exact ⟨_, _, rd3761.jump (by decide +native) hret (by evm_ov)⟩
 
 /-!
 ## Shared internal routine: solc `min` @ pc `3778`
@@ -201,35 +201,35 @@ theorem RD.catBiteMin {cA gh bl σ σ₀ A I} {g : Sat256}
     (hov : R.length + 6 ≤ 1024) :
     ∃ k' C', RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ret
       ((if UInt256.gt b a = ⟨0⟩ then b else a) :: R) mem aw rdata acc k' C' := by
-  have rd3779 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd3781 := rd3779.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3782 := rd3781.dup2 (by native_decide) (by evm_ov)
-  have rd3783 := rd3782.dup4 (by native_decide) (by evm_ov)
-  have rd3784 := rd3783.gt (by native_decide) (by evm_ov)
-  have rd3785 := rd3784.iszero (by native_decide) (by evm_ov)
-  have rd3788 := rd3785.push2 ⟨3795⟩ (by native_decide) (by evm_ov)
+  have rd3779 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd3781 := rd3779.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3782 := rd3781.dup2 (by decide +native) (by evm_ov)
+  have rd3783 := rd3782.dup4 (by decide +native) (by evm_ov)
+  have rd3784 := rd3783.gt (by decide +native) (by evm_ov)
+  have rd3785 := rd3784.iszero (by decide +native) (by evm_ov)
+  have rd3788 := rd3785.push2 ⟨3795⟩ (by decide +native) (by evm_ov)
   by_cases hgt : UInt256.gt b a = ⟨0⟩
   · -- b ≤ a: return b
-    have rd3795 := rd3788.jumpiT (by native_decide) (by rw [hgt]; decide) (by jump_dest) (by evm_ov)
-    have rd3796 := rd3795.jumpdest (by native_decide) (by evm_ov)
-    have rd3797 := rd3796.pop (by native_decide) (by evm_ov)
-    have rd3798 := rd3797.swap1 (by native_decide) (by evm_ov)
-    have rd3799 := rd3798.swap2 (by native_decide) (by evm_ov)
-    have rd3800 := rd3799.swap1 (by native_decide) (by evm_ov)
-    have rd3801 := rd3800.pop (by native_decide) (by evm_ov)
-    exact ⟨_, _, by rw [if_pos hgt]; exact rd3801.jump (by native_decide) hret (by evm_ov)⟩
+    have rd3795 := rd3788.jumpiT (by decide +native) (by rw [hgt]; decide) (by jump_dest) (by evm_ov)
+    have rd3796 := rd3795.jumpdest (by decide +native) (by evm_ov)
+    have rd3797 := rd3796.pop (by decide +native) (by evm_ov)
+    have rd3798 := rd3797.swap1 (by decide +native) (by evm_ov)
+    have rd3799 := rd3798.swap2 (by decide +native) (by evm_ov)
+    have rd3800 := rd3799.swap1 (by decide +native) (by evm_ov)
+    have rd3801 := rd3800.pop (by decide +native) (by evm_ov)
+    exact ⟨_, _, by rw [if_pos hgt]; exact rd3801.jump (by decide +native) hret (by evm_ov)⟩
   · -- b > a: return a
-    have rd3789 := rd3788.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hgt) (by evm_ov)
-    have rd3790 := rd3789.pop (by native_decide) (by evm_ov)
-    have rd3791 := rd3790.dup1 (by native_decide) (by evm_ov)
-    have rd3794 := rd3791.push2 ⟨3756⟩ (by native_decide) (by evm_ov)
-    have rd3756 := rd3794.jump (by native_decide) (by jump_dest) (by evm_ov)
-    have rd3757 := rd3756.jumpdest (by native_decide) (by evm_ov)
-    have rd3758 := rd3757.swap3 (by native_decide) (by evm_ov)
-    have rd3759 := rd3758.swap2 (by native_decide) (by evm_ov)
-    have rd3760 := rd3759.pop (by native_decide) (by evm_ov)
-    have rd3761 := rd3760.pop (by native_decide) (by evm_ov)
-    exact ⟨_, _, by rw [if_neg hgt]; exact rd3761.jump (by native_decide) hret (by evm_ov)⟩
+    have rd3789 := rd3788.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hgt) (by evm_ov)
+    have rd3790 := rd3789.pop (by decide +native) (by evm_ov)
+    have rd3791 := rd3790.dup1 (by decide +native) (by evm_ov)
+    have rd3794 := rd3791.push2 ⟨3756⟩ (by decide +native) (by evm_ov)
+    have rd3756 := rd3794.jump (by decide +native) (by jump_dest) (by evm_ov)
+    have rd3757 := rd3756.jumpdest (by decide +native) (by evm_ov)
+    have rd3758 := rd3757.swap3 (by decide +native) (by evm_ov)
+    have rd3759 := rd3758.swap2 (by decide +native) (by evm_ov)
+    have rd3760 := rd3759.pop (by decide +native) (by evm_ov)
+    have rd3761 := rd3760.pop (by decide +native) (by evm_ov)
+    exact ⟨_, _, by rw [if_neg hgt]; exact rd3761.jump (by decide +native) hret (by evm_ov)⟩
 
 /-!
 ## Shared checked-sub @ pc `3762` and checked-add @ pc `3802`
@@ -249,8 +249,8 @@ theorem RD.catBiteCheckedSub {cA gh bl σ σ₀ A I} {g : Sat256}
     ∃ k' C', RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ret
       (UInt256.sub a b :: R) mem aw rdata acc k' C' :=
   RD.solcCheckedSubSuccess (okPc := ⟨3756⟩) rd
-    (by unfold solcCheckedSubSuccessWf; repeat' first | apply And.intro | native_decide)
-    hle hret (by native_decide) hov
+    (by unfold solcCheckedSubSuccessWf; repeat' first | apply And.intro | decide +native)
+    hle hret (by decide +native) hov
 
 theorem RD.catBiteCheckedAdd {cA gh bl σ σ₀ A I} {g : Sat256}
     {mem rdata : ByteArray} {aw : UInt256}
@@ -264,8 +264,8 @@ theorem RD.catBiteCheckedAdd {cA gh bl σ σ₀ A I} {g : Sat256}
     ∃ k' C', RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ret
       ((a + b) :: R) mem aw rdata acc k' C' :=
   RD.solcCheckedAddSuccess (okPc := ⟨3756⟩) rd
-    (by unfold solcCheckedAddSuccessWf; repeat' first | apply And.intro | native_decide)
-    hfit hret (by native_decide) hov
+    (by unfold solcCheckedAddSuccessWf; repeat' first | apply And.intro | decide +native)
+    hfit hret (by decide +native) hov
 
 /-!
 ## `vat.ilks(ilk)` STATICCALL @ pc `1248` (guard `1233`)
@@ -303,11 +303,11 @@ theorem RD.catBiteIlksStaticcall
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd1248⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1233⟩) (okPc := ⟨1245⟩) rd hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by simp only [List.length_cons]; omega)
   obtain ⟨cA', σ', z, o', A_in, callGas, k', C', hΘpack, rd1249, hosz⟩ :=
-    RD.solcStaticcall rd1248 (by native_decide) hdepth (by omega)
+    RD.solcStaticcall rd1248 (by decide +native) hdepth (by omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, o', A', _, k', C', rd1249, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
@@ -390,31 +390,31 @@ theorem catBiteTraceSeg2a {cA gh bl σ σ₀ A I} {g : UInt256}
       (⟨128⟩ :: rest) mem aw o' acc k' C' := by
   obtain ⟨_, _, rd1267⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨1249⟩) (okPc := ⟨1265⟩) rd hstatus
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
       (by simp only [List.length_cons]; omega)
-  have rd1268 := rd1267.pop (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1269 := rd1268.pop (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1270 := rd1269.pop (by native_decide) (by omega)
-  have rd1272 := rd1270.push1 ⟨64⟩ (by native_decide) (by omega)
-  have rd1273 := RD.mload 0 ⟨128⟩ aw rd1272 (by native_decide) hMload64Cost hMload64Value
+  have rd1268 := rd1267.pop (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1269 := rd1268.pop (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1270 := rd1269.pop (by decide +native) (by omega)
+  have rd1272 := rd1270.push1 ⟨64⟩ (by decide +native) (by omega)
+  have rd1273 := RD.mload 0 ⟨128⟩ aw rd1272 (by decide +native) hMload64Cost hMload64Value
     hMload64Aw (by omega)
-  have rd1274 := rd1273.returndatasize (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1276 := rd1274.push1 ⟨160⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1277 := rd1276.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1278 := rd1277.lt (by native_decide) (by simp only [List.length_cons]; omega)
+  have rd1274 := rd1273.returndatasize (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1276 := rd1274.push1 ⟨160⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1277 := rd1276.dup2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1278 := rd1277.lt (by decide +native) (by simp only [List.length_cons]; omega)
   have hlt : UInt256.lt (UInt256.ofNat o'.size) ⟨160⟩ = ⟨0⟩ := by
     apply Reasoning.Theory.ult_zero
     rw [show (⟨160⟩ : UInt256).toNat = 160 from by decide, ulit_toNat' o'.size hosz]
     exact ho160
   rw [hlt] at rd1278
-  have rd1279 := rd1278.iszero (by native_decide) (by simp only [List.length_cons]; omega)
+  have rd1279 := rd1278.iszero (by decide +native) (by simp only [List.length_cons]; omega)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1279
-  have rd1282 := rd1279.push2 ⟨1287⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1287 := rd1282.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd1282 := rd1279.push2 ⟨1287⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1287 := rd1282.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by simp only [List.length_cons]; omega)
-  have rd1288 := rd1287.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
-  exact ⟨_, _, rd1288.pop (by native_decide) (by simp only [List.length_cons]; omega)⟩
+  have rd1288 := rd1287.jumpdest (by decide +native) (by simp only [List.length_cons]; omega)
+  exact ⟨_, _, rd1288.pop (by decide +native) (by simp only [List.length_cons]; omega)⟩
 
 /-- **Seg 2b** (`1289 → 1306`): read the three ilks tuple words used by `bite` — `iRate`@mem160,
 `iSpot`@mem192, `iDust`@mem256 (the `iArt`/`iLine` slots are skipped) — via the interleaved MLOADs,
@@ -449,25 +449,25 @@ theorem catBiteTraceSeg2b {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1306⟩
       (iDust :: ⟨64⟩ :: iRate :: iSpot :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o' acc k' C' := by
-  have rd1291 := rd.push1 ⟨32⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1292 := rd1291.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1293 := rd1292.add (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [show (⟨128⟩ : UInt256) + ⟨32⟩ = ⟨160⟩ from by native_decide] at rd1293
-  have rd1294 := RD.mload 0 iRate aw rd1293 (by native_decide) hRateCost hRate hRateAw
+  have rd1291 := rd.push1 ⟨32⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1292 := rd1291.dup2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1293 := rd1292.add (by decide +native) (by simp only [List.length_cons]; omega)
+  rw [show (⟨128⟩ : UInt256) + ⟨32⟩ = ⟨160⟩ from by decide +native] at rd1293
+  have rd1294 := RD.mload 0 iRate aw rd1293 (by decide +native) hRateCost hRate hRateAw
     (by simp only [List.length_cons]; omega)
-  have rd1296 := rd1294.push1 ⟨64⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1297 := rd1296.dup1 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1298 := rd1297.dup4 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1299 := rd1298.add (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [show (⟨128⟩ : UInt256) + ⟨64⟩ = ⟨192⟩ from by native_decide] at rd1299
-  have rd1300 := RD.mload 0 iSpot aw rd1299 (by native_decide) hSpotCost hSpot hSpotAw
+  have rd1296 := rd1294.push1 ⟨64⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1297 := rd1296.dup1 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1298 := rd1297.dup4 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1299 := rd1298.add (by decide +native) (by simp only [List.length_cons]; omega)
+  rw [show (⟨128⟩ : UInt256) + ⟨64⟩ = ⟨192⟩ from by decide +native] at rd1299
+  have rd1300 := RD.mload 0 iSpot aw rd1299 (by decide +native) hSpotCost hSpot hSpotAw
     (by simp only [List.length_cons]; omega)
-  have rd1302 := rd1300.push1 ⟨128⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1303 := rd1302.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1304 := rd1303.swap4 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1305 := rd1304.add (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [show (⟨128⟩ : UInt256) + ⟨128⟩ = ⟨256⟩ from by native_decide] at rd1305
-  exact ⟨_, _, RD.mload 0 iDust aw rd1305 (by native_decide) hDustCost hDust hDustAw
+  have rd1302 := rd1300.push1 ⟨128⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1303 := rd1302.swap1 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1304 := rd1303.swap4 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1305 := rd1304.add (by decide +native) (by simp only [List.length_cons]; omega)
+  rw [show (⟨128⟩ : UInt256) + ⟨128⟩ = ⟨256⟩ from by decide +native] at rd1305
+  exact ⟨_, _, RD.mload 0 iDust aw rd1305 (by decide +native) hDustCost hDust hDustAw
     (by simp only [List.length_cons]; omega)⟩
 
 /-- `DUP12` stepping primitive — missing from `Reasoning.Stepping` (only `dup11`/`dup13` exist);
@@ -551,44 +551,44 @@ theorem catBiteTraceSeg2c1 {cA gh bl σ σ₀ A I} {g : UInt256}
       (biteAddrMaskWord :: ⟨128⟩ :: catSlotWord ⟨3⟩ σ' I :: iDust :: ⟨64⟩ :: iRate :: iSpot ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: urn :: ilk :: R)
       (biteUrnsCalldataMem ilk (UInt256.land biteAddrMaskWord urn) mem) aw o' (cA', σ') k' C' := by
-  have rd1306 := rd.push1 ⟨3⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  obtain ⟨k1308, C1308, rd1308⟩ := rd1306.sload (by native_decide)
+  have rd1306 := rd.push1 ⟨3⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  obtain ⟨k1308, C1308, rd1308⟩ := rd1306.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd1308' : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1309⟩
       (catSlotWord ⟨3⟩ σ' I :: iDust :: ⟨64⟩ :: iRate :: iSpot ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: urn :: ilk :: R) mem aw o' (cA', σ') k1308 C1308 := rd1308
-  have rd1309 := rd1308'.dup3 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1310 := RD.mload 0 ⟨128⟩ aw rd1309 (by native_decide) hFreeCost hFree hFreeAw
+  have rd1309 := rd1308'.dup3 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1310 := RD.mload 0 ⟨128⟩ aw rd1309 (by decide +native) hFreeCost hFree hFreeAw
     (by simp only [List.length_cons]; omega)
-  have rd1311 := rd1310.push4 ⟨151596951⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1316 := rd1311.push1 ⟨226⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1318 := rd1316.shl (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1319 := rd1318.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1320 := RD.mstore 0 (biteUrnsSelectorMem mem) aw rd1319 (by native_decide) hSel
+  have rd1311 := rd1310.push4 ⟨151596951⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1316 := rd1311.push1 ⟨226⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1318 := rd1316.shl (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1319 := rd1318.dup2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1320 := RD.mstore 0 (biteUrnsSelectorMem mem) aw rd1319 (by decide +native) hSel
     (by rfl) hSelAw (by simp only [List.length_cons]; omega)
-  have rd1321 := rd1320.push1 ⟨4⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1323 := rd1321.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1324 := rd1323.add (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [show (⟨128⟩ : UInt256) + ⟨4⟩ = ⟨132⟩ from by native_decide] at rd1324
-  have rd1325 := rd1324.dup13 (by native_decide) (by omega)
-  have rd1326 := rd1325.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1327 := RD.mstore 0 (biteUrnsIlkMem ilk mem) aw rd1326 (by native_decide) hIlk
+  have rd1321 := rd1320.push1 ⟨4⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1323 := rd1321.dup2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1324 := rd1323.add (by decide +native) (by simp only [List.length_cons]; omega)
+  rw [show (⟨128⟩ : UInt256) + ⟨4⟩ = ⟨132⟩ from by decide +native] at rd1324
+  have rd1325 := rd1324.dup13 (by decide +native) (by omega)
+  have rd1326 := rd1325.swap1 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1327 := RD.mstore 0 (biteUrnsIlkMem ilk mem) aw rd1326 (by decide +native) hIlk
     (by rfl) hIlkAw (by simp only [List.length_cons]; omega)
-  have rd1328 := rd1327.push1 ⟨1⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1330 := rd1328.push1 ⟨1⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1332 := rd1330.push1 ⟨160⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1334 := rd1332.shl (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1335 := rd1334.sub (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1336 := RD.dup12 rd1335 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1337 := rd1336.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1338 := rd1337.and (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1339 := rd1338.push1 ⟨36⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1341 := rd1339.dup4 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1342 := rd1341.add (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by native_decide] at rd1342
+  have rd1328 := rd1327.push1 ⟨1⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1330 := rd1328.push1 ⟨1⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1332 := rd1330.push1 ⟨160⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1334 := rd1332.shl (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1335 := rd1334.sub (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1336 := RD.dup12 rd1335 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1337 := rd1336.dup2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1338 := rd1337.and (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1339 := rd1338.push1 ⟨36⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1341 := rd1339.dup4 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1342 := rd1341.add (by decide +native) (by simp only [List.length_cons]; omega)
+  rw [show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by decide +native] at rd1342
   exact ⟨_, _, RD.mstore 0 (biteUrnsCalldataMem ilk (UInt256.land biteAddrMaskWord urn) mem) aw
-    rd1342 (by native_decide) hUrn (by rfl) hUrnAw (by simp only [List.length_cons]; omega)⟩
+    rd1342 (by decide +native) hUrn (by rfl) hUrnAw (by simp only [List.length_cons]; omega)⟩
 
 /-- **Seg 2c2** (`1344 → 1383`): the deep-swap assembly of the `urns` `STATICCALL` frame.  Surfaces
 `iRate`/`iSpot`/`iDust` into position, drops the padding zeros, computes `target = vat3 & addrMask`,
@@ -619,43 +619,43 @@ theorem catBiteTraceSeg2c2 {cA gh bl σ σ₀ A I} {g : UInt256}
         UInt256.land (catSlotWord ⟨3⟩ σ' I) biteAddrMaskWord ::
         ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o' (cA', σ') k' C' := by
-  have rd1345 := rd.dup5 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1346 := RD.mload 0 ⟨128⟩ aw rd1345 (by native_decide) hFreeCost hFree hFreeAw
+  have rd1345 := rd.dup5 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1346 := RD.mload 0 ⟨128⟩ aw rd1345 (by decide +native) hFreeCost hFree hFreeAw
     (by simp only [List.length_cons]; omega)
-  have rd1347 := rd1346.swap6 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1348 := rd1347.swap10 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1349 := rd1348.pop (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1350 := rd1349.swap6 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1351 := rd1350.swap8 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1352 := rd1351.pop (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1353 := rd1352.swap2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1354 := rd1353.swap6 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1355 := rd1354.pop (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1357 := rd1355.push1 ⟨0⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1358 := rd1357.swap5 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1359 := rd1358.dup6 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1360 := rd1359.swap5 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1361 := rd1360.swap2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1362 := rd1361.and (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1363 := rd1362.swap3 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1368 := rd1363.push4 ⟨606387804⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1369 := rd1368.swap3 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1371 := rd1369.push1 ⟨68⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1372 := rd1371.dup1 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1373 := rd1372.dup3 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1374 := rd1373.add (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [show (⟨128⟩ : UInt256) + ⟨68⟩ = ⟨196⟩ from by native_decide] at rd1374
-  have rd1375 := rd1374.swap4 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1376 := rd1375.swap2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1377 := rd1376.dup3 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1378 := rd1377.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1379 := rd1378.sub (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [show UInt256.sub ⟨128⟩ ⟨128⟩ = ⟨0⟩ from by native_decide] at rd1379
-  have rd1380 := rd1379.add (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [show (⟨0⟩ : UInt256) + ⟨68⟩ = ⟨68⟩ from by native_decide] at rd1380
-  have rd1381 := rd1380.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1382 := rd1381.dup7 (by native_decide) (by simp only [List.length_cons]; omega)
-  exact ⟨_, _, rd1382.dup1 (by native_decide) (by simp only [List.length_cons]; omega)⟩
+  have rd1347 := rd1346.swap6 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1348 := rd1347.swap10 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1349 := rd1348.pop (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1350 := rd1349.swap6 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1351 := rd1350.swap8 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1352 := rd1351.pop (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1353 := rd1352.swap2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1354 := rd1353.swap6 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1355 := rd1354.pop (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1357 := rd1355.push1 ⟨0⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1358 := rd1357.swap5 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1359 := rd1358.dup6 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1360 := rd1359.swap5 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1361 := rd1360.swap2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1362 := rd1361.and (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1363 := rd1362.swap3 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1368 := rd1363.push4 ⟨606387804⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1369 := rd1368.swap3 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1371 := rd1369.push1 ⟨68⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1372 := rd1371.dup1 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1373 := rd1372.dup3 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1374 := rd1373.add (by decide +native) (by simp only [List.length_cons]; omega)
+  rw [show (⟨128⟩ : UInt256) + ⟨68⟩ = ⟨196⟩ from by decide +native] at rd1374
+  have rd1375 := rd1374.swap4 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1376 := rd1375.swap2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1377 := rd1376.dup3 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1378 := rd1377.swap1 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1379 := rd1378.sub (by decide +native) (by simp only [List.length_cons]; omega)
+  rw [show UInt256.sub ⟨128⟩ ⟨128⟩ = ⟨0⟩ from by decide +native] at rd1379
+  have rd1380 := rd1379.add (by decide +native) (by simp only [List.length_cons]; omega)
+  rw [show (⟨0⟩ : UInt256) + ⟨68⟩ = ⟨68⟩ from by decide +native] at rd1380
+  have rd1381 := rd1380.dup2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1382 := rd1381.dup7 (by decide +native) (by simp only [List.length_cons]; omega)
+  exact ⟨_, _, rd1382.dup1 (by decide +native) (by simp only [List.length_cons]; omega)⟩
 
 /-- Acc-generic `vat.urns` guard + `STATICCALL` (the foundation `catBiteUrnsStaticcall` fixes the acc
 to the original `(cA, σ)`; after the ilks STATICCALL the acc is `(cAx, σx)`).  Exposes the
@@ -689,11 +689,11 @@ theorem RD.catBiteUrnsStaticcallGen
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd1398⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1383⟩) (okPc := ⟨1395⟩) rd hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by simp only [List.length_cons]; omega)
   obtain ⟨cA', σ', z, o', A_in, callGas, k', C', hΘpack, rd1399, hosz⟩ :=
-    RD.solcStaticcall rd1398 (by native_decide) hdepth (by omega)
+    RD.solcStaticcall rd1398 (by decide +native) hdepth (by omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, o', A', _, k', C', rd1399, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
@@ -761,23 +761,23 @@ theorem catBiteTraceSeg4 {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1521⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o (cA', σ') k' C' := by
-  have rd1449 := rd.push1 ⟨2⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  obtain ⟨k1450, C1450, rd1450raw⟩ := rd1449.sload (by native_decide)
+  have rd1449 := rd.push1 ⟨2⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  obtain ⟨k1450, C1450, rd1450raw⟩ := rd1449.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd1450 : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1450⟩
       (catSlotWord ⟨2⟩ σ' I :: art :: ink :: ⟨0⟩ :: ⟨0⟩ :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         urn :: ilk :: R) mem aw o (cA', σ') k1450 C1450 := rd1450raw
-  have rd1451 := rd1450.swap2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1452 := rd1451.swap4 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1453 := rd1452.pop (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1454 := rd1453.swap2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1455 := rd1454.pop (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1457 := rd1455.push1 ⟨1⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1458 := rd1457.eq (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [hlive, show UInt256.eq (⟨1⟩ : UInt256) ⟨1⟩ = ⟨1⟩ from by native_decide] at rd1458
-  have rd1461 := rd1458.push2 ⟨1521⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  exact ⟨_, _, rd1461.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd1451 := rd1450.swap2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1452 := rd1451.swap4 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1453 := rd1452.pop (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1454 := rd1453.swap2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1455 := rd1454.pop (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1457 := rd1455.push1 ⟨1⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1458 := rd1457.eq (by decide +native) (by simp only [List.length_cons]; omega)
+  rw [hlive, show UInt256.eq (⟨1⟩ : UInt256) ⟨1⟩ = ⟨1⟩ from by decide +native] at rd1458
+  have rd1461 := rd1458.push2 ⟨1521⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  exact ⟨_, _, rd1461.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by simp only [List.length_cons]; omega)⟩
 
 /-- **Seg 5** (`1521 → 1620`): `require(spot > 0 && inkSpot < artRateUnsafe)`.  Computes the two
@@ -798,47 +798,47 @@ theorem catBiteTraceSeg5 {cA gh bl σ σ₀ A I} {g : UInt256}
     ∃ k' C', RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1620⟩
       (art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o acc k' C' := by
-  have rd1522 := rd.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1524 := rd1522.push1 ⟨0⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1525 := rd1524.dup5 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1526 := rd1525.gt (by native_decide) (by simp only [List.length_cons]; omega)
+  have rd1522 := rd.jumpdest (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1524 := rd1522.push1 ⟨0⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1525 := rd1524.dup5 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1526 := rd1525.gt (by decide +native) (by simp only [List.length_cons]; omega)
   rw [ugt_one (show (⟨0⟩ : UInt256).toNat < iSpot.toNat by simpa using hspotPos)] at rd1526
-  have rd1527 := rd1526.dup1 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1528 := rd1527.iszero (by native_decide) (by simp only [List.length_cons]; omega)
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by native_decide] at rd1528
-  have rd1531 := rd1528.push2 ⟨1554⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1532 := rd1531.jumpiNT (by native_decide) rfl (by simp only [List.length_cons]; omega)
-  have rd1533 := rd1532.pop (by native_decide) (by simp only [List.length_cons]; omega)
+  have rd1527 := rd1526.dup1 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1528 := rd1527.iszero (by decide +native) (by simp only [List.length_cons]; omega)
+  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide +native] at rd1528
+  have rd1531 := rd1528.push2 ⟨1554⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1532 := rd1531.jumpiNT (by decide +native) rfl (by simp only [List.length_cons]; omega)
+  have rd1533 := rd1532.pop (by decide +native) (by simp only [List.length_cons]; omega)
   -- first checkedMul: artRate = art * rate
-  have rd1536 := rd1533.push2 ⟨1542⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1537 := rd1536.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1538 := rd1537.dup7 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1541 := rd1538.push2 ⟨3720⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd3720a := rd1541.jump (by native_decide) (by jump_dest) (by simp only [List.length_cons]; omega)
+  have rd1536 := rd1533.push2 ⟨1542⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1537 := rd1536.dup2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1538 := rd1537.dup7 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1541 := rd1538.push2 ⟨3720⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd3720a := rd1541.jump (by decide +native) (by jump_dest) (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rd1542⟩ := RD.catBiteCheckedMul rd3720a
-    (by rw [Nat.mul_comm]; exact hfitArtRate) (by native_decide)
+    (by rw [Nat.mul_comm]; exact hfitArtRate) (by decide +native)
     (by simp only [List.length_cons]; omega)
   -- second checkedMul: inkSpot = ink * spot
-  have rd1543 := rd1542.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1546 := rd1543.push2 ⟨1552⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1547 := rd1546.dup4 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1548 := rd1547.dup7 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1551 := rd1548.push2 ⟨3720⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd3720b := rd1551.jump (by native_decide) (by jump_dest) (by simp only [List.length_cons]; omega)
+  have rd1543 := rd1542.jumpdest (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1546 := rd1543.push2 ⟨1552⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1547 := rd1546.dup4 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1548 := rd1547.dup7 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1551 := rd1548.push2 ⟨3720⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd3720b := rd1551.jump (by decide +native) (by jump_dest) (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rd1552⟩ := RD.catBiteCheckedMul rd3720b
-    (by rw [Nat.mul_comm]; exact hfitInkSpot) (by native_decide)
+    (by rw [Nat.mul_comm]; exact hfitInkSpot) (by decide +native)
     (by simp only [List.length_cons]; omega)
   -- LT + require
-  have rd1553 := rd1552.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1554 := rd1553.lt (by native_decide) (by simp only [List.length_cons]; omega)
+  have rd1553 := rd1552.jumpdest (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1554 := rd1553.lt (by decide +native) (by simp only [List.length_cons]; omega)
   have hltunsafe : UInt256.lt (UInt256.mul ink iSpot) (UInt256.mul art iRate) = ⟨1⟩ := by
     apply ult_one
     rw [u256_mul_toNat, u256_mul_toNat, ← u256_mul_op_toNat, ← u256_mul_op_toNat]
     exact hunsafe
   rw [hltunsafe] at rd1554
-  have rd1555 := rd1554.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd1558 := rd1555.push2 ⟨1620⟩ (by native_decide) (by simp only [List.length_cons]; omega)
-  exact ⟨_, _, rd1558.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd1555 := rd1554.jumpdest (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd1558 := rd1555.push2 ⟨1620⟩ (by decide +native) (by simp only [List.length_cons]; omega)
+  exact ⟨_, _, rd1558.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by simp only [List.length_cons]; omega)⟩
 
 /-! ### Seg 6 memory layout
@@ -986,145 +986,145 @@ theorem catBiteTraceSeg6 {cA gh bl σ σ₀ A I} {g : UInt256}
     catBiteAwMInv32 aw (by omega)
   have hMkec : UInt256.ofNat (MachineState.M aw.toNat 0 64) = aw := catBiteAwMInv64 aw (by omega)
   have hmask0 : UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) ⟨0⟩ = ⟨0⟩ :=
-    by native_decide
+    by decide +native
   -- 1620 → 3818 (call the 96-byte allocator)
-  have rd1621 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd1624 := rd1621.push2 ⟨1628⟩ (by native_decide) (by evm_ov)
-  have rd1627 := rd1624.push2 ⟨3818⟩ (by native_decide) (by evm_ov)
-  have rd3818 := rd1627.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd1621 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd1624 := rd1621.push2 ⟨1628⟩ (by decide +native) (by evm_ov)
+  have rd1627 := rd1624.push2 ⟨3818⟩ (by decide +native) (by evm_ov)
+  have rd3818 := rd1627.jump (by decide +native) (by jump_dest) (by evm_ov)
   -- 3818 allocator body
-  have rd3819 := rd3818.jumpdest (by native_decide) (by evm_ov)
-  have rd3821 := rd3819.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd3822 := RD.mload 0 fp aw rd3821 (by native_decide) (catBiteMloadCost0 hM64) hFp hM64
+  have rd3819 := rd3818.jumpdest (by decide +native) (by evm_ov)
+  have rd3821 := rd3819.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd3822 := RD.mload 0 fp aw rd3821 (by decide +native) (catBiteMloadCost0 hM64) hFp hM64
     (by evm_ov)
-  have rd3823 := rd3822.dup1 (by native_decide) (by evm_ov)
-  have rd3825 := rd3823.push1 ⟨96⟩ (by native_decide) (by evm_ov)
-  have rd3826 := rd3825.add (by native_decide) (by evm_ov)
-  have rd3828 := rd3826.push1 ⟨64⟩ (by native_decide) (by evm_ov)
+  have rd3823 := rd3822.dup1 (by decide +native) (by evm_ov)
+  have rd3825 := rd3823.push1 ⟨96⟩ (by decide +native) (by evm_ov)
+  have rd3826 := rd3825.add (by decide +native) (by evm_ov)
+  have rd3828 := rd3826.push1 ⟨64⟩ (by decide +native) (by evm_ov)
   have rd3829 := RD.mstore 0 ((UInt256.toByteArray (⟨96⟩ + fp)).write 0 mem 64 32) aw rd3828
-    (by native_decide) (catBiteMstoreCost0 hM64) (by rfl) hM64 (by evm_ov)
-  have rd3830 := rd3829.dup1 (by native_decide) (by evm_ov)
-  have rd3832 := rd3830.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3834 := rd3832.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3836 := rd3834.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3838 := rd3836.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd3839 := rd3838.shl (by native_decide) (by evm_ov)
-  have rd3840 := rd3839.sub (by native_decide) (by evm_ov)
-  have rd3841 := rd3840.and (by native_decide) (by evm_ov)
+    (by decide +native) (catBiteMstoreCost0 hM64) (by rfl) hM64 (by evm_ov)
+  have rd3830 := rd3829.dup1 (by decide +native) (by evm_ov)
+  have rd3832 := rd3830.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3834 := rd3832.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3836 := rd3834.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3838 := rd3836.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd3839 := rd3838.shl (by decide +native) (by evm_ov)
+  have rd3840 := rd3839.sub (by decide +native) (by evm_ov)
+  have rd3841 := rd3840.and (by decide +native) (by evm_ov)
   rw [hmask0] at rd3841
-  have rd3842 := rd3841.dup2 (by native_decide) (by evm_ov)
+  have rd3842 := rd3841.dup2 (by decide +native) (by evm_ov)
   have rd3843 := RD.mstore 0 ((UInt256.toByteArray ⟨0⟩).write 0
       ((UInt256.toByteArray (⟨96⟩ + fp)).write 0 mem 64 32) fp.toNat 32) aw rd3842
-    (by native_decide) (catBiteMstoreCost0 hMfp) (by rfl) hMfp (by evm_ov)
-  have rd3845 := rd3843.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3846 := rd3845.add (by native_decide) (by evm_ov)
-  have rd3848 := rd3846.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3849 := rd3848.dup2 (by native_decide) (by evm_ov)
+    (by decide +native) (catBiteMstoreCost0 hMfp) (by rfl) hMfp (by evm_ov)
+  have rd3845 := rd3843.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3846 := rd3845.add (by decide +native) (by evm_ov)
+  have rd3848 := rd3846.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3849 := rd3848.dup2 (by decide +native) (by evm_ov)
   have rd3850 := RD.mstore 0 ((UInt256.toByteArray ⟨0⟩).write 0
       ((UInt256.toByteArray ⟨0⟩).write 0
         ((UInt256.toByteArray (⟨96⟩ + fp)).write 0 mem 64 32) fp.toNat 32)
       (⟨32⟩ + fp).toNat 32) aw rd3849
-    (by native_decide) (catBiteMstoreCost0 hM32fp) (by rfl) hM32fp (by evm_ov)
-  have rd3852 := rd3850.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3853 := rd3852.add (by native_decide) (by evm_ov)
-  have rd3855 := rd3853.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3856 := rd3855.dup2 (by native_decide) (by evm_ov)
+    (by decide +native) (catBiteMstoreCost0 hM32fp) (by rfl) hM32fp (by evm_ov)
+  have rd3852 := rd3850.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3853 := rd3852.add (by decide +native) (by evm_ov)
+  have rd3855 := rd3853.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3856 := rd3855.dup2 (by decide +native) (by evm_ov)
   have rd3857 := RD.mstore 0 (catBiteHelperMem mem fp) aw rd3856
-    (by native_decide) (catBiteMstoreCost0 hM64fp) (by rfl) hM64fp (by evm_ov)
-  have rd3858 := rd3857.pop (by native_decide) (by evm_ov)
-  have rd3859 := rd3858.swap1 (by native_decide) (by evm_ov)
-  have rd1628 := rd3859.jump (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) (catBiteMstoreCost0 hM64fp) (by rfl) hM64fp (by evm_ov)
+  have rd3858 := rd3857.pop (by decide +native) (by evm_ov)
+  have rd3859 := rd3858.swap1 (by decide +native) (by evm_ov)
+  have rd1628 := rd3859.jump (by decide +native) (by jump_dest) (by evm_ov)
   -- 1628 → keccak scratch build
-  have rd1629 := rd1628.jumpdest (by native_decide) (by evm_ov)
-  have rd1630 := rd1629.pop (by native_decide) (by evm_ov)
-  have rd1632 := rd1630.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd1633 := rd1632.dup9 (by native_decide) (by evm_ov)
-  have rd1634 := rd1633.dup2 (by native_decide) (by evm_ov)
+  have rd1629 := rd1628.jumpdest (by decide +native) (by evm_ov)
+  have rd1630 := rd1629.pop (by decide +native) (by evm_ov)
+  have rd1632 := rd1630.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd1633 := rd1632.dup9 (by decide +native) (by evm_ov)
+  have rd1634 := rd1633.dup2 (by decide +native) (by evm_ov)
   have rd1635 := RD.mstore 0 ((UInt256.toByteArray ilk).write 0 (catBiteHelperMem mem fp) 0 32)
-    aw rd1634 (by native_decide) (catBiteMstoreCost0 hM0) (by rfl) hM0 (by evm_ov)
-  have rd1637 := rd1635.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd1639 := rd1637.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd1640 := rd1639.dup2 (by native_decide) (by evm_ov)
-  have rd1641 := rd1640.dup2 (by native_decide) (by evm_ov)
+    aw rd1634 (by decide +native) (catBiteMstoreCost0 hM0) (by rfl) hM0 (by evm_ov)
+  have rd1637 := rd1635.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd1639 := rd1637.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd1640 := rd1639.dup2 (by decide +native) (by evm_ov)
+  have rd1641 := rd1640.dup2 (by decide +native) (by evm_ov)
   have rd1642 := RD.mstore 0 (catBiteScratchMem mem fp ilk) aw rd1641
-    (by native_decide) (catBiteMstoreCost0 hM32) (by rfl) hM32 (by evm_ov)
-  have rd1644 := rd1642.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd1645 := rd1644.dup1 (by native_decide) (by evm_ov)
-  have rd1646 := rd1645.dup5 (by native_decide) (by evm_ov)
-  have rd1647 := rd1646.keccak256 0 (solcMappingSlot ⟨1⟩ ilk) aw (by native_decide)
+    (by decide +native) (catBiteMstoreCost0 hM32) (by rfl) hM32 (by evm_ov)
+  have rd1644 := rd1642.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd1645 := rd1644.dup1 (by decide +native) (by evm_ov)
+  have rd1646 := rd1645.dup5 (by decide +native) (by evm_ov)
+  have rd1647 := rd1646.keccak256 0 (solcMappingSlot ⟨1⟩ ilk) aw (by decide +native)
     (catBiteKeccakCost0 hMkec)
     (by simp only [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide, hKec]; exact mappingSlot_single ilk ⟨1⟩)
     hMkec (by evm_ov)
   -- 1647 → struct copy (flip@q, chop@q+32, dunk@q+64)
-  have rd1648 := rd1647.dup2 (by native_decide) (by evm_ov)
-  have rd1649 := RD.mload 0 q aw rd1648 (by native_decide) (catBiteMloadCost0 hM64) hQ hM64
+  have rd1648 := rd1647.dup2 (by decide +native) (by evm_ov)
+  have rd1649 := RD.mload 0 q aw rd1648 (by decide +native) (catBiteMloadCost0 hM64) hQ hM64
     (by evm_ov)
-  have rd1651 := rd1649.push1 ⟨96⟩ (by native_decide) (by evm_ov)
-  have rd1652 := rd1651.dup2 (by native_decide) (by evm_ov)
-  have rd1653 := rd1652.add (by native_decide) (by evm_ov)
-  have rd1654 := rd1653.dup4 (by native_decide) (by evm_ov)
+  have rd1651 := rd1649.push1 ⟨96⟩ (by decide +native) (by evm_ov)
+  have rd1652 := rd1651.dup2 (by decide +native) (by evm_ov)
+  have rd1653 := rd1652.add (by decide +native) (by evm_ov)
+  have rd1654 := rd1653.dup4 (by decide +native) (by evm_ov)
   have rd1655 := RD.mstore 0 ((UInt256.toByteArray (q + ⟨96⟩)).write 0
       (catBiteScratchMem mem fp ilk) 64 32) aw rd1654
-    (by native_decide) (catBiteMstoreCost0 hM64) (by rfl) hM64 (by evm_ov)
-  have rd1656 := rd1655.dup2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1657⟩ := rd1656.sload (by native_decide) (by evm_ov)
-  have rd1659 := rd1657.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd1661 := rd1659.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd1663 := rd1661.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd1664 := rd1663.shl (by native_decide) (by evm_ov)
-  have rd1665 := rd1664.sub (by native_decide) (by evm_ov)
-  have rd1666 := rd1665.and (by native_decide) (by evm_ov)
-  have rd1667 := rd1666.dup2 (by native_decide) (by evm_ov)
+    (by decide +native) (catBiteMstoreCost0 hM64) (by rfl) hM64 (by evm_ov)
+  have rd1656 := rd1655.dup2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1657⟩ := rd1656.sload (by decide +native) (by evm_ov)
+  have rd1659 := rd1657.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd1661 := rd1659.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd1663 := rd1661.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd1664 := rd1663.shl (by decide +native) (by evm_ov)
+  have rd1665 := rd1664.sub (by decide +native) (by evm_ov)
+  have rd1666 := rd1665.and (by decide +native) (by evm_ov)
+  have rd1667 := rd1666.dup2 (by decide +native) (by evm_ov)
   have rd1668 := RD.mstore 0 ((UInt256.toByteArray
       (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))).write 0
       ((UInt256.toByteArray (q + ⟨96⟩)).write 0 (catBiteScratchMem mem fp ilk) 64 32) q.toNat 32)
-    aw rd1667 (by native_decide) (catBiteMstoreCost0 hMq) (by rfl) hMq (by evm_ov)
-  have rd1669 := rd1668.swap4 (by native_decide) (by evm_ov)
-  have rd1670 := rd1669.dup2 (by native_decide) (by evm_ov)
-  have rd1671 := rd1670.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1672⟩ := rd1671.sload (by native_decide) (by evm_ov)
-  have rd1673 := rd1672.swap3 (by native_decide) (by evm_ov)
-  have rd1674 := rd1673.dup5 (by native_decide) (by evm_ov)
-  have rd1675 := rd1674.add (by native_decide) (by evm_ov)
-  have rd1676 := rd1675.swap3 (by native_decide) (by evm_ov)
-  have rd1677 := rd1676.swap1 (by native_decide) (by evm_ov)
-  have rd1678 := rd1677.swap3 (by native_decide) (by evm_ov)
+    aw rd1667 (by decide +native) (catBiteMstoreCost0 hMq) (by rfl) hMq (by evm_ov)
+  have rd1669 := rd1668.swap4 (by decide +native) (by evm_ov)
+  have rd1670 := rd1669.dup2 (by decide +native) (by evm_ov)
+  have rd1671 := rd1670.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1672⟩ := rd1671.sload (by decide +native) (by evm_ov)
+  have rd1673 := rd1672.swap3 (by decide +native) (by evm_ov)
+  have rd1674 := rd1673.dup5 (by decide +native) (by evm_ov)
+  have rd1675 := rd1674.add (by decide +native) (by evm_ov)
+  have rd1676 := rd1675.swap3 (by decide +native) (by evm_ov)
+  have rd1677 := rd1676.swap1 (by decide +native) (by evm_ov)
+  have rd1678 := rd1677.swap3 (by decide +native) (by evm_ov)
   have rd1679 := RD.mstore 0 ((UInt256.toByteArray
       (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩))).write 0
       ((UInt256.toByteArray
         (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))).write 0
         ((UInt256.toByteArray (q + ⟨96⟩)).write 0 (catBiteScratchMem mem fp ilk) 64 32) q.toNat 32)
       (q + ⟨32⟩).toNat 32) aw rd1678
-    (by native_decide) (catBiteMstoreCost0 hMq32) (by rfl) hMq32 (by evm_ov)
-  have rd1681 := rd1679.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd1682 := rd1681.swap1 (by native_decide) (by evm_ov)
-  have rd1683 := rd1682.swap2 (by native_decide) (by evm_ov)
-  have rd1684 := rd1683.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1685⟩ := rd1684.sload (by native_decide) (by evm_ov)
-  have rd1686 := rd1685.swap1 (by native_decide) (by evm_ov)
-  have rd1687 := rd1686.dup3 (by native_decide) (by evm_ov)
-  have rd1688 := rd1687.add (by native_decide) (by evm_ov)
+    (by decide +native) (catBiteMstoreCost0 hMq32) (by rfl) hMq32 (by evm_ov)
+  have rd1681 := rd1679.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd1682 := rd1681.swap1 (by decide +native) (by evm_ov)
+  have rd1683 := rd1682.swap2 (by decide +native) (by evm_ov)
+  have rd1684 := rd1683.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1685⟩ := rd1684.sload (by decide +native) (by evm_ov)
+  have rd1686 := rd1685.swap1 (by decide +native) (by evm_ov)
+  have rd1687 := rd1686.dup3 (by decide +native) (by evm_ov)
+  have rd1688 := rd1687.add (by decide +native) (by evm_ov)
   have rd1689 := RD.mstore 0 (catBiteMilkMem mem fp ilk q
       (UInt256.land biteAddrMaskWord (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk)))
       (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨1⟩))
       (solcSlotWord σ' I (solcMappingSlot ⟨1⟩ ilk + ⟨2⟩))) aw rd1688
-    (by native_decide) (catBiteMstoreCost0 hMq64) (by rfl) hMq64 (by evm_ov)
+    (by decide +native) (catBiteMstoreCost0 hMq64) (by rfl) hMq64 (by evm_ov)
   -- 1689 → box/litter loads + checkedSub
-  have rd1691 := rd1689.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1692⟩ := rd1691.sload (by native_decide) (by evm_ov)
-  have rd1694 := rd1692.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1695⟩ := rd1694.sload (by native_decide) (by evm_ov)
-  have rd1696 := rd1695.swap2 (by native_decide) (by evm_ov)
-  have rd1697 := rd1696.swap3 (by native_decide) (by evm_ov)
-  have rd1698 := rd1697.swap2 (by native_decide) (by evm_ov)
-  have rd1699 := rd1698.dup3 (by native_decide) (by evm_ov)
-  have rd1700 := rd1699.swap2 (by native_decide) (by evm_ov)
-  have rd1703 := rd1700.push2 ⟨1708⟩ (by native_decide) (by evm_ov)
-  have rd1704 := rd1703.swap2 (by native_decide) (by evm_ov)
-  have rd1707 := rd1704.push2 ⟨3762⟩ (by native_decide) (by evm_ov)
-  have rd3762 := rd1707.jump (by native_decide) (by jump_dest) (by evm_ov)
-  exact RD.catBiteCheckedSub rd3762 hle (by native_decide) (by evm_ov)
+  have rd1691 := rd1689.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1692⟩ := rd1691.sload (by decide +native) (by evm_ov)
+  have rd1694 := rd1692.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1695⟩ := rd1694.sload (by decide +native) (by evm_ov)
+  have rd1696 := rd1695.swap2 (by decide +native) (by evm_ov)
+  have rd1697 := rd1696.swap3 (by decide +native) (by evm_ov)
+  have rd1698 := rd1697.swap2 (by decide +native) (by evm_ov)
+  have rd1699 := rd1698.dup3 (by decide +native) (by evm_ov)
+  have rd1700 := rd1699.swap2 (by decide +native) (by evm_ov)
+  have rd1703 := rd1700.push2 ⟨1708⟩ (by decide +native) (by evm_ov)
+  have rd1704 := rd1703.swap2 (by decide +native) (by evm_ov)
+  have rd1707 := rd1704.push2 ⟨3762⟩ (by decide +native) (by evm_ov)
+  have rd3762 := rd1707.jump (by decide +native) (by jump_dest) (by evm_ov)
+  exact RD.catBiteCheckedSub rd3762 hle (by decide +native) (by evm_ov)
 
 /-! ## Seg 7 : the arithmetic body + `grab`/`fess` calls (`1708 → 2382`)
 
@@ -1200,38 +1200,38 @@ theorem catBiteTraceSeg7a {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1810⟩
       (room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o (cA', σ') k' C' := by
-  have rd1709 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd1710 := rd1709.swap1 (by native_decide) (by evm_ov)
-  have rd1711 := rd1710.pop (by native_decide) (by evm_ov)
-  have rd1713 := rd1711.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1714raw⟩ := rd1713.sload (by native_decide) (by evm_ov)
+  have rd1709 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd1710 := rd1709.swap1 (by decide +native) (by evm_ov)
+  have rd1711 := rd1710.pop (by decide +native) (by evm_ov)
+  have rd1713 := rd1711.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1714raw⟩ := rd1713.sload (by decide +native) (by evm_ov)
   have rd1714 : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1714⟩
       (solcSlotWord σ' I ⟨5⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd1714raw
-  have rd1716 := rd1714.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1717raw⟩ := rd1716.sload (by native_decide) (by evm_ov)
+  have rd1716 := rd1714.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1717raw⟩ := rd1716.sload (by decide +native) (by evm_ov)
   have rd1717 : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1717⟩
       (solcSlotWord σ' I ⟨6⟩ :: solcSlotWord σ' I ⟨5⟩ :: room :: ⟨0⟩ :: q :: art :: ink :: iDust ::
         iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd1717raw
-  have rd1718 := rd1717.lt (by native_decide) (by evm_ov)
+  have rd1718 := rd1717.lt (by decide +native) (by evm_ov)
   rw [ult_one hlitterbox] at rd1718
-  have rd1719 := rd1718.dup1 (by native_decide) (by evm_ov)
-  have rd1720 := rd1719.iszero (by native_decide) (by evm_ov)
+  have rd1719 := rd1718.dup1 (by decide +native) (by evm_ov)
+  have rd1720 := rd1719.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1720
-  have rd1723 := rd1720.push2 ⟨1729⟩ (by native_decide) (by evm_ov)
-  have rd1724 := rd1723.jumpiNT (by native_decide) rfl (by evm_ov)
-  have rd1725 := rd1724.pop (by native_decide) (by evm_ov)
-  have rd1726 := rd1725.dup6 (by native_decide) (by evm_ov)
-  have rd1727 := rd1726.dup2 (by native_decide) (by evm_ov)
-  have rd1728 := rd1727.lt (by native_decide) (by evm_ov)
+  have rd1723 := rd1720.push2 ⟨1729⟩ (by decide +native) (by evm_ov)
+  have rd1724 := rd1723.jumpiNT (by decide +native) rfl (by evm_ov)
+  have rd1725 := rd1724.pop (by decide +native) (by evm_ov)
+  have rd1726 := rd1725.dup6 (by decide +native) (by evm_ov)
+  have rd1727 := rd1726.dup2 (by decide +native) (by evm_ov)
+  have rd1728 := rd1727.lt (by decide +native) (by evm_ov)
   rw [ult_zero hroomdust] at rd1728
-  have rd1729 := rd1728.iszero (by native_decide) (by evm_ov)
+  have rd1729 := rd1728.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1729
-  have rd1730 := rd1729.jumpdest (by native_decide) (by evm_ov)
-  have rd1733 := rd1730.push2 ⟨1810⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1733.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+  have rd1730 := rd1729.jumpdest (by decide +native) (by evm_ov)
+  have rd1733 := rd1730.push2 ⟨1810⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1733.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 /-- **Seg 7b** (`1810 → 1872`): the `dart` DSMath chain — `dunkRoom = min(milkDunk, room)` (`@3778`),
 `dunkRoomWad = dunkRoom*WAD` (`@3720`), `dartDenomRate = dunkRoomWad / rate` (inline div, `rate ≠ 0`),
@@ -1275,49 +1275,49 @@ theorem catBiteTraceSeg7b {cA gh bl σ σ₀ A I} {g : UInt256}
     catBiteAwMInv32 aw (by rw [e32q]; omega)
   have hDunkAw : UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ + q).toNat 32) = aw :=
     catBiteAwMInv32 aw (by rw [e64q]; omega)
-  have rd1811 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd1814 := rd1811.push2 ⟨1872⟩ (by native_decide) (by evm_ov)
-  have rd1815 := rd1814.dup5 (by native_decide) (by evm_ov)
-  have rd1816 := rd1815.dup5 (by native_decide) (by evm_ov)
-  have rd1818 := rd1816.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd1819 := rd1818.add (by native_decide) (by evm_ov)
-  have rd1820 := RD.mload 0 milkChop aw rd1819 (by native_decide) (catBiteMloadCost0 hChopAw)
+  have rd1811 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd1814 := rd1811.push2 ⟨1872⟩ (by decide +native) (by evm_ov)
+  have rd1815 := rd1814.dup5 (by decide +native) (by evm_ov)
+  have rd1816 := rd1815.dup5 (by decide +native) (by evm_ov)
+  have rd1818 := rd1816.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd1819 := rd1818.add (by decide +native) (by evm_ov)
+  have rd1820 := RD.mload 0 milkChop aw rd1819 (by decide +native) (catBiteMloadCost0 hChopAw)
     hChop hChopAw (by evm_ov)
-  have rd1821 := rd1820.dup11 (by native_decide) (by evm_ov)
-  have rd1824 := rd1821.push2 ⟨1851⟩ (by native_decide) (by evm_ov)
-  have rd1827 := rd1824.push2 ⟨1837⟩ (by native_decide) (by evm_ov)
-  have rd1828 := rd1827.dup9 (by native_decide) (by evm_ov)
-  have rd1830 := rd1828.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd1831 := rd1830.add (by native_decide) (by evm_ov)
-  have rd1832 := RD.mload 0 milkDunk aw rd1831 (by native_decide) (catBiteMloadCost0 hDunkAw)
+  have rd1821 := rd1820.dup11 (by decide +native) (by evm_ov)
+  have rd1824 := rd1821.push2 ⟨1851⟩ (by decide +native) (by evm_ov)
+  have rd1827 := rd1824.push2 ⟨1837⟩ (by decide +native) (by evm_ov)
+  have rd1828 := rd1827.dup9 (by decide +native) (by evm_ov)
+  have rd1830 := rd1828.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd1831 := rd1830.add (by decide +native) (by evm_ov)
+  have rd1832 := RD.mload 0 milkDunk aw rd1831 (by decide +native) (catBiteMloadCost0 hDunkAw)
     hDunk hDunkAw (by evm_ov)
-  have rd1833 := rd1832.dup8 (by native_decide) (by evm_ov)
-  have rd1836 := rd1833.push2 ⟨3778⟩ (by native_decide) (by evm_ov)
-  have rd3778a := rd1836.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd1837⟩ := RD.catBiteMin rd3778a (by native_decide) (by evm_ov)
+  have rd1833 := rd1832.dup8 (by decide +native) (by evm_ov)
+  have rd1836 := rd1833.push2 ⟨3778⟩ (by decide +native) (by evm_ov)
+  have rd3778a := rd1836.jump (by decide +native) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd1837⟩ := RD.catBiteMin rd3778a (by decide +native) (by evm_ov)
   rw [hDunkRoom] at rd1837
-  have rd1837j := rd1837.jumpdest (by native_decide) (by evm_ov)
-  have rd1838 := RD.push8 rd1837j ⟨1000000000000000000⟩ (by native_decide) (by evm_ov)
-  have rd1847 := rd1838.push2 ⟨3720⟩ (by native_decide) (by evm_ov)
-  have rd3720a := rd1847.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd1851⟩ := RD.catBiteCheckedMul rd3720a hFitWad (by native_decide) (by evm_ov)
+  have rd1837j := rd1837.jumpdest (by decide +native) (by evm_ov)
+  have rd1838 := RD.push8 rd1837j ⟨1000000000000000000⟩ (by decide +native) (by evm_ov)
+  have rd1847 := rd1838.push2 ⟨3720⟩ (by decide +native) (by evm_ov)
+  have rd3720a := rd1847.jump (by decide +native) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd1851⟩ := RD.catBiteCheckedMul rd3720a hFitWad (by decide +native) (by evm_ov)
   rw [hDunkRoomWad] at rd1851
-  have rd1851j := rd1851.jumpdest (by native_decide) (by evm_ov)
-  have rd1852 := rd1851j.dup2 (by native_decide) (by evm_ov)
-  have rd1853 := rd1852.push2 ⟨1858⟩ (by native_decide) (by evm_ov)
-  have rd1858 := rd1853.jumpiT (by native_decide) hRatePos (by jump_dest) (by evm_ov)
-  have rd1859 := rd1858.jumpdest (by native_decide) (by evm_ov)
-  have rd1860 := rd1859.div (by native_decide) (by evm_ov)
+  have rd1851j := rd1851.jumpdest (by decide +native) (by evm_ov)
+  have rd1852 := rd1851j.dup2 (by decide +native) (by evm_ov)
+  have rd1853 := rd1852.push2 ⟨1858⟩ (by decide +native) (by evm_ov)
+  have rd1858 := rd1853.jumpiT (by decide +native) hRatePos (by jump_dest) (by evm_ov)
+  have rd1859 := rd1858.jumpdest (by decide +native) (by evm_ov)
+  have rd1860 := rd1859.div (by decide +native) (by evm_ov)
   rw [hDartDenom] at rd1860
-  have rd1861 := rd1860.dup2 (by native_decide) (by evm_ov)
-  have rd1864 := rd1861.push2 ⟨1866⟩ (by native_decide) (by evm_ov)
-  have rd1866 := rd1864.jumpiT (by native_decide) hChopPos (by jump_dest) (by evm_ov)
-  have rd1867 := rd1866.jumpdest (by native_decide) (by evm_ov)
-  have rd1868 := rd1867.div (by native_decide) (by evm_ov)
+  have rd1861 := rd1860.dup2 (by decide +native) (by evm_ov)
+  have rd1864 := rd1861.push2 ⟨1866⟩ (by decide +native) (by evm_ov)
+  have rd1866 := rd1864.jumpiT (by decide +native) hChopPos (by jump_dest) (by evm_ov)
+  have rd1867 := rd1866.jumpdest (by decide +native) (by evm_ov)
+  have rd1868 := rd1867.div (by decide +native) (by evm_ov)
   rw [hDartCand] at rd1868
-  have rd1871 := rd1868.push2 ⟨3778⟩ (by native_decide) (by evm_ov)
-  have rd3778b := rd1871.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd1872⟩ := RD.catBiteMin rd3778b (by native_decide) (by evm_ov)
+  have rd1871 := rd1868.push2 ⟨3778⟩ (by decide +native) (by evm_ov)
+  have rd3778b := rd1871.jump (by decide +native) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd1872⟩ := RD.catBiteMin rd3778b (by decide +native) (by evm_ov)
   rw [hDart] at rd1872
   exact ⟨_, _, rd1872⟩
 
@@ -1345,52 +1345,52 @@ theorem catBiteTraceSeg7c {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1985⟩
       (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
-  have rd1873 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd1874 := rd1873.swap2 (by native_decide) (by evm_ov)
-  have rd1875 := rd1874.pop (by native_decide) (by evm_ov)
-  have rd1876 := rd1875.pop (by native_decide) (by evm_ov)
-  have rd1878 := rd1876.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd1881 := rd1878.push2 ⟨1899⟩ (by native_decide) (by evm_ov)
-  have rd1882 := rd1881.dup6 (by native_decide) (by evm_ov)
-  have rd1883 := rd1882.dup6 (by native_decide) (by evm_ov)
-  have rd1886 := rd1883.push2 ⟨1892⟩ (by native_decide) (by evm_ov)
-  have rd1887 := rd1886.dup9 (by native_decide) (by evm_ov)
-  have rd1888 := rd1887.dup7 (by native_decide) (by evm_ov)
-  have rd1891 := rd1888.push2 ⟨3720⟩ (by native_decide) (by evm_ov)
-  have rd3720 := rd1891.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd1892⟩ := RD.catBiteCheckedMul rd3720 hFitInkDart (by native_decide) (by evm_ov)
+  have rd1873 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd1874 := rd1873.swap2 (by decide +native) (by evm_ov)
+  have rd1875 := rd1874.pop (by decide +native) (by evm_ov)
+  have rd1876 := rd1875.pop (by decide +native) (by evm_ov)
+  have rd1878 := rd1876.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd1881 := rd1878.push2 ⟨1899⟩ (by decide +native) (by evm_ov)
+  have rd1882 := rd1881.dup6 (by decide +native) (by evm_ov)
+  have rd1883 := rd1882.dup6 (by decide +native) (by evm_ov)
+  have rd1886 := rd1883.push2 ⟨1892⟩ (by decide +native) (by evm_ov)
+  have rd1887 := rd1886.dup9 (by decide +native) (by evm_ov)
+  have rd1888 := rd1887.dup7 (by decide +native) (by evm_ov)
+  have rd1891 := rd1888.push2 ⟨3720⟩ (by decide +native) (by evm_ov)
+  have rd3720 := rd1891.jump (by decide +native) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd1892⟩ := RD.catBiteCheckedMul rd3720 hFitInkDart (by decide +native) (by evm_ov)
   rw [hInkDart] at rd1892
-  have rd1892j := rd1892.jumpdest (by native_decide) (by evm_ov)
-  have rd1893 := rd1892j.dup2 (by native_decide) (by evm_ov)
-  have rd1894 := rd1893.push2 ⟨1866⟩ (by native_decide) (by evm_ov)
-  have rd1866 := rd1894.jumpiT (by native_decide) hArtPos (by jump_dest) (by evm_ov)
-  have rd1867 := rd1866.jumpdest (by native_decide) (by evm_ov)
-  have rd1868 := rd1867.div (by native_decide) (by evm_ov)
+  have rd1892j := rd1892.jumpdest (by decide +native) (by evm_ov)
+  have rd1893 := rd1892j.dup2 (by decide +native) (by evm_ov)
+  have rd1894 := rd1893.push2 ⟨1866⟩ (by decide +native) (by evm_ov)
+  have rd1866 := rd1894.jumpiT (by decide +native) hArtPos (by jump_dest) (by evm_ov)
+  have rd1867 := rd1866.jumpdest (by decide +native) (by evm_ov)
+  have rd1868 := rd1867.div (by decide +native) (by evm_ov)
   rw [hDinkCand] at rd1868
-  have rd1871 := rd1868.push2 ⟨3778⟩ (by native_decide) (by evm_ov)
-  have rd3778 := rd1871.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd1899⟩ := RD.catBiteMin rd3778 (by native_decide) (by evm_ov)
+  have rd1871 := rd1868.push2 ⟨3778⟩ (by decide +native) (by evm_ov)
+  have rd3778 := rd1871.jump (by decide +native) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd1899⟩ := RD.catBiteMin rd3778 (by decide +native) (by evm_ov)
   rw [hDink] at rd1899
-  have rd1900 := rd1899.jumpdest (by native_decide) (by evm_ov)
-  have rd1901 := rd1900.swap1 (by native_decide) (by evm_ov)
-  have rd1902 := rd1901.pop (by native_decide) (by evm_ov)
-  have rd1904 := rd1902.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd1905 := rd1904.dup3 (by native_decide) (by evm_ov)
-  have rd1906 := rd1905.gt (by native_decide) (by evm_ov)
+  have rd1900 := rd1899.jumpdest (by decide +native) (by evm_ov)
+  have rd1901 := rd1900.swap1 (by decide +native) (by evm_ov)
+  have rd1902 := rd1901.pop (by decide +native) (by evm_ov)
+  have rd1904 := rd1902.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd1905 := rd1904.dup3 (by decide +native) (by evm_ov)
+  have rd1906 := rd1905.gt (by decide +native) (by evm_ov)
   rw [ugt_one (show (⟨0⟩ : UInt256).toNat < dart.toNat by simpa using hDartPos)] at rd1906
-  have rd1907 := rd1906.dup1 (by native_decide) (by evm_ov)
-  have rd1908 := rd1907.iszero (by native_decide) (by evm_ov)
+  have rd1907 := rd1906.dup1 (by decide +native) (by evm_ov)
+  have rd1908 := rd1907.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1908
-  have rd1911 := rd1908.push2 ⟨1917⟩ (by native_decide) (by evm_ov)
-  have rd1912 := rd1911.jumpiNT (by native_decide) rfl (by evm_ov)
-  have rd1913 := rd1912.pop (by native_decide) (by evm_ov)
-  have rd1915 := rd1913.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd1916 := rd1915.dup2 (by native_decide) (by evm_ov)
-  have rd1917 := rd1916.gt (by native_decide) (by evm_ov)
+  have rd1911 := rd1908.push2 ⟨1917⟩ (by decide +native) (by evm_ov)
+  have rd1912 := rd1911.jumpiNT (by decide +native) rfl (by evm_ov)
+  have rd1913 := rd1912.pop (by decide +native) (by evm_ov)
+  have rd1915 := rd1913.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd1916 := rd1915.dup2 (by decide +native) (by evm_ov)
+  have rd1917 := rd1916.gt (by decide +native) (by evm_ov)
   rw [ugt_one (show (⟨0⟩ : UInt256).toNat < dink.toNat by simpa using hDinkPos)] at rd1917
-  have rd1918 := rd1917.jumpdest (by native_decide) (by evm_ov)
-  have rd1921 := rd1918.push2 ⟨1985⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1921.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+  have rd1918 := rd1917.jumpdest (by decide +native) (by evm_ov)
+  have rd1921 := rd1918.push2 ⟨1985⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1921.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 /-- **Seg 7d** (`1985 → 2073`): `require(dart <= 2^255 && dink <= 2^255)` — the `-int256(·)` bounds
 checks (`2^255 = 1 << 255`).  Stack is unchanged on the success path. -/
@@ -1409,32 +1409,32 @@ theorem catBiteTraceSeg7d {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2073⟩
       (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
-  have rd1986 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd1988 := rd1986.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd1990 := rd1988.push1 ⟨255⟩ (by native_decide) (by evm_ov)
-  have rd1991 := rd1990.shl (by native_decide) (by evm_ov)
-  have rd1992 := rd1991.dup3 (by native_decide) (by evm_ov)
-  have rd1993 := rd1992.gt (by native_decide) (by evm_ov)
+  have rd1986 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd1988 := rd1986.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd1990 := rd1988.push1 ⟨255⟩ (by decide +native) (by evm_ov)
+  have rd1991 := rd1990.shl (by decide +native) (by evm_ov)
+  have rd1992 := rd1991.dup3 (by decide +native) (by evm_ov)
+  have rd1993 := rd1992.gt (by decide +native) (by evm_ov)
   rw [ugt_zero hDartLim] at rd1993
-  have rd1994 := rd1993.iszero (by native_decide) (by evm_ov)
+  have rd1994 := rd1993.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1994
-  have rd1995 := rd1994.dup1 (by native_decide) (by evm_ov)
-  have rd1996 := rd1995.iszero (by native_decide) (by evm_ov)
+  have rd1995 := rd1994.dup1 (by decide +native) (by evm_ov)
+  have rd1996 := rd1995.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1996
-  have rd1999 := rd1996.push2 ⟨2009⟩ (by native_decide) (by evm_ov)
-  have rd2000 := rd1999.jumpiNT (by native_decide) rfl (by evm_ov)
-  have rd2001 := rd2000.pop (by native_decide) (by evm_ov)
-  have rd2003 := rd2001.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2005 := rd2003.push1 ⟨255⟩ (by native_decide) (by evm_ov)
-  have rd2006 := rd2005.shl (by native_decide) (by evm_ov)
-  have rd2007 := rd2006.dup2 (by native_decide) (by evm_ov)
-  have rd2008 := rd2007.gt (by native_decide) (by evm_ov)
+  have rd1999 := rd1996.push2 ⟨2009⟩ (by decide +native) (by evm_ov)
+  have rd2000 := rd1999.jumpiNT (by decide +native) rfl (by evm_ov)
+  have rd2001 := rd2000.pop (by decide +native) (by evm_ov)
+  have rd2003 := rd2001.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2005 := rd2003.push1 ⟨255⟩ (by decide +native) (by evm_ov)
+  have rd2006 := rd2005.shl (by decide +native) (by evm_ov)
+  have rd2007 := rd2006.dup2 (by decide +native) (by evm_ov)
+  have rd2008 := rd2007.gt (by decide +native) (by evm_ov)
   rw [ugt_zero hDinkLim] at rd2008
-  have rd2009 := rd2008.iszero (by native_decide) (by evm_ov)
+  have rd2009 := rd2008.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd2009
-  have rd2010 := rd2009.jumpdest (by native_decide) (by evm_ov)
-  have rd2013 := rd2010.push2 ⟨2073⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd2013.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+  have rd2010 := rd2009.jumpdest (by decide +native) (by evm_ov)
+  have rd2013 := rd2010.push2 ⟨2073⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd2013.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 /-! ### Seg 7e/7g: `grab`/`fess` calldata-build helpers
 
@@ -1775,102 +1775,102 @@ theorem catBiteTraceGrabBuild {cA gh bl σ σ₀ A I} {g : UInt256}
   have hcol7 := catBiteAwStep_collapse aw (p + ⟨132⟩).toNat (p + ⟨164⟩).toNat (by omega)
     (catBiteMlt aw (p + ⟨132⟩).toNat (by omega))
   -- 2073 → 2084 : SLOAD vat@3, SLOAD vow@4, read free pointer
-  have rd2074 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd2076 := rd2074.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2077raw⟩ := rd2076.sload (by native_decide) (by evm_ov)
+  have rd2074 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd2076 := rd2074.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2077raw⟩ := rd2076.sload (by decide +native) (by evm_ov)
   have rd2077 : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2077⟩
       (solcSlotWord σ' I ⟨3⟩ :: dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ ::
         urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd2077raw
-  have rd2079 := rd2077.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd2080d := rd2079.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2081raw⟩ := rd2080d.sload (by native_decide) (by evm_ov)
+  have rd2079 := rd2077.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd2080d := rd2079.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2081raw⟩ := rd2080d.sload (by decide +native) (by evm_ov)
   have rd2081 : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2081⟩
       (solcSlotWord σ' I ⟨4⟩ :: ⟨4⟩ :: solcSlotWord σ' I ⟨3⟩ :: dink :: dart :: q :: art :: ink ::
         iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd2081raw
-  have rd2083 := rd2081.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd2084d := rd2083.dup1 (by native_decide) (by evm_ov)
-  have rd2085 := RD.mload 0 p aw rd2084d (by native_decide) (catBiteMloadCost0 hM64)
+  have rd2083 := rd2081.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd2084d := rd2083.dup1 (by decide +native) (by evm_ov)
+  have rd2085 := RD.mload 0 p aw rd2084d (by decide +native) (catBiteMloadCost0 hM64)
     (mloadWordValue_of_readWithPadding (by rw [h64]; omega)
       (by intro hh; have hle : (aw * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
           rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
             Nat.mod_eq_of_lt hawsz, h64] at hle; omega)
       (by rw [h64]; exact hFree64)) hM64 (by evm_ov)
   -- 2085 → 2094 : build selector, MSTORE #1 @ p
-  have rd2090 := rd2085.push4 ⟨32419069⟩ (by native_decide) (by evm_ov)
-  have rd2092 := rd2090.push1 ⟨230⟩ (by native_decide) (by evm_ov)
-  have rd2093 := rd2092.shl (by native_decide) (by evm_ov)
-  have rd2094d := rd2093.dup2 (by native_decide) (by evm_ov)
+  have rd2090 := rd2085.push4 ⟨32419069⟩ (by decide +native) (by evm_ov)
+  have rd2092 := rd2090.push1 ⟨230⟩ (by decide +native) (by evm_ov)
+  have rd2093 := rd2092.shl (by decide +native) (by evm_ov)
+  have rd2094d := rd2093.dup2 (by decide +native) (by evm_ov)
   have rd2094 := RD.mstore _ (catBiteGrabSelMemP p mem) (catBiteAwStep aw p.toNat) rd2094d
-    (by native_decide) catBiteMstoreCostM rfl hstep1 (by evm_ov)
+    (by decide +native) catBiteMstoreCostM rfl hstep1 (by evm_ov)
   -- 2095 → 2100 : ilk, MSTORE #2 @ p+4
-  have rd2095 := rd2094.swap3 (by native_decide) (by evm_ov)
-  have rd2096 := rd2095.dup4 (by native_decide) (by evm_ov)
-  have rd2097 := rd2096.add (by native_decide) (by evm_ov)
-  have rd2098 := RD.dup16 rd2097 (by native_decide) (by evm_ov)
-  have rd2099 := rd2098.swap1 (by native_decide) (by evm_ov)
+  have rd2095 := rd2094.swap3 (by decide +native) (by evm_ov)
+  have rd2096 := rd2095.dup4 (by decide +native) (by evm_ov)
+  have rd2097 := rd2096.add (by decide +native) (by evm_ov)
+  have rd2098 := RD.dup16 rd2097 (by decide +native) (by evm_ov)
+  have rd2099 := rd2098.swap1 (by decide +native) (by evm_ov)
   have rd2100 := RD.mstore _ (catBiteGrabIlkMemP p ilk mem) (catBiteAwStep aw (p + ⟨4⟩).toNat) rd2099
-    (by native_decide) catBiteMstoreCostM rfl hcol2 (by evm_ov)
+    (by decide +native) catBiteMstoreCostM rfl hcol2 (by evm_ov)
   -- 2101 → 2116 : masked urn, MSTORE #3 @ p+36
-  have rd2101 := rd2100.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2103 := rd2101.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2105 := rd2103.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd2107 := rd2105.shl (by native_decide) (by evm_ov)
-  have rd2108 := rd2107.sub (by native_decide) (by evm_ov)
-  have rd2109 := RD.dup15 rd2108 (by native_decide) (by evm_ov)
-  have rd2110 := rd2109.dup2 (by native_decide) (by evm_ov)
-  have rd2111 := rd2110.and (by native_decide) (by evm_ov)
-  have rd2112 := rd2111.push1 ⟨36⟩ (by native_decide) (by evm_ov)
-  have rd2114 := rd2112.dup6 (by native_decide) (by evm_ov)
-  have rd2115 := rd2114.add (by native_decide) (by evm_ov)
+  have rd2101 := rd2100.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2103 := rd2101.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2105 := rd2103.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd2107 := rd2105.shl (by decide +native) (by evm_ov)
+  have rd2108 := rd2107.sub (by decide +native) (by evm_ov)
+  have rd2109 := RD.dup15 rd2108 (by decide +native) (by evm_ov)
+  have rd2110 := rd2109.dup2 (by decide +native) (by evm_ov)
+  have rd2111 := rd2110.and (by decide +native) (by evm_ov)
+  have rd2112 := rd2111.push1 ⟨36⟩ (by decide +native) (by evm_ov)
+  have rd2114 := rd2112.dup6 (by decide +native) (by evm_ov)
+  have rd2115 := rd2114.add (by decide +native) (by evm_ov)
   have rd2116 := RD.mstore _ (catBiteGrabUrnMemP p ilk urn mem) (catBiteAwStep aw (p + ⟨36⟩).toNat)
-    rd2115 (by native_decide) catBiteMstoreCostM rfl hcol3 (by evm_ov)
+    rd2115 (by decide +native) catBiteMstoreCostM rfl hcol3 (by evm_ov)
   -- 2117 → 2122 : address(this), MSTORE #4 @ p+68
-  have rd2117 := rd2116.address (by native_decide) (by evm_ov)
-  have rd2118 := rd2117.push1 ⟨68⟩ (by native_decide) (by evm_ov)
-  have rd2120 := rd2118.dup6 (by native_decide) (by evm_ov)
-  have rd2121 := rd2120.add (by native_decide) (by evm_ov)
+  have rd2117 := rd2116.address (by decide +native) (by evm_ov)
+  have rd2118 := rd2117.push1 ⟨68⟩ (by decide +native) (by evm_ov)
+  have rd2120 := rd2118.dup6 (by decide +native) (by evm_ov)
+  have rd2121 := rd2120.add (by decide +native) (by evm_ov)
   have rd2122 := RD.mstore _ (catBiteGrabThisMemP p ilk urn (UInt256.ofNat I.codeOwner.val) mem)
-    (catBiteAwStep aw (p + ⟨68⟩).toNat) rd2121 (by native_decide) catBiteMstoreCostM rfl hcol4
+    (catBiteAwStep aw (p + ⟨68⟩).toNat) rd2121 (by decide +native) catBiteMstoreCostM rfl hcol4
     (by evm_ov)
   -- 2123 → 2130 : masked vow, MSTORE #5 @ p+100
-  have rd2123 := rd2122.swap2 (by native_decide) (by evm_ov)
-  have rd2124 := rd2123.dup3 (by native_decide) (by evm_ov)
-  have rd2125 := rd2124.and (by native_decide) (by evm_ov)
-  have rd2126 := rd2125.push1 ⟨100⟩ (by native_decide) (by evm_ov)
-  have rd2128 := rd2126.dup5 (by native_decide) (by evm_ov)
-  have rd2129 := rd2128.add (by native_decide) (by evm_ov)
+  have rd2123 := rd2122.swap2 (by decide +native) (by evm_ov)
+  have rd2124 := rd2123.dup3 (by decide +native) (by evm_ov)
+  have rd2125 := rd2124.and (by decide +native) (by evm_ov)
+  have rd2126 := rd2125.push1 ⟨100⟩ (by decide +native) (by evm_ov)
+  have rd2128 := rd2126.dup5 (by decide +native) (by evm_ov)
+  have rd2129 := rd2128.add (by decide +native) (by evm_ov)
   have rd2130 := RD.mstore _
     (catBiteGrabVowMemP p ilk urn (UInt256.ofNat I.codeOwner.val) (solcSlotWord σ' I ⟨4⟩) mem)
-    (catBiteAwStep aw (p + ⟨100⟩).toNat) rd2129 (by native_decide) catBiteMstoreCostM rfl hcol5
+    (catBiteAwStep aw (p + ⟨100⟩).toNat) rd2129 (by decide +native) catBiteMstoreCostM rfl hcol5
     (by evm_ov)
   -- 2131 → 2140 : -int256(dink), MSTORE #6 @ p+132
-  have rd2131 := rd2130.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd2133 := rd2131.dup6 (by native_decide) (by evm_ov)
-  have rd2134 := rd2133.dup2 (by native_decide) (by evm_ov)
-  have rd2135 := rd2134.sub (by native_decide) (by evm_ov)
-  have rd2136 := rd2135.push1 ⟨132⟩ (by native_decide) (by evm_ov)
-  have rd2138 := rd2136.dup6 (by native_decide) (by evm_ov)
-  have rd2139 := rd2138.add (by native_decide) (by evm_ov)
+  have rd2131 := rd2130.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd2133 := rd2131.dup6 (by decide +native) (by evm_ov)
+  have rd2134 := rd2133.dup2 (by decide +native) (by evm_ov)
+  have rd2135 := rd2134.sub (by decide +native) (by evm_ov)
+  have rd2136 := rd2135.push1 ⟨132⟩ (by decide +native) (by evm_ov)
+  have rd2138 := rd2136.dup6 (by decide +native) (by evm_ov)
+  have rd2139 := rd2138.add (by decide +native) (by evm_ov)
   have rd2140 := RD.mstore _
     (catBiteGrabDinkMemP p ilk urn (UInt256.ofNat I.codeOwner.val) (solcSlotWord σ' I ⟨4⟩) dink mem)
-    (catBiteAwStep aw (p + ⟨132⟩).toNat) rd2139 (by native_decide) catBiteMstoreCostM rfl hcol6
+    (catBiteAwStep aw (p + ⟨132⟩).toNat) rd2139 (by decide +native) catBiteMstoreCostM rfl hcol6
     (by evm_ov)
   -- 2141 → 2148 : -int256(dart), MSTORE #7 @ p+164
-  have rd2141 := rd2140.dup7 (by native_decide) (by evm_ov)
-  have rd2142 := rd2141.dup2 (by native_decide) (by evm_ov)
-  have rd2143 := rd2142.sub (by native_decide) (by evm_ov)
-  have rd2144 := rd2143.push1 ⟨164⟩ (by native_decide) (by evm_ov)
-  have rd2146 := rd2144.dup6 (by native_decide) (by evm_ov)
-  have rd2147 := rd2146.add (by native_decide) (by evm_ov)
+  have rd2141 := rd2140.dup7 (by decide +native) (by evm_ov)
+  have rd2142 := rd2141.dup2 (by decide +native) (by evm_ov)
+  have rd2143 := rd2142.sub (by decide +native) (by evm_ov)
+  have rd2144 := rd2143.push1 ⟨164⟩ (by decide +native) (by evm_ov)
+  have rd2146 := rd2144.dup6 (by decide +native) (by evm_ov)
+  have rd2147 := rd2146.add (by decide +native) (by evm_ov)
   have rd2148 := RD.mstore _
     (catBiteGrabCalldataMemP p ilk urn (UInt256.ofNat I.codeOwner.val) (solcSlotWord σ' I ⟨4⟩)
-      dink dart mem) (catBiteAwStep aw (p + ⟨164⟩).toNat) rd2147 (by native_decide) catBiteMstoreCostM
+      dink dart mem) (catBiteAwStep aw (p + ⟨164⟩).toNat) rd2147 (by decide +native) catBiteMstoreCostM
     rfl hcol7 (by evm_ov)
   -- 2149 → 2150 : reload the free pointer (survives the writes)
-  have rd2149 := rd2148.swap1 (by native_decide) (by evm_ov)
-  have rd2150 := RD.mload 0 p (catBiteAwStep aw (p + ⟨164⟩).toNat) rd2149 (by native_decide)
+  have rd2149 := rd2148.swap1 (by decide +native) (by evm_ov)
+  have rd2150 := RD.mload 0 p (catBiteAwStep aw (p + ⟨164⟩).toNat) rd2149 (by decide +native)
     (catBiteMloadCost0 hM7out)
     (mloadWordValue_of_readWithPadding
       (by rw [h64]
@@ -1886,31 +1886,31 @@ theorem catBiteTraceGrabBuild {cA gh bl σ σ₀ A I} {g : UInt256}
               (solcSlotWord σ' I ⟨4⟩) dink dart hp96 hpmem (by omega)]
           exact hFree64)) hM7out (by evm_ov)
   -- 2151 → 2176 : lay out the CALL frame (`vatMasked`, `196`, `p`, `p+196`, selector)
-  have rd2151 := rd2150.swap2 (by native_decide) (by evm_ov)
-  have rd2152 := rd2151.swap1 (by native_decide) (by evm_ov)
-  have rd2153 := rd2152.swap4 (by native_decide) (by evm_ov)
-  have rd2154 := rd2153.and (by native_decide) (by evm_ov)
-  have rd2155 := rd2154.swap3 (by native_decide) (by evm_ov)
-  have rd2156 := rd2155.push4 ⟨2074820416⟩ (by native_decide) (by evm_ov)
-  have rd2161 := rd2156.swap3 (by native_decide) (by evm_ov)
-  have rd2162 := rd2161.push1 ⟨196⟩ (by native_decide) (by evm_ov)
-  have rd2164 := rd2162.dup1 (by native_decide) (by evm_ov)
-  have rd2165 := rd2164.dup3 (by native_decide) (by evm_ov)
-  have rd2166 := rd2165.add (by native_decide) (by evm_ov)
-  have rd2167 := rd2166.swap4 (by native_decide) (by evm_ov)
-  have rd2168 := rd2167.swap2 (by native_decide) (by evm_ov)
-  have rd2169 := rd2168.dup3 (by native_decide) (by evm_ov)
-  have rd2170 := rd2169.swap1 (by native_decide) (by evm_ov)
-  have rd2171 := rd2170.sub (by native_decide) (by evm_ov)
+  have rd2151 := rd2150.swap2 (by decide +native) (by evm_ov)
+  have rd2152 := rd2151.swap1 (by decide +native) (by evm_ov)
+  have rd2153 := rd2152.swap4 (by decide +native) (by evm_ov)
+  have rd2154 := rd2153.and (by decide +native) (by evm_ov)
+  have rd2155 := rd2154.swap3 (by decide +native) (by evm_ov)
+  have rd2156 := rd2155.push4 ⟨2074820416⟩ (by decide +native) (by evm_ov)
+  have rd2161 := rd2156.swap3 (by decide +native) (by evm_ov)
+  have rd2162 := rd2161.push1 ⟨196⟩ (by decide +native) (by evm_ov)
+  have rd2164 := rd2162.dup1 (by decide +native) (by evm_ov)
+  have rd2165 := rd2164.dup3 (by decide +native) (by evm_ov)
+  have rd2166 := rd2165.add (by decide +native) (by evm_ov)
+  have rd2167 := rd2166.swap4 (by decide +native) (by evm_ov)
+  have rd2168 := rd2167.swap2 (by decide +native) (by evm_ov)
+  have rd2169 := rd2168.dup3 (by decide +native) (by evm_ov)
+  have rd2170 := rd2169.swap1 (by decide +native) (by evm_ov)
+  have rd2171 := rd2170.sub (by decide +native) (by evm_ov)
   have hpp : UInt256.sub p p = ⟨0⟩ := by
     apply u256_inj; rw [usub_toNat (le_refl p.toNat)]; simp
   rw [hpp] at rd2171
-  have rd2172 := rd2171.add (by native_decide) (by evm_ov)
-  rw [show (⟨0⟩ : UInt256) + ⟨196⟩ = ⟨196⟩ from by native_decide] at rd2172
-  have rd2173 := rd2172.dup2 (by native_decide) (by evm_ov)
-  have rd2174 := rd2173.dup4 (by native_decide) (by evm_ov)
-  have rd2175 := rd2174.dup8 (by native_decide) (by evm_ov)
-  exact ⟨_, _, _, rd2175.dup1 (by native_decide) (by evm_ov)⟩
+  have rd2172 := rd2171.add (by decide +native) (by evm_ov)
+  rw [show (⟨0⟩ : UInt256) + ⟨196⟩ = ⟨196⟩ from by decide +native] at rd2172
+  have rd2173 := rd2172.dup2 (by decide +native) (by evm_ov)
+  have rd2174 := rd2173.dup4 (by decide +native) (by evm_ov)
+  have rd2175 := rd2174.dup8 (by decide +native) (by evm_ov)
+  exact ⟨_, _, _, rd2175.dup1 (by decide +native) (by evm_ov)⟩
 
 set_option maxHeartbeats 2000000 in
 /-- **`fess` calldata build** (`2242 → 2284`): marshal the 1-arg `vow.fess(dartRate)` calldata into the
@@ -1970,41 +1970,41 @@ theorem catBiteTraceFessBuild {cA gh bl σ σ₀ A I} {g : UInt256}
       omega
     rw [usub_toNat (by rw [he]; omega), he, show (⟨36⟩ : UInt256).toNat = 36 from by decide]; omega
   -- 2242 → 2245 : read free pointer
-  have rd2243 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd2245 := rd2243.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd2246 := RD.mload 0 p2 aw rd2245 (by native_decide) (catBiteMloadCost0 hM64)
+  have rd2243 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd2245 := rd2243.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd2246 := RD.mload 0 p2 aw rd2245 (by decide +native) (catBiteMloadCost0 hM64)
     (mloadWordValue_of_readWithPadding (by rw [h64]; omega)
       (by intro hh; have hle : (aw * ⟨32⟩).toNat ≤ (⟨64⟩ : UInt256).toNat := hh
           rw [u256_mul_op_toNat, show (⟨32⟩ : UInt256).toNat = 32 from by decide,
             Nat.mod_eq_of_lt hawsz, h64] at hle; omega)
       (by rw [h64]; exact hFree64)) hM64 (by evm_ov)
   -- 2246 → 2257 : build selector, MSTORE #1 @ p2
-  have rd2247 := rd2246.dup3 (by native_decide) (by evm_ov)
-  have rd2252 := rd2247.push4 ⟨4294967295⟩ (by native_decide) (by evm_ov)
-  have rd2253 := rd2252.and (by native_decide) (by evm_ov)
-  have rd2255 := rd2253.push1 ⟨224⟩ (by native_decide) (by evm_ov)
-  have rd2256 := rd2255.shl (by native_decide) (by evm_ov)
-  have rd2257d := rd2256.dup2 (by native_decide) (by evm_ov)
+  have rd2247 := rd2246.dup3 (by decide +native) (by evm_ov)
+  have rd2252 := rd2247.push4 ⟨4294967295⟩ (by decide +native) (by evm_ov)
+  have rd2253 := rd2252.and (by decide +native) (by evm_ov)
+  have rd2255 := rd2253.push1 ⟨224⟩ (by decide +native) (by evm_ov)
+  have rd2256 := rd2255.shl (by decide +native) (by evm_ov)
+  have rd2257d := rd2256.dup2 (by decide +native) (by evm_ov)
   have rd2257 := RD.mstore _ (catBiteFessSelMemP p2 mem) (catBiteAwStep aw p2.toNat) rd2257d
-    (by native_decide) catBiteMstoreCostM rfl hstepF1 (by evm_ov)
+    (by decide +native) catBiteMstoreCostM rfl hstepF1 (by evm_ov)
   -- 2258 → 2264 : dartRate, MSTORE #2 @ p2+4
-  have rd2258 := rd2257.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd2260 := rd2258.add (by native_decide) (by evm_ov)
-  have rd2261 := rd2260.dup1 (by native_decide) (by evm_ov)
-  have rd2262 := rd2261.dup3 (by native_decide) (by evm_ov)
-  have rd2263 := rd2262.dup2 (by native_decide) (by evm_ov)
+  have rd2258 := rd2257.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd2260 := rd2258.add (by decide +native) (by evm_ov)
+  have rd2261 := rd2260.dup1 (by decide +native) (by evm_ov)
+  have rd2262 := rd2261.dup3 (by decide +native) (by evm_ov)
+  have rd2263 := rd2262.dup2 (by decide +native) (by evm_ov)
   have rd2264 := RD.mstore _ (catBiteFessCalldataMemP p2 dartRate mem)
-    (catBiteAwStep aw (⟨4⟩ + p2).toNat) rd2263 (by native_decide) catBiteMstoreCostM rfl hcolF2
+    (catBiteAwStep aw (⟨4⟩ + p2).toNat) rd2263 (by decide +native) catBiteMstoreCostM rfl hcolF2
     (by evm_ov)
   -- 2265 → 2275 : compute fess-end pointer, reload the free pointer
-  have rd2265 := rd2264.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd2267 := rd2265.add (by native_decide) (by evm_ov)
-  have rd2268 := rd2267.swap2 (by native_decide) (by evm_ov)
-  have rd2269 := rd2268.pop (by native_decide) (by evm_ov)
-  have rd2270 := rd2269.pop (by native_decide) (by evm_ov)
-  have rd2271 := rd2270.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd2273 := rd2271.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd2275 := RD.mload 0 p2 (catBiteAwStep aw (⟨4⟩ + p2).toNat) rd2273 (by native_decide)
+  have rd2265 := rd2264.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd2267 := rd2265.add (by decide +native) (by evm_ov)
+  have rd2268 := rd2267.swap2 (by decide +native) (by evm_ov)
+  have rd2269 := rd2268.pop (by decide +native) (by evm_ov)
+  have rd2270 := rd2269.pop (by decide +native) (by evm_ov)
+  have rd2271 := rd2270.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd2273 := rd2271.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd2275 := RD.mload 0 p2 (catBiteAwStep aw (⟨4⟩ + p2).toNat) rd2273 (by decide +native)
     (catBiteMloadCost0 hMFout)
     (mloadWordValue_of_readWithPadding
       (by rw [h64]
@@ -2017,14 +2017,14 @@ theorem catBiteTraceFessBuild {cA gh bl σ σ₀ A I} {g : UInt256}
       (by rw [h64, catBiteFessCalldataMemP_read64 p2 dartRate hp96 hpmem (by omega)]
           exact hFree64)) hMFout (by evm_ov)
   -- 2276 → 2283 : lay out the CALL frame (`vowMasked`, `36`, `p2`, `fessEnd`)
-  have rd2276 := rd2275.dup1 (by native_decide) (by evm_ov)
-  have rd2277 := rd2276.dup4 (by native_decide) (by evm_ov)
-  have rd2278 := rd2277.sub (by native_decide) (by evm_ov)
+  have rd2276 := rd2275.dup1 (by decide +native) (by evm_ov)
+  have rd2277 := rd2276.dup4 (by decide +native) (by evm_ov)
+  have rd2278 := rd2277.sub (by decide +native) (by evm_ov)
   rw [hsub36] at rd2278
-  have rd2279 := rd2278.dup2 (by native_decide) (by evm_ov)
-  have rd2280 := rd2279.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd2282 := rd2280.dup8 (by native_decide) (by evm_ov)
-  exact ⟨_, _, _, rd2282.dup1 (by native_decide) (by evm_ov)⟩
+  have rd2279 := rd2278.dup2 (by decide +native) (by evm_ov)
+  have rd2280 := rd2279.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd2282 := rd2280.dup8 (by decide +native) (by evm_ov)
+  exact ⟨_, _, _, rd2282.dup1 (by decide +native) (by evm_ov)⟩
 
 end CalldataBuild
 
@@ -2059,13 +2059,13 @@ theorem RD.catBiteGrabCallGen {cA gh bl σ σ₀ A I} {g : UInt256} {args : List
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd2192⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2177⟩) (okPc := ⟨2189⟩) rd hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp only [List.length_cons]; omega)
   obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘpack, rd2193raw, hosz⟩ :=
-    RD.call rd2192 (by native_decide) hdepth (by omega)
+    RD.call rd2192 (by decide +native) hdepth (by omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
-  have hpc : ((⟨2189⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨2193⟩ : UInt256) := by native_decide
+  have hpc : ((⟨2189⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨2193⟩ : UInt256) := by decide +native
   rw [hpc] at rd2193raw
   refine ⟨cA', σ', z, o, _, A', _, k', C', rd2193raw, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
@@ -2105,11 +2105,11 @@ theorem RD.catBiteFessCallGen {cA gh bl σ σ₀ A I} {g : UInt256} {args : List
     ∧ o'.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd2299⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2284⟩) (okPc := ⟨2296⟩) rd hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp only [List.length_cons]; omega)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp only [List.length_cons]; omega)
   obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘpack, rd2300, hosz⟩ :=
-    RD.call (pc := ⟨2299⟩) rd2299 (by native_decide) hdepth (by omega)
+    RD.call (pc := ⟨2299⟩) rd2299 (by decide +native) hdepth (by omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, o, _, A', _, k', C', rd2300, ?_, hosz⟩
   refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
@@ -2152,53 +2152,53 @@ theorem catBiteTraceSeg7i {cA gh bl σ σ₀ A I} {g : UInt256}
   have e32q : (⟨32⟩ + q).toNat = q.toNat + 32 := uadd_lit32_toNat q (by omega)
   have hChopAw : UInt256.ofNat (MachineState.M aw.toNat (⟨32⟩ + q).toNat 32) = aw :=
     catBiteAwMInv32 aw (by rw [e32q]; omega)
-  have rd2321 := rd.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd2323 := RD.push8 rd2321 ⟨1000000000000000000⟩ (by native_decide) (by evm_ov)
-  have rd2332 := rd2323.push2 ⟨2354⟩ (by native_decide) (by evm_ov)
-  have rd2335 := rd2332.push2 ⟨2344⟩ (by native_decide) (by evm_ov)
-  have rd2338 := rd2335.dup6 (by native_decide) (by evm_ov)
-  have rd2339 := rd2338.dup13 (by native_decide) (by evm_ov)
-  have rd2340 := rd2339.push2 ⟨3720⟩ (by native_decide) (by evm_ov)
-  have rd3720a := rd2340.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd2344⟩ := RD.catBiteCheckedMul rd3720a hRateFit (by native_decide) (by evm_ov)
+  have rd2321 := rd.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd2323 := RD.push8 rd2321 ⟨1000000000000000000⟩ (by decide +native) (by evm_ov)
+  have rd2332 := rd2323.push2 ⟨2354⟩ (by decide +native) (by evm_ov)
+  have rd2335 := rd2332.push2 ⟨2344⟩ (by decide +native) (by evm_ov)
+  have rd2338 := rd2335.dup6 (by decide +native) (by evm_ov)
+  have rd2339 := rd2338.dup13 (by decide +native) (by evm_ov)
+  have rd2340 := rd2339.push2 ⟨3720⟩ (by decide +native) (by evm_ov)
+  have rd3720a := rd2340.jump (by decide +native) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd2344⟩ := RD.catBiteCheckedMul rd3720a hRateFit (by decide +native) (by evm_ov)
   rw [hDartRate] at rd2344
-  have rd2344j := rd2344.jumpdest (by native_decide) (by evm_ov)
-  have rd2345 := rd2344j.dup7 (by native_decide) (by evm_ov)
-  have rd2346 := rd2345.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd2348 := rd2346.add (by native_decide) (by evm_ov)
-  have rd2349 := RD.mload 0 milkChop aw rd2348 (by native_decide) (catBiteMloadCost0 hChopAw)
+  have rd2344j := rd2344.jumpdest (by decide +native) (by evm_ov)
+  have rd2345 := rd2344j.dup7 (by decide +native) (by evm_ov)
+  have rd2346 := rd2345.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd2348 := rd2346.add (by decide +native) (by evm_ov)
+  have rd2349 := RD.mload 0 milkChop aw rd2348 (by decide +native) (catBiteMloadCost0 hChopAw)
     hChop hChopAw (by evm_ov)
-  have rd2350 := rd2349.push2 ⟨3720⟩ (by native_decide) (by evm_ov)
-  have rd3720b := rd2350.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd2354⟩ := RD.catBiteCheckedMul rd3720b hChopFit (by native_decide) (by evm_ov)
+  have rd2350 := rd2349.push2 ⟨3720⟩ (by decide +native) (by evm_ov)
+  have rd3720b := rd2350.jump (by decide +native) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd2354⟩ := RD.catBiteCheckedMul rd3720b hChopFit (by decide +native) (by evm_ov)
   rw [hTabBase] at rd2354
-  have rd2354j := rd2354.jumpdest (by native_decide) (by evm_ov)
-  have rd2355 := rd2354j.dup2 (by native_decide) (by evm_ov)
-  have rd2356 := rd2355.push2 ⟨2361⟩ (by native_decide) (by evm_ov)
-  have rd2361 := rd2356.jumpiT (by native_decide) (by decide) (by jump_dest) (by evm_ov)
-  have rd2361j := rd2361.jumpdest (by native_decide) (by evm_ov)
-  have rd2362 := rd2361j.div (by native_decide) (by evm_ov)
+  have rd2354j := rd2354.jumpdest (by decide +native) (by evm_ov)
+  have rd2355 := rd2354j.dup2 (by decide +native) (by evm_ov)
+  have rd2356 := rd2355.push2 ⟨2361⟩ (by decide +native) (by evm_ov)
+  have rd2361 := rd2356.jumpiT (by decide +native) (by decide) (by jump_dest) (by evm_ov)
+  have rd2361j := rd2361.jumpdest (by decide +native) (by evm_ov)
+  have rd2362 := rd2361j.div (by decide +native) (by evm_ov)
   rw [hTab] at rd2362
-  have rd2363 := rd2362.swap1 (by native_decide) (by evm_ov)
-  have rd2364 := rd2363.pop (by native_decide) (by evm_ov)
-  have rd2365 := rd2364.push2 ⟨2376⟩ (by native_decide) (by evm_ov)
-  have rd2368 := rd2365.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2370raw⟩ := rd2368.sload (by native_decide) (by evm_ov)
+  have rd2363 := rd2362.swap1 (by decide +native) (by evm_ov)
+  have rd2364 := rd2363.pop (by decide +native) (by evm_ov)
+  have rd2365 := rd2364.push2 ⟨2376⟩ (by decide +native) (by evm_ov)
+  have rd2368 := rd2365.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2370raw⟩ := rd2368.sload (by decide +native) (by evm_ov)
   have rd2370 : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2371⟩
       (solcSlotWord σ' I ⟨6⟩ :: ⟨2376⟩ :: tab :: dink :: dart :: q :: art :: ink :: iDust :: iSpot ::
         iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd2370raw
-  have rd2371 := rd2370.dup3 (by native_decide) (by evm_ov)
-  have rd2372 := rd2371.push2 ⟨3802⟩ (by native_decide) (by evm_ov)
-  have rd3802 := rd2372.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd2376⟩ := RD.catBiteCheckedAdd rd3802 hLitFit (by native_decide) (by evm_ov)
+  have rd2371 := rd2370.dup3 (by decide +native) (by evm_ov)
+  have rd2372 := rd2371.push2 ⟨3802⟩ (by decide +native) (by evm_ov)
+  have rd3802 := rd2372.jump (by decide +native) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd2376⟩ := RD.catBiteCheckedAdd rd3802 hLitFit (by decide +native) (by evm_ov)
   rw [hLitterNew] at rd2376
-  have rd2376j := rd2376.jumpdest (by native_decide) (by evm_ov)
-  have rd2377 := rd2376j.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  have rd2379 := rd2377.dup2 (by native_decide) (by evm_ov)
-  have rd2380 := rd2379.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2381⟩ := rd2380.sstore hperm (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd2381.pop (by native_decide) (by evm_ov)⟩
+  have rd2376j := rd2376.jumpdest (by decide +native) (by evm_ov)
+  have rd2377 := rd2376j.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  have rd2379 := rd2377.dup2 (by decide +native) (by evm_ov)
+  have rd2380 := rd2379.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2381⟩ := rd2380.sstore hperm (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd2381.pop (by decide +native) (by evm_ov)⟩
 
 /-- **Seg 7f** (`2193 → 2242`): the `grab` call-success guard (`catBiteGrabCallSucceeded`, pops
 `status` + the return slot `d0`) then `dartRate = dart*rate` (`@3720`), reading `vow@4` and masking it
@@ -2222,39 +2222,39 @@ theorem catBiteTraceSeg7f {cA gh bl σ σ₀ A I} {g : UInt256}
         dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o (cA', σ') k' C' := by
   -- grab success guard (inline): pop status + the return slot d0
-  have rd2194 := rd.iszero (by native_decide) (by evm_ov)
+  have rd2194 := rd.iszero (by decide +native) (by evm_ov)
   rw [isZero_eq_zero_of_ne hstatus] at rd2194
-  have rd2195 := rd2194.dup1 (by native_decide) (by evm_ov)
-  have rd2196 := rd2195.iszero (by native_decide) (by evm_ov)
+  have rd2195 := rd2194.dup1 (by decide +native) (by evm_ov)
+  have rd2196 := rd2195.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd2196
-  have rd2199 := rd2196.push2 ⟨2209⟩ (by native_decide) (by evm_ov)
-  have rd2209 := rd2199.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)
-  have rd2210 := rd2209.jumpdest (by native_decide) (by evm_ov)
-  have rd2211 := rd2210.pop (by native_decide) (by evm_ov)
-  have rd2212 := rd2211.pop (by native_decide) (by evm_ov)
-  have rd2214 := rd2212.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2215raw⟩ := rd2214.sload (by native_decide) (by evm_ov)
+  have rd2199 := rd2196.push2 ⟨2209⟩ (by decide +native) (by evm_ov)
+  have rd2209 := rd2199.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)
+  have rd2210 := rd2209.jumpdest (by decide +native) (by evm_ov)
+  have rd2211 := rd2210.pop (by decide +native) (by evm_ov)
+  have rd2212 := rd2211.pop (by decide +native) (by evm_ov)
+  have rd2214 := rd2212.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2215raw⟩ := rd2214.sload (by decide +native) (by evm_ov)
   have rd2215 : RD catBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2215⟩
       (solcSlotWord σ' I ⟨4⟩ :: d1 :: d2 :: dink :: dart :: q :: art :: ink :: iDust :: iSpot ::
         iRate :: ⟨0⟩ :: urn :: ilk :: R) mem aw o (cA', σ') _ _ := rd2215raw
-  have rd2217 := rd2215.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2219 := rd2217.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2221 := rd2219.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd2222 := rd2221.shl (by native_decide) (by evm_ov)
-  have rd2223 := rd2222.sub (by native_decide) (by evm_ov)
-  have rd2224 := rd2223.and (by native_decide) (by evm_ov)
-  have rd2225 := rd2224.swap2 (by native_decide) (by evm_ov)
-  have rd2226 := rd2225.pop (by native_decide) (by evm_ov)
-  have rd2231 := rd2226.push4 ⟨1769929592⟩ (by native_decide) (by evm_ov)
-  have rd2232 := rd2231.swap1 (by native_decide) (by evm_ov)
-  have rd2233 := rd2232.pop (by native_decide) (by evm_ov)
-  have rd2236 := rd2233.push2 ⟨2242⟩ (by native_decide) (by evm_ov)
-  have rd2237 := rd2236.dup5 (by native_decide) (by evm_ov)
-  have rd2238 := RD.dup12 rd2237 (by native_decide) (by evm_ov)
-  have rd2241 := rd2238.push2 ⟨3720⟩ (by native_decide) (by evm_ov)
-  have rd3720 := rd2241.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd2242⟩ := RD.catBiteCheckedMul rd3720 hRateFit (by native_decide) (by evm_ov)
+  have rd2217 := rd2215.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2219 := rd2217.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2221 := rd2219.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd2222 := rd2221.shl (by decide +native) (by evm_ov)
+  have rd2223 := rd2222.sub (by decide +native) (by evm_ov)
+  have rd2224 := rd2223.and (by decide +native) (by evm_ov)
+  have rd2225 := rd2224.swap2 (by decide +native) (by evm_ov)
+  have rd2226 := rd2225.pop (by decide +native) (by evm_ov)
+  have rd2231 := rd2226.push4 ⟨1769929592⟩ (by decide +native) (by evm_ov)
+  have rd2232 := rd2231.swap1 (by decide +native) (by evm_ov)
+  have rd2233 := rd2232.pop (by decide +native) (by evm_ov)
+  have rd2236 := rd2233.push2 ⟨2242⟩ (by decide +native) (by evm_ov)
+  have rd2237 := rd2236.dup5 (by decide +native) (by evm_ov)
+  have rd2238 := RD.dup12 rd2237 (by decide +native) (by evm_ov)
+  have rd2241 := rd2238.push2 ⟨3720⟩ (by decide +native) (by evm_ov)
+  have rd3720 := rd2241.jump (by decide +native) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd2242⟩ := RD.catBiteCheckedMul rd3720 hRateFit (by decide +native) (by evm_ov)
   rw [hDartRate] at rd2242
   exact ⟨_, _, rd2242⟩
 
@@ -2275,18 +2275,18 @@ theorem catBiteTraceSeg7h {cA gh bl σ σ₀ A I} {g : UInt256}
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨2321⟩
       (dink :: dart :: q :: art :: ink :: iDust :: iSpot :: iRate :: ⟨0⟩ :: urn :: ilk :: R)
       mem aw o acc k' C' := by
-  have rd2301 := rd.iszero (by native_decide) (by evm_ov)
+  have rd2301 := rd.iszero (by decide +native) (by evm_ov)
   rw [isZero_eq_zero_of_ne hstatus] at rd2301
-  have rd2302 := rd2301.dup1 (by native_decide) (by evm_ov)
-  have rd2303 := rd2302.iszero (by native_decide) (by evm_ov)
+  have rd2302 := rd2301.dup1 (by decide +native) (by evm_ov)
+  have rd2303 := rd2302.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd2303
-  have rd2306 := rd2303.push2 ⟨2316⟩ (by native_decide) (by evm_ov)
-  have rd2316 := rd2306.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)
-  have rd2317 := rd2316.jumpdest (by native_decide) (by evm_ov)
-  have rd2318 := rd2317.pop (by native_decide) (by evm_ov)
-  have rd2319 := rd2318.pop (by native_decide) (by evm_ov)
-  have rd2320 := rd2319.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd2320.pop (by native_decide) (by evm_ov)⟩
+  have rd2306 := rd2303.push2 ⟨2316⟩ (by decide +native) (by evm_ov)
+  have rd2316 := rd2306.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)
+  have rd2317 := rd2316.jumpdest (by decide +native) (by evm_ov)
+  have rd2318 := rd2317.pop (by decide +native) (by evm_ov)
+  have rd2319 := rd2318.pop (by decide +native) (by evm_ov)
+  have rd2320 := rd2319.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd2320.pop (by decide +native) (by evm_ov)⟩
 
 
 /-! ## Seg 8 : the final `milkFlip.kick(...)` external call + `id` return (`2383 → RETURN`)
@@ -2367,126 +2367,126 @@ theorem catBiteTraceSeg8aCalldata {cA gh bl σ σ₀ A I} {g : UInt256}
   have hM228 : UInt256.ofNat (MachineState.M aw.toNat 228 32) = aw := awInv32 aw (by omega)
   have hM260 : UInt256.ofNat (MachineState.M aw.toNat 260 32) = aw := awInv32 aw (by omega)
   -- offset-literal rewrites
-  have hsel : UInt256.land ⟨4294967295⟩ ⟨891151872⟩ = ⟨891151872⟩ := by native_decide
+  have hsel : UInt256.land ⟨4294967295⟩ ⟨891151872⟩ = ⟨891151872⟩ := by decide +native
   -- 2383 DUP4 (q), PUSH1 0, ADD, MLOAD (flip@q)
-  have rd2384 := rd.dup4 (by native_decide) (by evm_ov)
-  have rd2386 := rd2384.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd2387 := rd2386.add (by native_decide) (by evm_ov)
+  have rd2384 := rd.dup4 (by decide +native) (by evm_ov)
+  have rd2386 := rd2384.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd2387 := rd2386.add (by decide +native) (by evm_ov)
   rw [u256_zero_add q] at rd2387
-  have rd2388 := RD.mload 0 milkFlip aw rd2387 (by native_decide) (mloadCost0 hMq) hFlip hMq (by evm_ov)
+  have rd2388 := RD.mload 0 milkFlip aw rd2387 (by decide +native) (mloadCost0 hMq) hFlip hMq (by evm_ov)
   -- 2388..2396 mask flip -> target
-  have rd2390 := rd2388.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2392 := rd2390.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2394 := rd2392.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd2395 := rd2394.shl (by native_decide) (by evm_ov)
-  have rd2396 := rd2395.sub (by native_decide) (by evm_ov)
-  have rd2397 := rd2396.and (by native_decide) (by evm_ov)
+  have rd2390 := rd2388.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2392 := rd2390.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2394 := rd2392.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd2395 := rd2394.shl (by decide +native) (by evm_ov)
+  have rd2396 := rd2395.sub (by decide +native) (by evm_ov)
+  have rd2397 := rd2396.and (by decide +native) (by evm_ov)
   -- 2397 PUSH4 sel, 2402 DUP13 (urn), 2403 PUSH1 4, 2405 PUSH1 0, 2407 SWAP1, 2408 SLOAD
-  have rd2402 := rd2397.push4 ⟨891151872⟩ (by native_decide) (by evm_ov)
-  have rd2403 := rd2402.dup13 (by native_decide) (by evm_ov)
-  have rd2405 := rd2403.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd2407 := rd2405.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd2408 := rd2407.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2409⟩ := rd2408.sload (by native_decide) (by evm_ov)
+  have rd2402 := rd2397.push4 ⟨891151872⟩ (by decide +native) (by evm_ov)
+  have rd2403 := rd2402.dup13 (by decide +native) (by evm_ov)
+  have rd2405 := rd2403.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd2407 := rd2405.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd2408 := rd2407.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2409⟩ := rd2408.sload (by decide +native) (by evm_ov)
   -- 2409 SWAP1, 2410 PUSH2 256, 2413 EXP, 2414 SWAP1, 2415 DIV
-  have rd2410 := rd2409.swap1 (by native_decide) (by evm_ov)
-  have rd2413 := rd2410.push2 ⟨256⟩ (by native_decide) (by evm_ov)
-  have rd2414 := rd2413.exp (by native_decide) (by evm_ov)
-  have rd2415 := rd2414.swap1 (by native_decide) (by evm_ov)
-  have rd2416 := rd2415.div (by native_decide) (by evm_ov)
+  have rd2410 := rd2409.swap1 (by decide +native) (by evm_ov)
+  have rd2413 := rd2410.push2 ⟨256⟩ (by decide +native) (by evm_ov)
+  have rd2414 := rd2413.exp (by decide +native) (by evm_ov)
+  have rd2415 := rd2414.swap1 (by decide +native) (by evm_ov)
+  have rd2416 := rd2415.div (by decide +native) (by evm_ov)
   -- 2416..2424 mask vow (first mask)
-  have rd2418 := rd2416.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2420 := rd2418.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2422 := rd2420.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd2423 := rd2422.shl (by native_decide) (by evm_ov)
-  have rd2424 := rd2423.sub (by native_decide) (by evm_ov)
-  have rd2425 := rd2424.and (by native_decide) (by evm_ov)
+  have rd2418 := rd2416.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2420 := rd2418.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2422 := rd2420.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd2423 := rd2422.shl (by decide +native) (by evm_ov)
+  have rd2424 := rd2423.sub (by decide +native) (by evm_ov)
+  have rd2425 := rd2424.and (by decide +native) (by evm_ov)
   -- 2425 DUP5 (tab), 2426 DUP7 (dink), 2427 PUSH1 0, 2429 PUSH1 64, 2431 MLOAD (freeptr=128)
-  have rd2426 := rd2425.dup5 (by native_decide) (by evm_ov)
-  have rd2427 := rd2426.dup7 (by native_decide) (by evm_ov)
-  have rd2429 := rd2427.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd2431 := rd2429.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd2432 := RD.mload 0 ⟨128⟩ aw rd2431 (by native_decide) (mloadCost0 hM64) hFree hM64 (by evm_ov)
+  have rd2426 := rd2425.dup5 (by decide +native) (by evm_ov)
+  have rd2427 := rd2426.dup7 (by decide +native) (by evm_ov)
+  have rd2429 := rd2427.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd2431 := rd2429.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd2432 := RD.mload 0 ⟨128⟩ aw rd2431 (by decide +native) (mloadCost0 hM64) hFree hM64 (by evm_ov)
   -- 2432 DUP7 (sel), 2433 PUSH4 ffffffff, 2438 AND, 2439 PUSH1 224, 2441 SHL, 2442 DUP2, 2443 MSTORE (sel@128)
-  have rd2433 := rd2432.dup7 (by native_decide) (by evm_ov)
-  have rd2438 := rd2433.push4 ⟨4294967295⟩ (by native_decide) (by evm_ov)
-  have rd2439 := rd2438.and (by native_decide) (by evm_ov)
+  have rd2433 := rd2432.dup7 (by decide +native) (by evm_ov)
+  have rd2438 := rd2433.push4 ⟨4294967295⟩ (by decide +native) (by evm_ov)
+  have rd2439 := rd2438.and (by decide +native) (by evm_ov)
   rw [hsel] at rd2439
-  have rd2441 := rd2439.push1 ⟨224⟩ (by native_decide) (by evm_ov)
-  have rd2442 := rd2441.shl (by native_decide) (by evm_ov)
-  have rd2443 := rd2442.dup2 (by native_decide) (by evm_ov)
-  have rd2444 := RD.mstore 0 (kickSelectorMem mem) aw rd2443 (by native_decide) (mstoreCost0 hM128)
+  have rd2441 := rd2439.push1 ⟨224⟩ (by decide +native) (by evm_ov)
+  have rd2442 := rd2441.shl (by decide +native) (by evm_ov)
+  have rd2443 := rd2442.dup2 (by decide +native) (by evm_ov)
+  have rd2444 := RD.mstore 0 (kickSelectorMem mem) aw rd2443 (by decide +native) (mstoreCost0 hM128)
     (by rfl) hM128 (by evm_ov)
   -- 2444 PUSH1 4, 2446 ADD (->132), 2447 DUP1, 2448 DUP7 (urn), mask, 2458 DUP2, 2459 MSTORE (urn@132)
-  have rd2446 := rd2444.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd2447 := rd2446.add (by native_decide) (by evm_ov)
-  rw [show (⟨4⟩ : UInt256) + ⟨128⟩ = ⟨132⟩ from by native_decide] at rd2447
-  have rd2448 := rd2447.dup1 (by native_decide) (by evm_ov)
-  have rd2449 := rd2448.dup7 (by native_decide) (by evm_ov)
-  have rd2451 := rd2449.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2453 := rd2451.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2455 := rd2453.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd2456 := rd2455.shl (by native_decide) (by evm_ov)
-  have rd2457 := rd2456.sub (by native_decide) (by evm_ov)
-  have rd2458 := rd2457.and (by native_decide) (by evm_ov)
-  have rd2459 := rd2458.dup2 (by native_decide) (by evm_ov)
+  have rd2446 := rd2444.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd2447 := rd2446.add (by decide +native) (by evm_ov)
+  rw [show (⟨4⟩ : UInt256) + ⟨128⟩ = ⟨132⟩ from by decide +native] at rd2447
+  have rd2448 := rd2447.dup1 (by decide +native) (by evm_ov)
+  have rd2449 := rd2448.dup7 (by decide +native) (by evm_ov)
+  have rd2451 := rd2449.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2453 := rd2451.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2455 := rd2453.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd2456 := rd2455.shl (by decide +native) (by evm_ov)
+  have rd2457 := rd2456.sub (by decide +native) (by evm_ov)
+  have rd2458 := rd2457.and (by decide +native) (by evm_ov)
+  have rd2459 := rd2458.dup2 (by decide +native) (by evm_ov)
   have rd2460 := RD.mstore 0 (UInt256.toByteArray (UInt256.land biteAddrMaskWord urn) |>.write 0
-      (kickSelectorMem mem) 132 32) aw rd2459 (by native_decide) (mstoreCost0 hM132) (by rfl) hM132
+      (kickSelectorMem mem) 132 32) aw rd2459 (by decide +native) (mstoreCost0 hM132) (by rfl) hM132
     (by evm_ov)
   -- 2460 PUSH1 32, 2462 ADD (->164), 2463 DUP6 (vow1), mask again, 2473 DUP2, 2474 MSTORE (vow@164)
-  have rd2462 := rd2460.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd2463 := rd2462.add (by native_decide) (by evm_ov)
-  rw [show (⟨32⟩ : UInt256) + ⟨132⟩ = ⟨164⟩ from by native_decide] at rd2463
-  have rd2464 := rd2463.dup6 (by native_decide) (by evm_ov)
-  have rd2466 := rd2464.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2468 := rd2466.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2470 := rd2468.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd2471 := rd2470.shl (by native_decide) (by evm_ov)
-  have rd2472 := rd2471.sub (by native_decide) (by evm_ov)
-  have rd2473 := rd2472.and (by native_decide) (by evm_ov)
-  have rd2474 := rd2473.dup2 (by native_decide) (by evm_ov)
+  have rd2462 := rd2460.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd2463 := rd2462.add (by decide +native) (by evm_ov)
+  rw [show (⟨32⟩ : UInt256) + ⟨132⟩ = ⟨164⟩ from by decide +native] at rd2463
+  have rd2464 := rd2463.dup6 (by decide +native) (by evm_ov)
+  have rd2466 := rd2464.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2468 := rd2466.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2470 := rd2468.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd2471 := rd2470.shl (by decide +native) (by evm_ov)
+  have rd2472 := rd2471.sub (by decide +native) (by evm_ov)
+  have rd2473 := rd2472.and (by decide +native) (by evm_ov)
+  have rd2474 := rd2473.dup2 (by decide +native) (by evm_ov)
   have rd2475 := RD.mstore 0 (UInt256.toByteArray (UInt256.land biteAddrMaskWord
         (UInt256.land biteAddrMaskWord (UInt256.div (solcSlotWord σx I ⟨4⟩) (UInt256.exp ⟨256⟩ ⟨0⟩)))) |>.write 0
       (UInt256.toByteArray (UInt256.land biteAddrMaskWord urn) |>.write 0 (kickSelectorMem mem) 132 32) 164 32)
-      aw rd2474 (by native_decide) (mstoreCost0 hM164) (by rfl) hM164 (by evm_ov)
+      aw rd2474 (by decide +native) (mstoreCost0 hM164) (by rfl) hM164 (by evm_ov)
   -- 2475 PUSH1 32, 2477 ADD (->196), 2478 DUP5 (tab), 2479 DUP2, 2480 MSTORE (tab@196)
-  have rd2477 := rd2475.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd2478 := rd2477.add (by native_decide) (by evm_ov)
-  rw [show (⟨32⟩ : UInt256) + ⟨164⟩ = ⟨196⟩ from by native_decide] at rd2478
-  have rd2479 := rd2478.dup5 (by native_decide) (by evm_ov)
-  have rd2480 := rd2479.dup2 (by native_decide) (by evm_ov)
-  have rd2481 := RD.mstore 0 _ aw rd2480 (by native_decide) (mstoreCost0 hM196) (by rfl) hM196 (by evm_ov)
+  have rd2477 := rd2475.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd2478 := rd2477.add (by decide +native) (by evm_ov)
+  rw [show (⟨32⟩ : UInt256) + ⟨164⟩ = ⟨196⟩ from by decide +native] at rd2478
+  have rd2479 := rd2478.dup5 (by decide +native) (by evm_ov)
+  have rd2480 := rd2479.dup2 (by decide +native) (by evm_ov)
+  have rd2481 := RD.mstore 0 _ aw rd2480 (by decide +native) (mstoreCost0 hM196) (by rfl) hM196 (by evm_ov)
   -- 2481 PUSH1 32, 2483 ADD (->228), 2484 DUP4 (dink), 2485 DUP2, 2486 MSTORE (dink@228)
-  have rd2483 := rd2481.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd2484 := rd2483.add (by native_decide) (by evm_ov)
-  rw [show (⟨32⟩ : UInt256) + ⟨196⟩ = ⟨228⟩ from by native_decide] at rd2484
-  have rd2485 := rd2484.dup4 (by native_decide) (by evm_ov)
-  have rd2486 := rd2485.dup2 (by native_decide) (by evm_ov)
-  have rd2487 := RD.mstore 0 _ aw rd2486 (by native_decide) (mstoreCost0 hM228) (by rfl) hM228 (by evm_ov)
+  have rd2483 := rd2481.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd2484 := rd2483.add (by decide +native) (by evm_ov)
+  rw [show (⟨32⟩ : UInt256) + ⟨196⟩ = ⟨228⟩ from by decide +native] at rd2484
+  have rd2485 := rd2484.dup4 (by decide +native) (by evm_ov)
+  have rd2486 := rd2485.dup2 (by decide +native) (by evm_ov)
+  have rd2487 := RD.mstore 0 _ aw rd2486 (by decide +native) (mstoreCost0 hM228) (by rfl) hM228 (by evm_ov)
   -- 2487 PUSH1 32, 2489 ADD (->260), 2490 DUP3 (0), 2491 DUP2, 2492 MSTORE (0@260)
-  have rd2489 := rd2487.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd2490 := rd2489.add (by native_decide) (by evm_ov)
-  rw [show (⟨32⟩ : UInt256) + ⟨228⟩ = ⟨260⟩ from by native_decide] at rd2490
-  have rd2491 := rd2490.dup3 (by native_decide) (by evm_ov)
-  have rd2492 := rd2491.dup2 (by native_decide) (by evm_ov)
+  have rd2489 := rd2487.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd2490 := rd2489.add (by decide +native) (by evm_ov)
+  rw [show (⟨32⟩ : UInt256) + ⟨228⟩ = ⟨260⟩ from by decide +native] at rd2490
+  have rd2491 := rd2490.dup3 (by decide +native) (by evm_ov)
+  have rd2492 := rd2491.dup2 (by decide +native) (by evm_ov)
   have rd2493 := RD.mstore 0 (kickCalldataMem (UInt256.land biteAddrMaskWord urn)
         (UInt256.land biteAddrMaskWord (UInt256.land biteAddrMaskWord
           (UInt256.div (solcSlotWord σx I ⟨4⟩) (UInt256.exp ⟨256⟩ ⟨0⟩)))) tab dink mem)
-      aw rd2492 (by native_decide) (mstoreCost0 hM260) (by rfl) hM260 (by evm_ov)
+      aw rd2492 (by decide +native) (mstoreCost0 hM260) (by rfl) hM260 (by evm_ov)
   -- 2493 PUSH1 32, 2495 ADD (->292), 2496 SWAP6, 2497..2502 POP x6
-  have rd2495 := rd2493.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd2496 := rd2495.add (by native_decide) (by evm_ov)
-  rw [show (⟨32⟩ : UInt256) + ⟨260⟩ = ⟨292⟩ from by native_decide] at rd2496
-  have rd2497 := rd2496.swap6 (by native_decide) (by evm_ov)
-  have rd2498 := rd2497.pop (by native_decide) (by evm_ov)
-  have rd2499 := rd2498.pop (by native_decide) (by evm_ov)
-  have rd2500 := rd2499.pop (by native_decide) (by evm_ov)
-  have rd2501 := rd2500.pop (by native_decide) (by evm_ov)
-  have rd2502 := rd2501.pop (by native_decide) (by evm_ov)
-  have rd2503 := rd2502.pop (by native_decide) (by evm_ov)
+  have rd2495 := rd2493.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd2496 := rd2495.add (by decide +native) (by evm_ov)
+  rw [show (⟨32⟩ : UInt256) + ⟨260⟩ = ⟨292⟩ from by decide +native] at rd2496
+  have rd2497 := rd2496.swap6 (by decide +native) (by evm_ov)
+  have rd2498 := rd2497.pop (by decide +native) (by evm_ov)
+  have rd2499 := rd2498.pop (by decide +native) (by evm_ov)
+  have rd2500 := rd2499.pop (by decide +native) (by evm_ov)
+  have rd2501 := rd2500.pop (by decide +native) (by evm_ov)
+  have rd2502 := rd2501.pop (by decide +native) (by evm_ov)
+  have rd2503 := rd2502.pop (by decide +native) (by evm_ov)
   -- 2503 PUSH1 32, 2505 PUSH1 64, 2507 MLOAD (freeptr=128), 2508 DUP1, 2509 DUP4, 2510 SUB (->164)
-  have rd2505 := rd2503.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd2507 := rd2505.push1 ⟨64⟩ (by native_decide) (by evm_ov)
+  have rd2505 := rd2503.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd2507 := rd2505.push1 ⟨64⟩ (by decide +native) (by evm_ov)
   have hcond : ¬((⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩) := by
     intro h; rw [if_pos h] at hFree; exact absurd hFree (by decide)
   have hcalldataSize : (kickCalldataMem (UInt256.land biteAddrMaskWord urn)
@@ -2504,17 +2504,17 @@ theorem catBiteTraceSeg8aCalldata {cA gh bl σ σ₀ A I} {g : UInt256}
         = ⟨128⟩ := by
     rw [hcalldataSize, if_neg hcond,
       kickCalldataMem_read64 _ _ tab dink hmemsize hread64]
-    native_decide
-  have rd2508 := RD.mload 0 ⟨128⟩ aw rd2507 (by native_decide) (mloadCost0 hM64) hval2 hM64 (by evm_ov)
-  have rd2509 := rd2508.dup1 (by native_decide) (by evm_ov)
-  have rd2510 := rd2509.dup4 (by native_decide) (by evm_ov)
-  have rd2511 := rd2510.sub (by native_decide) (by evm_ov)
-  rw [show UInt256.sub ⟨292⟩ ⟨128⟩ = ⟨164⟩ from by native_decide] at rd2511
+    decide +native
+  have rd2508 := RD.mload 0 ⟨128⟩ aw rd2507 (by decide +native) (mloadCost0 hM64) hval2 hM64 (by evm_ov)
+  have rd2509 := rd2508.dup1 (by decide +native) (by evm_ov)
+  have rd2510 := rd2509.dup4 (by decide +native) (by evm_ov)
+  have rd2511 := rd2510.sub (by decide +native) (by evm_ov)
+  rw [show UInt256.sub ⟨292⟩ ⟨128⟩ = ⟨164⟩ from by decide +native] at rd2511
   -- 2511 DUP2, 2512 PUSH1 0, 2514 DUP8, 2515 DUP1 -> reach 2516
-  have rd2512 := rd2511.dup2 (by native_decide) (by evm_ov)
-  have rd2514 := rd2512.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd2515 := rd2514.dup8 (by native_decide) (by evm_ov)
-  have rd2516 := rd2515.dup1 (by native_decide) (by evm_ov)
+  have rd2512 := rd2511.dup2 (by decide +native) (by evm_ov)
+  have rd2514 := rd2512.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd2515 := rd2514.dup8 (by decide +native) (by evm_ov)
+  have rd2516 := rd2515.dup1 (by decide +native) (by evm_ov)
   exact ⟨_, _, rd2516⟩
 
 -- kick args abbreviation
@@ -2528,7 +2528,7 @@ noncomputable abbrev seg8KickArgs (σx : AccountMap) (I : ExecutionEnv) (urn tab
    .int (Int.ofNat tab.toNat), .int (Int.ofNat dink.toNat), .int 0]
 
 theorem seg8_maskBound (x : UInt256) : (UInt256.land biteAddrMaskWord x).toNat < EVM.addressModulus := by
-  rw [show biteAddrMaskWord = solcAddrMask from by native_decide, u256_land_comm]
+  rw [show biteAddrMaskWord = solcAddrMask from by decide +native, u256_land_comm]
   exact solcAddrMask_result_canonical x
 
 set_option maxHeartbeats 40000000 in
@@ -2617,47 +2617,47 @@ theorem catBiteTraceSeg8b1 {cA gh bl σ σ₀ A I} {g : UInt256}
   have hM64 : UInt256.ofNat (MachineState.M aw8.toNat 64 32) = aw8 := awInv32 aw8 (by omega)
   have hM128 : UInt256.ofNat (MachineState.M aw8.toNat 128 32) = aw8 := awInv32 aw8 (by omega)
   obtain ⟨_, _, rd2550⟩ := RD.catBiteKickCallSucceeded rd hstatus (by simp only [List.length_cons]; omega)
-  have rd2551 := rd2550.pop (by native_decide) (by evm_ov)
-  have rd2552 := rd2551.pop (by native_decide) (by evm_ov)
-  have rd2553 := rd2552.pop (by native_decide) (by evm_ov)
-  have rd2555 := rd2553.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd2556 := RD.mload 0 ⟨128⟩ aw8 rd2555 (by native_decide) (mloadCost0 hM64) hFree8 hM64 (by evm_ov)
-  have rd2557 := rd2556.returndatasize (by native_decide) (by evm_ov)
-  have rd2559 := rd2557.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd2560 := rd2559.dup2 (by native_decide) (by evm_ov)
-  have rd2561 := rd2560.lt (by native_decide) (by evm_ov)
+  have rd2551 := rd2550.pop (by decide +native) (by evm_ov)
+  have rd2552 := rd2551.pop (by decide +native) (by evm_ov)
+  have rd2553 := rd2552.pop (by decide +native) (by evm_ov)
+  have rd2555 := rd2553.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd2556 := RD.mload 0 ⟨128⟩ aw8 rd2555 (by decide +native) (mloadCost0 hM64) hFree8 hM64 (by evm_ov)
+  have rd2557 := rd2556.returndatasize (by decide +native) (by evm_ov)
+  have rd2559 := rd2557.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd2560 := rd2559.dup2 (by decide +native) (by evm_ov)
+  have rd2561 := rd2560.lt (by decide +native) (by evm_ov)
   have hlt : UInt256.lt (UInt256.ofNat o.size) ⟨32⟩ = ⟨0⟩ := by
     apply Reasoning.Theory.ult_zero
     rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide, ulit_toNat' o.size hoszLt]
     exact ho32
   rw [hlt] at rd2561
-  have rd2562 := rd2561.iszero (by native_decide) (by evm_ov)
+  have rd2562 := rd2561.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd2562
-  have rd2565 := rd2562.push2 ⟨2570⟩ (by native_decide) (by evm_ov)
-  have rd2570 := rd2565.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)
-  have rd2571 := rd2570.jumpdest (by native_decide) (by evm_ov)
-  have rd2572 := rd2571.pop (by native_decide) (by evm_ov)
-  have rd2573 := RD.mload 0 id aw8 rd2572 (by native_decide) (mloadCost0 hM128) hId8 hM128 (by evm_ov)
-  have rd2574 := rd2573.swap10 (by native_decide) (by evm_ov)
-  have rd2575 := rd2574.pop (by native_decide) (by evm_ov)
-  have rd2576 := rd2575.pop (by native_decide) (by evm_ov)
-  have rd2578 := rd2576.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2580 := rd2578.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2582 := rd2580.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd2583 := rd2582.shl (by native_decide) (by evm_ov)
-  have rd2584 := rd2583.sub (by native_decide) (by evm_ov)
-  have rd2585 := rd2584.dup11 (by native_decide) (by evm_ov)
-  have rd2586 := rd2585.and (by native_decide) (by evm_ov)
-  have rd2587 := RD.dup12 rd2586 (by native_decide) (by evm_ov)
-  have rd2620 := rd2587.pushConst ⟨75576624561978822343662660390461596253028794313781746339941468162579799588392⟩ (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
-  have rd2621 := rd2620.dup4 (by native_decide) (by evm_ov)
-  have rd2622 := rd2621.dup6 (by native_decide) (by evm_ov)
-  have rd2625 := rd2622.push2 ⟨2631⟩ (by native_decide) (by evm_ov)
-  have rd2626 := rd2625.dup2 (by native_decide) (by evm_ov)
-  have rd2627 := rd2626.dup15 (by native_decide) (by evm_ov)
-  have rd2630 := rd2627.push2 ⟨3720⟩ (by native_decide) (by evm_ov)
-  have rd3720 := rd2630.jump (by native_decide) (by jump_dest) (by evm_ov)
-  obtain ⟨_, _, rd2631⟩ := RD.catBiteCheckedMul rd3720 hRateFit (by native_decide) (by evm_ov)
+  have rd2565 := rd2562.push2 ⟨2570⟩ (by decide +native) (by evm_ov)
+  have rd2570 := rd2565.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)
+  have rd2571 := rd2570.jumpdest (by decide +native) (by evm_ov)
+  have rd2572 := rd2571.pop (by decide +native) (by evm_ov)
+  have rd2573 := RD.mload 0 id aw8 rd2572 (by decide +native) (mloadCost0 hM128) hId8 hM128 (by evm_ov)
+  have rd2574 := rd2573.swap10 (by decide +native) (by evm_ov)
+  have rd2575 := rd2574.pop (by decide +native) (by evm_ov)
+  have rd2576 := rd2575.pop (by decide +native) (by evm_ov)
+  have rd2578 := rd2576.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2580 := rd2578.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2582 := rd2580.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd2583 := rd2582.shl (by decide +native) (by evm_ov)
+  have rd2584 := rd2583.sub (by decide +native) (by evm_ov)
+  have rd2585 := rd2584.dup11 (by decide +native) (by evm_ov)
+  have rd2586 := rd2585.and (by decide +native) (by evm_ov)
+  have rd2587 := RD.dup12 rd2586 (by decide +native) (by evm_ov)
+  have rd2620 := rd2587.pushConst ⟨75576624561978822343662660390461596253028794313781746339941468162579799588392⟩ (width := 32) (op := .PUSH32) (by decide) (by decide +native) (by evm_ov)
+  have rd2621 := rd2620.dup4 (by decide +native) (by evm_ov)
+  have rd2622 := rd2621.dup6 (by decide +native) (by evm_ov)
+  have rd2625 := rd2622.push2 ⟨2631⟩ (by decide +native) (by evm_ov)
+  have rd2626 := rd2625.dup2 (by decide +native) (by evm_ov)
+  have rd2627 := rd2626.dup15 (by decide +native) (by evm_ov)
+  have rd2630 := rd2627.push2 ⟨3720⟩ (by decide +native) (by evm_ov)
+  have rd3720 := rd2630.jump (by decide +native) (by jump_dest) (by evm_ov)
+  obtain ⟨_, _, rd2631⟩ := RD.catBiteCheckedMul rd3720 hRateFit (by decide +native) (by evm_ov)
   exact ⟨_, _, rd2631⟩
 
 -- event memory (5 writes at 128,160,192,224,256) read-below-64 + size helpers
@@ -2740,49 +2740,49 @@ theorem catBiteTraceSeg8b2 {cA gh bl σ σ₀ A I} {g : UInt256}
   have hM256 : UInt256.ofNat (MachineState.M aw8.toNat 256 32) = aw8 := awInv32 aw8 (by omega)
   have hMlog : UInt256.ofNat (MachineState.M aw8.toNat 128 160) = aw8 := awInv160 aw8 (by omega)
   -- 2631 JUMPDEST, then event data build: dink@128, dart@160, dtab@192, flip@224, id@256
-  have rdJD := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd2632 := rdJD.dup9 (by native_decide) (by evm_ov)
-  have rd2633 := RD.mload 0 flip2 aw8 rd2632 (by native_decide) (mloadCost0 hMq) hFlipEv hMq (by evm_ov)
-  have rd2634 := rd2633.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd2636 := rd2634.dup1 (by native_decide) (by evm_ov)
-  have rd2637 := RD.mload 0 ⟨128⟩ aw8 rd2636 (by native_decide) (mloadCost0 hM64) hFree8 hM64 (by evm_ov)
-  have rd2638 := rd2637.swap5 (by native_decide) (by evm_ov)
-  have rd2639 := rd2638.dup6 (by native_decide) (by evm_ov)
-  have rd2640 := RD.mstore 0 _ aw8 rd2639 (by native_decide) (mstoreCost0 hM128) (by rfl) hM128 (by evm_ov)
-  have rd2641 := rd2640.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd2643 := rd2641.dup6 (by native_decide) (by evm_ov)
-  have rd2644 := rd2643.add (by native_decide) (by evm_ov)
-  rw [show (⟨128⟩ : UInt256) + ⟨32⟩ = ⟨160⟩ from by native_decide] at rd2644
-  have rd2645 := rd2644.swap4 (by native_decide) (by evm_ov)
-  have rd2646 := rd2645.swap1 (by native_decide) (by evm_ov)
-  have rd2647 := rd2646.swap4 (by native_decide) (by evm_ov)
-  have rd2648 := RD.mstore 0 _ aw8 rd2647 (by native_decide) (mstoreCost0 hM160) (by rfl) hM160 (by evm_ov)
-  have rd2649 := rd2648.dup4 (by native_decide) (by evm_ov)
-  have rd2650 := rd2649.dup4 (by native_decide) (by evm_ov)
-  have rd2651 := rd2650.add (by native_decide) (by evm_ov)
-  rw [show (⟨64⟩ : UInt256) + ⟨128⟩ = ⟨192⟩ from by native_decide] at rd2651
-  have rd2652 := rd2651.swap2 (by native_decide) (by evm_ov)
-  have rd2653 := rd2652.swap1 (by native_decide) (by evm_ov)
-  have rd2654 := rd2653.swap2 (by native_decide) (by evm_ov)
-  have rd2655 := RD.mstore 0 _ aw8 rd2654 (by native_decide) (mstoreCost0 hM192) (by rfl) hM192 (by evm_ov)
-  have rd2656 := rd2655.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2658 := rd2656.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd2660 := rd2658.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd2662 := rd2660.shl (by native_decide) (by evm_ov)
-  have rd2663 := rd2662.sub (by native_decide) (by evm_ov)
-  have rd2664 := rd2663.and (by native_decide) (by evm_ov)
-  have rd2665 := rd2664.push1 ⟨96⟩ (by native_decide) (by evm_ov)
-  have rd2667 := rd2665.dup4 (by native_decide) (by evm_ov)
-  have rd2668 := rd2667.add (by native_decide) (by evm_ov)
-  rw [show (⟨128⟩ : UInt256) + ⟨96⟩ = ⟨224⟩ from by native_decide] at rd2668
-  have rd2669 := RD.mstore 0 _ aw8 rd2668 (by native_decide) (mstoreCost0 hM224) (by rfl) hM224 (by evm_ov)
-  have rd2670 := rd2669.push1 ⟨128⟩ (by native_decide) (by evm_ov)
-  have rd2672 := rd2670.dup3 (by native_decide) (by evm_ov)
-  have rd2673 := rd2672.add (by native_decide) (by evm_ov)
-  rw [show (⟨128⟩ : UInt256) + ⟨128⟩ = ⟨256⟩ from by native_decide] at rd2673
-  have rd2674 := rd2673.dup15 (by native_decide) (by evm_ov)
-  have rd2675 := rd2674.swap1 (by native_decide) (by evm_ov)
-  have rd2676 := RD.mstore 0 _ aw8 rd2675 (by native_decide) (mstoreCost0 hM256) (by rfl) hM256 (by evm_ov)
+  have rdJD := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd2632 := rdJD.dup9 (by decide +native) (by evm_ov)
+  have rd2633 := RD.mload 0 flip2 aw8 rd2632 (by decide +native) (mloadCost0 hMq) hFlipEv hMq (by evm_ov)
+  have rd2634 := rd2633.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd2636 := rd2634.dup1 (by decide +native) (by evm_ov)
+  have rd2637 := RD.mload 0 ⟨128⟩ aw8 rd2636 (by decide +native) (mloadCost0 hM64) hFree8 hM64 (by evm_ov)
+  have rd2638 := rd2637.swap5 (by decide +native) (by evm_ov)
+  have rd2639 := rd2638.dup6 (by decide +native) (by evm_ov)
+  have rd2640 := RD.mstore 0 _ aw8 rd2639 (by decide +native) (mstoreCost0 hM128) (by rfl) hM128 (by evm_ov)
+  have rd2641 := rd2640.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd2643 := rd2641.dup6 (by decide +native) (by evm_ov)
+  have rd2644 := rd2643.add (by decide +native) (by evm_ov)
+  rw [show (⟨128⟩ : UInt256) + ⟨32⟩ = ⟨160⟩ from by decide +native] at rd2644
+  have rd2645 := rd2644.swap4 (by decide +native) (by evm_ov)
+  have rd2646 := rd2645.swap1 (by decide +native) (by evm_ov)
+  have rd2647 := rd2646.swap4 (by decide +native) (by evm_ov)
+  have rd2648 := RD.mstore 0 _ aw8 rd2647 (by decide +native) (mstoreCost0 hM160) (by rfl) hM160 (by evm_ov)
+  have rd2649 := rd2648.dup4 (by decide +native) (by evm_ov)
+  have rd2650 := rd2649.dup4 (by decide +native) (by evm_ov)
+  have rd2651 := rd2650.add (by decide +native) (by evm_ov)
+  rw [show (⟨64⟩ : UInt256) + ⟨128⟩ = ⟨192⟩ from by decide +native] at rd2651
+  have rd2652 := rd2651.swap2 (by decide +native) (by evm_ov)
+  have rd2653 := rd2652.swap1 (by decide +native) (by evm_ov)
+  have rd2654 := rd2653.swap2 (by decide +native) (by evm_ov)
+  have rd2655 := RD.mstore 0 _ aw8 rd2654 (by decide +native) (mstoreCost0 hM192) (by rfl) hM192 (by evm_ov)
+  have rd2656 := rd2655.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2658 := rd2656.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd2660 := rd2658.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd2662 := rd2660.shl (by decide +native) (by evm_ov)
+  have rd2663 := rd2662.sub (by decide +native) (by evm_ov)
+  have rd2664 := rd2663.and (by decide +native) (by evm_ov)
+  have rd2665 := rd2664.push1 ⟨96⟩ (by decide +native) (by evm_ov)
+  have rd2667 := rd2665.dup4 (by decide +native) (by evm_ov)
+  have rd2668 := rd2667.add (by decide +native) (by evm_ov)
+  rw [show (⟨128⟩ : UInt256) + ⟨96⟩ = ⟨224⟩ from by decide +native] at rd2668
+  have rd2669 := RD.mstore 0 _ aw8 rd2668 (by decide +native) (mstoreCost0 hM224) (by rfl) hM224 (by evm_ov)
+  have rd2670 := rd2669.push1 ⟨128⟩ (by decide +native) (by evm_ov)
+  have rd2672 := rd2670.dup3 (by decide +native) (by evm_ov)
+  have rd2673 := rd2672.add (by decide +native) (by evm_ov)
+  rw [show (⟨128⟩ : UInt256) + ⟨128⟩ = ⟨256⟩ from by decide +native] at rd2673
+  have rd2674 := rd2673.dup15 (by decide +native) (by evm_ov)
+  have rd2675 := rd2674.swap1 (by decide +native) (by evm_ov)
+  have rd2676 := RD.mstore 0 _ aw8 rd2675 (by decide +native) (mstoreCost0 hM256) (by rfl) hM256 (by evm_ov)
   -- free-ptr read from event memory (= 128), then LOG3
   have hcond : ¬((⟨64⟩ : UInt256).toNat ≥ mem8.size ∨ (⟨64⟩ : UInt256) ≥ aw8 * ⟨32⟩) := by
     intro h; rw [if_pos h] at hFree8; exact absurd hFree8 (by decide)
@@ -2804,38 +2804,38 @@ theorem catBiteTraceSeg8b2 {cA gh bl σ σ₀ A I} {g : UInt256}
         ((UInt256.toByteArray dink).write 0 mem8 128 32) 160 32) 192 32) 224 32) 256 32)).readWithPadding 64 32))) = ⟨128⟩ := by
     have h8 := hFree8; rw [if_neg hcond] at h8
     rw [hevSize, if_neg hcond, hevRead]; exact h8
-  have rd2677 := RD.mload 0 ⟨128⟩ aw8 rd2676 (by native_decide) (mloadCost0 hM64) hFreeEv hM64 (by evm_ov)
-  have rd2678 := rd2677.swap1 (by native_decide) (by evm_ov)
-  have rd2679 := rd2678.dup2 (by native_decide) (by evm_ov)
-  have rd2680 := rd2679.swap1 (by native_decide) (by evm_ov)
-  have rd2681 := rd2680.sub (by native_decide) (by evm_ov)
-  rw [show UInt256.sub ⟨128⟩ ⟨128⟩ = ⟨0⟩ from by native_decide] at rd2681
-  have rd2682 := rd2681.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd2684 := rd2682.add (by native_decide) (by evm_ov)
-  rw [show (⟨160⟩ : UInt256) + ⟨0⟩ = ⟨160⟩ from by native_decide] at rd2684
-  have rd2685 := rd2684.swap1 (by native_decide) (by evm_ov)
-  have rd2686 := RD.log3 0 aw8 rd2685 (by native_decide) hperm (log3Cost0 hMlog) hMlog (by evm_ov)
-  have rd2687 := rd2686.pop (by native_decide) (by evm_ov)
-  have rd2688 := rd2687.pop (by native_decide) (by evm_ov)
-  have rd2689 := rd2688.pop (by native_decide) (by evm_ov)
-  have rd2690 := rd2689.pop (by native_decide) (by evm_ov)
-  have rd2691 := rd2690.pop (by native_decide) (by evm_ov)
-  have rd2692 := rd2691.pop (by native_decide) (by evm_ov)
-  have rd2693 := rd2692.pop (by native_decide) (by evm_ov)
-  have rd2694 := rd2693.pop (by native_decide) (by evm_ov)
-  have rd2695 := rd2694.swap3 (by native_decide) (by evm_ov)
-  have rd2696 := rd2695.swap2 (by native_decide) (by evm_ov)
-  have rd2697 := rd2696.pop (by native_decide) (by evm_ov)
-  have rd2698 := rd2697.pop (by native_decide) (by evm_ov)
-  have rd419 := rd2698.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd2677 := RD.mload 0 ⟨128⟩ aw8 rd2676 (by decide +native) (mloadCost0 hM64) hFreeEv hM64 (by evm_ov)
+  have rd2678 := rd2677.swap1 (by decide +native) (by evm_ov)
+  have rd2679 := rd2678.dup2 (by decide +native) (by evm_ov)
+  have rd2680 := rd2679.swap1 (by decide +native) (by evm_ov)
+  have rd2681 := rd2680.sub (by decide +native) (by evm_ov)
+  rw [show UInt256.sub ⟨128⟩ ⟨128⟩ = ⟨0⟩ from by decide +native] at rd2681
+  have rd2682 := rd2681.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd2684 := rd2682.add (by decide +native) (by evm_ov)
+  rw [show (⟨160⟩ : UInt256) + ⟨0⟩ = ⟨160⟩ from by decide +native] at rd2684
+  have rd2685 := rd2684.swap1 (by decide +native) (by evm_ov)
+  have rd2686 := RD.log3 0 aw8 rd2685 (by decide +native) hperm (log3Cost0 hMlog) hMlog (by evm_ov)
+  have rd2687 := rd2686.pop (by decide +native) (by evm_ov)
+  have rd2688 := rd2687.pop (by decide +native) (by evm_ov)
+  have rd2689 := rd2688.pop (by decide +native) (by evm_ov)
+  have rd2690 := rd2689.pop (by decide +native) (by evm_ov)
+  have rd2691 := rd2690.pop (by decide +native) (by evm_ov)
+  have rd2692 := rd2691.pop (by decide +native) (by evm_ov)
+  have rd2693 := rd2692.pop (by decide +native) (by evm_ov)
+  have rd2694 := rd2693.pop (by decide +native) (by evm_ov)
+  have rd2695 := rd2694.swap3 (by decide +native) (by evm_ov)
+  have rd2696 := rd2695.swap2 (by decide +native) (by evm_ov)
+  have rd2697 := rd2696.pop (by decide +native) (by evm_ov)
+  have rd2698 := rd2697.pop (by decide +native) (by evm_ov)
+  have rd419 := rd2698.jump (by decide +native) (by jump_dest) (by evm_ov)
   -- @419 uint256 return encoder: mstore id@128 ; return [128,160)
-  have rd420 := rd419.jumpdest (by native_decide) (by evm_ov)
-  have rd422 := rd420.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd423 := rd422.dup1 (by native_decide) (by evm_ov)
-  have rd424 := RD.mload 0 ⟨128⟩ aw8 rd423 (by native_decide) (mloadCost0 hM64) hFreeEv hM64 (by evm_ov)
-  have rd425 := rd424.swap2 (by native_decide) (by evm_ov)
-  have rd426 := rd425.dup3 (by native_decide) (by evm_ov)
-  have rd427 := RD.mstore 0 _ aw8 rd426 (by native_decide) (mstoreCost0 hM128) (by rfl) hM128 (by evm_ov)
+  have rd420 := rd419.jumpdest (by decide +native) (by evm_ov)
+  have rd422 := rd420.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd423 := rd422.dup1 (by decide +native) (by evm_ov)
+  have rd424 := RD.mload 0 ⟨128⟩ aw8 rd423 (by decide +native) (mloadCost0 hM64) hFreeEv hM64 (by evm_ov)
+  have rd425 := rd424.swap2 (by decide +native) (by evm_ov)
+  have rd426 := rd425.dup3 (by decide +native) (by evm_ov)
+  have rd427 := RD.mstore 0 _ aw8 rd426 (by decide +native) (mstoreCost0 hM128) (by rfl) hM128 (by evm_ov)
   -- second free-ptr read (m2[64] = 128, below the id@128 write)
   have hm2read : ((UInt256.toByteArray id).write 0 (((UInt256.toByteArray id).write 0 ((UInt256.toByteArray (UInt256.land biteAddrMaskWord flip2)).write 0
       ((UInt256.toByteArray (UInt256.mul dart iRate)).write 0 ((UInt256.toByteArray dart).write 0
@@ -2851,23 +2851,23 @@ theorem catBiteTraceSeg8b2 {cA gh bl σ σ₀ A I} {g : UInt256}
         ((UInt256.toByteArray dink).write 0 mem8 128 32) 160 32) 192 32) 224 32) 256 32)) 128 32).readWithPadding 64 32))) = ⟨128⟩ := by
     have h8 := hFree8; rw [if_neg hcond] at h8
     rw [seg8_wsize _ id 128 (by rw [hevSize]; omega), hevSize, if_neg hcond, hm2read]; exact h8
-  have rd428 := RD.mload 0 ⟨128⟩ aw8 rd427 (by native_decide) (mloadCost0 hM64) hFreeM2 hM64 (by evm_ov)
-  have rd429 := rd428.swap1 (by native_decide) (by evm_ov)
-  have rd430 := rd429.dup2 (by native_decide) (by evm_ov)
-  have rd431 := rd430.swap1 (by native_decide) (by evm_ov)
-  have rd432 := rd431.sub (by native_decide) (by evm_ov)
-  rw [show UInt256.sub ⟨128⟩ ⟨128⟩ = ⟨0⟩ from by native_decide] at rd432
-  have rd434 := rd432.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd435 := rd434.add (by native_decide) (by evm_ov)
-  rw [show (⟨32⟩ : UInt256) + ⟨0⟩ = ⟨32⟩ from by native_decide] at rd435
-  have rd436 := rd435.swap1 (by native_decide) (by evm_ov)
+  have rd428 := RD.mload 0 ⟨128⟩ aw8 rd427 (by decide +native) (mloadCost0 hM64) hFreeM2 hM64 (by evm_ov)
+  have rd429 := rd428.swap1 (by decide +native) (by evm_ov)
+  have rd430 := rd429.dup2 (by decide +native) (by evm_ov)
+  have rd431 := rd430.swap1 (by decide +native) (by evm_ov)
+  have rd432 := rd431.sub (by decide +native) (by evm_ov)
+  rw [show UInt256.sub ⟨128⟩ ⟨128⟩ = ⟨0⟩ from by decide +native] at rd432
+  have rd434 := rd432.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd435 := rd434.add (by decide +native) (by evm_ov)
+  rw [show (⟨32⟩ : UInt256) + ⟨0⟩ = ⟨32⟩ from by decide +native] at rd435
+  have rd436 := rd435.swap1 (by decide +native) (by evm_ov)
   -- RETURN mem[128..160) = toByteArray id
   have hret : ((UInt256.toByteArray id).write 0 (((UInt256.toByteArray id).write 0 ((UInt256.toByteArray (UInt256.land biteAddrMaskWord flip2)).write 0
       ((UInt256.toByteArray (UInt256.mul dart iRate)).write 0 ((UInt256.toByteArray dart).write 0
         ((UInt256.toByteArray dink).write 0 mem8 128 32) 160 32) 192 32) 224 32) 256 32)) 128 32).readWithPadding 128 32
       = UInt256.toByteArray id :=
     toByteArray_write32_read_back _ id 128 (by rw [hevSize]; omega)
-  exact RD.ret 0 (UInt256.toByteArray id) rd436 (by native_decide)
+  exact RD.ret 0 (UInt256.toByteArray id) rd436 (by decide +native)
     (fun s haw hstk => by
       simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, List.getElem!_cons_zero,
         List.getElem!_cons_succ]

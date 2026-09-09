@@ -33,12 +33,12 @@ theorem flipperTendX_payDepthLimit {cA σ I} {g : Sat256} {s0 : State}
   obtain ⟨gasWord, _, _, rd3799⟩ :=
     flipperTendX_toPayCall hmemSize hmemRead64 hcodeSize h
   obtain ⟨k3800, C3800, rd3800raw⟩ :=
-    RD.callDepthLimit rd3799 (by native_decide) hdepth (by evm_ov)
+    RD.callDepthLimit rd3799 (by decide +native) hdepth (by evm_ov)
   have haw :
       UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 8).toNat
         (⟨128⟩ : UInt256).toNat (⟨100⟩ : UInt256).toNat)
         (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) = UInt256.ofNat 8 := by
-    native_decide
+    decide +native
   have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     rfl
   have rd3800 : RD flipperBytecode I g s0 ⟨3800⟩

@@ -57,14 +57,14 @@ theorem erc20X_transferFromAfterFromLoadSlot {cA gh bl σ σ₀ A I} {g : Sat256
   have hpc508 :
       (⟨502⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         (⟨508⟩ : UInt256) := by
-    native_decide
-  have rd504 := rd502.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd505 := rd504.push0 (by native_decide) (by evm_ov)
+    decide +native
+  have rd504 := rd502.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd505 := rd504.push0 (by decide +native) (by evm_ov)
   have rd506 := rd505.keccak256 0
     (transferFromFromSlot I)
     (UInt256.ofNat 5)
-    (by native_decide) mem_cost hslot (by decide) (by evm_ov)
-  have rd507 := rd506.dup1 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide) (by evm_ov)
+  have rd507 := rd506.dup1 (by decide +native) (by evm_ov)
   obtain ⟨k1, C1, rd508⟩ := rd507.sload
     (by vyper_erc20_transferFrom_decode) (by evm_ov)
   exact ⟨_, _, by

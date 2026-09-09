@@ -124,13 +124,13 @@ theorem fileIlkDustBytes_length : fileIlkDustBytes.length = 32 := by
   rfl
 
 theorem fileIlkSpotBytes_word : ABI.bytesToWord fileIlkSpotBytes = fileIlkSpotWord := by
-  native_decide
+  decide +native
 
 theorem fileIlkLineBytes_word : ABI.bytesToWord fileIlkLineBytes = fileIlkLineWord := by
-  native_decide
+  decide +native
 
 theorem fileIlkDustBytes_word : ABI.bytesToWord fileIlkDustBytes = fileIlkDustWord := by
-  native_decide
+  decide +native
 
 theorem fileIlkWhatWord_eq {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldata.size) :
     ABI.bytesToWord (fileIlkWhat I) = fileIlkWhatWord I := by
@@ -315,13 +315,13 @@ theorem assign_fileIlkDustStorage (evm : EVM.State) (I : ExecutionEnv)
   simpa [evm'] using vatStorageLocStore_uint256 evm (fileIlkDustSlotFor I) (fileIlkData I)
 
 private theorem fileIlkLine_ne_spot : fileIlkLineBytes ≠ fileIlkSpotBytes := by
-  native_decide
+  decide +native
 
 private theorem fileIlkDust_ne_spot : fileIlkDustBytes ≠ fileIlkSpotBytes := by
-  native_decide
+  decide +native
 
 private theorem fileIlkDust_ne_line : fileIlkDustBytes ≠ fileIlkLineBytes := by
-  native_decide
+  decide +native
 
 theorem vatFileIlkSourceBodySpot {cA gh bl σ σ₀ A I} {g : UInt256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -713,7 +713,7 @@ theorem decodeCalldata_legacyBytes32_bytes32_uint256_ok {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [bytes32, uint256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, bytes32, uint256] = some 96 by native_decide]
+  rw [show abiTupleHeadSize? [bytes32, bytes32, uint256] = some 96 by decide +native]
   simp only [bind, Option.bind]
   rw [decodeABIValues_bytes32_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -734,7 +734,7 @@ theorem decodeCalldata_legacyBytes32_bytes32_uint256_none_short {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [bytes32, uint256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, bytes32, uint256] = some 96 by native_decide]
+  rw [show abiTupleHeadSize? [bytes32, bytes32, uint256] = some 96 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 96
   · rw [if_pos hbytes]
@@ -771,7 +771,7 @@ theorem vatDispatchFileIlk {I : ExecutionEnv}
   simp [dispatchList, selectorOf, hcd, LineSelectorBytes, cageSelectorBytes,
     canSelectorBytes, daiSelectorBytes, debtSelectorBytes, denySelectorBytes,
     fileIlkSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachFileIlkBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -782,31 +782,31 @@ theorem vatReachFileIlkBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0x1a0b287e⟩ :=
     vatSelWord_eq_of_beq I hsz 0x1a 0x0b 0x28 0x7e ⟨0x1a0b287e⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlowlow :
       UInt256.gt (armSelNat vatBytecode vatLowLowSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms419FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
     rw [hword]
-    native_decide
+    decide +native
   have htake :
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms419FirstPc 1))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms419Body 1 (by omega) ⟨483⟩ hcode hwv hsz hsize
-    hroot hlow hlowlow heq0 htake (by jump_dest) (by native_decide)
+    hroot hlow hlowlow heq0 htake (by jump_dest) (by decide +native)
 
 @[reducible] def solcThreeWordExternalLoadAndJumpWf
     (code : ByteArray) (pc routine : UInt256) : Prop :=
@@ -888,9 +888,9 @@ theorem vatFileIlkX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨483⟩) (ret := ⟨524⟩)
     (decoded := ⟨505⟩) (need := ⟨96⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz100) hsize)
   obtain ⟨_, _, hroutine⟩ := RD.solcThreeWordExternalLoadAndJump
@@ -898,7 +898,7 @@ theorem vatFileIlkX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (R := [sel]) hdecoded
     (by
       unfold solcThreeWordExternalLoadAndJumpWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [fileIlkData, fileIlkWhatWord, fileIlkIlkWord] using hroutine⟩
 
@@ -911,11 +911,11 @@ theorem RD.vatFileIlkCleanup {g : Sat256} {s0 : State}
     (hret : (D_J vatBytecode 0).contains ret = true)
     (hov : R.length + 4 ≤ 1024) :
     ∃ k' C', RD vatBytecode ee g s0 ret R mem (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd1983 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1984 := rd1983.pop (by native_decide) (by evm_ov)
-  have rd1985 := rd1984.pop (by native_decide) (by evm_ov)
-  have rd1986 := rd1985.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1986.jump (by native_decide) hret (by evm_ov)⟩
+  have rd1983 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1984 := rd1983.pop (by decide +native) (by evm_ov)
+  have rd1985 := rd1984.pop (by decide +native) (by evm_ov)
+  have rd1986 := rd1985.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1986.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem RD.vatFileIlkSkipSpot {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {data what ilk ret : UInt256} {R : List UInt256}
@@ -927,22 +927,22 @@ theorem RD.vatFileIlkSkipSpot {g : Sat256} {s0 : State}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD vatBytecode ee g s0 ⟨1825⟩ (data :: what :: ilk :: ret :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd1785 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1786 := rd1785.dup2 (by native_decide) (by evm_ov)
-  have rd1791 := rd1786.push4 ⟨484187101⟩ (by native_decide) (by evm_ov)
-  have rd1793 := rd1791.push1 ⟨226⟩ (by native_decide) (by evm_ov)
-  have rd1794 := rd1793.shl (by native_decide) (by evm_ov)
+  have rd1785 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1786 := rd1785.dup2 (by decide +native) (by evm_ov)
+  have rd1791 := rd1786.push4 ⟨484187101⟩ (by decide +native) (by evm_ov)
+  have rd1793 := rd1791.push1 ⟨226⟩ (by decide +native) (by evm_ov)
+  have rd1794 := rd1793.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft (⟨484187101⟩ : UInt256) ⟨226⟩ = fileIlkSpotWord := by
-    native_decide
+    decide +native
   rw [hconst] at rd1794
-  have rd1795 := rd1794.eq (by native_decide) (by evm_ov)
+  have rd1795 := rd1794.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq fileIlkSpotWord what = ⟨0⟩ :=
     u256_eq_of_ne (fun hbad => hwhat hbad.symm)
   rw [heq0] at rd1795
-  have rd1796 := rd1795.iszero (by native_decide) (by evm_ov)
+  have rd1796 := rd1795.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1796
-  have rd1799 := rd1796.push2 ⟨1825⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1799.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd1799 := rd1796.push2 ⟨1825⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1799.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)⟩
 
 theorem RD.vatFileIlkStoreSpot {g : Sat256} {s0 : State}
@@ -957,46 +957,46 @@ theorem RD.vatFileIlkStoreSpot {g : Sat256} {s0 : State}
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD vatBytecode ee g s0 ret R (twoWordHashMem ilk ⟨2⟩ mem) (UInt256.ofNat 3) rdata
       (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨2⟩ ilk + ⟨2⟩) data) k' C' := by
-  have rd1785 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1786 := rd1785.dup2 (by native_decide) (by evm_ov)
-  have rd1791 := rd1786.push4 ⟨484187101⟩ (by native_decide) (by evm_ov)
-  have rd1793 := rd1791.push1 ⟨226⟩ (by native_decide) (by evm_ov)
-  have rd1794 := rd1793.shl (by native_decide) (by evm_ov)
+  have rd1785 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1786 := rd1785.dup2 (by decide +native) (by evm_ov)
+  have rd1791 := rd1786.push4 ⟨484187101⟩ (by decide +native) (by evm_ov)
+  have rd1793 := rd1791.push1 ⟨226⟩ (by decide +native) (by evm_ov)
+  have rd1794 := rd1793.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft (⟨484187101⟩ : UInt256) ⟨226⟩ = fileIlkSpotWord := by
-    native_decide
+    decide +native
   rw [hwhat, ← hconst] at rd1794
-  have rd1795 := rd1794.eq (by native_decide) (by evm_ov)
+  have rd1795 := rd1794.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd1795
-  have rd1796 := rd1795.iszero (by native_decide) (by evm_ov)
+  have rd1796 := rd1795.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1796
-  have rd1799 := rd1796.push2 ⟨1825⟩ (by native_decide) (by evm_ov)
-  have rd1800 := rd1799.jumpiNT (by native_decide)
+  have rd1799 := rd1796.push2 ⟨1825⟩ (by decide +native) (by evm_ov)
+  have rd1800 := rd1799.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd1802 := rd1800.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd1803 := rd1802.dup4 (by native_decide) (by evm_ov)
-  have rd1804 := rd1803.dup2 (by native_decide) (by evm_ov)
+  have rd1802 := rd1800.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd1803 := rd1802.dup4 (by decide +native) (by evm_ov)
+  have rd1804 := rd1803.dup2 (by decide +native) (by evm_ov)
   have rd1805 := rd1804.mstore 0 (wordAt0Mem ilk mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd1807 := rd1805.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd1809 := rd1807.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd1810 := rd1809.dup2 (by native_decide)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd1807 := rd1805.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd1809 := rd1807.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd1810 := rd1809.dup2 (by decide +native)
     (by simp [List.length_cons] at hov ⊢; omega)
-  have rd1811 := rd1810.swap1 (by native_decide)
+  have rd1811 := rd1810.swap1 (by decide +native)
     (by simp [List.length_cons] at hov ⊢; omega)
   have rd1812 := rd1811.mstore 0 (twoWordHashMem ilk ⟨2⟩ mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd1814 := rd1812.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd1815 := rd1814.swap1 (by native_decide) (by evm_ov)
-  have rd1816 := rd1815.swap2 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd1814 := rd1812.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd1815 := rd1814.swap1 (by decide +native) (by evm_ov)
+  have rd1816 := rd1815.swap2 (by decide +native) (by evm_ov)
   have hslot := twoWordHashMem_solcMappingSlot ⟨2⟩ ilk hmem
   have rd1817 := rd1816.keccak256 0 (solcMappingSlot ⟨2⟩ ilk) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  have rd1818 := rd1817.add (by native_decide) (by evm_ov)
-  have rd1819 := rd1818.dup2 (by native_decide) (by evm_ov)
-  have rd1820 := rd1819.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1821⟩ := rd1820.sstore hperm (by native_decide) (by evm_ov)
-  have rd1824 := rd1821.push2 ⟨1982⟩ (by native_decide) (by evm_ov)
-  have rd1982 := rd1824.jump (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  have rd1818 := rd1817.add (by decide +native) (by evm_ov)
+  have rd1819 := rd1818.dup2 (by decide +native) (by evm_ov)
+  have rd1820 := rd1819.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1821⟩ := rd1820.sstore hperm (by decide +native) (by evm_ov)
+  have rd1824 := rd1821.push2 ⟨1982⟩ (by decide +native) (by evm_ov)
+  have rd1982 := rd1824.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatFileIlkCleanup rd1982 hret (by omega)
 
 theorem RD.vatFileIlkSkipLine {g : Sat256} {s0 : State}
@@ -1009,22 +1009,22 @@ theorem RD.vatFileIlkSkipLine {g : Sat256} {s0 : State}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD vatBytecode ee g s0 ⟨1865⟩ (data :: what :: ilk :: ret :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd1826 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1827 := rd1826.dup2 (by native_decide) (by evm_ov)
-  have rd1832 := rd1827.push4 ⟨1818848869⟩ (by native_decide) (by evm_ov)
-  have rd1834 := rd1832.push1 ⟨224⟩ (by native_decide) (by evm_ov)
-  have rd1835 := rd1834.shl (by native_decide) (by evm_ov)
+  have rd1826 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1827 := rd1826.dup2 (by decide +native) (by evm_ov)
+  have rd1832 := rd1827.push4 ⟨1818848869⟩ (by decide +native) (by evm_ov)
+  have rd1834 := rd1832.push1 ⟨224⟩ (by decide +native) (by evm_ov)
+  have rd1835 := rd1834.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft (⟨1818848869⟩ : UInt256) ⟨224⟩ = fileIlkLineWord := by
     rfl
   rw [hconst] at rd1835
-  have rd1836 := rd1835.eq (by native_decide) (by evm_ov)
+  have rd1836 := rd1835.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq fileIlkLineWord what = ⟨0⟩ :=
     u256_eq_of_ne (fun hbad => hwhat hbad.symm)
   rw [heq0] at rd1836
-  have rd1837 := rd1836.iszero (by native_decide) (by evm_ov)
+  have rd1837 := rd1836.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1837
-  have rd1840 := rd1837.push2 ⟨1865⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1840.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd1840 := rd1837.push2 ⟨1865⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1840.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)⟩
 
 theorem RD.vatFileIlkStoreLine {g : Sat256} {s0 : State}
@@ -1039,42 +1039,42 @@ theorem RD.vatFileIlkStoreLine {g : Sat256} {s0 : State}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD vatBytecode ee g s0 ret R (twoWordHashMem ilk ⟨2⟩ mem) (UInt256.ofNat 3) rdata
       (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨2⟩ ilk + ⟨3⟩) data) k' C' := by
-  have rd1826 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1827 := rd1826.dup2 (by native_decide) (by evm_ov)
-  have rd1832 := rd1827.push4 ⟨1818848869⟩ (by native_decide) (by evm_ov)
-  have rd1834 := rd1832.push1 ⟨224⟩ (by native_decide) (by evm_ov)
-  have rd1835 := rd1834.shl (by native_decide) (by evm_ov)
+  have rd1826 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1827 := rd1826.dup2 (by decide +native) (by evm_ov)
+  have rd1832 := rd1827.push4 ⟨1818848869⟩ (by decide +native) (by evm_ov)
+  have rd1834 := rd1832.push1 ⟨224⟩ (by decide +native) (by evm_ov)
+  have rd1835 := rd1834.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft (⟨1818848869⟩ : UInt256) ⟨224⟩ = fileIlkLineWord := by
     rfl
   rw [hwhat, ← hconst] at rd1835
-  have rd1836 := rd1835.eq (by native_decide) (by evm_ov)
+  have rd1836 := rd1835.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd1836
-  have rd1837 := rd1836.iszero (by native_decide) (by evm_ov)
+  have rd1837 := rd1836.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1837
-  have rd1840 := rd1837.push2 ⟨1865⟩ (by native_decide) (by evm_ov)
-  have rd1841 := rd1840.jumpiNT (by native_decide)
+  have rd1840 := rd1837.push2 ⟨1865⟩ (by decide +native) (by evm_ov)
+  have rd1841 := rd1840.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd1843 := rd1841.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd1844 := rd1843.dup4 (by native_decide) (by evm_ov)
-  have rd1845 := rd1844.dup2 (by native_decide) (by evm_ov)
+  have rd1843 := rd1841.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd1844 := rd1843.dup4 (by decide +native) (by evm_ov)
+  have rd1845 := rd1844.dup2 (by decide +native) (by evm_ov)
   have rd1846 := rd1845.mstore 0 (wordAt0Mem ilk mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd1848 := rd1846.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd1850 := rd1848.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd1848 := rd1846.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd1850 := rd1848.push1 ⟨32⟩ (by decide +native) (by evm_ov)
   have rd1851 := rd1850.mstore 0 (twoWordHashMem ilk ⟨2⟩ mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd1853 := rd1851.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd1854 := rd1853.swap1 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd1853 := rd1851.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd1854 := rd1853.swap1 (by decide +native) (by evm_ov)
   have hslot := twoWordHashMem_solcMappingSlot ⟨2⟩ ilk hmem
   have rd1855 := rd1854.keccak256 0 (solcMappingSlot ⟨2⟩ ilk) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  have rd1857 := rd1855.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  have rd1858 := rd1857.add (by native_decide) (by evm_ov)
-  have rd1859 := rd1858.dup2 (by native_decide) (by evm_ov)
-  have rd1860 := rd1859.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1861⟩ := rd1860.sstore hperm (by native_decide) (by evm_ov)
-  have rd1864 := rd1861.push2 ⟨1982⟩ (by native_decide) (by evm_ov)
-  have rd1982 := rd1864.jump (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  have rd1857 := rd1855.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  have rd1858 := rd1857.add (by decide +native) (by evm_ov)
+  have rd1859 := rd1858.dup2 (by decide +native) (by evm_ov)
+  have rd1860 := rd1859.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1861⟩ := rd1860.sstore hperm (by decide +native) (by evm_ov)
+  have rd1864 := rd1861.push2 ⟨1982⟩ (by decide +native) (by evm_ov)
+  have rd1982 := rd1864.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨k', C', hout⟩ := RD.vatFileIlkCleanup rd1982 hret (by omega)
   exact ⟨k', C', by
     simpa [u256_add_comm (⟨3⟩ : UInt256) (solcMappingSlot ⟨2⟩ ilk)] using hout⟩
@@ -1089,22 +1089,22 @@ theorem RD.vatFileIlkSkipDust {g : Sat256} {s0 : State}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD vatBytecode ee g s0 ⟨1905⟩ (data :: what :: ilk :: ret :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd1866 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1867 := rd1866.dup2 (by native_decide) (by evm_ov)
-  have rd1872 := rd1867.push4 ⟨421354717⟩ (by native_decide) (by evm_ov)
-  have rd1874 := rd1872.push1 ⟨226⟩ (by native_decide) (by evm_ov)
-  have rd1875 := rd1874.shl (by native_decide) (by evm_ov)
+  have rd1866 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1867 := rd1866.dup2 (by decide +native) (by evm_ov)
+  have rd1872 := rd1867.push4 ⟨421354717⟩ (by decide +native) (by evm_ov)
+  have rd1874 := rd1872.push1 ⟨226⟩ (by decide +native) (by evm_ov)
+  have rd1875 := rd1874.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft (⟨421354717⟩ : UInt256) ⟨226⟩ = fileIlkDustWord := by
-    native_decide
+    decide +native
   rw [hconst] at rd1875
-  have rd1876 := rd1875.eq (by native_decide) (by evm_ov)
+  have rd1876 := rd1875.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq fileIlkDustWord what = ⟨0⟩ :=
     u256_eq_of_ne (fun hbad => hwhat hbad.symm)
   rw [heq0] at rd1876
-  have rd1877 := rd1876.iszero (by native_decide) (by evm_ov)
+  have rd1877 := rd1876.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1877
-  have rd1880 := rd1877.push2 ⟨1905⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1880.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd1880 := rd1877.push2 ⟨1905⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1880.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)⟩
 
 theorem RD.vatFileIlkStoreDust {g : Sat256} {s0 : State}
@@ -1119,42 +1119,42 @@ theorem RD.vatFileIlkStoreDust {g : Sat256} {s0 : State}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD vatBytecode ee g s0 ret R (twoWordHashMem ilk ⟨2⟩ mem) (UInt256.ofNat 3) rdata
       (cA, sstoreAccountMap ee.codeOwner σ (solcMappingSlot ⟨2⟩ ilk + ⟨4⟩) data) k' C' := by
-  have rd1866 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1867 := rd1866.dup2 (by native_decide) (by evm_ov)
-  have rd1872 := rd1867.push4 ⟨421354717⟩ (by native_decide) (by evm_ov)
-  have rd1874 := rd1872.push1 ⟨226⟩ (by native_decide) (by evm_ov)
-  have rd1875 := rd1874.shl (by native_decide) (by evm_ov)
+  have rd1866 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1867 := rd1866.dup2 (by decide +native) (by evm_ov)
+  have rd1872 := rd1867.push4 ⟨421354717⟩ (by decide +native) (by evm_ov)
+  have rd1874 := rd1872.push1 ⟨226⟩ (by decide +native) (by evm_ov)
+  have rd1875 := rd1874.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft (⟨421354717⟩ : UInt256) ⟨226⟩ = fileIlkDustWord := by
-    native_decide
+    decide +native
   rw [hwhat, ← hconst] at rd1875
-  have rd1876 := rd1875.eq (by native_decide) (by evm_ov)
+  have rd1876 := rd1875.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd1876
-  have rd1877 := rd1876.iszero (by native_decide) (by evm_ov)
+  have rd1877 := rd1876.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1877
-  have rd1880 := rd1877.push2 ⟨1905⟩ (by native_decide) (by evm_ov)
-  have rd1881 := rd1880.jumpiNT (by native_decide)
+  have rd1880 := rd1877.push2 ⟨1905⟩ (by decide +native) (by evm_ov)
+  have rd1881 := rd1880.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd1883 := rd1881.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd1884 := rd1883.dup4 (by native_decide) (by evm_ov)
-  have rd1885 := rd1884.dup2 (by native_decide) (by evm_ov)
+  have rd1883 := rd1881.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd1884 := rd1883.dup4 (by decide +native) (by evm_ov)
+  have rd1885 := rd1884.dup2 (by decide +native) (by evm_ov)
   have rd1886 := rd1885.mstore 0 (wordAt0Mem ilk mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd1888 := rd1886.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd1890 := rd1888.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd1888 := rd1886.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd1890 := rd1888.push1 ⟨32⟩ (by decide +native) (by evm_ov)
   have rd1891 := rd1890.mstore 0 (twoWordHashMem ilk ⟨2⟩ mem) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd1893 := rd1891.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd1894 := rd1893.swap1 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd1893 := rd1891.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd1894 := rd1893.swap1 (by decide +native) (by evm_ov)
   have hslot := twoWordHashMem_solcMappingSlot ⟨2⟩ ilk hmem
   have rd1895 := rd1894.keccak256 0 (solcMappingSlot ⟨2⟩ ilk) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  have rd1897 := rd1895.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd1898 := rd1897.add (by native_decide) (by evm_ov)
-  have rd1899 := rd1898.dup2 (by native_decide) (by evm_ov)
-  have rd1900 := rd1899.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1901⟩ := rd1900.sstore hperm (by native_decide) (by evm_ov)
-  have rd1904 := rd1901.push2 ⟨1982⟩ (by native_decide) (by evm_ov)
-  have rd1982 := rd1904.jump (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  have rd1897 := rd1895.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd1898 := rd1897.add (by decide +native) (by evm_ov)
+  have rd1899 := rd1898.dup2 (by decide +native) (by evm_ov)
+  have rd1900 := rd1899.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1901⟩ := rd1900.sstore hperm (by decide +native) (by evm_ov)
+  have rd1904 := rd1901.push2 ⟨1982⟩ (by decide +native) (by evm_ov)
+  have rd1982 := rd1904.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨k', C', hout⟩ := RD.vatFileIlkCleanup rd1982 hret (by omega)
   exact ⟨k', C', by
     simpa [u256_add_comm (⟨4⟩ : UInt256) (solcMappingSlot ⟨2⟩ ilk)] using hout⟩
@@ -1190,10 +1190,10 @@ theorem vatFileIlkX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   exact RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨483⟩) (ret := ⟨524⟩)
     (decoded := ⟨505⟩) (need := ⟨96⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem vatFileIlkBodyCoreOkSpot
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -1240,7 +1240,7 @@ theorem vatFileIlkBodyCoreOkSpot
     (code := vatBytecode) (pc := ⟨1632⟩) (okPc := ⟨1714⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
     (R := [fileIlkIlkWord I, ⟨524⟩, sel]) hdecoded
-    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ_evm I ⟨10⟩ = ⟨1⟩ := by
     simpa [vatSlotWord] using hlive
@@ -1248,7 +1248,7 @@ theorem vatFileIlkBodyCoreOkSpot
     (code := vatBytecode) (pc := ⟨1714⟩) (okPc := ⟨1784⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
     (R := [fileIlkIlkWord I, ⟨524⟩, sel]) hafterAuth
-    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | decide +native)
     hliveSolc (by jump_dest) (by simp)
   have hwhatWord : fileIlkWhatWord I = fileIlkSpotWord :=
     fileIlkWhatWord_eq_of_bytes_eq hsz100 fileIlkSpotBytes_word hwhat
@@ -1259,14 +1259,14 @@ theorem vatFileIlkBodyCoreOkSpot
     (data := fileIlkData I) (what := fileIlkWhatWord I) (ilk := fileIlkIlkWord I)
     (ret := ⟨524⟩) (R := [sel]) hstorePc hwhatWord (by jump_dest) hperm hmemAuth
     (by simp)
-  have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+  have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
   have hslot := fileIlkSpotSlotFor_eq (I := I) hsz100
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (cA, sstoreAccountMap I.codeOwner σ_evm (fileIlkSpotSlotFor I) (fileIlkData I))
         ByteArray.empty := by
-    simpa [hslot] using RD.stop hretPc' (by native_decide) (by simp)
+    simpa [hslot] using RD.stop hretPc' (by decide +native) (by simp)
   have haccounts :
       accountMapEquiv (sstoreAccountMap I.codeOwner σ_evm (fileIlkSpotSlotFor I) (fileIlkData I))
         evm1.accountMap := by
@@ -1275,7 +1275,7 @@ theorem vatFileIlkBodyCoreOkSpot
         hAccounts
   have henc : returnEquiv ByteArray.empty none fileIlkTransition.returnType := by
     rw [show fileIlkTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, storageStore_createdAccounts])
     haccounts henc
@@ -1327,7 +1327,7 @@ theorem vatFileIlkBodyCoreOkLine
     (code := vatBytecode) (pc := ⟨1632⟩) (okPc := ⟨1714⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
     (R := [fileIlkIlkWord I, ⟨524⟩, sel]) hdecoded
-    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ_evm I ⟨10⟩ = ⟨1⟩ := by
     simpa [vatSlotWord] using hlive
@@ -1335,7 +1335,7 @@ theorem vatFileIlkBodyCoreOkLine
     (code := vatBytecode) (pc := ⟨1714⟩) (okPc := ⟨1784⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
     (R := [fileIlkIlkWord I, ⟨524⟩, sel]) hafterAuth
-    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | decide +native)
     hliveSolc (by jump_dest) (by simp)
   have hspotWordNe : fileIlkWhatWord I ≠ fileIlkSpotWord := by
     intro hbad
@@ -1353,14 +1353,14 @@ theorem vatFileIlkBodyCoreOkLine
     (data := fileIlkData I) (what := fileIlkWhatWord I) (ilk := fileIlkIlkWord I)
     (ret := ⟨524⟩) (R := [sel]) hlinePc hwhatWord (by jump_dest) hperm hmemAuth
     (by simp)
-  have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+  have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
   have hslot := fileIlkLineSlotFor_eq (I := I) hsz100
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (cA, sstoreAccountMap I.codeOwner σ_evm (fileIlkLineSlotFor I) (fileIlkData I))
         ByteArray.empty := by
-    simpa [hslot] using RD.stop hretPc' (by native_decide) (by simp)
+    simpa [hslot] using RD.stop hretPc' (by decide +native) (by simp)
   have haccounts :
       accountMapEquiv (sstoreAccountMap I.codeOwner σ_evm (fileIlkLineSlotFor I) (fileIlkData I))
         evm1.accountMap := by
@@ -1369,7 +1369,7 @@ theorem vatFileIlkBodyCoreOkLine
         hAccounts
   have henc : returnEquiv ByteArray.empty none fileIlkTransition.returnType := by
     rw [show fileIlkTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, storageStore_createdAccounts])
     haccounts henc
@@ -1423,7 +1423,7 @@ theorem vatFileIlkBodyCoreOkDust
     (code := vatBytecode) (pc := ⟨1632⟩) (okPc := ⟨1714⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
     (R := [fileIlkIlkWord I, ⟨524⟩, sel]) hdecoded
-    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ_evm I ⟨10⟩ = ⟨1⟩ := by
     simpa [vatSlotWord] using hlive
@@ -1431,7 +1431,7 @@ theorem vatFileIlkBodyCoreOkDust
     (code := vatBytecode) (pc := ⟨1714⟩) (okPc := ⟨1784⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
     (R := [fileIlkIlkWord I, ⟨524⟩, sel]) hafterAuth
-    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | decide +native)
     hliveSolc (by jump_dest) (by simp)
   have hspotWordNe : fileIlkWhatWord I ≠ fileIlkSpotWord := by
     intro hbad
@@ -1456,14 +1456,14 @@ theorem vatFileIlkBodyCoreOkDust
     (data := fileIlkData I) (what := fileIlkWhatWord I) (ilk := fileIlkIlkWord I)
     (ret := ⟨524⟩) (R := [sel]) hdustPc hwhatWord (by jump_dest) hperm hmemAuth
     (by simp)
-  have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+  have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
   have hslot := fileIlkDustSlotFor_eq (I := I) hsz100
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
         (cA, sstoreAccountMap I.codeOwner σ_evm (fileIlkDustSlotFor I) (fileIlkData I))
         ByteArray.empty := by
-    simpa [hslot] using RD.stop hretPc' (by native_decide) (by simp)
+    simpa [hslot] using RD.stop hretPc' (by decide +native) (by simp)
   have haccounts :
       accountMapEquiv (sstoreAccountMap I.codeOwner σ_evm (fileIlkDustSlotFor I) (fileIlkData I))
         evm1.accountMap := by
@@ -1472,7 +1472,7 @@ theorem vatFileIlkBodyCoreOkDust
         hAccounts
   have henc : returnEquiv ByteArray.empty none fileIlkTransition.returnType := by
     rw [show fileIlkTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     (by simp [evm1, evm0, initState, storageStore_createdAccounts])
     haccounts henc
@@ -1513,8 +1513,8 @@ theorem vatFileIlkBodyCoreUnauthorized
     (pc := ⟨1632⟩) (okPc := ⟨1714⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
     (R := [fileIlkIlkWord I, ⟨524⟩, sel]) hdecoded
-    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
-    (by unfold vatAuthRevertTailWf vatAuthTailPc; repeat' first | apply And.intro | native_decide)
+    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | decide +native)
+    (by unfold vatAuthRevertTailWf vatAuthTailPc; repeat' first | apply And.intro | decide +native)
     hauthSolc (by simp)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -1560,7 +1560,7 @@ theorem vatFileIlkBodyCoreNotLive
     (code := vatBytecode) (pc := ⟨1632⟩) (okPc := ⟨1714⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
     (R := [fileIlkIlkWord I, ⟨524⟩, sel]) hdecoded
-    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ_evm I ⟨10⟩ ≠ ⟨1⟩ := by
     simpa [vatSlotWord] using hlive
@@ -1576,10 +1576,10 @@ theorem vatFileIlkBodyCoreNotLive
     (code := vatBytecode) (pc := ⟨1714⟩) (okPc := ⟨1784⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
     (R := [fileIlkIlkWord I, ⟨524⟩, sel]) hafterAuth
-    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | decide +native)
     (by
       unfold solcErrorStringRevertTailWf vatLiveGuardTailPc vatNotLiveRawWord
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hliveSolc hmemAuth hreadAuth (by simp)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -1628,7 +1628,7 @@ theorem vatFileIlkBodyCoreUnrecognized
     (code := vatBytecode) (pc := ⟨1632⟩) (okPc := ⟨1714⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
     (R := [fileIlkIlkWord I, ⟨524⟩, sel]) hdecoded
-    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatAuthCheckWf; repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ_evm I ⟨10⟩ = ⟨1⟩ := by
     simpa [vatSlotWord] using hlive
@@ -1636,7 +1636,7 @@ theorem vatFileIlkBodyCoreUnrecognized
     (code := vatBytecode) (pc := ⟨1714⟩) (okPc := ⟨1784⟩)
     (key := fileIlkData I) (ret := fileIlkWhatWord I)
     (R := [fileIlkIlkWord I, ⟨524⟩, sel]) hafterAuth
-    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | decide +native)
     hliveSolc (by jump_dest) (by simp)
   have hspotWordNe : fileIlkWhatWord I ≠ fileIlkSpotWord := by
     intro hbad

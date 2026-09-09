@@ -1315,7 +1315,7 @@ theorem RD.vowFlopToKickStart
               (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size
             ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
       rw [hmemWrite]
-      native_decide
+      decide +native
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
       vatDaiWrite_read128_32 I outDai hmem ho32]
   obtain ⟨_, _, rd3873⟩ :=

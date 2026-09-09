@@ -48,6 +48,6 @@ def pausableBenchBytecode : ByteArray :=
     Ethereum.EVM.D_J pausableBenchBytecode 0
       = #[      ⟨15⟩, ⟨85⟩, ⟨89⟩, ⟨97⟩, ⟨99⟩, ⟨105⟩, ⟨125⟩, ⟨133⟩, ⟨141⟩, ⟨149⟩, ⟨157⟩, ⟨159⟩, ⟨167⟩, ⟨176⟩, ⟨182⟩,
       ⟨191⟩, ⟨199⟩, ⟨243⟩, ⟨272⟩, ⟨280⟩, ⟨332⟩, ⟨367⟩]
-  := by native_decide
+  := by decide +native
 
 end OpenZeppelinBench.Pausable

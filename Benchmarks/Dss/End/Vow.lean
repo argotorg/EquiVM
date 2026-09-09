@@ -28,7 +28,7 @@ abbrev endVowRoutinePc : UInt256 := ⟨5236⟩
 theorem endVowHighSplitWellFormed :
     selectorSplitWellFormed endBytecode endVowHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem endVowArmsWellFormed :
@@ -36,7 +36,7 @@ theorem endVowArmsWellFormed :
   intro j hj
   interval_cases j
   dsimp [armWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -47,7 +47,7 @@ theorem endReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : endSelWord I = ⟨0x626cb3c5⟩ :=
     endSelWord_eq_of_beq I hsz 0x62 0x6c 0xb3 0xc5 ⟨0x626cb3c5⟩
-      (by native_decide) (by simpa [selIs, endVowConcreteSelector, selectorBytes] using hsel)
+      (by decide +native) (by simpa [selIs, endVowConcreteSelector, selectorBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
     endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
@@ -56,29 +56,29 @@ theorem endReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
       ByteArray.empty (cA, σ) (k32 + 5) (C32 + 22) := by
     simpa [endRootSplitPc, endLow1JumpdestPc] using
       RD.selectorSplitTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
+        (by rw [hword]; decide +native) (by jump_dest) (by simp)
   have h272 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endLow1SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [endLow1SplitPc] using h271.jumpdest (by native_decide) (by simp)
+    simpa [endLow1SplitPc] using h271.jumpdest (by decide +native) (by simp)
   have h283 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endVowHighSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5) (C32 + 22 + 1 + 22) := by
     simpa [endLow1SplitPc, endVowHighSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h272 endLow1SplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+        (by rw [hword]; decide +native) (by simp)
   have h342 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endVowGroupJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 5) (C32 + 22 + 1 + 22 + 22) := by
     simpa [endVowHighSplitPc, endVowGroupJumpdestPc] using
       RD.selectorSplitTakenAuto h283 endVowHighSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
+        (by rw [hword]; decide +native) (by jump_dest) (by simp)
   have h343 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endVowFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1 + 5 + 5 + 1)
         (C32 + 22 + 1 + 22 + 22 + 1) := by
-    simpa [endVowFirstArmPc] using h342.jumpdest (by native_decide) (by simp)
+    simpa [endVowFirstArmPc] using h342.jumpdest (by decide +native) (by simp)
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endVowFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
@@ -88,10 +88,10 @@ theorem endReachVowBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endVowFirstArmPc 0))
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo endVowEntryPc 0 h343
     (fun j hj => endVowArmsWellFormed j hj)
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem endVowBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -126,15 +126,15 @@ theorem endVowBodyCore
     hcode hdispatch hdecode hreach hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcAddressSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnAddressFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [vowWord] using hbody)
 
 theorem endVowBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}

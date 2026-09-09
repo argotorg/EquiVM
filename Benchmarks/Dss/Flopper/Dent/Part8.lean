@@ -979,7 +979,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicZeroKissSuccess
     (by
       simpa [dentTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+          (dvs := []) rfl (by decide +native) (by decide +native)))
 
 set_option maxHeartbeats 1000000 in
 theorem flopperDentBodyCoreAddOverflowMoveCallerNeTicNonzero
@@ -1371,7 +1371,7 @@ theorem flopperDentBodyCoreSuccessMoveCallerNeTicNonzero
     (by
       simpa [dentTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+          (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem flopperDentBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

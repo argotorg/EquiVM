@@ -24,23 +24,23 @@ theorem stairstepReachCutBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : stairstepSelWord I = ⟨0xe6fd604c⟩ :=
     stairstepSelWord_eq_of_beq I hsz 0xe6 0xfd 0x60 0x4c ⟨0xe6fd604c⟩
-      (by native_decide) (by simpa [stairstepSelBytes] using hsel)
+      (by decide +native) (by simpa [stairstepSelBytes] using hsel)
   have heq0 : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat exponentialDecreaseBytecode
           (nthArmPc exponentialDecreaseBytecode stairstepFirstArmPc j))
         (stairstepSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq
         (armSelNat exponentialDecreaseBytecode
           (nthArmPc exponentialDecreaseBytecode stairstepFirstArmPc 5))
         (stairstepSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact stairstepReachBody 5 (by omega) stairstepCutEntryPc hcode hwv hsz hsize
-    heq0 htake (by jump_dest) (by native_decide)
+    heq0 htake (by jump_dest) (by decide +native)
 
 theorem stairstepCutBodyCore
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -75,15 +75,15 @@ theorem stairstepCutBodyCore
     hcode hdispatch hdecode hreach hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcWordSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [cutWord] using hbody)
 
 theorem stairstepCutBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}

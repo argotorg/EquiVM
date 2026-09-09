@@ -362,7 +362,7 @@ theorem flipperTendBodyFrom3486SameCaller
               using accountMapEquiv_refl (tendStoreTicMap (tendAfterBidMap σ_pay I) I)
           have henc : returnEquiv ByteArray.empty none tendTransition.returnType := by
             rw [show tendTransition.returnType = [] by rfl]
-            exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+            exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
           exact hret.reEquivExecutionGenEVMStateEquiv hcode hdispatch hdecode hbody
             (by simp [evmTicEvm, evmBidEvm, evmPayEvm, storageStore_createdAccounts])
             hAccountsRet hTicStateEquiv henc

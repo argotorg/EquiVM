@@ -167,7 +167,7 @@ theorem pausableX_unpause_success {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      native_decide)
+      decide +native)
     (by decide) (by evm_ov)
   have rd97 := evm_run rd271 with [jump (by jump_dest), jumpdest, jump (by jump_dest), jumpdest]
   exact rd97.stop (by decide) (by evm_ov)
@@ -249,6 +249,6 @@ theorem pausableUnpauseBody {cA gh bl σ_evm σ_solm σ₀ A I}
           simp [unpausePostMap, initState, pausedRawWord, Solm.EVM.storageLoad,
             State.lookupAccount, Account.lookupStorage]))
         hσPost
-        (returnEquiv.fallthrough rfl rfl (by native_decide))
+        (returnEquiv.fallthrough rfl rfl (by decide +native))
 
 end OpenZeppelinBench.Pausable

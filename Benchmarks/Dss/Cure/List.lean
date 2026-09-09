@@ -254,7 +254,7 @@ theorem listReturnOffsetMem_read128_of_copied
     (⟨32⟩ : UInt256) (listArrayCopiedMem σ ee len n) fmp.toNat listArrayBasePtr.toNat
     (by
       rw [listArrayCopiedMem_size]
-      have hbase : listArrayBasePtr.toNat = 128 := by native_decide
+      have hbase : listArrayBasePtr.toNat = 128 := by decide +native
       omega)
     hbelow hgap]
   exact listArrayCopiedMem_read128 σ ee len n
@@ -298,7 +298,7 @@ theorem listReturnOffsetMem_size_of_copied_wf
     (by rw [listArrayFreePtr_toNat_of_wf hwf])
     (by
       rw [listArrayFreePtr_toNat_of_wf hwf]
-      have hU : 0 < USize.size := by native_decide
+      have hU : 0 < USize.size := by decide +native
       omega)
     (by
       rw [listArrayFreePtr_toNat_of_wf hwf]
@@ -343,7 +343,7 @@ theorem listReturnLengthMem_size_of_copied_wf
         apply Nat.mod_eq_of_lt
         have hret := cureStorageWF_returnEnd_lt hwf
         omega]
-      have hU : 0 < USize.size := by native_decide
+      have hU : 0 < USize.size := by decide +native
       omega)
     (by
       rw [uadd_toNat, listArrayFreePtr_toNat_of_wf hwf,
@@ -376,7 +376,7 @@ theorem listReturnCopiedMem_size_of_wf {σ : AccountMap} {I : ExecutionEnv}
         (by rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega)])
         (by
           rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega)]
-          have hU : 0 < USize.size := by native_decide
+          have hU : 0 < USize.size := by decide +native
           omega)
         (by
           rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega)]
@@ -418,7 +418,7 @@ theorem listReturnCopiedMem_read64_of_wf {σ : AccountMap} {I : ExecutionEnv}
             apply Nat.mod_eq_of_lt
             have hret := cureStorageWF_returnEnd_lt hwf
             omega]
-          have hU : 0 < USize.size := by native_decide
+          have hU : 0 < USize.size := by decide +native
           omega)]
       unfold listReturnOffsetMem
       rw [toByteArray_write_read_below_of_gap
@@ -430,7 +430,7 @@ theorem listReturnCopiedMem_read64_of_wf {σ : AccountMap} {I : ExecutionEnv}
         (by rw [listArrayFreePtr_toNat_of_wf hwf]; omega)
         (by
           rw [listArrayFreePtr_toNat_of_wf hwf, listArrayCopiedMem_size]
-          have hU : 0 < USize.size := by native_decide
+          have hU : 0 < USize.size := by decide +native
           omega)]
       exact listArrayCopiedMem_read64 σ I (cureSlotWord ⟨2⟩ σ I)
         (cureSlotWord ⟨2⟩ σ I).toNat
@@ -445,7 +445,7 @@ theorem listReturnCopiedMem_read64_of_wf {σ : AccountMap} {I : ExecutionEnv}
         (by
           rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega),
             listReturnCopiedMem_size_of_wf hwf (n := n) (by omega)]
-          have hU : 0 < USize.size := by native_decide
+          have hU : 0 < USize.size := by decide +native
           omega)]
       exact listReturnCopiedMem_read64_of_wf hwf (n := n) (by omega)
 
@@ -492,7 +492,7 @@ theorem listReturnBaseMem_read_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
         apply Nat.mod_eq_of_lt
         have hret := cureStorageWF_returnEnd_lt hwf
         omega]
-      have hU : 0 < USize.size := by native_decide
+      have hU : 0 < USize.size := by decide +native
       omega)]
   unfold listReturnOffsetMem
   rw [toByteArray_write_read_below_of_gap
@@ -505,7 +505,7 @@ theorem listReturnBaseMem_read_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (by rw [listArrayFreePtr_toNat_of_wf hwf]; omega)
     (by
       rw [listArrayFreePtr_toNat_of_wf hwf, listArrayCopiedMem_size]
-      have hU : 0 < USize.size := by native_decide
+      have hU : 0 < USize.size := by decide +native
       omega)]
   simpa [listReturnDataWord] using
     listArrayCopiedMem_read_elem σ I (cureSlotWord ⟨2⟩ σ I)
@@ -530,7 +530,7 @@ theorem listReturnCopiedMem_read_src_of_wf {σ : AccountMap} {I : ExecutionEnv}
         (by
           rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega),
             listReturnCopiedMem_size_of_wf hwf (n := n) (by omega)]
-          have hU : 0 < USize.size := by native_decide
+          have hU : 0 < USize.size := by decide +native
           omega)]
       exact listReturnCopiedMem_read_src_of_wf hwf (n := n) (k := k) (by omega) hk
 
@@ -605,7 +605,7 @@ theorem listReturnBaseMem_read_offset_of_wf {σ : AccountMap} {I : ExecutionEnv}
         apply Nat.mod_eq_of_lt
         have hret := cureStorageWF_returnEnd_lt hwf
         omega]
-      have hU : 0 < USize.size := by native_decide
+      have hU : 0 < USize.size := by decide +native
       omega)]
   unfold listReturnOffsetMem
   exact toByteArray_write_read_back_of_gap (⟨32⟩ : UInt256)
@@ -614,7 +614,7 @@ theorem listReturnBaseMem_read_offset_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (listArrayFreePtr (cureSlotWord ⟨2⟩ σ I)).toNat
     (by
       rw [listArrayFreePtr_toNat_of_wf hwf, listArrayCopiedMem_size]
-      have hU : 0 < USize.size := by native_decide
+      have hU : 0 < USize.size := by decide +native
       omega)
 
 theorem listReturnBaseMem_read_length_of_wf {σ : AccountMap} {I : ExecutionEnv}
@@ -639,7 +639,7 @@ theorem listReturnBaseMem_read_length_of_wf {σ : AccountMap} {I : ExecutionEnv}
         apply Nat.mod_eq_of_lt
         have hret := cureStorageWF_returnEnd_lt hwf
         omega]
-      have hU : 0 < USize.size := by native_decide
+      have hU : 0 < USize.size := by decide +native
       omega)
 
 theorem listReturnCopiedMem_read_offset_of_wf {σ : AccountMap} {I : ExecutionEnv}
@@ -666,7 +666,7 @@ theorem listReturnCopiedMem_read_offset_of_wf {σ : AccountMap} {I : ExecutionEn
         (by
           rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega),
             listReturnCopiedMem_size_of_wf hwf (n := n) (by omega)]
-          have hU : 0 < USize.size := by native_decide
+          have hU : 0 < USize.size := by decide +native
           omega)]
       exact listReturnCopiedMem_read_offset_of_wf hwf (n := n) (by omega)
 
@@ -718,7 +718,7 @@ theorem listReturnCopiedMem_read_length_of_wf {σ : AccountMap} {I : ExecutionEn
         (by
           rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega),
             listReturnCopiedMem_size_of_wf hwf (n := n) (by omega)]
-          have hU : 0 < USize.size := by native_decide
+          have hU : 0 < USize.size := by decide +native
           omega)]
       exact listReturnCopiedMem_read_length_of_wf hwf (n := n) (by omega)
 
@@ -740,7 +740,7 @@ theorem listReturnCopiedMem_read_data_of_wf {σ : AccountMap} {I : ExecutionEnv}
           (by
             rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega),
               listReturnCopiedMem_size_of_wf hwf (n := n) (by omega)]
-            have hU : 0 < USize.size := by native_decide
+            have hU : 0 < USize.size := by decide +native
             omega)
       · have hk' : k < n := by omega
         rw [toByteArray_write_read_below_of_gap
@@ -752,7 +752,7 @@ theorem listReturnCopiedMem_read_data_of_wf {σ : AccountMap} {I : ExecutionEnv}
           (by
             rw [listReturnCopyDest_toNat_of_wf hwf (n := n) (by omega),
               listReturnCopiedMem_size_of_wf hwf (n := n) (by omega)]
-            have hU : 0 < USize.size := by native_decide
+            have hU : 0 < USize.size := by decide +native
             omega)]
         exact listReturnCopiedMem_read_data_of_wf hwf (n := n) (k := k) (by omega) hk'
 
@@ -1022,7 +1022,7 @@ theorem listReturnOffsetMem_mload128_of_copied_wf
           omega)
         (by
           rw [listArrayFreePtr_toNat_of_wf hwf, listArrayCopiedMem_size]
-          have hU : 0 < USize.size := by native_decide
+          have hU : 0 < USize.size := by decide +native
           omega))
 
 theorem listReturnLengthMem_mload128_of_copied_wf
@@ -1084,7 +1084,7 @@ theorem listReturnLengthMem_mload128_of_copied_wf
           omega)
         (by
           rw [listArrayFreePtr_toNat_of_wf hwf, listArrayCopiedMem_size]
-          have hU : 0 < USize.size := by native_decide
+          have hU : 0 < USize.size := by decide +native
           omega)
         (by
           rw [uadd_toNat, listArrayFreePtr_toNat_of_wf hwf,
@@ -1097,7 +1097,7 @@ theorem listReturnLengthMem_mload128_of_copied_wf
             apply Nat.mod_eq_of_lt
             have hret := cureStorageWF_returnEnd_lt hwf
             omega]
-          have hU : 0 < USize.size := by native_decide
+          have hU : 0 < USize.size := by decide +native
           omega))
 
 set_option maxHeartbeats 1000000 in
@@ -1134,22 +1134,22 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
         (fmp + (⟨64⟩ : UInt256)) :: fmp :: fmp :: arrPtr :: R)
       (listReturnLengthMem len fmp mem) (listReturnFinalAw aw fmp arrPtr)
       rdata acc k' C' := by
-  have rd370 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd372 := rd370.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd373 := rd372.dup1 (by native_decide) (by evm_ov)
+  have rd370 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd372 := rd370.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd373 := rd372.dup1 (by decide +native) (by evm_ov)
   have rd374 := rd373.mload (Cₘ (listReturnMload64Aw aw) - Cₘ aw) fmp
-    (listReturnMload64Aw aw) (by native_decide)
+    (listReturnMload64Aw aw) (by decide +native)
     (by
       intro s haw hstk
       exact listMloadCost_of_stack (aw := aw) (off := (⟨64⟩ : UInt256))
         (t := (⟨64⟩ : UInt256) :: arrPtr :: R) haw hstk (by rfl))
     hload64 (by rfl) (by evm_ov)
-  have rd376 := rd374.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd377 := rd376.dup1 (by native_decide) (by evm_ov)
-  have rd378 := rd377.dup3 (by native_decide) (by evm_ov)
+  have rd376 := rd374.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd377 := rd376.dup1 (by decide +native) (by evm_ov)
+  have rd378 := rd377.dup3 (by decide +native) (by evm_ov)
   have rd379 := rd378.mstore
     (Cₘ (listReturnOffsetAw aw fmp) - Cₘ (listReturnMload64Aw aw))
-    (listReturnOffsetMem fmp mem) (listReturnOffsetAw aw fmp) (by native_decide)
+    (listReturnOffsetMem fmp mem) (listReturnOffsetAw aw fmp) (by decide +native)
     (by
       intro s haw hstk
       exact mstoreCost_of_stack (aw := listReturnMload64Aw aw) (off := fmp)
@@ -1157,25 +1157,25 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
         (t := (⟨32⟩ : UInt256) :: fmp :: (⟨64⟩ : UInt256) :: arrPtr :: R)
         haw hstk (by rfl))
     (by rfl) (by rfl) (by evm_ov)
-  have rd380 := rd379.dup4 (by native_decide) (by evm_ov)
+  have rd380 := rd379.dup4 (by decide +native) (by evm_ov)
   have rd381 := rd380.mload
     (Cₘ (listReturnArrayMloadAw aw fmp arrPtr) -
       Cₘ (listReturnOffsetAw aw fmp))
-    len (listReturnArrayMloadAw aw fmp arrPtr) (by native_decide)
+    len (listReturnArrayMloadAw aw fmp arrPtr) (by decide +native)
     (by
       intro s haw hstk
       exact listMloadCost_of_stack (aw := listReturnOffsetAw aw fmp) (off := arrPtr)
         (t := (⟨32⟩ : UInt256) :: fmp :: (⟨64⟩ : UInt256) :: arrPtr :: R)
         haw hstk (by rfl))
     hloadArr (by rfl) (by evm_ov)
-  have rd382 := rd381.dup2 (by native_decide) (by evm_ov)
-  have rd383 := rd382.dup4 (by native_decide) (by evm_ov)
-  have rd384 := rd383.add (by native_decide) (by evm_ov)
+  have rd382 := rd381.dup2 (by decide +native) (by evm_ov)
+  have rd383 := rd382.dup4 (by decide +native) (by evm_ov)
+  have rd384 := rd383.add (by decide +native) (by evm_ov)
   have rd385 := rd384.mstore
     (Cₘ (listReturnLengthAw aw fmp arrPtr) -
       Cₘ (listReturnArrayMloadAw aw fmp arrPtr))
     (listReturnLengthMem len fmp mem) (listReturnLengthAw aw fmp arrPtr)
-    (by native_decide)
+    (by decide +native)
     (by
       intro s haw hstk
       exact mstoreCost_of_stack (aw := listReturnArrayMloadAw aw fmp arrPtr)
@@ -1183,11 +1183,11 @@ theorem cureListReturnFromMemToCopyLoop {g : Sat256} {s0 : State}
         (t := (⟨32⟩ : UInt256) :: fmp :: (⟨64⟩ : UInt256) :: arrPtr :: R)
         haw hstk (by rfl))
     (by rfl) (by rfl) (by evm_ov)
-  have rd386 := rd385.dup4 (by native_decide) (by evm_ov)
+  have rd386 := rd385.dup4 (by decide +native) (by evm_ov)
   have rd387 := rd386.mload
     (Cₘ (listReturnFinalAw aw fmp arrPtr) -
       Cₘ (listReturnLengthAw aw fmp arrPtr))
-    len (listReturnFinalAw aw fmp arrPtr) (by native_decide)
+    len (listReturnFinalAw aw fmp arrPtr) (by decide +native)
     (by
       intro s haw hstk
       exact listMloadCost_of_stack (aw := listReturnLengthAw aw fmp arrPtr)
@@ -1218,45 +1218,45 @@ theorem cureListReturnCopyLoopStep {g : Sat256} {s0 : State}
       (((⟨32⟩ : UInt256) + i) :: src :: dst :: bound :: R)
       (listReturnCopyStepMem word dst i mem)
       (listReturnCopyStepAw aw src dst i) rdata acc k' C' := by
-  have rd406 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd407 := rd406.dup4 (by native_decide) (by evm_ov)
-  have rd408 := rd407.dup2 (by native_decide) (by evm_ov)
-  have rd409 := rd408.lt (by native_decide) (by evm_ov)
-  have rd410raw := rd409.iszero (by native_decide) (by evm_ov)
+  have rd406 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd407 := rd406.dup4 (by decide +native) (by evm_ov)
+  have rd408 := rd407.dup2 (by decide +native) (by evm_ov)
+  have rd409 := rd408.lt (by decide +native) (by evm_ov)
+  have rd410raw := rd409.iszero (by decide +native) (by evm_ov)
   have rd410 := by
     simpa [hcont] using rd410raw
-  have rd413 := rd410.push2 ⟨429⟩ (by native_decide) (by evm_ov)
-  have rd414 := rd413.jumpiNT (by native_decide) rfl (by evm_ov)
-  have rd415 := rd414.dup2 (by native_decide) (by evm_ov)
-  have rd416 := rd415.dup2 (by native_decide) (by evm_ov)
-  have rd417 := rd416.add (by native_decide) (by evm_ov)
+  have rd413 := rd410.push2 ⟨429⟩ (by decide +native) (by evm_ov)
+  have rd414 := rd413.jumpiNT (by decide +native) rfl (by evm_ov)
+  have rd415 := rd414.dup2 (by decide +native) (by evm_ov)
+  have rd416 := rd415.dup2 (by decide +native) (by evm_ov)
+  have rd417 := rd416.add (by decide +native) (by evm_ov)
   have rd418 := rd417.mload (Cₘ (listReturnCopyMloadAw aw src i) - Cₘ aw)
-    word (listReturnCopyMloadAw aw src i) (by native_decide)
+    word (listReturnCopyMloadAw aw src i) (by decide +native)
     (by
       intro s haw hstk
       exact listMloadCost_of_stack (aw := aw) (off := i + src)
         (t := i :: src :: dst :: bound :: R) haw hstk (by rfl))
     hload (by rfl) (by evm_ov)
-  have rd419 := rd418.dup4 (by native_decide) (by evm_ov)
-  have rd420 := rd419.dup3 (by native_decide) (by evm_ov)
-  have rd421 := rd420.add (by native_decide) (by evm_ov)
+  have rd419 := rd418.dup4 (by decide +native) (by evm_ov)
+  have rd420 := rd419.dup3 (by decide +native) (by evm_ov)
+  have rd421 := rd420.add (by decide +native) (by evm_ov)
   have rd422 := rd421.mstore
     (Cₘ (listReturnCopyStepAw aw src dst i) -
       Cₘ (listReturnCopyMloadAw aw src i))
     (listReturnCopyStepMem word dst i mem)
-    (listReturnCopyStepAw aw src dst i) (by native_decide)
+    (listReturnCopyStepAw aw src dst i) (by decide +native)
     (by
       intro s haw hstk
       exact mstoreCost_of_stack (aw := listReturnCopyMloadAw aw src i)
         (off := i + dst) (val := word) (t := i :: src :: dst :: bound :: R)
         haw hstk (by rfl))
     (by rfl) (by rfl) (by evm_ov)
-  have rd424 := rd422.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd425 := rd424.add (by native_decide) (by evm_ov)
-  have rd428 := rd425.push2 ⟨405⟩ (by native_decide) (by evm_ov)
+  have rd424 := rd422.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd425 := rd424.add (by decide +native) (by evm_ov)
+  have rd428 := rd425.push2 ⟨405⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [listReturnCopyStepMem, listReturnCopyMloadAw, listReturnCopyStepAw]
-      using rd428.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      using rd428.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem listReturnCopyLoopContinueCond_of_wf {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) {n : Nat}
@@ -1369,43 +1369,43 @@ theorem cureListReturnCopyLoopExit {g : Sat256} {s0 : State}
       mem.readWithPadding fmp.toNat (UInt256.sub (bound + dst) fmp).toNat = oval)
     (hov : R.length + 12 ≤ 1024) :
     RDret cureBytecode g s0 acc oval := by
-  have rd406 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd407 := rd406.dup4 (by native_decide) (by evm_ov)
-  have rd408 := rd407.dup2 (by native_decide) (by evm_ov)
-  have rd409 := rd408.lt (by native_decide) (by evm_ov)
-  have rd410 := rd409.iszero (by native_decide) (by evm_ov)
-  have rd413 := rd410.push2 ⟨429⟩ (by native_decide) (by evm_ov)
-  have rd429 := rd413.jumpiT (by native_decide) hdone (by jump_dest) (by evm_ov)
-  have rd430 := rd429.jumpdest (by native_decide) (by evm_ov)
-  have rd431 := rd430.pop (by native_decide) (by evm_ov)
-  have rd432 := rd431.pop (by native_decide) (by evm_ov)
-  have rd433 := rd432.pop (by native_decide) (by evm_ov)
-  have rd434 := rd433.pop (by native_decide) (by evm_ov)
-  have rd435 := rd434.swap1 (by native_decide) (by evm_ov)
-  have rd436 := rd435.pop (by native_decide) (by evm_ov)
-  have rd437 := rd436.add (by native_decide) (by evm_ov)
-  have rd438 := rd437.swap3 (by native_decide) (by evm_ov)
-  have rd439 := rd438.pop (by native_decide) (by evm_ov)
-  have rd440 := rd439.pop (by native_decide) (by evm_ov)
-  have rd441 := rd440.pop (by native_decide) (by evm_ov)
-  have rd443 := rd441.push1 ⟨64⟩ (by native_decide) (by evm_ov)
+  have rd406 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd407 := rd406.dup4 (by decide +native) (by evm_ov)
+  have rd408 := rd407.dup2 (by decide +native) (by evm_ov)
+  have rd409 := rd408.lt (by decide +native) (by evm_ov)
+  have rd410 := rd409.iszero (by decide +native) (by evm_ov)
+  have rd413 := rd410.push2 ⟨429⟩ (by decide +native) (by evm_ov)
+  have rd429 := rd413.jumpiT (by decide +native) hdone (by jump_dest) (by evm_ov)
+  have rd430 := rd429.jumpdest (by decide +native) (by evm_ov)
+  have rd431 := rd430.pop (by decide +native) (by evm_ov)
+  have rd432 := rd431.pop (by decide +native) (by evm_ov)
+  have rd433 := rd432.pop (by decide +native) (by evm_ov)
+  have rd434 := rd433.pop (by decide +native) (by evm_ov)
+  have rd435 := rd434.swap1 (by decide +native) (by evm_ov)
+  have rd436 := rd435.pop (by decide +native) (by evm_ov)
+  have rd437 := rd436.add (by decide +native) (by evm_ov)
+  have rd438 := rd437.swap3 (by decide +native) (by evm_ov)
+  have rd439 := rd438.pop (by decide +native) (by evm_ov)
+  have rd440 := rd439.pop (by decide +native) (by evm_ov)
+  have rd441 := rd440.pop (by decide +native) (by evm_ov)
+  have rd443 := rd441.push1 ⟨64⟩ (by decide +native) (by evm_ov)
   have rd444 := rd443.mload (Cₘ (listReturnMload64Aw aw) - Cₘ aw) fmp
-    (listReturnMload64Aw aw) (by native_decide)
+    (listReturnMload64Aw aw) (by decide +native)
     (by
       intro s haw hstk
       exact listMloadCost_of_stack (aw := aw) (off := (⟨64⟩ : UInt256))
         (t := (bound + dst) :: R) haw hstk (by rfl))
     hload64 (by rfl) (by evm_ov)
-  have rd445 := rd444.dup1 (by native_decide) (by evm_ov)
-  have rd446 := rd445.swap2 (by native_decide) (by evm_ov)
-  have rd447 := rd446.sub (by native_decide) (by evm_ov)
-  have rd448 := rd447.swap1 (by native_decide) (by evm_ov)
+  have rd445 := rd444.dup1 (by decide +native) (by evm_ov)
+  have rd446 := rd445.swap2 (by decide +native) (by evm_ov)
+  have rd447 := rd446.sub (by decide +native) (by evm_ov)
+  have rd448 := rd447.swap1 (by decide +native) (by evm_ov)
   exact rd448.ret
     (Cₘ (UInt256.ofNat
           (MachineState.M (listReturnMload64Aw aw).toNat fmp.toNat
             (UInt256.sub (bound + dst) fmp).toNat)) -
         Cₘ (listReturnMload64Aw aw))
-    oval (by native_decide)
+    oval (by decide +native)
     (by
       intro s haw hstk
       exact listReturnCost_of_stack (aw := listReturnMload64Aw aw) (off := fmp)
@@ -1535,7 +1535,7 @@ theorem cureDispatchList {I : ExecutionEnv}
     cureAmtSelectorBytes, cureCageSelectorBytes, cureDenySelectorBytes,
     cureDropSelectorBytes, cureFileSelectorBytes, cureLCountSelectorBytes,
     cureLiftSelectorBytes, cureListSelectorBytes]
-  native_decide
+  decide +native
 
 theorem cureDecode_list {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (listTransition.params.map Param.name)
@@ -1553,7 +1553,7 @@ theorem cureListEmptyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h929⟩ := h929
   obtain ⟨_, _, h936raw⟩ :=
     (evm_run h929 with [jumpdest, push1 ⟨96⟩, push1 ⟨2⟩, dup1]).sload
-      (by native_decide) (by evm_ov)
+      (by decide +native) (by evm_ov)
   obtain ⟨_, _, h936⟩ : ∃ k C, RD cureBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨936⟩
       [cureSlotWord ⟨2⟩ σ I, ⟨2⟩, ⟨96⟩, ⟨369⟩, cureSelWord I]
@@ -1562,18 +1562,18 @@ theorem cureListEmptyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
   rw [hlen0] at h936
   have h963 := evm_run h936 with [
     dup1, push1 ⟨32⟩, mul, push1 ⟨32⟩, add, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost
       solcFreePtrMem_mload64 (by decide) (by evm_ov),
     swap1, dup2, add, push1 ⟨64⟩,
     raw mstore 0
       ((UInt256.toByteArray (listRoutineNewFp (⟨0⟩ : UInt256))).write 0 solcFreePtrMem
         (⟨64⟩ : UInt256).toNat 32)
-      (UInt256.ofNat 3) (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
+      (UInt256.ofNat 3) (by decide +native) mem_cost rfl (by decide +native) (by evm_ov),
     dup1, swap3, swap2, swap1, dup2, dup2,
     raw mstore 6 (listRoutineMem (⟨0⟩ : UInt256)) (UInt256.ofNat 5)
-      (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost rfl (by decide +native) (by evm_ov),
     push1 ⟨32⟩, add, dup3, dup1]
-  obtain ⟨_, _, h965raw⟩ := h963.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, h965raw⟩ := h963.sload (by decide +native) (by evm_ov)
   have hload0 :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨2⟩ ⟨0⟩)) =
         (⟨0⟩ : UInt256) := by
@@ -1585,30 +1585,30 @@ theorem cureListEmptyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, pop, pop, pop, pop, pop, swap1, pop, swap1, jump (by jump_dest)]
   have h400 := evm_run h369 with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨160⟩ (UInt256.ofNat 5) (by native_decide) mem_cost
-      (by native_decide) (by native_decide) (by evm_ov),
+    raw mload 0 ⟨160⟩ (UInt256.ofNat 5) (by decide +native) mem_cost
+      (by decide +native) (by decide +native) (by evm_ov),
     push1 ⟨32⟩, dup1, dup3,
-    raw mstore 3 _ (UInt256.ofNat 6) (by native_decide) mem_cost rfl
-      (by native_decide) (by evm_ov),
+    raw mstore 3 _ (UInt256.ofNat 6) (by decide +native) mem_cost rfl
+      (by decide +native) (by evm_ov),
     dup4,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by native_decide) mem_cost
-      (by native_decide) (by native_decide) (by evm_ov),
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by decide +native) mem_cost
+      (by decide +native) (by decide +native) (by evm_ov),
     dup2, dup4, add,
-    raw mstore 3 _ (UInt256.ofNat 7) (by native_decide) mem_cost rfl
-      (by native_decide) (by evm_ov),
+    raw mstore 3 _ (UInt256.ofNat 7) (by decide +native) mem_cost rfl
+      (by decide +native) (by evm_ov),
     dup4,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 7) (by native_decide) mem_cost
-      (by native_decide) (by native_decide) (by evm_ov),
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 7) (by decide +native) mem_cost
+      (by decide +native) (by decide +native) (by evm_ov),
     swap2, swap3, dup4, swap3, swap1, dup4, add, swap2, dup6, dup2, add, swap2, mul,
     dup1, dup4, dup4, push1 ⟨0⟩]
   have hret := evm_run h400 with [
     jumpdest, dup4, dup2, lt, iszero, push2 ⟨429⟩, jumpiT (by decide) (by jump_dest),
     jumpdest, pop, pop, pop, pop, swap1, pop, add, swap3, pop, pop, pop, push1 ⟨64⟩,
-    raw mload 0 ⟨160⟩ (UInt256.ofNat 7) (by native_decide) mem_cost
-      (by native_decide) (by native_decide) (by evm_ov),
+    raw mload 0 ⟨160⟩ (UInt256.ofNat 7) (by decide +native) mem_cost
+      (by decide +native) (by decide +native) (by evm_ov),
     dup1, swap2, sub, swap1]
   exact evm_run hret with [
-    raw ret 0 listEmptyArrayAbi (by native_decide) mem_cost (by native_decide) (by evm_ov)]
+    raw ret 0 listEmptyArrayAbi (by decide +native) mem_cost (by decide +native) (by evm_ov)]
 
 theorem cureListBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode)
@@ -1632,7 +1632,7 @@ theorem cureListBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨361⟩ ⟨369⟩ ⟨929⟩ := by
     unfold solcGetterEntryWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   obtain ⟨_, _, hroutine⟩ := RD.solcGetterThunk hreach hentry (by jump_dest)
   have hbody :
       ExecTransitionBody config contract

@@ -44,7 +44,7 @@ theorem erc20X_transferFromAfterFromLoadSetup {cA gh bl σ σ₀ A I} {g : Sat25
       (by decide) (by evm_ov)]
   have hpc496 :
       (⟨493⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ = (⟨497⟩ : UInt256) := by
-    native_decide
+    decide +native
   exact ⟨_, _, by simpa [hpc496] using rd496⟩
 
 end VyperERC20

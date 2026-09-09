@@ -144,7 +144,7 @@ theorem flipper_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target 
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+        (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
@@ -170,7 +170,7 @@ theorem flipper_extCodeSizeWord_pos_lookup_code_pos {σ : AccountMap} {target : 
     subst addr
     cases hacc : σ.find? (AccountAddress.ofUInt256 target) <;>
       simp [Reasoning.Theory.extCodeSizeWord, hacc, Option.option] <;>
-      native_decide
+      decide +native
   exact hne (by rw [← hword, hwordZero])
 
 theorem flipperVatCode_zero_of_codeSize_zero {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -221,7 +221,7 @@ theorem flipperVatCode_pos_of_codeSize_ne_zero {cA gh bl σ σ₀ A I} {g : UInt
     cases hacc : σ.find? (AccountAddress.ofUInt256 (flipperVatTargetWord σ I)) <;>
       simp [initState, State.lookupAccount, Reasoning.Theory.extCodeSizeWord,
         flipperVatAddress_eq_target σ I, hacc, Option.option] <;>
-      native_decide
+      decide +native
   exact hne (by rw [← hword, hwordZero])
 
 theorem flipperCatCode_pos_of_codeSize_ne_zero {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -250,7 +250,7 @@ theorem flipperCatCode_pos_of_codeSize_ne_zero {cA gh bl σ σ₀ A I} {g : UInt
     cases hacc : σ.find? (AccountAddress.ofUInt256 (flipperCatTargetWord σ I)) <;>
       simp [initState, State.lookupAccount, Reasoning.Theory.extCodeSizeWord,
         flipperCatAddress_eq_target σ I, hacc, Option.option] <;>
-      native_decide
+      decide +native
   exact hne (by rw [← hword, hwordZero])
 
 theorem evalExpr_flipperStorageVatOfLocals {evm : EVM.State} {locals : Store}

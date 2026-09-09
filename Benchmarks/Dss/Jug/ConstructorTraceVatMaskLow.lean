@@ -33,7 +33,7 @@ theorem jugCtorVatMaskLowReach
       (⟨77⟩ : UInt256) + UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨88⟩ := by
-    native_decide
+    decide +native
   rw [hpc88] at rd88
   exact ⟨_, _, by
     simpa [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =

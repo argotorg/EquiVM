@@ -39,7 +39,7 @@ theorem fifSelMemG_selector (base : ByteArray) (h : base.size = 96) :
     rw [ByteArray.size_append, h, fifZeroes32_size]
   rw [extract_append_right_window _ _ 128 132 (by rw [hABsz]), hABsz,
     show (128 : ℕ) - 128 = 0 from rfl, show (132 : ℕ) - 128 = 4 from rfl, toByteArray_eq_toBytesBE]
-  native_decide
+  decide +native
 
 theorem fifCdMemG_size (base : ByteArray) (h : base.size = 96) (arg : UInt256) :
     (fifCdMemG base arg).size = 164 := by
@@ -129,17 +129,17 @@ theorem RD.catFileIlkFlipNopePostCall {cA gh bl σ σ₀ A I} {g : Sat256} {flip
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd3561⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3546⟩) (okPc := ⟨3558⟩) rd hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘpack, rd3562raw, houtsz⟩ :=
-    RD.call rd3561 (by native_decide) hdepth (by evm_ov)
+    RD.call rd3561 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, out, A', k', C', ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           (⟨128⟩ : UInt256).toNat (⟨36⟩ : UInt256).toNat) (⟨128⟩ : UInt256).toNat
-          (⟨0⟩ : UInt256).toNat) = UInt256.ofNat 6 := by native_decide
+          (⟨0⟩ : UInt256).toNat) = UInt256.ofNat 6 := by decide +native
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := rfl
     have rd3562 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3562⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨164⟩ :: ⟨3696042234⟩ :: fifVatM σ I :: flip ::
@@ -172,9 +172,9 @@ theorem RD.catFileIlkFlipNopeNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {flip r
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ (fifVatM σ I) = ⟨0⟩) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3546⟩) (okPc := ⟨3558⟩) rd hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.catFileIlkFlipNopeCallFailure {cA gh bl σ σ₀ A I} {g : Sat256}
     {flip ret sel : UInt256} {mem rdata : ByteArray} {aw : UInt256}
@@ -186,9 +186,9 @@ theorem RD.catFileIlkFlipNopeCallFailure {cA gh bl σ σ₀ A I} {g : Sat256}
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3562⟩) (okPc := ⟨3578⟩) rd rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp)
 
 theorem RD.catFileIlkFlipNopeCallSuccessToStore {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -204,10 +204,10 @@ theorem RD.catFileIlkFlipNopeCallSuccessToStore {cA gh bl σ σ₀ A I} {g : Sat
   obtain ⟨k1, C1, rd3580⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨3562⟩) (okPc := ⟨3578⟩) rd
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by simp)
-  have rd3581 := RD.pop rd3580 (by native_decide) (by evm_ov)
-  exact ⟨_, _, RD.pop rd3581 (by native_decide) (by evm_ov)⟩
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native) (by simp)
+  have rd3581 := RD.pop rd3580 (by decide +native) (by evm_ov)
+  exact ⟨_, _, RD.pop rd3581 (by decide +native) (by evm_ov)⟩
 
 /-! ### RMW `ilks[ilk].flip := flip` store (⟨3582⟩ → ⟨3626⟩) — `keccak(ilk,1)+0`, offset-0 address -/
 
@@ -275,18 +275,18 @@ theorem RD.catFileIlkFlipStore {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k 
         (setAddressOffset0Word
           (solcSlotWord σ' ee (solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord ee))) flip)) k' C' := by
   have hmask : UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by decide
-  have rd3584 := rd.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3585 := rd3584.dup5 (by native_decide) (by evm_ov)
-  have rd3586 := rd3585.dup2 (by native_decide) (by evm_ov)
+  have rd3584 := rd.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3585 := rd3584.dup5 (by decide +native) (by evm_ov)
+  have rd3586 := rd3585.dup2 (by decide +native) (by evm_ov)
   have rd3587 := rd3586.mstore 0 (wordAt0Mem (fileIlkFlipIlkWord ee) mem) (UInt256.ofNat 6)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd3589 := rd3587.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3591 := rd3589.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd3589 := rd3587.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3591 := rd3589.push1 ⟨32⟩ (by decide +native) (by evm_ov)
   have rd3592 := rd3591.mstore 0 (twoWordHashMem (fileIlkFlipIlkWord ee) ⟨1⟩ mem) (UInt256.ofNat 6)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd3594 := rd3592.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd3595 := rd3594.dup1 (by native_decide) (by evm_ov)
-  have rd3596 := rd3595.dup3 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd3594 := rd3592.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd3595 := rd3594.dup1 (by decide +native) (by evm_ov)
+  have rd3596 := rd3595.dup3 (by decide +native) (by evm_ov)
   have hkec :
       UInt256.ofNat (fromByteArrayBigEndian
         (ffi.KEC ((twoWordHashMem (fileIlkFlipIlkWord ee) ⟨1⟩ mem).readWithPadding 0 64))) =
@@ -295,33 +295,33 @@ theorem RD.catFileIlkFlipStore {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k 
     unfold solcMappingSlot
     exact mappingSlot_single (fileIlkFlipIlkWord ee) ⟨1⟩
   have rd3597 := rd3596.keccak256 0 (solcMappingSlot ⟨1⟩ (fileIlkFlipIlkWord ee)) (UInt256.ofNat 6)
-    (by native_decide) mem_cost hkec (by native_decide) (by evm_ov)
-  have rd3597b := rd3597.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3598⟩ := rd3597b.sload (by native_decide) (by evm_ov)
-  have rd3599 := rd3598.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3601 := rd3599.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3603 := rd3601.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd3605 := rd3603.shl (by native_decide) (by evm_ov)
-  have rd3606 := rd3605.sub (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hkec (by decide +native) (by evm_ov)
+  have rd3597b := rd3597.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3598⟩ := rd3597b.sload (by decide +native) (by evm_ov)
+  have rd3599 := rd3598.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3601 := rd3599.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3603 := rd3601.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd3605 := rd3603.shl (by decide +native) (by evm_ov)
+  have rd3606 := rd3605.sub (by decide +native) (by evm_ov)
   rw [hmask] at rd3606
-  have rd3607 := rd3606.not (by native_decide) (by evm_ov)
-  have rd3608 := rd3607.and (by native_decide) (by evm_ov)
-  have rd3609 := rd3608.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3611 := rd3609.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3613 := rd3611.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd3615 := rd3613.shl (by native_decide) (by evm_ov)
-  have rd3616 := rd3615.sub (by native_decide) (by evm_ov)
+  have rd3607 := rd3606.not (by decide +native) (by evm_ov)
+  have rd3608 := rd3607.and (by decide +native) (by evm_ov)
+  have rd3609 := rd3608.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3611 := rd3609.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3613 := rd3611.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd3615 := rd3613.shl (by decide +native) (by evm_ov)
+  have rd3616 := rd3615.sub (by decide +native) (by evm_ov)
   rw [hmask] at rd3616
-  have rd3617 := rd3616.dup7 (by native_decide) (by evm_ov)
-  have rd3618 := rd3617.dup2 (by native_decide) (by evm_ov)
-  have rd3619 := rd3618.and (by native_decide) (by evm_ov)
-  have rd3620 := rd3619.swap2 (by native_decide) (by evm_ov)
-  have rd3621 := rd3620.dup3 (by native_decide) (by evm_ov)
-  have rd3622 := rd3621.or (by native_decide) (by evm_ov)
+  have rd3617 := rd3616.dup7 (by decide +native) (by evm_ov)
+  have rd3618 := rd3617.dup2 (by decide +native) (by evm_ov)
+  have rd3619 := rd3618.and (by decide +native) (by evm_ov)
+  have rd3620 := rd3619.swap2 (by decide +native) (by evm_ov)
+  have rd3621 := rd3620.dup3 (by decide +native) (by evm_ov)
+  have rd3622 := rd3621.or (by decide +native) (by evm_ov)
   rw [u256_land_comm solcAddrMask flip, setAddressOffset0Word_bytecode] at rd3622
-  have rd3623 := rd3622.swap1 (by native_decide) (by evm_ov)
-  have rd3624 := rd3623.swap3 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3625⟩ := rd3624.sstore hperm (by native_decide) (by evm_ov)
+  have rd3623 := rd3622.swap1 (by decide +native) (by evm_ov)
+  have rd3624 := rd3623.swap3 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3625⟩ := rd3624.sstore hperm (by decide +native) (by evm_ov)
   exact ⟨_, _, rd3625⟩
 
 
@@ -381,7 +381,7 @@ theorem fifHopeSelMem_selector {base : ByteArray} (h : base.size = 164) :
     hAsz, show 128 - 128 = 0 from rfl, show 132 - 128 = 4 from rfl,
     extract_extract_BA, show 0 + 0 = 0 from rfl, show min (0 + 4) 32 = 4 from by omega,
     toByteArray_eq_toBytesBE]
-  native_decide
+  decide +native
 
 theorem fifHopeCdMem_read_window {base : ByteArray} (h : base.size = 164) (arg : UInt256) :
     (fifHopeCdMem base arg).readWithPadding 128 36 = vatHopeSelector ++ arg.toByteArray := by
@@ -458,65 +458,65 @@ theorem RD.catFileIlkFlipHopeEncode {g : Sat256} {s0 : State} {ee : ExecutionEnv
       then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian
         (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
     mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
-  have rd3628 := rd.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3628b⟩ := rd3628.sload (by native_decide) (by evm_ov)
-  have rd3629 := rd3628b.dup4 (by native_decide) (by evm_ov)
-  have rd3630 := rd3629.mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide) mem_cost hmload
-    (by native_decide) (by evm_ov)
-  have rd3631 := rd3630.push4 ⟨686590961⟩ (by native_decide) (by evm_ov)
-  have rd3636 := rd3631.push1 ⟨226⟩ (by native_decide) (by evm_ov)
-  have rd3638 := rd3636.shl (by native_decide) (by evm_ov)
-  have rd3639 := rd3638.dup2 (by native_decide) (by evm_ov)
+  have rd3628 := rd.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3628b⟩ := rd3628.sload (by decide +native) (by evm_ov)
+  have rd3629 := rd3628b.dup4 (by decide +native) (by evm_ov)
+  have rd3630 := rd3629.mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native) mem_cost hmload
+    (by decide +native) (by evm_ov)
+  have rd3631 := rd3630.push4 ⟨686590961⟩ (by decide +native) (by evm_ov)
+  have rd3636 := rd3631.push1 ⟨226⟩ (by decide +native) (by evm_ov)
+  have rd3638 := rd3636.shl (by decide +native) (by evm_ov)
+  have rd3639 := rd3638.dup2 (by decide +native) (by evm_ov)
   have rd3640 := rd3639.mstore 0 (fifHopeSelMem mem) (UInt256.ofNat 6)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (by unfold fifHopeSelMem; rw [show (⟨128⟩ : UInt256).toNat = 128 from rfl])
-    (by native_decide) (by evm_ov)
-  have rd3641 := rd3640.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd3643 := rd3641.dup2 (by native_decide) (by evm_ov)
-  have rd3644 := rd3643.add (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  have rd3641 := rd3640.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd3643 := rd3641.dup2 (by decide +native) (by evm_ov)
+  have rd3644 := rd3643.add (by decide +native) (by evm_ov)
   rw [show (⟨128⟩ : UInt256) + ⟨4⟩ = ⟨132⟩ from by decide] at rd3644
-  have rd3645 := rd3644.swap3 (by native_decide) (by evm_ov)
-  have rd3646 := rd3645.swap1 (by native_decide) (by evm_ov)
-  have rd3647 := rd3646.swap3 (by native_decide) (by evm_ov)
+  have rd3645 := rd3644.swap3 (by decide +native) (by evm_ov)
+  have rd3646 := rd3645.swap1 (by decide +native) (by evm_ov)
+  have rd3647 := rd3646.swap3 (by decide +native) (by evm_ov)
   have rd3648 := rd3647.mstore 0 (fifHopeCdMem mem (UInt256.land flip solcAddrMask)) (UInt256.ofNat 6)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (by unfold fifHopeCdMem; rw [show (⟨132⟩ : UInt256).toNat = 132 from rfl])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have hmload2 : (if (⟨64⟩ : UInt256).toNat ≥ (fifHopeCdMem mem (UInt256.land flip solcAddrMask)).size
       ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩ then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian
         ((fifHopeCdMem mem (UInt256.land flip solcAddrMask)).readWithPadding
           (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ :=
     mloadFreePtrValue (by rw [fifHopeCdMem_size hmem]; decide) (by decide)
       (fifHopeCdMem_read64 hmem hread64 _)
-  have rd3649 := rd3648.swap3 (by native_decide) (by evm_ov)
-  have rd3650 := rd3649.mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide) mem_cost hmload2
-    (by native_decide) (by evm_ov)
-  have rd3651 := rd3650.swap3 (by native_decide) (by evm_ov)
-  have rd3652 := rd3651.swap1 (by native_decide) (by evm_ov)
-  have rd3653 := rd3652.swap2 (by native_decide) (by evm_ov)
-  have rd3654 := rd3653.and (by native_decide) (by evm_ov)
-  have rd3655 := rd3654.swap4 (by native_decide) (by evm_ov)
-  have rd3656 := rd3655.pop (by native_decide) (by evm_ov)
-  have rd3657 := rd3656.push4 ⟨2746363844⟩ (by native_decide) (by evm_ov)
-  have rd3662 := rd3657.swap3 (by native_decide) (by evm_ov)
-  have rd3663 := rd3662.push1 ⟨36⟩ (by native_decide) (by evm_ov)
-  have rd3665 := rd3663.dup1 (by native_decide) (by evm_ov)
-  have rd3666 := rd3665.dup4 (by native_decide) (by evm_ov)
-  have rd3667 := rd3666.add (by native_decide) (by evm_ov)
+  have rd3649 := rd3648.swap3 (by decide +native) (by evm_ov)
+  have rd3650 := rd3649.mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native) mem_cost hmload2
+    (by decide +native) (by evm_ov)
+  have rd3651 := rd3650.swap3 (by decide +native) (by evm_ov)
+  have rd3652 := rd3651.swap1 (by decide +native) (by evm_ov)
+  have rd3653 := rd3652.swap2 (by decide +native) (by evm_ov)
+  have rd3654 := rd3653.and (by decide +native) (by evm_ov)
+  have rd3655 := rd3654.swap4 (by decide +native) (by evm_ov)
+  have rd3656 := rd3655.pop (by decide +native) (by evm_ov)
+  have rd3657 := rd3656.push4 ⟨2746363844⟩ (by decide +native) (by evm_ov)
+  have rd3662 := rd3657.swap3 (by decide +native) (by evm_ov)
+  have rd3663 := rd3662.push1 ⟨36⟩ (by decide +native) (by evm_ov)
+  have rd3665 := rd3663.dup1 (by decide +native) (by evm_ov)
+  have rd3666 := rd3665.dup4 (by decide +native) (by evm_ov)
+  have rd3667 := rd3666.add (by decide +native) (by evm_ov)
   rw [show (⟨128⟩ : UInt256) + ⟨36⟩ = ⟨164⟩ from by decide] at rd3667
-  have rd3668 := rd3667.swap4 (by native_decide) (by evm_ov)
-  have rd3669 := rd3668.swap2 (by native_decide) (by evm_ov)
-  have rd3670 := rd3669.swap3 (by native_decide) (by evm_ov)
-  have rd3671 := rd3670.dup3 (by native_decide) (by evm_ov)
-  have rd3672 := rd3671.swap1 (by native_decide) (by evm_ov)
-  have rd3673 := rd3672.sub (by native_decide) (by evm_ov)
+  have rd3668 := rd3667.swap4 (by decide +native) (by evm_ov)
+  have rd3669 := rd3668.swap2 (by decide +native) (by evm_ov)
+  have rd3670 := rd3669.swap3 (by decide +native) (by evm_ov)
+  have rd3671 := rd3670.dup3 (by decide +native) (by evm_ov)
+  have rd3672 := rd3671.swap1 (by decide +native) (by evm_ov)
+  have rd3673 := rd3672.sub (by decide +native) (by evm_ov)
   rw [show UInt256.sub ⟨128⟩ ⟨128⟩ = ⟨0⟩ from by decide] at rd3673
-  have rd3674 := rd3673.add (by native_decide) (by evm_ov)
+  have rd3674 := rd3673.add (by decide +native) (by evm_ov)
   rw [show (⟨0⟩ : UInt256) + ⟨36⟩ = ⟨36⟩ from by decide] at rd3674
-  have rd3675 := rd3674.dup2 (by native_decide) (by evm_ov)
-  have rd3676 := rd3675.dup4 (by native_decide) (by evm_ov)
-  have rd3677 := rd3676.dup8 (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd3677.dup1 (by native_decide) (by evm_ov)⟩
+  have rd3675 := rd3674.dup2 (by decide +native) (by evm_ov)
+  have rd3676 := rd3675.dup4 (by decide +native) (by evm_ov)
+  have rd3677 := rd3676.dup8 (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd3677.dup1 (by decide +native) (by evm_ov)⟩
 
 
 /-! ### hope guard + void CALL (⟨3679⟩ → ⟨3695⟩) + epilogue → `RDret` -/
@@ -552,17 +552,17 @@ theorem RD.catFileIlkFlipHopePostCall {cA gh bl σ σ₀ A I} {g : Sat256} {flip
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, k1, C1, rd3694⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3679⟩) (okPc := ⟨3691⟩) rd hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   obtain ⟨cA'', σ'', z, out, A_in, callGas, k', C', hΘpack, rd3695raw, houtsz⟩ :=
-    RD.call rd3694 (by native_decide) hdepth (by evm_ov)
+    RD.call rd3694 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A'', hΘ⟩ := hΘpack
   refine ⟨cA'', σ'', z, out, A'', k', C', ?_, ?_, houtsz⟩
   · have haw :
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           (⟨128⟩ : UInt256).toNat (⟨36⟩ : UInt256).toNat) (⟨128⟩ : UInt256).toNat
-          (⟨0⟩ : UInt256).toNat) = UInt256.ofNat 6 := by native_decide
+          (⟨0⟩ : UInt256).toNat) = UInt256.ofNat 6 := by decide +native
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := rfl
     have rd3695 : RD catBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨3695⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨164⟩ :: ⟨2746363844⟩ :: fifVat2M σ' I :: flip ::
@@ -596,9 +596,9 @@ theorem RD.catFileIlkFlipHopeNoCode {cA gh bl σ σ₀ A I} {g : Sat256} {flip r
     (hcodeSize : Reasoning.Theory.extCodeSizeWord σ' (fifVat2M σ' I) = ⟨0⟩) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3679⟩) (okPc := ⟨3691⟩) rd hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.catFileIlkFlipHopeCallFailure {cA gh bl σ σ₀ A I} {g : Sat256}
     {flip ret sel : UInt256} {mem rdata : ByteArray} {aw : UInt256}
@@ -610,9 +610,9 @@ theorem RD.catFileIlkFlipHopeCallFailure {cA gh bl σ σ₀ A I} {g : Sat256}
     (hrdataSize : rdata.size < UInt256.size) :
     RDrev catBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3695⟩) (okPc := ⟨3711⟩) rd rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp)
 
 theorem RD.catFileIlkFlipHopeCallSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -626,19 +626,19 @@ theorem RD.catFileIlkFlipHopeCallSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rd3713⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨3695⟩) (okPc := ⟨3711⟩) rd
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide) (by simp)
-  have rd3714 := rd3713.pop (by native_decide) (by evm_ov)
-  have rd3715 := rd3714.pop (by native_decide) (by evm_ov)
-  have rd3716 := rd3715.pop (by native_decide) (by evm_ov)
-  have rd3719 := rd3716.push2 ⟨1030⟩ (by native_decide) (by evm_ov)
-  have rd1030 := rd3719.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd1031 := rd1030.jumpdest (by native_decide) (by evm_ov)
-  have rd1032 := rd1031.pop (by native_decide) (by evm_ov)
-  have rd1033 := rd1032.pop (by native_decide) (by evm_ov)
-  have rd1034 := rd1033.pop (by native_decide) (by evm_ov)
-  have rd302 := rd1034.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd303 := rd302.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd303 (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native) (by simp)
+  have rd3714 := rd3713.pop (by decide +native) (by evm_ov)
+  have rd3715 := rd3714.pop (by decide +native) (by evm_ov)
+  have rd3716 := rd3715.pop (by decide +native) (by evm_ov)
+  have rd3719 := rd3716.push2 ⟨1030⟩ (by decide +native) (by evm_ov)
+  have rd1030 := rd3719.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd1031 := rd1030.jumpdest (by decide +native) (by evm_ov)
+  have rd1032 := rd1031.pop (by decide +native) (by evm_ov)
+  have rd1033 := rd1032.pop (by decide +native) (by evm_ov)
+  have rd1034 := rd1033.pop (by decide +native) (by evm_ov)
+  have rd302 := rd1034.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd303 := rd302.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd303 (by decide +native) (by simp)
 
 end Benchmarks.Dss.Cat

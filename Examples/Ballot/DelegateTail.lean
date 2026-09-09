@@ -1524,7 +1524,7 @@ theorem ballotDelegateX_loopExitFrom972Current {cA gh bl σ σ₀ A I} {g : Sat2
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, solcAddrMask, initState,
         u256_add_comm] using rd1002₀⟩
   have rd1005 := evm_run rd1002 with [push2 ⟨256⟩, swap1]
-  have rd1006 := RD.div rd1005 (by native_decide) (by norm_num)
+  have rd1006 := RD.div rd1005 (by decide +native) (by norm_num)
   have rd1008 := evm_run rd1006 with [and, iszero]
   have hzero :
       UInt256.isZero
@@ -1582,7 +1582,7 @@ theorem ballotDelegateX_loopContinueFrom972Current {cA gh bl σ σ₀ A I} {g : 
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, solcAddrMask, initState,
         u256_add_comm] using rd1002₀⟩
   have rd1005 := evm_run rd1002 with [push2 ⟨256⟩, swap1]
-  have rd1006 := RD.div rd1005 (by native_decide) (by norm_num)
+  have rd1006 := RD.div rd1005 (by decide +native) (by norm_num)
   have rd1008 := evm_run rd1006 with [and, iszero]
   have hnonzero :
       UInt256.isZero
@@ -1629,7 +1629,7 @@ theorem ballotDelegateX_loopContinueFrom972Current {cA gh bl σ σ₀ A I} {g : 
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, initState, u256_add_comm]
         using rd1042₀⟩
   have rd1045 := evm_run rd1042 with [push2 ⟨256⟩, swap1]
-  have rd1046 := RD.div rd1045 (by native_decide) (by norm_num)
+  have rd1046 := RD.div rd1045 (by decide +native) (by norm_num)
   have rd1054 := evm_run rd1046 with [swap1, swap2, and, swap1, caller, dup3, sub]
   have hdiff :
       UInt256.sub
@@ -1691,7 +1691,7 @@ theorem ballotDelegateX_loopSenderRevertTailFrom972Current {cA gh bl σ σ₀ A 
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, solcAddrMask, initState,
         u256_add_comm] using rd1002₀⟩
   have rd1005 := evm_run rd1002 with [push2 ⟨256⟩, swap1]
-  have rd1006 := RD.div rd1005 (by native_decide) (by norm_num)
+  have rd1006 := RD.div rd1005 (by decide +native) (by norm_num)
   have rd1008 := evm_run rd1006 with [and, iszero]
   have hnonzero :
       UInt256.isZero
@@ -1738,7 +1738,7 @@ theorem ballotDelegateX_loopSenderRevertTailFrom972Current {cA gh bl σ σ₀ A 
       simpa [delegateVoterPackedWord, delegateVoterPackedSlot, initState, u256_add_comm]
         using rd1042₀⟩
   have rd1045 := evm_run rd1042 with [push2 ⟨256⟩, swap1]
-  have rd1046 := RD.div rd1045 (by native_decide) (by norm_num)
+  have rd1046 := RD.div rd1045 (by decide +native) (by norm_num)
   have rd1054 := evm_run rd1046 with [swap1, swap2, and, swap1, caller, dup3, sub]
   have hdiff :
       UInt256.sub
@@ -2610,7 +2610,7 @@ theorem ballotDelegateTailNotVotedSuccessEquiv
       (delegateTailFalseSuccessState_EVMStateEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) hAccounts w)
-      (returnEquiv.fallthrough rfl rfl (by native_decide))
+      (returnEquiv.fallthrough rfl rfl (by decide +native))
 
 theorem ballotDelegateTailNotVotedOverflowEquiv
     {cA gh bl σ_evm σ_solm σ₀ A I}
@@ -2780,7 +2780,7 @@ theorem ballotDelegateTailVotedSuccessEquiv
       (delegateTailTrueSuccessState_EVMStateEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) hAccounts w)
-      (returnEquiv.fallthrough rfl rfl (by native_decide))
+      (returnEquiv.fallthrough rfl rfl (by decide +native))
 
 theorem ballotDelegateTailVotedOobEquiv
     {cA gh bl σ_evm σ_solm σ₀ A I}

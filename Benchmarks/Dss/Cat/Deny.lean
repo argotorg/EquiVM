@@ -46,7 +46,7 @@ theorem catDispatch_deny {I : ExecutionEnv}
     all_goals
       simp [selectorOf, biteSelectorBytes, boxSelectorBytes, cageSelectorBytes,
         clawSelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, denySelectorBytes]
     exact hsel
 
@@ -73,25 +73,25 @@ theorem catReachDenyBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : catSelWord I = ⟨2622662641⟩ :=
     catSelWord_eq_of_beq I hsz 0x9c 0x52 0xa7 0xf1 ⟨2622662641⟩
-      (by native_decide) hsel
+      (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat catBytecode catHighSplitPc) (catSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catHighLowFirstArmPc j))
         (catSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catHighLowFirstArmPc 1))
         (catSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact catReachHighLowBody 1 (by omega) ⟨507⟩ hcode hwv hsz hsize hroot hhigh heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 /-! ### Body core -/
 
@@ -121,16 +121,16 @@ theorem catDenyBodyCore
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := catBytecode) (sel := sel) (entry := ⟨507⟩) (ret := ⟨302⟩)
     (decoded := ⟨529⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcOneAddressExternalMaskAndJumpMasked
     (code := catBytecode) (decoded := ⟨529⟩) (ret := ⟨302⟩) (routine := ⟨2941⟩)
     (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by jump_dest) (by simp)
   by_cases hauthEvm : catSlotWord callerSlot σ_evm I = ⟨1⟩
   · have hauthSolm : catSlotWord callerSlot σ_solm I = ⟨1⟩ := by
       rw [← hcallerWord]
@@ -184,7 +184,7 @@ theorem catDenyBodyCore
       (by simpa [key, denyKey] using hroutine)
       (by
         unfold catAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by jump_dest) (by simp)
     have hmemAuth :
         (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -198,14 +198,14 @@ theorem catDenyBodyCore
       hokPc
       (by
         unfold catDenyStoreZeroWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by jump_dest) hperm hmemAuth hcanonKey (by simp)
-    have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+    have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
     have hret :
         RDret catBytecode (Sat256.ofUInt256 g)
           (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
           (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨0⟩) ByteArray.empty := by
-      simpa [slot] using RD.stop hretPc' (by native_decide) (by simp)
+      simpa [slot] using RD.stop hretPc' (by decide +native) (by simp)
     have hcreated :
         (cA, sstoreAccountMap I.codeOwner σ_evm slot ⟨0⟩).1 = evm1.createdAccounts := by
       simp [evm1, evm0, initState, storageStore_createdAccounts]
@@ -216,7 +216,7 @@ theorem catDenyBodyCore
         accountMapEquiv_sstoreAccountMap I.codeOwner slot ⟨0⟩ hAccounts
     have henc : returnEquiv ByteArray.empty none denyTransition.returnType := by
       rw [show denyTransition.returnType = [] by rfl]
-      exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+      exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
     exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
       hcreated haccounts henc
   · have hauthSolm : catSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
@@ -245,10 +245,10 @@ theorem catDenyBodyCore
       (by simpa [key, denyKey] using hroutine)
       (by
         unfold catAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by
         unfold solcErrorStringRevertTailWf catAuthTailPc catNotAuthorizedRawWord
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -272,10 +272,10 @@ theorem catDenyShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := catBytecode) (sel := catSelWord I) (entry := ⟨507⟩) (ret := ⟨302⟩)
     (decoded := ⟨529⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode (catDispatch_deny hsel)
     (catDecode_deny_none_short hsz4 hshort)
 
@@ -288,7 +288,7 @@ theorem catDenyBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩ (by native_decide) hsel
+    calldata_size_ge_of_selIs I ⟨#[0x9c, 0x52, 0xa7, 0xf1]⟩ (by decide +native) hsel
   by_cases hshort : I.calldata.size < 36
   · exact catDenyShort hcode hsize hperm hwv hsz hshort hsel hAccounts
   · have hsz36 : 36 ≤ I.calldata.size := by omega

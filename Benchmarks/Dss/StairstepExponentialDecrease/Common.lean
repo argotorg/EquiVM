@@ -172,11 +172,11 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
   have rd6 := rd5.dup2 hd5 (by evm_ov)
   have rd7 := rd6.swap1 hd6 (by evm_ov)
   have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨0⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd9 := rd8.swap1 hd8 (by evm_ov)
   have rd10 := rd9.dup2 hd9 (by evm_ov)
   have rd11 := rd10.mstore 0 (solcMappingHashMem ⟨0⟩ key)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd13 := rd11.push1 ⟨64⟩ hd11 (by evm_ov)
   have rd14 := rd13.swap1 hd13 (by evm_ov)
   have hslot := solcMappingKeccakSlot ⟨0⟩ key
@@ -184,7 +184,7 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
     (UInt256.ofNat 3) hd14 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd16⟩ := rd15.sload hd15 (by evm_ov)
   have rd17 := rd16.dup2 hd16 (by evm_ov)
   exact ⟨_, _, rd17.jump hd17 hret (by evm_ov)⟩
@@ -327,7 +327,7 @@ theorem stairstepAuthErrorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
   rw [show 196 = (solcErrorStringMem2 (⟨43⟩ : UInt256) mem).size by
     rw [solcErrorStringMem2_size (⟨43⟩ : UInt256) hmem]]
   rw [write_end_size_from stairstepExponentialDecreaseBytecode
-    (solcErrorStringMem2 (⟨43⟩ : UInt256) mem) 1287 43 (by decide) (by native_decide)]
+    (solcErrorStringMem2 (⟨43⟩ : UInt256) mem) 1287 43 (by decide) (by decide +native)]
   rw [solcErrorStringMem2_size (⟨43⟩ : UInt256) hmem]
 
 theorem stairstepAuthErrorMem_read64 {mem : ByteArray}
@@ -340,7 +340,7 @@ theorem stairstepAuthErrorMem_read64 {mem : ByteArray}
     rw [solcErrorStringMem2_size (⟨43⟩ : UInt256) hmem]]
   rw [write_read_below_end_from stairstepExponentialDecreaseBytecode
     (solcErrorStringMem2 (⟨43⟩ : UInt256) mem) 1287 43 64 (by decide)
-    (by native_decide)
+    (by decide +native)
     (by rw [solcErrorStringMem2_size (⟨43⟩ : UInt256) hmem]; omega)]
   exact solcErrorStringMem2_read64 (⟨43⟩ : UInt256) hmem hread64
 
@@ -508,7 +508,7 @@ theorem RD.stairstepAuthCodecopyRevertTail {g : Sat256} {s0 : State}
     raw push1 ⟨43⟩ hd36 (by simp only [List.length_cons]; omega),
     raw swap2 hd38 (by simp only [List.length_cons]; omega),
     raw codecopy 3 (stairstepAuthErrorMem mem) (UInt256.ofNat 8)
-      hd39 mem_cost hcopy (by native_decide) (by evm_ov)]
+      hd39 mem_cost hcopy (by decide +native) (by evm_ov)]
   exact evm_run rdCopy with [
     raw push1 ⟨64⟩ hd40 (by evm_ov),
     raw add hd42 (by evm_ov),
@@ -746,12 +746,12 @@ theorem RD.stairstepCodecopyRevertTail {g : Sat256} {s0 : State}
           List.getElem!_cons_zero, List.getElem!_cons_succ]
         simpa [show
           ({ val := 32 } + ({ val := 32 } + ({ val := 4 } + { val := 128 })) : UInt256).toNat =
-            196 by native_decide] using hmcost)
+            196 by decide +native] using hmcost)
       hcopy
       (by
         simpa [show
           ({ val := 32 } + ({ val := 32 } + ({ val := 4 } + { val := 128 })) : UInt256).toNat =
-            196 by native_decide] using hawout)
+            196 by decide +native] using hawout)
       (by evm_ov)]
   exact evm_run rdCopy with [
     raw push1 ⟨64⟩ hd40 (by evm_ov),

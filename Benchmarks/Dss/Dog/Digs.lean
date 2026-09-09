@@ -846,27 +846,27 @@ theorem dogReachDigsBody {v : DogImmutables} {code : ByteArray}
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hword : solcSelectorWord I = ⟨0xc87193f4⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xc8 0x71 0x93 0xf4 ⟨0xc87193f4⟩
-      (by native_decide) (by simpa [dogSelBytes] using hsel)
+      (by decide +native) (by simpa [dogSelBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
     dogReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hpatch hcode hwv hsz hsize
   have hrootWidth : armTgtWidth code (⟨32⟩ : UInt256) = 2 := by
     dsimp [armTgtWidth]
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPushTgtPc (⟨32⟩ : UInt256))
-      hpatch (by native_decide)]
-    native_decide
+      hpatch (by decide +native)]
+    decide +native
   have hhighTgt : armTgt code (⟨43⟩ : UInt256) = ⟨113⟩ := by
     dsimp [armTgt]
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPushTgtPc (⟨43⟩ : UInt256))
-      hpatch (by native_decide)]
-    native_decide
+      hpatch (by decide +native)]
+    decide +native
   have hroot :
       UInt256.gt (armSelNat code (⟨32⟩ : UInt256)) (solcSelectorWord I) = ⟨0⟩ := by
     rw [hword]
     dsimp [armSelNat]
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨32⟩ : UInt256))
-      hpatch (by native_decide)]
-    native_decide
+      hpatch (by decide +native)]
+    decide +native
   have h43 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨43⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ) (k32 + 5) (C32 + 22) := by
@@ -877,8 +877,8 @@ theorem dogReachDigsBody {v : DogImmutables} {code : ByteArray}
     rw [hword]
     dsimp [armSelNat]
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨43⟩ : UInt256))
-      hpatch (by native_decide)]
-    native_decide
+      hpatch (by decide +native)]
+    decide +native
   have h113 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨113⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
@@ -886,88 +886,88 @@ theorem dogReachDigsBody {v : DogImmutables} {code : ByteArray}
       RD.selectorSplitTakenAuto h43 (dogHighSplitWellFormed hpatch) hhigh
         (by
           rw [hhighTgt]
-          exact dogPatchedDJumpPrefix1405 ⟨113⟩ hpatch (by native_decide))
+          exact dogPatchedDJumpPrefix1405 ⟨113⟩ hpatch (by decide +native))
         (by simp)
   have h114 := h113.jumpdest
     (by
-      rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+      decide +native)
     (by simp only [List.length_singleton]; omega)
   have hhole : UInt256.eq (dogSelectorWord 1) (solcSelectorWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have h125 := by
     simpa [selArmNextPc] using
       h114.selectorArmNotTaken (selNat := dogSelectorWord 1) (tgt := (⟨504⟩ : UInt256))
         (width := 2) (op := .PUSH2)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by decide)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         hhole
         (by simp)
   have hwards : UInt256.eq (dogSelectorWord 16) (solcSelectorWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have h136 := by
     simpa [selArmNextPc] using
       h125.selectorArmNotTaken (selNat := dogSelectorWord 16) (tgt := (⟨512⟩ : UInt256))
         (width := 2) (op := .PUSH2)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by decide)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         hwards
         (by simp)
   have hdigs : UInt256.eq (dogSelectorWord 6) (solcSelectorWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have h550 := by
     simpa using
       h136.selectorArmTaken (selNat := dogSelectorWord 6) (tgt := (⟨550⟩ : UInt256))
         (width := 2) (op := .PUSH2)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by decide)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         hdigs
-        (dogPatchedDJumpPrefix1405 ⟨550⟩ hpatch (by native_decide))
+        (dogPatchedDJumpPrefix1405 ⟨550⟩ hpatch (by decide +native))
         (by simp)
   exact ⟨_, _, h550⟩
 
@@ -983,37 +983,37 @@ theorem RD.dogDigsDecodeToRoutine {v : DogImmutables} {code : ByteArray}
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   have rd573 := h.jumpdest
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd574 := rd573.pop
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd575 := rd574.dup1
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd576 := rd575.calldataload
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd577 := rd576.swap1
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd579 := rd577.push1 ⟨32⟩
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd580 := rd579.add
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd581 := rd580.calldataload
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd584 := rd581.push2 ⟨1936⟩
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   exact ⟨_, _, by
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide,
       show (⟨36⟩ : UInt256).toNat = 36 from by decide]
       using rd584.jump
-        (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+        (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
         hroutine (by evm_ov)⟩
 
 theorem RD.dogDigsToSwitch {v : DogImmutables} {code : ByteArray}
@@ -1032,22 +1032,22 @@ theorem RD.dogDigsToSwitch {v : DogImmutables} {code : ByteArray}
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := code) (sel := sel) (entry := ⟨550⟩) (ret := ⟨313⟩)
     (decoded := ⟨572⟩) hreach
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (dogPatchedDJumpPrefix1405 ⟨572⟩ hpatch (by native_decide)) hsz68 hsize
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (dogPatchedDJumpPrefix1405 ⟨572⟩ hpatch (by decide +native)) hsz68 hsize
   obtain ⟨_, _, hroutine⟩ := RD.dogDigsDecodeToRoutine
     (v := v) (code := code) (ret := ⟨313⟩) (sel := sel) (R := [])
-    hpatch hdecoded (dogPatchedJumpDest hpatch (by native_decide)) (by simp)
+    hpatch hdecoded (dogPatchedJumpDest hpatch (by decide +native)) (by simp)
   obtain ⟨_, _, hafterAuth⟩ := RD.dogAuthCheckOk
     (code := code) (pc := ⟨1936⟩) (okPc := ⟨2025⟩)
     (key := digsRad I) (ret := digsIlkWord I) (R := [⟨313⟩, sel])
@@ -1056,9 +1056,9 @@ theorem RD.dogDigsToSwitch {v : DogImmutables} {code : ByteArray}
       unfold dogAuthCheckWf
       repeat' first
         | apply And.intro
-        | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
-    hauth (dogPatchedJumpDest hpatch (by native_decide)) (by simp)
+        | rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
+    hauth (dogPatchedJumpDest hpatch (by decide +native)) (by simp)
   exact ⟨_, _, hafterAuth⟩
 
 theorem RD.dogDigsAuthRevert {v : DogImmutables} {code : ByteArray}
@@ -1074,22 +1074,22 @@ theorem RD.dogDigsAuthRevert {v : DogImmutables} {code : ByteArray}
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := code) (sel := sel) (entry := ⟨550⟩) (ret := ⟨313⟩)
     (decoded := ⟨572⟩) hreach
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (dogPatchedDJumpPrefix1405 ⟨572⟩ hpatch (by native_decide)) hsz68 hsize
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (dogPatchedDJumpPrefix1405 ⟨572⟩ hpatch (by decide +native)) hsz68 hsize
   obtain ⟨_, _, hroutine⟩ := RD.dogDigsDecodeToRoutine
     (v := v) (code := code) (ret := ⟨313⟩) (sel := sel) (R := [])
-    hpatch hdecoded (dogPatchedJumpDest hpatch (by native_decide)) (by simp)
+    hpatch hdecoded (dogPatchedJumpDest hpatch (by decide +native)) (by simp)
   exact RD.dogAuthCheckRevert
     (code := code) (pc := ⟨1936⟩) (okPc := ⟨2025⟩)
     (key := digsRad I) (ret := digsIlkWord I) (R := [⟨313⟩, sel])
@@ -1098,14 +1098,14 @@ theorem RD.dogDigsAuthRevert {v : DogImmutables} {code : ByteArray}
       unfold dogAuthCheckWf
       repeat' first
         | apply And.intro
-        | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+        | rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
     (by
       unfold solcErrorStringRevertTailWf dogAuthTailPc dogNotAuthorizedRawWord
       repeat' first
         | apply And.intro
-        | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+        | rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
     hauth (by simp)
 
 @[reducible] def solcCheckedSubEmptyRevertWf
@@ -1176,41 +1176,41 @@ theorem RD.dogDigsFirstSubUnderflow {v : DogImmutables} {code : ByteArray}
   let dirt := solcSlotWord σ ee ⟨5⟩
   have rd2026 := h.jumpdest
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd2029 := rd2026.push2 ⟨2037⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd2031 := rd2029.push1 ⟨5⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   obtain ⟨_, _, rd2032Raw⟩ := rd2031.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd2032 := by
     simpa [dirt, solcSlotWord] using rd2032Raw
   have rd2033 := rd2032.dup3
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd2036 := rd2033.push2 ⟨4542⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd4542 := rd2036.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide))
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native))
     (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
     (code := code) (pc := ⟨4542⟩) (okPc := ⟨4558⟩)
@@ -1221,8 +1221,8 @@ theorem RD.dogDigsFirstSubUnderflow {v : DogImmutables} {code : ByteArray}
       unfold solcCheckedSubEmptyRevertWf solcCheckedSubSuccessWf
       repeat' first
         | apply And.intro
-        | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+        | rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
     (by simpa [dirt, dogSlotWord] using hlt)
     (by simp only [List.length_cons]; omega)
 
@@ -1248,41 +1248,41 @@ theorem RD.dogDigsToSecondSubRoutine {v : DogImmutables} {code : ByteArray}
   intro dirt0 dirtNew σ1 slot ilkDirt0
   have rd2026 := h.jumpdest
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd2029 := rd2026.push2 ⟨2037⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd2031 := rd2029.push1 ⟨5⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   obtain ⟨_, _, rd2032Raw⟩ := rd2031.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd2032 := by
     simpa [dirt0, dogSlotWord, solcSlotWord] using rd2032Raw
   have rd2033 := rd2032.dup3
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd2036 := rd2033.push2 ⟨4542⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd4542First := rd2036.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide))
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native))
     (by evm_ov)
   obtain ⟨_, _, rd2037⟩ := RD.solcCheckedSubSuccess
     (code := code) (pc := ⟨4542⟩) (okPc := ⟨4558⟩)
@@ -1293,68 +1293,68 @@ theorem RD.dogDigsToSecondSubRoutine {v : DogImmutables} {code : ByteArray}
       unfold solcCheckedSubSuccessWf
       repeat' first
         | apply And.intro
-        | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+        | rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
     (by simpa [dirt0, dogSlotWord] using hle)
-    (dogPatchedJumpDest hpatch (by native_decide))
-    (dogPatchedJumpDest hpatch (by native_decide))
+    (dogPatchedJumpDest hpatch (by decide +native))
+    (dogPatchedJumpDest hpatch (by decide +native))
     (by simp only [List.length_cons]; omega)
   have rd2038 := rd2037.jumpdest
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd2040 := rd2038.push1 ⟨5⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   obtain ⟨_, _, rd2041Raw⟩ := rd2040.sstore hperm
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd2041 := by
     simpa [dirt0, dirtNew, σ1] using rd2041Raw
   have rdMstore0Prefix := evm_run rd2041 with [
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdAfterKey := rdMstore0Prefix.mstore 0 (wordAt0Mem ilk mem)
     (UInt256.ofNat 3)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    mem_cost (by rfl) (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem ilk ⟨1⟩ mem)
     (UInt256.ofNat 3)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    mem_cost (by rfl) (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    mem_cost (by rfl) (by decide +native) (by evm_ov)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem ilk ⟨1⟩ mem).readWithPadding 0 64))) =
@@ -1363,64 +1363,64 @@ theorem RD.dogDigsToSecondSubRoutine {v : DogImmutables} {code : ByteArray}
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨1⟩ ilk)
     (UInt256.ofNat 3)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    mem_cost hslot (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    mem_cost hslot (by decide +native) (by evm_ov)
   have rdSlotPlus := evm_run rdSlot with [
     raw push1 ⟨3⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨_, _, rdLoadedRaw⟩ := rdSlotPlus.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rdLoaded := by
     simpa [slot, ilkDirt0, dogSlotWord, solcSlotWord] using rdLoadedRaw
   have rdJump := evm_run rdLoaded with [
     raw push2 ⟨2068⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4542⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, rdJump.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide))
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native))
     (by evm_ov)⟩
 
 theorem RD.dogDigsSecondSubUnderflow {v : DogImmutables} {code : ByteArray}
@@ -1456,8 +1456,8 @@ theorem RD.dogDigsSecondSubUnderflow {v : DogImmutables} {code : ByteArray}
       unfold solcCheckedSubEmptyRevertWf solcCheckedSubSuccessWf
       repeat' first
         | apply And.intro
-        | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+        | rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
     (by simpa [dirt0, dirtNew, σ1, slot, ilkDirt0] using hIlkLt)
     (by simp only [List.length_cons]; omega)
 
@@ -1490,66 +1490,66 @@ theorem RD.dogDigsSecondSubSuccessStoreLog {v : DogImmutables} {code : ByteArray
       unfold solcCheckedSubSuccessWf
       repeat' first
         | apply And.intro
-        | rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+        | rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
     hle
-    (dogPatchedJumpDest hpatch (by native_decide))
-    (dogPatchedJumpDest hpatch (by native_decide))
+    (dogPatchedJumpDest hpatch (by decide +native))
+    (dogPatchedJumpDest hpatch (by decide +native))
     (by simp only [List.length_cons]; omega)
   have rd2069 := rd2068.jumpdest
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rdMstore0Prefix := evm_run rd2069 with [
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdAfterKey := rdMstore0Prefix.mstore 0 (wordAt0Mem ilk mem)
     (UInt256.ofNat 3)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    mem_cost (by rfl) (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem ilk ⟨1⟩ mem)
     (UInt256.ofNat 3)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    mem_cost (by rfl) (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    mem_cost (by rfl) (by decide +native) (by evm_ov)
   have hhashSize : (twoWordHashMem ilk ⟨1⟩ mem).size = 96 :=
     twoWordHashMem_size_96 ilk ⟨1⟩ hmem
   have hhashRead64 :
@@ -1564,185 +1564,185 @@ theorem RD.dogDigsSecondSubSuccessStoreLog {v : DogImmutables} {code : ByteArray
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨1⟩ ilk)
     (UInt256.ofNat 3)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    mem_cost hslot (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    mem_cost hslot (by decide +native) (by evm_ov)
   have rdBeforeStore := evm_run rdSlot with [
     raw push1 ⟨3⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨_, _, rdAfterStoreRaw⟩ := rdBeforeStore.sstore hperm
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rdAfterStore := by
     simpa [ilkDirtNew, slot] using rdAfterStoreRaw
   have rdMloadPrefix := evm_run rdAfterStore with [
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdMload := rdMloadPrefix.mload 0 ⟨128⟩ (UInt256.ofNat 3)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (mloadFreePtrValue (by rw [hhashSize]; decide) (by decide) hhashRead64)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rdMstorePrefix := evm_run rdMload with [
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdMstore := rdMstorePrefix.mstore 6
     (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 rad) (UInt256.ofNat 5)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    mem_cost (by rfl) (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    mem_cost (by rfl) (by decide +native) (by evm_ov)
   have hread64' :
       (writeWord (twoWordHashMem ilk ⟨1⟩ mem) 128 rad).readWithPadding 64 32 =
         UInt256.toByteArray ⟨128⟩ := by
     rw [writeWord_read_preserved (twoWordHashMem ilk ⟨1⟩ mem) 128 64 rad
-      (by rw [hhashSize]; native_decide)
+      (by rw [hhashSize]; decide +native)
       (Or.inl ⟨by norm_num, by rw [hhashSize]⟩)]
     exact hhashRead64
   have rdMload2Prefix := rdMstore.swap1
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rdMload2 := rdMload2Prefix.mload 0 ⟨128⟩ (UInt256.ofNat 5)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (mloadFreePtrValue
       (by
         have hsz := writeWord_size (twoWordHashMem ilk ⟨1⟩ mem) 128 rad
-          (by rw [hhashSize]; native_decide)
+          (by rw [hhashSize]; decide +native)
         rw [hsz, hhashSize]
         decide)
       (by decide) hread64')
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rdTopicStack := evm_run rdMload2 with [
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdTopic := rdTopicStack.pushConst dogDigsLogTopic
     (width := 32) (op := .PUSH32) (by decide)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdLogStack := evm_run rdTopic with [
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdLog := RD.log2 0 (UInt256.ofNat 5) rdLogStack
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hperm mem_cost (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hperm mem_cost (by decide +native) (by evm_ov)
   have rdPop1 := rdLog.pop
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rdPop2 := rdPop1.pop
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   exact ⟨_, _, rdPop2.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hret
     (by evm_ov)⟩
 
@@ -1841,20 +1841,20 @@ theorem RD.dogDigsSuccess {v : DogImmutables} {code : ByteArray}
     (ret := ⟨313⟩) (sel := sel) (ilkDirt0 := ilkDirt0) (R := [])
     hpatch
     (by simpa [dirt0, dirtNew, σ1, slot, ilkDirt0] using hsecond)
-    (dogPatchedDJumpPrefix1405 ⟨313⟩ hpatch (by native_decide))
+    (dogPatchedDJumpPrefix1405 ⟨313⟩ hpatch (by decide +native))
     hperm hmemSecond hread64Second
     (by simpa [dirt0, dirtNew, σ1, slot, ilkDirt0] using hIlkLe)
     (by simp)
   have hretPc' := hretPc.jumpdest
     (by
-      rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+      decide +native)
     (by evm_ov)
   exact RD.stop hretPc'
     (by
       change decode code (⟨314⟩ : UInt256) = some (.STOP, .none)
-      rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+      decide +native)
     (by simp only [List.length_singleton]; omega)
 
 theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
@@ -1896,7 +1896,7 @@ theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
       accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨5⟩ ⟨0⟩
     have henc : returnEquiv ByteArray.empty none digsTransition.returnType := by
       rw [show digsTransition.returnType = [] by rfl]
-      exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+      exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
     by_cases hauthEvm : dogSlotWord callerSlot σ_evm I = ⟨1⟩
     · have hauthSolm : dogSlotWord callerSlot σ_solm I = ⟨1⟩ := by
         rw [← hcallerWord]
@@ -2050,21 +2050,21 @@ theorem dogDigsBodyCore {v : DogImmutables} {code : ByteArray}
     have hrev := RD.solcExternalStaticArgsShortReverts
       (code := code) (sel := solcSelectorWord I) (entry := ⟨550⟩) (ret := ⟨313⟩)
       (decoded := ⟨572⟩) (need := ⟨64⟩) hreach
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+      (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
       hlt
     exact hrev.reEquivDecodingFailed hcode hdispatch
       (dogDecode_digs_none_short (v := v) hsz4 hshort)

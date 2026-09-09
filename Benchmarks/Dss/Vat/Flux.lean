@@ -94,19 +94,19 @@ abbrev fluxStoreDstGemNew (I : ExecutionEnv) (srcGemNew dstGemNew : UInt256) : S
 theorem fluxStore_get_ilk (I : ExecutionEnv) :
     (fluxStore I).get? "ilk" = some (fluxIlkValue I) := by
   unfold fluxStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem fluxStore_get_src (I : ExecutionEnv) :
     (fluxStore I).get? "src" = some (fluxSrcValue I) := by
   unfold fluxStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem fluxStore_get_dst (I : ExecutionEnv) :
     (fluxStore I).get? "dst" = some (fluxDstValue I) := by
   unfold fluxStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem fluxStore_get_wad (I : ExecutionEnv) :
@@ -124,18 +124,18 @@ theorem fluxStore_index_src (I : ExecutionEnv) :
 theorem fluxStore_gem (I : ExecutionEnv) :
     (fluxStore I).get? "gem" = none := by
   unfold fluxStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem fluxStore_can (I : ExecutionEnv) :
     (fluxStore I).get? "can" = none := by
   unfold fluxStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem fluxStoreSrcGemNew_get_wad (I : ExecutionEnv) (srcGemNew : UInt256) :
     (fluxStoreSrcGemNew I srcGemNew).get? "wad" = some (fluxWadValue I) := by
-  rw [fluxStoreSrcGemNew, store_get_ne _ _ (by native_decide), fluxStore_get_wad]
+  rw [fluxStoreSrcGemNew, store_get_ne _ _ (by decide +native), fluxStore_get_wad]
 
 theorem fluxStoreSrcGemNew_get_srcGemNew (I : ExecutionEnv) (srcGemNew : UInt256) :
     (fluxStoreSrcGemNew I srcGemNew).get? "srcGemNew" =
@@ -144,15 +144,15 @@ theorem fluxStoreSrcGemNew_get_srcGemNew (I : ExecutionEnv) (srcGemNew : UInt256
 
 theorem fluxStoreSrcGemNew_get_ilk (I : ExecutionEnv) (srcGemNew : UInt256) :
     (fluxStoreSrcGemNew I srcGemNew).get? "ilk" = some (fluxIlkValue I) := by
-  rw [fluxStoreSrcGemNew, store_get_ne _ _ (by native_decide), fluxStore_get_ilk]
+  rw [fluxStoreSrcGemNew, store_get_ne _ _ (by decide +native), fluxStore_get_ilk]
 
 theorem fluxStoreSrcGemNew_get_dst (I : ExecutionEnv) (srcGemNew : UInt256) :
     (fluxStoreSrcGemNew I srcGemNew).get? "dst" = some (fluxDstValue I) := by
-  rw [fluxStoreSrcGemNew, store_get_ne _ _ (by native_decide), fluxStore_get_dst]
+  rw [fluxStoreSrcGemNew, store_get_ne _ _ (by decide +native), fluxStore_get_dst]
 
 theorem fluxStoreSrcGemNew_get_src (I : ExecutionEnv) (srcGemNew : UInt256) :
     (fluxStoreSrcGemNew I srcGemNew).get? "src" = some (fluxSrcValue I) := by
-  rw [fluxStoreSrcGemNew, store_get_ne _ _ (by native_decide), fluxStore_get_src]
+  rw [fluxStoreSrcGemNew, store_get_ne _ _ (by decide +native), fluxStore_get_src]
 
 theorem fluxStoreDstGemNew_get_dstGemNew (I : ExecutionEnv)
     (srcGemNew dstGemNew : UInt256) :
@@ -162,21 +162,21 @@ theorem fluxStoreDstGemNew_get_dstGemNew (I : ExecutionEnv)
 
 theorem fluxStoreDstGemNew_get_ilk (I : ExecutionEnv) (srcGemNew dstGemNew : UInt256) :
     (fluxStoreDstGemNew I srcGemNew dstGemNew).get? "ilk" = some (fluxIlkValue I) := by
-  rw [fluxStoreDstGemNew, store_get_ne _ _ (by native_decide),
+  rw [fluxStoreDstGemNew, store_get_ne _ _ (by decide +native),
     fluxStoreSrcGemNew_get_ilk]
 
 theorem fluxStoreDstGemNew_get_dst (I : ExecutionEnv) (srcGemNew dstGemNew : UInt256) :
     (fluxStoreDstGemNew I srcGemNew dstGemNew).get? "dst" = some (fluxDstValue I) := by
-  rw [fluxStoreDstGemNew, store_get_ne _ _ (by native_decide),
+  rw [fluxStoreDstGemNew, store_get_ne _ _ (by decide +native),
     fluxStoreSrcGemNew_get_dst]
 
 theorem fluxStoreSrcGemNew_gem (I : ExecutionEnv) (srcGemNew : UInt256) :
     (fluxStoreSrcGemNew I srcGemNew).get? "gem" = none := by
-  rw [fluxStoreSrcGemNew, store_get_ne _ _ (by native_decide), fluxStore_gem]
+  rw [fluxStoreSrcGemNew, store_get_ne _ _ (by decide +native), fluxStore_gem]
 
 theorem fluxStoreDstGemNew_gem (I : ExecutionEnv) (srcGemNew dstGemNew : UInt256) :
     (fluxStoreDstGemNew I srcGemNew dstGemNew).get? "gem" = none := by
-  rw [fluxStoreDstGemNew, store_get_ne _ _ (by native_decide),
+  rw [fluxStoreDstGemNew, store_get_ne _ _ (by decide +native),
     fluxStoreSrcGemNew_gem]
 
 theorem fluxIlkKeyWord_eq (I : ExecutionEnv) (hsz36 : 36 ≤ I.calldata.size) :
@@ -550,7 +550,7 @@ theorem fluxWishWord_true_src {σ : AccountMap} {I : ExecutionEnv}
   by_cases hcan : vatSlotWord (fluxWishSlot I) σ I = ⟨1⟩
   · unfold fluxWishWord
     rw [heq, hcan, u256_eq_refl, u256_eq_refl]
-    native_decide
+    decide +native
   · unfold fluxWishWord
     rw [heq, u256_eq_refl, u256_eq_of_ne hcan]
     rw [u256_lor_comm, u256_lor_zero]
@@ -562,7 +562,7 @@ theorem fluxWishWord_true_can {σ : AccountMap} {I : ExecutionEnv}
   by_cases hsrc : fluxSrcMaskedWord I = hopeSourceWord I
   · unfold fluxWishWord
     rw [hcan, hsrc, u256_eq_refl, u256_eq_refl]
-    native_decide
+    decide +native
   · unfold fluxWishWord
     rw [hcan, u256_eq_refl, u256_eq_of_ne hsrc]
     rw [u256_lor_zero]
@@ -590,22 +590,22 @@ theorem RD.vatFluxWishLoaded
         (twoWordHashMem (fluxSrcMaskedWord I) ⟨1⟩ solcFreePtrMem))
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd6557 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨2478⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push2 ⟨6557⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨2478⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push2 ⟨6557⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd6568raw := evm_run rd6557 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hmask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -617,23 +617,23 @@ theorem RD.vatFluxWishLoaded
   have rd6568 := rd6568raw
   rw [hmask] at rd6568
   have rd6573pre := evm_run rd6568 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6573 := rd6573pre.mstore 0 (wordAt0Mem (fluxSrcMaskedWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6580pre := evm_run rd6573 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6580 := rd6580pre.mstore 0
     (twoWordHashMem (fluxSrcMaskedWord I) ⟨1⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6585pre := evm_run rd6580 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (fluxSrcMaskedWord I) ⟨1⟩ solcFreePtrMem)
@@ -642,11 +642,11 @@ theorem RD.vatFluxWishLoaded
     twoWordHashMem_solcMappingSlot ⟨1⟩ (fluxSrcMaskedWord I) solcFreePtrMem_size
   have rd6585 := rd6585pre.keccak256 0
     (solcMappingSlot ⟨1⟩ (fluxSrcMaskedWord I)) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hinner (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hinner (by decide +native) (by evm_ov)
   have rd6588raw := evm_run rd6585 with [
-    raw swap6 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw swap6 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hcallerMask :
       UInt256.land (UInt256.ofNat I.source.val)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -661,22 +661,22 @@ theorem RD.vatFluxWishLoaded
   have rd6588 := rd6588raw
   rw [hcallerMask] at rd6588
   have rd6591pre := evm_run rd6588 with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov)]
   have rd6591 := rd6591pre.mstore 0
     (wordAt0Mem (hopeSourceWord I)
       (twoWordHashMem (fluxSrcMaskedWord I) ⟨1⟩ solcFreePtrMem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6595pre := evm_run rd6591 with [
-    raw swap6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw swap6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd6595 := rd6595pre.mstore 0
     (twoWordHashMem (hopeSourceWord I) (solcMappingSlot ⟨1⟩ (fluxSrcMaskedWord I))
       (twoWordHashMem (fluxSrcMaskedWord I) ⟨1⟩ solcFreePtrMem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6597pre := evm_run rd6595 with [
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw dup3 (by decide +native) (by evm_ov)]
   have houter :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (hopeSourceWord I)
@@ -688,8 +688,8 @@ theorem RD.vatFluxWishLoaded
       (hopeSourceWord I)
       (twoWordHashMem_size_96 (fluxSrcMaskedWord I) ⟨1⟩ solcFreePtrMem_size)
   have rd6597 := rd6597pre.keccak256 0 (fluxWishSlot I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost houter (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd6599raw⟩ := rd6597.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost houter (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd6599raw⟩ := rd6597.sload (by decide +native) (by evm_ov)
   exact ⟨_, _, by simpa [vatSlotWord, solcSlotWord] using rd6599raw⟩
 
 set_option maxHeartbeats 1000000 in
@@ -705,37 +705,37 @@ theorem RD.vatFluxWishBranchOk
       [fluxWadWord I, fluxDstMaskedWord I, fluxSrcMaskedWord I, fluxIlkWord I, ⟨524⟩, sel]
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd6608pre := evm_run h with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw push2 ⟨6612⟩ (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov)]
-  have rd6605 := rd6608pre.eq (by native_decide) (by evm_ov)
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw push2 ⟨6612⟩ (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov)]
+  have rd6605 := rd6608pre.eq (by decide +native) (by evm_ov)
   have rd6608mid := evm_run rd6605 with [
-    raw swap2 (by native_decide) (by evm_ov)]
-  have rd6608 := rd6608mid.eq (by native_decide) (by evm_ov)
+    raw swap2 (by decide +native) (by evm_ov)]
+  have rd6608 := rd6608mid.eq (by decide +native) (by evm_ov)
   have rd6791 := evm_run rd6608 with [
-    raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨6791⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd6792 := evm_run rd6791 with [
-    raw jumpdest (by native_decide) (by evm_ov)]
-  have rd6793 := rd6792.or (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov)]
+  have rd6793 := rd6792.or (by decide +native) (by evm_ov)
   have rd6612raw := evm_run rd6793 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd6612 := rd6612raw
   have rd2478raw := evm_run rd6612 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨2545⟩ (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rd2478raw.jumpiT (by native_decide) hwish (by jump_dest) (by simp)⟩
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨2545⟩ (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rd2478raw.jumpiT (by decide +native) hwish (by jump_dest) (by simp)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatFluxWishBranchRevert
@@ -750,44 +750,44 @@ theorem RD.vatFluxWishBranchRevert
     (hwish : fluxWishWord σ I = ⟨0⟩) :
     RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have rd6608pre := evm_run h with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw push2 ⟨6612⟩ (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov)]
-  have rd6605 := rd6608pre.eq (by native_decide) (by evm_ov)
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw push2 ⟨6612⟩ (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov)]
+  have rd6605 := rd6608pre.eq (by decide +native) (by evm_ov)
   have rd6608mid := evm_run rd6605 with [
-    raw swap2 (by native_decide) (by evm_ov)]
-  have rd6608 := rd6608mid.eq (by native_decide) (by evm_ov)
+    raw swap2 (by decide +native) (by evm_ov)]
+  have rd6608 := rd6608mid.eq (by decide +native) (by evm_ov)
   have rd6791 := evm_run rd6608 with [
-    raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨6791⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd6792 := evm_run rd6791 with [
-    raw jumpdest (by native_decide) (by evm_ov)]
-  have rd6793 := rd6792.or (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov)]
+  have rd6793 := rd6792.or (by decide +native) (by evm_ov)
   have rd6612raw := evm_run rd6793 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd2478raw := evm_run rd6612raw with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨2545⟩ (by native_decide) (by evm_ov)]
-  have rd2483 := rd2478raw.jumpiNT (by native_decide) hwish (by simp)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨2545⟩ (by decide +native) (by evm_ov)]
+  have rd2483 := rd2478raw.jumpiNT (by decide +native) hwish (by simp)
   exact RD.solcErrorStringRevertTail
     (code := vatBytecode) (pc := ⟨2483⟩) (len := ⟨15⟩)
     (rawWord := ⟨112128532177926167570164739106265433⟩) (shift := ⟨138⟩)
     (word := UInt256.shiftLeft ⟨112128532177926167570164739106265433⟩ ⟨138⟩)
     (op := .PUSH15) (width := 15)
     rd2483
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
-    (by native_decide) rfl hmem hread64 (by simp)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
+    (by decide +native) rfl hmem hread64 (by simp)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatFluxSourceSubSuccess
@@ -816,39 +816,39 @@ theorem RD.vatFluxSourceSubSuccess
   let inner := solcMappingSlot ⟨4⟩ (fluxIlkWord I)
   let slot := solcMappingSlot inner (fluxSrcMaskedWord I)
   let old := solcSlotWord σ I slot
-  have rd2546 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd2548 := rd2546.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd2549 := rd2548.dup5 (by native_decide) (by evm_ov)
-  have rd2550pre := rd2549.dup2 (by native_decide) (by evm_ov)
+  have rd2546 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd2548 := rd2546.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd2549 := rd2548.dup5 (by decide +native) (by evm_ov)
+  have rd2550pre := rd2549.dup2 (by decide +native) (by evm_ov)
   have rd2550 := rd2550pre.mstore 0 (wordAt0Mem (fluxIlkWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2557pre := evm_run rd2550 with [
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2557 := rd2557pre.mstore 0
     (twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2562pre := evm_run rd2557 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ (fluxIlkWord I) hmem
   have rd2562 := rd2562pre.keccak256 0 inner (UInt256.ofNat 3)
-    (by native_decide) mem_cost hinner (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hinner (by decide +native) (by evm_ov)
   have rd2572raw := evm_run rd2562 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hmask :
       UInt256.land (fluxSrcMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -860,18 +860,18 @@ theorem RD.vatFluxSourceSubSuccess
   have rd2572 := rd2572raw
   rw [hmask] at rd2572
   have rd2574pre := evm_run rd2572 with [
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw dup5 (by decide +native) (by evm_ov)]
   have rd2574 := rd2574pre.mstore 0
     (wordAt0Mem (fluxSrcMaskedWord I) (twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2577pre := evm_run rd2574 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd2577 := rd2577pre.mstore 0
     (twoWordHashMem (fluxSrcMaskedWord I) inner (twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2579pre := evm_run rd2577 with [
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov)]
   have hmemInner : (twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem).size = 96 :=
     twoWordHashMem_size_96 (fluxIlkWord I) ⟨4⟩ hmem
   have hslot :
@@ -881,19 +881,19 @@ theorem RD.vatFluxSourceSubSuccess
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner (fluxSrcMaskedWord I) hmemInner
   have rd2579 := rd2579pre.keccak256 0 slot (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2581raw⟩ := rd2579.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2581raw⟩ := rd2579.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd2581 := rd2581raw
   rw [hold] at rd2581
   have rd6621pre := evm_run rd2581 with [
-    raw push2 ⟨2590⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨6621⟩ (by native_decide) (by evm_ov)]
-  have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨2590⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨6621⟩ (by decide +native) (by evm_ov)]
+  have rd6621 := rd6621pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubSuccess
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
     (a := old) (b := fluxWadWord I) (ret := ⟨2590⟩)
@@ -901,7 +901,7 @@ theorem RD.vatFluxSourceSubSuccess
     (by simpa [old, slot, inner] using rd6621)
     (by
       unfold solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [old, slot, inner] using hle) (by jump_dest) (by jump_dest) (by simp)
 
 set_option maxHeartbeats 1000000 in
@@ -919,39 +919,39 @@ theorem RD.vatFluxSourceSubRevert
   let inner := solcMappingSlot ⟨4⟩ (fluxIlkWord I)
   let slot := solcMappingSlot inner (fluxSrcMaskedWord I)
   let old := solcSlotWord σ I slot
-  have rd2546 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd2548 := rd2546.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd2549 := rd2548.dup5 (by native_decide) (by evm_ov)
-  have rd2550pre := rd2549.dup2 (by native_decide) (by evm_ov)
+  have rd2546 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd2548 := rd2546.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd2549 := rd2548.dup5 (by decide +native) (by evm_ov)
+  have rd2550pre := rd2549.dup2 (by decide +native) (by evm_ov)
   have rd2550 := rd2550pre.mstore 0 (wordAt0Mem (fluxIlkWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2557pre := evm_run rd2550 with [
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2557 := rd2557pre.mstore 0
     (twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2562pre := evm_run rd2557 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ (fluxIlkWord I) hmem
   have rd2562 := rd2562pre.keccak256 0 inner (UInt256.ofNat 3)
-    (by native_decide) mem_cost hinner (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hinner (by decide +native) (by evm_ov)
   have rd2572raw := evm_run rd2562 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hmask :
       UInt256.land (fluxSrcMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -963,18 +963,18 @@ theorem RD.vatFluxSourceSubRevert
   have rd2572 := rd2572raw
   rw [hmask] at rd2572
   have rd2574pre := evm_run rd2572 with [
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw dup5 (by decide +native) (by evm_ov)]
   have rd2574 := rd2574pre.mstore 0
     (wordAt0Mem (fluxSrcMaskedWord I) (twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2577pre := evm_run rd2574 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd2577 := rd2577pre.mstore 0
     (twoWordHashMem (fluxSrcMaskedWord I) inner (twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2579pre := evm_run rd2577 with [
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov)]
   have hmemInner : (twoWordHashMem (fluxIlkWord I) ⟨4⟩ mem).size = 96 :=
     twoWordHashMem_size_96 (fluxIlkWord I) ⟨4⟩ hmem
   have hslot :
@@ -984,19 +984,19 @@ theorem RD.vatFluxSourceSubRevert
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner (fluxSrcMaskedWord I) hmemInner
   have rd2579 := rd2579pre.keccak256 0 slot (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2581raw⟩ := rd2579.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2581raw⟩ := rd2579.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd2581 := rd2581raw
   rw [hold] at rd2581
   have rd6621pre := evm_run rd2581 with [
-    raw push2 ⟨2590⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨6621⟩ (by native_decide) (by evm_ov)]
-  have rd6621 := rd6621pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨2590⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨6621⟩ (by decide +native) (by evm_ov)]
+  have rd6621 := rd6621pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedSubEmptyRevertAnyWords
     (code := vatBytecode) (pc := ⟨6621⟩) (okPc := ⟨6615⟩)
     (a := old) (b := fluxWadWord I) (ret := ⟨2590⟩)
@@ -1004,7 +1004,7 @@ theorem RD.vatFluxSourceSubRevert
     (by simpa [old, slot, inner] using rd6621)
     (by
       unfold solcCheckedSubEmptyRevertWf solcCheckedSubSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [old, slot, inner] using hlt)
     (by simp)
 
@@ -1029,41 +1029,41 @@ theorem RD.vatFluxSourceStoreValue
         (solcMappingSlot (solcMappingSlot ⟨4⟩ ilk) src) srcGemNew) k' C' := by
   let inner := solcMappingSlot ⟨4⟩ ilk
   let slot := solcMappingSlot inner src
-  have rd2591 := h.jumpdest (by native_decide) (by evm_ov)
+  have rd2591 := h.jumpdest (by decide +native) (by evm_ov)
   have rd2595pre := evm_run rd2591 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2595 := rd2595pre.mstore 0 (wordAt0Mem ilk mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2602pre := evm_run rd2595 with [
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2602 := rd2602pre.mstore 0
     (twoWordHashMem ilk ⟨4⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2607pre := evm_run rd2602 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ ilk hmem
   have rd2607 := rd2607pre.keccak256 0 inner (UInt256.ofNat 3)
-    (by native_decide) mem_cost hinner (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hinner (by decide +native) (by evm_ov)
   have rd2618raw := evm_run rd2607 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hmask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -1075,18 +1075,18 @@ theorem RD.vatFluxSourceStoreValue
   have rd2618 := rd2618raw
   rw [hmask] at rd2618
   have rd2620pre := evm_run rd2618 with [
-    raw dup6 (by native_decide) (by evm_ov)]
+    raw dup6 (by decide +native) (by evm_ov)]
   have rd2620 := rd2620pre.mstore 0
     (wordAt0Mem src (twoWordHashMem ilk ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2622pre := evm_run rd2620 with [
-    raw swap3 (by native_decide) (by evm_ov)]
+    raw swap3 (by decide +native) (by evm_ov)]
   have rd2622 := rd2622pre.mstore 0
     (twoWordHashMem src inner (twoWordHashMem ilk ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2625pre := evm_run rd2622 with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have hmemInner : (twoWordHashMem ilk ⟨4⟩ mem).size = 96 :=
     twoWordHashMem_size_96 ilk ⟨4⟩ hmem
   have hslot :
@@ -1096,12 +1096,12 @@ theorem RD.vatFluxSourceStoreValue
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner src hmemInner
   have rd2625 := rd2625pre.keccak256 0 slot (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
   have rd2629pre := evm_run rd2625 with [
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd2630raw⟩ := rd2629pre.sstore hperm (by native_decide)
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd2630raw⟩ := rd2629pre.sstore hperm (by decide +native)
     (by simp [List.length_cons] at hov ⊢; omega)
   exact ⟨_, _, by simpa [slot, inner] using rd2630raw⟩
 
@@ -1170,16 +1170,16 @@ theorem RD.vatFluxDestAddSuccess
   let slot := solcMappingSlot inner dst
   let old := solcSlotWord σ ee slot
   have rd2631raw := evm_run h with [
-    raw dup5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw dup5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have rd2631 := rd2631raw
   rw [hdstClean] at rd2631
   have rd2633pre := evm_run rd2631 with [
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2633 := rd2633pre.mstore 0
     (wordAt0Mem dst
       (twoWordHashMem src inner (twoWordHashMem ilk ⟨4⟩ mem)))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((wordAt0Mem dst
@@ -1190,19 +1190,19 @@ theorem RD.vatFluxDestAddSuccess
     simpa [slot] using
       wordAt0Mem_twoWordHashMem_solcMappingSlot inner dst src hinnerMem
   have rd2634 := rd2633.keccak256 0 slot (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2636raw⟩ := rd2634.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2636raw⟩ := rd2634.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd2636 := rd2636raw
   rw [hold] at rd2636
   have rd6637pre := evm_run rd2636 with [
-    raw push2 ⟨2645⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨6637⟩ (by native_decide) (by evm_ov)]
-  have rd6637 := rd6637pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨2645⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨6637⟩ (by decide +native) (by evm_ov)]
+  have rd6637 := rd6637pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedAddSuccess
     (code := vatBytecode) (pc := ⟨6637⟩) (okPc := ⟨6615⟩)
     (a := old) (b := wad) (ret := ⟨2645⟩)
@@ -1210,7 +1210,7 @@ theorem RD.vatFluxDestAddSuccess
     (by simpa [old, slot, inner] using rd6637)
     (by
       unfold solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [old, slot, inner] using hfit) (by jump_dest) (by jump_dest)
     (by simp [List.length_cons, List.length_append] at hov ⊢; omega)
 
@@ -1236,16 +1236,16 @@ theorem RD.vatFluxDestAddRevert
   let slot := solcMappingSlot inner dst
   let old := solcSlotWord σ ee slot
   have rd2631raw := evm_run h with [
-    raw dup5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw dup5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have rd2631 := rd2631raw
   rw [hdstClean] at rd2631
   have rd2633pre := evm_run rd2631 with [
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2633 := rd2633pre.mstore 0
     (wordAt0Mem dst
       (twoWordHashMem src inner (twoWordHashMem ilk ⟨4⟩ mem)))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((wordAt0Mem dst
@@ -1256,19 +1256,19 @@ theorem RD.vatFluxDestAddRevert
     simpa [slot] using
       wordAt0Mem_twoWordHashMem_solcMappingSlot inner dst src hinnerMem
   have rd2634 := rd2633.keccak256 0 slot (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2636raw⟩ := rd2634.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2636raw⟩ := rd2634.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? ee.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD slot ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd2636 := rd2636raw
   rw [hold] at rd2636
   have rd6637pre := evm_run rd2636 with [
-    raw push2 ⟨2645⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw push2 ⟨6637⟩ (by native_decide) (by evm_ov)]
-  have rd6637 := rd6637pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨2645⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw push2 ⟨6637⟩ (by decide +native) (by evm_ov)]
+  have rd6637 := rd6637pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedAddEmptyRevertAnyWords
     (code := vatBytecode) (pc := ⟨6637⟩) (okPc := ⟨6615⟩)
     (a := old) (b := wad) (ret := ⟨2645⟩)
@@ -1276,7 +1276,7 @@ theorem RD.vatFluxDestAddRevert
     (by simpa [old, slot, inner] using rd6637)
     (by
       unfold solcCheckedAddEmptyRevertWf solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [old, slot, inner] using hover)
     (by simp [List.length_cons, List.length_append] at hov ⊢; omega)
 
@@ -1301,41 +1301,41 @@ theorem RD.vatFluxDestStoreReturn
         (solcMappingSlot (solcMappingSlot ⟨4⟩ ilk) dst) dstGemNew) k' C' := by
   let inner := solcMappingSlot ⟨4⟩ ilk
   let slot := solcMappingSlot inner dst
-  have rd2646 := h.jumpdest (by native_decide) (by evm_ov)
+  have rd2646 := h.jumpdest (by decide +native) (by evm_ov)
   have rd2650pre := evm_run rd2646 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov)]
   have rd2650 := rd2650pre.mstore 0 (wordAt0Mem ilk mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2657pre := evm_run rd2650 with [
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd2657 := rd2657pre.mstore 0
     (twoWordHashMem ilk ⟨4⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2662pre := evm_run rd2657 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem ilk ⟨4⟩ mem).readWithPadding 0 64))) =
         inner := by
     simpa [inner] using twoWordHashMem_solcMappingSlot ⟨4⟩ ilk hmem
   have rd2662 := rd2662pre.keccak256 0 inner (UInt256.ofNat 3)
-    (by native_decide) mem_cost hinner (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hinner (by decide +native) (by evm_ov)
   have rd2673raw := evm_run rd2662 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap6 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap6 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hmask :
       UInt256.land dst
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -1346,20 +1346,20 @@ theorem RD.vatFluxDestStoreReturn
   have rd2673 := rd2673raw
   rw [hmask] at rd2673
   have rd2675pre := evm_run rd2673 with [
-    raw dup8 (by native_decide) (by evm_ov)]
+    raw dup8 (by decide +native) (by evm_ov)]
   have rd2675 := rd2675pre.mstore 0
     (wordAt0Mem dst (twoWordHashMem ilk ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2678pre := evm_run rd2675 with [
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd2678 := rd2678pre.mstore 0
     (twoWordHashMem dst inner (twoWordHashMem ilk ⟨4⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd2682pre := evm_run rd2678 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov)]
   have hmemInner : (twoWordHashMem ilk ⟨4⟩ mem).size = 96 :=
     twoWordHashMem_size_96 ilk ⟨4⟩ hmem
   have hslot :
@@ -1368,12 +1368,12 @@ theorem RD.vatFluxDestStoreReturn
         slot := by
     simpa [slot] using twoWordHashMem_solcMappingSlot inner dst hmemInner
   have rd2682 := rd2682pre.keccak256 0 slot (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd2684raw⟩ := rd2682.sstore hperm (by native_decide)
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd2684raw⟩ := rd2682.sstore hperm (by decide +native)
     (by simp [List.length_cons] at hov ⊢; omega)
-  have rd2684 := rd2684raw.pop (by native_decide) (by evm_ov)
-  have rd2685 := rd2684.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, by simpa [slot, inner] using rd2685.jump (by native_decide) hret (by evm_ov)⟩
+  have rd2684 := rd2684raw.pop (by decide +native) (by evm_ov)
+  have rd2685 := rd2684.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, by simpa [slot, inner] using rd2685.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem assignStorageRef_flux_src_gem {evm evm' : EVM.State} {I : ExecutionEnv}
     {srcGemNew : UInt256}
@@ -1934,7 +1934,7 @@ theorem decodeCalldata_legacyBytes32_address_address_uint256_ok {cd : ByteArray}
   rw [if_neg (by simp [bytes32, addr, uint256, isDynamicABIType])]
   simp only
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr, addr, uint256] = some 128 by native_decide]
+  rw [show abiTupleHeadSize? [bytes32, addr, addr, uint256] = some 128 by decide +native]
   simp only [bind, Option.bind]
   rw [if_neg (by rw [List.length_drop, htlen]; omega :
     ¬ (cd.toList.drop 4).length < 128)]
@@ -1987,7 +1987,7 @@ theorem vatDecode_flux_none_short {I : ExecutionEnv}
   rw [if_neg (by simp [bytes32, addr, uint256, isDynamicABIType])]
   simp only
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr, addr, uint256] = some 128 by native_decide]
+  rw [show abiTupleHeadSize? [bytes32, addr, addr, uint256] = some 128 by decide +native]
   simp only [bind, Option.bind]
   rw [if_pos (by rw [List.length_drop, htlen]; omega :
     (I.calldata.toList.drop 4).length < 128)]
@@ -2002,7 +2002,7 @@ theorem vatDispatchFlux {I : ExecutionEnv}
   simp [dispatchList, selectorOf, hcd, LineSelectorBytes, cageSelectorBytes,
     canSelectorBytes, daiSelectorBytes, debtSelectorBytes, denySelectorBytes,
     fileIlkSelectorBytes, fileLineSelectorBytes, fluxSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachFluxBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -2013,31 +2013,31 @@ theorem vatReachFluxBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0x6111be2e⟩ :=
     vatSelWord_eq_of_beq I hsz 0x61 0x11 0xbe 0x2e ⟨0x6111be2e⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlowhigh :
       UInt256.gt (armSelNat vatBytecode vatLowHighSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms321FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
     rw [hword]
-    native_decide
+    decide +native
   have htake :
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms321FirstPc 1))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms321Body 1 (by omega) ⟨757⟩ hcode hwv hsz hsize
-    hroot hlow hlowhigh heq0 htake (by jump_dest) (by native_decide)
+    hroot hlow hlowhigh heq0 htake (by jump_dest) (by decide +native)
 
 theorem vatFluxX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz132 : 132 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -2050,27 +2050,27 @@ theorem vatFluxX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨757⟩) (ret := ⟨524⟩)
     (decoded := ⟨779⟩) (need := ⟨128⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz132) hsize)
-  have rd780 := hdecoded.jumpdest (by native_decide) (by evm_ov)
-  have rd781 := rd780.pop (by native_decide) (by evm_ov)
-  have rd782 := rd781.dup1 (by native_decide) (by evm_ov)
-  have rd783 := rd782.calldataload (by native_decide) (by evm_ov)
-  have rd784 := rd783.swap1 (by native_decide) (by evm_ov)
-  have rd786 := rd784.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd788 := rd786.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd790 := rd788.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd791 := rd790.shl (by native_decide) (by evm_ov)
-  have rd792 := rd791.sub (by native_decide) (by evm_ov)
-  have rd794 := rd792.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd795 := rd794.dup3 (by native_decide) (by evm_ov)
-  have rd796 := rd795.add (by native_decide) (by evm_ov)
-  have rd797 := rd796.calldataload (by native_decide) (by evm_ov)
-  have rd798 := rd797.dup2 (by native_decide) (by evm_ov)
-  have rd799 := rd798.and (by native_decide) (by evm_ov)
+  have rd780 := hdecoded.jumpdest (by decide +native) (by evm_ov)
+  have rd781 := rd780.pop (by decide +native) (by evm_ov)
+  have rd782 := rd781.dup1 (by decide +native) (by evm_ov)
+  have rd783 := rd782.calldataload (by decide +native) (by evm_ov)
+  have rd784 := rd783.swap1 (by decide +native) (by evm_ov)
+  have rd786 := rd784.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd788 := rd786.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd790 := rd788.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd791 := rd790.shl (by decide +native) (by evm_ov)
+  have rd792 := rd791.sub (by decide +native) (by evm_ov)
+  have rd794 := rd792.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd795 := rd794.dup3 (by decide +native) (by evm_ov)
+  have rd796 := rd795.add (by decide +native) (by evm_ov)
+  have rd797 := rd796.calldataload (by decide +native) (by evm_ov)
+  have rd798 := rd797.dup2 (by decide +native) (by evm_ov)
+  have rd799 := rd798.and (by decide +native) (by evm_ov)
   have hsrcMask : UInt256.land
       (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
       (uInt256OfByteArray (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨32⟩).toNat 32)) =
@@ -2079,14 +2079,14 @@ theorem vatFluxX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
   rw [hsrcMask] at rd799
-  have rd800 := rd799.swap2 (by native_decide) (by evm_ov)
-  have rd802 := rd800.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd803 := rd802.dup2 (by native_decide) (by evm_ov)
-  have rd804 := rd803.add (by native_decide) (by evm_ov)
-  have rd805 := rd804.calldataload (by native_decide) (by evm_ov)
-  have rd806 := rd805.swap1 (by native_decide) (by evm_ov)
-  have rd807 := rd806.swap2 (by native_decide) (by evm_ov)
-  have rd808 := rd807.and (by native_decide) (by evm_ov)
+  have rd800 := rd799.swap2 (by decide +native) (by evm_ov)
+  have rd802 := rd800.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd803 := rd802.dup2 (by decide +native) (by evm_ov)
+  have rd804 := rd803.add (by decide +native) (by evm_ov)
+  have rd805 := rd804.calldataload (by decide +native) (by evm_ov)
+  have rd806 := rd805.swap1 (by decide +native) (by evm_ov)
+  have rd807 := rd806.swap2 (by decide +native) (by evm_ov)
+  have rd808 := rd807.and (by decide +native) (by evm_ov)
   have hdstMask : UInt256.land
       (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
       (uInt256OfByteArray (I.calldata.readBytes ((⟨4⟩ : UInt256) + ⟨64⟩).toNat 32)) =
@@ -2095,15 +2095,15 @@ theorem vatFluxX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
   rw [hdstMask] at rd808
-  have rd809 := rd808.swap1 (by native_decide) (by evm_ov)
-  have rd811 := rd809.push1 ⟨96⟩ (by native_decide) (by evm_ov)
-  have rd812 := rd811.add (by native_decide) (by evm_ov)
-  have rd813 := rd812.calldataload (by native_decide) (by evm_ov)
-  have rd816 := rd813.push2 ⟨2468⟩ (by native_decide) (by evm_ov)
+  have rd809 := rd808.swap1 (by decide +native) (by evm_ov)
+  have rd811 := rd809.push1 ⟨96⟩ (by decide +native) (by evm_ov)
+  have rd812 := rd811.add (by decide +native) (by evm_ov)
+  have rd813 := rd812.calldataload (by decide +native) (by evm_ov)
+  have rd816 := rd813.push2 ⟨2468⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [fluxWadWord, fluxDstMaskedWord, fluxSrcMaskedWord, fluxDstWord, fluxSrcWord,
       fluxIlkWord, calldataWord] using
-      rd816.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      rd816.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem vatFluxX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hshort : I.calldata.size < 132)
@@ -2121,10 +2121,10 @@ theorem vatFluxX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨757⟩) (ret := ⟨524⟩)
     (decoded := ⟨779⟩) (need := ⟨128⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 set_option maxHeartbeats 1000000 in
 theorem vatFluxAuthorizedPath
@@ -2332,13 +2332,13 @@ theorem vatFluxAuthorizedPath
         hmemDestAdd hdstClean hperm (by jump_dest) (by simp)
       have hretPc := hretPcRaw
       rw [hdstSlotEq] at hretPc
-      have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+      have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
       have hret :
           RDret vatBytecode (Sat256.ofUInt256 g)
             (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
             (cA, sstoreAccountMap I.codeOwner σSrcE (fluxDstGemSlot I) dstGemNew)
             ByteArray.empty := by
-        exact RD.stop hretPc' (by native_decide) (by simp)
+        exact RD.stop hretPc' (by decide +native) (by simp)
       have hdstFitSolm :
           (Solm.EVM.storageLoad
               (Solm.EVM.storageStore evm0 evm0.executionEnv.codeOwner
@@ -2453,7 +2453,7 @@ theorem vatFluxAuthorizedPath
         exact hAccountsDst
       have henc : returnEquiv ByteArray.empty none fluxTransition.returnType := by
         rw [show fluxTransition.returnType = [] by rfl]
-        exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+        exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
       exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
         hcreated haccountsFinal henc
 

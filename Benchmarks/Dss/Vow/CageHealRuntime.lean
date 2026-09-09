@@ -1376,7 +1376,7 @@ theorem vowCageMinHealLeftSuccessBodyCore
     hvatCodeHeal hcallHeal
   have henc : returnEquiv ByteArray.empty none cageTransition.returnType := by
     rw [show cageTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     hcreated hAccountsFinal henc
 
@@ -1479,7 +1479,7 @@ theorem vowCageMinHealRightSuccessBodyCore
     hvatCodeHeal hcallHeal
   have henc : returnEquiv ByteArray.empty none cageTransition.returnType := by
     rw [show cageTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     hcreated hAccountsFinal henc
 

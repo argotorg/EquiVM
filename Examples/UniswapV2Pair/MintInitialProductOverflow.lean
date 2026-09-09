@@ -115,12 +115,12 @@ theorem RD.uniswapSafeMathMulOverflow_feeToStaticcall_size164
     push2 ⟨6807⟩]
   rw [isZero_eq_zero_of_ne hb] at rd6804pre
   have rd6804 := evm_run rd6804pre with [
-    jumpiNT (by native_decide), pop, pop, dup1, dup3, mul, dup3, dup3, dup3,
+    jumpiNT (by decide +native), pop, pop, dup1, dup3, mul, dup3, dup3, dup3,
     dup2, push2 ⟨6804⟩, jumpiT hb (by jump_dest)]
   have rd6807 := evm_run rd6804 with [jumpdest, div, eq]
   rw [heq] at rd6807
   have rdTail := evm_run rd6807 with [jumpdest, push2 ⟨2911⟩,
-    jumpiNT (by native_decide)]
+    jumpiNT (by decide +native)]
   exact RD.solcErrorStringRevertTail_feeToStaticcall_size164
     (code := uniswapV2PairBytecode) (pc := ⟨6812⟩) (len := ⟨20⟩)
     (rawWord := (⟨573467620053399432674451404801797420674347462519⟩ : UInt256))
@@ -128,7 +128,7 @@ theorem RD.uniswapSafeMathMulOverflow_feeToStaticcall_size164
     (op := .PUSH20) (width := 20) rdTail
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) (by rfl) hmem hread64 (by simp only [List.length_cons]; omega)
 
 set_option maxHeartbeats 1000000 in
@@ -152,7 +152,7 @@ theorem uniswapMintRuntimeInitialLiquidityProductOverflowReverts
     dup8, push4 ⟨0xffffffff⟩, push2 ⟨6780⟩, and]
   rw [show UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ from by decide]
     at rd6780pre
-  have rd6780 := rd6780pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd6780 := rd6780pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.uniswapSafeMathMulOverflow_feeToStaticcall_size164
     (a := amount0) (b := amount1) (ret := ⟨3737⟩)
     (R := [⟨2531⟩, ⟨1000⟩, ⟨3742⟩, ⟨0⟩, feeOn, amount1, amount0, balance1,

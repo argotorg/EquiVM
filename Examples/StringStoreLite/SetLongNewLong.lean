@@ -444,7 +444,7 @@ theorem stringStoreLiteSetNewLongRuntime
               simp [Solm.EVM.storageLoad, State.lookupAccount, Option.option, hacc]
             have hheaderZero : currentLengthHeaderWord σ_evm I = ⟨0⟩ := by
               exact hload.symm.trans hloadZero
-            exact False.elim (hflag (by rw [hheaderZero]; native_decide))
+            exact False.elim (hflag (by rw [hheaderZero]; decide +native))
       obtain ⟨accSolm0, haccSolm0⟩ := haccSolm0
       let evmSolm1 : EVM.State :=
         Solm.EVM.storageStore

@@ -29,12 +29,12 @@ theorem fileWhat_length {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
   omega
 
 theorem fileTauBytes_length : fileTauBytes.length = 32 := by
-  native_decide
+  decide +native
 
 theorem fileTauBytes_word :
     ABI.bytesToWord fileTauBytes =
       UInt256.shiftLeft (⟨0x746175⟩ : UInt256) ⟨232⟩ := by
-  native_decide
+  decide +native
 
 theorem fileWhatWord_eq {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     ABI.bytesToWord (fileWhat I) = calldataWord I.calldata 4 := by
@@ -117,7 +117,7 @@ theorem stairstepDecodeCalldata_legacyBytes32_uint256_ok {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [stairstepDecodeABIValues_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -138,7 +138,7 @@ theorem stairstepDecodeCalldata_legacyBytes32_uint256_none_short {cd : ByteArray
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64
   · rw [if_pos hbytes]
@@ -473,7 +473,7 @@ theorem stairstepReachFileBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : stairstepSelWord I = ⟨0x29ae8114⟩ :=
     stairstepSelWord_eq_of_beq I hsz 0x29 0xae 0x81 0x14 ⟨0x29ae8114⟩
-      (by native_decide) (by simpa [stairstepSelBytes] using hsel)
+      (by decide +native) (by simpa [stairstepSelBytes] using hsel)
   have heq0 : ∀ j, j < 0 →
       UInt256.eq
         (armSelNat linearDecreaseBytecode
@@ -487,9 +487,9 @@ theorem stairstepReachFileBody {cA gh bl σ σ₀ A I} {g : Sat256}
           (nthArmPc linearDecreaseBytecode stairstepFirstArmPc 0))
         (stairstepSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact stairstepReachBody 0 (by omega) stairstepFileEntryPc hcode hwv hsz hsize
-    heq0 htake (by jump_dest) (by native_decide)
+    heq0 htake (by jump_dest) (by decide +native)
 
 theorem RD.stairstepFileDecodeToRoutine {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel de : UInt256}
@@ -500,16 +500,16 @@ theorem RD.stairstepFileDecodeToRoutine {cA σ I} {g : Sat256} {s0 : State}
       [fileData I, calldataWord I.calldata 4, ⟨138⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd350 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw push2 ⟨315⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw push2 ⟨315⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [fileData, calldataWord] using rd350⟩
 
 theorem stairstepFileX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -524,9 +524,9 @@ theorem stairstepFileX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt2
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := linearDecreaseBytecode) (sel := sel)
     (entry := stairstepFileEntryPc) (ret := ⟨138⟩) (decoded := ⟨125⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz68 hsize
   exact RD.stairstepFileDecodeToRoutine hdecoded
 
@@ -547,10 +547,10 @@ theorem stairstepFileX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (code := linearDecreaseBytecode) (sel := sel)
     (entry := stairstepFileEntryPc) (ret := ⟨138⟩) (decoded := ⟨125⟩)
     (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 set_option maxHeartbeats 1000000 in
 theorem stairstepFileX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -569,40 +569,40 @@ theorem stairstepFileX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd356pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd357 := rd356pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd361pre := evm_run rd357 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd362 := rd361pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd365pre := evm_run rd362 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd366 := rd365pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k367, C367, rd367raw⟩ := rd366.sload (by native_decide) (by evm_ov)
+  obtain ⟨k367, C367, rd367raw⟩ := rd366.sload (by decide +native) (by evm_ov)
   have rd367 : RD linearDecreaseBytecode I g s0 ⟨332⟩
       (relyAuthWord σ I :: fileData I :: calldataWord I.calldata 4 :: ⟨138⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k367 C367 := by
     simpa [relyAuthWord, stairstepSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd367raw
   have rd370pre := evm_run rd367 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hauth, u256_eq_refl] at rd370pre
   have rd373 := rd370pre.pushConst (⟨415⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd373.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd373.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -620,49 +620,49 @@ theorem stairstepFileX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : �
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd356pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd357 := rd356pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd361pre := evm_run rd357 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd362 := rd361pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd365pre := evm_run rd362 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd366 := rd365pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k367, C367, rd367raw⟩ := rd366.sload (by native_decide) (by evm_ov)
+  obtain ⟨k367, C367, rd367raw⟩ := rd366.sload (by decide +native) (by evm_ov)
   have rd367 : RD linearDecreaseBytecode I g s0 ⟨332⟩
       (relyAuthWord σ I :: fileData I :: calldataWord I.calldata 4 :: ⟨138⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k367 C367 := by
     simpa [relyAuthWord, stairstepSlotWord, relyAuthStorageSlot_eq_mapSlot_source I]
       using rd367raw
   have rd370pre := evm_run rd367 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq : UInt256.eq (⟨1⟩ : UInt256) (relyAuthWord σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne (by intro hbad; exact hauth hbad.symm)
   rw [heq] at rd370pre
   have rd373 := rd370pre.pushConst (⟨415⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd374 := rd373.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd374 := rd373.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.stairstepInlineErrorStringRevertTail
     (pc := ⟨339⟩) (len := ⟨29⟩)
     (word := ⟨0x4c696e65617244656372656173652f6e6f742d617574686f72697a6564000000⟩)
     rd374
     (by
       unfold stairstepInlineErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (relyAuthHashMem_size I)
     (relyAuthHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -676,41 +676,41 @@ theorem stairstepFileX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty acc k C) :
     RDret linearDecreaseBytecode g s0 acc ByteArray.empty := by
   have rd612pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [relyAuthHashMem_size I]; decide) (by decide)
         (relyAuthHashMem_read64 I))
-      (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd615 := rd612pre.mstore 6 (fileLogDataMem I)
-    (UInt256.ofNat 5) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 5) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd619pre := evm_run rd615 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [fileLogDataMem_size I]; decide) (by decide)
         (fileLogDataMem_read64 I))
-      (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd652 := rd619pre.pushConst
     (⟨0xe986e40cc8c151830d4f61050f4fb2e4add8567caad2d5f5496f9158e91fe4c7⟩ :
       UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native) (by evm_ov)
   have rd661pre := evm_run rd652 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd662 := RD.log2
     (a := ⟨128⟩) (b := ⟨32⟩)
     (c := ⟨0xe986e40cc8c151830d4f61050f4fb2e4add8567caad2d5f5496f9158e91fe4c7⟩)
@@ -720,17 +720,17 @@ theorem stairstepFileX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 5).toNat (⟨128⟩ : UInt256).toNat
         (⟨32⟩ : UInt256).toNat))
-    rd661pre (by native_decide) hperm mem_cost (by native_decide)
+    rd661pre (by decide +native) hperm mem_cost (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd663 := RD.pop (a := fileData I) (t := [what, ⟨138⟩, sel])
-    rd662 (by native_decide) (by evm_ov)
+    rd662 (by decide +native) (by evm_ov)
   have rd664 := RD.pop (a := what) (t := [⟨138⟩, sel])
-    rd663 (by native_decide) (by evm_ov)
+    rd663 (by decide +native) (by evm_ov)
   have rd165 := RD.jump (a := ⟨138⟩) (t := [sel]) rd664
-    (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) (by jump_dest) (by evm_ov)
   have rd166 := RD.jumpdest (pc := ⟨138⟩) (stk := [sel]) rd165
-    (by native_decide) (by evm_ov)
-  exact RD.stop rd166 (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  exact RD.stop rd166 (by decide +native) (by evm_ov)
 
 set_option maxHeartbeats 3000000 in
 theorem stairstepFileX_tau_ok {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -742,24 +742,24 @@ theorem stairstepFileX_tau_ok {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     RDret linearDecreaseBytecode g s0
       (cA, sstoreAccountMap I.codeOwner σ ⟨1⟩ (fileData I)) ByteArray.empty := by
   have rd424pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd421 := rd424pre.pushConst (⟨0x746175⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
   have rd424pre := evm_run rd421 with [
-    raw push1 ⟨232⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨232⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hwhatWord, fileTauBytes_word, u256_eq_refl] at rd424pre
   have rd430pre := evm_run rd424pre with [
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨439⟩ (by native_decide) (by evm_ov),
-    raw jumpiNT (by native_decide) rfl (by evm_ov)]
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨439⟩ (by decide +native) (by evm_ov),
+    raw jumpiNT (by decide +native) rfl (by evm_ov)]
   have rd434pre := evm_run rd430pre with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨k435, C435, rd435raw⟩ := rd434pre.sstore hperm (by native_decide)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  obtain ⟨k435, C435, rd435raw⟩ := rd434pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd435 : RD linearDecreaseBytecode I g s0 ⟨435⟩
       [fileData I, UInt256.shiftLeft (⟨0x746175⟩ : UInt256) ⟨232⟩, ⟨138⟩, sel]
@@ -767,8 +767,8 @@ theorem stairstepFileX_tau_ok {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (cA, sstoreAccountMap I.codeOwner σ ⟨1⟩ (fileData I)) k435 C435 := by
     simpa using rd435raw
   have rd494 := evm_run rd435 with [
-    raw push2 ⟨494⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨494⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact stairstepFileX_logReturn hperm rd494
 
 set_option maxHeartbeats 3000000 in
@@ -780,14 +780,14 @@ theorem stairstepFileX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C : �
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev linearDecreaseBytecode g s0 := by
   have rd424pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd421 := rd424pre.pushConst (⟨0x746175⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
   have rd424pre := evm_run rd421 with [
-    raw push1 ⟨232⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨232⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have htauEq :
       UInt256.eq
           (UInt256.shiftLeft (⟨0x746175⟩ : UInt256) ⟨232⟩)
@@ -796,23 +796,23 @@ theorem stairstepFileX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C : �
     exact u256_eq_of_ne (by intro hbad; exact hnotTauWord hbad.symm)
   rw [htauEq] at rd424pre
   have rd439 := evm_run rd424pre with [
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨439⟩ (by native_decide) (by evm_ov),
-    raw jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)]
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨439⟩ (by decide +native) (by evm_ov),
+    raw jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)]
   have rd439 := RD.jumpdest (pc := ⟨439⟩)
     (stk := [fileData I, calldataWord I.calldata 4, ⟨138⟩, sel]) rd439
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   exact RD.stairstepCodecopyRevertTail
     (offset := ⟨1078⟩) (len := ⟨38⟩) rd439
     (by
       unfold stairstepCodecopyRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (relyAuthHashMem_size I)
     (relyAuthHashMem_read64 I)
     (by decide)
-    (by native_decide)
-    (by native_decide)
-    (by native_decide)
+    (by decide +native)
+    (by decide +native)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem stairstepFileBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -865,7 +865,7 @@ theorem stairstepFileBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             (by
               simpa [fileTransition] using
                 (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-                  (dvs := []) rfl (by native_decide) (by native_decide)))
+                  (dvs := []) rfl (by decide +native) (by decide +native)))
       · have hnotTauWord :
             calldataWord I.calldata 4 ≠ ABI.bytesToWord fileTauBytes :=
           fileWhatWord_ne_of_bytes_ne hsz36 htau fileTauBytes_length

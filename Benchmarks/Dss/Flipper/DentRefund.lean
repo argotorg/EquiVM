@@ -62,7 +62,7 @@ theorem dentVatRefundCallMem_size {mem : ByteArray} {σ : AccountMap} {I : Execu
      (164, bidGuyWord (dentId I) σ I),
      (196, dentBid I)]
     (dentVatHashMem_size hmemSize)
-    (by simp [WriteGapsOk] <;> native_decide)
+    (by simp [WriteGapsOk] <;> decide +native)
     (by norm_num [writeCascadeSize])
 
 theorem dentVatRefundCallMem_read64 {mem : ByteArray} {σ : AccountMap} {I : ExecutionEnv}
@@ -77,7 +77,7 @@ theorem dentVatRefundCallMem_read64 {mem : ByteArray} {σ : AccountMap} {I : Exe
      (164, bidGuyWord (dentId I) σ I),
      (196, dentBid I)]
     (dentVatHashMem_size hmemSize)
-    (by simp [WindowDisjointFromWrites] <;> native_decide)]
+    (by simp [WindowDisjointFromWrites] <;> decide +native)]
   exact dentVatHashMem_read64 hmemSize hmemRead64
 
 theorem dentVatRefundCallMem_read128_4 {mem : ByteArray} {σ : AccountMap}
@@ -89,8 +89,8 @@ theorem dentVatRefundCallMem_read128_4 {mem : ByteArray} {σ : AccountMap}
     [(132, solcSourceWord I),
      (164, bidGuyWord (dentId I) σ I),
      (196, dentBid I)]
-    (by rw [dentVatHashMem_size hmemSize]; native_decide)
-    (by simp [WindowDisjointFromWrites] <;> native_decide)
+    (by rw [dentVatHashMem_size hmemSize]; decide +native)
+    (by simp [WindowDisjointFromWrites] <;> decide +native)
     (by norm_num) (by norm_num) (by norm_num)]
   exact yankVatMoveSelectorWord_prefix
 
@@ -102,14 +102,14 @@ theorem dentVatRefundCallMem_read132 {mem : ByteArray} {σ : AccountMap}
   have hbase :
       (writeWord (dentVatHashMem mem I) 128 yankVatMoveSelectorWord).size = 160 := by
     rw [writeWord_size]
-    · rw [dentVatHashMem_size hmemSize]; native_decide
-    · rw [dentVatHashMem_size hmemSize]; native_decide
+    · rw [dentVatHashMem_size hmemSize]; decide +native
+    · rw [dentVatHashMem_size hmemSize]; decide +native
   exact writeCascade_read_word_of_head_of_base
     (writeWord (dentVatHashMem mem I) 128 yankVatMoveSelectorWord)
     (base := 160) (off := 132) (word := solcSourceWord I)
     (rest := [(164, bidGuyWord (dentId I) σ I), (196, dentBid I)])
-    hbase (by native_decide)
-    (by simp [WindowDisjointFromWrites] <;> native_decide)
+    hbase (by decide +native)
+    (by simp [WindowDisjointFromWrites] <;> decide +native)
 
 theorem dentVatRefundCallMem_read164 {mem : ByteArray} {σ : AccountMap}
     {I : ExecutionEnv} (hmemSize : mem.size = 96) :
@@ -120,18 +120,18 @@ theorem dentVatRefundCallMem_read164 {mem : ByteArray} {σ : AccountMap}
   have hmem1 : mem1.size = 160 := by
     dsimp [mem1]
     rw [writeWord_size]
-    · rw [dentVatHashMem_size hmemSize]; native_decide
-    · rw [dentVatHashMem_size hmemSize]; native_decide
+    · rw [dentVatHashMem_size hmemSize]; decide +native
+    · rw [dentVatHashMem_size hmemSize]; decide +native
   have hbase : (writeWord mem1 132 (solcSourceWord I)).size = 164 := by
     rw [writeWord_size]
-    · rw [hmem1]; native_decide
-    · rw [hmem1]; native_decide
+    · rw [hmem1]; decide +native
+    · rw [hmem1]; decide +native
   exact writeCascade_read_word_of_head_of_base
     (writeWord mem1 132 (solcSourceWord I))
     (base := 164) (off := 164) (word := bidGuyWord (dentId I) σ I)
     (rest := [(196, dentBid I)])
-    hbase (by native_decide)
-    (by simp [WindowDisjointFromWrites] <;> native_decide)
+    hbase (by decide +native)
+    (by simp [WindowDisjointFromWrites] <;> decide +native)
 
 theorem dentVatRefundCallMem_read196 {mem : ByteArray} {σ : AccountMap}
     {I : ExecutionEnv} (hmemSize : mem.size = 96) :
@@ -143,21 +143,21 @@ theorem dentVatRefundCallMem_read196 {mem : ByteArray} {σ : AccountMap}
   have hmem1 : mem1.size = 160 := by
     dsimp [mem1]
     rw [writeWord_size]
-    · rw [dentVatHashMem_size hmemSize]; native_decide
-    · rw [dentVatHashMem_size hmemSize]; native_decide
+    · rw [dentVatHashMem_size hmemSize]; decide +native
+    · rw [dentVatHashMem_size hmemSize]; decide +native
   have hmem2 : mem2.size = 164 := by
     dsimp [mem2]
     rw [writeWord_size]
-    · rw [hmem1]; native_decide
-    · rw [hmem1]; native_decide
+    · rw [hmem1]; decide +native
+    · rw [hmem1]; decide +native
   have hbase : (writeWord mem2 164 (bidGuyWord (dentId I) σ I)).size = 196 := by
     rw [writeWord_size]
-    · rw [hmem2]; native_decide
-    · rw [hmem2]; native_decide
+    · rw [hmem2]; decide +native
+    · rw [hmem2]; decide +native
   exact writeCascade_read_word_of_head_of_base
     (writeWord mem2 164 (bidGuyWord (dentId I) σ I))
     (base := 196) (off := 196) (word := dentBid I) (rest := [])
-    hbase (by native_decide)
+    hbase (by decide +native)
     (by simp [WindowDisjointFromWrites])
 
 theorem dentVatRefundCallMem_read {mem : ByteArray} {σ : AccountMap} {I : ExecutionEnv}
@@ -204,11 +204,11 @@ theorem dentVatRefundCallMem_encode {mem : ByteArray} {σ : AccountMap} {I : Exe
             UInt256.toByteArray (bidGuyWord (dentId I) σ I) ++
             UInt256.toByteArray (dentBid I)).toList := by
     unfold encodeABIValues?
-    rw [show abiTupleHeadSize? [addr, addr, uint256] = some 96 by native_decide]
+    rw [show abiTupleHeadSize? [addr, addr, uint256] = some 96 by decide +native]
     simp only [encodeABIValuesFrom?, Option.bind, bind]
     rw [yankEncodeABIValue_source_address, hguy, yankEncodeABIValue_uint256_word]
-    simp [show isDynamicABIType addr = false by native_decide,
-      show isDynamicABIType uint256 = false by native_decide,
+    simp [show isDynamicABIType addr = false by decide +native,
+      show isDynamicABIType uint256 = false by decide +native,
       ByteArray.append_assoc, byteArray_toList_eq]
   rw [hpayload]
   apply congrArg some

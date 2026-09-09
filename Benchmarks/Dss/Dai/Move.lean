@@ -149,13 +149,13 @@ theorem daiMoveX_toTransferFrom {cA gh bl σ σ₀ A I} {g : Sat256}
         transferFromSrcWord_of_move I hsel]
       simpa [calldataWord] using rd3891raw⟩
   have rd1411raw := evm_run rd3891 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨3902⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw push2 ⟨1411⟩ (by native_decide) (by evm_ov)]
-  have rd1411 := rd1411raw.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨3902⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw push2 ⟨1411⟩ (by decide +native) (by evm_ov)]
+  have rd1411 := rd1411raw.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact ⟨_, _, rd1411⟩
 
 theorem daiMoveX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -179,14 +179,14 @@ theorem daiMoveFinish {cA gh bl σInit σFinal σ₀ A I} {g : Sat256}
     RDret daiBytecode g (initState cA gh bl σInit σ₀ g A I) (cA, σFinal)
       ByteArray.empty := by
   have rd686raw := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  have rd686 := rd686raw.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd687 := rd686.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd687 (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  have rd686 := rd686raw.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd687 := rd686.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd687 (by decide +native) (by evm_ov)
 
 theorem daiMoveBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -209,7 +209,7 @@ theorem daiMoveBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (daiSelBytes 8) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (daiSelBytes 8) (by decide +native) hsel
   have hdispatch : dispatchMsg contract I.calldata = some moveTransition :=
     daiDispatchMove hsel
   have hreach := daiReachMoveBody (cA := cA) (gh := gh) (bl := bl)
@@ -251,7 +251,7 @@ theorem daiMoveBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       (by
         simpa [moveTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-            (dvs := []) rfl (by native_decide) (by native_decide)))
+            (dvs := []) rfl (by decide +native) (by decide +native)))
   · exact daiMoveBodyCoreDecodeFailed_short hcode hsize hsz4 (by omega)
       hdispatch hreach
 

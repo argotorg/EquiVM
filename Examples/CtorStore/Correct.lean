@@ -155,20 +155,20 @@ theorem ctorStoreDeployment_shape {args : List Value} {deployedInitcode : ByteAr
                 CtorStore.uint256, staticABIEncodedSize?, isDynamicABIType, encodeABIValue?, encodeABIWord?] at h
 
 theorem ctorStoreInitcode_size : ctorStoreInitcode.size = 28 := by
-  native_decide
+  decide +native
 
 theorem ctorStoreRuntime_size : ctorStoreRuntimeBytecode.size = 8 := by
-  native_decide
+  decide +native
 
 theorem ctorStoreRuntime_extract_all :
     ctorStoreRuntimeBytecode.extract 0 8 = ctorStoreRuntimeBytecode := by
   apply ByteArray.ext
   rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by native_decide)
+  exact Array.extract_eq_self_of_le (by decide +native)
 
 theorem ctorStoreInitcode_runtime_window :
     ctorStoreInitcode.extract 20 (20 + 8) = ctorStoreRuntimeBytecode := by
-  native_decide
+  decide +native
 
 theorem ctorStoreArgTail_extract (w : UInt256) :
     (ctorStoreInitcode ++ (EVM.Word.toBytesBE w).toByteArray).extract 28 (28 + 32)

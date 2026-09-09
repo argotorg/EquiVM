@@ -65,42 +65,42 @@ theorem endFileAddressBytes_lengths :
     endFileAddressDogBytes.length = 32 ∧ endFileAddressVowBytes.length = 32 ∧
     endFileAddressPotBytes.length = 32 ∧ endFileAddressSpotBytes.length = 32 ∧
     endFileAddressCureBytes.length = 32 := by
-  native_decide
+  decide +native
 
 theorem endFileAddressVatBytes_word :
     ABI.bytesToWord endFileAddressVatBytes =
       UInt256.shiftLeft (⟨0x1d985d⟩ : UInt256) ⟨234⟩ := by
-  native_decide
+  decide +native
 
 theorem endFileAddressCatBytes_word :
     ABI.bytesToWord endFileAddressCatBytes =
       UInt256.shiftLeft (⟨0x18d85d⟩ : UInt256) ⟨234⟩ := by
-  native_decide
+  decide +native
 
 theorem endFileAddressDogBytes_word :
     ABI.bytesToWord endFileAddressDogBytes =
       UInt256.shiftLeft (⟨0x646f67⟩ : UInt256) ⟨232⟩ := by
-  native_decide
+  decide +native
 
 theorem endFileAddressVowBytes_word :
     ABI.bytesToWord endFileAddressVowBytes =
       UInt256.shiftLeft (⟨0x766f77⟩ : UInt256) ⟨232⟩ := by
-  native_decide
+  decide +native
 
 theorem endFileAddressPotBytes_word :
     ABI.bytesToWord endFileAddressPotBytes =
       UInt256.shiftLeft (⟨0x1c1bdd⟩ : UInt256) ⟨234⟩ := by
-  native_decide
+  decide +native
 
 theorem endFileAddressSpotBytes_word :
     ABI.bytesToWord endFileAddressSpotBytes =
       UInt256.shiftLeft (⟨0x1cdc1bdd⟩ : UInt256) ⟨226⟩ := by
-  native_decide
+  decide +native
 
 theorem endFileAddressCureBytes_word :
     ABI.bytesToWord endFileAddressCureBytes =
       UInt256.shiftLeft (⟨0x63757265⟩ : UInt256) ⟨224⟩ := by
-  native_decide
+  decide +native
 
 theorem endFileAddressWhatWord_eq {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     ABI.bytesToWord (endFileAddressWhat I) = calldataWord I.calldata 4 := by
@@ -416,12 +416,12 @@ abbrev endFileAddressEventPc : UInt256 := ⟨8747⟩
 theorem endFileAddressHighSplitWellFormed :
     selectorSplitWellFormed endBytecode endFileAddressHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endFileAddressHigh2SplitWellFormed :
     selectorSplitWellFormed endBytecode endFileAddressHigh2SplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem endFileAddressArmsWellFormed :
@@ -429,7 +429,7 @@ theorem endFileAddressArmsWellFormed :
   intro j hj
   interval_cases j
   dsimp [armWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endReachFileAddressBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -440,7 +440,7 @@ theorem endReachFileAddressBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : endSelWord I = ⟨0xd4e8be83⟩ :=
     endSelWord_eq_of_beq I hsz 0xd4 0xe8 0xbe 0x83 ⟨0xd4e8be83⟩
-      (by native_decide)
+      (by decide +native)
       (by simpa [selIs, endFileAddressConcreteSelector, selectorBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
     endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
@@ -451,24 +451,24 @@ theorem endReachFileAddressBody {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [endRootSplitPc, endFileAddressHighSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+        (by rw [hword]; decide +native) (by simp)
   have h54 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endFileAddressHigh2SplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [endFileAddressHighSplitPc, endFileAddressHigh2SplitPc, selArmNextPc,
       armTgtWidth, selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h43 endFileAddressHighSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+        (by rw [hword]; decide +native) (by simp)
   have h113 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endFileAddressGroupJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5) (C32 + 22 + 22 + 22) := by
     simpa [endFileAddressHigh2SplitPc, endFileAddressGroupJumpdestPc] using
       RD.selectorSplitTakenAuto h54 endFileAddressHigh2SplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
+        (by rw [hword]; decide +native) (by jump_dest) (by simp)
   have h114 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endFileAddressFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 5 + 1) (C32 + 22 + 22 + 22 + 1) := by
-    simpa [endFileAddressFirstArmPc] using h113.jumpdest (by native_decide) (by simp)
+    simpa [endFileAddressFirstArmPc] using h113.jumpdest (by decide +native) (by simp)
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endFileAddressFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
@@ -478,10 +478,10 @@ theorem endReachFileAddressBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endFileAddressFirstArmPc 0))
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo endFileAddressEntryPc 0 h114
     (fun j hj => endFileAddressArmsWellFormed j hj)
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 /-! ### Runtime trace -/
 
@@ -499,28 +499,28 @@ theorem RD.endFileAddressDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : S
         calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
-  have rd1121 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1122 := rd1121.pop (by native_decide) (by evm_ov)
-  have rd1123 := rd1122.dup1 (by native_decide) (by evm_ov)
-  have rd1124 := rd1123.calldataload (by native_decide) (by evm_ov)
-  have rd1125 := rd1124.swap1 (by native_decide) (by evm_ov)
-  have rd1127 := rd1125.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd1128 := rd1127.add (by native_decide) (by evm_ov)
-  have rd1129 := rd1128.calldataload (by native_decide) (by evm_ov)
-  have rd1131 := rd1129.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd1133 := rd1131.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd1135 := rd1133.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd1136 := rd1135.shl (by native_decide) (by evm_ov)
-  have rd1137 := rd1136.sub (by native_decide) (by evm_ov)
-  have rd1138 := rd1137.and (by native_decide) (by evm_ov)
-  have rd1141 := rd1138.push2 endFileAddressAuthPc (by native_decide) (by evm_ov)
+  have rd1121 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1122 := rd1121.pop (by decide +native) (by evm_ov)
+  have rd1123 := rd1122.dup1 (by decide +native) (by evm_ov)
+  have rd1124 := rd1123.calldataload (by decide +native) (by evm_ov)
+  have rd1125 := rd1124.swap1 (by decide +native) (by evm_ov)
+  have rd1127 := rd1125.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd1128 := rd1127.add (by decide +native) (by evm_ov)
+  have rd1129 := rd1128.calldataload (by decide +native) (by evm_ov)
+  have rd1131 := rd1129.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd1133 := rd1131.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd1135 := rd1133.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd1136 := rd1135.shl (by decide +native) (by evm_ov)
+  have rd1137 := rd1136.sub (by decide +native) (by evm_ov)
+  have rd1138 := rd1137.and (by decide +native) (by evm_ov)
+  have rd1141 := rd1138.push2 endFileAddressAuthPc (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [endFileAddressAuthPc, endFileAddressDecodedPc, calldataWord,
       show (⟨4⟩ : UInt256).toNat = 4 from by decide,
       show (UInt256.add (⟨32⟩ : UInt256) ⟨4⟩).toNat = 36 from by decide,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
-      using rd1141.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd1141.jump (by decide +native) hroutine (by evm_ov)⟩
 
 theorem endFileAddressX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -535,9 +535,9 @@ theorem endFileAddressX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
     (code := endBytecode) (sel := sel)
     (entry := endFileAddressEntryPc) (ret := endRelyReturnPc)
     (decoded := endFileAddressDecodedPc) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz68 hsize
   obtain ⟨_, _, hroutine⟩ := RD.endFileAddressDecodeToRoutine
     (code := endBytecode) (ret := endRelyReturnPc) (sel := sel) (R := [])
@@ -561,10 +561,10 @@ theorem endFileAddressX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     (code := endBytecode) (sel := sel)
     (entry := endFileAddressEntryPc) (ret := endRelyReturnPc)
     (decoded := endFileAddressDecodedPc) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem endFileAddressX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256} (hauth : endRelyAuthWord σ I = ⟨1⟩)
@@ -586,7 +586,7 @@ theorem endFileAddressX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : �
       h
       (by
         unfold endAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by jump_dest) (by simp)
 
 theorem endFileAddressX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -606,10 +606,10 @@ theorem endFileAddressX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
     h
     (by
       unfold endAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcErrorStringRevertTailWf endAuthTailPc endNotAuthorizedRawWord
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by simp)
 
 theorem endFileAddressX_live {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -629,7 +629,7 @@ theorem endFileAddressX_live {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     h
     (by
       unfold endLiveGuardWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hliveSolc (by jump_dest) (by simp)
 
 theorem endFileAddressX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -647,10 +647,10 @@ theorem endFileAddressX_notLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     h
     (by
       unfold endLiveGuardWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcErrorStringRevertTailWf endLiveGuardTailPc endNotLiveRawWord
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hliveSolc (endRelyAuthHashMem_size I) (endRelyAuthHashMem_read64 I) (by simp)
 
 noncomputable def endFileAddressLogDataMem (I : ExecutionEnv) : ByteArray :=
@@ -692,53 +692,53 @@ theorem endFileAddressX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     rw [u256_land_comm solcAddrMask (endFileAddressDataMaskedWord I)]
     exact hmaskR
   have rd8762pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [endRelyAuthHashMem_size I]; decide) (by decide)
         (endRelyAuthHashMem_read64 I))
-      (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd8763 := rd8762pre.mstore 6 (endFileAddressLogDataMem I)
-    (UInt256.ofNat 5) (by native_decide) mem_cost
+    (UInt256.ofNat 5) (by decide +native) mem_cost
     (by
       simp [endFileAddressLogDataMem, hmaskR,
         show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide]
-      rw [show (⟨128⟩ : UInt256).toNat = 128 from by native_decide]
+      rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide +native]
     )
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd8767pre := evm_run rd8763 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [endFileAddressLogDataMem_size I]; decide) (by decide)
         (endFileAddressLogDataMem_read64 I))
-      (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd8801 := rd8767pre.pushConst
     (⟨0x8fef588b5fc1afbf5b2f06c1a435d513f208da2e6704c3d8f0e0ec91167066ba⟩ :
       UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native) (by evm_ov)
   have rd8810pre := evm_run rd8801 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd8811 := RD.log2
     (a := ⟨128⟩) (b := ⟨32⟩)
     (c := ⟨0x8fef588b5fc1afbf5b2f06c1a435d513f208da2e6704c3d8f0e0ec91167066ba⟩)
@@ -748,17 +748,17 @@ theorem endFileAddressX_logReturn {I} {g : Sat256} {s0 : State} {k C : ℕ}
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 5).toNat (⟨128⟩ : UInt256).toNat
         (⟨32⟩ : UInt256).toNat))
-    rd8810pre (by native_decide) hperm mem_cost (by native_decide)
+    rd8810pre (by decide +native) hperm mem_cost (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd8812 := RD.pop (a := endFileAddressDataMaskedWord I) (t := [what, endRelyReturnPc, sel])
-    rd8811 (by native_decide) (by evm_ov)
+    rd8811 (by decide +native) (by evm_ov)
   have rd8813 := RD.pop (a := what) (t := [endRelyReturnPc, sel])
-    rd8812 (by native_decide) (by evm_ov)
+    rd8812 (by decide +native) (by evm_ov)
   have rd562 := RD.jump (a := endRelyReturnPc) (t := [sel]) rd8813
-    (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) (by jump_dest) (by evm_ov)
   have rd563 := RD.jumpdest (pc := endRelyReturnPc) (stk := [sel]) rd562
-    (by native_decide) (by evm_ov)
-  exact RD.stop rd563 (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  exact RD.stop rd563 (by decide +native) (by evm_ov)
 
 theorem RD.endFileAddressSkipVat {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -769,22 +769,22 @@ theorem RD.endFileAddressSkipVat {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD endBytecode ee g s0 ⟨8473⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd8428 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd8429 := rd8428.dup2 (by native_decide) (by evm_ov)
+  have rd8428 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd8429 := rd8428.dup2 (by decide +native) (by evm_ov)
   have rd8433 := rd8429.pushConst (⟨0x1d985d⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd8435 := rd8433.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd8436 := rd8435.shl (by native_decide) (by evm_ov)
+  have rd8435 := rd8433.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd8436 := rd8435.shl (by decide +native) (by evm_ov)
   rw [← endFileAddressVatBytes_word] at rd8436
-  have rd8437 := rd8436.eq (by native_decide) (by evm_ov)
+  have rd8437 := rd8436.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord endFileAddressVatBytes) what = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hneq h.symm)
   rw [heq0] at rd8437
-  have rd8438 := rd8437.iszero (by native_decide) (by evm_ov)
+  have rd8438 := rd8437.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd8438
-  have rd8441 := rd8438.push2 ⟨8473⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd8441.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd8441 := rd8438.push2 ⟨8473⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd8441.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)⟩
 
 theorem RD.endFileAddressStoreVat {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -799,42 +799,42 @@ theorem RD.endFileAddressStoreVat {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       (data :: what :: ret :: sel :: R) mem (UInt256.ofNat 3) rdata
       (cA, sstoreAccountMap ee.codeOwner σ ⟨1⟩
         (setAddressOffset0Word (solcSlotWord σ ee ⟨1⟩) data)) k' C' := by
-  have rd8428 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd8429 := rd8428.dup2 (by native_decide) (by evm_ov)
+  have rd8428 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd8429 := rd8428.dup2 (by decide +native) (by evm_ov)
   have rd8433 := rd8429.pushConst (⟨0x1d985d⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd8435 := rd8433.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd8436 := rd8435.shl (by native_decide) (by evm_ov)
+  have rd8435 := rd8433.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd8436 := rd8435.shl (by decide +native) (by evm_ov)
   rw [hmatch, ← endFileAddressVatBytes_word] at rd8436
-  have rd8437 := rd8436.eq (by native_decide) (by evm_ov)
+  have rd8437 := rd8436.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd8437
-  have rd8438 := rd8437.iszero (by native_decide) (by evm_ov)
+  have rd8438 := rd8437.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8438
-  have rd8441 := rd8438.push2 ⟨8473⟩ (by native_decide) (by evm_ov)
-  have rd8442 := rd8441.jumpiNT (by native_decide)
+  have rd8441 := rd8438.push2 ⟨8473⟩ (by decide +native) (by evm_ov)
+  have rd8442 := rd8441.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd8444 := rd8442.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd8445 := rd8444.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd8446⟩ := rd8445.sload (by native_decide) (by evm_ov)
-  have rd8448 := rd8446.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd8450 := rd8448.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd8452 := rd8450.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd8453 := rd8452.shl (by native_decide) (by evm_ov)
-  have rd8454 := rd8453.sub (by native_decide) (by evm_ov)
-  have rd8455 := rd8454.not (by native_decide) (by evm_ov)
-  have rd8456 := rd8455.and (by native_decide) (by evm_ov)
-  have rd8458 := rd8456.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd8460 := rd8458.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd8462 := rd8460.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd8463 := rd8462.shl (by native_decide) (by evm_ov)
-  have rd8464 := rd8463.sub (by native_decide) (by evm_ov)
-  have rd8465 := rd8464.dup4 (by native_decide) (by evm_ov)
-  have rd8466 := rd8465.and (by native_decide) (by evm_ov)
-  have rd8467 := rd8466.or (by native_decide) (by evm_ov)
-  have rd8468 := rd8467.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd8469⟩ := rd8468.sstore hperm (by native_decide) (by evm_ov)
-  have rd8472 := rd8469.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
+  have rd8444 := rd8442.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd8445 := rd8444.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd8446⟩ := rd8445.sload (by decide +native) (by evm_ov)
+  have rd8448 := rd8446.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd8450 := rd8448.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd8452 := rd8450.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd8453 := rd8452.shl (by decide +native) (by evm_ov)
+  have rd8454 := rd8453.sub (by decide +native) (by evm_ov)
+  have rd8455 := rd8454.not (by decide +native) (by evm_ov)
+  have rd8456 := rd8455.and (by decide +native) (by evm_ov)
+  have rd8458 := rd8456.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd8460 := rd8458.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd8462 := rd8460.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd8463 := rd8462.shl (by decide +native) (by evm_ov)
+  have rd8464 := rd8463.sub (by decide +native) (by evm_ov)
+  have rd8465 := rd8464.dup4 (by decide +native) (by evm_ov)
+  have rd8466 := rd8465.and (by decide +native) (by evm_ov)
+  have rd8467 := rd8466.or (by decide +native) (by evm_ov)
+  have rd8468 := rd8467.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd8469⟩ := rd8468.sstore hperm (by decide +native) (by evm_ov)
+  have rd8472 := rd8469.push2 endFileAddressEventPc (by decide +native) (by evm_ov)
   have hword :
       UInt256.lor (UInt256.land data solcAddrMask)
           (UInt256.land (UInt256.lnot solcAddrMask) (solcSlotWord σ ee ⟨1⟩)) =
@@ -854,7 +854,7 @@ theorem RD.endFileAddressStoreVat {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
-      using rd8472.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      using rd8472.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem endFileAddressStoreWord_eq (old data : UInt256) :
     UInt256.lor (UInt256.land data solcAddrMask)
@@ -881,22 +881,22 @@ theorem RD.endFileAddressSkipCat {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD endBytecode ee g s0 ⟨8519⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd := h.jumpdest (by native_decide) (by evm_ov)
-  have rd := rd.dup2 (by native_decide) (by evm_ov)
+  have rd := h.jumpdest (by decide +native) (by evm_ov)
+  have rd := rd.dup2 (by decide +native) (by evm_ov)
   have rd := rd.pushConst (⟨0x18d85d⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd := rd.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
   rw [← endFileAddressCatBytes_word] at rd
-  have rd := rd.eq (by native_decide) (by evm_ov)
+  have rd := rd.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord endFileAddressCatBytes) what = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hneq h.symm)
   rw [heq0] at rd
-  have rd := rd.iszero (by native_decide) (by evm_ov)
+  have rd := rd.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd
-  have rd := rd.push2 ⟨8519⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+  have rd := rd.push2 ⟨8519⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 theorem RD.endFileAddressStoreCat {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -910,48 +910,48 @@ theorem RD.endFileAddressStoreCat {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       (data :: what :: ret :: sel :: R) mem (UInt256.ofNat 3) rdata
       (cA, sstoreAccountMap ee.codeOwner σ ⟨2⟩
         (setAddressOffset0Word (solcSlotWord σ ee ⟨2⟩) data)) k' C' := by
-  have rd := h.jumpdest (by native_decide) (by evm_ov)
-  have rd := rd.dup2 (by native_decide) (by evm_ov)
+  have rd := h.jumpdest (by decide +native) (by evm_ov)
+  have rd := rd.dup2 (by decide +native) (by evm_ov)
   have rd := rd.pushConst (⟨0x18d85d⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd := rd.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
   rw [hmatch, ← endFileAddressCatBytes_word] at rd
-  have rd := rd.eq (by native_decide) (by evm_ov)
+  have rd := rd.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd
-  have rd := rd.iszero (by native_decide) (by evm_ov)
+  have rd := rd.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd
-  have rd := rd.push2 ⟨8519⟩ (by native_decide) (by evm_ov)
-  have rd := rd.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+  have rd := rd.push2 ⟨8519⟩ (by decide +native) (by evm_ov)
+  have rd := rd.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by evm_ov)
-  have rd := rd.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd := rd.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd⟩ := rd.sload (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
-  have rd := rd.sub (by native_decide) (by evm_ov)
-  have rd := rd.not (by native_decide) (by evm_ov)
-  have rd := rd.and (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
-  have rd := rd.sub (by native_decide) (by evm_ov)
-  have rd := rd.dup4 (by native_decide) (by evm_ov)
-  have rd := rd.and (by native_decide) (by evm_ov)
-  have rd := rd.or (by native_decide) (by evm_ov)
-  have rd := rd.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd⟩ := rd.sstore hperm (by native_decide) (by evm_ov)
-  have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd := rd.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd⟩ := rd.sload (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
+  have rd := rd.sub (by decide +native) (by evm_ov)
+  have rd := rd.not (by decide +native) (by evm_ov)
+  have rd := rd.and (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
+  have rd := rd.sub (by decide +native) (by evm_ov)
+  have rd := rd.dup4 (by decide +native) (by evm_ov)
+  have rd := rd.and (by decide +native) (by evm_ov)
+  have rd := rd.or (by decide +native) (by evm_ov)
+  have rd := rd.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd⟩ := rd.sstore hperm (by decide +native) (by evm_ov)
+  have rd := rd.push2 endFileAddressEventPc (by decide +native) (by evm_ov)
   have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨2⟩) data
   exact ⟨_, _, by
     simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
-      using rd.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      using rd.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.endFileAddressSkipDog {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -962,22 +962,22 @@ theorem RD.endFileAddressSkipDog {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD endBytecode ee g s0 ⟨8565⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd := h.jumpdest (by native_decide) (by evm_ov)
-  have rd := rd.dup2 (by native_decide) (by evm_ov)
+  have rd := h.jumpdest (by decide +native) (by evm_ov)
+  have rd := rd.dup2 (by decide +native) (by evm_ov)
   have rd := rd.pushConst (⟨0x646f67⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd := rd.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
   rw [← endFileAddressDogBytes_word] at rd
-  have rd := rd.eq (by native_decide) (by evm_ov)
+  have rd := rd.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord endFileAddressDogBytes) what = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hneq h.symm)
   rw [heq0] at rd
-  have rd := rd.iszero (by native_decide) (by evm_ov)
+  have rd := rd.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd
-  have rd := rd.push2 ⟨8565⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+  have rd := rd.push2 ⟨8565⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 theorem RD.endFileAddressStoreDog {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -991,48 +991,48 @@ theorem RD.endFileAddressStoreDog {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       (data :: what :: ret :: sel :: R) mem (UInt256.ofNat 3) rdata
       (cA, sstoreAccountMap ee.codeOwner σ ⟨3⟩
         (setAddressOffset0Word (solcSlotWord σ ee ⟨3⟩) data)) k' C' := by
-  have rd := h.jumpdest (by native_decide) (by evm_ov)
-  have rd := rd.dup2 (by native_decide) (by evm_ov)
+  have rd := h.jumpdest (by decide +native) (by evm_ov)
+  have rd := rd.dup2 (by decide +native) (by evm_ov)
   have rd := rd.pushConst (⟨0x646f67⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd := rd.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
   rw [hmatch, ← endFileAddressDogBytes_word] at rd
-  have rd := rd.eq (by native_decide) (by evm_ov)
+  have rd := rd.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd
-  have rd := rd.iszero (by native_decide) (by evm_ov)
+  have rd := rd.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd
-  have rd := rd.push2 ⟨8565⟩ (by native_decide) (by evm_ov)
-  have rd := rd.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+  have rd := rd.push2 ⟨8565⟩ (by decide +native) (by evm_ov)
+  have rd := rd.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by evm_ov)
-  have rd := rd.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  have rd := rd.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd⟩ := rd.sload (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
-  have rd := rd.sub (by native_decide) (by evm_ov)
-  have rd := rd.not (by native_decide) (by evm_ov)
-  have rd := rd.and (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
-  have rd := rd.sub (by native_decide) (by evm_ov)
-  have rd := rd.dup4 (by native_decide) (by evm_ov)
-  have rd := rd.and (by native_decide) (by evm_ov)
-  have rd := rd.or (by native_decide) (by evm_ov)
-  have rd := rd.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd⟩ := rd.sstore hperm (by native_decide) (by evm_ov)
-  have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  have rd := rd.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd⟩ := rd.sload (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
+  have rd := rd.sub (by decide +native) (by evm_ov)
+  have rd := rd.not (by decide +native) (by evm_ov)
+  have rd := rd.and (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
+  have rd := rd.sub (by decide +native) (by evm_ov)
+  have rd := rd.dup4 (by decide +native) (by evm_ov)
+  have rd := rd.and (by decide +native) (by evm_ov)
+  have rd := rd.or (by decide +native) (by evm_ov)
+  have rd := rd.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd⟩ := rd.sstore hperm (by decide +native) (by evm_ov)
+  have rd := rd.push2 endFileAddressEventPc (by decide +native) (by evm_ov)
   have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨3⟩) data
   exact ⟨_, _, by
     simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
-      using rd.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      using rd.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.endFileAddressSkipVow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -1043,22 +1043,22 @@ theorem RD.endFileAddressSkipVow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD endBytecode ee g s0 ⟨8611⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd := h.jumpdest (by native_decide) (by evm_ov)
-  have rd := rd.dup2 (by native_decide) (by evm_ov)
+  have rd := h.jumpdest (by decide +native) (by evm_ov)
+  have rd := rd.dup2 (by decide +native) (by evm_ov)
   have rd := rd.pushConst (⟨0x766f77⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd := rd.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
   rw [← endFileAddressVowBytes_word] at rd
-  have rd := rd.eq (by native_decide) (by evm_ov)
+  have rd := rd.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord endFileAddressVowBytes) what = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hneq h.symm)
   rw [heq0] at rd
-  have rd := rd.iszero (by native_decide) (by evm_ov)
+  have rd := rd.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd
-  have rd := rd.push2 ⟨8611⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+  have rd := rd.push2 ⟨8611⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 theorem RD.endFileAddressStoreVow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -1072,48 +1072,48 @@ theorem RD.endFileAddressStoreVow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       (data :: what :: ret :: sel :: R) mem (UInt256.ofNat 3) rdata
       (cA, sstoreAccountMap ee.codeOwner σ ⟨4⟩
         (setAddressOffset0Word (solcSlotWord σ ee ⟨4⟩) data)) k' C' := by
-  have rd := h.jumpdest (by native_decide) (by evm_ov)
-  have rd := rd.dup2 (by native_decide) (by evm_ov)
+  have rd := h.jumpdest (by decide +native) (by evm_ov)
+  have rd := rd.dup2 (by decide +native) (by evm_ov)
   have rd := rd.pushConst (⟨0x766f77⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd := rd.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
   rw [hmatch, ← endFileAddressVowBytes_word] at rd
-  have rd := rd.eq (by native_decide) (by evm_ov)
+  have rd := rd.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd
-  have rd := rd.iszero (by native_decide) (by evm_ov)
+  have rd := rd.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd
-  have rd := rd.push2 ⟨8611⟩ (by native_decide) (by evm_ov)
-  have rd := rd.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+  have rd := rd.push2 ⟨8611⟩ (by decide +native) (by evm_ov)
+  have rd := rd.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by evm_ov)
-  have rd := rd.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd := rd.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd⟩ := rd.sload (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
-  have rd := rd.sub (by native_decide) (by evm_ov)
-  have rd := rd.not (by native_decide) (by evm_ov)
-  have rd := rd.and (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
-  have rd := rd.sub (by native_decide) (by evm_ov)
-  have rd := rd.dup4 (by native_decide) (by evm_ov)
-  have rd := rd.and (by native_decide) (by evm_ov)
-  have rd := rd.or (by native_decide) (by evm_ov)
-  have rd := rd.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd⟩ := rd.sstore hperm (by native_decide) (by evm_ov)
-  have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd := rd.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd⟩ := rd.sload (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
+  have rd := rd.sub (by decide +native) (by evm_ov)
+  have rd := rd.not (by decide +native) (by evm_ov)
+  have rd := rd.and (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
+  have rd := rd.sub (by decide +native) (by evm_ov)
+  have rd := rd.dup4 (by decide +native) (by evm_ov)
+  have rd := rd.and (by decide +native) (by evm_ov)
+  have rd := rd.or (by decide +native) (by evm_ov)
+  have rd := rd.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd⟩ := rd.sstore hperm (by decide +native) (by evm_ov)
+  have rd := rd.push2 endFileAddressEventPc (by decide +native) (by evm_ov)
   have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨4⟩) data
   exact ⟨_, _, by
     simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
-      using rd.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      using rd.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.endFileAddressSkipPot {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -1124,22 +1124,22 @@ theorem RD.endFileAddressSkipPot {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD endBytecode ee g s0 ⟨8657⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd := h.jumpdest (by native_decide) (by evm_ov)
-  have rd := rd.dup2 (by native_decide) (by evm_ov)
+  have rd := h.jumpdest (by decide +native) (by evm_ov)
+  have rd := rd.dup2 (by decide +native) (by evm_ov)
   have rd := rd.pushConst (⟨0x1c1bdd⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd := rd.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
   rw [← endFileAddressPotBytes_word] at rd
-  have rd := rd.eq (by native_decide) (by evm_ov)
+  have rd := rd.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord endFileAddressPotBytes) what = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hneq h.symm)
   rw [heq0] at rd
-  have rd := rd.iszero (by native_decide) (by evm_ov)
+  have rd := rd.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd
-  have rd := rd.push2 ⟨8657⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+  have rd := rd.push2 ⟨8657⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 theorem RD.endFileAddressStorePot {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -1153,48 +1153,48 @@ theorem RD.endFileAddressStorePot {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       (data :: what :: ret :: sel :: R) mem (UInt256.ofNat 3) rdata
       (cA, sstoreAccountMap ee.codeOwner σ ⟨5⟩
         (setAddressOffset0Word (solcSlotWord σ ee ⟨5⟩) data)) k' C' := by
-  have rd := h.jumpdest (by native_decide) (by evm_ov)
-  have rd := rd.dup2 (by native_decide) (by evm_ov)
+  have rd := h.jumpdest (by decide +native) (by evm_ov)
+  have rd := rd.dup2 (by decide +native) (by evm_ov)
   have rd := rd.pushConst (⟨0x1c1bdd⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd := rd.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
   rw [hmatch, ← endFileAddressPotBytes_word] at rd
-  have rd := rd.eq (by native_decide) (by evm_ov)
+  have rd := rd.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd
-  have rd := rd.iszero (by native_decide) (by evm_ov)
+  have rd := rd.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd
-  have rd := rd.push2 ⟨8657⟩ (by native_decide) (by evm_ov)
-  have rd := rd.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+  have rd := rd.push2 ⟨8657⟩ (by decide +native) (by evm_ov)
+  have rd := rd.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by evm_ov)
-  have rd := rd.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  have rd := rd.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd⟩ := rd.sload (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
-  have rd := rd.sub (by native_decide) (by evm_ov)
-  have rd := rd.not (by native_decide) (by evm_ov)
-  have rd := rd.and (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
-  have rd := rd.sub (by native_decide) (by evm_ov)
-  have rd := rd.dup4 (by native_decide) (by evm_ov)
-  have rd := rd.and (by native_decide) (by evm_ov)
-  have rd := rd.or (by native_decide) (by evm_ov)
-  have rd := rd.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd⟩ := rd.sstore hperm (by native_decide) (by evm_ov)
-  have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  have rd := rd.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd⟩ := rd.sload (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
+  have rd := rd.sub (by decide +native) (by evm_ov)
+  have rd := rd.not (by decide +native) (by evm_ov)
+  have rd := rd.and (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
+  have rd := rd.sub (by decide +native) (by evm_ov)
+  have rd := rd.dup4 (by decide +native) (by evm_ov)
+  have rd := rd.and (by decide +native) (by evm_ov)
+  have rd := rd.or (by decide +native) (by evm_ov)
+  have rd := rd.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd⟩ := rd.sstore hperm (by decide +native) (by evm_ov)
+  have rd := rd.push2 endFileAddressEventPc (by decide +native) (by evm_ov)
   have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨5⟩) data
   exact ⟨_, _, by
     simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
-      using rd.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      using rd.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.endFileAddressSkipSpot {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -1205,22 +1205,22 @@ theorem RD.endFileAddressSkipSpot {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD endBytecode ee g s0 ⟨8704⟩ (data :: what :: ret :: sel :: R) mem
       (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd := h.jumpdest (by native_decide) (by evm_ov)
-  have rd := rd.dup2 (by native_decide) (by evm_ov)
+  have rd := h.jumpdest (by decide +native) (by evm_ov)
+  have rd := rd.dup2 (by decide +native) (by evm_ov)
   have rd := rd.pushConst (⟨0x1cdc1bdd⟩ : UInt256)
-    (width := 4) (op := .PUSH4) (by decide) (by native_decide)
+    (width := 4) (op := .PUSH4) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd := rd.push1 ⟨226⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨226⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
   rw [← endFileAddressSpotBytes_word] at rd
-  have rd := rd.eq (by native_decide) (by evm_ov)
+  have rd := rd.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord endFileAddressSpotBytes) what = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hneq h.symm)
   rw [heq0] at rd
-  have rd := rd.iszero (by native_decide) (by evm_ov)
+  have rd := rd.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd
-  have rd := rd.push2 ⟨8704⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+  have rd := rd.push2 ⟨8704⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 theorem RD.endFileAddressStoreSpot {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -1234,48 +1234,48 @@ theorem RD.endFileAddressStoreSpot {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       (data :: what :: ret :: sel :: R) mem (UInt256.ofNat 3) rdata
       (cA, sstoreAccountMap ee.codeOwner σ ⟨6⟩
         (setAddressOffset0Word (solcSlotWord σ ee ⟨6⟩) data)) k' C' := by
-  have rd := h.jumpdest (by native_decide) (by evm_ov)
-  have rd := rd.dup2 (by native_decide) (by evm_ov)
+  have rd := h.jumpdest (by decide +native) (by evm_ov)
+  have rd := rd.dup2 (by decide +native) (by evm_ov)
   have rd := rd.pushConst (⟨0x1cdc1bdd⟩ : UInt256)
-    (width := 4) (op := .PUSH4) (by decide) (by native_decide)
+    (width := 4) (op := .PUSH4) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd := rd.push1 ⟨226⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨226⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
   rw [hmatch, ← endFileAddressSpotBytes_word] at rd
-  have rd := rd.eq (by native_decide) (by evm_ov)
+  have rd := rd.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd
-  have rd := rd.iszero (by native_decide) (by evm_ov)
+  have rd := rd.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd
-  have rd := rd.push2 ⟨8704⟩ (by native_decide) (by evm_ov)
-  have rd := rd.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+  have rd := rd.push2 ⟨8704⟩ (by decide +native) (by evm_ov)
+  have rd := rd.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by evm_ov)
-  have rd := rd.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  have rd := rd.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd⟩ := rd.sload (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
-  have rd := rd.sub (by native_decide) (by evm_ov)
-  have rd := rd.not (by native_decide) (by evm_ov)
-  have rd := rd.and (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
-  have rd := rd.sub (by native_decide) (by evm_ov)
-  have rd := rd.dup4 (by native_decide) (by evm_ov)
-  have rd := rd.and (by native_decide) (by evm_ov)
-  have rd := rd.or (by native_decide) (by evm_ov)
-  have rd := rd.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd⟩ := rd.sstore hperm (by native_decide) (by evm_ov)
-  have rd := rd.push2 endFileAddressEventPc (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  have rd := rd.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd⟩ := rd.sload (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
+  have rd := rd.sub (by decide +native) (by evm_ov)
+  have rd := rd.not (by decide +native) (by evm_ov)
+  have rd := rd.and (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
+  have rd := rd.sub (by decide +native) (by evm_ov)
+  have rd := rd.dup4 (by decide +native) (by evm_ov)
+  have rd := rd.and (by decide +native) (by evm_ov)
+  have rd := rd.or (by decide +native) (by evm_ov)
+  have rd := rd.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd⟩ := rd.sstore hperm (by decide +native) (by evm_ov)
+  have rd := rd.push2 endFileAddressEventPc (by decide +native) (by evm_ov)
   have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨6⟩) data
   exact ⟨_, _, by
     simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
-      using rd.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      using rd.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.endFileAddressSkipCure {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -1286,22 +1286,22 @@ theorem RD.endFileAddressSkipCure {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     (hov : R.length + 7 ≤ 1024) :
     ∃ k' C', RD endBytecode ee g s0 endFileUintUnrecognizedPc
       (data :: what :: ret :: sel :: R) mem (UInt256.ofNat 3) rdata acc k' C' := by
-  have rd := h.jumpdest (by native_decide) (by evm_ov)
-  have rd := rd.dup2 (by native_decide) (by evm_ov)
+  have rd := h.jumpdest (by decide +native) (by evm_ov)
+  have rd := rd.dup2 (by decide +native) (by evm_ov)
   have rd := rd.pushConst (⟨0x63757265⟩ : UInt256)
-    (width := 4) (op := .PUSH4) (by decide) (by native_decide)
+    (width := 4) (op := .PUSH4) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd := rd.push1 ⟨224⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨224⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
   rw [← endFileAddressCureBytes_word] at rd
-  have rd := rd.eq (by native_decide) (by evm_ov)
+  have rd := rd.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord endFileAddressCureBytes) what = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hneq h.symm)
   rw [heq0] at rd
-  have rd := rd.iszero (by native_decide) (by evm_ov)
+  have rd := rd.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd
-  have rd := rd.push2 endFileUintUnrecognizedPc (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+  have rd := rd.push2 endFileUintUnrecognizedPc (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 theorem RD.endFileAddressStoreCure {g : Sat256} {s0 : State} {ee : ExecutionEnv}
     {k C : ℕ} {data what ret sel : UInt256} {R : List UInt256} {mem rdata : ByteArray}
@@ -1315,41 +1315,41 @@ theorem RD.endFileAddressStoreCure {g : Sat256} {s0 : State} {ee : ExecutionEnv}
       (data :: what :: ret :: sel :: R) mem (UInt256.ofNat 3) rdata
       (cA, sstoreAccountMap ee.codeOwner σ ⟨7⟩
         (setAddressOffset0Word (solcSlotWord σ ee ⟨7⟩) data)) k' C' := by
-  have rd := h.jumpdest (by native_decide) (by evm_ov)
-  have rd := rd.dup2 (by native_decide) (by evm_ov)
+  have rd := h.jumpdest (by decide +native) (by evm_ov)
+  have rd := rd.dup2 (by decide +native) (by evm_ov)
   have rd := rd.pushConst (⟨0x63757265⟩ : UInt256)
-    (width := 4) (op := .PUSH4) (by decide) (by native_decide)
+    (width := 4) (op := .PUSH4) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd := rd.push1 ⟨224⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨224⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
   rw [hmatch, ← endFileAddressCureBytes_word] at rd
-  have rd := rd.eq (by native_decide) (by evm_ov)
+  have rd := rd.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd
-  have rd := rd.iszero (by native_decide) (by evm_ov)
+  have rd := rd.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd
-  have rd := rd.push2 endFileUintUnrecognizedPc (by native_decide) (by evm_ov)
-  have rd := rd.jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+  have rd := rd.push2 endFileUintUnrecognizedPc (by decide +native) (by evm_ov)
+  have rd := rd.jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by evm_ov)
-  have rd := rd.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  have rd := rd.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd⟩ := rd.sload (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
-  have rd := rd.sub (by native_decide) (by evm_ov)
-  have rd := rd.not (by native_decide) (by evm_ov)
-  have rd := rd.and (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd := rd.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd := rd.shl (by native_decide) (by evm_ov)
-  have rd := rd.sub (by native_decide) (by evm_ov)
-  have rd := rd.dup4 (by native_decide) (by evm_ov)
-  have rd := rd.and (by native_decide) (by evm_ov)
-  have rd := rd.or (by native_decide) (by evm_ov)
-  have rd := rd.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd⟩ := rd.sstore hperm (by native_decide) (by evm_ov)
+  have rd := rd.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  have rd := rd.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd⟩ := rd.sload (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
+  have rd := rd.sub (by decide +native) (by evm_ov)
+  have rd := rd.not (by decide +native) (by evm_ov)
+  have rd := rd.and (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd := rd.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd := rd.shl (by decide +native) (by evm_ov)
+  have rd := rd.sub (by decide +native) (by evm_ov)
+  have rd := rd.dup4 (by decide +native) (by evm_ov)
+  have rd := rd.and (by decide +native) (by evm_ov)
+  have rd := rd.or (by decide +native) (by evm_ov)
+  have rd := rd.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd⟩ := rd.sstore hperm (by decide +native) (by evm_ov)
   have hword := endFileAddressStoreWord_eq (solcSlotWord σ ee ⟨7⟩) data
   exact ⟨_, _, by
     simpa [endFileAddressEventPc, solcSlotWord, hword, hmatch,
@@ -2430,7 +2430,7 @@ theorem endFileAddressBodyCoreStore
   have henc : returnEquiv ByteArray.empty none fileAddressTransition.returnType := by
     simpa [fileAddressTransition] using
       (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-        (dvs := []) rfl (by native_decide) (by native_decide))
+        (dvs := []) rfl (by decide +native) (by decide +native))
   have hret' :
       RDret endBytecode (Sat256.ofUInt256 g)
         (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
@@ -2495,7 +2495,7 @@ theorem endFileAddressBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           exact endFileAddressBodyCoreStore hcode hdispatch hdecode hbody hret hAccounts
         · have hnotVatWord :
               calldataWord I.calldata 4 ≠ ABI.bytesToWord endFileAddressVatBytes :=
-            endFileAddressWhatWord_ne_of_bytes_ne hsz36 hvat (by native_decide)
+            endFileAddressWhatWord_ne_of_bytes_ne hsz36 hvat (by decide +native)
           obtain ⟨_, _, hcatPc⟩ := RD.endFileAddressSkipVat hswitch hnotVatWord (by simp)
           by_cases hcat : endFileAddressWhat I = endFileAddressCatBytes
           · have hcatWord :
@@ -2517,7 +2517,7 @@ theorem endFileAddressBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             exact endFileAddressBodyCoreStore hcode hdispatch hdecode hbody hret hAccounts
           · have hnotCatWord :
                 calldataWord I.calldata 4 ≠ ABI.bytesToWord endFileAddressCatBytes :=
-              endFileAddressWhatWord_ne_of_bytes_ne hsz36 hcat (by native_decide)
+              endFileAddressWhatWord_ne_of_bytes_ne hsz36 hcat (by decide +native)
             obtain ⟨_, _, hdogPc⟩ := RD.endFileAddressSkipCat hcatPc hnotCatWord (by simp)
             by_cases hdog : endFileAddressWhat I = endFileAddressDogBytes
             · have hdogWord :
@@ -2539,7 +2539,7 @@ theorem endFileAddressBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               exact endFileAddressBodyCoreStore hcode hdispatch hdecode hbody hret hAccounts
             · have hnotDogWord :
                   calldataWord I.calldata 4 ≠ ABI.bytesToWord endFileAddressDogBytes :=
-                endFileAddressWhatWord_ne_of_bytes_ne hsz36 hdog (by native_decide)
+                endFileAddressWhatWord_ne_of_bytes_ne hsz36 hdog (by decide +native)
               obtain ⟨_, _, hvowPc⟩ := RD.endFileAddressSkipDog hdogPc hnotDogWord (by simp)
               by_cases hvow : endFileAddressWhat I = endFileAddressVowBytes
               · have hvowWord :
@@ -2561,7 +2561,7 @@ theorem endFileAddressBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 exact endFileAddressBodyCoreStore hcode hdispatch hdecode hbody hret hAccounts
               · have hnotVowWord :
                     calldataWord I.calldata 4 ≠ ABI.bytesToWord endFileAddressVowBytes :=
-                  endFileAddressWhatWord_ne_of_bytes_ne hsz36 hvow (by native_decide)
+                  endFileAddressWhatWord_ne_of_bytes_ne hsz36 hvow (by decide +native)
                 obtain ⟨_, _, hpotPc⟩ :=
                   RD.endFileAddressSkipVow hvowPc hnotVowWord (by simp)
                 by_cases hpot : endFileAddressWhat I = endFileAddressPotBytes
@@ -2584,7 +2584,7 @@ theorem endFileAddressBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   exact endFileAddressBodyCoreStore hcode hdispatch hdecode hbody hret hAccounts
                 · have hnotPotWord :
                       calldataWord I.calldata 4 ≠ ABI.bytesToWord endFileAddressPotBytes :=
-                    endFileAddressWhatWord_ne_of_bytes_ne hsz36 hpot (by native_decide)
+                    endFileAddressWhatWord_ne_of_bytes_ne hsz36 hpot (by decide +native)
                   obtain ⟨_, _, hspotPc⟩ :=
                     RD.endFileAddressSkipPot hpotPc hnotPotWord (by simp)
                   by_cases hspot : endFileAddressWhat I = endFileAddressSpotBytes
@@ -2607,7 +2607,7 @@ theorem endFileAddressBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     exact endFileAddressBodyCoreStore hcode hdispatch hdecode hbody hret hAccounts
                   · have hnotSpotWord :
                         calldataWord I.calldata 4 ≠ ABI.bytesToWord endFileAddressSpotBytes :=
-                      endFileAddressWhatWord_ne_of_bytes_ne hsz36 hspot (by native_decide)
+                      endFileAddressWhatWord_ne_of_bytes_ne hsz36 hspot (by decide +native)
                     obtain ⟨_, _, hcurePc⟩ :=
                       RD.endFileAddressSkipSpot hspotPc hnotSpotWord (by simp)
                     by_cases hcure : endFileAddressWhat I = endFileAddressCureBytes
@@ -2630,7 +2630,7 @@ theorem endFileAddressBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       exact endFileAddressBodyCoreStore hcode hdispatch hdecode hbody hret hAccounts
                     · have hnotCureWord :
                           calldataWord I.calldata 4 ≠ ABI.bytesToWord endFileAddressCureBytes :=
-                        endFileAddressWhatWord_ne_of_bytes_ne hsz36 hcure (by native_decide)
+                        endFileAddressWhatWord_ne_of_bytes_ne hsz36 hcure (by decide +native)
                       have hbody :
                           ExecTransitionBody config contract evmSolm (endFileAddressLocals I)
                             fileAddressTransition.body .reverted := by

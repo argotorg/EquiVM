@@ -1275,7 +1275,7 @@ theorem scratch_assign_reveal_blinded_zero (evm : EVM.State) (locals : Store)
   simp only [hloc, EvalResult.ofOption, Option.bind]
   rw [scratch_blindAuctionStorageLocStore_bytes32 (word := EVM.Word.ofNat 0)]
   · rfl
-  · native_decide
+  · decide +native
 
 theorem scratch_assign_local_value (evm : EVM.State) (locals : Store)
     (name : Ident) (old value : Value)

@@ -31,7 +31,7 @@ theorem jugCtorVatMaskJoinReach
     swap2, swap1, swap2, or, swap1]
   have hpc105 :
       (⟨100⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨105⟩ := by
-    native_decide
+    decide +native
   rw [hpc105] at rd105
   exact ⟨_, _, by
     simpa [jugCtorVatStored, setAddressOffset0Word] using rd105⟩

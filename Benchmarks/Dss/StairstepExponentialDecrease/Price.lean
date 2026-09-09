@@ -80,7 +80,7 @@ theorem stairstepDecodeCalldata_legacyUInt256_uint256_ok {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiUInt256, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiUInt256, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [stairstepDecodeABIValues_uint256_uint256_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -101,7 +101,7 @@ theorem stairstepDecodeCalldata_legacyUInt256_uint256_none_short {cd : ByteArray
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiUInt256, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiUInt256, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64
   · rw [if_pos hbytes]
@@ -138,12 +138,12 @@ theorem stairstepReachPriceBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : stairstepSelWord I = ⟨0x487a2395⟩ :=
     stairstepSelWord_eq_of_beq I hsz 0x48 0x7a 0x23 0x95 ⟨0x487a2395⟩
-      (by native_decide) (by simpa [stairstepSelBytes] using hsel)
+      (by decide +native) (by simpa [stairstepSelBytes] using hsel)
   have hroot :
       UInt256.gt (armSelNat stairstepExponentialDecreaseBytecode stairstepRootSplitPc)
         (stairstepSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 1 →
       UInt256.eq
         (armSelNat stairstepExponentialDecreaseBytecode
@@ -152,16 +152,16 @@ theorem stairstepReachPriceBody {cA gh bl σ σ₀ A I} {g : Sat256}
     intro j hj
     interval_cases j
     rw [hword]
-    native_decide
+    decide +native
   have htake :
       UInt256.eq
         (armSelNat stairstepExponentialDecreaseBytecode
           (nthArmPc stairstepExponentialDecreaseBytecode stairstepLowFirstArmPc 1))
         (stairstepSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact stairstepReachLowBody 1 (by omega) stairstepPriceEntryPc hcode hwv hsz hsize
-    hroot heq0 htake (by jump_dest) (by native_decide)
+    hroot heq0 htake (by jump_dest) (by decide +native)
 
 theorem RD.stairstepPriceDecodeToRoutine {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel de : UInt256}
@@ -172,16 +172,16 @@ theorem RD.stairstepPriceDecodeToRoutine {cA σ I} {g : Sat256} {s0 : State}
       [priceDur I, priceTop I, ⟨202⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd665 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw push2 ⟨665⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw push2 ⟨665⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [priceDur, priceTop, calldataWord] using rd665⟩
 
 theorem stairstepPriceX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -196,9 +196,9 @@ theorem stairstepPriceX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := stairstepExponentialDecreaseBytecode) (sel := sel)
     (entry := stairstepPriceEntryPc) (ret := ⟨202⟩) (decoded := ⟨189⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz68 hsize
   exact RD.stairstepPriceDecodeToRoutine hdecoded
 
@@ -219,10 +219,10 @@ theorem stairstepPriceX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
     (code := stairstepExponentialDecreaseBytecode) (sel := sel)
     (entry := stairstepPriceEntryPc) (ret := ⟨202⟩) (decoded := ⟨189⟩)
     (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 set_option maxHeartbeats 1000000 in
 theorem stairstepPriceX_stepZero_invalid {cA σ I} {g : Sat256} {s0 : State}
@@ -235,33 +235,33 @@ theorem stairstepPriceX_stepZero_invalid {cA σ I} {g : Sat256} {s0 : State}
       X (g.toNat + 1) (D_J stairstepExponentialDecreaseBytecode 0) s0 =
         .error .InvalidInstruction := by
   have rd677 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw push2 ⟨712⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw push2 ⟨707⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨k678, C678, rd678raw⟩ := rd677.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw push2 ⟨712⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw push2 ⟨707⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨k678, C678, rd678raw⟩ := rd677.sload (by decide +native) (by evm_ov)
   have rd678 : RD stairstepExponentialDecreaseBytecode I g s0 ⟨678⟩
       (priceCutWord σ I :: ⟨707⟩ :: priceTop I :: ⟨712⟩ :: ⟨0⟩ ::
         priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k678 C678 := by
     simpa [priceCutWord, stairstepSlotWord] using rd678raw
   have rd680 := evm_run rd678 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨k681, C681, rd681raw⟩ := rd680.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨k681, C681, rd681raw⟩ := rd680.sload (by decide +native) (by evm_ov)
   have rd681 : RD stairstepExponentialDecreaseBytecode I g s0 ⟨681⟩
       (priceStepWord σ I :: priceCutWord σ I :: ⟨707⟩ :: priceTop I ::
         ⟨712⟩ :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k681 C681 := by
     simpa [priceStepWord, priceCutWord, stairstepSlotWord] using rd681raw
   have rd686pre := evm_run rd681 with [
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨688⟩ (by native_decide) (by evm_ov)]
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨688⟩ (by decide +native) (by evm_ov)]
   rw [hstep] at rd686pre
-  have rd687 := rd686pre.jumpiNT (by native_decide) rfl (by evm_ov)
-  exact Benchmarks.Dss.StairstepExponentialDecrease.RD.invalidError rd687 (by native_decide)
+  have rd687 := rd686pre.jumpiNT (by decide +native) rfl (by evm_ov)
+  exact Benchmarks.Dss.StairstepExponentialDecrease.RD.invalidError rd687 (by decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem stairstepPriceX_stepNonzero_toRpow {cA σ I} {g : Sat256} {s0 : State}
@@ -275,39 +275,39 @@ theorem stairstepPriceX_stepNonzero_toRpow {cA σ I} {g : Sat256} {s0 : State}
         ⟨712⟩ :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd677 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw push2 ⟨712⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw push2 ⟨707⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨2⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨k678, C678, rd678raw⟩ := rd677.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw push2 ⟨712⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw push2 ⟨707⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨2⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨k678, C678, rd678raw⟩ := rd677.sload (by decide +native) (by evm_ov)
   have rd678 : RD stairstepExponentialDecreaseBytecode I g s0 ⟨678⟩
       (priceCutWord σ I :: ⟨707⟩ :: priceTop I :: ⟨712⟩ :: ⟨0⟩ ::
         priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k678 C678 := by
     simpa [priceCutWord, stairstepSlotWord] using rd678raw
   have rd680 := evm_run rd678 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨k681, C681, rd681raw⟩ := rd680.sload (by native_decide) (by evm_ov)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨k681, C681, rd681raw⟩ := rd680.sload (by decide +native) (by evm_ov)
   have rd681 : RD stairstepExponentialDecreaseBytecode I g s0 ⟨681⟩
       (priceStepWord σ I :: priceCutWord σ I :: ⟨707⟩ :: priceTop I ::
         ⟨712⟩ :: ⟨0⟩ :: priceDur I :: priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k681 C681 := by
     simpa [priceStepWord, priceCutWord, stairstepSlotWord] using rd681raw
   have rd686pre := evm_run rd681 with [
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨688⟩ (by native_decide) (by evm_ov)]
-  have rd688 := rd686pre.jumpiT (by native_decide) hstep (by jump_dest) (by evm_ov)
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨688⟩ (by decide +native) (by evm_ov)]
+  have rd688 := rd686pre.jumpiT (by decide +native) hstep (by jump_dest) (by evm_ov)
   have rd704pre := evm_run rd688 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov)]
   have rd704 := rd704pre.pushConst stairstepRay
-    (width := 12) (op := .PUSH12) (by decide) (by native_decide) (by evm_ov)
+    (width := 12) (op := .PUSH12) (by decide) (by decide +native) (by evm_ov)
   have rd1042pre := evm_run rd704 with [
-    raw push2 ⟨1042⟩ (by native_decide) (by evm_ov)]
-  have rd1042 := rd1042pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw push2 ⟨1042⟩ (by decide +native) (by evm_ov)]
+  have rd1042 := rd1042pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa [stairstepRay, priceN] using rd1042⟩
 
 set_option maxHeartbeats 1000000 in
@@ -322,28 +322,28 @@ theorem stairstepPriceRpowNZero_toRmul {cA σ I} {g : Sat256} {s0 : State}
         priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd1051pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1220⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1220⟩ (by decide +native) (by evm_ov)]
   have hnZero : UInt256.isZero (⟨0⟩ : UInt256) ≠ ⟨0⟩ := by decide
-  have rd1220 := rd1051pre.jumpiT (by native_decide) hnZero (by jump_dest) (by evm_ov)
+  have rd1220 := rd1051pre.jumpiT (by decide +native) hnZero (by jump_dest) (by evm_ov)
   have rd1231pre := evm_run rd1220 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa [stairstepRay] using
-    rd1231pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    rd1231pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem stairstepPriceRpowXZeroNNonzero_toRmul {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
@@ -373,9 +373,9 @@ theorem stairstepPriceRpowReturnToRmul {cA σ I} {g : Sat256} {s0 : State}
         priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd1232pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨1232⟩ (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rd1232pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨1232⟩ (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rd1232pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem stairstepPriceRmulRayReturns {cA σ I} {g : Sat256} {s0 : State}
@@ -390,53 +390,53 @@ theorem stairstepPriceRmulRayReturns {cA σ I} {g : Sat256} {s0 : State}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   let prod := stairstepRay * priceTop I
   have rd1242pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨1256⟩ (by native_decide) (by evm_ov)]
-  have hRayNonzero : UInt256.isZero stairstepRay = ⟨0⟩ := by native_decide
-  have rd1243 := rd1242pre.jumpiNT (by native_decide) hRayNonzero (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨1256⟩ (by decide +native) (by evm_ov)]
+  have hRayNonzero : UInt256.isZero stairstepRay = ⟨0⟩ := by decide +native
+  have rd1243 := rd1242pre.jumpiNT (by decide +native) hRayNonzero (by evm_ov)
   have rd1253pre := evm_run rd1243 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨1253⟩ (by native_decide) (by evm_ov)]
-  have rd1253 := rd1253pre.jumpiT (by native_decide)
-    (by native_decide : stairstepRay ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
+    raw pop (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨1253⟩ (by decide +native) (by evm_ov)]
+  have rd1253 := rd1253pre.jumpiT (by decide +native)
+    (by decide +native : stairstepRay ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
   have hdiv : UInt256.div prod stairstepRay = priceTop I := by
     simpa [prod] using stairstepRay_mul_div_cancel (priceTop I) hfit
   have hdiv' :
       UInt256.div (UInt256.mul stairstepRay (priceTop I)) stairstepRay = priceTop I := by
     simpa [prod, HMul.hMul, Mul.mul] using hdiv
   have rd1256pre := evm_run rd1253 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hdiv', u256_eq_refl] at rd1256pre
   have rd1265pre := evm_run rd1256pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨1265⟩ (by native_decide) (by evm_ov)]
-  have rd1265 := rd1265pre.jumpiT (by native_decide) one_ne_zero_uint
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨1265⟩ (by decide +native) (by evm_ov)]
+  have rd1265 := rd1265pre.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)
   have rd1266 := evm_run rd1265 with [
-    raw jumpdest (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov)]
   have rd1279 := rd1266.pushConst stairstepRay
-    (width := 12) (op := .PUSH12) (by decide) (by native_decide) (by evm_ov)
+    (width := 12) (op := .PUSH12) (by decide) (by decide +native) (by evm_ov)
   have rd1285pre := evm_run rd1279 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa [prod, hdiv, hdiv'] using
-    rd1285pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+    rd1285pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem stairstepPriceRmulRayOverflowReverts {cA σ I} {g : Sat256} {s0 : State}
@@ -448,42 +448,42 @@ theorem stairstepPriceRmulRayOverflowReverts {cA σ I} {g : Sat256} {s0 : State}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev stairstepExponentialDecreaseBytecode g s0 := by
   have rd1242pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨1256⟩ (by native_decide) (by evm_ov)]
-  have hRayNonzero : UInt256.isZero stairstepRay = ⟨0⟩ := by native_decide
-  have rd1243 := rd1242pre.jumpiNT (by native_decide) hRayNonzero (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨1256⟩ (by decide +native) (by evm_ov)]
+  have hRayNonzero : UInt256.isZero stairstepRay = ⟨0⟩ := by decide +native
+  have rd1243 := rd1242pre.jumpiNT (by decide +native) hRayNonzero (by evm_ov)
   have rd1253pre := evm_run rd1243 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨1253⟩ (by native_decide) (by evm_ov)]
-  have rd1253 := rd1253pre.jumpiT (by native_decide)
-    (by native_decide : stairstepRay ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
+    raw pop (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨1253⟩ (by decide +native) (by evm_ov)]
+  have rd1253 := rd1253pre.jumpiT (by decide +native)
+    (by decide +native : stairstepRay ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
   have hdivNe :
       UInt256.div (UInt256.mul stairstepRay (priceTop I)) stairstepRay ≠ priceTop I := by
     simpa [HMul.hMul, Mul.mul] using stairstepRay_mul_div_overflow_ne (priceTop I) hover
   have rd1256pre := evm_run rd1253 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq : UInt256.eq
       (UInt256.div (UInt256.mul stairstepRay (priceTop I)) stairstepRay)
       (priceTop I) = ⟨0⟩ := u256_eq_of_ne hdivNe
   rw [heq] at rd1256pre
   have rd1261pre := evm_run rd1256pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨1265⟩ (by native_decide) (by evm_ov),
-    raw jumpiNT (by native_decide) rfl (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨1265⟩ (by decide +native) (by evm_ov),
+    raw jumpiNT (by decide +native) rfl (by evm_ov)]
   exact RD.solcPush1Dup1Revert0 rd1261pre
-    (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by decide +native) (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
 theorem stairstepPriceRmulReturns {cA σ I} {g : Sat256} {s0 : State}
@@ -498,47 +498,47 @@ theorem stairstepPriceRmulReturns {cA σ I} {g : Sat256} {s0 : State}
         priceTop I :: ⟨202⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd1242pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨1256⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨1256⟩ (by decide +native) (by evm_ov)]
   by_cases hpow0 : pow = ⟨0⟩
   · have hpowZero : UInt256.isZero pow ≠ ⟨0⟩ := by
       rw [hpow0]
       decide
-    have rd1256 := rd1242pre.jumpiT (by native_decide) hpowZero (by jump_dest) (by evm_ov)
+    have rd1256 := rd1242pre.jumpiT (by decide +native) hpowZero (by jump_dest) (by evm_ov)
     have rd1265pre := evm_run rd1256 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw push2 ⟨1265⟩ (by native_decide) (by evm_ov)]
-    have rd1265 := rd1265pre.jumpiT (by native_decide) hpowZero
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw push2 ⟨1265⟩ (by decide +native) (by evm_ov)]
+    have rd1265 := rd1265pre.jumpiT (by decide +native) hpowZero
       (by jump_dest) (by evm_ov)
     have rd1266 := evm_run rd1265 with [
-      raw jumpdest (by native_decide) (by evm_ov)]
+      raw jumpdest (by decide +native) (by evm_ov)]
     have rd1279 := rd1266.pushConst stairstepRay
-      (width := 12) (op := .PUSH12) (by decide) (by native_decide) (by evm_ov)
+      (width := 12) (op := .PUSH12) (by decide) (by decide +native) (by evm_ov)
     have rd1285pre := evm_run rd1279 with [
-      raw swap1 (by native_decide) (by evm_ov),
-      raw div (by native_decide) (by evm_ov),
-      raw swap3 (by native_decide) (by evm_ov),
-      raw swap2 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov)]
+      raw swap1 (by decide +native) (by evm_ov),
+      raw div (by decide +native) (by evm_ov),
+      raw swap3 (by decide +native) (by evm_ov),
+      raw swap2 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov)]
     exact ⟨_, _, by simpa [hpow0] using
-      rd1285pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      rd1285pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
   · have hpowNonzero : UInt256.isZero pow = ⟨0⟩ := isZero_eq_zero_of_ne hpow0
-    have rd1243 := rd1242pre.jumpiNT (by native_decide) hpowNonzero (by evm_ov)
+    have rd1243 := rd1242pre.jumpiNT (by decide +native) hpowNonzero (by evm_ov)
     have rd1253pre := evm_run rd1243 with [
-      raw pop (by native_decide) (by evm_ov),
-      raw dup3 (by native_decide) (by evm_ov),
-      raw dup3 (by native_decide) (by evm_ov),
-      raw dup3 (by native_decide) (by evm_ov),
-      raw dup2 (by native_decide) (by evm_ov),
-      raw push2 ⟨1253⟩ (by native_decide) (by evm_ov)]
-    have rd1253 := rd1253pre.jumpiT (by native_decide) hpow0 (by jump_dest) (by evm_ov)
+      raw pop (by decide +native) (by evm_ov),
+      raw dup3 (by decide +native) (by evm_ov),
+      raw dup3 (by decide +native) (by evm_ov),
+      raw dup3 (by decide +native) (by evm_ov),
+      raw dup2 (by decide +native) (by evm_ov),
+      raw push2 ⟨1253⟩ (by decide +native) (by evm_ov)]
+    have rd1253 := rd1253pre.jumpiT (by decide +native) hpow0 (by jump_dest) (by evm_ov)
     have hpowNatNe : pow.toNat ≠ 0 := by
       intro hzero
       exact hpow0 (uint256_toNat_eq_zero hzero)
@@ -552,28 +552,28 @@ theorem stairstepPriceRmulReturns {cA σ I} {g : Sat256} {s0 : State}
     have hdiv' : UInt256.div (UInt256.mul pow (priceTop I)) pow = priceTop I := by
       simpa [HMul.hMul, Mul.mul] using hdiv
     have rd1256pre := evm_run rd1253 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw div (by native_decide) (by evm_ov),
-      raw eq (by native_decide) (by evm_ov)]
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw div (by decide +native) (by evm_ov),
+      raw eq (by decide +native) (by evm_ov)]
     rw [hdiv', u256_eq_refl] at rd1256pre
     have rd1265pre := evm_run rd1256pre with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw push2 ⟨1265⟩ (by native_decide) (by evm_ov)]
-    have rd1265 := rd1265pre.jumpiT (by native_decide) one_ne_zero_uint
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw push2 ⟨1265⟩ (by decide +native) (by evm_ov)]
+    have rd1265 := rd1265pre.jumpiT (by decide +native) one_ne_zero_uint
       (by jump_dest) (by evm_ov)
     have rd1266 := evm_run rd1265 with [
-      raw jumpdest (by native_decide) (by evm_ov)]
+      raw jumpdest (by decide +native) (by evm_ov)]
     have rd1279 := rd1266.pushConst stairstepRay
-      (width := 12) (op := .PUSH12) (by decide) (by native_decide) (by evm_ov)
+      (width := 12) (op := .PUSH12) (by decide) (by decide +native) (by evm_ov)
     have rd1285pre := evm_run rd1279 with [
-      raw swap1 (by native_decide) (by evm_ov),
-      raw div (by native_decide) (by evm_ov),
-      raw swap3 (by native_decide) (by evm_ov),
-      raw swap2 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov)]
+      raw swap1 (by decide +native) (by evm_ov),
+      raw div (by decide +native) (by evm_ov),
+      raw swap3 (by decide +native) (by evm_ov),
+      raw swap2 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov)]
     exact ⟨_, _, by simpa [hdiv, hdiv'] using
-      rd1285pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      rd1285pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem stairstepPriceRmulOverflowReverts {cA σ I} {g : Sat256} {s0 : State}
@@ -594,38 +594,38 @@ theorem stairstepPriceRmulOverflowReverts {cA σ I} {g : Sat256} {s0 : State}
   have hdivNe' : UInt256.div (UInt256.mul pow (priceTop I)) pow ≠ priceTop I := by
     simpa [HMul.hMul, Mul.mul] using hdivNe
   have rd1242pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨1256⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨1256⟩ (by decide +native) (by evm_ov)]
   have hpowNonzero : UInt256.isZero pow = ⟨0⟩ := isZero_eq_zero_of_ne hpowNe
-  have rd1243 := rd1242pre.jumpiNT (by native_decide) hpowNonzero (by evm_ov)
+  have rd1243 := rd1242pre.jumpiNT (by decide +native) hpowNonzero (by evm_ov)
   have rd1253pre := evm_run rd1243 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨1253⟩ (by native_decide) (by evm_ov)]
-  have rd1253 := rd1253pre.jumpiT (by native_decide) hpowNe (by jump_dest) (by evm_ov)
+    raw pop (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨1253⟩ (by decide +native) (by evm_ov)]
+  have rd1253 := rd1253pre.jumpiT (by decide +native) hpowNe (by jump_dest) (by evm_ov)
   have rd1256pre := evm_run rd1253 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq :
       UInt256.eq (UInt256.div (UInt256.mul pow (priceTop I)) pow) (priceTop I) = ⟨0⟩ :=
     u256_eq_of_ne hdivNe'
   rw [heq] at rd1256pre
   have rd1261pre := evm_run rd1256pre with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨1265⟩ (by native_decide) (by evm_ov),
-    raw jumpiNT (by native_decide) rfl (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨1265⟩ (by decide +native) (by evm_ov),
+    raw jumpiNT (by decide +native) rfl (by evm_ov)]
   exact RD.solcPush1Dup1Revert0 rd1261pre
-    (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by decide +native) (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
 theorem stairstepPriceFinishReturn {cA σ I} {g : Sat256} {s0 : State}
@@ -635,13 +635,13 @@ theorem stairstepPriceFinishReturn {cA σ I} {g : Sat256} {s0 : State}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDret stairstepExponentialDecreaseBytecode g s0 (cA, σ) (UInt256.toByteArray out) := by
   have rd718pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  have rd202 := rd718pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  have rd202 := rd718pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcReturnWordFromMem
     (code := stairstepExponentialDecreaseBytecode) (g := g) (s0 := s0)
     (ee := I) (pc := ⟨202⟩) (val := out) (ret := sel) (R := [])
@@ -649,7 +649,7 @@ theorem stairstepPriceFinishReturn {cA σ I} {g : Sat256} {s0 : State}
     rd202
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     solcFreePtrMem_mload64
     (by rfl)
     (solcReturnMem_mload64 out)
@@ -873,7 +873,7 @@ theorem stairstepPriceBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (hRlen := by simp)
               (hn := hnSolm)
               (hx := hcutSolmNe)
-              (hb := by native_decide)
+              (hb := by decide +native)
               (by simpa [hnEq, hcutWordEq] using rd1042)
           cases hcoupled with
           | inr hrev =>

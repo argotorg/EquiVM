@@ -865,7 +865,7 @@ theorem simpleAuctionX_bid_successNoPending {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      native_decide)
+      decide +native)
     (by decide) (by evm_ov)
   have rd123 := evm_run rd554 with [jump (by jump_dest), jumpdest]
   simpa [bidFinalMapNoPending, bidWriteHighestBidMap, bidWriteHighestBidderMap,
@@ -930,7 +930,7 @@ theorem simpleAuctionX_bid_successWithPending {cA gh bl σ σ₀ A I} {g : Sat25
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      native_decide)
+      decide +native)
     (by decide) (by evm_ov)
   have rd123 := evm_run rd554 with [jump (by jump_dest), jumpdest]
   simpa [bidFinalMapWithPending, bidWriteHighestBidMap, bidWriteHighestBidderMap,
@@ -1470,7 +1470,7 @@ theorem simpleAuctionBidBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 storageStore_executionEnv,
                 simpleAuctionStorageStore_accountMap]))
             hσPost
-            (returnEquiv.fallthrough rfl rfl (by native_decide))
+            (returnEquiv.fallthrough rfl rfl (by decide +native))
       · have hnzE : bidHighestBidWord σ_evm I ≠ ⟨0⟩ := hzero
         have hbidS' : (bidHighestBidWord σ_solm I).toNat < I.weiValue.toNat := by
           simpa [hHighestBid] using hbidLt
@@ -1573,7 +1573,7 @@ theorem simpleAuctionBidBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
                   storageStore_executionEnv, simpleAuctionStorageStore_accountMap]))
               hσPost
-              (returnEquiv.fallthrough rfl rfl (by native_decide))
+              (returnEquiv.fallthrough rfl rfl (by decide +native))
         · have hoverE : UInt256.size ≤
               (bidPendingReturnsWord σ_evm I).toNat +
                 (bidHighestBidWord σ_evm I).toNat := by

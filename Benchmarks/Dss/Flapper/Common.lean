@@ -85,9 +85,9 @@ theorem flapperUint48Masked_lt (w : UInt256) :
   show Nat.land w.toNat flapperUint48Mask.toNat % UInt256.size < EVM.twoPow 48
   have hle := nat_land_le_right w.toNat flapperUint48Mask.toNat
   have hltSize : Nat.land w.toNat flapperUint48Mask.toNat < UInt256.size :=
-    lt_of_le_of_lt hle (by native_decide)
+    lt_of_le_of_lt hle (by decide +native)
   rw [Nat.mod_eq_of_lt hltSize]
-  exact lt_of_le_of_lt hle (by native_decide)
+  exact lt_of_le_of_lt hle (by decide +native)
 
 theorem flapperUint48Mask_clean_of_canonical {w : UInt256}
     (h : w.toNat < EVM.twoPow 48) :
@@ -98,7 +98,7 @@ theorem flapperUint48Mask_clean_of_canonical {w : UInt256}
     simpa [EVM.twoPow] using h
   rw [nat_land_mask_eq_mod]
   rw [Nat.mod_eq_of_lt h']
-  exact Nat.mod_eq_of_lt (lt_trans h (by native_decide))
+  exact Nat.mod_eq_of_lt (lt_trans h (by decide +native))
 
 theorem flapperUint48Mask_clean (w : UInt256) :
     UInt256.land (UInt256.land w flapperUint48Mask) flapperUint48Mask =
@@ -387,7 +387,7 @@ theorem RD.flapperUint48Offset6SlotGetter {code : ByteArray} {g : Sat256} {s0 : 
   have rdRet := rd20.jump hd20 hret (by simp only [List.length_cons]; omega)
   have hshift :
       UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨48⟩ = UInt256.ofNat (256 ^ 6) := by
-    native_decide
+    decide +native
   exact ⟨_, _, by simpa [hshift, solcSlotWord] using rdRet⟩
 
 @[reducible] def flapperReturnUint48FromMemWf (code : ByteArray) (pc : UInt256) : Prop :=
@@ -796,11 +796,11 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
   have rd6 := rd5.dup2 hd5 (by evm_ov)
   have rd7 := rd6.swap1 hd6 (by evm_ov)
   have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨0⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd9 := rd8.swap1 hd8 (by evm_ov)
   have rd10 := rd9.dup2 hd9 (by evm_ov)
   have rd11 := rd10.mstore 0 (solcMappingHashMem ⟨0⟩ key)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd13 := rd11.push1 ⟨64⟩ hd11 (by evm_ov)
   have rd14 := rd13.swap1 hd13 (by evm_ov)
   have hslot := solcMappingKeccakSlot ⟨0⟩ key
@@ -808,7 +808,7 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
     (UInt256.ofNat 3) hd14 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd16⟩ := rd15.sload hd15 (by evm_ov)
   have rd17 := rd16.dup2 hd16 (by evm_ov)
   exact ⟨_, _, rd17.jump hd17 hret (by evm_ov)⟩

@@ -381,7 +381,7 @@ def cureBytecode : ByteArray :=
       ⟨3064⟩, ⟨3093⟩, ⟨3138⟩, ⟨3197⟩, ⟨3208⟩, ⟨3326⟩, ⟨3344⟩, ⟨3350⟩, ⟨3356⟩, ⟨3446⟩,
       ⟨3517⟩, ⟨3585⟩, ⟨3603⟩, ⟨3609⟩, ⟨3622⟩, ⟨3648⟩, ⟨3666⟩, ⟨3743⟩, ⟨3749⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def cureCreationChunk0 : ByteArray :=
@@ -750,7 +750,7 @@ def cureCreationBytecode : ByteArray :=
       ⟨3058⟩, ⟨3160⟩, ⟨3189⟩, ⟨3234⟩, ⟨3293⟩, ⟨3304⟩, ⟨3422⟩, ⟨3440⟩, ⟨3446⟩, ⟨3452⟩,
       ⟨3542⟩, ⟨3613⟩, ⟨3681⟩, ⟨3699⟩, ⟨3705⟩, ⟨3718⟩, ⟨3744⟩, ⟨3762⟩, ⟨3839⟩, ⟨3845⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.Cure

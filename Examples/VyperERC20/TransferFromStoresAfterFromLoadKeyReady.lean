@@ -22,7 +22,7 @@ theorem erc20X_transferFromAfterFromLoadKeyReady {cA gh bl σ σ₀ A I} {g : Sa
       (cA, transferFromAccountMapAfterAllowanceI σ I
         (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)) k C := by
   obtain ⟨k, C, rd497⟩ := hreach
-  have rd499 := rd497.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+  have rd499 := rd497.push1 ⟨32⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, rd499⟩
 
 end VyperERC20

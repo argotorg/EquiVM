@@ -1052,7 +1052,7 @@ theorem daiJoinExitDaiMintSuccessCore
     (by
       simpa [exitTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+          (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem daiJoinExitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = daiJoinBytecode)
@@ -1218,7 +1218,7 @@ theorem daiJoinExitBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         obtain ⟨_, _, rd1377⟩ := daiJoinExitMulSuccess hmulOk rd1336
         have hfit : daiJoinONEWord.toNat * (exitWadWord I).toNat < UInt256.size := by
           rw [hwad]
-          native_decide
+          decide +native
         exact finishMul hfit (by simpa using rd1377)
       · by_cases hguard :
           UInt256.div (daiJoinRadWord (exitWadWord I)) (exitWadWord I) = daiJoinONEWord

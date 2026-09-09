@@ -143,10 +143,10 @@ theorem simpleAuctionCorrect :
 /-! ## Constructor side -/
 
 theorem simpleAuctionCtorPrefix_size : simpleAuctionCtorPrefix.size = 115 := by
-  native_decide
+  decide +native
 
 theorem simpleAuctionBytecode_size : simpleAuctionBytecode.size = 1047 := by
-  native_decide
+  decide +native
 
 theorem simpleAuctionInitcode_size : simpleAuctionInitcode.size = 1162 := by
   rw [simpleAuctionInitcode, ByteArray.size_append, simpleAuctionCtorPrefix_size,
@@ -179,13 +179,13 @@ macro "simple_ctor_decode" : tactic =>
     (first
       | rw [simpleAuctionInitcode_decode_append _ _ (by decide)]
       | (unfold simpleAuctionCtorCode; rw [simpleAuctionInitcode_decode_append _ _ (by decide)]);
-     native_decide))
+     decide +native))
 
 macro "simple_ctor_jd" : tactic =>
   `(tactic|
     (first
-      | (apply Reasoning.Theory.D_J_contains_append_left; native_decide)
-      | (unfold simpleAuctionCtorCode; apply Reasoning.Theory.D_J_contains_append_left; native_decide)))
+      | (apply Reasoning.Theory.D_J_contains_append_left; decide +native)
+      | (unfold simpleAuctionCtorCode; apply Reasoning.Theory.D_J_contains_append_left; decide +native)))
 
 open Lean in
 macro "simple_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do

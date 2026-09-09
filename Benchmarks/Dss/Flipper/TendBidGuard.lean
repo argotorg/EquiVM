@@ -157,32 +157,32 @@ theorem flipperTendX_bidGuardPrefix {cA σ I} {g : Sat256} {s0 : State}
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd3254 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (wordAt0Mem (tendId I) mem) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
     raw mstore 0 (twoWordHashMem (tendId I) ⟨1⟩ mem) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw keccak256 0 (bidBaseOfWord (tendId I)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by simpa [bidBaseOfWord] using
         twoWordHashMem_solcMappingSlot ⟨1⟩ (tendId I) hmemSize)
       (by decide) (by evm_ov)]
-  obtain ⟨k3254, C3254, rd3254raw⟩ := rd3254.sload (by native_decide) (by evm_ov)
+  obtain ⟨k3254, C3254, rd3254raw⟩ := rd3254.sload (by decide +native) (by evm_ov)
   have rd3255 : RD flipperBytecode I g s0 ⟨3255⟩
       (bidBidWord (tendId I) σ I :: tendBid I :: tendLot I :: tendId I :: ret :: sel :: [])
       (twoWordHashMem (tendId I) ⟨1⟩ mem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k3254 C3254 := by
     simpa [bidBidWord, flipperSlotWord] using rd3254raw
   exact ⟨_, _, evm_run rd3255 with [
-    raw dup2 (by native_decide) (by evm_ov),
-    raw gt (by native_decide) (by evm_ov)]⟩
+    raw dup2 (by decide +native) (by evm_ov),
+    raw gt (by decide +native) (by evm_ov)]⟩
 
 theorem flipperTendX_bidHigherOk {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
@@ -199,8 +199,8 @@ theorem flipperTendX_bidHigherOk {cA σ I} {g : Sat256} {s0 : State}
     ugt_one hgt
   rw [hgtWord] at rd3257
   exact ⟨_, _, evm_run rd3257 with [
-    raw push2 ⟨3330⟩ (by native_decide) (by evm_ov),
-    raw jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)]⟩
+    raw push2 ⟨3330⟩ (by decide +native) (by evm_ov),
+    raw jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)]⟩
 
 theorem flipperTendX_bidNotHigher {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {ret sel : UInt256} {mem : ByteArray}
@@ -223,8 +223,8 @@ theorem flipperTendX_bidNotHigher {cA σ I} {g : Sat256} {s0 : State}
     ugt_zero hle
   rw [hgtWord] at rd3257
   have rd3261 := evm_run rd3257 with [
-    raw push2 ⟨3330⟩ (by native_decide) (by evm_ov),
-    raw jumpiNT (by native_decide) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
+    raw push2 ⟨3330⟩ (by decide +native) (by evm_ov),
+    raw jumpiNT (by decide +native) (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
       (by evm_ov)]
   obtain ⟨_, _, rd3261'⟩ : ∃ k' C', RD flipperBytecode I g s0 ⟨3261⟩
       [tendBid I, tendLot I, tendId I, ret, sel] memBid
@@ -237,7 +237,7 @@ theorem flipperTendX_bidNotHigher {cA σ I} {g : Sat256} {s0 : State}
     rd3261'
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide) (by rfl) hmemBidSize hmemBidRead64 (by simp)
 
 end Benchmarks.Dss.Flipper

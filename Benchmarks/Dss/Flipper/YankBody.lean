@@ -656,7 +656,7 @@ theorem flipperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           haccounts
                           (by
                             rw [show yankTransition.returnType = [] by rfl]
-                            exact returnEquiv.fallthrough rfl (by rfl) (by native_decide))
+                            exact returnEquiv.fallthrough rfl (by rfl) (by decide +native))
         · have hgeEvm :
               (bidTabWord (yankId I) σ_evm I).toNat ≤
                 (bidBidWord (yankId I) σ_evm I).toNat := by
@@ -720,10 +720,10 @@ theorem flipperYankBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         hdecoded
         (by
           unfold flipperAuthCheckWf
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         (by
           unfold flipperAuthCodecopyRevertTailWf flipperAuthTailPc
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         hauthSolc (by simp)
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hsz4 : 4 ≤ I.calldata.size :=

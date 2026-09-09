@@ -16,7 +16,7 @@ set_option maxRecDepth 2000000
 namespace Benchmarks.Dss.Cure
 
 macro "ctor_decode" : tactic =>
-  `(tactic| native_decide)
+  `(tactic| decide +native)
 
 macro "ctor_jump_dest" : tactic =>
   `(tactic| jump_dest)
@@ -76,16 +76,16 @@ theorem cureCtorReturnMem_read (I : ExecutionEnv) :
     (cureCtorReturnMem I).readWithPadding 0 3875 = cureBytecode := by
   unfold cureCtorReturnMem
   rw [write0_read_back_from_gen cureCreationBytecode (cureCtorWardsHashMem I) 96 3875]
-  · native_decide
+  · decide +native
   · decide
-  · native_decide
+  · decide +native
   · norm_num
 
 private theorem cureCreationBytecode_size : cureCreationBytecode.size = 3971 := by
-  native_decide
+  decide +native
 
 private theorem cureBytecode_size : cureBytecode.size = 3875 := by
-  native_decide
+  decide +native
 
 theorem cureCtorNonpayableRDrev
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -112,7 +112,7 @@ theorem cureCtorNonpayableRDrev
       |>.push2 ⟨16⟩ (by ctor_decode) (by simp only [List.length_cons, List.length_nil]; omega)
       |>.jumpiNT (by ctor_decode) (isZero_eq_zero_of_ne hwv)
         (by simp only [List.length_cons, List.length_nil]; omega))
-  simpa [show ((⟨8⟩ : UInt256) + UInt256.ofNat 3 + ⟨1⟩) = ⟨12⟩ from by native_decide]
+  simpa [show ((⟨8⟩ : UInt256) + UInt256.ofNat 3 + ⟨1⟩) = ⟨12⟩ from by decide +native]
     using
       RD.solcPush1Dup1Revert0 (code := cureCreationBytecode) (ee := I) (g := g)
         (s0 := initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) rd12
@@ -146,7 +146,7 @@ theorem cureCtorSuccessRDret
       RD cureCreationBytecode I g
         (initState createdAccounts genesisBlockHeader blocks σ σ₀ g A I) ⟨18⟩
         [] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (createdAccounts, σ) k18 C18 := by
-    simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by native_decide]
+    simpa [show ((⟨16⟩ : UInt256) + ⟨1⟩ + ⟨1⟩) = ⟨18⟩ from by decide +native]
       using rd18₀
   have rd22 := evm_run rd18 with [
     raw push1 ⟨1⟩ (by ctor_decode) (by evm_ov),
@@ -159,18 +159,18 @@ theorem cureCtorSuccessRDret
     raw dup2 (by ctor_decode) (by evm_ov),
     raw dup2 (by ctor_decode) (by evm_ov),
     raw mstore 0 (wordAt0Mem (solcSourceWord I) solcFreePtrMem) (UInt256.ofNat 3)
-      (by ctor_decode) mem_cost (by rfl) (by native_decide) (by evm_ov),
+      (by ctor_decode) mem_cost (by rfl) (by decide +native) (by evm_ov),
     raw push1 ⟨32⟩ (by ctor_decode) (by evm_ov),
     raw dup2 (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov),
     raw mstore 0 (cureCtorWardsHashMem I) (UInt256.ofNat 3)
-      (by ctor_decode) mem_cost (by rfl) (by native_decide) (by evm_ov),
+      (by ctor_decode) mem_cost (by rfl) (by decide +native) (by evm_ov),
     raw push1 ⟨64⟩ (by ctor_decode) (by evm_ov),
     raw dup1 (by ctor_decode) (by evm_ov),
     raw dup3 (by ctor_decode) (by evm_ov)]
   have rdSlot := rdBeforeHash.keccak256 0 (cureCtorWardsSlot I)
     (UInt256.ofNat 3) (by ctor_decode) mem_cost (cureCtorWardsHashMem_hash I)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rdBeforeWardsStore := evm_run rdSlot with [
     raw swap4 (by ctor_decode) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov),
@@ -188,13 +188,13 @@ theorem cureCtorSuccessRDret
         then ⟨0⟩ else UInt256.ofNat (fromByteArrayBigEndian
           ((cureCtorWardsHashMem I).readWithPadding
             (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
-    rw [if_neg (by rw [cureCtorWardsHashMem_size I]; native_decide)]
+    rw [if_neg (by rw [cureCtorWardsHashMem_size I]; decide +native)]
     rw [show (⟨64⟩ : UInt256).toNat = 64 from rfl, hread64]
-    native_decide
+    decide +native
   have rdTopicStack := evm_run rd43 with [
     raw swap2 (by ctor_decode) (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by ctor_decode) mem_cost hmload64
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     raw swap1 (by ctor_decode) (by evm_ov),
     raw swap2 (by ctor_decode) (by evm_ov)]
   have rdTopic := rdTopicStack.pushConst cureRelyEventTopic
@@ -202,7 +202,7 @@ theorem cureCtorSuccessRDret
   have rdLogPrefix := evm_run rdTopic with [
     raw swap2 (by ctor_decode) (by evm_ov)]
   have rd82 := RD.cureLog2 0 (UInt256.ofNat 3) rdLogPrefix
-    (by ctor_decode) hperm mem_cost (by native_decide) (by evm_ov)
+    (by ctor_decode) hperm mem_cost (by decide +native) (by evm_ov)
   exact evm_run rd82 with [
     raw push2 ⟨3875⟩ (by ctor_decode) (by evm_ov),
     raw dup1 (by ctor_decode) (by evm_ov),
@@ -213,7 +213,7 @@ theorem cureCtorSuccessRDret
         Cₘ (UInt256.ofNat 3))
       (cureCtorReturnMem I)
       (UInt256.ofNat (MachineState.M (UInt256.ofNat 3).toNat 0 3875))
-      (by ctor_decode) mem_cost (by rfl) (by native_decide) (by evm_ov),
+      (by ctor_decode) mem_cost (by rfl) (by decide +native) (by evm_ov),
     raw push1 ⟨0⟩ (by ctor_decode) (by evm_ov),
     raw ret 0 cureBytecode (by ctor_decode) mem_cost
       (cureCtorReturnMem_read I) (by evm_ov)]

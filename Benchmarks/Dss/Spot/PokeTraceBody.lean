@@ -22,10 +22,10 @@ theorem spotPokeBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := spotBytecode) (sel := sel) (entry := ⟨185⟩) (ret := ⟨214⟩)
     (decoded := ⟨207⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (spotDecode_poke_none_short hsz4 hshort)
 
@@ -40,19 +40,19 @@ theorem spotPokeX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := spotBytecode) (sel := sel) (entry := ⟨185⟩) (ret := ⟨214⟩)
     (decoded := ⟨207⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
-  have rd208 := hdecoded.jumpdest (by native_decide) (by evm_ov)
-  have rd209 := rd208.pop (by native_decide) (by evm_ov)
-  have rd210 := rd209.calldataload (by native_decide) (by evm_ov)
-  have rd213 := rd210.push2 ⟨598⟩ (by native_decide) (by evm_ov)
+  have rd208 := hdecoded.jumpdest (by decide +native) (by evm_ov)
+  have rd209 := rd208.pop (by decide +native) (by evm_ov)
+  have rd210 := rd209.calldataload (by decide +native) (by evm_ov)
+  have rd213 := rd210.push2 ⟨598⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [pokeIlkWord, ilksArgWord, calldataWord,
       show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-      using rd213.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      using rd213.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.spotPokeToPeekExtcodesizeGuard
@@ -71,45 +71,45 @@ theorem RD.spotPokeToPeekExtcodesizeGuard
       (pokePeekCalldataMem I) (UInt256.ofNat 5) ByteArray.empty (cA, σ) k' C' := by
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
-  have rd599 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd601 := rd599.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd602 := rd601.dup2 (by native_decide) (by evm_ov)
-  have rd603 := rd602.dup2 (by native_decide) (by evm_ov)
+    decide +native
+  have rd599 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd601 := rd599.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd602 := rd601.dup2 (by decide +native) (by evm_ov)
+  have rd603 := rd602.dup2 (by decide +native) (by evm_ov)
   have rd604 := rd603.mstore 0 (wordAt0Mem (pokeIlkWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)
-  have rd606 := rd604.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd608 := rd606.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)
+  have rd606 := rd604.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd608 := rd606.push1 ⟨32⟩ (by decide +native) (by evm_ov)
   have rd609 := rd608.mstore 0 (pokePipHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost
+    (UInt256.ofNat 3) (by decide +native) mem_cost
     (by rfl)
     (by decide) (by evm_ov)
-  have rd611 := rd609.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd612 := rd611.dup1 (by native_decide) (by evm_ov)
-  have rd613 := rd612.dup3 (by native_decide) (by evm_ov)
+  have rd611 := rd609.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd612 := rd611.dup1 (by decide +native) (by evm_ov)
+  have rd613 := rd612.dup3 (by decide +native) (by evm_ov)
   have hslot := twoWordHashMem_solcMappingSlot (⟨1⟩ : UInt256) (pokeIlkWord I)
     solcFreePtrMem_size
   have rd614 := rd613.keccak256 0 (solcMappingSlot ⟨1⟩ (pokeIlkWord I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost
+    (UInt256.ofNat 3) (by decide +native) mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd615Raw⟩ := rd614.sload (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd615Raw⟩ := rd614.sload (by decide +native) (by evm_ov)
   have rd615 := by
     simpa [pokePipRawWord, spotSlotWord, pokePipSlotFor_eq (I := I) hsz36,
       solcSlotWord] using rd615Raw
-  have rd616 := rd615.dup2 (by native_decide) (by evm_ov)
-  have rd617 := rd616.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+  have rd616 := rd615.dup2 (by decide +native) (by evm_ov)
+  have rd617 := rd616.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
     mem_cost (pokePipHashMem_mload64 I) (by decide) (by evm_ov)
-  have rd622 := rd617.push4 ⟨1507864023⟩ (by native_decide) (by evm_ov)
-  have rd624 := rd622.push1 ⟨224⟩ (by native_decide) (by evm_ov)
-  have rd625 := rd624.shl (by native_decide) (by evm_ov)
-  have rd626 := rd625.dup2 (by native_decide) (by evm_ov)
+  have rd622 := rd617.push4 ⟨1507864023⟩ (by decide +native) (by evm_ov)
+  have rd624 := rd622.push1 ⟨224⟩ (by decide +native) (by evm_ov)
+  have rd625 := rd624.shl (by decide +native) (by evm_ov)
+  have rd626 := rd625.dup2 (by decide +native) (by evm_ov)
   have rd627 := rd626.mstore 6 (pokePeekCalldataMem I) (UInt256.ofNat 5)
-    (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)
   have rd664 := evm_run rd627 with [
     dup3,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide +native)
       mem_cost (pokePeekCalldataMem_mload64 I) (by decide) (by evm_ov),
     dup5,
     swap4,
@@ -155,9 +155,9 @@ theorem RD.spotPokePeekNoCode
   obtain ⟨_, _, rd664⟩ := RD.spotPokeToPeekExtcodesizeGuard hsz36 rd598
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨664⟩) (okPc := ⟨676⟩) rd664
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.spotPokePeekCallReady
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256} {k C : ℕ}
@@ -179,9 +179,9 @@ theorem RD.spotPokePeekCallReady
   obtain ⟨gasWord, k', C', rd679⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨664⟩) (okPc := ⟨676⟩) rd664
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by
     simpa [pokePeekOutPtr, pokePeekInSize, pokePeekOutSize, pokePeekEndPtr,
       pokePeekSelectorPlainWord] using rd679⟩
@@ -216,7 +216,7 @@ theorem RD.spotPokePeekPostCall
           (pokePeekPostCallMem I out) (UInt256.ofNat 6) out (cA', σ') k' C'
       ∧ out.size < UInt256.size := by
   obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd680raw, hout⟩ :=
-    RD.call rd679 (by native_decide) hdepth (by evm_ov)
+    RD.call rd679 (by decide +native) hdepth (by evm_ov)
   refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have haw :
@@ -224,7 +224,7 @@ theorem RD.spotPokePeekPostCall
           pokePeekOutPtr.toNat pokePeekInSize.toNat)
           pokePeekOutPtr.toNat pokePeekOutSize.toNat) = UInt256.ofNat 6 := by
       unfold pokePeekOutPtr pokePeekInSize pokePeekOutSize
-      native_decide
+      decide +native
     simpa [pokePeekPostCallMem, pokePeekOutPtr, pokePeekInSize, pokePeekOutSize,
       pokePeekEndPtr, pokePeekSelectorPlainWord, haw] using rd680raw
 
@@ -244,7 +244,7 @@ theorem RD.spotPokePeekCallDepthLimit
         ⟨0⟩ :: ⟨0⟩ :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       (pokePeekCalldataMem I) (UInt256.ofNat 6) ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨k', C', rd680raw⟩ :=
-    RD.callDepthLimit rd679 (by native_decide) hdepth
+    RD.callDepthLimit rd679 (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin :
@@ -255,7 +255,7 @@ theorem RD.spotPokePeekCallDepthLimit
         pokePeekOutPtr.toNat pokePeekInSize.toNat)
         pokePeekOutPtr.toNat pokePeekOutSize.toNat) = UInt256.ofNat 6 := by
     unfold pokePeekOutPtr pokePeekInSize pokePeekOutSize
-    native_decide
+    decide +native
   simpa [pokePeekOutPtr, pokePeekInSize, pokePeekOutSize, pokePeekEndPtr,
     pokePeekSelectorPlainWord, hmin, byteArray_write_len_zero, haw] using rd680raw
 
@@ -271,9 +271,9 @@ theorem RD.spotPokePeekCallFailed
     RDrev spotBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨680⟩) (okPc := ⟨696⟩) rd680
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp)
 
 theorem RD.spotPokePeekCallSucceeded
@@ -292,8 +292,8 @@ theorem RD.spotPokePeekCallSucceeded
       mem (UInt256.ofNat 6) rdata acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨680⟩) (okPc := ⟨696⟩) rd680
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.spotPokePeekReturnDecodeShortReverts
@@ -307,44 +307,44 @@ theorem RD.spotPokePeekReturnDecodeShortReverts
       (pokePeekPostCallMem I out) (UInt256.ofNat 6) out acc k C)
     (hshort : out.size < 64) (hout : out.size < UInt256.size) :
     RDrev spotBytecode g (initState cA gh bl σ σ₀ g A I) := by
-  have rdPop0 := RD.pop rd698 (by native_decide)
+  have rdPop0 := RD.pop rd698 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPop1 := RD.pop rdPop0 (by native_decide)
+  have rdPop1 := RD.pop rdPop0 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPop2 := RD.pop rdPop1 (by native_decide)
+  have rdPop2 := RD.pop rdPop1 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by native_decide)
+  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdMload64 := RD.mload 0 ⟨128⟩ (UInt256.ofNat 6) rdPush64
-    (by native_decide)
+    (by decide +native)
     mem_cost
     (pokePeekPostCallMem_mload64 I out hshort hout)
     (by decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdReturndatasize := RD.returndatasize rdMload64 (by native_decide)
+  have rdReturndatasize := RD.returndatasize rdMload64 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPush64' := RD.push1 rdReturndatasize ⟨64⟩ (by native_decide)
+  have rdPush64' := RD.push1 rdReturndatasize ⟨64⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdDup2 := RD.dup2 rdPush64' (by native_decide)
+  have rdDup2 := RD.dup2 rdPush64' (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdLt := RD.lt rdDup2 (by native_decide)
+  have rdLt := RD.lt rdDup2 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨64⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, ulit_toNat' out.size hout]
     exact hshort
-  have rdIszero := RD.iszero rdLt (by native_decide)
+  have rdIszero := RD.iszero rdLt (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPushOk := RD.push2 rdIszero ⟨718⟩ (by native_decide)
+  have rdPushOk := RD.push2 rdIszero ⟨718⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hcond :
       UInt256.isZero (UInt256.lt (UInt256.ofNat out.size) (⟨64⟩ : UInt256)) = ⟨0⟩ := by
     rw [hlt]
     decide
-  have rdFallthrough := RD.jumpiNT rdPushOk (by native_decide) hcond
+  have rdFallthrough := RD.jumpiNT rdPushOk (by decide +native) hcond
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.spotPokePeekReturnDecodeOk
@@ -361,77 +361,77 @@ theorem RD.spotPokePeekReturnDecodeOk
       (initState cA gh bl σ σ₀ g A I) ⟨733⟩
       (pokePeekHasWord out :: pokePeekValWord out :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       (pokePeekPostCallMem I out) (UInt256.ofNat 6) out acc k' C' := by
-  have rdPop0 := RD.pop rd698 (by native_decide)
+  have rdPop0 := RD.pop rd698 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPop1 := RD.pop rdPop0 (by native_decide)
+  have rdPop1 := RD.pop rdPop0 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPop2 := RD.pop rdPop1 (by native_decide)
+  have rdPop2 := RD.pop rdPop1 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by native_decide)
+  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdMload64 := RD.mload 0 ⟨128⟩ (UInt256.ofNat 6) rdPush64
-    (by native_decide)
+    (by decide +native)
     mem_cost
     (pokePeekPostCallMem_mload64_long I out hlo hout)
     (by decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdReturndatasize := RD.returndatasize rdMload64 (by native_decide)
+  have rdReturndatasize := RD.returndatasize rdMload64 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPush64' := RD.push1 rdReturndatasize ⟨64⟩ (by native_decide)
+  have rdPush64' := RD.push1 rdReturndatasize ⟨64⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdDup2 := RD.dup2 rdPush64' (by native_decide)
+  have rdDup2 := RD.dup2 rdPush64' (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdLt := RD.lt rdDup2 (by native_decide)
+  have rdLt := RD.lt rdDup2 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨64⟩ : UInt256) = ⟨0⟩ := by
     apply Reasoning.Theory.ult_zero
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, ulit_toNat' out.size hout]
     exact hlo
-  have rdIszero := RD.iszero rdLt (by native_decide)
+  have rdIszero := RD.iszero rdLt (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPushOk := RD.push2 rdIszero ⟨718⟩ (by native_decide)
+  have rdPushOk := RD.push2 rdIszero ⟨718⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hcond :
       UInt256.isZero (UInt256.lt (UInt256.ofNat out.size) (⟨64⟩ : UInt256)) ≠ ⟨0⟩ := by
     rw [hlt]
     decide
-  have rdJumpi := RD.jumpiT rdPushOk (by native_decide) hcond (by jump_dest)
+  have rdJumpi := RD.jumpiT rdPushOk (by decide +native) hcond (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdJumpdest := RD.jumpdest rdJumpi (by native_decide)
+  have rdJumpdest := RD.jumpdest rdJumpi (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPopLen := RD.pop rdJumpdest (by native_decide)
+  have rdPopLen := RD.pop rdJumpdest (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdDup1 := RD.dup1 rdPopLen (by native_decide)
+  have rdDup1 := RD.dup1 rdPopLen (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdMload128 := RD.mload 0 (pokePeekValWord out) (UInt256.ofNat 6) rdDup1
-    (by native_decide)
+    (by decide +native)
     mem_cost
     (pokePeekPostCallMem_mload128_long I out hlo hout)
-    (by native_decide)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPush32 := RD.push1 rdMload128 ⟨32⟩ (by native_decide)
+  have rdPush32 := RD.push1 rdMload128 ⟨32⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdSwap1 := RD.swap1 rdPush32 (by native_decide)
+  have rdSwap1 := RD.swap1 rdPush32 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdSwap2 := RD.swap2 rdSwap1 (by native_decide)
+  have rdSwap2 := RD.swap2 rdSwap1 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdAdd := RD.add rdSwap2 (by native_decide)
+  have rdAdd := RD.add rdSwap2 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdMload160 := RD.mload 0 (pokePeekHasWord out) (UInt256.ofNat 6) rdAdd
-    (by native_decide)
+    (by decide +native)
     mem_cost
     (pokePeekPostCallMem_mload160_long I out hlo hout)
-    (by native_decide)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdSwap1' := RD.swap1 rdMload160 (by native_decide)
+  have rdSwap1' := RD.swap1 rdMload160 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdSwap3 := RD.swap3 rdSwap1' (by native_decide)
+  have rdSwap3 := RD.swap3 rdSwap1' (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPop0' := RD.pop rdSwap3 (by native_decide)
+  have rdPop0' := RD.pop rdSwap3 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdSwap1'' := RD.swap1 rdPop0' (by native_decide)
+  have rdSwap1'' := RD.swap1 rdPop0' (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPop1' := RD.pop rdSwap1'' (by native_decide)
+  have rdPop1' := RD.pop rdSwap1'' (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa using rdPop1'⟩
 
@@ -470,45 +470,45 @@ theorem RD.spotCheckedMulReturns
       mem aw rdata acc k C) :
     ∃ k' C', RD spotBytecode I g s0 ret (x * y :: R) mem aw rdata acc k' C' := by
   have rd2078prep := evm_run rd2051 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨2078⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨2078⟩ (by decide +native) (by evm_ov)]
   by_cases hy0 : y = ⟨0⟩
   · have hcond : UInt256.isZero y ≠ ⟨0⟩ := by
       rw [hy0]
       decide
-    have rd2078 := rd2078prep.jumpiT (by native_decide) hcond (by jump_dest)
+    have rd2078 := rd2078prep.jumpiT (by decide +native) hcond (by jump_dest)
       (by evm_ov)
     have rd2082 := evm_run rd2078 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw push2 ⟨2087⟩ (by native_decide) (by evm_ov)]
-    have rd2087 := rd2082.jumpiT (by native_decide) hcond (by jump_dest)
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw push2 ⟨2087⟩ (by decide +native) (by evm_ov)]
+    have rd2087 := rd2082.jumpiT (by decide +native) hcond (by jump_dest)
       (by evm_ov)
     have rd2092 := evm_run rd2087 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw swap3 (by native_decide) (by evm_ov),
-      raw swap2 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov)]
-    have rdret := rd2092.jump (by native_decide) hret (by evm_ov)
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw swap3 (by decide +native) (by evm_ov),
+      raw swap2 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov)]
+    have rdret := rd2092.jump (by decide +native) hret (by evm_ov)
     exact ⟨_, _, by simpa [hy0] using rdret⟩
   · have hcond : UInt256.isZero y = ⟨0⟩ := isZero_eq_zero_of_ne hy0
-    have rd2061 := rd2078prep.jumpiNT (by native_decide) hcond (by evm_ov)
+    have rd2061 := rd2078prep.jumpiNT (by decide +native) hcond (by evm_ov)
     have rd2073 := evm_run rd2061 with [
-      raw pop (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw dup1 (by native_decide) (by evm_ov),
-      raw dup3 (by native_decide) (by evm_ov),
-      raw mul (by native_decide) (by evm_ov),
-      raw dup3 (by native_decide) (by evm_ov),
-      raw dup3 (by native_decide) (by evm_ov),
-      raw dup3 (by native_decide) (by evm_ov),
-      raw dup2 (by native_decide) (by evm_ov),
-      raw push2 ⟨2075⟩ (by native_decide) (by evm_ov)]
-    have rd2075 := rd2073.jumpiT (by native_decide) hy0 (by jump_dest) (by evm_ov)
+      raw pop (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw dup1 (by decide +native) (by evm_ov),
+      raw dup3 (by decide +native) (by evm_ov),
+      raw mul (by decide +native) (by evm_ov),
+      raw dup3 (by decide +native) (by evm_ov),
+      raw dup3 (by decide +native) (by evm_ov),
+      raw dup3 (by decide +native) (by evm_ov),
+      raw dup2 (by decide +native) (by evm_ov),
+      raw push2 ⟨2075⟩ (by decide +native) (by evm_ov)]
+    have rd2075 := rd2073.jumpiT (by decide +native) hy0 (by jump_dest) (by evm_ov)
     have hyNatNe : y.toNat ≠ 0 := by
       intro hzero
       exact hy0 (uint256_toNat_eq_zero hzero)
@@ -521,23 +521,23 @@ theorem RD.spotCheckedMulReturns
       simpa [Nat.mul_comm] using Nat.mul_div_right x.toNat
         (Nat.pos_of_ne_zero hyNatNe)
     have rd2082 := evm_run rd2075 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw div (by native_decide) (by evm_ov),
-      raw eq (by native_decide) (by evm_ov),
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw push2 ⟨2087⟩ (by native_decide) (by evm_ov)]
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw div (by decide +native) (by evm_ov),
+      raw eq (by decide +native) (by evm_ov),
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw push2 ⟨2087⟩ (by decide +native) (by evm_ov)]
     have heqCond : UInt256.eq (UInt256.div (x * y) y) x ≠ ⟨0⟩ := by
       rw [hdivWord, u256_eq_refl]
       exact one_ne_zero_uint
-    have rd2087 := rd2082.jumpiT (by native_decide) heqCond (by jump_dest)
+    have rd2087 := rd2082.jumpiT (by decide +native) heqCond (by jump_dest)
       (by evm_ov)
     have rd2092 := evm_run rd2087 with [
-      raw jumpdest (by native_decide) (by evm_ov),
-      raw swap3 (by native_decide) (by evm_ov),
-      raw swap2 (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov),
-      raw pop (by native_decide) (by evm_ov)]
-    have rdret := rd2092.jump (by native_decide) hret (by evm_ov)
+      raw jumpdest (by decide +native) (by evm_ov),
+      raw swap3 (by decide +native) (by evm_ov),
+      raw swap2 (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov),
+      raw pop (by decide +native) (by evm_ov)]
+    have rdret := rd2092.jump (by decide +native) hret (by evm_ov)
     exact ⟨_, _, by simpa using rdret⟩
 
 theorem RD.spotCheckedMulOverflowReverts
@@ -564,37 +564,37 @@ theorem RD.spotCheckedMulOverflowReverts
       rw [hcomm]
       exact hbad)
   have rd2078prep := evm_run rd2051 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨2078⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨2078⟩ (by decide +native) (by evm_ov)]
   have hcond : UInt256.isZero y = ⟨0⟩ := isZero_eq_zero_of_ne hyNe
-  have rd2061 := rd2078prep.jumpiNT (by native_decide) hcond (by evm_ov)
+  have rd2061 := rd2078prep.jumpiNT (by decide +native) hcond (by evm_ov)
   have rd2073 := evm_run rd2061 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mul (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨2075⟩ (by native_decide) (by evm_ov)]
-  have rd2075 := rd2073.jumpiT (by native_decide) hyNe (by jump_dest) (by evm_ov)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mul (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨2075⟩ (by decide +native) (by evm_ov)]
+  have rd2075 := rd2073.jumpiT (by decide +native) hyNe (by jump_dest) (by evm_ov)
   have rd2082 := evm_run rd2075 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨2087⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨2087⟩ (by decide +native) (by evm_ov)]
   have heqCond : UInt256.eq (UInt256.div (x * y) y) x = ⟨0⟩ :=
     u256_eq_of_ne hdivNe
-  have rdFallthrough := rd2082.jumpiNT (by native_decide) heqCond (by evm_ov)
+  have rdFallthrough := rd2082.jumpiNT (by decide +native) heqCond (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.spotRdivReturns
@@ -611,15 +611,15 @@ theorem RD.spotRdivReturns
     ∃ k' C', RD spotBytecode I g s0 ret
       (UInt256.div (x * pokeRay) denom :: R) mem aw rdata acc k' C' := by
   have rd2117 := evm_run rd2093 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨2118⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨2118⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have rd2101 := rd2117.pushConst pokeRay (width := 12) (op := .PUSH12)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd2051 := rd2101.push2 ⟨2051⟩ (by native_decide) (by evm_ov)
-    |>.jump (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
+  have rd2051 := rd2101.push2 ⟨2051⟩ (by decide +native) (by evm_ov)
+    |>.jump (by decide +native) (by jump_dest) (by evm_ov)
   have hmulRlen : (denom :: ⟨0⟩ :: denom :: x :: ret :: R).length ≤ 1010 := by
     simp only [List.length_cons]
     omega
@@ -627,22 +627,22 @@ theorem RD.spotRdivReturns
     RD.spotCheckedMulReturns
       (R := denom :: ⟨0⟩ :: denom :: x :: ret :: R)
       (ret := (⟨2118⟩ : UInt256)) hmulRlen
-      (by native_decide) hfit rd2051
+      (by decide +native) hfit rd2051
   have rd2123 := evm_run rd2118 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨2125⟩ (by native_decide) (by evm_ov)]
-  have rd2125 := rd2123.jumpiT (by native_decide) hdenom (by jump_dest)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨2125⟩ (by decide +native) (by evm_ov)]
+  have rd2125 := rd2123.jumpiT (by decide +native) hdenom (by jump_dest)
     (by evm_ov)
   have rd2132 := evm_run rd2125 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw div (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  have rdret := rd2132.jump (by native_decide) hret (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw div (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  have rdret := rd2132.jump (by decide +native) hret (by evm_ov)
   exact ⟨_, _, by simpa using rdret⟩
 
 theorem RD.spotRdivMulOverflowReverts
@@ -656,15 +656,15 @@ theorem RD.spotRdivMulOverflowReverts
       mem aw rdata acc k C) :
     RDrev spotBytecode g s0 := by
   have rd2117 := evm_run rd2093 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨2118⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨2118⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have rd2101 := rd2117.pushConst pokeRay (width := 12) (op := .PUSH12)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd2051 := rd2101.push2 ⟨2051⟩ (by native_decide) (by evm_ov)
-    |>.jump (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
+  have rd2051 := rd2101.push2 ⟨2051⟩ (by decide +native) (by evm_ov)
+    |>.jump (by decide +native) (by jump_dest) (by evm_ov)
   have hmulRlen : (denom :: ⟨0⟩ :: denom :: x :: ret :: R).length ≤ 1010 := by
     simp only [List.length_cons]
     omega
@@ -685,15 +685,15 @@ theorem RD.spotRdivDivZeroInvalid
     X (g.toNat + 1) (D_J spotBytecode 0) s0 = .error .OutOfGass ∨
       X (g.toNat + 1) (D_J spotBytecode 0) s0 = .error .InvalidInstruction := by
   have rd2117 := evm_run rd2093 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨2118⟩ (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨2118⟩ (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have rd2101 := rd2117.pushConst pokeRay (width := 12) (op := .PUSH12)
-    (by decide) (by native_decide) (by evm_ov)
-  have rd2051 := rd2101.push2 ⟨2051⟩ (by native_decide) (by evm_ov)
-    |>.jump (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
+  have rd2051 := rd2101.push2 ⟨2051⟩ (by decide +native) (by evm_ov)
+    |>.jump (by decide +native) (by jump_dest) (by evm_ov)
   have hmulRlen : (denom :: ⟨0⟩ :: denom :: x :: ret :: R).length ≤ 1010 := by
     simp only [List.length_cons]
     omega
@@ -701,13 +701,13 @@ theorem RD.spotRdivDivZeroInvalid
     RD.spotCheckedMulReturns
       (R := denom :: ⟨0⟩ :: denom :: x :: ret :: R)
       (ret := (⟨2118⟩ : UInt256)) hmulRlen
-      (by native_decide) hfit rd2051
+      (by decide +native) hfit rd2051
   have rd2123 := evm_run rd2118 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨2125⟩ (by native_decide) (by evm_ov)]
-  have rd2124 := rd2123.jumpiNT (by native_decide) hdenom (by evm_ov)
-  exact spotRDInvalidError rd2124 (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨2125⟩ (by decide +native) (by evm_ov)]
+  have rd2124 := rd2123.jumpiNT (by decide +native) hdenom (by evm_ov)
+  exact spotRDInvalidError rd2124 (by decide +native)
 
 theorem RD.spotPokeHasTrueToValScaledMul
     {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -725,19 +725,19 @@ theorem RD.spotPokeHasTrueToValScaledMul
       (pokePeekPostCallMem I out) (UInt256.ofNat 6) out acc k' C' := by
   have hBillion : (⟨1000000000⟩ : UInt256) = pokeBillion := by rfl
   have rd746pre := evm_run rd733 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨746⟩ (by native_decide) (by evm_ov)]
-  have rd746 := rd746pre.jumpiT (by native_decide) hhas (by jump_dest) (by evm_ov)
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨746⟩ (by decide +native) (by evm_ov)]
+  have rd746 := rd746pre.jumpiT (by decide +native) hhas (by jump_dest) (by evm_ov)
   have rd2051 := evm_run rd746 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨798⟩ (by native_decide) (by evm_ov),
-    raw push2 ⟨774⟩ (by native_decide) (by evm_ov),
-    raw push2 ⟨766⟩ (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw push4 ⟨1000000000⟩ (by native_decide) (by evm_ov),
-    raw push2 ⟨2051⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨798⟩ (by decide +native) (by evm_ov),
+    raw push2 ⟨774⟩ (by decide +native) (by evm_ov),
+    raw push2 ⟨766⟩ (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw push4 ⟨1000000000⟩ (by decide +native) (by evm_ov),
+    raw push2 ⟨2051⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [hBillion] using rd2051⟩
 
 theorem RD.spotPokeValScaledToRdivPar
@@ -754,9 +754,9 @@ theorem RD.spotPokeValScaledToRdivPar
       (pokeParWord σ' I :: valScaled :: ⟨774⟩ :: ⟨798⟩ :: ⟨0⟩ :: has :: val ::
         pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out (cA', σ') k' C' := by
-  have rd767 := rd766.jumpdest (by native_decide) (by evm_ov)
-  have rd769 := rd767.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k770, C770, rd770raw⟩ := rd769.sload (by native_decide) (by evm_ov)
+  have rd767 := rd766.jumpdest (by decide +native) (by evm_ov)
+  have rd769 := rd767.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k770, C770, rd770raw⟩ := rd769.sload (by decide +native) (by evm_ov)
   have rd770 : RD spotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨770⟩
       (pokeParWord σ' I :: valScaled :: ⟨774⟩ :: ⟨798⟩ :: ⟨0⟩ :: has :: val ::
@@ -764,8 +764,8 @@ theorem RD.spotPokeValScaledToRdivPar
       mem (UInt256.ofNat 6) out (cA', σ') k770 C770 := by
     simpa [pokeParWord, spotSlotWord, solcSlotWord] using rd770raw
   have rd2093 := evm_run rd770 with [
-    raw push2 ⟨2093⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨2093⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa using rd2093⟩
 
 theorem RD.spotPokeAfterRdivParToRdivMat
@@ -791,30 +791,30 @@ theorem RD.spotPokeAfterRdivParToRdivMat
     dsimp [mem1]
     exact poke_twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256)
       (pokeIlkWord I) (by rw [hmem]; omega)
-  have rd775 := rd774.jumpdest (by native_decide) (by evm_ov)
+  have rd775 := rd774.jumpdest (by decide +native) (by evm_ov)
   have rd779pre := evm_run rd775 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd779 := rd779pre.mstore 0 (wordAt0Mem (pokeIlkWord I) mem)
-    (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 6) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd786pre := evm_run rd779 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd786 := rd786pre.mstore 0 mem1 (UInt256.ofNat 6)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd792pre := evm_run rd786 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd791 := rd792pre.keccak256 0 (solcMappingSlot ⟨1⟩ (pokeIlkWord I))
-    (UInt256.ofNat 6) (by native_decide) mem_cost hslot (by native_decide)
+    (UInt256.ofNat 6) (by decide +native) mem_cost hslot (by decide +native)
     (by evm_ov)
-  have rd792 := rd791.add (by native_decide) (by evm_ov)
-  obtain ⟨k794, C794, rd794raw⟩ := rd792.sload (by native_decide) (by evm_ov)
+  have rd792 := rd791.add (by decide +native) (by evm_ov)
+  obtain ⟨k794, C794, rd794raw⟩ := rd792.sload (by decide +native) (by evm_ov)
   have rd794 : RD spotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨794⟩
       (pokeMatWord σ' I :: spot1 :: ⟨798⟩ :: ⟨0⟩ :: has :: val ::
@@ -823,8 +823,8 @@ theorem RD.spotPokeAfterRdivParToRdivMat
     simpa [pokeMatWord, spotSlotWord, solcSlotWord, pokeMatSlotFor_eq hsz36]
       using rd794raw
   have rd2093 := evm_run rd794 with [
-    raw push2 ⟨2093⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨2093⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa [mem1] using rd2093⟩
 
 theorem RD.spotPokeHasFalseToVatFileEntry
@@ -842,13 +842,13 @@ theorem RD.spotPokeHasFalseToVatFileEntry
         pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       (pokePeekPostCallMem I out) (UInt256.ofNat 6) out acc k' C' := by
   have rd798 := evm_run rd733 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw push2 ⟨746⟩ (by native_decide) (by evm_ov),
-    raw jumpiNT (by native_decide) hhas (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw push2 ⟨798⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw push2 ⟨746⟩ (by decide +native) (by evm_ov),
+    raw jumpiNT (by decide +native) hhas (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw push2 ⟨798⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   exact ⟨_, _, by simpa using rd798⟩
 
 theorem RD.spotPokeVatFileCallGuard
@@ -878,96 +878,96 @@ theorem RD.spotPokeVatFileCallGuard
   have hselector :
       UInt256.shiftLeft (⟨218469439⟩ : UInt256) ⟨225⟩ =
         pokeVatFileSelectorShifted := by
-    native_decide
+    decide +native
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have hvatMask :
       UInt256.land (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
         vatRaw = pokeVatTargetWord σ' I := by
     rw [u256_land_comm, hmask]
   have hinsize :
       UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨100⟩ = pokeVatFileInSize := by
-    native_decide
+    decide +native
   have hend : (⟨128⟩ : UInt256) + ⟨100⟩ = pokeVatFileEndPtr := by
-    native_decide
-  have rd799 := rd798.jumpdest (by native_decide) (by evm_ov)
-  have rd801 := rd799.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k802, C802, rd802raw⟩ := rd801.sload (by native_decide) (by evm_ov)
+    decide +native
+  have rd799 := rd798.jumpdest (by decide +native) (by evm_ov)
+  have rd801 := rd799.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k802, C802, rd802raw⟩ := rd801.sload (by decide +native) (by evm_ov)
   have rd802 : RD spotBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨802⟩
       (vatRaw :: spot :: scratch :: has :: val :: pokeIlkWord I :: ⟨214⟩ :: sel :: [])
       mem (UInt256.ofNat 6) out (cA', σ') k802 C802 := by
     simpa [vatRaw, spotSlotWord, solcSlotWord] using rd802raw
   have rd886 := evm_run rd802 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw push4 ⟨218469439⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨225⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push4 ⟨218469439⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨225⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (pokeVatFileSelectorMem mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rw [hselector]; rfl) (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup9 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rw [hselector]; rfl) (by decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup9 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (pokeVatFileIlkMem I mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push4 ⟨484187101⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨226⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push4 ⟨484187101⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨226⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (pokeVatFileWhatMem I mem) (UInt256.ofNat 7)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 3 (pokeVatFileCalldataMem I spot mem) (UInt256.ofNat 8)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost (pokeVatFileCalldataMem_mload64 I spot hmem hread64)
       (by decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push4 ⟨436938878⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push4 ⟨436938878⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [pokeVatFileOutPtr, pokeVatFileInSize, pokeVatFileOutSize,
       pokeVatFileEndPtr, pokeVatFileSelectorPlainWord, pokeVatFileSelectorShifted,
@@ -995,9 +995,9 @@ theorem RD.spotPokeVatFileCallReady
   obtain ⟨gasWord, k', C', rd901⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨886⟩) (okPc := ⟨898⟩) rd886
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd901⟩
 
 theorem RD.spotPokeVatFileNoCode
@@ -1015,9 +1015,9 @@ theorem RD.spotPokeVatFileNoCode
   obtain ⟨_, _, rd886⟩ := RD.spotPokeVatFileCallGuard hmem hread64 rd798
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨886⟩) (okPc := ⟨898⟩) rd886
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.spotPokeVatFilePostCall
     {cA cA' gh bl σ σ' σ₀ A I} {g : Sat256} {spot has val sel gasWord : UInt256}
@@ -1049,7 +1049,7 @@ theorem RD.spotPokeVatFilePostCall
           mem (UInt256.ofNat 8) fileOut (cA'', σ'') k' C'
       ∧ fileOut.size < UInt256.size := by
   obtain ⟨cA'', σ'', z, fileOut, Ain, callGas, k', C', hΘ, rd902raw, hout⟩ :=
-    RD.call rd901 (by native_decide) hdepth (by evm_ov)
+    RD.call rd901 (by decide +native) hdepth (by evm_ov)
   refine ⟨cA'', σ'', z, fileOut, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have hmin :
@@ -1064,7 +1064,7 @@ theorem RD.spotPokeVatFilePostCall
           pokeVatFileOutPtr.toNat pokeVatFileInSize.toNat)
           pokeVatFileOutPtr.toNat pokeVatFileOutSize.toNat) = UInt256.ofNat 8 := by
       unfold pokeVatFileOutPtr pokeVatFileInSize pokeVatFileOutSize
-      native_decide
+      decide +native
     simpa [pokeVatFileOutPtr, pokeVatFileInSize, pokeVatFileOutSize,
       pokeVatFileEndPtr, pokeVatFileSelectorPlainWord, hmin, byteArray_write_len_zero,
       haw] using rd902raw
@@ -1081,9 +1081,9 @@ theorem RD.spotPokeVatFileCallFailed
     RDrev spotBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨902⟩) (okPc := ⟨918⟩) rd902
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp)
 
 theorem RD.spotPokeVatFileCallSucceeded
@@ -1102,8 +1102,8 @@ theorem RD.spotPokeVatFileCallSucceeded
       mem (UInt256.ofNat 8) rdata acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨902⟩) (okPc := ⟨918⟩) rd902
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
@@ -1138,52 +1138,52 @@ theorem RD.spotPokeVatFileLogReturns
         (⟨128⟩ : UInt256) :=
     pokeEventSpotMem_mload64 I val spot hmem hread64
   have rd943 := evm_run rd920 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide) mem_cost hmload64
-      (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mstore 0 (pokeEventIlkMem I mem) (UInt256.ofNat 8) (by native_decide) mem_cost
-      (by rfl) (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mstore 0 (pokeEventValMem I val mem) (UInt256.ofNat 8) (by native_decide)
-      mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native) mem_cost hmload64
+      (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mstore 0 (pokeEventIlkMem I mem) (UInt256.ofNat 8) (by decide +native) mem_cost
+      (by rfl) (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mstore 0 (pokeEventValMem I val mem) (UInt256.ofNat 8) (by decide +native)
+      mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
     raw mstore 0 (pokeEventSpotMem I val spot mem) (UInt256.ofNat 8)
-      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide) mem_cost
-      hmload64Log (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native) mem_cost
+      hmload64Log (by decide +native) (by evm_ov)]
   have rd976 := rd943.pushConst pokeEventTopic (width := 32) (op := .PUSH32)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd992 := evm_run rd976 with [
-    raw swap4 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨96⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw log1 0 (UInt256.ofNat 8) (by native_decide) hperm mem_cost
-      (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  have rd214 := rd992.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd215 := rd214.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd215 (by native_decide) (by evm_ov)
+    raw swap4 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨96⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw log1 0 (UInt256.ofNat 8) (by decide +native) hperm mem_cost
+      (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  have rd214 := rd992.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd215 := rd214.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd215 (by decide +native) (by evm_ov)
 end Benchmarks.Dss.Spot

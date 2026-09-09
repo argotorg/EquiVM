@@ -206,7 +206,7 @@ abbrev flipperUint48Offset6Word (slot : UInt256) (σ : AccountMap) (I : Executio
 
 theorem uint48Mask_toNat :
     uint48Mask.toNat = 256 ^ 6 - 1 := by
-  native_decide
+  decide +native
 
 theorem uint48Mask_bound (w : UInt256) :
     (UInt256.land w uint48Mask).toNat < EVM.twoPow 48 := by
@@ -280,7 +280,7 @@ theorem flipperStorageLocLoad_uint48_offset0 (evm : EVM.State) (slot : UInt256) 
     (hbits := by decide)
   have hmask : UInt256.ofNat (2 ^ (8 * (⟨6, by decide⟩ : Fin 33).val) - 1) =
       uint48Mask := by
-    native_decide
+    decide +native
   simpa [uint48Loc, uint48Int, hmask] using h
 
 theorem flipperStorageLocLoad_uint48_offset6 (evm : EVM.State) (slot : UInt256) :
@@ -294,10 +294,10 @@ theorem flipperStorageLocLoad_uint48_offset6 (evm : EVM.State) (slot : UInt256) 
     (hoff := by decide) (hsize := by decide)
   have hmask : UInt256.ofNat (256 ^ (⟨6, by decide⟩ : Fin 33).val - 1) =
       uint48Mask := by
-    native_decide
+    decide +native
   have hdiv : UInt256.ofNat (256 ^ (⟨6, by decide⟩ : Fin 32).val) =
       uint48Divisor := by
-    native_decide
+    decide +native
   simpa [uint48Loc, uint48Int, hmask, hdiv] using h
 
 abbrev setUint48Offset0Word (old val : UInt256) : UInt256 :=
@@ -313,7 +313,7 @@ theorem setUint48Offset0Word_toNat (old val : UInt256) (hval : val.toNat < 2 ^ 4
       (UInt256.land old (UInt256.lnot uint48Mask)).toNat =
         (old.toNat / 2 ^ 48) * 2 ^ 48 := by
     rw [show UInt256.lnot uint48Mask = UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ 48) by
-      native_decide]
+      decide +native]
     rw [u256_land_comm]
     exact u256_land_high_mask_toNat old 48 (by norm_num)
   have hlow : (UInt256.land val uint48Mask).toNat = val.toNat := by
@@ -445,7 +445,7 @@ theorem setUint48Offset6Word_toNat (old val : UInt256) (hval : val.toNat < 2 ^ 4
   have hclearMask :
       UInt256.lnot (UInt256.shiftLeft uint48Mask ⟨48⟩) =
         UInt256.ofNat ((2 : Nat) ^ 256 - 2 ^ 96 + 2 ^ 48 - 1) := by
-    native_decide
+    decide +native
   have hvalLow : (UInt256.land val uint48Mask).toNat = val.toNat := by
     rw [u256_land_toNat]
     change Nat.land val.toNat (2 ^ 48 - 1) % UInt256.size = val.toNat
@@ -640,7 +640,7 @@ theorem flipperAuthGuardEval_true {cA gh bl σ σ₀ A I} {g : Sat256} {locals :
   simp only [initState] at hload ⊢
   rw [hload]
   simp [evalExpr?, evalBinaryOp?]
-  all_goals native_decide
+  all_goals decide +native
 
 theorem flipperAuthGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
     (hbase : locals.get? "wards" = none)
@@ -674,7 +674,7 @@ theorem flipperAuthGuardEval_false {cA gh bl σ σ₀ A I} {g : Sat256} {locals 
     apply hload
     apply u256_inj
     simpa using hnat
-  all_goals native_decide
+  all_goals decide +native
 
 theorem flipperAddressGetterBodyReturns (evm : EVM.State) (locals : Store)
     {ref : StorageRef} {er : EvaledStorageRef} {slot : UInt256}
@@ -1043,7 +1043,7 @@ theorem RD.solcUint48Offset6SlotGetter {code : ByteArray} {g : Sat256} {s0 : Sta
   have rdRet := rd20.jump hd20 hret (by simp only [List.length_cons]; omega)
   have hdiv :
       UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨48⟩ = uint48Divisor := by
-    native_decide
+    decide +native
   have hcomm :
       UInt256.land uint48Mask
           (UInt256.div (solcSlotWord σ ee slot)
@@ -1076,35 +1076,35 @@ theorem RD.flipperReturnUint48FromMem {g : Sat256} {s0 : State}
       memout.readWithPadding 128 32 = UInt256.toByteArray (UInt256.land val uint48Mask))
     (hov : R.length + 9 ≤ 1024) :
     RDret flipperBytecode g s0 acc (UInt256.toByteArray (UInt256.land val uint48Mask)) := by
-  have rd1 := h.jumpdest (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd3 := rd1.push1 ⟨64⟩ (by native_decide)
+  have rd1 := h.jumpdest (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd3 := rd1.push1 ⟨64⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd4 := rd3.dup1 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd5 := rd4.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost hmload64
+  have rd4 := rd3.dup1 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd5 := rd4.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost hmload64
     (by decide) (by simp only [List.length_cons]; omega)
   have rd12 := rd5.pushConst uint48Mask (width := 6) (op := .PUSH6)
-    (by decide) (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd13 := rd12.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd14 := rd13.swap3 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd15 := rd14.and (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd16 := rd15.dup3 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd17 := rd16.mstore 6 memout (UInt256.ofNat 5) (by native_decide) mem_cost
+    (by decide) (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd13 := rd12.swap1 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd14 := rd13.swap3 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd15 := rd14.and (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd16 := rd15.dup3 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd17 := rd16.mstore 6 memout (UInt256.ofNat 5) (by decide +native) mem_cost
     (by
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]
       exact hmemout)
     (by decide) (by simp only [List.length_cons]; omega)
-  have rd18 := rd17.mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost
+  have rd18 := rd17.mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide +native) mem_cost
     hmemoutLoad64
     (by decide) (by simp only [List.length_cons]; omega)
-  have rd19 := rd18.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd20 := rd19.dup2 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd21 := rd20.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd23 := rd21.sub (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd24 := rd23.push1 ⟨32⟩ (by native_decide)
+  have rd19 := rd18.swap1 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd20 := rd19.dup2 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd21 := rd20.swap1 (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd23 := rd21.sub (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd24 := rd23.push1 ⟨32⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd25 := rd24.add (by native_decide) (by simp only [List.length_cons]; omega)
-  have rd26 := rd25.swap1 (by native_decide) (by simp only [List.length_cons]; omega)
-  exact rd26.ret 0 (UInt256.toByteArray (UInt256.land val uint48Mask)) (by native_decide)
+  have rd25 := rd24.add (by decide +native) (by simp only [List.length_cons]; omega)
+  have rd26 := rd25.swap1 (by decide +native) (by simp only [List.length_cons]; omega)
+  exact rd26.ret 0 (UInt256.toByteArray (UInt256.land val uint48Mask)) (by decide +native)
     mem_cost
     (by
       rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -1407,7 +1407,7 @@ noncomputable def flipperAuthCodecopyErrorMem (mem : ByteArray) : ByteArray :=
 theorem flipperAuthScratchMem_size {mem : ByteArray} (hmem : mem.size = 96) :
     (flipperAuthScratchMem mem).size = 196 := by
   have hsrc : flipperAuthErrorOffset.toNat + 32 ≤ flipperBytecode.size := by
-    native_decide
+    decide +native
   unfold flipperAuthScratchMem
   rw [write_eq_gen_from flipperBytecode (solcErrorStringMem2 flipperAuthErrorLen mem)
     flipperAuthErrorOffset.toNat 0 32 (by decide) hsrc
@@ -1424,7 +1424,7 @@ theorem flipperAuthScratchMem_read64 {mem : ByteArray}
   unfold flipperAuthScratchMem
   rw [write32_read_above_from flipperBytecode
     (solcErrorStringMem2 flipperAuthErrorLen mem) flipperAuthErrorOffset.toNat 0 64
-    (by native_decide)
+    (by decide +native)
     (by rw [solcErrorStringMem2_size flipperAuthErrorLen hmem]; omega)
     (by omega)
     (by rw [solcErrorStringMem2_size flipperAuthErrorLen hmem]; omega)]
@@ -1617,7 +1617,7 @@ theorem RD.flipperAuthCodecopyRevertTail {g : Sat256} {s0 : State}
         rw [if_neg]
         · rfl
         · rw [solcErrorStringMem2_size flipperAuthErrorLen hmem]
-          native_decide)
+          decide +native)
       (by decide) (by evm_ov),
     raw push1 ⟨32⟩ hd31 (by evm_ov),
     raw push2 flipperAuthErrorOffset hd33 (by evm_ov),
@@ -1632,9 +1632,9 @@ theorem RD.flipperAuthCodecopyRevertTail {g : Sat256} {s0 : State}
     (fun s haws hstks => by
       simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
         List.getElem!_cons_zero, List.getElem!_cons_succ]
-      native_decide)
+      decide +native)
     hcopy
-    (by native_decide)
+    (by decide +native)
     (by evm_ov)
   have rdRestorePrefix := evm_run rdCopy with [
     raw dup2 hd38 (by evm_ov),
@@ -1645,7 +1645,7 @@ theorem RD.flipperAuthCodecopyRevertTail {g : Sat256} {s0 : State}
         rw [if_neg]
         · rfl
         · rw [flipperAuthScratchMem_size hmem]
-          native_decide)
+          decide +native)
       (by decide) (by evm_ov),
     raw swap2 hd40 (by evm_ov)]
   have rdRestored := rdRestorePrefix.mstore 0 (flipperAuthRestoredMem mem)
@@ -1692,19 +1692,19 @@ theorem RD.flipperAuthCheckOk {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := rd6.mstore 0 (wordAt0Mem (solcSourceWord ee) solcFreePtrMem)
-    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd11 := evm_run rd7 with [
     raw push1 ⟨32⟩ hd7 (by evm_ov),
     raw dup2 hd9 (by evm_ov),
     raw swap1 hd10 (by evm_ov)]
   have rd12 := rd11.mstore 0 (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := evm_run rd12 with [
     raw push1 ⟨64⟩ hd12 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ (solcSourceWord ee) solcFreePtrMem_size
   have rd16 := rd15.keccak256 0 (solcMappingSlot ⟨0⟩ (solcSourceWord ee))
-    (UInt256.ofNat 3) hd15 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd15 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd17⟩ := rd16.sload hd16 (by evm_ov)
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
@@ -1738,19 +1738,19 @@ theorem RD.flipperAuthCheckRevert {g : Sat256} {s0 : State}
     raw swap1 hd4 (by evm_ov),
     raw dup2 hd5 (by evm_ov)]
   have rd7 := rd6.mstore 0 (wordAt0Mem (solcSourceWord ee) solcFreePtrMem)
-    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd6 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd11 := evm_run rd7 with [
     raw push1 ⟨32⟩ hd7 (by evm_ov),
     raw dup2 hd9 (by evm_ov),
     raw swap1 hd10 (by evm_ov)]
   have rd12 := rd11.mstore 0 (twoWordHashMem (solcSourceWord ee) ⟨0⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd11 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := evm_run rd12 with [
     raw push1 ⟨64⟩ hd12 (by evm_ov),
     raw swap1 hd14 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ (solcSourceWord ee) solcFreePtrMem_size
   have rd16 := rd15.keccak256 0 (solcMappingSlot ⟨0⟩ (solcSourceWord ee))
-    (UInt256.ofNat 3) hd15 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd15 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd17⟩ := rd16.sload hd16 (by evm_ov)
   have rd19 := rd17.push1 ⟨1⟩ hd17 (by evm_ov)
   have rd20₀ := rd19.eq hd19 (by evm_ov)
@@ -1859,19 +1859,19 @@ theorem RD.flipperMappingStoreOne {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd12 (by evm_ov),
     raw dup2 hd13 (by evm_ov)]
   have rdAfterKey := rdMstore0Prefix.mstore 0 (wordAt0Mem key mem)
-    (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
     raw push1 ⟨32⟩ hd15 (by evm_ov),
     raw dup2 hd17 (by evm_ov),
     raw swap1 hd18 (by evm_ov)]
   have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem key ⟨0⟩ mem)
-    (UInt256.ofNat 3) hd19 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd19 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩ hd20 (by evm_ov),
     raw swap1 hd22 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ key hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨0⟩ key)
-    (UInt256.ofNat 3) hd23 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd23 mem_cost hslot (by decide +native) (by evm_ov)
   have rdBeforeStore := evm_run rdSlot with [
     raw push1 ⟨1⟩ hd24 (by evm_ov),
     raw swap1 hd26 (by evm_ov)]
@@ -1956,19 +1956,19 @@ theorem RD.flipperMappingStoreZero {code : ByteArray} {g : Sat256} {s0 : State}
     raw swap1 hd12 (by evm_ov),
     raw dup2 hd13 (by evm_ov)]
   have rdAfterKey := rdMstore0Prefix.mstore 0 (wordAt0Mem key mem)
-    (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd14 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
     raw push1 ⟨32⟩ hd15 (by evm_ov),
     raw dup2 hd17 (by evm_ov),
     raw swap1 hd18 (by evm_ov)]
   have rdHashMem := rdMstoreSlotPrefix.mstore 0 (twoWordHashMem key ⟨0⟩ mem)
-    (UInt256.ofNat 3) hd19 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd19 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩ hd20 (by evm_ov),
     raw dup2 hd22 (by evm_ov)]
   have hslot := twoWordHashMem_solcMappingSlot ⟨0⟩ key hmem
   have rdSlot := rdKeccakPrefix.keccak256 0 (solcMappingSlot ⟨0⟩ key)
-    (UInt256.ofNat 3) hd23 mem_cost hslot (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd23 mem_cost hslot (by decide +native) (by evm_ov)
   obtain ⟨_, _, rdOut⟩ := rdSlot.sstore hperm hd24 (by evm_ov)
   exact ⟨_, _, rdOut.jump hd25 hret (by evm_ov)⟩
 

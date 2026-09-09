@@ -693,31 +693,31 @@ abbrev forkDstWishEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 theorem forkStore_get_ilk (I : ExecutionEnv) :
     (forkStore I).get? "ilk" = some (forkIlkValue I) := by
   unfold forkStore
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem forkStore_get_src (I : ExecutionEnv) :
     (forkStore I).get? "src" = some (forkSrcValue I) := by
   unfold forkStore
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem forkStore_get_dst (I : ExecutionEnv) :
     (forkStore I).get? "dst" = some (forkDstValue I) := by
   unfold forkStore
-  rw [store_get_ne _ _ (by native_decide)]
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem forkStore_get_dink (I : ExecutionEnv) :
     (forkStore I).get? "dink" = some (forkDinkValue I) := by
   unfold forkStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem forkStore_get_dart (I : ExecutionEnv) :
@@ -728,19 +728,19 @@ theorem forkStore_get_dart (I : ExecutionEnv) :
 theorem forkStore_urns (I : ExecutionEnv) :
     (forkStore I).get? "urns" = none := by
   unfold forkStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem forkStore_ilks (I : ExecutionEnv) :
     (forkStore I).get? "ilks" = none := by
   unfold forkStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem forkStore_can (I : ExecutionEnv) :
     (forkStore I).get? "can" = none := by
   unfold forkStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 abbrev forkStoreSrcInkNew (I : ExecutionEnv) (srcInkNew : UInt256) : Store :=
@@ -824,55 +824,55 @@ theorem forkStoreSrcInkNew_get_ilk (I : ExecutionEnv) (srcInkNew : UInt256) :
     (forkStoreSrcInkNew I srcInkNew).get? "ilk" = some (forkIlkValue I) := by
   change ((forkStore I).insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "ilk" =
     some (forkIlkValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStore_get_ilk]
+  rw [store_get_ne _ _ (by decide +native), forkStore_get_ilk]
 
 theorem forkStoreSrcInkNew_get_src (I : ExecutionEnv) (srcInkNew : UInt256) :
     (forkStoreSrcInkNew I srcInkNew).get? "src" = some (forkSrcValue I) := by
   change ((forkStore I).insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "src" =
     some (forkSrcValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStore_get_src]
+  rw [store_get_ne _ _ (by decide +native), forkStore_get_src]
 
 theorem forkStoreSrcInkNew_get_dart (I : ExecutionEnv) (srcInkNew : UInt256) :
     (forkStoreSrcInkNew I srcInkNew).get? "dart" = some (forkDartValue I) := by
   change ((forkStore I).insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "dart" =
     some (forkDartValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStore_get_dart]
+  rw [store_get_ne _ _ (by decide +native), forkStore_get_dart]
 
 theorem forkStoreSrcInkNew_get_urns (I : ExecutionEnv) (srcInkNew : UInt256) :
     (forkStoreSrcInkNew I srcInkNew).get? "urns" = none := by
   change ((forkStore I).insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "urns" =
     none
-  rw [store_get_ne _ _ (by native_decide), forkStore_urns]
+  rw [store_get_ne _ _ (by decide +native), forkStore_urns]
 
 theorem forkStoreSrcArtNew_get_ilk (I : ExecutionEnv) (srcInkNew srcArtNew : UInt256) :
     (forkStoreSrcArtNew I srcInkNew srcArtNew).get? "ilk" = some (forkIlkValue I) := by
   change ((forkStoreSrcInkNew I srcInkNew).insert "srcArtNew"
     (.int (Int.ofNat srcArtNew.toNat))).get? "ilk" = some (forkIlkValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkNew_get_ilk]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkNew_get_ilk]
 
 theorem forkStoreSrcArtNew_get_dst (I : ExecutionEnv) (srcInkNew srcArtNew : UInt256) :
     (forkStoreSrcArtNew I srcInkNew srcArtNew).get? "dst" = some (forkDstValue I) := by
   change ((forkStoreSrcInkNew I srcInkNew).insert "srcArtNew"
     (.int (Int.ofNat srcArtNew.toNat))).get? "dst" = some (forkDstValue I)
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStore I).insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "dst" =
     some (forkDstValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStore_get_dst]
+  rw [store_get_ne _ _ (by decide +native), forkStore_get_dst]
 
 theorem forkStoreSrcArtNew_get_dink (I : ExecutionEnv) (srcInkNew srcArtNew : UInt256) :
     (forkStoreSrcArtNew I srcInkNew srcArtNew).get? "dink" = some (forkDinkValue I) := by
   change ((forkStoreSrcInkNew I srcInkNew).insert "srcArtNew"
     (.int (Int.ofNat srcArtNew.toNat))).get? "dink" = some (forkDinkValue I)
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStore I).insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "dink" =
     some (forkDinkValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStore_get_dink]
+  rw [store_get_ne _ _ (by decide +native), forkStore_get_dink]
 
 theorem forkStoreSrcArtNew_get_urns (I : ExecutionEnv) (srcInkNew srcArtNew : UInt256) :
     (forkStoreSrcArtNew I srcInkNew srcArtNew).get? "urns" = none := by
   change ((forkStoreSrcInkNew I srcInkNew).insert "srcArtNew"
     (.int (Int.ofNat srcArtNew.toNat))).get? "urns" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkNew_get_urns]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkNew_get_urns]
 
 theorem forkStoreDstInkNew_get_ilk (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew : UInt256) :
@@ -880,7 +880,7 @@ theorem forkStoreDstInkNew_get_ilk (I : ExecutionEnv)
       some (forkIlkValue I) := by
   change ((forkStoreSrcArtNew I srcInkNew srcArtNew).insert "dstInkNew"
     (.int (Int.ofNat dstInkNew.toNat))).get? "ilk" = some (forkIlkValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcArtNew_get_ilk]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcArtNew_get_ilk]
 
 theorem forkStoreDstInkNew_get_dst (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew : UInt256) :
@@ -888,7 +888,7 @@ theorem forkStoreDstInkNew_get_dst (I : ExecutionEnv)
       some (forkDstValue I) := by
   change ((forkStoreSrcArtNew I srcInkNew srcArtNew).insert "dstInkNew"
     (.int (Int.ofNat dstInkNew.toNat))).get? "dst" = some (forkDstValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcArtNew_get_dst]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcArtNew_get_dst]
 
 theorem forkStoreDstInkNew_get_dart (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew : UInt256) :
@@ -896,17 +896,17 @@ theorem forkStoreDstInkNew_get_dart (I : ExecutionEnv)
       some (forkDartValue I) := by
   change ((forkStoreSrcArtNew I srcInkNew srcArtNew).insert "dstInkNew"
     (.int (Int.ofNat dstInkNew.toNat))).get? "dart" = some (forkDartValue I)
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreSrcInkNew I srcInkNew).insert "srcArtNew"
     (.int (Int.ofNat srcArtNew.toNat))).get? "dart" = some (forkDartValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkNew_get_dart]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkNew_get_dart]
 
 theorem forkStoreDstInkNew_get_urns (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew : UInt256) :
     (forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew).get? "urns" = none := by
   change ((forkStoreSrcArtNew I srcInkNew srcArtNew).insert "dstInkNew"
     (.int (Int.ofNat dstInkNew.toNat))).get? "urns" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcArtNew_get_urns]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcArtNew_get_urns]
 
 theorem forkStoreDstArtNew_get_ilk (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew : UInt256) :
@@ -914,7 +914,7 @@ theorem forkStoreDstArtNew_get_ilk (I : ExecutionEnv)
       some (forkIlkValue I) := by
   change ((forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew).insert "dstArtNew"
     (.int (Int.ofNat dstArtNew.toNat))).get? "ilk" = some (forkIlkValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreDstInkNew_get_ilk]
+  rw [store_get_ne _ _ (by decide +native), forkStoreDstInkNew_get_ilk]
 
 theorem forkStoreDstArtNew_get_src (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew : UInt256) :
@@ -922,13 +922,13 @@ theorem forkStoreDstArtNew_get_src (I : ExecutionEnv)
       some (forkSrcValue I) := by
   change ((forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew).insert "dstArtNew"
     (.int (Int.ofNat dstArtNew.toNat))).get? "src" = some (forkSrcValue I)
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreSrcArtNew I srcInkNew srcArtNew).insert "dstInkNew"
     (.int (Int.ofNat dstInkNew.toNat))).get? "src" = some (forkSrcValue I)
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreSrcInkNew I srcInkNew).insert "srcArtNew"
     (.int (Int.ofNat srcArtNew.toNat))).get? "src" = some (forkSrcValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkNew_get_src]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkNew_get_src]
 
 theorem forkStoreDstArtNew_get_dst (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew : UInt256) :
@@ -936,30 +936,30 @@ theorem forkStoreDstArtNew_get_dst (I : ExecutionEnv)
       some (forkDstValue I) := by
   change ((forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew).insert "dstArtNew"
     (.int (Int.ofNat dstArtNew.toNat))).get? "dst" = some (forkDstValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreDstInkNew_get_dst]
+  rw [store_get_ne _ _ (by decide +native), forkStoreDstInkNew_get_dst]
 
 theorem forkStoreDstArtNew_get_urns (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew : UInt256) :
     (forkStoreDstArtNew I srcInkNew srcArtNew dstInkNew dstArtNew).get? "urns" = none := by
   change ((forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew).insert "dstArtNew"
     (.int (Int.ofNat dstArtNew.toNat))).get? "urns" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreDstInkNew_get_urns]
+  rw [store_get_ne _ _ (by decide +native), forkStoreDstInkNew_get_urns]
 
 theorem forkStoreDstArtNew_get_ilks (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew : UInt256) :
     (forkStoreDstArtNew I srcInkNew srcArtNew dstInkNew dstArtNew).get? "ilks" = none := by
   change ((forkStoreDstInkNew I srcInkNew srcArtNew dstInkNew).insert "dstArtNew"
     (.int (Int.ofNat dstArtNew.toNat))).get? "ilks" = none
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreSrcArtNew I srcInkNew srcArtNew).insert "dstInkNew"
     (.int (Int.ofNat dstInkNew.toNat))).get? "ilks" = none
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreSrcInkNew I srcInkNew).insert "srcArtNew"
     (.int (Int.ofNat srcArtNew.toNat))).get? "ilks" = none
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStore I).insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "ilks" =
     none
-  rw [store_get_ne _ _ (by native_decide), forkStore_ilks]
+  rw [store_get_ne _ _ (by decide +native), forkStore_ilks]
 
 theorem forkStoreUtab_get_ilk (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab : UInt256) :
@@ -967,7 +967,7 @@ theorem forkStoreUtab_get_ilk (I : ExecutionEnv)
       some (forkIlkValue I) := by
   change ((forkStoreDstArtNew I srcInkNew srcArtNew dstInkNew dstArtNew).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "ilk" = some (forkIlkValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreDstArtNew_get_ilk]
+  rw [store_get_ne _ _ (by decide +native), forkStoreDstArtNew_get_ilk]
 
 theorem forkStoreUtab_get_src (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab : UInt256) :
@@ -975,7 +975,7 @@ theorem forkStoreUtab_get_src (I : ExecutionEnv)
       some (forkSrcValue I) := by
   change ((forkStoreDstArtNew I srcInkNew srcArtNew dstInkNew dstArtNew).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "src" = some (forkSrcValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreDstArtNew_get_src]
+  rw [store_get_ne _ _ (by decide +native), forkStoreDstArtNew_get_src]
 
 theorem forkStoreUtab_get_dst (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab : UInt256) :
@@ -983,21 +983,21 @@ theorem forkStoreUtab_get_dst (I : ExecutionEnv)
       some (forkDstValue I) := by
   change ((forkStoreDstArtNew I srcInkNew srcArtNew dstInkNew dstArtNew).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "dst" = some (forkDstValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreDstArtNew_get_dst]
+  rw [store_get_ne _ _ (by decide +native), forkStoreDstArtNew_get_dst]
 
 theorem forkStoreUtab_get_urns (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab : UInt256) :
     (forkStoreUtab I srcInkNew srcArtNew dstInkNew dstArtNew utab).get? "urns" = none := by
   change ((forkStoreDstArtNew I srcInkNew srcArtNew dstInkNew dstArtNew).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "urns" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreDstArtNew_get_urns]
+  rw [store_get_ne _ _ (by decide +native), forkStoreDstArtNew_get_urns]
 
 theorem forkStoreUtab_get_ilks (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab : UInt256) :
     (forkStoreUtab I srcInkNew srcArtNew dstInkNew dstArtNew utab).get? "ilks" = none := by
   change ((forkStoreDstArtNew I srcInkNew srcArtNew dstInkNew dstArtNew).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "ilks" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreDstArtNew_get_ilks]
+  rw [store_get_ne _ _ (by decide +native), forkStoreDstArtNew_get_ilks]
 
 theorem forkStoreUtab_get_utab (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab : UInt256) :
@@ -1011,7 +1011,7 @@ theorem forkStoreVtab_get_ilk (I : ExecutionEnv)
       some (forkIlkValue I) := by
   change ((forkStoreUtab I srcInkNew srcArtNew dstInkNew dstArtNew utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "ilk" = some (forkIlkValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreUtab_get_ilk]
+  rw [store_get_ne _ _ (by decide +native), forkStoreUtab_get_ilk]
 
 theorem forkStoreVtab_get_src (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab : UInt256) :
@@ -1019,7 +1019,7 @@ theorem forkStoreVtab_get_src (I : ExecutionEnv)
       some (forkSrcValue I) := by
   change ((forkStoreUtab I srcInkNew srcArtNew dstInkNew dstArtNew utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "src" = some (forkSrcValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreUtab_get_src]
+  rw [store_get_ne _ _ (by decide +native), forkStoreUtab_get_src]
 
 theorem forkStoreVtab_get_dst (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab : UInt256) :
@@ -1027,7 +1027,7 @@ theorem forkStoreVtab_get_dst (I : ExecutionEnv)
       some (forkDstValue I) := by
   change ((forkStoreUtab I srcInkNew srcArtNew dstInkNew dstArtNew utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "dst" = some (forkDstValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreUtab_get_dst]
+  rw [store_get_ne _ _ (by decide +native), forkStoreUtab_get_dst]
 
 theorem forkStoreVtab_get_urns (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab : UInt256) :
@@ -1035,7 +1035,7 @@ theorem forkStoreVtab_get_urns (I : ExecutionEnv)
       none := by
   change ((forkStoreUtab I srcInkNew srcArtNew dstInkNew dstArtNew utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "urns" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreUtab_get_urns]
+  rw [store_get_ne _ _ (by decide +native), forkStoreUtab_get_urns]
 
 theorem forkStoreVtab_get_ilks (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab : UInt256) :
@@ -1043,7 +1043,7 @@ theorem forkStoreVtab_get_ilks (I : ExecutionEnv)
       none := by
   change ((forkStoreUtab I srcInkNew srcArtNew dstInkNew dstArtNew utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "ilks" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreUtab_get_ilks]
+  rw [store_get_ne _ _ (by decide +native), forkStoreUtab_get_ilks]
 
 theorem forkStoreVtab_get_vtab (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab : UInt256) :
@@ -1057,7 +1057,7 @@ theorem forkStoreVtab_get_utab (I : ExecutionEnv)
       some (.int (Int.ofNat utab.toNat)) := by
   change ((forkStoreUtab I srcInkNew srcArtNew dstInkNew dstArtNew utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "utab" = some (.int (Int.ofNat utab.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreUtab_get_utab]
+  rw [store_get_ne _ _ (by decide +native), forkStoreUtab_get_utab]
 
 theorem forkStoreSrcInkSpot_get_ilk (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot : UInt256) :
@@ -1065,7 +1065,7 @@ theorem forkStoreSrcInkSpot_get_ilk (I : ExecutionEnv)
       "ilk" = some (forkIlkValue I) := by
   change ((forkStoreVtab I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab).insert
     "srcInkSpot" (.int (Int.ofNat srcInkSpot.toNat))).get? "ilk" = some (forkIlkValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreVtab_get_ilk]
+  rw [store_get_ne _ _ (by decide +native), forkStoreVtab_get_ilk]
 
 theorem forkStoreSrcInkSpot_get_src (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot : UInt256) :
@@ -1073,7 +1073,7 @@ theorem forkStoreSrcInkSpot_get_src (I : ExecutionEnv)
       "src" = some (forkSrcValue I) := by
   change ((forkStoreVtab I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab).insert
     "srcInkSpot" (.int (Int.ofNat srcInkSpot.toNat))).get? "src" = some (forkSrcValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreVtab_get_src]
+  rw [store_get_ne _ _ (by decide +native), forkStoreVtab_get_src]
 
 theorem forkStoreSrcInkSpot_get_dst (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot : UInt256) :
@@ -1081,7 +1081,7 @@ theorem forkStoreSrcInkSpot_get_dst (I : ExecutionEnv)
       "dst" = some (forkDstValue I) := by
   change ((forkStoreVtab I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab).insert
     "srcInkSpot" (.int (Int.ofNat srcInkSpot.toNat))).get? "dst" = some (forkDstValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreVtab_get_dst]
+  rw [store_get_ne _ _ (by decide +native), forkStoreVtab_get_dst]
 
 theorem forkStoreSrcInkSpot_get_urns (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot : UInt256) :
@@ -1089,7 +1089,7 @@ theorem forkStoreSrcInkSpot_get_urns (I : ExecutionEnv)
       "urns" = none := by
   change ((forkStoreVtab I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab).insert
     "srcInkSpot" (.int (Int.ofNat srcInkSpot.toNat))).get? "urns" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreVtab_get_urns]
+  rw [store_get_ne _ _ (by decide +native), forkStoreVtab_get_urns]
 
 theorem forkStoreSrcInkSpot_get_ilks (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot : UInt256) :
@@ -1097,7 +1097,7 @@ theorem forkStoreSrcInkSpot_get_ilks (I : ExecutionEnv)
       "ilks" = none := by
   change ((forkStoreVtab I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab).insert
     "srcInkSpot" (.int (Int.ofNat srcInkSpot.toNat))).get? "ilks" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreVtab_get_ilks]
+  rw [store_get_ne _ _ (by decide +native), forkStoreVtab_get_ilks]
 
 theorem forkStoreSrcInkSpot_get_can (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot : UInt256) :
@@ -1105,7 +1105,7 @@ theorem forkStoreSrcInkSpot_get_can (I : ExecutionEnv)
       "can" = none := by
   unfold forkStoreSrcInkSpot forkStoreVtab forkStoreUtab forkStoreDstArtNew
     forkStoreDstInkNew forkStoreSrcArtNew forkStoreSrcInkNew forkStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem forkStoreSrcInkSpot_get_srcInkSpot (I : ExecutionEnv)
@@ -1121,7 +1121,7 @@ theorem forkStoreSrcInkSpot_get_utab (I : ExecutionEnv)
   change ((forkStoreVtab I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab).insert
     "srcInkSpot" (.int (Int.ofNat srcInkSpot.toNat))).get? "utab" =
     some (.int (Int.ofNat utab.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreVtab_get_utab]
+  rw [store_get_ne _ _ (by decide +native), forkStoreVtab_get_utab]
 
 theorem forkStoreSrcInkSpot_get_vtab (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot : UInt256) :
@@ -1130,7 +1130,7 @@ theorem forkStoreSrcInkSpot_get_vtab (I : ExecutionEnv)
   change ((forkStoreVtab I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab).insert
     "srcInkSpot" (.int (Int.ofNat srcInkSpot.toNat))).get? "vtab" =
     some (.int (Int.ofNat vtab.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreVtab_get_vtab]
+  rw [store_get_ne _ _ (by decide +native), forkStoreVtab_get_vtab]
 
 theorem forkStoreDstInkSpot_get_dstInkSpot (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot dstInkSpot : UInt256) :
@@ -1145,7 +1145,7 @@ theorem forkStoreDstInkSpot_get_ilk (I : ExecutionEnv)
   change ((forkStoreSrcInkSpot I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab
     srcInkSpot).insert "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "ilk" =
     some (forkIlkValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpot_get_ilk]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpot_get_ilk]
 
 theorem forkStoreDstInkSpot_get_src (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot dstInkSpot : UInt256) :
@@ -1154,7 +1154,7 @@ theorem forkStoreDstInkSpot_get_src (I : ExecutionEnv)
   change ((forkStoreSrcInkSpot I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab
     srcInkSpot).insert "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "src" =
     some (forkSrcValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpot_get_src]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpot_get_src]
 
 theorem forkStoreDstInkSpot_get_dst (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot dstInkSpot : UInt256) :
@@ -1163,7 +1163,7 @@ theorem forkStoreDstInkSpot_get_dst (I : ExecutionEnv)
   change ((forkStoreSrcInkSpot I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab
     srcInkSpot).insert "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "dst" =
     some (forkDstValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpot_get_dst]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpot_get_dst]
 
 theorem forkStoreDstInkSpot_get_urns (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot dstInkSpot : UInt256) :
@@ -1172,7 +1172,7 @@ theorem forkStoreDstInkSpot_get_urns (I : ExecutionEnv)
   change ((forkStoreSrcInkSpot I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab
     srcInkSpot).insert "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "urns" =
     none
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpot_get_urns]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpot_get_urns]
 
 theorem forkStoreDstInkSpot_get_ilks (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot dstInkSpot : UInt256) :
@@ -1181,7 +1181,7 @@ theorem forkStoreDstInkSpot_get_ilks (I : ExecutionEnv)
   change ((forkStoreSrcInkSpot I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab
     srcInkSpot).insert "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "ilks" =
     none
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpot_get_ilks]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpot_get_ilks]
 
 theorem forkStoreDstInkSpot_get_can (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot dstInkSpot : UInt256) :
@@ -1190,7 +1190,7 @@ theorem forkStoreDstInkSpot_get_can (I : ExecutionEnv)
   change ((forkStoreSrcInkSpot I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab
     srcInkSpot).insert "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "can" =
     none
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpot_get_can]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpot_get_can]
 
 theorem forkStoreDstInkSpot_get_utab (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot dstInkSpot : UInt256) :
@@ -1199,7 +1199,7 @@ theorem forkStoreDstInkSpot_get_utab (I : ExecutionEnv)
   change ((forkStoreSrcInkSpot I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab
     srcInkSpot).insert "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "utab" =
     some (.int (Int.ofNat utab.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpot_get_utab]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpot_get_utab]
 
 theorem forkStoreDstInkSpot_get_vtab (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot dstInkSpot : UInt256) :
@@ -1208,7 +1208,7 @@ theorem forkStoreDstInkSpot_get_vtab (I : ExecutionEnv)
   change ((forkStoreSrcInkSpot I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab
     srcInkSpot).insert "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "vtab" =
     some (.int (Int.ofNat vtab.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpot_get_vtab]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpot_get_vtab]
 
 theorem forkStoreDstInkSpot_get_srcInkSpot (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew utab vtab srcInkSpot dstInkSpot : UInt256) :
@@ -1217,7 +1217,7 @@ theorem forkStoreDstInkSpot_get_srcInkSpot (I : ExecutionEnv)
   change ((forkStoreSrcInkSpot I srcInkNew srcArtNew dstInkNew dstArtNew utab vtab
     srcInkSpot).insert "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "srcInkSpot" =
     some (.int (Int.ofNat srcInkSpot.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpot_get_srcInkSpot]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpot_get_srcInkSpot]
 
 theorem forkStoreFinalLoads_get_srcArtFinal (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1226,7 +1226,7 @@ theorem forkStoreFinalLoads_get_srcArtFinal (I : ExecutionEnv)
       srcArtFinal dstArtFinal srcInkFinal dstInkFinal).get? "srcArtFinal" =
       some (.int (Int.ofNat srcArtFinal.toNat)) := by
   unfold forkStoreFinalLoads
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem forkStoreFinalLoads_get_dstArtFinal (I : ExecutionEnv)
@@ -1236,7 +1236,7 @@ theorem forkStoreFinalLoads_get_dstArtFinal (I : ExecutionEnv)
       srcArtFinal dstArtFinal srcInkFinal dstInkFinal).get? "dstArtFinal" =
       some (.int (Int.ofNat dstArtFinal.toNat)) := by
   unfold forkStoreFinalLoads
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem forkStoreFinalLoads_get_srcInkFinal (I : ExecutionEnv)
@@ -1246,7 +1246,7 @@ theorem forkStoreFinalLoads_get_srcInkFinal (I : ExecutionEnv)
       srcArtFinal dstArtFinal srcInkFinal dstInkFinal).get? "srcInkFinal" =
       some (.int (Int.ofNat srcInkFinal.toNat)) := by
   unfold forkStoreFinalLoads
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem forkStoreFinalLoads_get_dstInkFinal (I : ExecutionEnv)
@@ -1269,8 +1269,8 @@ theorem forkStoreFinalLoads_get_src (I : ExecutionEnv)
       "srcInkFinal" (.int (Int.ofNat srcInkFinal.toNat))).insert
       "dstInkFinal" (.int (Int.ofNat dstInkFinal.toNat))).get? "src" =
       some (forkSrcValue I)
-  rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
-    store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
+  rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
+    store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
     forkStoreDstArtNew_get_src]
 
 theorem forkStoreFinalLoads_get_dst (I : ExecutionEnv)
@@ -1285,8 +1285,8 @@ theorem forkStoreFinalLoads_get_dst (I : ExecutionEnv)
       "srcInkFinal" (.int (Int.ofNat srcInkFinal.toNat))).insert
       "dstInkFinal" (.int (Int.ofNat dstInkFinal.toNat))).get? "dst" =
       some (forkDstValue I)
-  rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
-    store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
+  rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
+    store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
     forkStoreDstArtNew_get_dst]
 
 theorem forkStoreFinalLoads_get_can (I : ExecutionEnv)
@@ -1296,7 +1296,7 @@ theorem forkStoreFinalLoads_get_can (I : ExecutionEnv)
       srcArtFinal dstArtFinal srcInkFinal dstInkFinal).get? "can" = none := by
   unfold forkStoreFinalLoads forkStoreDstArtNew forkStoreDstInkNew forkStoreSrcArtNew
     forkStoreSrcInkNew forkStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 theorem forkStoreFinalLoads_get_ilk (I : ExecutionEnv)
@@ -1311,8 +1311,8 @@ theorem forkStoreFinalLoads_get_ilk (I : ExecutionEnv)
       "srcInkFinal" (.int (Int.ofNat srcInkFinal.toNat))).insert
       "dstInkFinal" (.int (Int.ofNat dstInkFinal.toNat))).get? "ilk" =
       some (forkIlkValue I)
-  rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
-    store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
+  rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
+    store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
     forkStoreDstArtNew_get_ilk]
 
 theorem forkStoreFinalLoads_get_ilks (I : ExecutionEnv)
@@ -1325,8 +1325,8 @@ theorem forkStoreFinalLoads_get_ilks (I : ExecutionEnv)
       "dstArtFinal" (.int (Int.ofNat dstArtFinal.toNat))).insert
       "srcInkFinal" (.int (Int.ofNat srcInkFinal.toNat))).insert
       "dstInkFinal" (.int (Int.ofNat dstInkFinal.toNat))).get? "ilks" = none
-  rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
-    store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
+  rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
+    store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
     forkStoreDstArtNew_get_ilks]
 
 theorem forkStoreUtabFinal_get_dstArtFinal (I : ExecutionEnv)
@@ -1339,7 +1339,7 @@ theorem forkStoreUtabFinal_get_dstArtFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "dstArtFinal" =
     some (.int (Int.ofNat dstArtFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreFinalLoads_get_dstArtFinal]
+  rw [store_get_ne _ _ (by decide +native), forkStoreFinalLoads_get_dstArtFinal]
 
 theorem forkStoreUtabFinal_get_ilk (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1350,7 +1350,7 @@ theorem forkStoreUtabFinal_get_ilk (I : ExecutionEnv)
   change ((forkStoreFinalLoads I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "ilk" = some (forkIlkValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreFinalLoads_get_ilk]
+  rw [store_get_ne _ _ (by decide +native), forkStoreFinalLoads_get_ilk]
 
 theorem forkStoreUtabFinal_get_ilks (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1360,7 +1360,7 @@ theorem forkStoreUtabFinal_get_ilks (I : ExecutionEnv)
   change ((forkStoreFinalLoads I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "ilks" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreFinalLoads_get_ilks]
+  rw [store_get_ne _ _ (by decide +native), forkStoreFinalLoads_get_ilks]
 
 theorem forkStoreVtabFinal_get_srcInkFinal (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1372,7 +1372,7 @@ theorem forkStoreVtabFinal_get_srcInkFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "srcInkFinal" =
     some (.int (Int.ofNat srcInkFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change (forkStoreUtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).get? "srcInkFinal" =
     some (.int (Int.ofNat srcInkFinal.toNat))
@@ -1380,7 +1380,7 @@ theorem forkStoreVtabFinal_get_srcInkFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "srcInkFinal" =
     some (.int (Int.ofNat srcInkFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreFinalLoads_get_srcInkFinal]
+  rw [store_get_ne _ _ (by decide +native), forkStoreFinalLoads_get_srcInkFinal]
 
 theorem forkStoreVtabFinal_get_ilk (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1391,7 +1391,7 @@ theorem forkStoreVtabFinal_get_ilk (I : ExecutionEnv)
   change ((forkStoreUtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "ilk" = some (forkIlkValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreUtabFinal_get_ilk]
+  rw [store_get_ne _ _ (by decide +native), forkStoreUtabFinal_get_ilk]
 
 theorem forkStoreVtabFinal_get_ilks (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1401,7 +1401,7 @@ theorem forkStoreVtabFinal_get_ilks (I : ExecutionEnv)
   change ((forkStoreUtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "ilks" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreUtabFinal_get_ilks]
+  rw [store_get_ne _ _ (by decide +native), forkStoreUtabFinal_get_ilks]
 
 theorem forkStoreSrcInkSpotFinal_get_dstInkFinal (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1413,7 +1413,7 @@ theorem forkStoreSrcInkSpotFinal_get_dstInkFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).insert "srcInkSpot"
     (.int (Int.ofNat srcInkSpot.toNat))).get? "dstInkFinal" =
     some (.int (Int.ofNat dstInkFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change (forkStoreVtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).get? "dstInkFinal" =
     some (.int (Int.ofNat dstInkFinal.toNat))
@@ -1421,7 +1421,7 @@ theorem forkStoreSrcInkSpotFinal_get_dstInkFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "dstInkFinal" =
     some (.int (Int.ofNat dstInkFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change (forkStoreUtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).get? "dstInkFinal" =
     some (.int (Int.ofNat dstInkFinal.toNat))
@@ -1429,7 +1429,7 @@ theorem forkStoreSrcInkSpotFinal_get_dstInkFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "dstInkFinal" =
     some (.int (Int.ofNat dstInkFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreFinalLoads_get_dstInkFinal]
+  rw [store_get_ne _ _ (by decide +native), forkStoreFinalLoads_get_dstInkFinal]
 
 theorem forkStoreSrcInkSpotFinal_get_ilk (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1440,7 +1440,7 @@ theorem forkStoreSrcInkSpotFinal_get_ilk (I : ExecutionEnv)
   change ((forkStoreVtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).insert "srcInkSpot"
     (.int (Int.ofNat srcInkSpot.toNat))).get? "ilk" = some (forkIlkValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreVtabFinal_get_ilk]
+  rw [store_get_ne _ _ (by decide +native), forkStoreVtabFinal_get_ilk]
 
 theorem forkStoreSrcInkSpotFinal_get_ilks (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1451,7 +1451,7 @@ theorem forkStoreSrcInkSpotFinal_get_ilks (I : ExecutionEnv)
   change ((forkStoreVtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).insert "srcInkSpot"
     (.int (Int.ofNat srcInkSpot.toNat))).get? "ilks" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreVtabFinal_get_ilks]
+  rw [store_get_ne _ _ (by decide +native), forkStoreVtabFinal_get_ilks]
 
 theorem forkStoreUtabFinal_get_utab (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1479,7 +1479,7 @@ theorem forkStoreVtabFinal_get_utab (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "utab" =
     some (.int (Int.ofNat utab.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreUtabFinal_get_utab]
+  rw [store_get_ne _ _ (by decide +native), forkStoreUtabFinal_get_utab]
 
 theorem forkStoreSrcInkSpotFinal_get_srcInkSpot (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1500,7 +1500,7 @@ theorem forkStoreSrcInkSpotFinal_get_utab (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).insert "srcInkSpot"
     (.int (Int.ofNat srcInkSpot.toNat))).get? "utab" =
     some (.int (Int.ofNat utab.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreVtabFinal_get_utab]
+  rw [store_get_ne _ _ (by decide +native), forkStoreVtabFinal_get_utab]
 
 theorem forkStoreDstInkSpotFinal_get_dstInkSpot (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1522,7 +1522,7 @@ theorem forkStoreDstInkSpotFinal_get_srcInkSpot (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).insert
     "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "srcInkSpot" =
     some (.int (Int.ofNat srcInkSpot.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpotFinal_get_srcInkSpot]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpotFinal_get_srcInkSpot]
 
 theorem forkStoreDstInkSpotFinal_get_utab (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1535,7 +1535,7 @@ theorem forkStoreDstInkSpotFinal_get_utab (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).insert
     "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "utab" =
     some (.int (Int.ofNat utab.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpotFinal_get_utab]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpotFinal_get_utab]
 
 theorem forkStoreDstInkSpotFinal_get_vtab (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1548,7 +1548,7 @@ theorem forkStoreDstInkSpotFinal_get_vtab (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).insert
     "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "vtab" =
     some (.int (Int.ofNat vtab.toNat))
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change (forkStoreSrcInkSpotFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).get? "vtab" =
     some (.int (Int.ofNat vtab.toNat))
@@ -1556,7 +1556,7 @@ theorem forkStoreDstInkSpotFinal_get_vtab (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).insert "srcInkSpot"
     (.int (Int.ofNat srcInkSpot.toNat))).get? "vtab" =
     some (.int (Int.ofNat vtab.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreVtabFinal_get_vtab]
+  rw [store_get_ne _ _ (by decide +native), forkStoreVtabFinal_get_vtab]
 
 theorem forkStoreDstInkSpotFinal_get_ilk (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1569,7 +1569,7 @@ theorem forkStoreDstInkSpotFinal_get_ilk (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).insert
     "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "ilk" =
     some (forkIlkValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpotFinal_get_ilk]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpotFinal_get_ilk]
 
 theorem forkStoreDstInkSpotFinal_get_ilks (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1581,7 +1581,7 @@ theorem forkStoreDstInkSpotFinal_get_ilks (I : ExecutionEnv)
   change ((forkStoreSrcInkSpotFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).insert
     "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "ilks" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpotFinal_get_ilks]
+  rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpotFinal_get_ilks]
 
 theorem forkStoreDstInkSpotFinal_get_srcArtFinal (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1594,7 +1594,7 @@ theorem forkStoreDstInkSpotFinal_get_srcArtFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).insert
     "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "srcArtFinal" =
     some (.int (Int.ofNat srcArtFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change (forkStoreSrcInkSpotFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).get?
       "srcArtFinal" = some (.int (Int.ofNat srcArtFinal.toNat))
@@ -1602,7 +1602,7 @@ theorem forkStoreDstInkSpotFinal_get_srcArtFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).insert "srcInkSpot"
     (.int (Int.ofNat srcInkSpot.toNat))).get? "srcArtFinal" =
     some (.int (Int.ofNat srcArtFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change (forkStoreVtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).get? "srcArtFinal" =
     some (.int (Int.ofNat srcArtFinal.toNat))
@@ -1610,7 +1610,7 @@ theorem forkStoreDstInkSpotFinal_get_srcArtFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "srcArtFinal" =
     some (.int (Int.ofNat srcArtFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change (forkStoreUtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).get? "srcArtFinal" =
     some (.int (Int.ofNat srcArtFinal.toNat))
@@ -1618,7 +1618,7 @@ theorem forkStoreDstInkSpotFinal_get_srcArtFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "srcArtFinal" =
     some (.int (Int.ofNat srcArtFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreFinalLoads_get_srcArtFinal]
+  rw [store_get_ne _ _ (by decide +native), forkStoreFinalLoads_get_srcArtFinal]
 
 theorem forkStoreDstInkSpotFinal_get_dstArtFinal (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1631,7 +1631,7 @@ theorem forkStoreDstInkSpotFinal_get_dstArtFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).insert
     "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "dstArtFinal" =
     some (.int (Int.ofNat dstArtFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change (forkStoreSrcInkSpotFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).get?
       "dstArtFinal" = some (.int (Int.ofNat dstArtFinal.toNat))
@@ -1639,7 +1639,7 @@ theorem forkStoreDstInkSpotFinal_get_dstArtFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).insert "srcInkSpot"
     (.int (Int.ofNat srcInkSpot.toNat))).get? "dstArtFinal" =
     some (.int (Int.ofNat dstArtFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change (forkStoreVtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).get? "dstArtFinal" =
     some (.int (Int.ofNat dstArtFinal.toNat))
@@ -1647,7 +1647,7 @@ theorem forkStoreDstInkSpotFinal_get_dstArtFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "dstArtFinal" =
     some (.int (Int.ofNat dstArtFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change (forkStoreUtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).get? "dstArtFinal" =
     some (.int (Int.ofNat dstArtFinal.toNat))
@@ -1655,7 +1655,7 @@ theorem forkStoreDstInkSpotFinal_get_dstArtFinal (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "dstArtFinal" =
     some (.int (Int.ofNat dstArtFinal.toNat))
-  rw [store_get_ne _ _ (by native_decide), forkStoreFinalLoads_get_dstArtFinal]
+  rw [store_get_ne _ _ (by decide +native), forkStoreFinalLoads_get_dstArtFinal]
 
 theorem forkStoreDstInkSpotFinal_get_src (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1668,19 +1668,19 @@ theorem forkStoreDstInkSpotFinal_get_src (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).insert
     "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "src" =
     some (forkSrcValue I)
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreVtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).insert "srcInkSpot"
     (.int (Int.ofNat srcInkSpot.toNat))).get? "src" = some (forkSrcValue I)
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreUtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "src" = some (forkSrcValue I)
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreFinalLoads I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "src" = some (forkSrcValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreFinalLoads_get_src]
+  rw [store_get_ne _ _ (by decide +native), forkStoreFinalLoads_get_src]
 
 theorem forkStoreDstInkSpotFinal_get_dst (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1693,19 +1693,19 @@ theorem forkStoreDstInkSpotFinal_get_dst (I : ExecutionEnv)
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).insert
     "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "dst" =
     some (forkDstValue I)
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreVtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).insert "srcInkSpot"
     (.int (Int.ofNat srcInkSpot.toNat))).get? "dst" = some (forkDstValue I)
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreUtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "dst" = some (forkDstValue I)
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreFinalLoads I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "dst" = some (forkDstValue I)
-  rw [store_get_ne _ _ (by native_decide), forkStoreFinalLoads_get_dst]
+  rw [store_get_ne _ _ (by decide +native), forkStoreFinalLoads_get_dst]
 
 theorem forkStoreDstInkSpotFinal_get_can (I : ExecutionEnv)
     (srcInkNew srcArtNew dstInkNew dstArtNew
@@ -1717,19 +1717,19 @@ theorem forkStoreDstInkSpotFinal_get_can (I : ExecutionEnv)
   change ((forkStoreSrcInkSpotFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).insert
     "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "can" = none
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreVtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).insert "srcInkSpot"
     (.int (Int.ofNat srcInkSpot.toNat))).get? "can" = none
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreUtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).insert "vtab"
     (.int (Int.ofNat vtab.toNat))).get? "can" = none
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   change ((forkStoreFinalLoads I srcInkNew srcArtNew dstInkNew dstArtNew
     srcArtFinal dstArtFinal srcInkFinal dstInkFinal).insert "utab"
     (.int (Int.ofNat utab.toNat))).get? "can" = none
-  rw [store_get_ne _ _ (by native_decide), forkStoreFinalLoads_get_can]
+  rw [store_get_ne _ _ (by decide +native), forkStoreFinalLoads_get_can]
 
 theorem forkIlkKeyWord_eq (I : ExecutionEnv) (hsz36 : 36 ≤ I.calldata.size) :
     keyValueToWord (forkIlkKey I) = forkIlkWord I := by
@@ -2614,7 +2614,7 @@ theorem execForkSrcInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "dink" =
         some (.int (forkDinkInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [forkDinkValue] using hdink)
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -2623,15 +2623,15 @@ theorem execForkSrcInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hsrc' : locals'.get? "src" = some (forkSrcValue I) := by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "src" =
         some (forkSrcValue I)
-      rw [store_get_ne _ _ (by native_decide), hsrc]
+      rw [store_get_ne _ _ (by decide +native), hsrc]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     rw [evalExpr_fork_src_ink_locals locals' hsz164 hilk' hsrc' hbase', hload]
   have hreqNeg :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -2654,15 +2654,15 @@ theorem execForkSrcInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hsrc' : locals'.get? "src" = some (forkSrcValue I) := by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "src" =
         some (forkSrcValue I)
-      rw [store_get_ne _ _ (by native_decide), hsrc]
+      rw [store_get_ne _ _ (by decide +native), hsrc]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     simpa [evm'] using
       assignStorageRef_fork_src_ink evm I locals' srcInkNew hsz164 hilk' hsrc' hbase'
   change ExecBlock config { contract := contract, locals := locals } evm
@@ -2718,7 +2718,7 @@ theorem execForkSrcInkUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "dink" =
         some (.int (forkDinkInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [forkDinkValue] using hdink)
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -2727,15 +2727,15 @@ theorem execForkSrcInkUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hsrc' : locals'.get? "src" = some (forkSrcValue I) := by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "src" =
         some (forkSrcValue I)
-      rw [store_get_ne _ _ (by native_decide), hsrc]
+      rw [store_get_ne _ _ (by decide +native), hsrc]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     rw [evalExpr_fork_src_ink_locals locals' hsz164 hilk' hsrc' hbase', hload]
   have hsub :
       ExecBlock config { contract := contract, locals := locals } evm
@@ -2793,7 +2793,7 @@ theorem execForkSrcInkUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "dink" =
         some (.int (forkDinkInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [forkDinkValue] using hdink)
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -2802,15 +2802,15 @@ theorem execForkSrcInkUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hsrc' : locals'.get? "src" = some (forkSrcValue I) := by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "src" =
         some (forkSrcValue I)
-      rw [store_get_ne _ _ (by native_decide), hsrc]
+      rw [store_get_ne _ _ (by decide +native), hsrc]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "srcInkNew" (.int (Int.ofNat srcInkNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     rw [evalExpr_fork_src_ink_locals locals' hsz164 hilk' hsrc' hbase', hload]
   have hguardNegEval :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -2887,7 +2887,7 @@ theorem execForkSrcArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "dart" =
         some (.int (forkDartInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [forkDartValue] using hdart)
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -2896,15 +2896,15 @@ theorem execForkSrcArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hsrc' : locals'.get? "src" = some (forkSrcValue I) := by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "src" =
         some (forkSrcValue I)
-      rw [store_get_ne _ _ (by native_decide), hsrc]
+      rw [store_get_ne _ _ (by decide +native), hsrc]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     rw [evalExpr_fork_src_art_locals locals' hsz164 hilk' hsrc' hbase', hload]
   have hreqNeg :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -2927,15 +2927,15 @@ theorem execForkSrcArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hsrc' : locals'.get? "src" = some (forkSrcValue I) := by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "src" =
         some (forkSrcValue I)
-      rw [store_get_ne _ _ (by native_decide), hsrc]
+      rw [store_get_ne _ _ (by decide +native), hsrc]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     simpa [evm'] using
       assignStorageRef_fork_src_art evm I locals' srcArtNew hsz164 hilk' hsrc' hbase'
   change ExecBlock config { contract := contract, locals := locals } evm
@@ -2991,7 +2991,7 @@ theorem execForkSrcArtUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "dart" =
         some (.int (forkDartInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [forkDartValue] using hdart)
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3000,15 +3000,15 @@ theorem execForkSrcArtUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hsrc' : locals'.get? "src" = some (forkSrcValue I) := by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "src" =
         some (forkSrcValue I)
-      rw [store_get_ne _ _ (by native_decide), hsrc]
+      rw [store_get_ne _ _ (by decide +native), hsrc]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     rw [evalExpr_fork_src_art_locals locals' hsz164 hilk' hsrc' hbase', hload]
   have hsub :
       ExecBlock config { contract := contract, locals := locals } evm
@@ -3066,7 +3066,7 @@ theorem execForkSrcArtUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "dart" =
         some (.int (forkDartInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [forkDartValue] using hdart)
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3075,15 +3075,15 @@ theorem execForkSrcArtUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hsrc' : locals'.get? "src" = some (forkSrcValue I) := by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "src" =
         some (forkSrcValue I)
-      rw [store_get_ne _ _ (by native_decide), hsrc]
+      rw [store_get_ne _ _ (by decide +native), hsrc]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "srcArtNew" (.int (Int.ofNat srcArtNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     rw [evalExpr_fork_src_art_locals locals' hsz164 hilk' hsrc' hbase', hload]
   have hguardNegEval :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3159,7 +3159,7 @@ theorem execForkDstInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "dink" =
         some (.int (forkDinkInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [forkDinkValue] using hdink)
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3168,15 +3168,15 @@ theorem execForkDstInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hdst' : locals'.get? "dst" = some (forkDstValue I) := by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "dst" =
         some (forkDstValue I)
-      rw [store_get_ne _ _ (by native_decide), hdst]
+      rw [store_get_ne _ _ (by decide +native), hdst]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     rw [evalExpr_fork_dst_ink_locals locals' hsz164 hilk' hdst' hbase', hload]
   have hreqNeg :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3199,15 +3199,15 @@ theorem execForkDstInkUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hdst' : locals'.get? "dst" = some (forkDstValue I) := by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "dst" =
         some (forkDstValue I)
-      rw [store_get_ne _ _ (by native_decide), hdst]
+      rw [store_get_ne _ _ (by decide +native), hdst]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     simpa [evm'] using
       assignStorageRef_fork_dst_ink evm I locals' dstInkNew hsz164 hilk' hdst' hbase'
   change ExecBlock config { contract := contract, locals := locals } evm
@@ -3263,7 +3263,7 @@ theorem execForkDstInkUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "dink" =
         some (.int (forkDinkInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [forkDinkValue] using hdink)
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3272,15 +3272,15 @@ theorem execForkDstInkUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hdst' : locals'.get? "dst" = some (forkDstValue I) := by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "dst" =
         some (forkDstValue I)
-      rw [store_get_ne _ _ (by native_decide), hdst]
+      rw [store_get_ne _ _ (by decide +native), hdst]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     rw [evalExpr_fork_dst_ink_locals locals' hsz164 hilk' hdst' hbase', hload]
   have hadd :
       ExecBlock config { contract := contract, locals := locals } evm
@@ -3336,7 +3336,7 @@ theorem execForkDstInkUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "dink" =
         some (.int (forkDinkInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [forkDinkValue] using hdink)
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3345,15 +3345,15 @@ theorem execForkDstInkUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hdst' : locals'.get? "dst" = some (forkDstValue I) := by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "dst" =
         some (forkDstValue I)
-      rw [store_get_ne _ _ (by native_decide), hdst]
+      rw [store_get_ne _ _ (by decide +native), hdst]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "dstInkNew" (.int (Int.ofNat dstInkNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     rw [evalExpr_fork_dst_ink_locals locals' hsz164 hilk' hdst' hbase', hload]
   have hguardNegEval :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3427,7 +3427,7 @@ theorem execForkDstArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "dart" =
         some (.int (forkDartInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [forkDartValue] using hdart)
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3436,15 +3436,15 @@ theorem execForkDstArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hdst' : locals'.get? "dst" = some (forkDstValue I) := by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "dst" =
         some (forkDstValue I)
-      rw [store_get_ne _ _ (by native_decide), hdst]
+      rw [store_get_ne _ _ (by decide +native), hdst]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     rw [evalExpr_fork_dst_art_locals locals' hsz164 hilk' hdst' hbase', hload]
   have hreqNeg :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3467,15 +3467,15 @@ theorem execForkDstArtUpdateOk {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hdst' : locals'.get? "dst" = some (forkDstValue I) := by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "dst" =
         some (forkDstValue I)
-      rw [store_get_ne _ _ (by native_decide), hdst]
+      rw [store_get_ne _ _ (by decide +native), hdst]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     simpa [evm'] using
       assignStorageRef_fork_dst_art evm I locals' dstArtNew hsz164 hilk' hdst' hbase'
   change ExecBlock config { contract := contract, locals := locals } evm
@@ -3531,7 +3531,7 @@ theorem execForkDstArtUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "dart" =
         some (.int (forkDartInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [forkDartValue] using hdart)
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3540,15 +3540,15 @@ theorem execForkDstArtUpdateRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hdst' : locals'.get? "dst" = some (forkDstValue I) := by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "dst" =
         some (forkDstValue I)
-      rw [store_get_ne _ _ (by native_decide), hdst]
+      rw [store_get_ne _ _ (by decide +native), hdst]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     rw [evalExpr_fork_dst_art_locals locals' hsz164 hilk' hdst' hbase', hload]
   have hadd :
       ExecBlock config { contract := contract, locals := locals } evm
@@ -3604,7 +3604,7 @@ theorem execForkDstArtUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     exact vatEvalExpr_varInt (by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "dart" =
         some (.int (forkDartInt I))
-      rw [store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native)]
       simpa [forkDartValue] using hdart)
   have hstorageAfter :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3613,15 +3613,15 @@ theorem execForkDstArtUpdateRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hdst' : locals'.get? "dst" = some (forkDstValue I) := by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "dst" =
         some (forkDstValue I)
-      rw [store_get_ne _ _ (by native_decide), hdst]
+      rw [store_get_ne _ _ (by decide +native), hdst]
     have hbase' : locals'.get? "urns" = none := by
       change (locals.insert "dstArtNew" (.int (Int.ofNat dstArtNew.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hbase]
+      rw [store_get_ne _ _ (by decide +native), hbase]
     rw [evalExpr_fork_dst_art_locals locals' hsz164 hilk' hdst' hbase', hload]
   have hguardNegEval :
       evalExpr? config { contract := contract, locals := locals' } evm
@@ -3701,19 +3701,19 @@ theorem execForkFinalLoadsOk {evm : EVM.State} {I : ExecutionEnv}
       (by
         change (locals0.insert "srcArtFinal"
           (.int (Int.ofNat srcArtFinal.toNat))).get? "ilk" = some (forkIlkValue I)
-        rw [store_get_ne _ _ (by native_decide)]
+        rw [store_get_ne _ _ (by decide +native)]
         simpa [locals0] using
           forkStoreDstArtNew_get_ilk I srcInkNew srcArtNew dstInkNew dstArtNew)
       (by
         change (locals0.insert "srcArtFinal"
           (.int (Int.ofNat srcArtFinal.toNat))).get? "dst" = some (forkDstValue I)
-        rw [store_get_ne _ _ (by native_decide)]
+        rw [store_get_ne _ _ (by decide +native)]
         simpa [locals0] using
           forkStoreDstArtNew_get_dst I srcInkNew srcArtNew dstInkNew dstArtNew)
       (by
         change (locals0.insert "srcArtFinal"
           (.int (Int.ofNat srcArtFinal.toNat))).get? "urns" = none
-        rw [store_get_ne _ _ (by native_decide)]
+        rw [store_get_ne _ _ (by decide +native)]
         simpa [locals0] using
           forkStoreDstArtNew_get_urns I srcInkNew srcArtNew dstInkNew dstArtNew)]
     rw [hloadDstArt]
@@ -3726,24 +3726,24 @@ theorem execForkFinalLoadsOk {evm : EVM.State} {I : ExecutionEnv}
         change ((locals0.insert "srcArtFinal"
           (.int (Int.ofNat srcArtFinal.toNat))).insert "dstArtFinal"
           (.int (Int.ofNat dstArtFinal.toNat))).get? "ilk" = some (forkIlkValue I)
-        rw [store_get_ne _ _ (by native_decide)]
-        rw [store_get_ne _ _ (by native_decide)]
+        rw [store_get_ne _ _ (by decide +native)]
+        rw [store_get_ne _ _ (by decide +native)]
         simpa [locals0] using
           forkStoreDstArtNew_get_ilk I srcInkNew srcArtNew dstInkNew dstArtNew)
       (by
         change ((locals0.insert "srcArtFinal"
           (.int (Int.ofNat srcArtFinal.toNat))).insert "dstArtFinal"
           (.int (Int.ofNat dstArtFinal.toNat))).get? "src" = some (forkSrcValue I)
-        rw [store_get_ne _ _ (by native_decide)]
-        rw [store_get_ne _ _ (by native_decide)]
+        rw [store_get_ne _ _ (by decide +native)]
+        rw [store_get_ne _ _ (by decide +native)]
         simpa [locals0] using
           forkStoreDstArtNew_get_src I srcInkNew srcArtNew dstInkNew dstArtNew)
       (by
         change ((locals0.insert "srcArtFinal"
           (.int (Int.ofNat srcArtFinal.toNat))).insert "dstArtFinal"
           (.int (Int.ofNat dstArtFinal.toNat))).get? "urns" = none
-        rw [store_get_ne _ _ (by native_decide)]
-        rw [store_get_ne _ _ (by native_decide)]
+        rw [store_get_ne _ _ (by decide +native)]
+        rw [store_get_ne _ _ (by decide +native)]
         simpa [locals0] using
           forkStoreDstArtNew_get_urns I srcInkNew srcArtNew dstInkNew dstArtNew)]
     rw [hloadSrcInk]
@@ -3757,9 +3757,9 @@ theorem execForkFinalLoadsOk {evm : EVM.State} {I : ExecutionEnv}
           (.int (Int.ofNat srcArtFinal.toNat))).insert "dstArtFinal"
           (.int (Int.ofNat dstArtFinal.toNat))).insert "srcInkFinal"
           (.int (Int.ofNat srcInkFinal.toNat))).get? "ilk" = some (forkIlkValue I)
-        rw [store_get_ne _ _ (by native_decide)]
-        rw [store_get_ne _ _ (by native_decide)]
-        rw [store_get_ne _ _ (by native_decide)]
+        rw [store_get_ne _ _ (by decide +native)]
+        rw [store_get_ne _ _ (by decide +native)]
+        rw [store_get_ne _ _ (by decide +native)]
         simpa [locals0] using
           forkStoreDstArtNew_get_ilk I srcInkNew srcArtNew dstInkNew dstArtNew)
       (by
@@ -3767,9 +3767,9 @@ theorem execForkFinalLoadsOk {evm : EVM.State} {I : ExecutionEnv}
           (.int (Int.ofNat srcArtFinal.toNat))).insert "dstArtFinal"
           (.int (Int.ofNat dstArtFinal.toNat))).insert "srcInkFinal"
           (.int (Int.ofNat srcInkFinal.toNat))).get? "dst" = some (forkDstValue I)
-        rw [store_get_ne _ _ (by native_decide)]
-        rw [store_get_ne _ _ (by native_decide)]
-        rw [store_get_ne _ _ (by native_decide)]
+        rw [store_get_ne _ _ (by decide +native)]
+        rw [store_get_ne _ _ (by decide +native)]
+        rw [store_get_ne _ _ (by decide +native)]
         simpa [locals0] using
           forkStoreDstArtNew_get_dst I srcInkNew srcArtNew dstInkNew dstArtNew)
       (by
@@ -3777,9 +3777,9 @@ theorem execForkFinalLoadsOk {evm : EVM.State} {I : ExecutionEnv}
           (.int (Int.ofNat srcArtFinal.toNat))).insert "dstArtFinal"
           (.int (Int.ofNat dstArtFinal.toNat))).insert "srcInkFinal"
           (.int (Int.ofNat srcInkFinal.toNat))).get? "urns" = none
-        rw [store_get_ne _ _ (by native_decide)]
-        rw [store_get_ne _ _ (by native_decide)]
-        rw [store_get_ne _ _ (by native_decide)]
+        rw [store_get_ne _ _ (by decide +native)]
+        rw [store_get_ne _ _ (by decide +native)]
+        rw [store_get_ne _ _ (by decide +native)]
         simpa [locals0] using
           forkStoreDstArtNew_get_urns I srcInkNew srcArtNew dstInkNew dstArtNew)]
     rw [hloadDstInk]
@@ -3856,7 +3856,7 @@ theorem forkUintCheckedMulGuard_to_fit_and_source_guard {a b : UInt256}
   by_cases hbzeroNat : b.toNat = 0
   · constructor
     · rw [hbzeroNat, Nat.mul_zero]
-      native_decide
+      decide +native
     · exact Or.inl hbzeroNat
   · have hbzeroWord : b ≠ ⟨0⟩ := by
       intro hzero
@@ -4046,7 +4046,7 @@ theorem execForkUtabFinalMulOk {evm : EVM.State} {I : ExecutionEnv}
         srcArtFinal dstArtFinal srcInkFinal dstInkFinal).insert "utab"
         (.int (Int.ofNat utab.toNat))).get? "srcArtFinal" =
         some (.int (Int.ofNat srcArtFinal.toNat))
-      rw [store_get_ne _ _ (by native_decide), forkStoreFinalLoads_get_srcArtFinal])
+      rw [store_get_ne _ _ (by decide +native), forkStoreFinalLoads_get_srcArtFinal])
   have hy' :
       evalExpr? config
         { contract := contract, locals := locals.insert "utab" (.int (Int.ofNat utab.toNat)) }
@@ -4058,12 +4058,12 @@ theorem execForkUtabFinalMulOk {evm : EVM.State} {I : ExecutionEnv}
         change ((forkStoreFinalLoads I srcInkNew srcArtNew dstInkNew dstArtNew
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal).insert "utab"
           (.int (Int.ofNat utab.toNat))).get? "ilk" = some (forkIlkValue I)
-        rw [store_get_ne _ _ (by native_decide), forkStoreFinalLoads_get_ilk])
+        rw [store_get_ne _ _ (by decide +native), forkStoreFinalLoads_get_ilk])
       (by
         change ((forkStoreFinalLoads I srcInkNew srcArtNew dstInkNew dstArtNew
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal).insert "utab"
           (.int (Int.ofNat utab.toNat))).get? "ilks" = none
-        rw [store_get_ne _ _ (by native_decide), forkStoreFinalLoads_get_ilks])]
+        rw [store_get_ne _ _ (by decide +native), forkStoreFinalLoads_get_ilks])]
     rw [hloadRate]
   have hname :
       evalExpr? config
@@ -4143,7 +4143,7 @@ theorem execForkVtabFinalMulOk {evm : EVM.State} {I : ExecutionEnv}
         srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).insert "vtab"
         (.int (Int.ofNat vtab.toNat))).get? "dstArtFinal" =
         some (.int (Int.ofNat dstArtFinal.toNat))
-      rw [store_get_ne _ _ (by native_decide), forkStoreUtabFinal_get_dstArtFinal])
+      rw [store_get_ne _ _ (by decide +native), forkStoreUtabFinal_get_dstArtFinal])
   have hy' :
       evalExpr? config
         { contract := contract, locals := locals.insert "vtab" (.int (Int.ofNat vtab.toNat)) }
@@ -4155,12 +4155,12 @@ theorem execForkVtabFinalMulOk {evm : EVM.State} {I : ExecutionEnv}
         change ((forkStoreUtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).insert "vtab"
           (.int (Int.ofNat vtab.toNat))).get? "ilk" = some (forkIlkValue I)
-        rw [store_get_ne _ _ (by native_decide), forkStoreUtabFinal_get_ilk])
+        rw [store_get_ne _ _ (by decide +native), forkStoreUtabFinal_get_ilk])
       (by
         change ((forkStoreUtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab).insert "vtab"
           (.int (Int.ofNat vtab.toNat))).get? "ilks" = none
-        rw [store_get_ne _ _ (by native_decide), forkStoreUtabFinal_get_ilks])]
+        rw [store_get_ne _ _ (by decide +native), forkStoreUtabFinal_get_ilks])]
     rw [hloadRate]
   have hname :
       evalExpr? config
@@ -4240,7 +4240,7 @@ theorem execForkSrcInkSpotFinalMulOk {evm : EVM.State} {I : ExecutionEnv}
         srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).insert "srcInkSpot"
         (.int (Int.ofNat srcInkSpot.toNat))).get? "srcInkFinal" =
         some (.int (Int.ofNat srcInkFinal.toNat))
-      rw [store_get_ne _ _ (by native_decide), forkStoreVtabFinal_get_srcInkFinal])
+      rw [store_get_ne _ _ (by decide +native), forkStoreVtabFinal_get_srcInkFinal])
   have hy' :
       evalExpr? config
         { contract := contract,
@@ -4253,12 +4253,12 @@ theorem execForkSrcInkSpotFinalMulOk {evm : EVM.State} {I : ExecutionEnv}
         change ((forkStoreVtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).insert "srcInkSpot"
           (.int (Int.ofNat srcInkSpot.toNat))).get? "ilk" = some (forkIlkValue I)
-        rw [store_get_ne _ _ (by native_decide), forkStoreVtabFinal_get_ilk])
+        rw [store_get_ne _ _ (by decide +native), forkStoreVtabFinal_get_ilk])
       (by
         change ((forkStoreVtabFinal I srcInkNew srcArtNew dstInkNew dstArtNew
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab).insert "srcInkSpot"
           (.int (Int.ofNat srcInkSpot.toNat))).get? "ilks" = none
-        rw [store_get_ne _ _ (by native_decide), forkStoreVtabFinal_get_ilks])]
+        rw [store_get_ne _ _ (by decide +native), forkStoreVtabFinal_get_ilks])]
     rw [hloadSpot]
   have hname :
       evalExpr? config
@@ -4342,7 +4342,7 @@ theorem execForkDstInkSpotFinalMulOk {evm : EVM.State} {I : ExecutionEnv}
         srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).insert
         "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "dstInkFinal" =
         some (.int (Int.ofNat dstInkFinal.toNat))
-      rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpotFinal_get_dstInkFinal])
+      rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpotFinal_get_dstInkFinal])
   have hy' :
       evalExpr? config
         { contract := contract,
@@ -4356,12 +4356,12 @@ theorem execForkDstInkSpotFinalMulOk {evm : EVM.State} {I : ExecutionEnv}
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).insert
           "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "ilk" =
           some (forkIlkValue I)
-        rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpotFinal_get_ilk])
+        rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpotFinal_get_ilk])
       (by
         change ((forkStoreSrcInkSpotFinal I srcInkNew srcArtNew dstInkNew dstArtNew
           srcArtFinal dstArtFinal srcInkFinal dstInkFinal utab vtab srcInkSpot).insert
           "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "ilks" = none
-        rw [store_get_ne _ _ (by native_decide), forkStoreSrcInkSpotFinal_get_ilks])]
+        rw [store_get_ne _ _ (by decide +native), forkStoreSrcInkSpotFinal_get_ilks])]
     rw [hloadSpot]
   have hname :
       evalExpr? config
@@ -4429,19 +4429,19 @@ theorem execForkUtabMulOk {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "utab" (.int (Int.ofNat utab.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hsrc' : locals'.get? "src" = some (forkSrcValue I) := by
       change (locals.insert "utab" (.int (Int.ofNat utab.toNat))).get? "src" =
         some (forkSrcValue I)
-      rw [store_get_ne _ _ (by native_decide), hsrc]
+      rw [store_get_ne _ _ (by decide +native), hsrc]
     have hurns' : locals'.get? "urns" = none := by
       change (locals.insert "utab" (.int (Int.ofNat utab.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hurns]
+      rw [store_get_ne _ _ (by decide +native), hurns]
     have hilks' : locals'.get? "ilks" = none := by
       change (locals.insert "utab" (.int (Int.ofNat utab.toNat))).get? "ilks" =
         none
-      rw [store_get_ne _ _ (by native_decide), hilks]
+      rw [store_get_ne _ _ (by decide +native), hilks]
     have hsrcArt' :
         evalExpr? config { contract := contract, locals := locals' } evm
           (.storage (urnsF (.var "ilk") (.var "src") "art")) =
@@ -4506,19 +4506,19 @@ theorem execForkVtabMulOk {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "vtab" (.int (Int.ofNat vtab.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hdst' : locals'.get? "dst" = some (forkDstValue I) := by
       change (locals.insert "vtab" (.int (Int.ofNat vtab.toNat))).get? "dst" =
         some (forkDstValue I)
-      rw [store_get_ne _ _ (by native_decide), hdst]
+      rw [store_get_ne _ _ (by decide +native), hdst]
     have hurns' : locals'.get? "urns" = none := by
       change (locals.insert "vtab" (.int (Int.ofNat vtab.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hurns]
+      rw [store_get_ne _ _ (by decide +native), hurns]
     have hilks' : locals'.get? "ilks" = none := by
       change (locals.insert "vtab" (.int (Int.ofNat vtab.toNat))).get? "ilks" =
         none
-      rw [store_get_ne _ _ (by native_decide), hilks]
+      rw [store_get_ne _ _ (by decide +native), hilks]
     have hdstArt' :
         evalExpr? config { contract := contract, locals := locals' } evm
           (.storage (urnsF (.var "ilk") (.var "dst") "art")) =
@@ -4583,19 +4583,19 @@ theorem execForkSrcInkSpotMulOk {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "srcInkSpot" (.int (Int.ofNat srcInkSpot.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hsrc' : locals'.get? "src" = some (forkSrcValue I) := by
       change (locals.insert "srcInkSpot" (.int (Int.ofNat srcInkSpot.toNat))).get? "src" =
         some (forkSrcValue I)
-      rw [store_get_ne _ _ (by native_decide), hsrc]
+      rw [store_get_ne _ _ (by decide +native), hsrc]
     have hurns' : locals'.get? "urns" = none := by
       change (locals.insert "srcInkSpot" (.int (Int.ofNat srcInkSpot.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hurns]
+      rw [store_get_ne _ _ (by decide +native), hurns]
     have hilks' : locals'.get? "ilks" = none := by
       change (locals.insert "srcInkSpot" (.int (Int.ofNat srcInkSpot.toNat))).get? "ilks" =
         none
-      rw [store_get_ne _ _ (by native_decide), hilks]
+      rw [store_get_ne _ _ (by decide +native), hilks]
     have hsrcInk' :
         evalExpr? config { contract := contract, locals := locals' } evm
           (.storage (urnsF (.var "ilk") (.var "src") "ink")) =
@@ -4660,19 +4660,19 @@ theorem execForkDstInkSpotMulOk {evm : EVM.State} {I : ExecutionEnv}
     have hilk' : locals'.get? "ilk" = some (forkIlkValue I) := by
       change (locals.insert "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "ilk" =
         some (forkIlkValue I)
-      rw [store_get_ne _ _ (by native_decide), hilk]
+      rw [store_get_ne _ _ (by decide +native), hilk]
     have hdst' : locals'.get? "dst" = some (forkDstValue I) := by
       change (locals.insert "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "dst" =
         some (forkDstValue I)
-      rw [store_get_ne _ _ (by native_decide), hdst]
+      rw [store_get_ne _ _ (by decide +native), hdst]
     have hurns' : locals'.get? "urns" = none := by
       change (locals.insert "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "urns" =
         none
-      rw [store_get_ne _ _ (by native_decide), hurns]
+      rw [store_get_ne _ _ (by decide +native), hurns]
     have hilks' : locals'.get? "ilks" = none := by
       change (locals.insert "dstInkSpot" (.int (Int.ofNat dstInkSpot.toNat))).get? "ilks" =
         none
-      rw [store_get_ne _ _ (by native_decide), hilks]
+      rw [store_get_ne _ _ (by decide +native), hilks]
     have hdstInk' :
         evalExpr? config { contract := contract, locals := locals' } evm
           (.storage (urnsF (.var "ilk") (.var "dst") "ink")) =
@@ -5860,7 +5860,7 @@ theorem forkSrcWishWord_true_src {σ : AccountMap} {I : ExecutionEnv}
   by_cases hcan : vatSlotWord (forkSrcWishSlot I) σ I = ⟨1⟩
   · unfold forkSrcWishWord
     rw [heq, hcan, u256_eq_refl, u256_eq_refl]
-    native_decide
+    decide +native
   · unfold forkSrcWishWord
     rw [heq, u256_eq_refl, u256_eq_of_ne hcan]
     rw [u256_lor_comm, u256_lor_zero]
@@ -5872,7 +5872,7 @@ theorem forkSrcWishWord_true_can {σ : AccountMap} {I : ExecutionEnv}
   by_cases hsrc : forkSrcMaskedWord I = hopeSourceWord I
   · unfold forkSrcWishWord
     rw [hcan, hsrc, u256_eq_refl, u256_eq_refl]
-    native_decide
+    decide +native
   · unfold forkSrcWishWord
     rw [hcan, u256_eq_refl, u256_eq_of_ne hsrc]
     rw [u256_lor_zero]
@@ -5884,7 +5884,7 @@ theorem forkDstWishWord_true_dst {σ : AccountMap} {I : ExecutionEnv}
   by_cases hcan : vatSlotWord (forkDstWishSlot I) σ I = ⟨1⟩
   · unfold forkDstWishWord
     rw [heq, hcan, u256_eq_refl, u256_eq_refl]
-    native_decide
+    decide +native
   · unfold forkDstWishWord
     rw [heq, u256_eq_refl, u256_eq_of_ne hcan]
     rw [u256_lor_comm, u256_lor_zero]
@@ -5896,7 +5896,7 @@ theorem forkDstWishWord_true_can {σ : AccountMap} {I : ExecutionEnv}
   by_cases hdst : forkDstMaskedWord I = hopeSourceWord I
   · unfold forkDstWishWord
     rw [hcan, hdst, u256_eq_refl, u256_eq_refl]
-    native_decide
+    decide +native
   · unfold forkDstWishWord
     rw [hcan, u256_eq_refl, u256_eq_of_ne hdst]
     rw [u256_lor_zero]
@@ -5979,15 +5979,15 @@ theorem forkBothWishWord_true {σ : AccountMap} {I : ExecutionEnv}
         · rw [hcan, u256_eq_refl]
           by_cases haddr : forkSrcMaskedWord I = hopeSourceWord I
           · rw [haddr, u256_eq_refl]
-            native_decide
+            decide +native
           · rw [u256_eq_of_ne haddr]
-            native_decide
+            decide +native
         · rw [u256_eq_of_ne hcan]
           by_cases haddr : forkSrcMaskedWord I = hopeSourceWord I
           · rw [haddr, u256_eq_refl]
-            native_decide
+            decide +native
           · rw [u256_eq_of_ne hcan, u256_eq_of_ne haddr] at hsrcZero
-            have hz : UInt256.lor (⟨0⟩ : UInt256) ⟨0⟩ = ⟨0⟩ := by native_decide
+            have hz : UInt256.lor (⟨0⟩ : UInt256) ⟨0⟩ = ⟨0⟩ := by decide +native
             exact False.elim (hsrcZero hz)
       have hdstOne : forkDstWishWord σ I = ⟨1⟩ := by
         unfold forkDstWishWord at hdstZero ⊢
@@ -5995,18 +5995,18 @@ theorem forkBothWishWord_true {σ : AccountMap} {I : ExecutionEnv}
         · rw [hcan, u256_eq_refl]
           by_cases haddr : forkDstMaskedWord I = hopeSourceWord I
           · rw [haddr, u256_eq_refl]
-            native_decide
+            decide +native
           · rw [u256_eq_of_ne haddr]
-            native_decide
+            decide +native
         · rw [u256_eq_of_ne hcan]
           by_cases haddr : forkDstMaskedWord I = hopeSourceWord I
           · rw [haddr, u256_eq_refl]
-            native_decide
+            decide +native
           · rw [u256_eq_of_ne hcan, u256_eq_of_ne haddr] at hdstZero
-            have hz : UInt256.lor (⟨0⟩ : UInt256) ⟨0⟩ = ⟨0⟩ := by native_decide
+            have hz : UInt256.lor (⟨0⟩ : UInt256) ⟨0⟩ = ⟨0⟩ := by decide +native
             exact False.elim (hdstZero hz)
       rw [hsrcOne, hdstOne]
-      native_decide
+      decide +native
 
 theorem forkBothWishWord_true_src {σ : AccountMap} {I : ExecutionEnv}
     (h : forkBothWishWord σ I ≠ ⟨0⟩) :
@@ -6952,14 +6952,14 @@ theorem forkDustSourceCond_false_of_evm {art tab dust : UInt256}
       fork_u256_isZero_ne_zero_to_eq_zero hne
     have hone : UInt256.isZero (UInt256.lt tab dust) = ⟨1⟩ := by
       rw [hltZero]
-      native_decide
+      decide +native
     exact fork_u256_lor_one_ne_zero (UInt256.eq ⟨0⟩ art)
       (by simpa [hone] using hlor)
   have hltNe : UInt256.lt tab dust ≠ ⟨0⟩ := by
     intro hltZero
     have hone : UInt256.isZero (UInt256.lt tab dust) = ⟨1⟩ := by
       rw [hltZero]
-      native_decide
+      decide +native
     rw [hone] at hisZeroZero
     exact one_ne_zero_uint hisZeroZero
   have hartPos : 0 < art.toNat := by
@@ -9912,7 +9912,7 @@ theorem decodeCalldata_legacyBytes32_address_address_int256_int256_ok {cd : Byte
   rw [if_neg (by simp [bytes32, addr, int256, isDynamicABIType])]
   simp only
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr, addr, int256, int256] = some 160 by native_decide]
+  rw [show abiTupleHeadSize? [bytes32, addr, addr, int256, int256] = some 160 by decide +native]
   simp only [bind, Option.bind]
   rw [if_neg (by rw [List.length_drop, htlen]; omega :
     ¬ (cd.toList.drop 4).length < 160)]
@@ -9972,7 +9972,7 @@ theorem vatDecode_fork_none_short {I : ExecutionEnv}
   rw [if_neg (by simp [bytes32, addr, int256, isDynamicABIType])]
   simp only
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [bytes32, addr, addr, int256, int256] = some 160 by native_decide]
+  rw [show abiTupleHeadSize? [bytes32, addr, addr, int256, int256] = some 160 by decide +native]
   simp only [bind, Option.bind]
   rw [if_pos (by rw [List.length_drop, htlen]; omega :
     (I.calldata.toList.drop 4).length < 160)]
@@ -9988,7 +9988,7 @@ theorem vatDispatchFork {I : ExecutionEnv}
     canSelectorBytes, daiSelectorBytes, debtSelectorBytes, denySelectorBytes,
     fileIlkSelectorBytes, fileLineSelectorBytes, fluxSelectorBytes, foldSelectorBytes,
     forkSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachForkBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -9999,31 +9999,31 @@ theorem vatReachForkBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0x870c616d⟩ :=
     vatSelWord_eq_of_beq I hsz 0x87 0x0c 0x61 0x6d ⟨0x870c616d⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhighlow :
       UInt256.gt (armSelNat vatBytecode vatHighLowSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms212FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
     rw [hword]
-    native_decide
+    decide +native
   have htake :
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms212FirstPc 1))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms212Body 1 (by omega) ⟨1095⟩ hcode hwv hsz hsize
-    hroot hhigh hhighlow heq0 htake (by jump_dest) (by native_decide)
+    hroot hhigh hhighlow heq0 htake (by jump_dest) (by decide +native)
 
 @[reducible] def solcForkExternalLoadAndJumpWf
     (code : ByteArray) (pc routine : UInt256) : Prop :=
@@ -10173,9 +10173,9 @@ theorem vatForkX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨1095⟩) (ret := ⟨524⟩)
     (decoded := ⟨1117⟩) (need := ⟨160⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz164) hsize)
   obtain ⟨_, _, hroutine⟩ := RD.solcForkExternalLoadAndJump
@@ -10183,7 +10183,7 @@ theorem vatForkX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (R := [sel]) hdecoded
     (by
       unfold solcForkExternalLoadAndJumpWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   exact ⟨_, _, by
     simpa [forkDartWord, forkDinkWord, forkDstMaskedWord, forkDstWord, forkSrcMaskedWord,
@@ -10205,10 +10205,10 @@ theorem vatForkX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨1095⟩) (ret := ⟨524⟩)
     (decoded := ⟨1117⟩) (need := ⟨160⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem vatForkBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -10281,62 +10281,62 @@ theorem RD.vatCheckedMulUintOk {g : Sat256} {s0 : State}
     ∃ k' C', RD vatBytecode ee g s0 ret ((UInt256.mul y x) :: R) mem
       activeWords rdata acc k' C' := by
   let prod := UInt256.mul y x
-  have rd6753 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd6755 := rd6753.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6756 := rd6755.dup2 (by native_decide) (by evm_ov)
-  have rd6757 := rd6756.iszero (by native_decide) (by evm_ov)
-  have rd6758 := rd6757.dup1 (by native_decide) (by evm_ov)
-  have rd6761pre := rd6758.push2 ⟨6697⟩ (by native_decide) (by evm_ov)
+  have rd6753 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd6755 := rd6753.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6756 := rd6755.dup2 (by decide +native) (by evm_ov)
+  have rd6757 := rd6756.iszero (by decide +native) (by evm_ov)
+  have rd6758 := rd6757.dup1 (by decide +native) (by evm_ov)
+  have rd6761pre := rd6758.push2 ⟨6697⟩ (by decide +native) (by evm_ov)
   by_cases hxzero : x = ⟨0⟩
   · have rd6697 := by
       rw [hxzero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6761pre
-      simpa [prod] using rd6761pre.jumpiT (by native_decide) one_ne_zero_uint
+      simpa [prod] using rd6761pre.jumpiT (by decide +native) one_ne_zero_uint
         (by jump_dest) (by evm_ov)
-    have rd6698 := rd6697.jumpdest (by native_decide) (by evm_ov)
-    have rd6701 := rd6698.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
-    have rd6615 := rd6701.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    have rd6698 := rd6697.jumpdest (by decide +native) (by evm_ov)
+    have rd6701 := rd6698.push2 ⟨6615⟩ (by decide +native) (by evm_ov)
+    have rd6615 := rd6701.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
       (by evm_ov)
-    have rd6616 := rd6615.jumpdest (by native_decide) (by evm_ov)
-    have rd6617 := rd6616.swap3 (by native_decide) (by evm_ov)
-    have rd6618 := rd6617.swap2 (by native_decide) (by evm_ov)
-    have rd6619 := rd6618.pop (by native_decide) (by evm_ov)
-    have rd6620 := rd6619.pop (by native_decide) (by evm_ov)
+    have rd6616 := rd6615.jumpdest (by decide +native) (by evm_ov)
+    have rd6617 := rd6616.swap3 (by decide +native) (by evm_ov)
+    have rd6618 := rd6617.swap2 (by decide +native) (by evm_ov)
+    have rd6619 := rd6618.pop (by decide +native) (by evm_ov)
+    have rd6620 := rd6619.pop (by decide +native) (by evm_ov)
     exact ⟨_, _, by
-      simpa [prod, hxzero] using rd6620.jump (by native_decide) hret (by evm_ov)⟩
+      simpa [prod, hxzero] using rd6620.jump (by decide +native) hret (by evm_ov)⟩
   · have rd6762 := by
       have hcond : UInt256.isZero x = ⟨0⟩ := isZero_eq_zero_of_ne hxzero
       rw [hcond] at rd6761pre
-      simpa [prod] using rd6761pre.jumpiNT (by native_decide)
+      simpa [prod] using rd6761pre.jumpiNT (by decide +native)
         (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    have rd6763 := rd6762.pop (by native_decide) (by evm_ov)
-    have rd6764 := rd6763.pop (by native_decide) (by evm_ov)
-    have rd6765 := rd6764.dup1 (by native_decide) (by evm_ov)
-    have rd6766 := rd6765.dup3 (by native_decide) (by evm_ov)
-    have rd6767 := rd6766.mul (by native_decide) (by evm_ov)
-    have rd6768 := rd6767.dup3 (by native_decide) (by evm_ov)
-    have rd6769 := rd6768.dup3 (by native_decide) (by evm_ov)
-    have rd6770 := rd6769.dup3 (by native_decide) (by evm_ov)
-    have rd6771 := rd6770.dup2 (by native_decide)
+    have rd6763 := rd6762.pop (by decide +native) (by evm_ov)
+    have rd6764 := rd6763.pop (by decide +native) (by evm_ov)
+    have rd6765 := rd6764.dup1 (by decide +native) (by evm_ov)
+    have rd6766 := rd6765.dup3 (by decide +native) (by evm_ov)
+    have rd6767 := rd6766.mul (by decide +native) (by evm_ov)
+    have rd6768 := rd6767.dup3 (by decide +native) (by evm_ov)
+    have rd6769 := rd6768.dup3 (by decide +native) (by evm_ov)
+    have rd6770 := rd6769.dup3 (by decide +native) (by evm_ov)
+    have rd6771 := rd6770.dup2 (by decide +native)
       (by simp only [List.length_cons] at hov ⊢; omega)
-    have rd6774pre := rd6771.push2 ⟨6776⟩ (by native_decide)
+    have rd6774pre := rd6771.push2 ⟨6776⟩ (by decide +native)
       (by simp only [List.length_cons] at hov ⊢; omega)
     have rd6776 := by
-      simpa [prod] using rd6774pre.jumpiT (by native_decide) hxzero (by jump_dest)
+      simpa [prod] using rd6774pre.jumpiT (by decide +native) hxzero (by jump_dest)
         (by evm_ov)
-    have rd6777 := rd6776.jumpdest (by native_decide) (by evm_ov)
-    have rd6778pre := RD.div rd6777 (by native_decide) (by evm_ov)
-    have rd6779 := rd6778pre.eq (by native_decide) (by evm_ov)
-    have rd6782pre := rd6779.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
+    have rd6777 := rd6776.jumpdest (by decide +native) (by evm_ov)
+    have rd6778pre := RD.div rd6777 (by decide +native) (by evm_ov)
+    have rd6779 := rd6778pre.eq (by decide +native) (by evm_ov)
+    have rd6782pre := rd6779.push2 ⟨6615⟩ (by decide +native) (by evm_ov)
     have heq : UInt256.eq (UInt256.div prod x) y ≠ ⟨0⟩ := by
       simpa [prod] using hok.resolve_left hxzero
-    have rd6615 := rd6782pre.jumpiT (by native_decide) heq (by jump_dest)
+    have rd6615 := rd6782pre.jumpiT (by decide +native) heq (by jump_dest)
       (by evm_ov)
-    have rd6616 := rd6615.jumpdest (by native_decide) (by evm_ov)
-    have rd6617 := rd6616.swap3 (by native_decide) (by evm_ov)
-    have rd6618 := rd6617.swap2 (by native_decide) (by evm_ov)
-    have rd6619 := rd6618.pop (by native_decide) (by evm_ov)
-    have rd6620 := rd6619.pop (by native_decide) (by evm_ov)
-    exact ⟨_, _, by simpa [prod] using rd6620.jump (by native_decide) hret (by evm_ov)⟩
+    have rd6616 := rd6615.jumpdest (by decide +native) (by evm_ov)
+    have rd6617 := rd6616.swap3 (by decide +native) (by evm_ov)
+    have rd6618 := rd6617.swap2 (by decide +native) (by evm_ov)
+    have rd6619 := rd6618.pop (by decide +native) (by evm_ov)
+    have rd6620 := rd6619.pop (by decide +native) (by evm_ov)
+    exact ⟨_, _, by simpa [prod] using rd6620.jump (by decide +native) hret (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatCheckedMulUintRevert {g : Sat256} {s0 : State}
@@ -10358,44 +10358,44 @@ theorem RD.vatCheckedMulUintRevert {g : Sat256} {s0 : State}
       UInt256.eq (UInt256.div prod x) y = ⟨0⟩ := by
     by_contra hne
     exact hfail (Or.inr (by simpa [prod] using hne))
-  have rd6753 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd6755 := rd6753.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6756 := rd6755.dup2 (by native_decide) (by evm_ov)
-  have rd6757 := rd6756.iszero (by native_decide) (by evm_ov)
-  have rd6758 := rd6757.dup1 (by native_decide) (by evm_ov)
-  have rd6761pre := rd6758.push2 ⟨6697⟩ (by native_decide) (by evm_ov)
+  have rd6753 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd6755 := rd6753.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6756 := rd6755.dup2 (by decide +native) (by evm_ov)
+  have rd6757 := rd6756.iszero (by decide +native) (by evm_ov)
+  have rd6758 := rd6757.dup1 (by decide +native) (by evm_ov)
+  have rd6761pre := rd6758.push2 ⟨6697⟩ (by decide +native) (by evm_ov)
   have rd6762 := by
     have hcond : UInt256.isZero x = ⟨0⟩ := isZero_eq_zero_of_ne hxzero
     rw [hcond] at rd6761pre
-    simpa [prod] using rd6761pre.jumpiNT (by native_decide)
+    simpa [prod] using rd6761pre.jumpiNT (by decide +native)
       (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd6763 := rd6762.pop (by native_decide) (by evm_ov)
-  have rd6764 := rd6763.pop (by native_decide) (by evm_ov)
-  have rd6765 := rd6764.dup1 (by native_decide) (by evm_ov)
-  have rd6766 := rd6765.dup3 (by native_decide) (by evm_ov)
-  have rd6767 := rd6766.mul (by native_decide) (by evm_ov)
-  have rd6768 := rd6767.dup3 (by native_decide) (by evm_ov)
-  have rd6769 := rd6768.dup3 (by native_decide) (by evm_ov)
-  have rd6770 := rd6769.dup3 (by native_decide) (by evm_ov)
-  have rd6771 := rd6770.dup2 (by native_decide)
+  have rd6763 := rd6762.pop (by decide +native) (by evm_ov)
+  have rd6764 := rd6763.pop (by decide +native) (by evm_ov)
+  have rd6765 := rd6764.dup1 (by decide +native) (by evm_ov)
+  have rd6766 := rd6765.dup3 (by decide +native) (by evm_ov)
+  have rd6767 := rd6766.mul (by decide +native) (by evm_ov)
+  have rd6768 := rd6767.dup3 (by decide +native) (by evm_ov)
+  have rd6769 := rd6768.dup3 (by decide +native) (by evm_ov)
+  have rd6770 := rd6769.dup3 (by decide +native) (by evm_ov)
+  have rd6771 := rd6770.dup2 (by decide +native)
     (by simp only [List.length_cons] at hov ⊢; omega)
-  have rd6774pre := rd6771.push2 ⟨6776⟩ (by native_decide)
+  have rd6774pre := rd6771.push2 ⟨6776⟩ (by decide +native)
     (by simp only [List.length_cons] at hov ⊢; omega)
   have rd6776 := by
-    simpa [prod] using rd6774pre.jumpiT (by native_decide) hxzero (by jump_dest)
+    simpa [prod] using rd6774pre.jumpiT (by decide +native) hxzero (by jump_dest)
       (by evm_ov)
-  have rd6777 := rd6776.jumpdest (by native_decide) (by evm_ov)
-  have rd6778pre := RD.div rd6777 (by native_decide) (by evm_ov)
-  have rd6779 := rd6778pre.eq (by native_decide) (by evm_ov)
-  have rd6782pre := rd6779.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
+  have rd6777 := rd6776.jumpdest (by decide +native) (by evm_ov)
+  have rd6778pre := RD.div rd6777 (by decide +native) (by evm_ov)
+  have rd6779 := rd6778pre.eq (by decide +native) (by evm_ov)
+  have rd6782pre := rd6779.push2 ⟨6615⟩ (by decide +native) (by evm_ov)
   have rd6783 := by
     rw [heqZero] at rd6782pre
-    simpa [prod] using rd6782pre.jumpiNT (by native_decide)
+    simpa [prod] using rd6782pre.jumpiNT (by decide +native)
       (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   have rdRev := evm_run rd6783 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
-  exact RD.rev 0 rdRev (by native_decide) (fun s _ hstk => memExpRevert0 s hstk)
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
+  exact RD.rev 0 rdRev (by decide +native) (fun s _ hstk => memExpRevert0 s hstk)
     (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
@@ -10433,38 +10433,38 @@ theorem RD.vatForkSrcInkSubSuccess
   let dstBase := solcMappingSlot urnsIlk (forkDstMaskedWord I)
   let ilkBase := solcMappingSlot ⟨2⟩ (forkIlkWord I)
   let srcInkOld := solcSlotWord σ I srcBase
-  have rd4727 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4729 := rd4727.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4730 := rd4729.dup6 (by native_decide) (by evm_ov)
-  have rd4731pre := rd4730.dup2 (by native_decide) (by evm_ov)
+  have rd4727 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4729 := rd4727.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4730 := rd4729.dup6 (by decide +native) (by evm_ov)
+  have rd4731pre := rd4730.dup2 (by decide +native) (by evm_ov)
   have rd4732 := rd4731pre.mstore 0 (wordAt0Mem (forkIlkWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4734 := rd4732.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  have rd4736 := rd4734.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4737 := rd4736.swap1 (by native_decide) (by evm_ov)
-  have rd4738pre := rd4737.dup2 (by native_decide) (by evm_ov)
+  have rd4734 := rd4732.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  have rd4736 := rd4734.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4737 := rd4736.swap1 (by decide +native) (by evm_ov)
+  have rd4738pre := rd4737.dup2 (by decide +native) (by evm_ov)
   have rd4739 := rd4738pre.mstore 0 (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4741 := rd4739.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4742 := rd4741.dup1 (by native_decide) (by evm_ov)
-  have rd4743pre := rd4742.dup4 (by native_decide) (by evm_ov)
+  have rd4741 := rd4739.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4742 := rd4741.dup1 (by decide +native) (by evm_ov)
+  have rd4743pre := rd4742.dup4 (by decide +native) (by evm_ov)
   have hurnsIlk :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (forkIlkWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
         urnsIlk := by
     simpa [urnsIlk] using twoWordHashMem_solcMappingSlot ⟨3⟩ (forkIlkWord I) hmem
   have rd4744 := rd4743pre.keccak256 0 urnsIlk (UInt256.ofNat 3)
-    (by native_decide) mem_cost hurnsIlk (by native_decide) (by evm_ov)
-  have rd4746 := rd4744.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4748 := rd4746.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4750 := rd4748.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4751 := rd4750.shl (by native_decide) (by evm_ov)
-  have rd4752 := rd4751.sub (by native_decide) (by evm_ov)
-  have rd4753 := rd4752.dup9 (by native_decide) (by evm_ov)
-  have rd4754raw := rd4753.dup2 (by native_decide) (by evm_ov)
-  have rd4755raw := rd4754raw.and (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hurnsIlk (by decide +native) (by evm_ov)
+  have rd4746 := rd4744.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4748 := rd4746.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4750 := rd4748.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4751 := rd4750.shl (by decide +native) (by evm_ov)
+  have rd4752 := rd4751.sub (by decide +native) (by evm_ov)
+  have rd4753 := rd4752.dup9 (by decide +native) (by evm_ov)
+  have rd4754raw := rd4753.dup2 (by decide +native) (by evm_ov)
+  have rd4755raw := rd4754raw.and (by decide +native) (by evm_ov)
   have hsrcMask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -10476,20 +10476,20 @@ theorem RD.vatForkSrcInkSubSuccess
     exact solcAddrMask_clean (forkSrcMaskedWord_canonical I)
   have rd4755 := rd4755raw
   rw [hsrcMask] at rd4755
-  have rd4756 := rd4755.dup6 (by native_decide) (by evm_ov)
+  have rd4756 := rd4755.dup6 (by decide +native) (by evm_ov)
   have rd4757 := rd4756.mstore 0
     (wordAt0Mem (forkSrcMaskedWord I) (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4758 := rd4757.swap1 (by native_decide) (by evm_ov)
-  have rd4759pre := rd4758.dup4 (by native_decide) (by evm_ov)
+  have rd4758 := rd4757.swap1 (by decide +native) (by evm_ov)
+  have rd4759pre := rd4758.dup4 (by decide +native) (by evm_ov)
   have rd4760 := rd4759pre.mstore 0
     (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
       (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4761 := rd4760.dup2 (by native_decide) (by evm_ov)
-  have rd4762pre := rd4761.dup5 (by native_decide) (by evm_ov)
+  have rd4761 := rd4760.dup2 (by decide +native) (by evm_ov)
+  have rd4762pre := rd4761.dup5 (by decide +native) (by evm_ov)
   have hmemIlk3 : (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem).size = 96 :=
     twoWordHashMem_size_96 (forkIlkWord I) ⟨3⟩ hmem
   have hsrcBase :
@@ -10500,10 +10500,10 @@ theorem RD.vatForkSrcInkSubSuccess
     simpa [srcBase] using
       twoWordHashMem_solcMappingSlot urnsIlk (forkSrcMaskedWord I) hmemIlk3
   have rd4763 := rd4762pre.keccak256 0 srcBase (UInt256.ofNat 3)
-    (by native_decide) mem_cost hsrcBase (by native_decide) (by evm_ov)
-  have rd4764 := rd4763.swap1 (by native_decide) (by evm_ov)
-  have rd4765raw := rd4764.dup8 (by native_decide) (by evm_ov)
-  have rd4766raw := rd4765raw.and (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hsrcBase (by decide +native) (by evm_ov)
+  have rd4764 := rd4763.swap1 (by decide +native) (by evm_ov)
+  have rd4765raw := rd4764.dup8 (by decide +native) (by evm_ov)
+  have rd4766raw := rd4765raw.and (by decide +native) (by evm_ov)
   have hdstMask :
       UInt256.land (forkDstMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -10513,15 +10513,15 @@ theorem RD.vatForkSrcInkSubSuccess
     exact solcAddrMask_clean (forkDstMaskedWord_canonical I)
   have rd4766 := rd4766raw
   rw [hdstMask] at rd4766
-  have rd4767 := rd4766.dup5 (by native_decide) (by evm_ov)
+  have rd4767 := rd4766.dup5 (by decide +native) (by evm_ov)
   have rd4768 := rd4767.mstore 0
     (wordAt0Mem (forkDstMaskedWord I)
       (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
         (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem)))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4769pre := rd4768.dup2 (by native_decide) (by evm_ov)
-  have rd4770pre := rd4769pre.dup5 (by native_decide) (by evm_ov)
+  have rd4769pre := rd4768.dup2 (by decide +native) (by evm_ov)
+  have rd4770pre := rd4769pre.dup5 (by decide +native) (by evm_ov)
   have hmemSrcBase :
       (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
         (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem)).size = 96 :=
@@ -10536,27 +10536,27 @@ theorem RD.vatForkSrcInkSubSuccess
       forkWordAt0Mem_twoWordHashMem_solcMappingSlot urnsIlk (forkDstMaskedWord I)
         (forkSrcMaskedWord I) hmemIlk3
   have rd4771 := rd4770pre.keccak256 0 dstBase (UInt256.ofNat 3)
-    (by native_decide) mem_cost hdstBase (by native_decide) (by evm_ov)
-  have rd4772 := rd4771.dup10 (by native_decide) (by evm_ov)
-  have rd4773pre := rd4772.dup6 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hdstBase (by decide +native) (by evm_ov)
+  have rd4772 := rd4771.dup10 (by decide +native) (by evm_ov)
+  have rd4773pre := rd4772.dup6 (by decide +native) (by evm_ov)
   have rd4774 := rd4773pre.mstore 0
     (wordAt0Mem (forkIlkWord I)
       (wordAt0Mem (forkDstMaskedWord I)
         (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
           (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem))))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4776 := rd4774.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd4777 := rd4776.swap1 (by native_decide) (by evm_ov)
-  have rd4778pre := rd4777.swap4 (by native_decide) (by evm_ov)
+  have rd4776 := rd4774.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd4777 := rd4776.swap1 (by decide +native) (by evm_ov)
+  have rd4778pre := rd4777.swap4 (by decide +native) (by evm_ov)
   have rd4779 := rd4778pre.mstore 0
     (twoWordHashMem (forkIlkWord I) ⟨2⟩
       (wordAt0Mem (forkDstMaskedWord I)
         (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
           (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem))))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4780 := rd4779.swap3 (by native_decide) (by evm_ov)
+  have rd4780 := rd4779.swap3 (by decide +native) (by evm_ov)
   have hmemDstBase :
       (wordAt0Mem (forkDstMaskedWord I)
         (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
@@ -10571,20 +10571,20 @@ theorem RD.vatForkSrcInkSubSuccess
         ilkBase := by
     simpa [ilkBase] using twoWordHashMem_solcMappingSlot ⟨2⟩ (forkIlkWord I) hmemDstBase
   have rd4781 := rd4780.keccak256 0 ilkBase (UInt256.ofNat 3)
-    (by native_decide) mem_cost hilkBase (by native_decide) (by evm_ov)
-  have rd4782pre := rd4781.dup3 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4783raw⟩ := rd4782pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hilkBase (by decide +native) (by evm_ov)
+  have rd4782pre := rd4781.dup3 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4783raw⟩ := rd4782pre.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD srcBase ⟨0⟩)) =
         srcInkOld := by
     simp [srcInkOld, solcSlotWord]
   have rd4783 := rd4783raw
   rw [hold] at rd4783
-  have rd4786 := rd4783.push2 ⟨4792⟩ (by native_decide) (by evm_ov)
-  have rd4787 := rd4786.swap1 (by native_decide) (by evm_ov)
-  have rd4788 := rd4787.dup7 (by native_decide) (by evm_ov)
-  have rd4791 := rd4788.push2 ⟨6795⟩ (by native_decide) (by evm_ov)
-  have rd6795 := rd4791.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4786 := rd4783.push2 ⟨4792⟩ (by decide +native) (by evm_ov)
+  have rd4787 := rd4786.swap1 (by decide +native) (by evm_ov)
+  have rd4788 := rd4787.dup7 (by decide +native) (by evm_ov)
+  have rd4791 := rd4788.push2 ⟨6795⟩ (by decide +native) (by evm_ov)
+  have rd6795 := rd4791.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4792⟩ := RD.vatSignedSubOk
     (x := srcInkOld) (y := forkDinkWord I) (ret := ⟨4792⟩)
     (R := ilkBase :: dstBase :: srcBase :: forkDartWord I :: forkDinkWord I ::
@@ -10628,38 +10628,38 @@ theorem RD.vatForkSrcInkSubRevert
   let dstBase := solcMappingSlot urnsIlk (forkDstMaskedWord I)
   let ilkBase := solcMappingSlot ⟨2⟩ (forkIlkWord I)
   let srcInkOld := solcSlotWord σ I srcBase
-  have rd4727 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4729 := rd4727.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4730 := rd4729.dup6 (by native_decide) (by evm_ov)
-  have rd4731pre := rd4730.dup2 (by native_decide) (by evm_ov)
+  have rd4727 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4729 := rd4727.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4730 := rd4729.dup6 (by decide +native) (by evm_ov)
+  have rd4731pre := rd4730.dup2 (by decide +native) (by evm_ov)
   have rd4732 := rd4731pre.mstore 0 (wordAt0Mem (forkIlkWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4734 := rd4732.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  have rd4736 := rd4734.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4737 := rd4736.swap1 (by native_decide) (by evm_ov)
-  have rd4738pre := rd4737.dup2 (by native_decide) (by evm_ov)
+  have rd4734 := rd4732.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  have rd4736 := rd4734.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4737 := rd4736.swap1 (by decide +native) (by evm_ov)
+  have rd4738pre := rd4737.dup2 (by decide +native) (by evm_ov)
   have rd4739 := rd4738pre.mstore 0 (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4741 := rd4739.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4742 := rd4741.dup1 (by native_decide) (by evm_ov)
-  have rd4743pre := rd4742.dup4 (by native_decide) (by evm_ov)
+  have rd4741 := rd4739.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4742 := rd4741.dup1 (by decide +native) (by evm_ov)
+  have rd4743pre := rd4742.dup4 (by decide +native) (by evm_ov)
   have hurnsIlk :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (forkIlkWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
         urnsIlk := by
     simpa [urnsIlk] using twoWordHashMem_solcMappingSlot ⟨3⟩ (forkIlkWord I) hmem
   have rd4744 := rd4743pre.keccak256 0 urnsIlk (UInt256.ofNat 3)
-    (by native_decide) mem_cost hurnsIlk (by native_decide) (by evm_ov)
-  have rd4746 := rd4744.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4748 := rd4746.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4750 := rd4748.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4751 := rd4750.shl (by native_decide) (by evm_ov)
-  have rd4752 := rd4751.sub (by native_decide) (by evm_ov)
-  have rd4753 := rd4752.dup9 (by native_decide) (by evm_ov)
-  have rd4754raw := rd4753.dup2 (by native_decide) (by evm_ov)
-  have rd4755raw := rd4754raw.and (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hurnsIlk (by decide +native) (by evm_ov)
+  have rd4746 := rd4744.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4748 := rd4746.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4750 := rd4748.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4751 := rd4750.shl (by decide +native) (by evm_ov)
+  have rd4752 := rd4751.sub (by decide +native) (by evm_ov)
+  have rd4753 := rd4752.dup9 (by decide +native) (by evm_ov)
+  have rd4754raw := rd4753.dup2 (by decide +native) (by evm_ov)
+  have rd4755raw := rd4754raw.and (by decide +native) (by evm_ov)
   have hsrcMask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -10671,20 +10671,20 @@ theorem RD.vatForkSrcInkSubRevert
     exact solcAddrMask_clean (forkSrcMaskedWord_canonical I)
   have rd4755 := rd4755raw
   rw [hsrcMask] at rd4755
-  have rd4756 := rd4755.dup6 (by native_decide) (by evm_ov)
+  have rd4756 := rd4755.dup6 (by decide +native) (by evm_ov)
   have rd4757 := rd4756.mstore 0
     (wordAt0Mem (forkSrcMaskedWord I) (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4758 := rd4757.swap1 (by native_decide) (by evm_ov)
-  have rd4759pre := rd4758.dup4 (by native_decide) (by evm_ov)
+  have rd4758 := rd4757.swap1 (by decide +native) (by evm_ov)
+  have rd4759pre := rd4758.dup4 (by decide +native) (by evm_ov)
   have rd4760 := rd4759pre.mstore 0
     (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
       (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4761 := rd4760.dup2 (by native_decide) (by evm_ov)
-  have rd4762pre := rd4761.dup5 (by native_decide) (by evm_ov)
+  have rd4761 := rd4760.dup2 (by decide +native) (by evm_ov)
+  have rd4762pre := rd4761.dup5 (by decide +native) (by evm_ov)
   have hmemIlk3 : (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem).size = 96 :=
     twoWordHashMem_size_96 (forkIlkWord I) ⟨3⟩ hmem
   have hsrcBase :
@@ -10695,10 +10695,10 @@ theorem RD.vatForkSrcInkSubRevert
     simpa [srcBase] using
       twoWordHashMem_solcMappingSlot urnsIlk (forkSrcMaskedWord I) hmemIlk3
   have rd4763 := rd4762pre.keccak256 0 srcBase (UInt256.ofNat 3)
-    (by native_decide) mem_cost hsrcBase (by native_decide) (by evm_ov)
-  have rd4764 := rd4763.swap1 (by native_decide) (by evm_ov)
-  have rd4765raw := rd4764.dup8 (by native_decide) (by evm_ov)
-  have rd4766raw := rd4765raw.and (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hsrcBase (by decide +native) (by evm_ov)
+  have rd4764 := rd4763.swap1 (by decide +native) (by evm_ov)
+  have rd4765raw := rd4764.dup8 (by decide +native) (by evm_ov)
+  have rd4766raw := rd4765raw.and (by decide +native) (by evm_ov)
   have hdstMask :
       UInt256.land (forkDstMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -10708,15 +10708,15 @@ theorem RD.vatForkSrcInkSubRevert
     exact solcAddrMask_clean (forkDstMaskedWord_canonical I)
   have rd4766 := rd4766raw
   rw [hdstMask] at rd4766
-  have rd4767 := rd4766.dup5 (by native_decide) (by evm_ov)
+  have rd4767 := rd4766.dup5 (by decide +native) (by evm_ov)
   have rd4768 := rd4767.mstore 0
     (wordAt0Mem (forkDstMaskedWord I)
       (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
         (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem)))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4769pre := rd4768.dup2 (by native_decide) (by evm_ov)
-  have rd4770pre := rd4769pre.dup5 (by native_decide) (by evm_ov)
+  have rd4769pre := rd4768.dup2 (by decide +native) (by evm_ov)
+  have rd4770pre := rd4769pre.dup5 (by decide +native) (by evm_ov)
   have hmemSrcBase :
       (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
         (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem)).size = 96 :=
@@ -10731,27 +10731,27 @@ theorem RD.vatForkSrcInkSubRevert
       forkWordAt0Mem_twoWordHashMem_solcMappingSlot urnsIlk (forkDstMaskedWord I)
         (forkSrcMaskedWord I) hmemIlk3
   have rd4771 := rd4770pre.keccak256 0 dstBase (UInt256.ofNat 3)
-    (by native_decide) mem_cost hdstBase (by native_decide) (by evm_ov)
-  have rd4772 := rd4771.dup10 (by native_decide) (by evm_ov)
-  have rd4773pre := rd4772.dup6 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hdstBase (by decide +native) (by evm_ov)
+  have rd4772 := rd4771.dup10 (by decide +native) (by evm_ov)
+  have rd4773pre := rd4772.dup6 (by decide +native) (by evm_ov)
   have rd4774 := rd4773pre.mstore 0
     (wordAt0Mem (forkIlkWord I)
       (wordAt0Mem (forkDstMaskedWord I)
         (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
           (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem))))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4776 := rd4774.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd4777 := rd4776.swap1 (by native_decide) (by evm_ov)
-  have rd4778pre := rd4777.swap4 (by native_decide) (by evm_ov)
+  have rd4776 := rd4774.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd4777 := rd4776.swap1 (by decide +native) (by evm_ov)
+  have rd4778pre := rd4777.swap4 (by decide +native) (by evm_ov)
   have rd4779 := rd4778pre.mstore 0
     (twoWordHashMem (forkIlkWord I) ⟨2⟩
       (wordAt0Mem (forkDstMaskedWord I)
         (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
           (twoWordHashMem (forkIlkWord I) ⟨3⟩ mem))))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4780 := rd4779.swap3 (by native_decide) (by evm_ov)
+  have rd4780 := rd4779.swap3 (by decide +native) (by evm_ov)
   have hmemDstBase :
       (wordAt0Mem (forkDstMaskedWord I)
         (twoWordHashMem (forkSrcMaskedWord I) urnsIlk
@@ -10766,20 +10766,20 @@ theorem RD.vatForkSrcInkSubRevert
         ilkBase := by
     simpa [ilkBase] using twoWordHashMem_solcMappingSlot ⟨2⟩ (forkIlkWord I) hmemDstBase
   have rd4781 := rd4780.keccak256 0 ilkBase (UInt256.ofNat 3)
-    (by native_decide) mem_cost hilkBase (by native_decide) (by evm_ov)
-  have rd4782pre := rd4781.dup3 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4783raw⟩ := rd4782pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hilkBase (by decide +native) (by evm_ov)
+  have rd4782pre := rd4781.dup3 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4783raw⟩ := rd4782pre.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD srcBase ⟨0⟩)) =
         srcInkOld := by
     simp [srcInkOld, solcSlotWord]
   have rd4783 := rd4783raw
   rw [hold] at rd4783
-  have rd4786 := rd4783.push2 ⟨4792⟩ (by native_decide) (by evm_ov)
-  have rd4787 := rd4786.swap1 (by native_decide) (by evm_ov)
-  have rd4788 := rd4787.dup7 (by native_decide) (by evm_ov)
-  have rd4791 := rd4788.push2 ⟨6795⟩ (by native_decide) (by evm_ov)
-  have rd6795 := rd4791.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4786 := rd4783.push2 ⟨4792⟩ (by decide +native) (by evm_ov)
+  have rd4787 := rd4786.swap1 (by decide +native) (by evm_ov)
+  have rd4788 := rd4787.dup7 (by decide +native) (by evm_ov)
+  have rd4791 := rd4788.push2 ⟨6795⟩ (by decide +native) (by evm_ov)
+  have rd6795 := rd4791.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedSubRevert
     (x := srcInkOld) (y := forkDinkWord I) (ret := ⟨4792⟩)
     (R := ilkBase :: dstBase :: srcBase :: forkDartWord I :: forkDinkWord I ::
@@ -10833,9 +10833,9 @@ theorem RD.vatForkSrcArtSubSuccess
   let srcBase := forkSrcUrnBase I
   let σSrcInk := sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew
   let srcArtOld := solcSlotWord σSrcInk I (forkSrcArtSlot I)
-  have rd4793 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4794pre := rd4793.dup4 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4795raw⟩ := rd4794pre.sstore hperm (by native_decide) (by evm_ov)
+  have rd4793 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4794pre := rd4793.dup4 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4795raw⟩ := rd4794pre.sstore hperm (by decide +native) (by evm_ov)
   have hrd4795 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4795⟩
         [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
@@ -10845,21 +10845,21 @@ theorem RD.vatForkSrcArtSubSuccess
     exact ⟨_, _, by
       simpa [σSrcInk, forkSrcInkSlot] using rd4795raw⟩
   obtain ⟨_, _, rd4795⟩ := hrd4795
-  have rd4797 := rd4795.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4798pre := rd4797.dup4 (by native_decide) (by evm_ov)
-  have rd4799pre := rd4798pre.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4800raw⟩ := rd4799pre.sload (by native_decide) (by evm_ov)
+  have rd4797 := rd4795.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4798pre := rd4797.dup4 (by decide +native) (by evm_ov)
+  have rd4799pre := rd4798pre.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4800raw⟩ := rd4799pre.sload (by decide +native) (by evm_ov)
   have hold :
       (σSrcInk.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (srcBase + ⟨1⟩) ⟨0⟩)) = srcArtOld := by
     simp [srcArtOld, solcSlotWord, σSrcInk, srcBase, forkSrcArtSlot]
   have rd4800 := rd4800raw
   rw [hold] at rd4800
-  have rd4803 := rd4800.push2 ⟨4809⟩ (by native_decide) (by evm_ov)
-  have rd4804 := rd4803.swap1 (by native_decide) (by evm_ov)
-  have rd4805 := rd4804.dup6 (by native_decide) (by evm_ov)
-  have rd4808 := rd4805.push2 ⟨6795⟩ (by native_decide) (by evm_ov)
-  have rd6795 := rd4808.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4803 := rd4800.push2 ⟨4809⟩ (by decide +native) (by evm_ov)
+  have rd4804 := rd4803.swap1 (by decide +native) (by evm_ov)
+  have rd4805 := rd4804.dup6 (by decide +native) (by evm_ov)
+  have rd4808 := rd4805.push2 ⟨6795⟩ (by decide +native) (by evm_ov)
+  have rd6795 := rd4808.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4809⟩ := RD.vatSignedSubOk
     (x := srcArtOld) (y := forkDartWord I) (ret := ⟨4809⟩)
     (R := forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -10916,9 +10916,9 @@ theorem RD.vatForkSrcArtSubRevert
   let srcBase := forkSrcUrnBase I
   let σSrcInk := sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew
   let srcArtOld := solcSlotWord σSrcInk I (forkSrcArtSlot I)
-  have rd4793 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4794pre := rd4793.dup4 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4795raw⟩ := rd4794pre.sstore hperm (by native_decide) (by evm_ov)
+  have rd4793 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4794pre := rd4793.dup4 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4795raw⟩ := rd4794pre.sstore hperm (by decide +native) (by evm_ov)
   have hrd4795 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4795⟩
         [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
@@ -10928,21 +10928,21 @@ theorem RD.vatForkSrcArtSubRevert
     exact ⟨_, _, by
       simpa [σSrcInk, forkSrcInkSlot] using rd4795raw⟩
   obtain ⟨_, _, rd4795⟩ := hrd4795
-  have rd4797 := rd4795.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4798pre := rd4797.dup4 (by native_decide) (by evm_ov)
-  have rd4799pre := rd4798pre.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4800raw⟩ := rd4799pre.sload (by native_decide) (by evm_ov)
+  have rd4797 := rd4795.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4798pre := rd4797.dup4 (by decide +native) (by evm_ov)
+  have rd4799pre := rd4798pre.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4800raw⟩ := rd4799pre.sload (by decide +native) (by evm_ov)
   have hold :
       (σSrcInk.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (srcBase + ⟨1⟩) ⟨0⟩)) = srcArtOld := by
     simp [srcArtOld, solcSlotWord, σSrcInk, srcBase, forkSrcArtSlot]
   have rd4800 := rd4800raw
   rw [hold] at rd4800
-  have rd4803 := rd4800.push2 ⟨4809⟩ (by native_decide) (by evm_ov)
-  have rd4804 := rd4803.swap1 (by native_decide) (by evm_ov)
-  have rd4805 := rd4804.dup6 (by native_decide) (by evm_ov)
-  have rd4808 := rd4805.push2 ⟨6795⟩ (by native_decide) (by evm_ov)
-  have rd6795 := rd4808.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4803 := rd4800.push2 ⟨4809⟩ (by decide +native) (by evm_ov)
+  have rd4804 := rd4803.swap1 (by decide +native) (by evm_ov)
+  have rd4805 := rd4804.dup6 (by decide +native) (by evm_ov)
+  have rd4808 := rd4805.push2 ⟨6795⟩ (by decide +native) (by evm_ov)
+  have rd6795 := rd4808.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedSubRevert
     (x := srcArtOld) (y := forkDartWord I) (ret := ⟨4809⟩)
     (R := forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -11009,11 +11009,11 @@ theorem RD.vatForkDstInkAddSuccess
   let σSrcInk := sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew
   let σSrcArt := sstoreAccountMap I.codeOwner σSrcInk (forkSrcArtSlot I) srcArtNew
   let dstInkOld := solcSlotWord σSrcArt I (forkDstInkSlot I)
-  have rd4810 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4812 := rd4810.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4813pre := rd4812.dup5 (by native_decide) (by evm_ov)
-  have rd4814pre := rd4813pre.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4815raw⟩ := rd4814pre.sstore hperm (by native_decide) (by evm_ov)
+  have rd4810 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4812 := rd4810.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4813pre := rd4812.dup5 (by decide +native) (by evm_ov)
+  have rd4814pre := rd4813pre.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4815raw⟩ := rd4814pre.sstore hperm (by decide +native) (by evm_ov)
   have hrd4815 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4815⟩
         [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
@@ -11023,19 +11023,19 @@ theorem RD.vatForkDstInkAddSuccess
     exact ⟨_, _, by
       simpa [σSrcArt, σSrcInk, srcBase, forkSrcArtSlot, forkSrcInkSlot] using rd4815raw⟩
   obtain ⟨_, _, rd4815⟩ := hrd4815
-  have rd4816pre := rd4815.dup2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4817raw⟩ := rd4816pre.sload (by native_decide) (by evm_ov)
+  have rd4816pre := rd4815.dup2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4817raw⟩ := rd4816pre.sload (by decide +native) (by evm_ov)
   have hold :
       (σSrcArt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD dstBase ⟨0⟩)) = dstInkOld := by
     simp [dstInkOld, solcSlotWord, σSrcArt, dstBase, forkDstInkSlot]
   have rd4817 := rd4817raw
   rw [hold] at rd4817
-  have rd4820 := rd4817.push2 ⟨4826⟩ (by native_decide) (by evm_ov)
-  have rd4821 := rd4820.swap1 (by native_decide) (by evm_ov)
-  have rd4822 := rd4821.dup7 (by native_decide) (by evm_ov)
-  have rd4825 := rd4822.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4825.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4820 := rd4817.push2 ⟨4826⟩ (by decide +native) (by evm_ov)
+  have rd4821 := rd4820.swap1 (by decide +native) (by evm_ov)
+  have rd4822 := rd4821.dup7 (by decide +native) (by evm_ov)
+  have rd4825 := rd4822.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4825.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4826⟩ := RD.vatSignedAddOk
     (x := dstInkOld) (y := forkDinkWord I) (ret := ⟨4826⟩)
     (R := forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -11104,11 +11104,11 @@ theorem RD.vatForkDstInkAddRevert
   let σSrcInk := sstoreAccountMap I.codeOwner σ (forkSrcInkSlot I) srcInkNew
   let σSrcArt := sstoreAccountMap I.codeOwner σSrcInk (forkSrcArtSlot I) srcArtNew
   let dstInkOld := solcSlotWord σSrcArt I (forkDstInkSlot I)
-  have rd4810 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4812 := rd4810.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4813pre := rd4812.dup5 (by native_decide) (by evm_ov)
-  have rd4814pre := rd4813pre.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4815raw⟩ := rd4814pre.sstore hperm (by native_decide) (by evm_ov)
+  have rd4810 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4812 := rd4810.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4813pre := rd4812.dup5 (by decide +native) (by evm_ov)
+  have rd4814pre := rd4813pre.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4815raw⟩ := rd4814pre.sstore hperm (by decide +native) (by evm_ov)
   have hrd4815 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4815⟩
         [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
@@ -11118,19 +11118,19 @@ theorem RD.vatForkDstInkAddRevert
     exact ⟨_, _, by
       simpa [σSrcArt, σSrcInk, srcBase, forkSrcArtSlot, forkSrcInkSlot] using rd4815raw⟩
   obtain ⟨_, _, rd4815⟩ := hrd4815
-  have rd4816pre := rd4815.dup2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4817raw⟩ := rd4816pre.sload (by native_decide) (by evm_ov)
+  have rd4816pre := rd4815.dup2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4817raw⟩ := rd4816pre.sload (by decide +native) (by evm_ov)
   have hold :
       (σSrcArt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD dstBase ⟨0⟩)) = dstInkOld := by
     simp [dstInkOld, solcSlotWord, σSrcArt, dstBase, forkDstInkSlot]
   have rd4817 := rd4817raw
   rw [hold] at rd4817
-  have rd4820 := rd4817.push2 ⟨4826⟩ (by native_decide) (by evm_ov)
-  have rd4821 := rd4820.swap1 (by native_decide) (by evm_ov)
-  have rd4822 := rd4821.dup7 (by native_decide) (by evm_ov)
-  have rd4825 := rd4822.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4825.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4820 := rd4817.push2 ⟨4826⟩ (by decide +native) (by evm_ov)
+  have rd4821 := rd4820.swap1 (by decide +native) (by evm_ov)
+  have rd4822 := rd4821.dup7 (by decide +native) (by evm_ov)
+  have rd4825 := rd4822.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4825.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedAddRevert
     (x := dstInkOld) (y := forkDinkWord I) (ret := ⟨4826⟩)
     (R := forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -11211,9 +11211,9 @@ theorem RD.vatForkDstArtAddSuccess
   let σSrcArt := sstoreAccountMap I.codeOwner σSrcInk (forkSrcArtSlot I) srcArtNew
   let σDstInk := sstoreAccountMap I.codeOwner σSrcArt (forkDstInkSlot I) dstInkNew
   let dstArtOld := solcSlotWord σDstInk I (forkDstArtSlot I)
-  have rd4827 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4828pre := rd4827.dup3 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4829raw⟩ := rd4828pre.sstore hperm (by native_decide) (by evm_ov)
+  have rd4827 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4828pre := rd4827.dup3 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4829raw⟩ := rd4828pre.sstore hperm (by decide +native) (by evm_ov)
   have hrd4829 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4829⟩
         [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
@@ -11223,21 +11223,21 @@ theorem RD.vatForkDstArtAddSuccess
     exact ⟨_, _, by
       simpa [σDstInk, σSrcArt, σSrcInk, forkDstInkSlot] using rd4829raw⟩
   obtain ⟨_, _, rd4829⟩ := hrd4829
-  have rd4831 := rd4829.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4832pre := rd4831.dup3 (by native_decide) (by evm_ov)
-  have rd4833pre := rd4832pre.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4834raw⟩ := rd4833pre.sload (by native_decide) (by evm_ov)
+  have rd4831 := rd4829.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4832pre := rd4831.dup3 (by decide +native) (by evm_ov)
+  have rd4833pre := rd4832pre.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4834raw⟩ := rd4833pre.sload (by decide +native) (by evm_ov)
   have hold :
       (σDstInk.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (dstBase + ⟨1⟩) ⟨0⟩)) = dstArtOld := by
     simp [dstArtOld, solcSlotWord, σDstInk, dstBase, forkDstArtSlot]
   have rd4834 := rd4834raw
   rw [hold] at rd4834
-  have rd4837 := rd4834.push2 ⟨4843⟩ (by native_decide) (by evm_ov)
-  have rd4838 := rd4837.swap1 (by native_decide) (by evm_ov)
-  have rd4839 := rd4838.dup6 (by native_decide) (by evm_ov)
-  have rd4842 := rd4839.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4842.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4837 := rd4834.push2 ⟨4843⟩ (by decide +native) (by evm_ov)
+  have rd4838 := rd4837.swap1 (by decide +native) (by evm_ov)
+  have rd4839 := rd4838.dup6 (by decide +native) (by evm_ov)
+  have rd4842 := rd4839.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4842.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4843⟩ := RD.vatSignedAddOk
     (x := dstArtOld) (y := forkDartWord I) (ret := ⟨4843⟩)
     (R := forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -11320,9 +11320,9 @@ theorem RD.vatForkDstArtAddRevert
   let σSrcArt := sstoreAccountMap I.codeOwner σSrcInk (forkSrcArtSlot I) srcArtNew
   let σDstInk := sstoreAccountMap I.codeOwner σSrcArt (forkDstInkSlot I) dstInkNew
   let dstArtOld := solcSlotWord σDstInk I (forkDstArtSlot I)
-  have rd4827 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4828pre := rd4827.dup3 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4829raw⟩ := rd4828pre.sstore hperm (by native_decide) (by evm_ov)
+  have rd4827 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4828pre := rd4827.dup3 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4829raw⟩ := rd4828pre.sstore hperm (by decide +native) (by evm_ov)
   have hrd4829 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4829⟩
         [forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
@@ -11332,21 +11332,21 @@ theorem RD.vatForkDstArtAddRevert
     exact ⟨_, _, by
       simpa [σDstInk, σSrcArt, σSrcInk, forkDstInkSlot] using rd4829raw⟩
   obtain ⟨_, _, rd4829⟩ := hrd4829
-  have rd4831 := rd4829.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4832pre := rd4831.dup3 (by native_decide) (by evm_ov)
-  have rd4833pre := rd4832pre.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4834raw⟩ := rd4833pre.sload (by native_decide) (by evm_ov)
+  have rd4831 := rd4829.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4832pre := rd4831.dup3 (by decide +native) (by evm_ov)
+  have rd4833pre := rd4832pre.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4834raw⟩ := rd4833pre.sload (by decide +native) (by evm_ov)
   have hold :
       (σDstInk.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (dstBase + ⟨1⟩) ⟨0⟩)) = dstArtOld := by
     simp [dstArtOld, solcSlotWord, σDstInk, dstBase, forkDstArtSlot]
   have rd4834 := rd4834raw
   rw [hold] at rd4834
-  have rd4837 := rd4834.push2 ⟨4843⟩ (by native_decide) (by evm_ov)
-  have rd4838 := rd4837.swap1 (by native_decide) (by evm_ov)
-  have rd4839 := rd4838.dup6 (by native_decide) (by evm_ov)
-  have rd4842 := rd4839.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4842.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4837 := rd4834.push2 ⟨4843⟩ (by decide +native) (by evm_ov)
+  have rd4838 := rd4837.swap1 (by decide +native) (by evm_ov)
+  have rd4839 := rd4838.dup6 (by decide +native) (by evm_ov)
+  have rd4842 := rd4839.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4842.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedAddRevert
     (x := dstArtOld) (y := forkDartWord I) (ret := ⟨4843⟩)
     (R := forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -11459,13 +11459,13 @@ theorem RD.vatForkUtabMulSuccess
   let σDstArt := sstoreAccountMap I.codeOwner σDstInk (forkDstArtSlot I) dstArtNew
   let srcArtFinal := solcSlotWord σDstArt I (forkSrcArtSlot I)
   let rate := solcSlotWord σDstArt I (forkIlkRateSlot I)
-  have rd4844 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4845 := rd4844.dup3 (by native_decide) (by evm_ov)
-  have rd4847 := rd4845.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4848pre := rd4847.add (by native_decide) (by evm_ov)
-  have rd4849 := rd4848pre.dup2 (by native_decide) (by evm_ov)
-  have rd4850pre := rd4849.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4851raw⟩ := rd4850pre.sstore hperm (by native_decide) (by evm_ov)
+  have rd4844 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4845 := rd4844.dup3 (by decide +native) (by evm_ov)
+  have rd4847 := rd4845.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4848pre := rd4847.add (by decide +native) (by evm_ov)
+  have rd4849 := rd4848pre.dup2 (by decide +native) (by evm_ov)
+  have rd4850pre := rd4849.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4851raw⟩ := rd4850pre.sstore hperm (by decide +native) (by evm_ov)
   have hrd4851 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4851⟩
         [dstArtNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
@@ -11476,13 +11476,13 @@ theorem RD.vatForkUtabMulSuccess
       simpa [σDstArt, σDstInk, σSrcArt, σSrcInk, dstBase, forkDstArtSlot,
         forkDstInkSlot, u256_add_comm (⟨1⟩ : UInt256) dstBase] using rd4851raw⟩
   obtain ⟨_, _, rd4851⟩ := hrd4851
-  have rd4852 := rd4851.pop (by native_decide) (by evm_ov)
-  have rd4854 := rd4852.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4857 := rd4854.push2 ⟨4871⟩ (by native_decide) (by evm_ov)
-  have rd4858 := rd4857.dup5 (by native_decide) (by evm_ov)
-  have rd4860 := rd4858.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4861pre := rd4860.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4862raw⟩ := rd4861pre.sload (by native_decide) (by evm_ov)
+  have rd4852 := rd4851.pop (by decide +native) (by evm_ov)
+  have rd4854 := rd4852.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4857 := rd4854.push2 ⟨4871⟩ (by decide +native) (by evm_ov)
+  have rd4858 := rd4857.dup5 (by decide +native) (by evm_ov)
+  have rd4860 := rd4858.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4861pre := rd4860.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4862raw⟩ := rd4861pre.sload (by decide +native) (by evm_ov)
   have hsrcArt :
       (σDstArt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + srcBase) ⟨0⟩)) = srcArtFinal := by
@@ -11490,10 +11490,10 @@ theorem RD.vatForkUtabMulSuccess
     simp [srcArtFinal, solcSlotWord, σDstArt, srcBase, forkSrcArtSlot]
   have rd4862 := rd4862raw
   rw [hsrcArt] at rd4862
-  have rd4863 := rd4862.dup4 (by native_decide) (by evm_ov)
-  have rd4865 := rd4863.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4866pre := rd4865.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4867raw⟩ := rd4866pre.sload (by native_decide) (by evm_ov)
+  have rd4863 := rd4862.dup4 (by decide +native) (by evm_ov)
+  have rd4865 := rd4863.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4866pre := rd4865.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4867raw⟩ := rd4866pre.sload (by decide +native) (by evm_ov)
   have hrate :
       (σDstArt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + ilkBase) ⟨0⟩)) = rate := by
@@ -11501,8 +11501,8 @@ theorem RD.vatForkUtabMulSuccess
     simp [rate, solcSlotWord, σDstArt, ilkBase, forkIlkRateSlot]
   have rd4867 := rd4867raw
   rw [hrate] at rd4867
-  have rd4870 := rd4867.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd4870.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4870 := rd4867.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd4870.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4871⟩ := RD.vatCheckedMulUintOk
     (x := rate) (y := srcArtFinal) (ret := ⟨4871⟩)
     (R := ⟨0⟩ :: forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -11587,13 +11587,13 @@ theorem RD.vatForkUtabMulRevert
   let σDstArt := sstoreAccountMap I.codeOwner σDstInk (forkDstArtSlot I) dstArtNew
   let srcArtFinal := solcSlotWord σDstArt I (forkSrcArtSlot I)
   let rate := solcSlotWord σDstArt I (forkIlkRateSlot I)
-  have rd4844 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4845 := rd4844.dup3 (by native_decide) (by evm_ov)
-  have rd4847 := rd4845.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4848pre := rd4847.add (by native_decide) (by evm_ov)
-  have rd4849 := rd4848pre.dup2 (by native_decide) (by evm_ov)
-  have rd4850pre := rd4849.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4851raw⟩ := rd4850pre.sstore hperm (by native_decide) (by evm_ov)
+  have rd4844 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4845 := rd4844.dup3 (by decide +native) (by evm_ov)
+  have rd4847 := rd4845.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4848pre := rd4847.add (by decide +native) (by evm_ov)
+  have rd4849 := rd4848pre.dup2 (by decide +native) (by evm_ov)
+  have rd4850pre := rd4849.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4851raw⟩ := rd4850pre.sstore hperm (by decide +native) (by evm_ov)
   have hrd4851 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨4851⟩
         [dstArtNew, forkIlkBase I, forkDstUrnBase I, forkSrcUrnBase I, forkDartWord I,
@@ -11604,13 +11604,13 @@ theorem RD.vatForkUtabMulRevert
       simpa [σDstArt, σDstInk, σSrcArt, σSrcInk, dstBase, forkDstArtSlot,
         forkDstInkSlot, u256_add_comm (⟨1⟩ : UInt256) dstBase] using rd4851raw⟩
   obtain ⟨_, _, rd4851⟩ := hrd4851
-  have rd4852 := rd4851.pop (by native_decide) (by evm_ov)
-  have rd4854 := rd4852.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4857 := rd4854.push2 ⟨4871⟩ (by native_decide) (by evm_ov)
-  have rd4858 := rd4857.dup5 (by native_decide) (by evm_ov)
-  have rd4860 := rd4858.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4861pre := rd4860.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4862raw⟩ := rd4861pre.sload (by native_decide) (by evm_ov)
+  have rd4852 := rd4851.pop (by decide +native) (by evm_ov)
+  have rd4854 := rd4852.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4857 := rd4854.push2 ⟨4871⟩ (by decide +native) (by evm_ov)
+  have rd4858 := rd4857.dup5 (by decide +native) (by evm_ov)
+  have rd4860 := rd4858.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4861pre := rd4860.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4862raw⟩ := rd4861pre.sload (by decide +native) (by evm_ov)
   have hsrcArt :
       (σDstArt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + srcBase) ⟨0⟩)) = srcArtFinal := by
@@ -11618,10 +11618,10 @@ theorem RD.vatForkUtabMulRevert
     simp [srcArtFinal, solcSlotWord, σDstArt, srcBase, forkSrcArtSlot]
   have rd4862 := rd4862raw
   rw [hsrcArt] at rd4862
-  have rd4863 := rd4862.dup4 (by native_decide) (by evm_ov)
-  have rd4865 := rd4863.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4866pre := rd4865.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4867raw⟩ := rd4866pre.sload (by native_decide) (by evm_ov)
+  have rd4863 := rd4862.dup4 (by decide +native) (by evm_ov)
+  have rd4865 := rd4863.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4866pre := rd4865.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4867raw⟩ := rd4866pre.sload (by decide +native) (by evm_ov)
   have hrate :
       (σDstArt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + ilkBase) ⟨0⟩)) = rate := by
@@ -11629,8 +11629,8 @@ theorem RD.vatForkUtabMulRevert
     simp [rate, solcSlotWord, σDstArt, ilkBase, forkIlkRateSlot]
   have rd4867 := rd4867raw
   rw [hrate] at rd4867
-  have rd4870 := rd4867.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd4870.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4870 := rd4867.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd4870.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatCheckedMulUintRevert
     (x := rate) (y := srcArtFinal) (ret := ⟨4871⟩)
     (R := ⟨0⟩ :: forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -11743,15 +11743,15 @@ theorem RD.vatForkVtabMulSuccess
   let σDstArt := sstoreAccountMap I.codeOwner σDstInk (forkDstArtSlot I) dstArtNew
   let dstArtFinal := solcSlotWord σDstArt I (forkDstArtSlot I)
   let rate := solcSlotWord σDstArt I (forkIlkRateSlot I)
-  have rd4872 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4873 := rd4872.swap1 (by native_decide) (by evm_ov)
-  have rd4874 := rd4873.pop (by native_decide) (by evm_ov)
-  have rd4876 := rd4874.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4879 := rd4876.push2 ⟨4893⟩ (by native_decide) (by evm_ov)
-  have rd4880 := rd4879.dup5 (by native_decide) (by evm_ov)
-  have rd4882 := rd4880.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4883pre := rd4882.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4884raw⟩ := rd4883pre.sload (by native_decide) (by evm_ov)
+  have rd4872 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4873 := rd4872.swap1 (by decide +native) (by evm_ov)
+  have rd4874 := rd4873.pop (by decide +native) (by evm_ov)
+  have rd4876 := rd4874.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4879 := rd4876.push2 ⟨4893⟩ (by decide +native) (by evm_ov)
+  have rd4880 := rd4879.dup5 (by decide +native) (by evm_ov)
+  have rd4882 := rd4880.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4883pre := rd4882.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4884raw⟩ := rd4883pre.sload (by decide +native) (by evm_ov)
   have hdstArt :
       (σDstArt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + dstBase) ⟨0⟩)) = dstArtFinal := by
@@ -11759,10 +11759,10 @@ theorem RD.vatForkVtabMulSuccess
     simp [dstArtFinal, solcSlotWord, σDstArt, dstBase, forkDstArtSlot]
   have rd4884 := rd4884raw
   rw [hdstArt] at rd4884
-  have rd4885 := rd4884.dup5 (by native_decide) (by evm_ov)
-  have rd4887 := rd4885.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4888pre := rd4887.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4889raw⟩ := rd4888pre.sload (by native_decide) (by evm_ov)
+  have rd4885 := rd4884.dup5 (by decide +native) (by evm_ov)
+  have rd4887 := rd4885.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4888pre := rd4887.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4889raw⟩ := rd4888pre.sload (by decide +native) (by evm_ov)
   have hrate :
       (σDstArt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + ilkBase) ⟨0⟩)) = rate := by
@@ -11770,8 +11770,8 @@ theorem RD.vatForkVtabMulSuccess
     simp [rate, solcSlotWord, σDstArt, ilkBase, forkIlkRateSlot]
   have rd4889 := rd4889raw
   rw [hrate] at rd4889
-  have rd4892 := rd4889.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd4892.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4892 := rd4889.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd4892.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4893⟩ := RD.vatCheckedMulUintOk
     (x := rate) (y := dstArtFinal) (ret := ⟨4893⟩)
     (R := ⟨0⟩ :: utab :: forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -11856,15 +11856,15 @@ theorem RD.vatForkVtabMulRevert
   let σDstArt := sstoreAccountMap I.codeOwner σDstInk (forkDstArtSlot I) dstArtNew
   let dstArtFinal := solcSlotWord σDstArt I (forkDstArtSlot I)
   let rate := solcSlotWord σDstArt I (forkIlkRateSlot I)
-  have rd4872 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4873 := rd4872.swap1 (by native_decide) (by evm_ov)
-  have rd4874 := rd4873.pop (by native_decide) (by evm_ov)
-  have rd4876 := rd4874.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4879 := rd4876.push2 ⟨4893⟩ (by native_decide) (by evm_ov)
-  have rd4880 := rd4879.dup5 (by native_decide) (by evm_ov)
-  have rd4882 := rd4880.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4883pre := rd4882.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4884raw⟩ := rd4883pre.sload (by native_decide) (by evm_ov)
+  have rd4872 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4873 := rd4872.swap1 (by decide +native) (by evm_ov)
+  have rd4874 := rd4873.pop (by decide +native) (by evm_ov)
+  have rd4876 := rd4874.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4879 := rd4876.push2 ⟨4893⟩ (by decide +native) (by evm_ov)
+  have rd4880 := rd4879.dup5 (by decide +native) (by evm_ov)
+  have rd4882 := rd4880.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4883pre := rd4882.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4884raw⟩ := rd4883pre.sload (by decide +native) (by evm_ov)
   have hdstArt :
       (σDstArt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + dstBase) ⟨0⟩)) = dstArtFinal := by
@@ -11872,10 +11872,10 @@ theorem RD.vatForkVtabMulRevert
     simp [dstArtFinal, solcSlotWord, σDstArt, dstBase, forkDstArtSlot]
   have rd4884 := rd4884raw
   rw [hdstArt] at rd4884
-  have rd4885 := rd4884.dup5 (by native_decide) (by evm_ov)
-  have rd4887 := rd4885.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4888pre := rd4887.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4889raw⟩ := rd4888pre.sload (by native_decide) (by evm_ov)
+  have rd4885 := rd4884.dup5 (by decide +native) (by evm_ov)
+  have rd4887 := rd4885.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4888pre := rd4887.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4889raw⟩ := rd4888pre.sload (by decide +native) (by evm_ov)
   have hrate :
       (σDstArt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + ilkBase) ⟨0⟩)) = rate := by
@@ -11883,8 +11883,8 @@ theorem RD.vatForkVtabMulRevert
     simp [rate, solcSlotWord, σDstArt, ilkBase, forkIlkRateSlot]
   have rd4889 := rd4889raw
   rw [hrate] at rd4889
-  have rd4892 := rd4889.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd4892.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4892 := rd4889.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd4892.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatCheckedMulUintRevert
     (x := rate) (y := dstArtFinal) (ret := ⟨4893⟩)
     (R := ⟨0⟩ :: utab :: forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -11912,15 +11912,15 @@ theorem RD.vatForkWishLoadedAt6557
         (twoWordHashMem usr ⟨1⟩ mem))
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd6568raw := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hmask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -11932,23 +11932,23 @@ theorem RD.vatForkWishLoadedAt6557
   have rd6568 := rd6568raw
   rw [hmask] at rd6568
   have rd6573pre := evm_run rd6568 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6573 := rd6573pre.mstore 0 (wordAt0Mem usr mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6580pre := evm_run rd6573 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6580 := rd6580pre.mstore 0
     (twoWordHashMem usr ⟨1⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6585pre := evm_run rd6580 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem usr ⟨1⟩ mem)
@@ -11957,11 +11957,11 @@ theorem RD.vatForkWishLoadedAt6557
     twoWordHashMem_solcMappingSlot ⟨1⟩ usr hmem
   have rd6585 := rd6585pre.keccak256 0
     (solcMappingSlot ⟨1⟩ usr) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hinner (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hinner (by decide +native) (by evm_ov)
   have rd6588raw := evm_run rd6585 with [
-    raw swap6 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw swap6 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hcallerMask :
       UInt256.land (UInt256.ofNat I.source.val)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -11976,22 +11976,22 @@ theorem RD.vatForkWishLoadedAt6557
   have rd6588 := rd6588raw
   rw [hcallerMask] at rd6588
   have rd6591pre := evm_run rd6588 with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov)]
   have rd6591 := rd6591pre.mstore 0
     (wordAt0Mem (hopeSourceWord I)
       (twoWordHashMem usr ⟨1⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6595pre := evm_run rd6591 with [
-    raw swap6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw swap6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd6595 := rd6595pre.mstore 0
     (twoWordHashMem (hopeSourceWord I) (solcMappingSlot ⟨1⟩ usr)
       (twoWordHashMem usr ⟨1⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd6597pre := evm_run rd6595 with [
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw dup3 (by decide +native) (by evm_ov)]
   have houter :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (hopeSourceWord I)
@@ -12003,8 +12003,8 @@ theorem RD.vatForkWishLoadedAt6557
       (hopeSourceWord I)
       (twoWordHashMem_size_96 usr ⟨1⟩ hmem)
   have rd6597 := rd6597pre.keccak256 0 slot (UInt256.ofNat 3)
-    (by native_decide) mem_cost houter (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd6599raw⟩ := rd6597.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost houter (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd6599raw⟩ := rd6597.sload (by decide +native) (by evm_ov)
   exact ⟨_, _, by simpa [vatSlotWord, solcSlotWord] using rd6599raw⟩
 
 set_option maxHeartbeats 1000000 in
@@ -12023,33 +12023,33 @@ theorem RD.vatForkWishReturnOk
         (UInt256.eq usr (hopeSourceWord I)) :: R)
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd6608pre := evm_run h with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw push2 ⟨6612⟩ (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov)]
-  have rd6605 := rd6608pre.eq (by native_decide) (by evm_ov)
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw push2 ⟨6612⟩ (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov)]
+  have rd6605 := rd6608pre.eq (by decide +native) (by evm_ov)
   have rd6608mid := evm_run rd6605 with [
-    raw swap2 (by native_decide) (by evm_ov)]
-  have rd6608 := rd6608mid.eq (by native_decide) (by evm_ov)
+    raw swap2 (by decide +native) (by evm_ov)]
+  have rd6608 := rd6608mid.eq (by decide +native) (by evm_ov)
   have rd6791 := evm_run rd6608 with [
-    raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨6791⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd6792 := evm_run rd6791 with [
-    raw jumpdest (by native_decide) (by evm_ov)]
-  have rd6793 := rd6792.or (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov)]
+  have rd6793 := rd6792.or (by decide +native) (by evm_ov)
   have rd6612raw := evm_run rd6793 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd6620 := evm_run rd6612raw with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rd6620.jump (by native_decide) hret (by evm_ov)⟩
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rd6620.jump (by decide +native) hret (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatForkWishSuccess
@@ -12078,15 +12078,15 @@ theorem RD.vatForkWishSuccess
     twoWordHashMem (hopeSourceWord I) (solcMappingSlot ⟨1⟩ (forkDstMaskedWord I))
       (twoWordHashMem (forkDstMaskedWord I) ⟨1⟩ memSrc)
   have rd4907 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push2 ⟨4923⟩ (by native_decide) (by evm_ov),
-    raw push2 ⟨4908⟩ (by native_decide) (by evm_ov),
-    raw dup11 (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push2 ⟨6557⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push2 ⟨4923⟩ (by decide +native) (by evm_ov),
+    raw push2 ⟨4908⟩ (by decide +native) (by evm_ov),
+    raw dup11 (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push2 ⟨6557⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   obtain ⟨_, _, rd6599src⟩ := RD.vatForkWishLoadedAt6557
     (usr := forkSrcMaskedWord I) (slot := forkSrcWishSlot I) (ret := ⟨4908⟩)
     (R := ⟨4923⟩ :: vtab :: utab :: forkIlkBase I :: forkDstUrnBase I ::
@@ -12103,12 +12103,12 @@ theorem RD.vatForkWishSuccess
       forkSrcMaskedWord I :: forkIlkWord I :: ⟨524⟩ :: sel :: [])
     rd6599src (by jump_dest) (by simp)
   have rd4917 := evm_run rd4908 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨4918⟩ (by native_decide) (by evm_ov),
-    raw dup11 (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push2 ⟨6557⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨4918⟩ (by decide +native) (by evm_ov),
+    raw dup11 (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push2 ⟨6557⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have hmemSrc : memSrc.size = 96 := by
     exact twoWordHashMem_size_96 (hopeSourceWord I) (solcMappingSlot ⟨1⟩ (forkSrcMaskedWord I))
       (twoWordHashMem_size_96 (forkSrcMaskedWord I) ⟨1⟩ hmem)
@@ -12131,20 +12131,20 @@ theorem RD.vatForkWishSuccess
       sel :: [])
     rd6599dst (by jump_dest) (by simp)
   have rd6787 := evm_run rd4918 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨6787⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨6787⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd4923 := evm_run rd6787 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd4927pre := evm_run rd4923 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨4990⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨4990⟩ (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [forkBothWishWord, forkDstWishWord, forkSrcWishWord, memDst, memSrc] using
-      rd4927pre.jumpiT (by native_decide) hwish (by jump_dest) (by evm_ov)⟩
+      rd4927pre.jumpiT (by decide +native) hwish (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatForkWishBranchRevert
@@ -12166,15 +12166,15 @@ theorem RD.vatForkWishBranchRevert
     twoWordHashMem (hopeSourceWord I) (solcMappingSlot ⟨1⟩ (forkDstMaskedWord I))
       (twoWordHashMem (forkDstMaskedWord I) ⟨1⟩ memSrc)
   have rd4907 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push2 ⟨4923⟩ (by native_decide) (by evm_ov),
-    raw push2 ⟨4908⟩ (by native_decide) (by evm_ov),
-    raw dup11 (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push2 ⟨6557⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push2 ⟨4923⟩ (by decide +native) (by evm_ov),
+    raw push2 ⟨4908⟩ (by decide +native) (by evm_ov),
+    raw dup11 (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push2 ⟨6557⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   obtain ⟨_, _, rd6599src⟩ := RD.vatForkWishLoadedAt6557
     (usr := forkSrcMaskedWord I) (slot := forkSrcWishSlot I) (ret := ⟨4908⟩)
     (R := ⟨4923⟩ :: vtab :: utab :: forkIlkBase I :: forkDstUrnBase I ::
@@ -12191,12 +12191,12 @@ theorem RD.vatForkWishBranchRevert
       forkSrcMaskedWord I :: forkIlkWord I :: ⟨524⟩ :: sel :: [])
     rd6599src (by jump_dest) (by simp)
   have rd4917 := evm_run rd4908 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨4918⟩ (by native_decide) (by evm_ov),
-    raw dup11 (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push2 ⟨6557⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨4918⟩ (by decide +native) (by evm_ov),
+    raw dup11 (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push2 ⟨6557⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have hmemSrc : memSrc.size = 96 := by
     exact twoWordHashMem_size_96 (hopeSourceWord I) (solcMappingSlot ⟨1⟩ (forkSrcMaskedWord I))
       (twoWordHashMem_size_96 (forkSrcMaskedWord I) ⟨1⟩ hmem)
@@ -12219,20 +12219,20 @@ theorem RD.vatForkWishBranchRevert
       sel :: [])
     rd6599dst (by jump_dest) (by simp)
   have rd6787 := evm_run rd4918 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨6787⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨6787⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd4923 := evm_run rd6787 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd4927pre := evm_run rd4923 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨4990⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨4990⟩ (by decide +native) (by evm_ov)]
   have rd4928 := by
     simpa [forkBothWishWord, forkDstWishWord, forkSrcWishWord, memDst, memSrc] using
-      rd4927pre.jumpiNT (by native_decide) hwish (by evm_ov)
+      rd4927pre.jumpiNT (by decide +native) hwish (by evm_ov)
   have hmemDst : memDst.size = 96 := by
     dsimp [memDst]
     apply twoWordHashMem_size_96
@@ -12256,8 +12256,8 @@ theorem RD.vatForkWishBranchRevert
     (word := UInt256.shiftLeft ⟨112128532177926167570164739106265433⟩ ⟨138⟩)
     (op := .PUSH15) (width := 15)
     rd4928
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
-    (by native_decide) rfl hmemDst hread64Dst (by simp)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
+    (by decide +native) rfl hmemDst hread64Dst (by simp)
 
 theorem RD.vatForkSrcUnsafeCheckSuccess
     {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -12289,12 +12289,12 @@ theorem RD.vatForkSrcUnsafeCheckSuccess
   let srcInkFinal := solcSlotWord σ I (forkSrcInkSlot I)
   let spot := solcSlotWord σ I (forkIlkSpotSlot I)
   let srcInkSpot := UInt256.mul srcInkFinal spot
-  have rd4991 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4994 := rd4991.push2 ⟨5008⟩ (by native_decide) (by evm_ov)
-  have rd4995 := rd4994.dup6 (by native_decide) (by evm_ov)
-  have rd4997 := rd4995.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4998pre := rd4997.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4999raw⟩ := rd4998pre.sload (by native_decide) (by evm_ov)
+  have rd4991 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4994 := rd4991.push2 ⟨5008⟩ (by decide +native) (by evm_ov)
+  have rd4995 := rd4994.dup6 (by decide +native) (by evm_ov)
+  have rd4997 := rd4995.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4998pre := rd4997.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4999raw⟩ := rd4998pre.sload (by decide +native) (by evm_ov)
   have hsrcInk :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨0⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcInkFinal := by
@@ -12302,10 +12302,10 @@ theorem RD.vatForkSrcUnsafeCheckSuccess
     simp [srcInkFinal, solcSlotWord, forkSrcInkSlot]
   have rd4999 := rd4999raw
   rw [hsrcInk] at rd4999
-  have rd5000 := rd4999.dup5 (by native_decide) (by evm_ov)
-  have rd5002 := rd5000.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd5003pre := rd5002.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5004raw⟩ := rd5003pre.sload (by native_decide) (by evm_ov)
+  have rd5000 := rd4999.dup5 (by decide +native) (by evm_ov)
+  have rd5002 := rd5000.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd5003pre := rd5002.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5004raw⟩ := rd5003pre.sload (by decide +native) (by evm_ov)
   have hspot :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
@@ -12313,8 +12313,8 @@ theorem RD.vatForkSrcUnsafeCheckSuccess
     simp [spot, solcSlotWord, forkIlkSpotSlot]
   have rd5004 := rd5004raw
   rw [hspot] at rd5004
-  have rd5007 := rd5004.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd5007.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5007 := rd5004.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd5007.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd5008⟩ := RD.vatCheckedMulUintOk
     (x := spot) (y := srcInkFinal) (ret := ⟨5008⟩)
     (R := vtab :: utab :: forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -12323,18 +12323,18 @@ theorem RD.vatForkSrcUnsafeCheckSuccess
     rd6752
     (by simpa [spot, srcInkFinal, srcInkSpot] using hok)
     (by jump_dest) (by simp)
-  have rd5009 := rd5008.jumpdest (by native_decide) (by evm_ov)
-  have rd5010 := rd5009.dup3 (by native_decide) (by evm_ov)
-  have rd5011 := rd5010.gt (by native_decide) (by evm_ov)
-  have rd5012pre := rd5011.iszero (by native_decide) (by evm_ov)
+  have rd5009 := rd5008.jumpdest (by decide +native) (by evm_ov)
+  have rd5010 := rd5009.dup3 (by decide +native) (by evm_ov)
+  have rd5011 := rd5010.gt (by decide +native) (by evm_ov)
+  have rd5012pre := rd5011.iszero (by decide +native) (by evm_ov)
   have rd5012 := by
     rw [show UInt256.gt utab srcInkSpot = ⟨0⟩ by simpa [srcInkSpot] using hle,
       show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd5012pre
     exact rd5012pre
-  have rd5015 := rd5012.push2 ⟨5079⟩ (by native_decide) (by evm_ov)
+  have rd5015 := rd5012.push2 ⟨5079⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [srcInkSpot, srcInkFinal, spot] using
-      rd5015.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+      rd5015.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vatForkSrcUnsafeMulRevert
     {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -12357,12 +12357,12 @@ theorem RD.vatForkSrcUnsafeMulRevert
   let srcInkFinal := solcSlotWord σ I (forkSrcInkSlot I)
   let spot := solcSlotWord σ I (forkIlkSpotSlot I)
   let srcInkSpot := UInt256.mul srcInkFinal spot
-  have rd4991 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4994 := rd4991.push2 ⟨5008⟩ (by native_decide) (by evm_ov)
-  have rd4995 := rd4994.dup6 (by native_decide) (by evm_ov)
-  have rd4997 := rd4995.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4998pre := rd4997.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4999raw⟩ := rd4998pre.sload (by native_decide) (by evm_ov)
+  have rd4991 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4994 := rd4991.push2 ⟨5008⟩ (by decide +native) (by evm_ov)
+  have rd4995 := rd4994.dup6 (by decide +native) (by evm_ov)
+  have rd4997 := rd4995.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4998pre := rd4997.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4999raw⟩ := rd4998pre.sload (by decide +native) (by evm_ov)
   have hsrcInk :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨0⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcInkFinal := by
@@ -12370,10 +12370,10 @@ theorem RD.vatForkSrcUnsafeMulRevert
     simp [srcInkFinal, solcSlotWord, forkSrcInkSlot]
   have rd4999 := rd4999raw
   rw [hsrcInk] at rd4999
-  have rd5000 := rd4999.dup5 (by native_decide) (by evm_ov)
-  have rd5002 := rd5000.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd5003pre := rd5002.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5004raw⟩ := rd5003pre.sload (by native_decide) (by evm_ov)
+  have rd5000 := rd4999.dup5 (by decide +native) (by evm_ov)
+  have rd5002 := rd5000.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd5003pre := rd5002.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5004raw⟩ := rd5003pre.sload (by decide +native) (by evm_ov)
   have hspot :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
@@ -12381,8 +12381,8 @@ theorem RD.vatForkSrcUnsafeMulRevert
     simp [spot, solcSlotWord, forkIlkSpotSlot]
   have rd5004 := rd5004raw
   rw [hspot] at rd5004
-  have rd5007 := rd5004.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd5007.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5007 := rd5004.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd5007.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatCheckedMulUintRevert
     (x := spot) (y := srcInkFinal) (ret := ⟨5008⟩)
     (R := vtab :: utab :: forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -12420,12 +12420,12 @@ theorem RD.vatForkSrcUnsafeCheckRevert
   let srcInkFinal := solcSlotWord σ I (forkSrcInkSlot I)
   let spot := solcSlotWord σ I (forkIlkSpotSlot I)
   let srcInkSpot := UInt256.mul srcInkFinal spot
-  have rd4991 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4994 := rd4991.push2 ⟨5008⟩ (by native_decide) (by evm_ov)
-  have rd4995 := rd4994.dup6 (by native_decide) (by evm_ov)
-  have rd4997 := rd4995.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4998pre := rd4997.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4999raw⟩ := rd4998pre.sload (by native_decide) (by evm_ov)
+  have rd4991 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4994 := rd4991.push2 ⟨5008⟩ (by decide +native) (by evm_ov)
+  have rd4995 := rd4994.dup6 (by decide +native) (by evm_ov)
+  have rd4997 := rd4995.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4998pre := rd4997.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4999raw⟩ := rd4998pre.sload (by decide +native) (by evm_ov)
   have hsrcInk :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨0⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcInkFinal := by
@@ -12433,10 +12433,10 @@ theorem RD.vatForkSrcUnsafeCheckRevert
     simp [srcInkFinal, solcSlotWord, forkSrcInkSlot]
   have rd4999 := rd4999raw
   rw [hsrcInk] at rd4999
-  have rd5000 := rd4999.dup5 (by native_decide) (by evm_ov)
-  have rd5002 := rd5000.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd5003pre := rd5002.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5004raw⟩ := rd5003pre.sload (by native_decide) (by evm_ov)
+  have rd5000 := rd4999.dup5 (by decide +native) (by evm_ov)
+  have rd5002 := rd5000.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd5003pre := rd5002.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5004raw⟩ := rd5003pre.sload (by decide +native) (by evm_ov)
   have hspot :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
@@ -12444,8 +12444,8 @@ theorem RD.vatForkSrcUnsafeCheckRevert
     simp [spot, solcSlotWord, forkIlkSpotSlot]
   have rd5004 := rd5004raw
   rw [hspot] at rd5004
-  have rd5007 := rd5004.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd5007.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5007 := rd5004.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd5007.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd5008⟩ := RD.vatCheckedMulUintOk
     (x := spot) (y := srcInkFinal) (ret := ⟨5008⟩)
     (R := vtab :: utab :: forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -12454,27 +12454,27 @@ theorem RD.vatForkSrcUnsafeCheckRevert
     rd6752
     (by simpa [spot, srcInkFinal, srcInkSpot] using hok)
     (by jump_dest) (by simp)
-  have rd5009 := rd5008.jumpdest (by native_decide) (by evm_ov)
-  have rd5010 := rd5009.dup3 (by native_decide) (by evm_ov)
-  have rd5011 := rd5010.gt (by native_decide) (by evm_ov)
-  have rd5012pre := rd5011.iszero (by native_decide) (by evm_ov)
+  have rd5009 := rd5008.jumpdest (by decide +native) (by evm_ov)
+  have rd5010 := rd5009.dup3 (by decide +native) (by evm_ov)
+  have rd5011 := rd5010.gt (by decide +native) (by evm_ov)
+  have rd5012pre := rd5011.iszero (by decide +native) (by evm_ov)
   have rd5012 := by
     rw [show UInt256.isZero (UInt256.gt utab srcInkSpot) = ⟨0⟩ from by
       apply isZero_eq_zero_of_ne
       simpa [srcInkSpot, srcInkFinal, spot] using hgt] at rd5012pre
     exact rd5012pre
-  have rd5015 := rd5012.push2 ⟨5079⟩ (by native_decide) (by evm_ov)
+  have rd5015 := rd5012.push2 ⟨5079⟩ (by decide +native) (by evm_ov)
   have rd5016 := by
     simpa [srcInkSpot, srcInkFinal, spot] using
-      rd5015.jumpiNT (by native_decide) rfl (by evm_ov)
+      rd5015.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (code := vatBytecode) (pc := ⟨5016⟩) (len := ⟨16⟩)
     (rawWord := ⟨114819616950196395593142626671494656611⟩) (shift := ⟨128⟩)
     (word := UInt256.shiftLeft ⟨114819616950196395593142626671494656611⟩ ⟨128⟩)
     (op := .PUSH16) (width := 16)
     rd5016
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
-    (by native_decide) rfl hmem hread64 (by simp)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
+    (by decide +native) rfl hmem hread64 (by simp)
 
 theorem RD.vatForkDstUnsafeCheckSuccess
     {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -12506,12 +12506,12 @@ theorem RD.vatForkDstUnsafeCheckSuccess
   let dstInkFinal := solcSlotWord σ I (forkDstInkSlot I)
   let spot := solcSlotWord σ I (forkIlkSpotSlot I)
   let dstInkSpot := UInt256.mul dstInkFinal spot
-  have rd5080 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd5083 := rd5080.push2 ⟨5097⟩ (by native_decide) (by evm_ov)
-  have rd5084 := rd5083.dup5 (by native_decide) (by evm_ov)
-  have rd5086 := rd5084.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd5087pre := rd5086.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5088raw⟩ := rd5087pre.sload (by native_decide) (by evm_ov)
+  have rd5080 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd5083 := rd5080.push2 ⟨5097⟩ (by decide +native) (by evm_ov)
+  have rd5084 := rd5083.dup5 (by decide +native) (by evm_ov)
+  have rd5086 := rd5084.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd5087pre := rd5086.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5088raw⟩ := rd5087pre.sload (by decide +native) (by evm_ov)
   have hdstInk :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨0⟩ + forkDstUrnBase I) ⟨0⟩)) = dstInkFinal := by
@@ -12519,10 +12519,10 @@ theorem RD.vatForkDstUnsafeCheckSuccess
     simp [dstInkFinal, solcSlotWord, forkDstInkSlot]
   have rd5088 := rd5088raw
   rw [hdstInk] at rd5088
-  have rd5089 := rd5088.dup5 (by native_decide) (by evm_ov)
-  have rd5091 := rd5089.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd5092pre := rd5091.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5093raw⟩ := rd5092pre.sload (by native_decide) (by evm_ov)
+  have rd5089 := rd5088.dup5 (by decide +native) (by evm_ov)
+  have rd5091 := rd5089.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd5092pre := rd5091.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5093raw⟩ := rd5092pre.sload (by decide +native) (by evm_ov)
   have hspot :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
@@ -12530,8 +12530,8 @@ theorem RD.vatForkDstUnsafeCheckSuccess
     simp [spot, solcSlotWord, forkIlkSpotSlot]
   have rd5093 := rd5093raw
   rw [hspot] at rd5093
-  have rd5096 := rd5093.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd5096.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5096 := rd5093.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd5096.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd5097⟩ := RD.vatCheckedMulUintOk
     (x := spot) (y := dstInkFinal) (ret := ⟨5097⟩)
     (R := vtab :: utab :: forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -12540,18 +12540,18 @@ theorem RD.vatForkDstUnsafeCheckSuccess
     rd6752
     (by simpa [spot, dstInkFinal, dstInkSpot] using hok)
     (by jump_dest) (by simp)
-  have rd5098 := rd5097.jumpdest (by native_decide) (by evm_ov)
-  have rd5099 := rd5098.dup2 (by native_decide) (by evm_ov)
-  have rd5100 := rd5099.gt (by native_decide) (by evm_ov)
-  have rd5101pre := rd5100.iszero (by native_decide) (by evm_ov)
+  have rd5098 := rd5097.jumpdest (by decide +native) (by evm_ov)
+  have rd5099 := rd5098.dup2 (by decide +native) (by evm_ov)
+  have rd5100 := rd5099.gt (by decide +native) (by evm_ov)
+  have rd5101pre := rd5100.iszero (by decide +native) (by evm_ov)
   have rd5101 := by
     rw [show UInt256.gt vtab dstInkSpot = ⟨0⟩ by simpa [dstInkSpot] using hle,
       show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd5101pre
     exact rd5101pre
-  have rd5104 := rd5101.push2 ⟨5168⟩ (by native_decide) (by evm_ov)
+  have rd5104 := rd5101.push2 ⟨5168⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [dstInkSpot, dstInkFinal, spot] using
-      rd5104.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
+      rd5104.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vatForkDstUnsafeMulRevert
     {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -12574,12 +12574,12 @@ theorem RD.vatForkDstUnsafeMulRevert
   let dstInkFinal := solcSlotWord σ I (forkDstInkSlot I)
   let spot := solcSlotWord σ I (forkIlkSpotSlot I)
   let dstInkSpot := UInt256.mul dstInkFinal spot
-  have rd5080 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd5083 := rd5080.push2 ⟨5097⟩ (by native_decide) (by evm_ov)
-  have rd5084 := rd5083.dup5 (by native_decide) (by evm_ov)
-  have rd5086 := rd5084.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd5087pre := rd5086.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5088raw⟩ := rd5087pre.sload (by native_decide) (by evm_ov)
+  have rd5080 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd5083 := rd5080.push2 ⟨5097⟩ (by decide +native) (by evm_ov)
+  have rd5084 := rd5083.dup5 (by decide +native) (by evm_ov)
+  have rd5086 := rd5084.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd5087pre := rd5086.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5088raw⟩ := rd5087pre.sload (by decide +native) (by evm_ov)
   have hdstInk :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨0⟩ + forkDstUrnBase I) ⟨0⟩)) = dstInkFinal := by
@@ -12587,10 +12587,10 @@ theorem RD.vatForkDstUnsafeMulRevert
     simp [dstInkFinal, solcSlotWord, forkDstInkSlot]
   have rd5088 := rd5088raw
   rw [hdstInk] at rd5088
-  have rd5089 := rd5088.dup5 (by native_decide) (by evm_ov)
-  have rd5091 := rd5089.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd5092pre := rd5091.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5093raw⟩ := rd5092pre.sload (by native_decide) (by evm_ov)
+  have rd5089 := rd5088.dup5 (by decide +native) (by evm_ov)
+  have rd5091 := rd5089.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd5092pre := rd5091.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5093raw⟩ := rd5092pre.sload (by decide +native) (by evm_ov)
   have hspot :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
@@ -12598,8 +12598,8 @@ theorem RD.vatForkDstUnsafeMulRevert
     simp [spot, solcSlotWord, forkIlkSpotSlot]
   have rd5093 := rd5093raw
   rw [hspot] at rd5093
-  have rd5096 := rd5093.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd5096.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5096 := rd5093.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd5096.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatCheckedMulUintRevert
     (x := spot) (y := dstInkFinal) (ret := ⟨5097⟩)
     (R := vtab :: utab :: forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -12637,12 +12637,12 @@ theorem RD.vatForkDstUnsafeCheckRevert
   let dstInkFinal := solcSlotWord σ I (forkDstInkSlot I)
   let spot := solcSlotWord σ I (forkIlkSpotSlot I)
   let dstInkSpot := UInt256.mul dstInkFinal spot
-  have rd5080 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd5083 := rd5080.push2 ⟨5097⟩ (by native_decide) (by evm_ov)
-  have rd5084 := rd5083.dup5 (by native_decide) (by evm_ov)
-  have rd5086 := rd5084.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd5087pre := rd5086.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5088raw⟩ := rd5087pre.sload (by native_decide) (by evm_ov)
+  have rd5080 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd5083 := rd5080.push2 ⟨5097⟩ (by decide +native) (by evm_ov)
+  have rd5084 := rd5083.dup5 (by decide +native) (by evm_ov)
+  have rd5086 := rd5084.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd5087pre := rd5086.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5088raw⟩ := rd5087pre.sload (by decide +native) (by evm_ov)
   have hdstInk :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨0⟩ + forkDstUrnBase I) ⟨0⟩)) = dstInkFinal := by
@@ -12650,10 +12650,10 @@ theorem RD.vatForkDstUnsafeCheckRevert
     simp [dstInkFinal, solcSlotWord, forkDstInkSlot]
   have rd5088 := rd5088raw
   rw [hdstInk] at rd5088
-  have rd5089 := rd5088.dup5 (by native_decide) (by evm_ov)
-  have rd5091 := rd5089.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd5092pre := rd5091.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5093raw⟩ := rd5092pre.sload (by native_decide) (by evm_ov)
+  have rd5089 := rd5088.dup5 (by decide +native) (by evm_ov)
+  have rd5091 := rd5089.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd5092pre := rd5091.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5093raw⟩ := rd5092pre.sload (by decide +native) (by evm_ov)
   have hspot :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨2⟩ + forkIlkBase I) ⟨0⟩)) = spot := by
@@ -12661,8 +12661,8 @@ theorem RD.vatForkDstUnsafeCheckRevert
     simp [spot, solcSlotWord, forkIlkSpotSlot]
   have rd5093 := rd5093raw
   rw [hspot] at rd5093
-  have rd5096 := rd5093.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd5096.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5096 := rd5093.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd5096.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd5097⟩ := RD.vatCheckedMulUintOk
     (x := spot) (y := dstInkFinal) (ret := ⟨5097⟩)
     (R := vtab :: utab :: forkIlkBase I :: forkDstUrnBase I :: forkSrcUrnBase I ::
@@ -12671,27 +12671,27 @@ theorem RD.vatForkDstUnsafeCheckRevert
     rd6752
     (by simpa [spot, dstInkFinal, dstInkSpot] using hok)
     (by jump_dest) (by simp)
-  have rd5098 := rd5097.jumpdest (by native_decide) (by evm_ov)
-  have rd5099 := rd5098.dup2 (by native_decide) (by evm_ov)
-  have rd5100 := rd5099.gt (by native_decide) (by evm_ov)
-  have rd5101pre := rd5100.iszero (by native_decide) (by evm_ov)
+  have rd5098 := rd5097.jumpdest (by decide +native) (by evm_ov)
+  have rd5099 := rd5098.dup2 (by decide +native) (by evm_ov)
+  have rd5100 := rd5099.gt (by decide +native) (by evm_ov)
+  have rd5101pre := rd5100.iszero (by decide +native) (by evm_ov)
   have rd5101 := by
     rw [show UInt256.isZero (UInt256.gt vtab dstInkSpot) = ⟨0⟩ from by
       apply isZero_eq_zero_of_ne
       simpa [dstInkSpot, dstInkFinal, spot] using hgt] at rd5101pre
     exact rd5101pre
-  have rd5104 := rd5101.push2 ⟨5168⟩ (by native_decide) (by evm_ov)
+  have rd5104 := rd5101.push2 ⟨5168⟩ (by decide +native) (by evm_ov)
   have rd5105 := by
     simpa [dstInkSpot, dstInkFinal, spot] using
-      rd5104.jumpiNT (by native_decide) rfl (by evm_ov)
+      rd5104.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (code := vatBytecode) (pc := ⟨5105⟩) (len := ⟨16⟩)
     (rawWord := ⟨28704904237549098898285656667873418461⟩) (shift := ⟨130⟩)
     (word := UInt256.shiftLeft ⟨28704904237549098898285656667873418461⟩ ⟨130⟩)
     (op := .PUSH16) (width := 16)
     rd5105
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
-    (by native_decide) rfl hmem hread64 (by simp)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
+    (by decide +native) rfl hmem hread64 (by simp)
 
 theorem RD.vatForkDustChecksSuccess
     {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -12717,12 +12717,12 @@ theorem RD.vatForkDustChecksSuccess
   let dust := solcSlotWord σ I (forkIlkDustSlot I)
   let srcArtFinal := solcSlotWord σ I (forkSrcArtSlot I)
   let dstArtFinal := solcSlotWord σ I (forkDstArtSlot I)
-  have rd5169 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd5172 := rd5169.push2 ⟨5192⟩ (by native_decide) (by evm_ov)
-  have rd5173 := rd5172.dup4 (by native_decide) (by evm_ov)
-  have rd5175 := rd5173.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd5176pre := rd5175.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5177raw⟩ := rd5176pre.sload (by native_decide) (by evm_ov)
+  have rd5169 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd5172 := rd5169.push2 ⟨5192⟩ (by decide +native) (by evm_ov)
+  have rd5173 := rd5172.dup4 (by decide +native) (by evm_ov)
+  have rd5175 := rd5173.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd5176pre := rd5175.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5177raw⟩ := rd5176pre.sload (by decide +native) (by evm_ov)
   have hdust :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨4⟩ + forkIlkBase I) ⟨0⟩)) = dust := by
@@ -12730,13 +12730,13 @@ theorem RD.vatForkDustChecksSuccess
     simp [dust, solcSlotWord, forkIlkDustSlot]
   have rd5177 := rd5177raw
   rw [hdust] at rd5177
-  have rd5178 := rd5177.dup4 (by native_decide) (by evm_ov)
-  have rd5179 := rd5178.lt (by native_decide) (by evm_ov)
-  have rd5180 := rd5179.iszero (by native_decide) (by evm_ov)
-  have rd5181 := rd5180.dup7 (by native_decide) (by evm_ov)
-  have rd5183 := rd5181.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5184pre := rd5183.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5185raw⟩ := rd5184pre.sload (by native_decide) (by evm_ov)
+  have rd5178 := rd5177.dup4 (by decide +native) (by evm_ov)
+  have rd5179 := rd5178.lt (by decide +native) (by evm_ov)
+  have rd5180 := rd5179.iszero (by decide +native) (by evm_ov)
+  have rd5181 := rd5180.dup7 (by decide +native) (by evm_ov)
+  have rd5183 := rd5181.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5184pre := rd5183.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5185raw⟩ := rd5184pre.sload (by decide +native) (by evm_ov)
   have hsrcArt :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcArtFinal := by
@@ -12744,36 +12744,36 @@ theorem RD.vatForkDustChecksSuccess
     simp [srcArtFinal, solcSlotWord, forkSrcArtSlot]
   have rd5185 := rd5185raw
   rw [hsrcArt] at rd5185
-  have rd5187 := rd5185.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd5188 := rd5187.eq (by native_decide) (by evm_ov)
-  have rd5191pre := rd5188.push2 ⟨6791⟩ (by native_decide) (by evm_ov)
-  have rd6791 := rd5191pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5187 := rd5185.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd5188 := rd5187.eq (by decide +native) (by evm_ov)
+  have rd5191pre := rd5188.push2 ⟨6791⟩ (by decide +native) (by evm_ov)
+  have rd6791 := rd5191pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd5192 := evm_run rd6791 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd5196pre := evm_run rd5192 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨5256⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨5256⟩ (by decide +native) (by evm_ov)]
   have rd5256 := by
     simpa [dust, srcArtFinal] using
-      rd5196pre.jumpiT (by native_decide) hsrcDust (by jump_dest) (by evm_ov)
-  have rd5257 := rd5256.jumpdest (by native_decide) (by evm_ov)
-  have rd5260 := rd5257.push2 ⟨5280⟩ (by native_decide) (by evm_ov)
-  have rd5261 := rd5260.dup4 (by native_decide) (by evm_ov)
-  have rd5263 := rd5261.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd5264pre := rd5263.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5265raw⟩ := rd5264pre.sload (by native_decide) (by evm_ov)
+      rd5196pre.jumpiT (by decide +native) hsrcDust (by jump_dest) (by evm_ov)
+  have rd5257 := rd5256.jumpdest (by decide +native) (by evm_ov)
+  have rd5260 := rd5257.push2 ⟨5280⟩ (by decide +native) (by evm_ov)
+  have rd5261 := rd5260.dup4 (by decide +native) (by evm_ov)
+  have rd5263 := rd5261.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd5264pre := rd5263.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5265raw⟩ := rd5264pre.sload (by decide +native) (by evm_ov)
   have rd5265 := rd5265raw
   rw [hdust] at rd5265
-  have rd5266 := rd5265.dup3 (by native_decide) (by evm_ov)
-  have rd5267 := rd5266.lt (by native_decide) (by evm_ov)
-  have rd5268 := rd5267.iszero (by native_decide) (by evm_ov)
-  have rd5269 := rd5268.dup6 (by native_decide) (by evm_ov)
-  have rd5271 := rd5269.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5272pre := rd5271.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5273raw⟩ := rd5272pre.sload (by native_decide) (by evm_ov)
+  have rd5266 := rd5265.dup3 (by decide +native) (by evm_ov)
+  have rd5267 := rd5266.lt (by decide +native) (by evm_ov)
+  have rd5268 := rd5267.iszero (by decide +native) (by evm_ov)
+  have rd5269 := rd5268.dup6 (by decide +native) (by evm_ov)
+  have rd5271 := rd5269.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5272pre := rd5271.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5273raw⟩ := rd5272pre.sload (by decide +native) (by evm_ov)
   have hdstArt :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + forkDstUrnBase I) ⟨0⟩)) = dstArtFinal := by
@@ -12781,21 +12781,21 @@ theorem RD.vatForkDustChecksSuccess
     simp [dstArtFinal, solcSlotWord, forkDstArtSlot]
   have rd5273 := rd5273raw
   rw [hdstArt] at rd5273
-  have rd5275 := rd5273.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd5276 := rd5275.eq (by native_decide) (by evm_ov)
-  have rd5279pre := rd5276.push2 ⟨6791⟩ (by native_decide) (by evm_ov)
-  have rd6791' := rd5279pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5275 := rd5273.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd5276 := rd5275.eq (by decide +native) (by evm_ov)
+  have rd5279pre := rd5276.push2 ⟨6791⟩ (by decide +native) (by evm_ov)
+  have rd6791' := rd5279pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd5280 := evm_run rd6791' with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd5284pre := evm_run rd5280 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨5344⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨5344⟩ (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [dust, dstArtFinal] using
-      rd5284pre.jumpiT (by native_decide) hdstDust (by jump_dest) (by evm_ov)⟩
+      rd5284pre.jumpiT (by decide +native) hdstDust (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vatForkSrcDustCheckRevert
     {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -12814,12 +12814,12 @@ theorem RD.vatForkSrcDustCheckRevert
     RDrev vatBytecode g (initState cA gh bl σInit σ₀ g A I) := by
   let dust := solcSlotWord σ I (forkIlkDustSlot I)
   let srcArtFinal := solcSlotWord σ I (forkSrcArtSlot I)
-  have rd5169 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd5172 := rd5169.push2 ⟨5192⟩ (by native_decide) (by evm_ov)
-  have rd5173 := rd5172.dup4 (by native_decide) (by evm_ov)
-  have rd5175 := rd5173.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd5176pre := rd5175.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5177raw⟩ := rd5176pre.sload (by native_decide) (by evm_ov)
+  have rd5169 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd5172 := rd5169.push2 ⟨5192⟩ (by decide +native) (by evm_ov)
+  have rd5173 := rd5172.dup4 (by decide +native) (by evm_ov)
+  have rd5175 := rd5173.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd5176pre := rd5175.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5177raw⟩ := rd5176pre.sload (by decide +native) (by evm_ov)
   have hdust :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨4⟩ + forkIlkBase I) ⟨0⟩)) = dust := by
@@ -12827,13 +12827,13 @@ theorem RD.vatForkSrcDustCheckRevert
     simp [dust, solcSlotWord, forkIlkDustSlot]
   have rd5177 := rd5177raw
   rw [hdust] at rd5177
-  have rd5178 := rd5177.dup4 (by native_decide) (by evm_ov)
-  have rd5179 := rd5178.lt (by native_decide) (by evm_ov)
-  have rd5180 := rd5179.iszero (by native_decide) (by evm_ov)
-  have rd5181 := rd5180.dup7 (by native_decide) (by evm_ov)
-  have rd5183 := rd5181.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5184pre := rd5183.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5185raw⟩ := rd5184pre.sload (by native_decide) (by evm_ov)
+  have rd5178 := rd5177.dup4 (by decide +native) (by evm_ov)
+  have rd5179 := rd5178.lt (by decide +native) (by evm_ov)
+  have rd5180 := rd5179.iszero (by decide +native) (by evm_ov)
+  have rd5181 := rd5180.dup7 (by decide +native) (by evm_ov)
+  have rd5183 := rd5181.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5184pre := rd5183.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5185raw⟩ := rd5184pre.sload (by decide +native) (by evm_ov)
   have hsrcArt :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcArtFinal := by
@@ -12841,29 +12841,29 @@ theorem RD.vatForkSrcDustCheckRevert
     simp [srcArtFinal, solcSlotWord, forkSrcArtSlot]
   have rd5185 := rd5185raw
   rw [hsrcArt] at rd5185
-  have rd5187 := rd5185.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd5188 := rd5187.eq (by native_decide) (by evm_ov)
-  have rd5191pre := rd5188.push2 ⟨6791⟩ (by native_decide) (by evm_ov)
-  have rd6791 := rd5191pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5187 := rd5185.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd5188 := rd5187.eq (by decide +native) (by evm_ov)
+  have rd5191pre := rd5188.push2 ⟨6791⟩ (by decide +native) (by evm_ov)
+  have rd6791 := rd5191pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd5192 := evm_run rd6791 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd5196pre := evm_run rd5192 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨5256⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨5256⟩ (by decide +native) (by evm_ov)]
   have rd5197 := by
     simpa [dust, srcArtFinal] using
-      rd5196pre.jumpiNT (by native_decide) hsrcDust (by evm_ov)
+      rd5196pre.jumpiNT (by decide +native) hsrcDust (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (code := vatBytecode) (pc := ⟨5197⟩) (len := ⟨12⟩)
     (rawWord := ⟨26733525317886098202355266147⟩) (shift := ⟨160⟩)
     (word := UInt256.shiftLeft ⟨26733525317886098202355266147⟩ ⟨160⟩)
     (op := .PUSH12) (width := 12)
     rd5197
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
-    (by native_decide) rfl hmem hread64 (by simp)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
+    (by decide +native) rfl hmem hread64 (by simp)
 
 theorem RD.vatForkDstDustCheckRevert
     {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -12887,12 +12887,12 @@ theorem RD.vatForkDstDustCheckRevert
   let dust := solcSlotWord σ I (forkIlkDustSlot I)
   let srcArtFinal := solcSlotWord σ I (forkSrcArtSlot I)
   let dstArtFinal := solcSlotWord σ I (forkDstArtSlot I)
-  have rd5169 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd5172 := rd5169.push2 ⟨5192⟩ (by native_decide) (by evm_ov)
-  have rd5173 := rd5172.dup4 (by native_decide) (by evm_ov)
-  have rd5175 := rd5173.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd5176pre := rd5175.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5177raw⟩ := rd5176pre.sload (by native_decide) (by evm_ov)
+  have rd5169 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd5172 := rd5169.push2 ⟨5192⟩ (by decide +native) (by evm_ov)
+  have rd5173 := rd5172.dup4 (by decide +native) (by evm_ov)
+  have rd5175 := rd5173.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd5176pre := rd5175.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5177raw⟩ := rd5176pre.sload (by decide +native) (by evm_ov)
   have hdust :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨4⟩ + forkIlkBase I) ⟨0⟩)) = dust := by
@@ -12900,13 +12900,13 @@ theorem RD.vatForkDstDustCheckRevert
     simp [dust, solcSlotWord, forkIlkDustSlot]
   have rd5177 := rd5177raw
   rw [hdust] at rd5177
-  have rd5178 := rd5177.dup4 (by native_decide) (by evm_ov)
-  have rd5179 := rd5178.lt (by native_decide) (by evm_ov)
-  have rd5180 := rd5179.iszero (by native_decide) (by evm_ov)
-  have rd5181 := rd5180.dup7 (by native_decide) (by evm_ov)
-  have rd5183 := rd5181.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5184pre := rd5183.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5185raw⟩ := rd5184pre.sload (by native_decide) (by evm_ov)
+  have rd5178 := rd5177.dup4 (by decide +native) (by evm_ov)
+  have rd5179 := rd5178.lt (by decide +native) (by evm_ov)
+  have rd5180 := rd5179.iszero (by decide +native) (by evm_ov)
+  have rd5181 := rd5180.dup7 (by decide +native) (by evm_ov)
+  have rd5183 := rd5181.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5184pre := rd5183.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5185raw⟩ := rd5184pre.sload (by decide +native) (by evm_ov)
   have hsrcArt :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + forkSrcUrnBase I) ⟨0⟩)) = srcArtFinal := by
@@ -12914,36 +12914,36 @@ theorem RD.vatForkDstDustCheckRevert
     simp [srcArtFinal, solcSlotWord, forkSrcArtSlot]
   have rd5185 := rd5185raw
   rw [hsrcArt] at rd5185
-  have rd5187 := rd5185.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd5188 := rd5187.eq (by native_decide) (by evm_ov)
-  have rd5191pre := rd5188.push2 ⟨6791⟩ (by native_decide) (by evm_ov)
-  have rd6791 := rd5191pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5187 := rd5185.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd5188 := rd5187.eq (by decide +native) (by evm_ov)
+  have rd5191pre := rd5188.push2 ⟨6791⟩ (by decide +native) (by evm_ov)
+  have rd6791 := rd5191pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd5192 := evm_run rd6791 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd5196pre := evm_run rd5192 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨5256⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨5256⟩ (by decide +native) (by evm_ov)]
   have rd5256 := by
     simpa [dust, srcArtFinal] using
-      rd5196pre.jumpiT (by native_decide) hsrcDust (by jump_dest) (by evm_ov)
-  have rd5257 := rd5256.jumpdest (by native_decide) (by evm_ov)
-  have rd5260 := rd5257.push2 ⟨5280⟩ (by native_decide) (by evm_ov)
-  have rd5261 := rd5260.dup4 (by native_decide) (by evm_ov)
-  have rd5263 := rd5261.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd5264pre := rd5263.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5265raw⟩ := rd5264pre.sload (by native_decide) (by evm_ov)
+      rd5196pre.jumpiT (by decide +native) hsrcDust (by jump_dest) (by evm_ov)
+  have rd5257 := rd5256.jumpdest (by decide +native) (by evm_ov)
+  have rd5260 := rd5257.push2 ⟨5280⟩ (by decide +native) (by evm_ov)
+  have rd5261 := rd5260.dup4 (by decide +native) (by evm_ov)
+  have rd5263 := rd5261.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd5264pre := rd5263.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5265raw⟩ := rd5264pre.sload (by decide +native) (by evm_ov)
   have rd5265 := rd5265raw
   rw [hdust] at rd5265
-  have rd5266 := rd5265.dup3 (by native_decide) (by evm_ov)
-  have rd5267 := rd5266.lt (by native_decide) (by evm_ov)
-  have rd5268 := rd5267.iszero (by native_decide) (by evm_ov)
-  have rd5269 := rd5268.dup6 (by native_decide) (by evm_ov)
-  have rd5271 := rd5269.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5272pre := rd5271.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5273raw⟩ := rd5272pre.sload (by native_decide) (by evm_ov)
+  have rd5266 := rd5265.dup3 (by decide +native) (by evm_ov)
+  have rd5267 := rd5266.lt (by decide +native) (by evm_ov)
+  have rd5268 := rd5267.iszero (by decide +native) (by evm_ov)
+  have rd5269 := rd5268.dup6 (by decide +native) (by evm_ov)
+  have rd5271 := rd5269.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5272pre := rd5271.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5273raw⟩ := rd5272pre.sload (by decide +native) (by evm_ov)
   have hdstArt :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + forkDstUrnBase I) ⟨0⟩)) = dstArtFinal := by
@@ -12951,29 +12951,29 @@ theorem RD.vatForkDstDustCheckRevert
     simp [dstArtFinal, solcSlotWord, forkDstArtSlot]
   have rd5273 := rd5273raw
   rw [hdstArt] at rd5273
-  have rd5275 := rd5273.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd5276 := rd5275.eq (by native_decide) (by evm_ov)
-  have rd5279pre := rd5276.push2 ⟨6791⟩ (by native_decide) (by evm_ov)
-  have rd6791' := rd5279pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5275 := rd5273.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd5276 := rd5275.eq (by decide +native) (by evm_ov)
+  have rd5279pre := rd5276.push2 ⟨6791⟩ (by decide +native) (by evm_ov)
+  have rd6791' := rd5279pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd5280 := evm_run rd6791' with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd5284pre := evm_run rd5280 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨5344⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨5344⟩ (by decide +native) (by evm_ov)]
   have rd5285 := by
     simpa [dust, dstArtFinal] using
-      rd5284pre.jumpiNT (by native_decide) hdstDust (by evm_ov)
+      rd5284pre.jumpiNT (by decide +native) hdstDust (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (code := vatBytecode) (pc := ⟨5285⟩) (len := ⟨12⟩)
     (rawWord := ⟨6683381329471524550588570845⟩) (shift := ⟨162⟩)
     (word := UInt256.shiftLeft ⟨6683381329471524550588570845⟩ ⟨162⟩)
     (op := .PUSH12) (width := 12)
     rd5285
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
-    (by native_decide) rfl hmem hread64 (by simp)
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
+    (by decide +native) rfl hmem hread64 (by simp)
 
 theorem RD.vatForkCleanupSuccess
     {cA gh bl σInit σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -12985,18 +12985,18 @@ theorem RD.vatForkCleanupSuccess
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨524⟩ [sel]
       mem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
-  have rd5345 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd5346 := rd5345.pop (by native_decide) (by evm_ov)
-  have rd5347 := rd5346.pop (by native_decide) (by evm_ov)
-  have rd5348 := rd5347.pop (by native_decide) (by evm_ov)
-  have rd5349 := rd5348.pop (by native_decide) (by evm_ov)
-  have rd5350 := rd5349.pop (by native_decide) (by evm_ov)
-  have rd5351 := rd5350.pop (by native_decide) (by evm_ov)
-  have rd5352 := rd5351.pop (by native_decide) (by evm_ov)
-  have rd5353 := rd5352.pop (by native_decide) (by evm_ov)
-  have rd5354 := rd5353.pop (by native_decide) (by evm_ov)
-  have rd5355 := rd5354.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd5355.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  have rd5345 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd5346 := rd5345.pop (by decide +native) (by evm_ov)
+  have rd5347 := rd5346.pop (by decide +native) (by evm_ov)
+  have rd5348 := rd5347.pop (by decide +native) (by evm_ov)
+  have rd5349 := rd5348.pop (by decide +native) (by evm_ov)
+  have rd5350 := rd5349.pop (by decide +native) (by evm_ov)
+  have rd5351 := rd5350.pop (by decide +native) (by evm_ov)
+  have rd5352 := rd5351.pop (by decide +native) (by evm_ov)
+  have rd5353 := rd5352.pop (by decide +native) (by evm_ov)
+  have rd5354 := rd5353.pop (by decide +native) (by evm_ov)
+  have rd5355 := rd5354.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd5355.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 0 in
 theorem RD.vatForkSuccessPath
@@ -13573,8 +13573,8 @@ theorem RD.vatForkFinishSuccess
     RDret vatBytecode g (initState cA gh bl σInit σ₀ g A I)
       (cA, σFinal) ByteArray.empty := by
   obtain ⟨_, _, h524⟩ := h
-  have h525 := h524.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop h525 (by native_decide) (by simp)
+  have h525 := h524.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop h525 (by decide +native) (by simp)
 
 theorem accountMapEquiv_forkSourceFinal
     {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -14137,7 +14137,7 @@ theorem vatForkSuccessEquivFromFinalState
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have henc : returnEquiv ByteArray.empty none forkTransition.returnType := by
     rw [show forkTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     hcreated haccounts henc
 

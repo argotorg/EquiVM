@@ -136,7 +136,7 @@ theorem vatDispatchIlks {I : ExecutionEnv}
     fileIlkSelectorBytes, fileLineSelectorBytes, fluxSelectorBytes, foldSelectorBytes,
     forkSelectorBytes, frobSelectorBytes, gemSelectorBytes, grabSelectorBytes,
     healSelectorBytes, hopeSelectorBytes, ilksSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachIlksBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -147,29 +147,29 @@ theorem vatReachIlksBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0xd9638d36⟩ :=
     vatSelWord_eq_of_beq I hsz 0xd9 0x63 0x8d 0x36 ⟨0xd9638d36⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat vatBytecode vatHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhighhigh :
       UInt256.gt (armSelNat vatBytecode vatHighHighSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms114FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms114FirstPc 2))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms114Body 2 (by omega) ⟨1395⟩ hcode hwv hsz hsize
-    hroot hhigh hhighhigh heq0 htake (by jump_dest) (by native_decide)
+    hroot hhigh hhighhigh heq0 htake (by jump_dest) (by decide +native)
 
 @[reducible] def solcIlksStruct5GetterWf (code : ByteArray) (pc : UInt256) : Prop :=
   let p1 := pc + ⟨1⟩
@@ -279,12 +279,12 @@ theorem RD.solcIlksStruct5Getter {code : ByteArray} {g : Sat256} {s0 : State}
   have rd6 := rd5.dup2 hd5 (by evm_ov)
   have rd7 := rd6.swap1 hd6 (by evm_ov)
   have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨2⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd10 := rd8.push1 ⟨0⟩ hd8 (by evm_ov)
   have rd11 := rd10.swap2 hd10 (by evm_ov)
   have rd12 := rd11.dup3 hd11 (by evm_ov)
   have rd13 := rd12.mstore 0 (solcMappingHashMem ⟨2⟩ key)
-    (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := rd13.push1 ⟨64⟩ hd13 (by evm_ov)
   have rd16 := rd15.swap1 hd15 (by evm_ov)
   have rd17 := rd16.swap2 hd16 (by evm_ov)
@@ -293,7 +293,7 @@ theorem RD.solcIlksStruct5Getter {code : ByteArray} {g : Sat256} {s0 : State}
     (UInt256.ofNat 3) hd17 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd19 := rd18.dup1 hd18 (by evm_ov)
   obtain ⟨_, _, rd20₀⟩ := rd19.sload hd19 (by evm_ov)
   have rd22 := rd20₀.push1 ⟨1⟩ hd20 (by evm_ov)
@@ -334,7 +334,7 @@ theorem solcScratchReturn5Mem_size {scratch : ByteArray} (art rate spot line dus
     (solcScratchReturn5Mem scratch art rate spot line dust).size = 288 := by
   unfold solcScratchReturn5Mem ilksReturn5Writes
   exact writeCascade_size_of_base scratch _ hscratch
-    (by simp [WriteGapsOk]; native_decide)
+    (by simp [WriteGapsOk]; decide +native)
     (by simp [writeCascadeSize])
 
 theorem solcScratchReturn5Mem_read64 {scratch : ByteArray} (art rate spot line dust : UInt256)
@@ -344,7 +344,7 @@ theorem solcScratchReturn5Mem_read64 {scratch : ByteArray} (art rate spot line d
       UInt256.toByteArray ⟨128⟩ := by
   unfold solcScratchReturn5Mem ilksReturn5Writes
   rw [writeCascade_read_preserved_of_base scratch _ hscratch (by
-    simp [WindowDisjointFromWrites]; native_decide)]
+    simp [WindowDisjointFromWrites]; decide +native)]
   exact hread64
 
 theorem solcScratchReturn5Mem_mload64 {scratch : ByteArray} (art rate spot line dust : UInt256)
@@ -367,7 +367,7 @@ private theorem solcScratchReturn5Mem_read128_word {scratch : ByteArray}
   unfold solcScratchReturn5Mem ilksReturn5Writes
   exact writeCascade_read_word_of_head_of_base scratch art
     [(160, rate), (192, spot), (224, line), (256, dust)] hscratch
-    (by native_decide) (by simp [WindowDisjointFromWrites])
+    (by decide +native) (by simp [WindowDisjointFromWrites])
 
 private theorem solcScratchReturn5Mem_read160_word {scratch : ByteArray}
     (art rate spot line dust : UInt256) (hscratch : scratch.size = 96) :
@@ -383,7 +383,7 @@ private theorem solcScratchReturn5Mem_read160_word {scratch : ByteArray}
         exact lt_usize 32 (by norm_num)
       rw [writeWord_size scratch 128 art hgap]
       rw [hscratch]
-      native_decide)
+      decide +native)
     (by
       have hgap : 128 - scratch.size < USize.size := by
         rw [hscratch]
@@ -408,10 +408,10 @@ private theorem solcScratchReturn5Mem_read192_word {scratch : ByteArray}
           exact lt_usize 32 (by norm_num)
         rw [writeWord_size scratch 128 art hgap]
         rw [hscratch]
-        native_decide
+        decide +native
       rw [writeWord_size (writeWord scratch 128 art) 160 rate
         (by rw [h1]; exact lt_usize 0 (by norm_num)), h1]
-      native_decide)
+      decide +native)
     (by
       have h1 : (writeWord scratch 128 art).size = 160 := by
         have hgap : 128 - scratch.size < USize.size := by
@@ -419,7 +419,7 @@ private theorem solcScratchReturn5Mem_read192_word {scratch : ByteArray}
           exact lt_usize 32 (by norm_num)
         rw [writeWord_size scratch 128 art hgap]
         rw [hscratch]
-        native_decide
+        decide +native
       rw [writeWord_size (writeWord scratch 128 art) 160 rate
         (by rw [h1]; exact lt_usize 0 (by norm_num)), h1]
       simp [WindowDisjointFromWrites])
@@ -440,14 +440,14 @@ private theorem solcScratchReturn5Mem_read224_word {scratch : ByteArray}
           exact lt_usize 32 (by norm_num)
         rw [writeWord_size scratch 128 art hgap]
         rw [hscratch]
-        native_decide
+        decide +native
       have h2 : (writeWord (writeWord scratch 128 art) 160 rate).size = 192 := by
         rw [writeWord_size (writeWord scratch 128 art) 160 rate
           (by rw [h1]; exact lt_usize 0 (by norm_num)), h1]
-        native_decide
+        decide +native
       rw [writeWord_size (writeWord (writeWord scratch 128 art) 160 rate) 192 spot
         (by rw [h2]; exact lt_usize 0 (by norm_num)), h2]
-      native_decide)
+      decide +native)
     (by
       have h1 : (writeWord scratch 128 art).size = 160 := by
         have hgap : 128 - scratch.size < USize.size := by
@@ -455,7 +455,7 @@ private theorem solcScratchReturn5Mem_read224_word {scratch : ByteArray}
           exact lt_usize 32 (by norm_num)
         rw [writeWord_size scratch 128 art hgap]
         rw [hscratch]
-        native_decide
+        decide +native
       have h2 : (writeWord (writeWord scratch 128 art) 160 rate).size = 192 := by
         rw [writeWord_size (writeWord scratch 128 art) 160 rate
           (by rw [h1]; exact lt_usize 0 (by norm_num)), h1]
@@ -480,19 +480,19 @@ private theorem solcScratchReturn5Mem_read256_word {scratch : ByteArray}
           exact lt_usize 32 (by norm_num)
         rw [writeWord_size scratch 128 art hgap]
         rw [hscratch]
-        native_decide
+        decide +native
       have h2 : (writeWord (writeWord scratch 128 art) 160 rate).size = 192 := by
         rw [writeWord_size (writeWord scratch 128 art) 160 rate
           (by rw [h1]; exact lt_usize 0 (by norm_num)), h1]
-        native_decide
+        decide +native
       have h3 : (writeWord (writeWord (writeWord scratch 128 art) 160 rate) 192 spot).size = 224 := by
         rw [writeWord_size (writeWord (writeWord scratch 128 art) 160 rate) 192 spot
           (by rw [h2]; exact lt_usize 0 (by norm_num)), h2]
-        native_decide
+        decide +native
       rw [writeWord_size
         (writeWord (writeWord (writeWord scratch 128 art) 160 rate) 192 spot) 224 line
         (by rw [h3]; exact lt_usize 0 (by norm_num)), h3]
-      native_decide)
+      decide +native)
     (by simp [WindowDisjointFromWrites])
 
 theorem solcScratchReturn5Mem_read128_160 {scratch : ByteArray}
@@ -743,28 +743,28 @@ theorem uint256FiveReturnEncoding (art rate spot line dust : UInt256) :
     exact (word_toBytesBE_toByteArray_eq_toByteArray dust).symm]
   unfold encodeReturnValues? encodeABIValues?
   rw [show abiTupleHeadSize? [uint256, uint256, uint256, uint256, uint256] = some 160
-    by native_decide]
+    by decide +native]
   simp only [bind, Option.bind]
   unfold encodeABIValuesFrom?
   rw [encodeABIValue_uint256_word art]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
+  rw [show isDynamicABIType uint256 = false by decide +native]
   unfold encodeABIValuesFrom?
   rw [encodeABIValue_uint256_word rate]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
+  rw [show isDynamicABIType uint256 = false by decide +native]
   unfold encodeABIValuesFrom?
   rw [encodeABIValue_uint256_word spot]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
+  rw [show isDynamicABIType uint256 = false by decide +native]
   unfold encodeABIValuesFrom?
   rw [encodeABIValue_uint256_word line]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
+  rw [show isDynamicABIType uint256 = false by decide +native]
   unfold encodeABIValuesFrom?
   rw [encodeABIValue_uint256_word dust]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
+  rw [show isDynamicABIType uint256 = false by decide +native]
   unfold encodeABIValuesFrom?
   simp only [Bool.false_eq_true, if_false, List.nil_append, List.append_nil]
   apply congrArg some
@@ -955,9 +955,9 @@ theorem vatIlksBodyCoreOk
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨1395⟩) (ret := ⟨1424⟩)
     (decoded := ⟨1417⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
   obtain ⟨_, _, htoRoutineRd⟩ := RD.solcOneWordExternalLoadAndJump
@@ -965,14 +965,14 @@ theorem vatIlksBodyCoreOk
     (R := [sel]) hdecoded
     (by
       unfold solcOneWordExternalLoadAndJumpWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   obtain ⟨_, _, hretPc⟩ := RD.solcIlksStruct5Getter
     (code := vatBytecode) (pc := ⟨6084⟩) (key := ilksArgWord I) (ret := ⟨1424⟩)
     (R := [sel]) (by simpa using htoRoutineRd)
     (by
       unfold solcIlksStruct5GetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
@@ -989,7 +989,7 @@ theorem vatIlksBodyCoreOk
           spotSlot, lineSlot, dustSlot, vatSlotWord] using hretPc)
       (by
         unfold solcFiveWordReturnFromMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (solcMappingHashMem_mload64 ⟨2⟩ (ilksArgWord I))
       (solcMappingHashMem_size ⟨2⟩ (ilksArgWord I))
       (solcMappingHashMem_read64 ⟨2⟩ (ilksArgWord I))
@@ -1049,10 +1049,10 @@ theorem vatIlksBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨1395⟩) (ret := ⟨1424⟩)
     (decoded := ⟨1417⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (vatDecode_ilks_none_short hsz4 hshort)
 

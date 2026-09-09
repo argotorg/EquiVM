@@ -31,7 +31,7 @@ theorem daiJoinDispatchCage {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some cageTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem daiJoinDispatchDai {I : ExecutionEnv}
     (hsel : selIs I (daiJoinSelBytes 1)) :
@@ -41,7 +41,7 @@ theorem daiJoinDispatchDai {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some daiTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem daiJoinDispatchDeny {I : ExecutionEnv}
     (hsel : selIs I (daiJoinSelBytes 2)) :
@@ -51,7 +51,7 @@ theorem daiJoinDispatchDeny {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some denyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem daiJoinDispatchExit {I : ExecutionEnv}
     (hsel : selIs I (daiJoinSelBytes 3)) :
@@ -61,7 +61,7 @@ theorem daiJoinDispatchExit {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some exitTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem daiJoinDispatchJoin {I : ExecutionEnv}
     (hsel : selIs I (daiJoinSelBytes 4)) :
@@ -71,7 +71,7 @@ theorem daiJoinDispatchJoin {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some joinTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem daiJoinDispatchLive {I : ExecutionEnv}
     (hsel : selIs I (daiJoinSelBytes 5)) :
@@ -81,7 +81,7 @@ theorem daiJoinDispatchLive {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some liveTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem daiJoinDispatchRely {I : ExecutionEnv}
     (hsel : selIs I (daiJoinSelBytes 6)) :
@@ -91,7 +91,7 @@ theorem daiJoinDispatchRely {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some relyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem daiJoinDispatchVat {I : ExecutionEnv}
     (hsel : selIs I (daiJoinSelBytes 7)) :
@@ -101,7 +101,7 @@ theorem daiJoinDispatchVat {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some vatTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem daiJoinDispatchWards {I : ExecutionEnv}
     (hsel : selIs I (daiJoinSelBytes 8)) :
@@ -111,7 +111,7 @@ theorem daiJoinDispatchWards {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some wardsTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem daiJoinDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg contract cd = none := by
@@ -127,7 +127,7 @@ theorem daiJoinDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
       simp [selectorOf, cageSelectorBytes, daiSelectorBytes, denySelectorBytes,
         exitSelectorBytes, joinSelectorBytes, liveSelectorBytes, relySelectorBytes,
         vatSelectorBytes, wardsSelectorBytes]
-      native_decide) h
+      decide +native) h
 
 theorem daiJoinDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 9 → (daiJoinSelBytes i == cd.extract 0 4) = false) :
@@ -219,7 +219,7 @@ theorem daiJoinSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size
 theorem daiJoinRootSplitWellFormed :
     selectorSplitWellFormed daiJoinBytecode daiJoinRootSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem daiJoinLowArmsWellFormed :
@@ -228,7 +228,7 @@ theorem daiJoinLowArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem daiJoinHighArmsWellFormed :
@@ -237,7 +237,7 @@ theorem daiJoinHighArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 theorem daiJoinLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 4) :
@@ -245,7 +245,7 @@ theorem daiJoinLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat daiJoinBytecode (nthArmPc daiJoinBytecode daiJoinLowFirstArmPc j))
         (daiJoinSelWord I) =
       if (daiJoinLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem daiJoinHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 5) :
@@ -253,7 +253,7 @@ theorem daiJoinHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat daiJoinBytecode (nthArmPc daiJoinBytecode daiJoinHighFirstArmPc j))
         (daiJoinSelWord I) =
       if (daiJoinHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem daiJoinReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -269,13 +269,13 @@ theorem daiJoinReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (revertTgt := daiJoinDispatchRevertPc) (guardWidth := 2) (revertWidth := 2)
       (guardOp := .PUSH2) (revertOp := .PUSH2)
       hcode hwv hsz hsize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 theorem daiJoinReachLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -295,7 +295,7 @@ theorem daiJoinReachLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h103 : RD daiJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
       daiJoinLowFirstArmPc [daiJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [daiJoinLowFirstArmPc] using h102.jumpdest (by native_decide) (by simp)
+    simpa [daiJoinLowFirstArmPc] using h102.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h103⟩
 
 theorem daiJoinReachHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -371,9 +371,9 @@ theorem daiJoinJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UI
     RDrev daiJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h147 := h.push2 daiJoinDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h147 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h147 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem daiJoinLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD daiJoinBytecode I g (initState cA gh bl σ σ₀ g A I) daiJoinLowFirstArmPc
@@ -391,9 +391,9 @@ theorem daiJoinLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 2 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (daiJoinLowArmsWellFormed 3 (by omega))
         (heq0 3 (by omega)) (by simp)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h147 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h147 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem daiJoinHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD daiJoinBytecode I g (initState cA gh bl σ σ₀ g A I) daiJoinHighFirstArmPc
@@ -413,42 +413,42 @@ theorem daiJoinHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 3 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (daiJoinHighArmsWellFormed 4 (by omega))
         (heq0 4 (by omega)) (by simp)
-  exact daiJoinJumpToNoMatchRevert h98 (by native_decide) (by native_decide)
+  exact daiJoinJumpToNoMatchRevert h98 (by decide +native) (by decide +native)
 
 theorem daiJoinX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev daiJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
-  have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
+  have h12 := h0.push2 ⟨16⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h12 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem daiJoinX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
     RDrev daiJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt daiJoinBytecode)
     (opC := solcGuardTgtOp daiJoinBytecode)
     (wC := solcGuardTgtWidth daiJoinBytecode) h0 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest)
-  have h147 := h1.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.calldatasize (by native_decide) (by simp only [List.length]; omega)
-    |>.lt (by native_decide) (by simp only [List.length]; omega)
-    |>.push2 daiJoinDispatchRevertPc (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest)
+  have h147 := h1.push1 ⟨4⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.calldatasize (by decide +native) (by simp only [List.length]; omega)
+    |>.lt (by decide +native) (by simp only [List.length]; omega)
+    |>.push2 daiJoinDispatchRevertPc (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h147 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h147 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem daiJoinX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = daiJoinBytecode) (hwv : I.weiValue = ⟨0⟩)

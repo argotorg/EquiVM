@@ -201,7 +201,7 @@ theorem jugInitSourceBody {cA gh bl σ σ₀ A I} {g : UInt256}
     have htoNat : initOne.toNat = 1000000000000000000000000000 := by
       change (UInt256.ofNat 1000000000000000000000000000).toNat =
         1000000000000000000000000000
-      exact ulit_toNat' _ (by native_decide)
+      exact ulit_toNat' _ (by decide +native)
     simp [evalExpr?, one, initOne, pure, htoNat]
   have hassignDuty :
       assignStorageRef? config { contract := contract, locals := locals } evm0
@@ -307,22 +307,22 @@ theorem jugReachInitBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : jugSelWord I = ⟨0x3b663195⟩ :=
     jugSelWord_eq_of_beq I hsz 0x3b 0x66 0x31 0x95 ⟨0x3b663195⟩
-      (by native_decide) (by simpa [jugSelBytes] using hsel)
+      (by decide +native) (by simpa [jugSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat jugBytecode jugRootSplitPc) (jugSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat jugBytecode (nthArmPc jugBytecode jugLowFirstArmPc j))
         (jugSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat jugBytecode (nthArmPc jugBytecode jugLowFirstArmPc 3))
         (jugSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact jugReachLowBody 3 (by omega) ⟨299⟩ hcode hwv hsz hsize hroot heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem RD.jugInitDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
@@ -336,13 +336,13 @@ theorem RD.jugInitDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
       (calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
-  have rd322 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd323 := rd322.pop (by native_decide) (by evm_ov)
-  have rd324 := rd323.calldataload (by native_decide) (by evm_ov)
-  have rd327 := rd324.push2 ⟨1032⟩ (by native_decide) (by evm_ov)
+  have rd322 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd323 := rd322.pop (by decide +native) (by evm_ov)
+  have rd324 := rd323.calldataload (by decide +native) (by evm_ov)
+  have rd327 := rd324.push2 ⟨1032⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-      using rd327.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd327.jump (by decide +native) hroutine (by evm_ov)⟩
 
 theorem jugInitX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -355,9 +355,9 @@ theorem jugInitX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := jugBytecode) (sel := sel) (entry := ⟨299⟩) (ret := ⟨226⟩)
     (decoded := ⟨321⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by
       exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
@@ -383,37 +383,37 @@ theorem jugInitX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd1038pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1039 := rd1038pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1043pre := evm_run rd1039 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1044 := rd1043pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1047pre := evm_run rd1044 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1048 := rd1047pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k1049, C1049, rd1049raw⟩ := rd1048.sload (by native_decide) (by evm_ov)
+  obtain ⟨k1049, C1049, rd1049raw⟩ := rd1048.sload (by decide +native) (by evm_ov)
   have rd1049 : RD jugBytecode I g s0 ⟨1049⟩
       (relyAuthWord σ I :: fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1049 C1049 := by
     simpa [relyAuthWord, jugSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1049raw
   have rd1052pre := evm_run rd1049 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hauth, u256_eq_refl] at rd1052pre
   have rd1055 := rd1052pre.pushConst (⟨1121⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1055.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1055.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -431,39 +431,39 @@ theorem jugInitX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd1038pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1039 := rd1038pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1043pre := evm_run rd1039 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1044 := rd1043pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1047pre := evm_run rd1044 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1048 := rd1047pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k1049, C1049, rd1049raw⟩ := rd1048.sload (by native_decide) (by evm_ov)
+  obtain ⟨k1049, C1049, rd1049raw⟩ := rd1048.sload (by decide +native) (by evm_ov)
   have rd1049 : RD jugBytecode I g s0 ⟨1049⟩
       (relyAuthWord σ I :: fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1049 C1049 := by
     simpa [relyAuthWord, jugSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1049raw
   have rd1052pre := evm_run rd1049 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq : UInt256.eq (⟨1⟩ : UInt256) (relyAuthWord σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne (by intro hbad; exact hauth hbad.symm)
   rw [heq] at rd1052pre
   have rd1055 := rd1052pre.pushConst (⟨1121⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1056 := rd1055.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1056 := rd1055.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨1056⟩)
     (len := ⟨18⟩)
@@ -475,7 +475,7 @@ theorem jugInitX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     rd1056
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide)
     relyNotAuthorizedWord
     (relyAuthHashMem_size I)
@@ -498,34 +498,34 @@ theorem jugInitX_dutyZero {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     simpa [fileDutyIlkHashMem] using
       twoWordHashMem_solcMappingSlot (⟨1⟩ : UInt256) (fileDutyIlkWord I)
         (relyAuthHashMem_size I)
-  have rd1122 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1124 := rd1122.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd1125 := rd1124.dup2 (by native_decide) (by evm_ov)
-  have rd1126pre := rd1125.dup2 (by native_decide) (by evm_ov)
+  have rd1122 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1124 := rd1122.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd1125 := rd1124.dup2 (by decide +native) (by evm_ov)
+  have rd1126pre := rd1125.dup2 (by decide +native) (by evm_ov)
   have rd1127 := rd1126pre.mstore 0 (wordAt0Mem (fileDutyIlkWord I) (relyAuthHashMem I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1131pre := evm_run rd1127 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd1132 := rd1131pre.mstore 0 (fileDutyIlkHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1135pre := evm_run rd1132 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1136 := rd1135pre.keccak256 0 (solcMappingSlot ⟨1⟩ (fileDutyIlkWord I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  have rd1137 := rd1136.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨k1138, C1138, rd1138raw⟩ := rd1137.sload (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  have rd1137 := rd1136.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨k1138, C1138, rd1138raw⟩ := rd1137.sload (by decide +native) (by evm_ov)
   have rd1138 : RD jugBytecode I g s0 ⟨1138⟩
       (jugSlotWord (fileDutyDutySlotFor I) σ I :: solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) ::
         fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1138 C1138 := by
     simpa [jugSlotWord, fileDutyDutySlotFor_eq hsz36] using rd1138raw
-  have rd1139 := rd1138.iszero (by native_decide) (by evm_ov)
+  have rd1139 := rd1138.iszero (by decide +native) (by evm_ov)
   rw [hduty, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1139
   have rd1142 := rd1139.pushConst (⟨1210⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1210 := rd1142.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1210 := rd1142.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
   exact ⟨_, _, by simpa [fileDutyDutySlotFor_eq hsz36] using rd1210⟩
 
@@ -543,36 +543,36 @@ theorem jugInitX_alreadyInit {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     simpa [fileDutyIlkHashMem] using
       twoWordHashMem_solcMappingSlot (⟨1⟩ : UInt256) (fileDutyIlkWord I)
         (relyAuthHashMem_size I)
-  have rd1122 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1124 := rd1122.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd1125 := rd1124.dup2 (by native_decide) (by evm_ov)
-  have rd1126pre := rd1125.dup2 (by native_decide) (by evm_ov)
+  have rd1122 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1124 := rd1122.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd1125 := rd1124.dup2 (by decide +native) (by evm_ov)
+  have rd1126pre := rd1125.dup2 (by decide +native) (by evm_ov)
   have rd1127 := rd1126pre.mstore 0 (wordAt0Mem (fileDutyIlkWord I) (relyAuthHashMem I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1131pre := evm_run rd1127 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov)]
   have rd1132 := rd1131pre.mstore 0 (fileDutyIlkHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1135pre := evm_run rd1132 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1136 := rd1135pre.keccak256 0 (solcMappingSlot ⟨1⟩ (fileDutyIlkWord I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  have rd1137 := rd1136.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨k1138, C1138, rd1138raw⟩ := rd1137.sload (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  have rd1137 := rd1136.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨k1138, C1138, rd1138raw⟩ := rd1137.sload (by decide +native) (by evm_ov)
   have rd1138 : RD jugBytecode I g s0 ⟨1138⟩
       (jugSlotWord (fileDutyDutySlotFor I) σ I :: solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) ::
         fileDutyIlkWord I :: ⟨226⟩ :: [sel])
       (fileDutyIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1138 C1138 := by
     simpa [jugSlotWord, fileDutyDutySlotFor_eq hsz36] using rd1138raw
-  have rd1139 := rd1138.iszero (by native_decide) (by evm_ov)
+  have rd1139 := rd1138.iszero (by decide +native) (by evm_ov)
   have hzero : UInt256.isZero (jugSlotWord (fileDutyDutySlotFor I) σ I) = ⟨0⟩ := by
     exact isZero_eq_zero_of_ne hduty
   rw [hzero] at rd1139
   have rd1142 := rd1139.pushConst (⟨1210⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1143 := rd1142.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1143 := rd1142.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨1143⟩)
     (len := ⟨20⟩)
@@ -584,9 +584,9 @@ theorem jugInitX_alreadyInit {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     rd1143
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide)
-    (by native_decide)
+    (by decide +native)
     (fileDutyIlkHashMem_size I)
     (fileDutyIlkHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -601,21 +601,21 @@ theorem jugInitX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
         (sstoreAccountMap I.codeOwner σ (fileDutyDutySlotFor I) initOne)
         (fileDutyRhoSlotFor I) (initTimestampWord I))
       ByteArray.empty := by
-  have rd1211 := h.jumpdest (by native_decide) (by evm_ov)
+  have rd1211 := h.jumpdest (by decide +native) (by evm_ov)
   have rd1224 := rd1211.pushConst initOne
-    (width := 12) (op := .PUSH12) (by decide) (by native_decide) (by evm_ov)
-  have rd1225 := rd1224.dup2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1226⟩ := rd1225.sstore hperm (by native_decide) (by evm_ov)
-  have rd1227 := RD.timestamp rd1226 (by native_decide) (by evm_ov)
-  have rd1229 := rd1227.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd1230 := rd1229.swap1 (by native_decide) (by evm_ov)
-  have rd1231 := rd1230.swap2 (by native_decide) (by evm_ov)
-  have rd1232 := rd1231.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1233⟩ := rd1232.sstore hperm (by native_decide) (by evm_ov)
-  have rd1234 := rd1233.pop (by native_decide) (by evm_ov)
-  have rd226 := rd1234.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd227 := rd226.jumpdest (by native_decide) (by evm_ov)
-  simpa [fileDutyRhoSlotFor, initTimestampWord] using RD.stop rd227 (by native_decide) (by evm_ov)
+    (width := 12) (op := .PUSH12) (by decide) (by decide +native) (by evm_ov)
+  have rd1225 := rd1224.dup2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1226⟩ := rd1225.sstore hperm (by decide +native) (by evm_ov)
+  have rd1227 := RD.timestamp rd1226 (by decide +native) (by evm_ov)
+  have rd1229 := rd1227.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd1230 := rd1229.swap1 (by decide +native) (by evm_ov)
+  have rd1231 := rd1230.swap2 (by decide +native) (by evm_ov)
+  have rd1232 := rd1231.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1233⟩ := rd1232.sstore hperm (by decide +native) (by evm_ov)
+  have rd1234 := rd1233.pop (by decide +native) (by evm_ov)
+  have rd226 := rd1234.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd227 := rd226.jumpdest (by decide +native) (by evm_ov)
+  simpa [fileDutyRhoSlotFor, initTimestampWord] using RD.stop rd227 (by decide +native) (by evm_ov)
 
 theorem jugInitX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz4 : 4 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -633,10 +633,10 @@ theorem jugInitX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := jugBytecode) (sel := sel) (entry := ⟨299⟩) (ret := ⟨226⟩)
     (decoded := ⟨321⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem jugInitBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -702,7 +702,7 @@ theorem jugInitBodyCoreOk
     (by
       simpa [initTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+          (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem jugInitBodyCoreUnauthorized
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

@@ -50,12 +50,12 @@ theorem endDecode_bag_none_short {I : ExecutionEnv}
 theorem endBagHighSplitWellFormed :
     selectorSplitWellFormed endBytecode endBagHighSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem endBagMidSplitWellFormed :
     selectorSplitWellFormed endBytecode endBagMidSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem endBagArmsWellFormed :
@@ -64,7 +64,7 @@ theorem endBagArmsWellFormed :
   interval_cases j
   all_goals
     dsimp [armWellFormed]
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
 
 theorem endReachBagBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = endBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -75,7 +75,7 @@ theorem endReachBagBody {cA gh bl σ σ₀ A I} {g : Sat256}
         ByteArray.empty (cA, σ) k C := by
   have hword : endSelWord I = ⟨0x9255f809⟩ :=
     endSelWord_eq_of_beq I hsz 0x92 0x55 0xf8 0x09 ⟨0x9255f809⟩
-      (by native_decide) (by simpa [selIs, endBagConcreteSelector, selectorBytes] using hsel)
+      (by decide +native) (by simpa [selIs, endBagConcreteSelector, selectorBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
     endReachRootSplit (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode hwv hsz hsize
@@ -85,41 +85,41 @@ theorem endReachBagBody {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [endRootSplitPc, endBagHighSplitPc, selArmNextPc, armTgtWidth,
       selArmJumpiPc, selArmPushTgtPc, selArmEqPc, selArmPush4Pc] using
       RD.selectorSplitNotTakenAuto h32 endRootSplitWellFormed
-        (by rw [hword]; native_decide) (by simp)
+        (by rw [hword]; decide +native) (by simp)
   have h162 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endBagHighJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
     simpa [endBagHighSplitPc, endBagHighJumpdestPc] using
       RD.selectorSplitTakenAuto h43 endBagHighSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
+        (by rw [hword]; decide +native) (by jump_dest) (by simp)
   have h163 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endBagMidSplitPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1) (C32 + 22 + 22 + 1) := by
-    simpa [endBagMidSplitPc] using h162.jumpdest (by native_decide) (by simp)
+    simpa [endBagMidSplitPc] using h162.jumpdest (by decide +native) (by simp)
   have h222 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endBagGroupJumpdestPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5) (C32 + 22 + 22 + 1 + 22) := by
     simpa [endBagMidSplitPc, endBagGroupJumpdestPc] using
       RD.selectorSplitTakenAuto h163 endBagMidSplitWellFormed
-        (by rw [hword]; native_decide) (by jump_dest) (by simp)
+        (by rw [hword]; decide +native) (by jump_dest) (by simp)
   have h223 : RD endBytecode I g (initState cA gh bl σ σ₀ g A I)
       endBagFirstArmPc [endSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 5 + 1 + 5 + 1)
         (C32 + 22 + 22 + 1 + 22 + 1) := by
-    simpa [endBagFirstArmPc] using h222.jumpdest (by native_decide) (by simp)
+    simpa [endBagFirstArmPc] using h222.jumpdest (by decide +native) (by simp)
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endBagFirstArmPc j))
         (endSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat endBytecode (nthArmPc endBytecode endBagFirstArmPc 1))
         (endSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact RD.dispatchTo endBagEntryPc 1 h223
     (fun j hj => endBagArmsWellFormed j hj)
-    heq0 htake (by jump_dest) (by native_decide) (by simp)
+    heq0 htake (by jump_dest) (by decide +native) (by simp)
 
 theorem endBagBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -162,23 +162,23 @@ theorem endBagBodyCoreOk
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := endBytecode) (sel := sel) (entry := endBagEntryPc) (ret := endWordReturnPc)
     (decoded := endBagDecodedPc) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcOneAddressExternalMaskAndJumpMasked
     (code := endBytecode) (decoded := endBagDecodedPc) (ret := endWordReturnPc)
     (routine := endBagRoutinePc) (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by jump_dest) (by simp)
   obtain ⟨_, _, hretPc⟩ := RD.solcSingleMappingGetter
     (code := endBytecode) (pc := endBagRoutinePc) (baseSlot := ⟨16⟩) (key := key)
     (ret := endWordReturnPc) (R := [sel])
     (by simpa [key, endBagKey] using hroutine)
     (by
       unfold solcSingleMappingGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   have hret :
       RDret endBytecode (Sat256.ofUInt256 g)
@@ -192,7 +192,7 @@ theorem endBagBodyCoreOk
       (by simpa [slot, endSlotWord] using hretPc)
       (by
         unfold solcReturnWordFromMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨16⟩ key)
       (by rfl)
       (by
@@ -236,10 +236,10 @@ theorem endBagBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := endBytecode) (sel := sel) (entry := endBagEntryPc) (ret := endWordReturnPc)
     (decoded := endBagDecodedPc) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (endDecode_bag_none_short hsz4 hshort)
 

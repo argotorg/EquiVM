@@ -113,7 +113,7 @@ theorem flopperCtorGuardSuccessReach
     (by flopper_ctor_jd) (by evm_ov)
   have rd91 := flopper_ctor_run rd89 with [jumpdest, pop]
   exact ⟨_, _, by
-    simpa [show (⟨89⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ = ⟨91⟩ from by native_decide]
+    simpa [show (⟨89⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ = ⟨91⟩ from by decide +native]
       using rd91⟩
 
 theorem flopperInitcodeNonpayableRevert

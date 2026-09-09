@@ -328,8 +328,8 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyReturnToCheck {g : Sat256} {s0 :
     h houtNe houtSize
     (skimSecondSafeTransferCallMem2_mload64 self toWord prevValue value ho32 hoSize
       hout2_32 hout2Size)
-    (by native_decide)
-    (by native_decide)
+    (by decide +native)
+    (by decide +native)
     (by
       rw [
         show (UInt256.ofNat out.size + ⟨63⟩) =
@@ -490,7 +490,7 @@ theorem RD.uniswapSkimSecondSafeTransferNonemptyTrueStatusToLengthLoaded {g : Sa
     (skimSecondSafeTransferReturnDataMem_mload456 self toWord prevValue value out
       ho32 hoSize hout2_32 hout2Size houtNe houtSize)
     (skimSecondSafeTransferReturnDataActiveWords_mload456_same out houtSize)
-    (by native_decide)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 set_option maxHeartbeats 1000000 in
@@ -587,13 +587,13 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts {g : Sat256} {s0 : S
     swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
   have rd6607' := rd6607
   rw [hout] at rd6607'
-  have rd6641 := evm_run rd6607' with [jumpiT (by native_decide) (by jump_dest)]
+  have rd6641 := evm_run rd6607' with [jumpiT (by decide +native) (by jump_dest)]
   have rd6652 := evm_run rd6641 with [
     jumpdest, push1 ⟨96⟩, swap2, pop, jumpdest, pop, swap2, pop, swap2, pop]
   have rd6692 := evm_run rd6652 with [
-    dup2, dup1, iszero, push2 ⟨6692⟩, jumpiT (by native_decide) (by jump_dest)]
+    dup2, dup1, iszero, push2 ⟨6692⟩, jumpiT (by decide +native) (by jump_dest)]
   have rd6697 := evm_run rd6692 with [
-    jumpdest, push2 ⟨6773⟩, jumpiNT (by native_decide)]
+    jumpdest, push2 ⟨6773⟩, jumpiNT (by decide +native)]
   let mem0 := skimSecondSafeTransferCallMem2 self o toWord prevValue out2 value
   let aw0 : UInt256 := UInt256.ofNat 18
   let fp0 : UInt256 :=
@@ -603,7 +603,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts {g : Sat256} {s0 : S
   let aw1 : UInt256 := UInt256.ofNat (MachineState.M aw0.toNat (⟨64⟩ : UInt256).toNat 32)
   have rd6701 := evm_run rd6697 with [push1 ⟨64⟩, dup1]
   have rd6701' := RD.mload
-    (Cₘ aw1 - Cₘ aw0) fp0 aw1 rd6701 (by native_decide)
+    (Cₘ aw1 - Cₘ aw0) fp0 aw1 rd6701 (by decide +native)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw0, aw1])
@@ -611,12 +611,12 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts {g : Sat256} {s0 : S
     (by rfl)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6705 := rd6701'.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by native_decide) (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide +native) (by decide +native) (by evm_ov)
   have rd6708 := evm_run rd6705 with [push1 ⟨229⟩, shl, dup2]
   let err0 : ByteArray := (UInt256.toByteArray uniswapErrorStringSelector).write 0 mem0 fp0.toNat 32
   let aw2 : UInt256 := UInt256.ofNat (MachineState.M aw1.toNat fp0.toNat 32)
   have rd6710 := RD.mstore
-    (Cₘ aw2 - Cₘ aw1) err0 aw2 rd6708 (by native_decide)
+    (Cₘ aw2 - Cₘ aw1) err0 aw2 rd6708 (by decide +native)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw1, aw2])
@@ -628,7 +628,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts {g : Sat256} {s0 : S
   let err1 : ByteArray := (UInt256.toByteArray (⟨32⟩ : UInt256)).write 0 err0 off1.toNat 32
   let aw3 : UInt256 := UInt256.ofNat (MachineState.M aw2.toNat off1.toNat 32)
   have rd6717 := RD.mstore
-    (Cₘ aw3 - Cₘ aw2) err1 aw3 rd6716 (by native_decide)
+    (Cₘ aw3 - Cₘ aw2) err1 aw3 rd6716 (by decide +native)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw2, aw3, off1])
@@ -640,7 +640,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts {g : Sat256} {s0 : S
   let err2 : ByteArray := (UInt256.toByteArray (⟨26⟩ : UInt256)).write 0 err1 off2.toNat 32
   let aw4 : UInt256 := UInt256.ofNat (MachineState.M aw3.toNat off2.toNat 32)
   have rd6724 := RD.mstore
-    (Cₘ aw4 - Cₘ aw3) err2 aw4 rd6723 (by native_decide)
+    (Cₘ aw4 - Cₘ aw3) err2 aw4 rd6723 (by decide +native)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw3, aw4, off2])
@@ -648,14 +648,14 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts {g : Sat256} {s0 : S
     (by rfl)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd6757 := rd6724.pushConst uniswapSafeTransferFailedStringWord
-    (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide +native) (by decide +native) (by evm_ov)
   have rd6760 := evm_run rd6757 with [push1 ⟨68⟩, dup3, add]
   let off3 : UInt256 := fp0 + ⟨68⟩
   let err3 : ByteArray := (UInt256.toByteArray uniswapSafeTransferFailedStringWord).write 0
     err2 off3.toNat 32
   let aw5 : UInt256 := UInt256.ofNat (MachineState.M aw4.toNat off3.toNat 32)
   have rd6762 := RD.mstore
-    (Cₘ aw5 - Cₘ aw4) err3 aw5 rd6760 (by native_decide)
+    (Cₘ aw5 - Cₘ aw4) err3 aw5 rd6760 (by decide +native)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw4, aw5, off3])
@@ -669,7 +669,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts {g : Sat256} {s0 : S
     else UInt256.ofNat (fromByteArrayBigEndian (err3.readWithPadding 64 32))
   let aw6 : UInt256 := UInt256.ofNat (MachineState.M aw5.toNat (⟨64⟩ : UInt256).toNat 32)
   have rd6764 := RD.mload
-    (Cₘ aw6 - Cₘ aw5) fp1 aw6 rd6763 (by native_decide)
+    (Cₘ aw6 - Cₘ aw5) fp1 aw6 rd6763 (by decide +native)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, aw5, aw6])
@@ -682,7 +682,7 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyFailureReverts {g : Sat256} {s0 : S
     (Cₘ (UInt256.ofNat
       (MachineState.M aw6.toNat fp1.toNat ((⟨100⟩ : UInt256) + fp0.sub fp1).toNat)) -
       Cₘ aw6)
-    rd6772 (by native_decide)
+    rd6772 (by decide +native)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk])
@@ -709,23 +709,23 @@ theorem RD.uniswapSkimSecondSafeTransferEmptyReturnToRet {g : Sat256} {s0 : Stat
     swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
   have rd6607' := rd6607
   rw [hout] at rd6607'
-  have rd6641 := evm_run rd6607' with [jumpiT (by native_decide) (by jump_dest)]
+  have rd6641 := evm_run rd6607' with [jumpiT (by decide +native) (by jump_dest)]
   have rd6652 := evm_run rd6641 with [
     jumpdest, push1 ⟨96⟩, swap2, pop, jumpdest, pop, swap2, pop, swap2, pop]
   have rd6658 := evm_run rd6652 with [
-    dup2, dup1, iszero, push2 ⟨6692⟩, jumpiNT (by native_decide)]
+    dup2, dup1, iszero, push2 ⟨6692⟩, jumpiNT (by decide +native)]
   have rd6668 := evm_run rd6658 with [
     pop, dup1,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 18) (by native_decide)
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 18) (by decide +native)
       mem_cost
       (mloadWordValue_of_readWithPadding
-        (by rw [skimSecondSafeTransferCallMem2_size self toWord prevValue value ho32 hoSize hout2_32 hout2Size]; native_decide)
-        (by native_decide)
+        (by rw [skimSecondSafeTransferCallMem2_size self toWord prevValue value ho32 hoSize hout2_32 hout2Size]; decide +native)
+        (by decide +native)
         (skimSecondSafeTransferCallMem2_read96_zero self toWord prevValue value ho32 hoSize hout2_32 hout2Size))
-      (by native_decide) (by evm_ov),
-    iszero, dup1, push2 ⟨6692⟩, jumpiT (by native_decide) (by jump_dest)]
+      (by decide +native) (by evm_ov),
+    iszero, dup1, push2 ⟨6692⟩, jumpiT (by decide +native) (by jump_dest)]
   have rd6773 := evm_run rd6668 with [jumpdest, push2 ⟨6773⟩,
-    jumpiT (by native_decide) (by jump_dest)]
+    jumpiT (by decide +native) (by jump_dest)]
   exact ⟨_, _, evm_run rd6773 with [jumpdest, pop, pop, pop, pop, pop,
     jump hret]⟩
 
@@ -756,9 +756,9 @@ theorem RD.uniswapSkimAfterSecondSafeTransferToReturn {g : Sat256} {s0 : State}
     RDret UniswapV2Pair.uniswapV2PairBytecode g s0
       (cA, sstoreAccountMap ee.codeOwner σ ⟨12⟩ ⟨1⟩) ByteArray.empty := by
   have rd5435 := evm_run h with [jumpdest, pop, pop, push1 ⟨1⟩, push1 ⟨12⟩]
-  obtain ⟨_, _, rd5441⟩ := rd5435.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd5441⟩ := rd5435.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd570 := evm_run rd5441 with [pop, jump (by jump_dest), jumpdest]
-  exact rd570.stop (by native_decide) (by evm_ov)
+  exact rd570.stop (by decide +native) (by evm_ov)
 
 end UniswapV2Pair

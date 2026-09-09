@@ -192,7 +192,7 @@ def spotBytecode : ByteArray :=
       ⟨1661⟩, ⟨1668⟩, ⟨1674⟩, ⟨1756⟩, ⟨1782⟩, ⟨1800⟩, ⟨1837⟩, ⟨1919⟩, ⟨1993⟩, ⟨2051⟩,
       ⟨2075⟩, ⟨2078⟩, ⟨2087⟩, ⟨2093⟩, ⟨2118⟩, ⟨2125⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def spotCreationChunk0 : ByteArray :=
@@ -374,7 +374,7 @@ def spotCreationBytecode : ByteArray :=
       ⟨1692⟩, ⟨1721⟩, ⟨1803⟩, ⟨1810⟩, ⟨1816⟩, ⟨1898⟩, ⟨1924⟩, ⟨1942⟩, ⟨1979⟩, ⟨2061⟩,
       ⟨2135⟩, ⟨2193⟩, ⟨2217⟩, ⟨2220⟩, ⟨2229⟩, ⟨2235⟩, ⟨2260⟩, ⟨2267⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.Spot

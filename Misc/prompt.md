@@ -238,7 +238,7 @@ The proof of a contract `<Name>` goes in a directory `<Name>/`:
 proving EVM bytecode correct against its Solm spec. Useful reads:
 
 - `Reasoning/GUIDE.md` — the library map: where every kind of fact
-  lives, import layering, and the gotchas (native_decide for decode,
+  lives, import layering, and the gotchas (decide +native for decode,
   `RD.foo rd` not `rd.foo`, heartbeat budgets, etc.).
 
 - Each `Reasoning/*.lean` file's `/-! # … -/` header — per-module
@@ -419,7 +419,7 @@ Function calls should be proven modularly. In particular:
   pointless recompilation attempts.
 
 - Quick elaboration is important. Prefer `simp only` over `simp`, and
-  `native_decide` over `decide`. Avoid tactics that blow up build
+  `decide +native` over `decide`. Avoid tactics that blow up build
   time.
 
 - Don't rebuild the world to check a leaf lemma.
@@ -437,12 +437,12 @@ Function calls should be proven modularly. In particular:
   new lemma there with fast cycles. Once it compiles clean, move it
   into its proper file and delete the scratch.
 
-- Decode obligations use `native_decide`, not `decide` (~20× faster on
+- Decode obligations use `decide +native`, not `decide` (~20× faster on
   big bytecode). `evm_run` cooked steps auto-supply it; raw steps
-  write `(by native_decide)` for decode, `(by decide)` for small side
+  write `(by decide +native)` for decode, `(by decide)` for small side
   conditions, `(by jump_dest)` for jump-dest membership, `(by evm_ov)`
-  for stack-overflow bounds. Keep these — the resulting `native_decide`
-  axiom dependencies (`….native_decide.ax_*`) are expected and fine.
+  for stack-overflow bounds. Keep these — the resulting `decide +native`
+  axiom dependencies (`…._native.decide.ax_*`) are expected and fine.
 
 - Raise `maxHeartbeats` only on the file/lemma that needs it, with
   `set_option … in` on that one theorem, not globally.
@@ -544,8 +544,8 @@ path, and `<Namespace>` the contract's namespace — e.g. for
 The build must succeed with no `sorry`.
 
 The axiom footprint should contain only
-`propext`/`Classical.choice`/`Quot.sound`, the `native_decide`
-evaluation axioms (`….native_decide.ax_*`), your contract's
+`propext`/`Classical.choice`/`Quot.sound`, the `decide +native`
+evaluation axioms (`…._native.decide.ax_*`), your contract's
 selector/jump-dest facts, and — where applicable — the library axiom
 `keccak_size` (contracts that hash at run time) and EVMLean's
 precompile output-size axioms (`Ethereum.EVM.ffi_sha256_output_size`,

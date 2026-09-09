@@ -564,7 +564,7 @@ theorem callerSelMem_selector : callerSelMem.extract 128 132 = pow2Selector := b
       extract_append_right_window _ _ _ _ (by rw [solcFreePtrMem_pad_size]),
       solcFreePtrMem_pad_size, show (128:ℕ) - 128 = 0 from rfl, show (132:ℕ) - 128 = 4 from rfl,
       toByteArray_eq_toBytesBE]
-  native_decide
+  decide +native
 
 /-- **Encoding coupling (byte level).**  The 36 bytes the `CALL` sends (`mem[0x80 .. 0xa4]`) are
     exactly `selector ++ word(n)` — the selector in `[128:132]` and the argument word in `[132:164]`. -/
@@ -1209,7 +1209,7 @@ theorem callerExec_canonical {cA gh bl σ_evm σ_solm σ₀ A I} {g : Sat256}
           (by rw [storageStore_createdAccounts])
           (accountMapEquiv.of_eq (by rw [storageStore_accountMap]; simp [initState]))
           (hStateCall.storageStore_codeOwner ⟨0⟩ rfl)
-          (returnEquiv.fallthrough rfl rfl (by native_decide))
+          (returnEquiv.fallthrough rfl rfl (by decide +native))
       · -- `|o| < 32`: decode reverts
         rw [not_le] at ho32
         rw [callerOutPtr_eq, show (⟨128⟩:UInt256).toNat = 128 from by decide,
@@ -1337,45 +1337,45 @@ noncomputable def callerInitReturnMem : ByteArray :=
   (callerInitcode).write 12 ByteArray.empty 0 567
 
 theorem callerBytecode_size : callerBytecode.size = 567 := by
-  native_decide
+  decide +native
 
 theorem callerInitcode_runtime_window :
     (callerInitcode).extract 12 (12 + 567) = callerBytecode := by
-  native_decide
+  decide +native
 
 theorem callerInitcodeDecode0 :
     decode callerInitcode ⟨0⟩ = some (.Push .PUSH2, some (⟨567⟩, 2)) := by
-  native_decide
+  decide +native
 
 theorem callerInitcodeDecode3 :
     decode callerInitcode ⟨3⟩ = some (.Push .PUSH1, some (⟨12⟩, 1)) := by
-  native_decide
+  decide +native
 
 theorem callerInitcodeDecode5 :
     decode callerInitcode ⟨5⟩ = some (.PUSH0, .none) := by
-  native_decide
+  decide +native
 
 theorem callerInitcodeDecode6 :
     decode callerInitcode ⟨6⟩ = some (.CODECOPY, .none) := by
-  native_decide
+  decide +native
 
 theorem callerInitcodeDecode7 :
     decode callerInitcode ⟨7⟩ = some (.Push .PUSH2, some (⟨567⟩, 2)) := by
-  native_decide
+  decide +native
 
 theorem callerInitcodeDecode10 :
     decode callerInitcode ⟨10⟩ = some (.PUSH0, .none) := by
-  native_decide
+  decide +native
 
 theorem callerInitcodeDecode11 :
     decode callerInitcode ⟨11⟩ = some (.RETURN, .none) := by
-  native_decide
+  decide +native
 
 theorem callerFinal_read :
     callerInitReturnMem.readWithPadding 0 567 = callerBytecode := by
   unfold callerInitReturnMem
   rw [write0_read_back_from_gen callerInitcode ByteArray.empty 12 567
-    (by decide) (by native_decide) (by decide)]
+    (by decide) (by decide +native) (by decide)]
   exact callerInitcode_runtime_window
 
 set_option maxHeartbeats 400000 in

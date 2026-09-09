@@ -34,7 +34,7 @@ theorem spotDispatchCage {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some cageTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem spotDispatchDeny {I : ExecutionEnv}
     (hsel : selIs I (spotSelBytes 1)) :
@@ -44,7 +44,7 @@ theorem spotDispatchDeny {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some denyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem spotDispatchFileMat {I : ExecutionEnv}
     (hsel : selIs I (spotSelBytes 2)) :
@@ -54,7 +54,7 @@ theorem spotDispatchFileMat {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some fileMatTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem spotDispatchFilePar {I : ExecutionEnv}
     (hsel : selIs I (spotSelBytes 3)) :
@@ -64,7 +64,7 @@ theorem spotDispatchFilePar {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some fileParTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem spotDispatchFilePip {I : ExecutionEnv}
     (hsel : selIs I (spotSelBytes 4)) :
@@ -74,7 +74,7 @@ theorem spotDispatchFilePip {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some filePipTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem spotDispatchIlks {I : ExecutionEnv}
     (hsel : selIs I (spotSelBytes 5)) :
@@ -84,7 +84,7 @@ theorem spotDispatchIlks {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some ilksTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem spotDispatchLive {I : ExecutionEnv}
     (hsel : selIs I (spotSelBytes 6)) :
@@ -94,7 +94,7 @@ theorem spotDispatchLive {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some liveTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem spotDispatchPar {I : ExecutionEnv}
     (hsel : selIs I (spotSelBytes 7)) :
@@ -104,7 +104,7 @@ theorem spotDispatchPar {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some parTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem spotDispatchPoke {I : ExecutionEnv}
     (hsel : selIs I (spotSelBytes 8)) :
@@ -114,7 +114,7 @@ theorem spotDispatchPoke {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some pokeTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem spotDispatchRely {I : ExecutionEnv}
     (hsel : selIs I (spotSelBytes 9)) :
@@ -124,7 +124,7 @@ theorem spotDispatchRely {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some relyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem spotDispatchVat {I : ExecutionEnv}
     (hsel : selIs I (spotSelBytes 10)) :
@@ -134,7 +134,7 @@ theorem spotDispatchVat {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some vatTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem spotDispatchWards {I : ExecutionEnv}
     (hsel : selIs I (spotSelBytes 11)) :
@@ -144,7 +144,7 @@ theorem spotDispatchWards {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some wardsTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem spotDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg contract cd = none := by
@@ -162,7 +162,7 @@ theorem spotDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
         fileParSelectorBytes, filePipSelectorBytes, ilksSelectorBytes, liveSelectorBytes,
         parSelectorBytes, pokeSelectorBytes, relySelectorBytes, vatSelectorBytes,
         wardsSelectorBytes]
-      native_decide) h
+      decide +native) h
 
 theorem spotDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 12 → (spotSelBytes i == cd.extract 0 4) = false) :
@@ -240,7 +240,7 @@ theorem spotSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
 theorem spotRootSplitWellFormed :
     selectorSplitWellFormed spotBytecode spotRootSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem spotLowArmsWellFormed :
@@ -249,7 +249,7 @@ theorem spotLowArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem spotHighArmsWellFormed :
@@ -258,7 +258,7 @@ theorem spotHighArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 theorem spotLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 6) :
@@ -266,7 +266,7 @@ theorem spotLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat spotBytecode (nthArmPc spotBytecode spotLowFirstArmPc j))
         (spotSelWord I) =
       if (spotLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem spotHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 6) :
@@ -274,7 +274,7 @@ theorem spotHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat spotBytecode (nthArmPc spotBytecode spotHighFirstArmPc j))
         (spotSelWord I) =
       if (spotHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem spotReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -290,13 +290,13 @@ theorem spotReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (revertTgt := spotDispatchRevertPc) (guardWidth := 2) (revertWidth := 2)
       (guardOp := .PUSH2) (revertOp := .PUSH2)
       hcode hwv hsz hsize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 theorem spotReachLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -316,7 +316,7 @@ theorem spotReachLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h114 : RD spotBytecode I g (initState cA gh bl σ σ₀ g A I)
       spotLowFirstArmPc [spotSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [spotLowFirstArmPc] using h113.jumpdest (by native_decide) (by simp)
+    simpa [spotLowFirstArmPc] using h113.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h114⟩
 
 theorem spotReachHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -392,9 +392,9 @@ theorem spotJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt2
     RDrev spotBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h180 := h.push2 spotDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h180 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h180 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem spotLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD spotBytecode I g (initState cA gh bl σ σ₀ g A I) spotLowFirstArmPc
@@ -416,9 +416,9 @@ theorem spotLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 4 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (spotLowArmsWellFormed 5 (by omega))
         (heq0 5 (by omega)) (by simp)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h180 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h180 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem spotHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD spotBytecode I g (initState cA gh bl σ σ₀ g A I) spotHighFirstArmPc
@@ -440,42 +440,42 @@ theorem spotHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 4 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (spotHighArmsWellFormed 5 (by omega))
         (heq0 5 (by omega)) (by simp)
-  exact spotJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
+  exact spotJumpToNoMatchRevert h109 (by decide +native) (by decide +native)
 
 theorem spotX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev spotBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
-  have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
+  have h12 := h0.push2 ⟨16⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h12 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem spotX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
     RDrev spotBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt spotBytecode)
     (opC := solcGuardTgtOp spotBytecode)
     (wC := solcGuardTgtWidth spotBytecode) h0 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest)
-  have h180 := h1.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.calldatasize (by native_decide) (by simp only [List.length]; omega)
-    |>.lt (by native_decide) (by simp only [List.length]; omega)
-    |>.push2 spotDispatchRevertPc (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest)
+  have h180 := h1.push1 ⟨4⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.calldatasize (by decide +native) (by simp only [List.length]; omega)
+    |>.lt (by decide +native) (by simp only [List.length]; omega)
+    |>.push2 spotDispatchRevertPc (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h180 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h180 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem spotX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = spotBytecode) (hwv : I.weiValue = ⟨0⟩)

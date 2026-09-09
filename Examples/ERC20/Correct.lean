@@ -399,10 +399,10 @@ theorem erc20Correct : runtimeEquivalence erc20Config erc20Bytecode erc20Contrac
 /-! ## Constructor side -/
 
 theorem erc20CtorPrefix_size : erc20CtorPrefix.size = 55 := by
-  native_decide
+  decide +native
 
 theorem erc20Bytecode_size : erc20Bytecode.size = 2708 := by
-  native_decide
+  decide +native
 
 theorem erc20Initcode_size : erc20Initcode.size = 2763 := by
   rw [erc20Initcode, ByteArray.size_append, erc20CtorPrefix_size, erc20Bytecode_size]
@@ -428,13 +428,13 @@ macro "erc20_ctor_decode" : tactic =>
     (first
       | rw [erc20Initcode_decode_append _ _ (by decide)]
       | (unfold erc20CtorCode; rw [erc20Initcode_decode_append _ _ (by decide)]);
-     native_decide))
+     decide +native))
 
 macro "erc20_ctor_jd" : tactic =>
   `(tactic|
     (first
-      | (apply Reasoning.Theory.D_J_contains_append_left; native_decide)
-      | (unfold erc20CtorCode; apply Reasoning.Theory.D_J_contains_append_left; native_decide)))
+      | (apply Reasoning.Theory.D_J_contains_append_left; decide +native)
+      | (unfold erc20CtorCode; apply Reasoning.Theory.D_J_contains_append_left; decide +native)))
 
 open Lean in
 macro "erc20_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do

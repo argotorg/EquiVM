@@ -20,7 +20,7 @@ theorem uniswapInternalMintRuntimeTotalSupplyAddEntry
       (value :: uniswapSlotWord ⟨0⟩ σ ee :: ⟨8147⟩ :: value :: recipient :: ret :: R)
       mem aw rdata (cA, σ) k' C' := by
   have rd8131 := evm_run rd8128 with [jumpdest, push1 ⟨0⟩]
-  obtain ⟨k8132, C8132, rd8132₀⟩ := rd8131.sload (by native_decide) (by evm_ov)
+  obtain ⟨k8132, C8132, rd8132₀⟩ := rd8131.sload (by decide +native) (by evm_ov)
   have rd8132 : RD uniswapV2PairBytecode ee g s0 ⟨8132⟩
       (uniswapSlotWord ⟨0⟩ σ ee :: value :: recipient :: ret :: R)
       mem aw rdata (cA, σ) k8132 C8132 := by
@@ -30,7 +30,7 @@ theorem uniswapInternalMintRuntimeTotalSupplyAddEntry
   have hpc8515 : UInt256.land (⟨8515⟩ : UInt256) ⟨0xffffffff⟩ = ⟨8515⟩ := by
     decide
   rw [hpc8515] at rd8515pre
-  exact ⟨_, _, rd8515pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  exact ⟨_, _, rd8515pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only shared internal `_mint` routine through checked totalSupply addition. -/
@@ -65,7 +65,7 @@ theorem uniswapInternalMintRuntimeTotalSupplyStoredEntry
       (⟨0⟩ :: value :: recipient :: ret :: R) mem aw rdata
       (cA, sstoreAccountMap ee.codeOwner σ ⟨0⟩ newSupply) k' C' := by
   have rd8152 := evm_run rd8147 with [jumpdest, push1 ⟨0⟩, swap1, dup2]
-  obtain ⟨_, _, rd8153⟩ := rd8152.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd8153⟩ := rd8152.sstore hperm (by decide +native) (by evm_ov)
   exact ⟨_, _, rd8153⟩
 
 noncomputable abbrev uniswapInternalMintBalanceHashMem
@@ -437,7 +437,7 @@ theorem uniswapInternalMintDoubleBalanceHashMem_mload64_of_ge160
   mloadFreePtrValue
     (by rw [uniswapInternalMintDoubleBalanceHashMem_size_of_ge64 recipient (by omega)];
         omega)
-    (by native_decide)
+    (by decide +native)
     (uniswapInternalMintDoubleBalanceHashMem_read64_of_ge96 recipient (by omega) hread64)
 
 theorem uniswapInternalMintSuccessMem_mload64_of_ge160
@@ -458,7 +458,7 @@ theorem uniswapInternalMintSuccessMem_mload64_of_ge160
       ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [uniswapInternalMintSuccessMem_size_of_ge160 recipient value hlo]; omega)
-    (by native_decide)
+    (by decide +native)
     (uniswapInternalMintSuccessMem_read64_of_ge160 recipient value hlo hread64)
 
 set_option maxHeartbeats 1000000 in
@@ -486,19 +486,19 @@ theorem uniswapInternalMintRuntimeRecipientBalanceAddEntry
       solcAddrMask from by decide] at rd8163pre
   have rd8164 := evm_run rd8163pre with [dup2]
   have rd8165 := rd8164.mstore 0 (wordAt0Mem key mem) feeToStaticcallActiveWords
-    (by native_decide) mem_cost (by unfold key wordAt0Mem; rfl) (by native_decide)
+    (by decide +native) mem_cost (by unfold key wordAt0Mem; rfl) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd8170pre := evm_run rd8165 with [push1 ⟨1⟩, push1 ⟨32⟩]
   have rd8170 := rd8170pre.mstore 0 (uniswapInternalMintBalanceHashMem recipient mem)
-    feeToStaticcallActiveWords (by native_decide) mem_cost
+    feeToStaticcallActiveWords (by decide +native) mem_cost
     (by unfold uniswapInternalMintBalanceHashMem twoWordHashMem wordAt32Mem key; rfl)
-    (by native_decide) (by simp only [List.length_cons]; omega)
+    (by decide +native) (by simp only [List.length_cons]; omega)
   have rd8174 := evm_run rd8170 with [push1 ⟨64⟩, swap1]
   have rd8175 := rd8174.keccak256 0 (uniswapInternalMintBalanceHashSlot recipient mem)
-    feeToStaticcallActiveWords (by native_decide) mem_cost
-    (by unfold uniswapInternalMintBalanceHashSlot; rfl) (by native_decide)
+    feeToStaticcallActiveWords (by decide +native) mem_cost
+    (by unfold uniswapInternalMintBalanceHashSlot; rfl) (by decide +native)
     (by simp only [List.length_cons]; omega)
-  obtain ⟨k8175, C8175, rd8175₀⟩ := rd8175.sload (by native_decide) (by evm_ov)
+  obtain ⟨k8175, C8175, rd8175₀⟩ := rd8175.sload (by decide +native) (by evm_ov)
   have rd8175' : RD uniswapV2PairBytecode ee g s0 ⟨8175⟩
       (uniswapCodeOwnerStorageWord ee σ (uniswapInternalMintBalanceHashSlot recipient mem) ::
         value :: recipient :: ret :: R)
@@ -510,7 +510,7 @@ theorem uniswapInternalMintRuntimeRecipientBalanceAddEntry
   have hpc8515 : UInt256.land (⟨8515⟩ : UInt256) ⟨0xffffffff⟩ = ⟨8515⟩ := by
     decide
   rw [hpc8515] at rd8515pre
-  exact ⟨_, _, rd8515pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  exact ⟨_, _, rd8515pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only shared internal `_mint` routine through checked recipient balance addition. -/
@@ -555,20 +555,20 @@ theorem uniswapInternalMintRuntimeRecipientBalanceStoredEntry
   rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide] at rd8205pre
   have rd8206 := rd8205pre.mstore 0 (wordAt0Mem key mem) feeToStaticcallActiveWords
-    (by native_decide) mem_cost (by unfold key wordAt0Mem; rfl) (by native_decide)
+    (by decide +native) mem_cost (by unfold key wordAt0Mem; rfl) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd8212pre := evm_run rd8206 with [push1 ⟨1⟩, push1 ⟨32⟩, swap1, dup2]
   have rd8213 := rd8212pre.mstore 0 (uniswapInternalMintBalanceHashMem recipient mem)
-    feeToStaticcallActiveWords (by native_decide) mem_cost
+    feeToStaticcallActiveWords (by decide +native) mem_cost
     (by unfold uniswapInternalMintBalanceHashMem twoWordHashMem wordAt32Mem key; rfl)
-    (by native_decide) (by simp only [List.length_cons]; omega)
+    (by decide +native) (by simp only [List.length_cons]; omega)
   have rd8217 := evm_run rd8213 with [push1 ⟨64⟩, dup1, dup4]
   have rd8218 := rd8217.keccak256 0 (uniswapInternalMintBalanceHashSlot recipient mem)
-    feeToStaticcallActiveWords (by native_decide) mem_cost
-    (by unfold uniswapInternalMintBalanceHashSlot; rfl) (by native_decide)
+    feeToStaticcallActiveWords (by decide +native) mem_cost
+    (by unfold uniswapInternalMintBalanceHashSlot; rfl) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd8221 := evm_run rd8218 with [swap5, swap1, swap5]
-  obtain ⟨_, _, rd8222⟩ := rd8221.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd8222⟩ := rd8221.sstore hperm (by decide +native) (by evm_ov)
   exact ⟨_, _, by simpa [key] using rd8222⟩
 
 set_option maxHeartbeats 1000000 in
@@ -603,24 +603,24 @@ theorem uniswapInternalMintRuntimeEmitAndJump
       (uniswapInternalMintLogMem value mem) feeToStaticcallActiveWords rdata acc k' C' := by
   have rd8226 := evm_run rd8222 with [
     dup4,
-    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
-      mem_cost hmload64 (by native_decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by decide +native)
+      mem_cost hmload64 (by decide +native) (by evm_ov),
     dup6, dup2]
   have rd8227 := rd8226.mstore 0 (uniswapInternalMintLogMem value mem)
-    feeToStaticcallActiveWords (by native_decide) mem_cost
-    (by unfold uniswapInternalMintLogMem; rfl) (by native_decide)
+    feeToStaticcallActiveWords (by decide +native) mem_cost
+    (by unfold uniswapInternalMintLogMem; rfl) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd8233 := evm_run rd8227 with [
     swap4,
-    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by native_decide)
-      mem_cost hlogMload64 (by native_decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ feeToStaticcallActiveWords (by decide +native)
+      mem_cost hlogMload64 (by decide +native) (by evm_ov),
     swap3, swap4, swap2, swap3]
   have rd8266 := rd8233.pushConst uniswapTransferTopic (width := 32) (op := .PUSH32)
-    (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by evm_ov)
   have rd8274 := evm_run rd8266 with [
     swap3, dup2, swap1, sub, swap1, swap2, add, swap1]
-  have rd8275 := rd8274.log3 0 feeToStaticcallActiveWords (by native_decide) hperm
-    mem_cost (by native_decide) (by simp only [List.length_cons]; omega)
+  have rd8275 := rd8274.log3 0 feeToStaticcallActiveWords (by decide +native) hperm
+    mem_cost (by decide +native) (by simp only [List.length_cons]; omega)
   exact ⟨_, _, evm_run rd8275 with [pop, pop, jump hret]⟩
 
 set_option maxHeartbeats 1000000 in

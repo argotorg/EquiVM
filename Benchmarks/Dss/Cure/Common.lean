@@ -305,11 +305,11 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
   have rd6 := rd5.dup2 hd5 (by evm_ov)
   have rd7 := rd6.swap1 hd6 (by evm_ov)
   have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨0⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd9 := rd8.swap1 hd8 (by evm_ov)
   have rd10 := rd9.dup2 hd9 (by evm_ov)
   have rd11 := rd10.mstore 0 (solcMappingHashMem ⟨0⟩ key)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd13 := rd11.push1 ⟨64⟩ hd11 (by evm_ov)
   have rd14 := rd13.swap1 hd13 (by evm_ov)
   have hslot := solcMappingKeccakSlot ⟨0⟩ key
@@ -317,7 +317,7 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
     (UInt256.ofNat 3) hd14 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd16⟩ := rd15.sload hd15 (by evm_ov)
   have rd17 := rd16.dup2 hd16 (by evm_ov)
   exact ⟨_, _, rd17.jump hd17 hret (by evm_ov)⟩
@@ -390,10 +390,10 @@ theorem cureX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   exact solcGuardCallvalueNonzeroRevertLegacy
     (ctgt := solcGuardTgt cureBytecode) (opC := solcGuardTgtOp cureBytecode)
     (wC := solcGuardTgtWidth cureBytecode)
-    (solcGuardPrologueRD hcode (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide))
-    hwv (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (solcGuardPrologueRD hcode (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native))
+    hwv (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
 
 /-- EVM calldata-size guard reverts when calldata is shorter than a selector. -/
 theorem cureX_short {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -401,21 +401,21 @@ theorem cureX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hsz : I.calldata.size < 4) :
     RDrev cureBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt cureBytecode) (opC := solcGuardTgtOp cureBytecode)
     (wC := solcGuardTgtWidth cureBytecode) h0 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest)
   exact solcCalldataShortRevertLegacy
     (bodyPc := solcDispatchBodyPc cureBytecode)
     (rtgt := solcCalldataRevertTgt cureBytecode)
     (opR := solcCalldataRevertTgtOp cureBytecode)
     (wR := solcCalldataRevertTgtWidth cureBytecode)
-    h1 hsz (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by jump_dest) (by native_decide) (by native_decide) (by native_decide)
+    h1 hsz (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by jump_dest) (by decide +native) (by decide +native) (by decide +native)
 
 /-! ## Runtime dispatcher reachability -/
 
@@ -434,17 +434,17 @@ abbrev cureDispatchRevertPc : UInt256 := ⟨300⟩
 theorem cureRootSplitWellFormed :
     selectorSplitWellFormed cureBytecode cureRootSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem cureMidSplitWellFormed :
     selectorSplitWellFormed cureBytecode cureMidSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 theorem cureLowSplitWellFormed :
     selectorSplitWellFormed cureBytecode cureLowSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem cureMidLowArmsWellFormed :
@@ -453,7 +453,7 @@ theorem cureMidLowArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem cureHighUpperArmsWellFormed :
@@ -462,7 +462,7 @@ theorem cureHighUpperArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem cureLowUpperArmsWellFormed :
@@ -471,7 +471,7 @@ theorem cureLowUpperArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem cureLowLowerArmsWellFormed :
@@ -480,7 +480,7 @@ theorem cureLowLowerArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 theorem cureSelWord_eq_of_beq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (c0 c1 c2 c3 : UInt8) (sel : UInt256)
@@ -496,22 +496,22 @@ theorem cureReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     ∃ k C, RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureRootSplitPc
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt cureBytecode) (opC := solcGuardTgtOp cureBytecode)
     (wC := solcGuardTgtWidth cureBytecode) h0 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest)
   obtain ⟨_, _, hload⟩ := solcCalldataOk
     (bodyPc := solcDispatchBodyPc cureBytecode)
     (selLoadTgt := solcCalldataRevertTgt cureBytecode)
     (opR := solcCalldataRevertTgtOp cureBytecode)
     (wR := solcCalldataRevertTgtWidth cureBytecode)
-    h1 hsz hsize (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    h1 hsz hsize (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨k, C, hsplit⟩ := solcLegacySelectorLoad hload
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length]; omega)
   exact ⟨k, C, by simpa [cureRootSplitPc, cureSelWord] using hsplit⟩
 
@@ -538,7 +538,7 @@ theorem cureReachLowSplit {cA gh bl σ σ₀ A I} {g : Sat256}
   have h173 := RD.selectorSplitTakenAuto h32 cureRootSplitWellFormed hroot (by jump_dest) (by simp)
   exact ⟨_, _, by
     simpa [cureLowSplitPc, cureLowJumpdestPc, cureRootSplitPc, armTgt, pushAt] using
-      h173.jumpdest (by native_decide) (by simp only [List.length]; omega)⟩
+      h173.jumpdest (by decide +native) (by simp only [List.length]; omega)⟩
 
 theorem cureReachMidLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -553,7 +553,7 @@ theorem cureReachMidLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by simp)
   exact ⟨_, _, by
     simpa [cureMidLowFirstArmPc, cureMidLowJumpdestPc, cureMidSplitPc, armTgt, pushAt] using
-      h113.jumpdest (by native_decide) (by simp only [List.length]; omega)⟩
+      h113.jumpdest (by decide +native) (by simp only [List.length]; omega)⟩
 
 theorem cureReachHighUpperFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -594,7 +594,7 @@ theorem cureReachLowLowerFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (by jump_dest) (by simp)
   exact ⟨_, _, by
     simpa [cureLowLowerFirstArmPc, cureLowLowerJumpdestPc, cureLowSplitPc, armTgt, pushAt] using
-      h244.jumpdest (by native_decide) (by simp only [List.length]; omega)⟩
+      h244.jumpdest (by decide +native) (by simp only [List.length]; omega)⟩
 
 theorem cureReachAmtBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -604,13 +604,13 @@ theorem cureReachAmtBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x09615662⟩ :=
     cureSelWord_eq_of_beq I hsz 0x09 0x61 0x56 0x62 ⟨0x09615662⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h245⟩ := cureReachLowLowerFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨305⟩ 0 h245 (fun j hj => cureLowLowerArmsWellFormed j (by omega))
     (fun j hj => by omega)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureReachListBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -620,13 +620,13 @@ theorem cureReachListBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x0f560cd7⟩ :=
     cureSelWord_eq_of_beq I hsz 0x0f 0x56 0x0c 0xd7 ⟨0x0f560cd7⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h245⟩ := cureReachLowLowerFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨361⟩ 1 h245 (fun j hj => cureLowLowerArmsWellFormed j (by omega))
-    (fun j hj => by interval_cases j; rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (fun j hj => by interval_cases j; rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureReachLoadBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -636,17 +636,17 @@ theorem cureReachLoadBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x2f40e734⟩ :=
     cureSelWord_eq_of_beq I hsz 0x2f 0x40 0xe7 0x34 ⟨0x2f40e734⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h245⟩ := cureReachLowLowerFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨486⟩ 3 h245 (fun j hj => cureLowLowerArmsWellFormed j (by omega))
     (fun j hj => by
       interval_cases j
-      · rw [hsw]; native_decide
-      · rw [hsw]; native_decide
-      · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+      · rw [hsw]; decide +native
+      · rw [hsw]; decide +native
+      · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureReachLiveBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -656,13 +656,13 @@ theorem cureReachLiveBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x957aa58c⟩ :=
     cureSelWord_eq_of_beq I hsz 0x95 0x7a 0xa5 0x8c ⟨0x957aa58c⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h114⟩ := cureReachMidLowFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨724⟩ 4 h114 (fun j hj => cureMidLowArmsWellFormed j (by omega))
-    (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (fun j hj => by interval_cases j <;> · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureReachDropBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -672,13 +672,13 @@ theorem cureReachDropBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x91f2700a⟩ :=
     cureSelWord_eq_of_beq I hsz 0x91 0xf2 0x70 0x0a ⟨0x91f2700a⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h114⟩ := cureReachMidLowFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨640⟩ 1 h114 (fun j hj => cureMidLowArmsWellFormed j (by omega))
-    (fun j hj => by interval_cases j; rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (fun j hj => by interval_cases j; rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureReachSayBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -688,13 +688,13 @@ theorem cureReachSayBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x954ab4b2⟩ :=
     cureSelWord_eq_of_beq I hsz 0x95 0x4a 0xb4 0xb2 ⟨0x954ab4b2⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h114⟩ := cureReachMidLowFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨716⟩ 3 h114 (fun j hj => cureMidLowArmsWellFormed j (by omega))
-    (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (fun j hj => by interval_cases j <;> · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureReachLCountBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -704,13 +704,13 @@ theorem cureReachLCountBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x493aa4c7⟩ :=
     cureSelWord_eq_of_beq I hsz 0x49 0x3a 0xa4 0xc7 ⟨0x493aa4c7⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h185⟩ := cureReachLowUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨562⟩ 0 h185 (fun j hj => cureLowUpperArmsWellFormed j (by omega))
     (fun j hj => by omega)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureReachTCountBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -720,13 +720,13 @@ theorem cureReachTCountBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x53f9a873⟩ :=
     cureSelWord_eq_of_beq I hsz 0x53 0xf9 0xa8 0x73 ⟨0x53f9a873⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h185⟩ := cureReachLowUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨578⟩ 2 h185 (fun j hj => cureLowUpperArmsWellFormed j (by omega))
-    (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (fun j hj => by interval_cases j <;> · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureReachWaitBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -736,13 +736,13 @@ theorem cureReachWaitBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x64bd7013⟩ :=
     cureSelWord_eq_of_beq I hsz 0x64 0xbd 0x70 0x13 ⟨0x64bd7013⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h185⟩ := cureReachLowUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨586⟩ 3 h185 (fun j hj => cureLowUpperArmsWellFormed j (by omega))
-    (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (fun j hj => by interval_cases j <;> · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureReachWhenBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -752,13 +752,13 @@ theorem cureReachWhenBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0xe2b0caef⟩ :=
     cureSelWord_eq_of_beq I hsz 0xe2 0xb0 0xca 0xef ⟨0xe2b0caef⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨808⟩ 2 h54 (fun j hj => cureHighUpperArmsWellFormed j (by omega))
-    (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (fun j hj => by interval_cases j <;> · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -768,15 +768,15 @@ theorem cureReachWardsBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0xbf353dbb⟩ :=
     cureSelWord_eq_of_beq I hsz 0xbf 0x35 0x3d 0xbb ⟨0xbf353dbb⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨770⟩ 1 h54 (fun j hj => cureHighUpperArmsWellFormed j (by omega))
     (fun j hj => by
       interval_cases j
-      · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+      · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureReachPosBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -786,13 +786,13 @@ theorem cureReachPosBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x93d0281c⟩ :=
     cureSelWord_eq_of_beq I hsz 0x93 0xd0 0x28 0x1c ⟨0x93d0281c⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h114⟩ := cureReachMidLowFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨678⟩ 2 h114 (fun j hj => cureMidLowArmsWellFormed j (by omega))
-    (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (fun j hj => by interval_cases j <;> · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureReachLoadedBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -802,13 +802,13 @@ theorem cureReachLoadedBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0xffa9ca9f⟩ :=
     cureSelWord_eq_of_beq I hsz 0xff 0xa9 0xca 0x9f ⟨0xffa9ca9f⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h54⟩ := cureReachHighUpperFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨873⟩ 4 h54 (fun j hj => cureHighUpperArmsWellFormed j (by omega))
-    (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (fun j hj => by interval_cases j <;> · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem cureJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt256}
     {k C : ℕ}
@@ -819,9 +819,9 @@ theorem cureJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UInt2
     RDrev cureBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h300 := h.push2 cureDispatchRevertPc hpush (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h300 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem cureLowLowerNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureLowLowerFirstArmPc
@@ -841,9 +841,9 @@ theorem cureLowLowerNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
         (heq0 3 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (cureLowLowerArmsWellFormed 4 (by omega))
         (heq0 4 (by omega)) (by simp)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h300 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h300 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem cureLowUpperNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureLowUpperFirstArmPc
@@ -863,7 +863,7 @@ theorem cureLowUpperNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
         (heq0 3 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (cureLowUpperArmsWellFormed 4 (by omega))
         (heq0 4 (by omega)) (by simp)
-  exact cureJumpToNoMatchRevert h240 (by native_decide) (by native_decide)
+  exact cureJumpToNoMatchRevert h240 (by decide +native) (by decide +native)
 
 theorem cureMidLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureMidLowFirstArmPc
@@ -883,7 +883,7 @@ theorem cureMidLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 3 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (cureMidLowArmsWellFormed 4 (by omega))
         (heq0 4 (by omega)) (by simp)
-  exact cureJumpToNoMatchRevert h169 (by native_decide) (by native_decide)
+  exact cureJumpToNoMatchRevert h169 (by decide +native) (by decide +native)
 
 theorem cureHighUpperNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD cureBytecode I g (initState cA gh bl σ σ₀ g A I) cureHighUpperFirstArmPc
@@ -903,7 +903,7 @@ theorem cureHighUpperNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
         (heq0 3 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (cureHighUpperArmsWellFormed 4 (by omega))
         (heq0 4 (by omega)) (by simp)
-  exact cureJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
+  exact cureJumpToNoMatchRevert h109 (by decide +native) (by decide +native)
 
 theorem cureNonPayable {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue ≠ ⟨0⟩)
@@ -948,44 +948,44 @@ theorem cureX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
         (cureSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 0 (by omega) 0x09 0x61 0x56 0x62 _ (by native_decide) rfl
-    · exact hselectorNoMatch 7 (by omega) 0x0f 0x56 0x0c 0xd7 _ (by native_decide) rfl
-    · exact hselectorNoMatch 4 (by omega) 0x29 0xae 0x81 0x14 _ (by native_decide) rfl
-    · exact hselectorNoMatch 9 (by omega) 0x2f 0x40 0xe7 0x34 _ (by native_decide) rfl
-    · exact hselectorNoMatch 6 (by omega) 0x3c 0x27 0x8b 0xd5 _ (by native_decide) rfl
+    · exact hselectorNoMatch 0 (by omega) 0x09 0x61 0x56 0x62 _ (by decide +native) rfl
+    · exact hselectorNoMatch 7 (by omega) 0x0f 0x56 0x0c 0xd7 _ (by decide +native) rfl
+    · exact hselectorNoMatch 4 (by omega) 0x29 0xae 0x81 0x14 _ (by decide +native) rfl
+    · exact hselectorNoMatch 9 (by omega) 0x2f 0x40 0xe7 0x34 _ (by decide +native) rfl
+    · exact hselectorNoMatch 6 (by omega) 0x3c 0x27 0x8b 0xd5 _ (by decide +native) rfl
   have heqLowUpper : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat cureBytecode (nthArmPc cureBytecode cureLowUpperFirstArmPc j))
         (cureSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 5 (by omega) 0x49 0x3a 0xa4 0xc7 _ (by native_decide) rfl
-    · exact hselectorNoMatch 16 (by omega) 0x53 0xd7 0x00 0xe5 _ (by native_decide) rfl
-    · exact hselectorNoMatch 15 (by omega) 0x53 0xf9 0xa8 0x73 _ (by native_decide) rfl
-    · exact hselectorNoMatch 17 (by omega) 0x64 0xbd 0x70 0x13 _ (by native_decide) rfl
-    · exact hselectorNoMatch 12 (by omega) 0x65 0xfa 0xe3 0x5e _ (by native_decide) rfl
+    · exact hselectorNoMatch 5 (by omega) 0x49 0x3a 0xa4 0xc7 _ (by decide +native) rfl
+    · exact hselectorNoMatch 16 (by omega) 0x53 0xd7 0x00 0xe5 _ (by decide +native) rfl
+    · exact hselectorNoMatch 15 (by omega) 0x53 0xf9 0xa8 0x73 _ (by decide +native) rfl
+    · exact hselectorNoMatch 17 (by omega) 0x64 0xbd 0x70 0x13 _ (by decide +native) rfl
+    · exact hselectorNoMatch 12 (by omega) 0x65 0xfa 0xe3 0x5e _ (by decide +native) rfl
   have heqMidLow : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat cureBytecode (nthArmPc cureBytecode cureMidLowFirstArmPc j))
         (cureSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 1 (by omega) 0x69 0x24 0x50 0x09 _ (by native_decide) rfl
-    · exact hselectorNoMatch 3 (by omega) 0x91 0xf2 0x70 0x0a _ (by native_decide) rfl
-    · exact hselectorNoMatch 11 (by omega) 0x93 0xd0 0x28 0x1c _ (by native_decide) rfl
-    · exact hselectorNoMatch 13 (by omega) 0x95 0x4a 0xb4 0xb2 _ (by native_decide) rfl
-    · exact hselectorNoMatch 8 (by omega) 0x95 0x7a 0xa5 0x8c _ (by native_decide) rfl
+    · exact hselectorNoMatch 1 (by omega) 0x69 0x24 0x50 0x09 _ (by decide +native) rfl
+    · exact hselectorNoMatch 3 (by omega) 0x91 0xf2 0x70 0x0a _ (by decide +native) rfl
+    · exact hselectorNoMatch 11 (by omega) 0x93 0xd0 0x28 0x1c _ (by decide +native) rfl
+    · exact hselectorNoMatch 13 (by omega) 0x95 0x4a 0xb4 0xb2 _ (by decide +native) rfl
+    · exact hselectorNoMatch 8 (by omega) 0x95 0x7a 0xa5 0x8c _ (by decide +native) rfl
   have heqHighUpper : ∀ j, j < 5 →
       UInt256.eq
         (armSelNat cureBytecode (nthArmPc cureBytecode cureHighUpperFirstArmPc j))
         (cureSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
-    · exact hselectorNoMatch 2 (by omega) 0x9c 0x52 0xa7 0xf1 _ (by native_decide) rfl
-    · exact hselectorNoMatch 18 (by omega) 0xbf 0x35 0x3d 0xbb _ (by native_decide) rfl
-    · exact hselectorNoMatch 19 (by omega) 0xe2 0xb0 0xca 0xef _ (by native_decide) rfl
-    · exact hselectorNoMatch 14 (by omega) 0xf3 0x81 0x27 0x3f _ (by native_decide) rfl
-    · exact hselectorNoMatch 10 (by omega) 0xff 0xa9 0xca 0x9f _ (by native_decide) rfl
+    · exact hselectorNoMatch 2 (by omega) 0x9c 0x52 0xa7 0xf1 _ (by decide +native) rfl
+    · exact hselectorNoMatch 18 (by omega) 0xbf 0x35 0x3d 0xbb _ (by decide +native) rfl
+    · exact hselectorNoMatch 19 (by omega) 0xe2 0xb0 0xca 0xef _ (by decide +native) rfl
+    · exact hselectorNoMatch 14 (by omega) 0xf3 0x81 0x27 0x3f _ (by decide +native) rfl
+    · exact hselectorNoMatch 10 (by omega) 0xff 0xa9 0xca 0x9f _ (by decide +native) rfl
   by_cases hroot : UInt256.gt (armSelNat cureBytecode cureRootSplitPc) (cureSelWord I) = ⟨0⟩
   · by_cases hmid : UInt256.gt (armSelNat cureBytecode cureMidSplitPc) (cureSelWord I) = ⟨0⟩
     · obtain ⟨_, _, hfirst⟩ := cureReachHighUpperFirstArm (cA := cA) (gh := gh)

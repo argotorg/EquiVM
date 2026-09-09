@@ -29,7 +29,7 @@ theorem vowDispatch_flap {I : ExecutionEnv}
       simp [selectorOf, AshSelectorBytes, SinSelectorBytes, bumpSelectorBytes,
         cageSelectorBytes, denySelectorBytes, dumpSelectorBytes, fessSelectorBytes,
         fileUintSelectorBytes, fileAddressSelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, flapSelectorBytes]
     exact hsel
 
@@ -48,13 +48,13 @@ theorem vowReachFlapBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vowSelWord I = ⟨234953099⟩ :=
     vowSelWord_eq_of_beq I hsz 0x0e 0x01 0x19 0x8b ⟨234953099⟩
-      (by native_decide) hsel
+      (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat vowBytecode vowRootSplitPc) (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat vowBytecode vowLowSplitPc) (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowLowLowFirstArmPc j))
         (vowSelWord I) = ⟨0⟩ := by
@@ -64,9 +64,9 @@ theorem vowReachFlapBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat vowBytecode (nthArmPc vowBytecode vowLowLowFirstArmPc 0))
         (vowSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vowReachLowLowBody 0 (by omega) ⟨349⟩ hcode hwv hsz hsize hroot hlow heq0
-    htake (by jump_dest) (by native_decide)
+    htake (by jump_dest) (by decide +native)
 
 theorem RD.vowFlapToSin0ExtcodesizeGuard
     {cA gh bl σ σ₀ A I} {g sel : UInt256}
@@ -82,14 +82,14 @@ theorem RD.vowFlapToSin0ExtcodesizeGuard
   let target := kissDaiTargetWord σ I
   let rawTarget := vowSlotWord ⟨1⟩ σ I
   obtain ⟨_, _, rd349⟩ := hreach
-  have rd350 := rd349.jumpdest (by native_decide) (by evm_ov)
-  have rd353 := rd350.push2 ⟨357⟩ (by native_decide) (by evm_ov)
-  have rd356 := rd353.push2 ⟨847⟩ (by native_decide) (by evm_ov)
+  have rd350 := rd349.jumpdest (by decide +native) (by evm_ov)
+  have rd353 := rd350.push2 ⟨357⟩ (by decide +native) (by evm_ov)
+  have rd356 := rd353.push2 ⟨847⟩ (by decide +native) (by evm_ov)
   have rd847 := by
-    simpa using rd356.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd850 := rd847.jumpdest (by native_decide) (by evm_ov)
-  have rd851 := rd850.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k851, C851, rd852₀⟩ := rd851.sload (by native_decide) (by evm_ov)
+    simpa using rd356.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd850 := rd847.jumpdest (by decide +native) (by evm_ov)
+  have rd851 := rd850.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k851, C851, rd852₀⟩ := rd851.sload (by decide +native) (by evm_ov)
   have rd852 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨851⟩
       (rawTarget :: ⟨357⟩ :: sel :: []) solcFreePtrMem (UInt256.ofNat 3)
@@ -121,22 +121,22 @@ theorem RD.vowFlapToSin0ExtcodesizeGuard
   have rd921 := evm_run rd852 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     push4 ⟨2016186517⟩,
     push1 ⟨225⟩,
     shl,
     dup2,
     raw mstore 6 (healSinSelectorMem solcFreePtrMem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     address,
     push1 ⟨4⟩,
     dup3,
     add,
     raw mstore 3 (healSinCalldataMem I solcFreePtrMem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Sin (by decide) (by evm_ov),
     push1 ⟨0⟩,
     swap3,
@@ -189,9 +189,9 @@ theorem RD.vowFlapVatSin0NoCode
   obtain ⟨_, _, rd921⟩ := RD.vowFlapToSin0ExtcodesizeGuard hreach
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨921⟩) (okPc := ⟨933⟩) rd921
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.vowFlapToSin0Staticcall
     {cA gh bl σ σ₀ A I} {g sel : UInt256}
@@ -210,9 +210,9 @@ theorem RD.vowFlapToSin0Staticcall
   obtain ⟨gasWord, k, C, rd936⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨921⟩) (okPc := ⟨933⟩) rd921
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by evm_ov)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by evm_ov)
   exact ⟨gasWord, k, C, by simpa using rd936⟩
 
 theorem RD.vowFlapSin0PostCall
@@ -240,7 +240,7 @@ theorem RD.vowFlapSin0PostCall
   obtain ⟨gasWord, _, _, rd936⟩ :=
     RD.vowFlapToSin0Staticcall hreach hcodeSize
   obtain ⟨cA', σ', z, o, A_in, callGas, k937, C937, hΘpack, rd937raw, hosz⟩ :=
-    RD.solcStaticcall rd936 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcall rd936 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, o, A', k937, C937, ?_, ?_, hosz⟩
   · have haw :
@@ -248,9 +248,9 @@ theorem RD.vowFlapSin0PostCall
           healSinOutPtr.toNat healSinInSize.toNat)
           healSinOutPtr.toNat (⟨32⟩ : UInt256).toNat) = UInt256.ofNat 6 := by
       rw [healSinInSize_eq]
-      native_decide
+      decide +native
     have hoff : healSinOutPtr.toNat = 128 := by
-      native_decide
+      decide +native
     have rd937 : RD vowBytecode I (Sat256.ofUInt256 g)
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨937⟩
         ((if z then ⟨1⟩ else ⟨0⟩) :: healSinEndPtr :: healSinSelector ::
@@ -285,15 +285,15 @@ theorem RD.vowFlapSin0CallDepthLimit
       (cA, σ) k' C' := by
   obtain ⟨_, _, _, rd936⟩ := RD.vowFlapToSin0Staticcall hreach hcodeSize
   obtain ⟨k937, C937, rd937raw⟩ :=
-    RD.solcStaticcallDepthLimit rd936 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcallDepthLimit rd936 (by decide +native) hdepth (by evm_ov)
   have haw :
       UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
         healSinOutPtr.toNat healSinInSize.toNat)
         healSinOutPtr.toNat (⟨32⟩ : UInt256).toNat) = UInt256.ofNat 6 := by
     rw [healSinInSize_eq]
-    native_decide
+    decide +native
   have hoff : healSinOutPtr.toNat = 128 := by
-    native_decide
+    decide +native
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     rfl
   have rd937 : RD vowBytecode I (Sat256.ofUInt256 g)
@@ -320,9 +320,9 @@ theorem RD.vowFlapSin0CallFailure
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨937⟩) (okPc := ⟨953⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) hosz hov
 
 theorem RD.vowFlapSin0CallSuccessToDecode
     {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -338,8 +338,8 @@ theorem RD.vowFlapSin0CallSuccessToDecode
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨937⟩) (okPc := ⟨953⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simpa only [List.length_cons] using hov)
 
 theorem RD.vowFlapSin0ReturnDecodeShortReverts
@@ -363,10 +363,10 @@ theorem RD.vowFlapSin0ReturnDecodeShortReverts
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨955⟩) (okPc := ⟨975⟩) rd
     hshort hhi
     mem_cost (by decide) hMload64Value
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by simp)
 
 theorem RD.vowFlapSin0ReturnDecodeOk
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
@@ -397,10 +397,10 @@ theorem RD.vowFlapSin0ReturnDecodeOk
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨955⟩) (okPc := ⟨975⟩) rd
     hlo hhi
     mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by jump_dest) (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by jump_dest) (by decide +native) (by decide +native) (by decide +native) (by evm_ov)
 
 theorem vowFlapSourceVatSin0NoCode
     {cA gh bl σ σ₀ A I} {g : UInt256}

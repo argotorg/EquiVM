@@ -1631,27 +1631,27 @@ theorem barkVatUrnsSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
     (barkVatUrnsSelectorMem mem).size = 160 := by
   rw [barkVatUrnsSelectorMem,
     Reasoning.Theory.writeWord_size mem 128 barkVatUrnsSelectorWord
-      (by rw [hmem]; native_decide),
+      (by rw [hmem]; decide +native),
     hmem]
-  native_decide
+  decide +native
 
 theorem barkVatUrnsIlkMem_size {I : ExecutionEnv} {mem : ByteArray}
     (hmem : mem.size = 96) :
     (barkVatUrnsIlkMem I mem).size = 164 := by
   rw [barkVatUrnsIlkMem,
     Reasoning.Theory.writeWord_size (barkVatUrnsSelectorMem mem) 132 (barkIlkWord I)
-      (by rw [barkVatUrnsSelectorMem_size hmem]; native_decide),
+      (by rw [barkVatUrnsSelectorMem_size hmem]; decide +native),
     barkVatUrnsSelectorMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkVatUrnsCallMem_size {I : ExecutionEnv} {mem : ByteArray}
     (hmem : mem.size = 96) :
     (barkVatUrnsCallMem I mem).size = 196 := by
   rw [barkVatUrnsCallMem,
     Reasoning.Theory.writeWord_size (barkVatUrnsIlkMem I mem) 164 (barkUrnKey I)
-      (by rw [barkVatUrnsIlkMem_size hmem]; native_decide),
+      (by rw [barkVatUrnsIlkMem_size hmem]; decide +native),
     barkVatUrnsIlkMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkVatUrnsCallMem_read64 {I : ExecutionEnv} {mem : ByteArray}
     (hmem : mem.size = 96)
@@ -1661,16 +1661,16 @@ theorem barkVatUrnsCallMem_read64 {I : ExecutionEnv} {mem : ByteArray}
   rw [barkVatUrnsCallMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatUrnsIlkMem I mem) 164 64
       (barkUrnKey I)
-      (by rw [barkVatUrnsIlkMem_size hmem]; native_decide)
+      (by rw [barkVatUrnsIlkMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatUrnsIlkMem_size hmem]; decide⟩)]
   rw [barkVatUrnsIlkMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatUrnsSelectorMem mem) 132 64
       (barkIlkWord I)
-      (by rw [barkVatUrnsSelectorMem_size hmem]; native_decide)
+      (by rw [barkVatUrnsSelectorMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatUrnsSelectorMem_size hmem]; decide⟩)]
   rw [barkVatUrnsSelectorMem,
     Reasoning.Theory.writeWord_read_preserved mem 128 64 barkVatUrnsSelectorWord
-      (by rw [hmem]; native_decide)
+      (by rw [hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [hmem]⟩)]
   exact hread64
 
@@ -1842,7 +1842,7 @@ theorem barkVatUrnsPostCallMem_mload128_long {I : ExecutionEnv} {mem out : ByteA
     rw [barkVatUrnsPostCallMem_read128_long hmem hlong hout]
   · exact not_or.mpr
       ⟨by rw [barkVatUrnsPostCallMem_size_long hmem hlong hout]; decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem barkVatUrnsPostCallMem_read160_long {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -1895,52 +1895,52 @@ theorem barkVatUrnsPostCallMem_mload160_long {I : ExecutionEnv} {mem out : ByteA
     rw [barkVatUrnsPostCallMem_read160_long hmem hlong hout]
   · exact not_or.mpr
       ⟨by rw [barkVatUrnsPostCallMem_size_long hmem hlong hout]; decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem barkVatUrnsTupleFreeMem_size {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
     (barkVatUrnsTupleFreeMem I mem out).size = 196 := by
   rw [barkVatUrnsTupleFreeMem,
     Reasoning.Theory.writeWord_size (barkVatUrnsPostCallMem I mem out) 64 ⟨256⟩
-      (by rw [barkVatUrnsPostCallMem_size_long hmem hlong hout]; native_decide),
+      (by rw [barkVatUrnsPostCallMem_size_long hmem hlong hout]; decide +native),
     barkVatUrnsPostCallMem_size_long hmem hlong hout]
-  native_decide
+  decide +native
 
 theorem barkVatUrnsTupleWord0Mem_size {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
     (barkVatUrnsTupleWord0Mem I mem out).size = 196 := by
   rw [barkVatUrnsTupleWord0Mem,
     Reasoning.Theory.writeWord_size (barkVatUrnsTupleFreeMem I mem out) 128 ⟨0⟩
-      (by rw [barkVatUrnsTupleFreeMem_size hmem hlong hout]; native_decide),
+      (by rw [barkVatUrnsTupleFreeMem_size hmem hlong hout]; decide +native),
     barkVatUrnsTupleFreeMem_size hmem hlong hout]
-  native_decide
+  decide +native
 
 theorem barkVatUrnsTupleWord1Mem_size {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
     (barkVatUrnsTupleWord1Mem I mem out).size = 196 := by
   rw [barkVatUrnsTupleWord1Mem,
     Reasoning.Theory.writeWord_size (barkVatUrnsTupleWord0Mem I mem out) 160 ⟨0⟩
-      (by rw [barkVatUrnsTupleWord0Mem_size hmem hlong hout]; native_decide),
+      (by rw [barkVatUrnsTupleWord0Mem_size hmem hlong hout]; decide +native),
     barkVatUrnsTupleWord0Mem_size hmem hlong hout]
-  native_decide
+  decide +native
 
 theorem barkVatUrnsTupleWord2Mem_size {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
     (barkVatUrnsTupleWord2Mem I mem out).size = 224 := by
   rw [barkVatUrnsTupleWord2Mem,
     Reasoning.Theory.writeWord_size (barkVatUrnsTupleWord1Mem I mem out) 192 ⟨0⟩
-      (by rw [barkVatUrnsTupleWord1Mem_size hmem hlong hout]; native_decide),
+      (by rw [barkVatUrnsTupleWord1Mem_size hmem hlong hout]; decide +native),
     barkVatUrnsTupleWord1Mem_size hmem hlong hout]
-  native_decide
+  decide +native
 
 theorem barkVatUrnsTupleMem_size {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
     (barkVatUrnsTupleMem I mem out).size = 256 := by
   rw [barkVatUrnsTupleMem,
     Reasoning.Theory.writeWord_size (barkVatUrnsTupleWord2Mem I mem out) 224 ⟨0⟩
-      (by rw [barkVatUrnsTupleWord2Mem_size hmem hlong hout]; native_decide),
+      (by rw [barkVatUrnsTupleWord2Mem_size hmem hlong hout]; decide +native),
     barkVatUrnsTupleWord2Mem_size hmem hlong hout]
-  native_decide
+  decide +native
 
 theorem barkVatUrnsTupleFreeMem_read64 {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -1948,7 +1948,7 @@ theorem barkVatUrnsTupleFreeMem_read64 {I : ExecutionEnv} {mem out : ByteArray}
       UInt256.toByteArray ⟨256⟩ := by
   rw [barkVatUrnsTupleFreeMem,
     Reasoning.Theory.writeWord_read_back (barkVatUrnsPostCallMem I mem out) 64 ⟨256⟩
-      (by rw [barkVatUrnsPostCallMem_size_long hmem hlong hout]; native_decide)]
+      (by rw [barkVatUrnsPostCallMem_size_long hmem hlong hout]; decide +native)]
 
 theorem barkVatUrnsTupleMem_read64 {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -1957,22 +1957,22 @@ theorem barkVatUrnsTupleMem_read64 {I : ExecutionEnv} {mem out : ByteArray}
   rw [barkVatUrnsTupleMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatUrnsTupleWord2Mem I mem out)
       224 64 ⟨0⟩
-      (by rw [barkVatUrnsTupleWord2Mem_size hmem hlong hout]; native_decide)
+      (by rw [barkVatUrnsTupleWord2Mem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatUrnsTupleWord2Mem_size hmem hlong hout]; decide⟩)]
   rw [barkVatUrnsTupleWord2Mem,
     Reasoning.Theory.writeWord_read_preserved (barkVatUrnsTupleWord1Mem I mem out)
       192 64 ⟨0⟩
-      (by rw [barkVatUrnsTupleWord1Mem_size hmem hlong hout]; native_decide)
+      (by rw [barkVatUrnsTupleWord1Mem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatUrnsTupleWord1Mem_size hmem hlong hout]; decide⟩)]
   rw [barkVatUrnsTupleWord1Mem,
     Reasoning.Theory.writeWord_read_preserved (barkVatUrnsTupleWord0Mem I mem out)
       160 64 ⟨0⟩
-      (by rw [barkVatUrnsTupleWord0Mem_size hmem hlong hout]; native_decide)
+      (by rw [barkVatUrnsTupleWord0Mem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatUrnsTupleWord0Mem_size hmem hlong hout]; decide⟩)]
   rw [barkVatUrnsTupleWord0Mem,
     Reasoning.Theory.writeWord_read_preserved (barkVatUrnsTupleFreeMem I mem out)
       128 64 ⟨0⟩
-      (by rw [barkVatUrnsTupleFreeMem_size hmem hlong hout]; native_decide)
+      (by rw [barkVatUrnsTupleFreeMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatUrnsTupleFreeMem_size hmem hlong hout]; decide⟩)]
   exact barkVatUrnsTupleFreeMem_read64 hmem hlong hout
 
@@ -1987,8 +1987,8 @@ theorem barkVatUrnsTupleMem_mload64 {I : ExecutionEnv} {mem out : ByteArray}
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 8) (v := (⟨256⟩ : UInt256))
     (by rw [barkVatUrnsTupleMem_size hmem hlong hout]; decide)
-    (by native_decide)
-    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+    (by decide +native)
+    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using
       barkVatUrnsTupleMem_read64 hmem hlong hout)
 
 theorem barkIlkBytes_len32 {I : ExecutionEnv} (hsz100 : 100 ≤ I.calldata.size) :
@@ -2066,7 +2066,7 @@ theorem barkKpr_value_masked (I : ExecutionEnv) :
 
 theorem barkVatUrnsSelectorWord_extract :
     (UInt256.toByteArray barkVatUrnsSelectorWord).extract 0 4 = vatUrnsSelector := by
-  native_decide
+  decide +native
 
 theorem barkVatUrnsCallMem_read128_4 {I : ExecutionEnv} {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -2076,20 +2076,20 @@ theorem barkVatUrnsCallMem_read128_4 {I : ExecutionEnv} {mem : ByteArray}
   unfold barkVatUrnsCallMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkUrnKey I)
       (barkVatUrnsIlkMem I mem) 164 128 4
-      (by rw [hIlkSize]; omega) (by native_decide) (by omega) (by omega)
-      (by rw [hIlkSize]; native_decide)]
+      (by rw [hIlkSize]; omega) (by decide +native) (by omega) (by omega)
+      (by rw [hIlkSize]; decide +native)]
   unfold barkVatUrnsIlkMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkIlkWord I)
       (barkVatUrnsSelectorMem mem) 132 128 4
       (by rw [hSelectorSize]; omega)
       (by omega) (by omega) (by omega)
-      (by rw [hSelectorSize]; native_decide)]
+      (by rw [hSelectorSize]; decide +native)]
   unfold barkVatUrnsSelectorMem Reasoning.Theory.writeWord
   change (barkVatUrnsSelectorWord.toByteArray.write 0 mem 128 32).readWithPadding
       128 4 = vatUrnsSelector
   rw [toByteArray_write_read_window_of_gap barkVatUrnsSelectorWord mem 128 0 4
       (by omega) (by omega) (by omega)
-      (by rw [hmem]; native_decide)]
+      (by rw [hmem]; decide +native)]
   exact barkVatUrnsSelectorWord_extract
 
 theorem barkVatUrnsCallMem_read132_32 {I : ExecutionEnv} {mem : ByteArray}
@@ -2101,10 +2101,10 @@ theorem barkVatUrnsCallMem_read132_32 {I : ExecutionEnv} {mem : ByteArray}
   rw [toByteArray_write_read_below_len_of_gap (barkUrnKey I)
       (barkVatUrnsIlkMem I mem) 164 132 32
       (by rw [hIlkSize]) (by omega) (by omega) (by omega)
-      (by rw [hIlkSize]; native_decide)]
+      (by rw [hIlkSize]; decide +native)]
   unfold barkVatUrnsIlkMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap (barkIlkWord I) (barkVatUrnsSelectorMem mem) 132
-      (by rw [barkVatUrnsSelectorMem_size hmem]; native_decide)]
+      (by rw [barkVatUrnsSelectorMem_size hmem]; decide +native)]
 
 theorem barkVatUrnsCallMem_read164_32 {I : ExecutionEnv} {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -2112,7 +2112,7 @@ theorem barkVatUrnsCallMem_read164_32 {I : ExecutionEnv} {mem : ByteArray}
       (barkUrnKey I).toByteArray := by
   unfold barkVatUrnsCallMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap (barkUrnKey I) (barkVatUrnsIlkMem I mem) 164
-      (by rw [barkVatUrnsIlkMem_size hmem]; native_decide)]
+      (by rw [barkVatUrnsIlkMem_size hmem]; decide +native)]
 
 theorem barkVatUrnsCallMem_read128_68 {I : ExecutionEnv} {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -2191,7 +2191,7 @@ theorem barkWordOfIntSubToUInt256 (x y : UInt256) :
     exact Nat.mod_eq_of_lt (by exact Nat.lt_of_le_of_lt (Nat.sub_le _ _) x.val.isLt)
   · have hlt : x.toNat < y.toNat := Nat.lt_of_not_ge hle
     rw [EVM.wordOfInt]
-    have hwordMod : EVM.wordModulus = UInt256.size := by native_decide
+    have hwordMod : EVM.wordModulus = UInt256.size := by decide +native
     have hneg : (x.toNat : Int) - (y.toNat : Int) < 0 := by omega
     rw [if_pos hneg]
     have hnatAbs :
@@ -2212,7 +2212,7 @@ theorem barkWordOfIntSubToUInt256 (x y : UInt256) :
           UInt256.size + x.toNat - y.toNat := by
       rw [hwordMod]
       omega
-    simp [EVM.word, EVM.uintN, hword, show EVM.twoPow 256 = UInt256.size from by native_decide]
+    simp [EVM.word, EVM.uintN, hword, show EVM.twoPow 256 = UInt256.size from by decide +native]
     exact Nat.mod_eq_of_lt (by
       have hy : y.toNat < UInt256.size := y.val.isLt
       omega)
@@ -2225,7 +2225,7 @@ theorem barkInt256NegArgEncoding (w : UInt256)
       EVM.wordOfInt (-(Int.ofNat w.toNat)) = UInt256.sub ⟨0⟩ w := by
     simpa using barkWordOfIntSubToUInt256 (⟨0⟩ : UInt256) w
   have hlimit : dogInt256LimitWord.toNat = EVM.twoPow 255 := by
-    native_decide
+    decide +native
   have hlePow : w.toNat ≤ EVM.twoPow 255 := by
     rw [← hlimit]
     exact hw
@@ -2233,7 +2233,7 @@ theorem barkInt256NegArgEncoding (w : UInt256)
       w.toNat ≤ EVM.twoPow 255 ∧ -↑w.toNat < (↑(EVM.twoPow 255) : Int) := by
     constructor
     · exact hlePow
-    · have hpos : 0 < EVM.twoPow 255 := by native_decide
+    · have hpos : 0 < EVM.twoPow 255 := by decide +native
       omega
   simp [int256Int, ABI.encodeABIValue?, ABI.encodeABIWord?]
   rw [if_pos hcond]
@@ -2479,9 +2479,9 @@ theorem twoWordHashMem_mload256_580 {mem : ByteArray} (key slot word : UInt256)
   exact mloadWordValue_of_readWithPadding
     (off := (⟨256⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := word)
     (by rw [twoWordHashMem_size_580 key slot hmem]; decide)
-    (by native_decide)
+    (by decide +native)
     (by
-      simpa [show (⟨256⟩ : UInt256).toNat = 256 by native_decide] using
+      simpa [show (⟨256⟩ : UInt256).toNat = 256 by decide +native] using
         twoWordHashMem_read256_580 key slot word hmem hread256)
 
 theorem barkIlksHashMem_size {I : ExecutionEnv} {mem out : ByteArray}
@@ -2511,8 +2511,8 @@ theorem barkIlksHashMem_mload64 {I : ExecutionEnv} {mem out : ByteArray}
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 8) (v := (⟨256⟩ : UInt256))
     (by rw [barkIlksHashMem_size hmem hlong hout]; decide)
-    (by native_decide)
-    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+    (by decide +native)
+    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using
       barkIlksHashMem_read64 hmem hlong hout)
 
 theorem barkIlksHashMem_slot {I : ExecutionEnv} {mem out : ByteArray}
@@ -2529,9 +2529,9 @@ theorem barkIlksAllocMem_size {I : ExecutionEnv} {mem out : ByteArray}
     (barkIlksAllocMem I mem out).size = 256 := by
   rw [barkIlksAllocMem,
     Reasoning.Theory.writeWord_size (barkIlksHashMem I mem out) 64 ⟨384⟩
-      (by rw [barkIlksHashMem_size hmem hlong hout]; native_decide),
+      (by rw [barkIlksHashMem_size hmem hlong hout]; decide +native),
     barkIlksHashMem_size hmem hlong hout]
-  native_decide
+  decide +native
 
 theorem barkIlksClipMem_size {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -2539,9 +2539,9 @@ theorem barkIlksClipMem_size {σ : AccountMap} {I : ExecutionEnv} {mem out : Byt
   rw [barkIlksClipMem,
     Reasoning.Theory.writeWord_size (barkIlksAllocMem I mem out) 256
       (barkIlksClipWord σ I)
-      (by rw [barkIlksAllocMem_size hmem hlong hout]; native_decide),
+      (by rw [barkIlksAllocMem_size hmem hlong hout]; decide +native),
     barkIlksAllocMem_size hmem hlong hout]
-  native_decide
+  decide +native
 
 theorem barkIlksChopMem_size {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -2549,9 +2549,9 @@ theorem barkIlksChopMem_size {σ : AccountMap} {I : ExecutionEnv} {mem out : Byt
   rw [barkIlksChopMem,
     Reasoning.Theory.writeWord_size (barkIlksClipMem σ I mem out) 288
       (barkIlksChopWord σ I)
-      (by rw [barkIlksClipMem_size hmem hlong hout]; native_decide),
+      (by rw [barkIlksClipMem_size hmem hlong hout]; decide +native),
     barkIlksClipMem_size hmem hlong hout]
-  native_decide
+  decide +native
 
 theorem barkIlksHoleMem_size {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -2559,9 +2559,9 @@ theorem barkIlksHoleMem_size {σ : AccountMap} {I : ExecutionEnv} {mem out : Byt
   rw [barkIlksHoleMem,
     Reasoning.Theory.writeWord_size (barkIlksChopMem σ I mem out) 320
       (barkIlksHoleWord σ I)
-      (by rw [barkIlksChopMem_size hmem hlong hout]; native_decide),
+      (by rw [barkIlksChopMem_size hmem hlong hout]; decide +native),
     barkIlksChopMem_size hmem hlong hout]
-  native_decide
+  decide +native
 
 theorem barkIlksMem_size {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -2569,9 +2569,9 @@ theorem barkIlksMem_size {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteArr
   rw [barkIlksMem,
     Reasoning.Theory.writeWord_size (barkIlksHoleMem σ I mem out) 352
       (barkIlksDirtWord σ I)
-      (by rw [barkIlksHoleMem_size hmem hlong hout]; native_decide),
+      (by rw [barkIlksHoleMem_size hmem hlong hout]; decide +native),
     barkIlksHoleMem_size hmem hlong hout]
-  native_decide
+  decide +native
 
 theorem barkIlksAllocMem_read64 {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -2579,7 +2579,7 @@ theorem barkIlksAllocMem_read64 {I : ExecutionEnv} {mem out : ByteArray}
       UInt256.toByteArray ⟨384⟩ := by
   rw [barkIlksAllocMem,
     Reasoning.Theory.writeWord_read_back (barkIlksHashMem I mem out) 64 ⟨384⟩
-      (by rw [barkIlksHashMem_size hmem hlong hout]; native_decide)]
+      (by rw [barkIlksHashMem_size hmem hlong hout]; decide +native)]
 
 theorem barkIlksMem_read64 {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -2588,22 +2588,22 @@ theorem barkIlksMem_read64 {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteA
   rw [barkIlksMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksHoleMem σ I mem out) 352 64
       (barkIlksDirtWord σ I)
-      (by rw [barkIlksHoleMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksHoleMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksHoleMem_size hmem hlong hout]; decide⟩)]
   rw [barkIlksHoleMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksChopMem σ I mem out) 320 64
       (barkIlksHoleWord σ I)
-      (by rw [barkIlksChopMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksChopMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksChopMem_size hmem hlong hout]; decide⟩)]
   rw [barkIlksChopMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksClipMem σ I mem out) 288 64
       (barkIlksChopWord σ I)
-      (by rw [barkIlksClipMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksClipMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksClipMem_size hmem hlong hout]; decide⟩)]
   rw [barkIlksClipMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksAllocMem I mem out) 256 64
       (barkIlksClipWord σ I)
-      (by rw [barkIlksAllocMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksAllocMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksAllocMem_size hmem hlong hout]; decide⟩)]
   exact barkIlksAllocMem_read64 hmem hlong hout
 
@@ -2618,8 +2618,8 @@ theorem barkIlksMem_mload64 {σ : AccountMap} {I : ExecutionEnv} {mem out : Byte
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 12) (v := (⟨384⟩ : UInt256))
     (by rw [barkIlksMem_size hmem hlong hout]; decide)
-    (by native_decide)
-    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+    (by decide +native)
+    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using
       barkIlksMem_read64 hmem hlong hout)
 
 theorem barkIlksMem_read256 {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteArray}
@@ -2629,22 +2629,22 @@ theorem barkIlksMem_read256 {σ : AccountMap} {I : ExecutionEnv} {mem out : Byte
   rw [barkIlksMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksHoleMem σ I mem out) 352 256
       (barkIlksDirtWord σ I)
-      (by rw [barkIlksHoleMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksHoleMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksHoleMem_size hmem hlong hout]; decide⟩)]
   rw [barkIlksHoleMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksChopMem σ I mem out) 320 256
       (barkIlksHoleWord σ I)
-      (by rw [barkIlksChopMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksChopMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksChopMem_size hmem hlong hout]; decide⟩)]
   rw [barkIlksChopMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksClipMem σ I mem out) 288 256
       (barkIlksChopWord σ I)
-      (by rw [barkIlksClipMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksClipMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksClipMem_size hmem hlong hout]⟩)]
   rw [barkIlksClipMem,
     Reasoning.Theory.writeWord_read_back (barkIlksAllocMem I mem out) 256
       (barkIlksClipWord σ I)
-      (by rw [barkIlksAllocMem_size hmem hlong hout]; native_decide)]
+      (by rw [barkIlksAllocMem_size hmem hlong hout]; decide +native)]
 
 theorem barkIlksMem_read288 {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -2653,17 +2653,17 @@ theorem barkIlksMem_read288 {σ : AccountMap} {I : ExecutionEnv} {mem out : Byte
   rw [barkIlksMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksHoleMem σ I mem out) 352 288
       (barkIlksDirtWord σ I)
-      (by rw [barkIlksHoleMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksHoleMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksHoleMem_size hmem hlong hout]; decide⟩)]
   rw [barkIlksHoleMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksChopMem σ I mem out) 320 288
       (barkIlksHoleWord σ I)
-      (by rw [barkIlksChopMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksChopMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksChopMem_size hmem hlong hout]⟩)]
   rw [barkIlksChopMem,
     Reasoning.Theory.writeWord_read_back (barkIlksClipMem σ I mem out) 288
       (barkIlksChopWord σ I)
-      (by rw [barkIlksClipMem_size hmem hlong hout]; native_decide)]
+      (by rw [barkIlksClipMem_size hmem hlong hout]; decide +native)]
 
 theorem barkIlksMem_read320 {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -2672,12 +2672,12 @@ theorem barkIlksMem_read320 {σ : AccountMap} {I : ExecutionEnv} {mem out : Byte
   rw [barkIlksMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksHoleMem σ I mem out) 352 320
       (barkIlksDirtWord σ I)
-      (by rw [barkIlksHoleMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksHoleMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksHoleMem_size hmem hlong hout]⟩)]
   rw [barkIlksHoleMem,
     Reasoning.Theory.writeWord_read_back (barkIlksChopMem σ I mem out) 320
       (barkIlksHoleWord σ I)
-      (by rw [barkIlksChopMem_size hmem hlong hout]; native_decide)]
+      (by rw [barkIlksChopMem_size hmem hlong hout]; decide +native)]
 
 theorem barkIlksMem_read352 {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -2686,16 +2686,16 @@ theorem barkIlksMem_read352 {σ : AccountMap} {I : ExecutionEnv} {mem out : Byte
   rw [barkIlksMem,
     Reasoning.Theory.writeWord_read_back (barkIlksHoleMem σ I mem out) 352
       (barkIlksDirtWord σ I)
-      (by rw [barkIlksHoleMem_size hmem hlong hout]; native_decide)]
+      (by rw [barkIlksHoleMem_size hmem hlong hout]; decide +native)]
 
 theorem barkVatIlksSelectorMem_size {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
     (barkVatIlksSelectorMem σ I mem out).size = 416 := by
   rw [barkVatIlksSelectorMem,
     Reasoning.Theory.writeWord_size (barkIlksMem σ I mem out) 384 barkVatIlksSelectorWord
-      (by rw [barkIlksMem_size hmem hlong hout]; native_decide),
+      (by rw [barkIlksMem_size hmem hlong hout]; decide +native),
     barkIlksMem_size hmem hlong hout]
-  native_decide
+  decide +native
 
 theorem barkVatIlksCallMem_size {σ : AccountMap} {I : ExecutionEnv} {mem out : ByteArray}
     (hmem : mem.size = 96) (hlong : 64 ≤ out.size) (hout : out.size < UInt256.size) :
@@ -2703,9 +2703,9 @@ theorem barkVatIlksCallMem_size {σ : AccountMap} {I : ExecutionEnv} {mem out : 
   rw [barkVatIlksCallMem,
     Reasoning.Theory.writeWord_size (barkVatIlksSelectorMem σ I mem out) 388
       (barkIlkWord I)
-      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; native_decide),
+      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; decide +native),
     barkVatIlksSelectorMem_size hmem hlong hout]
-  native_decide
+  decide +native
 
 theorem barkVatIlksSelectorMem_read64 {σ : AccountMap} {I : ExecutionEnv}
     {mem out : ByteArray}
@@ -2715,7 +2715,7 @@ theorem barkVatIlksSelectorMem_read64 {σ : AccountMap} {I : ExecutionEnv}
   rw [barkVatIlksSelectorMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksMem σ I mem out) 384 64
       barkVatIlksSelectorWord
-      (by rw [barkIlksMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksMem_size hmem hlong hout]; decide⟩)]
   exact barkIlksMem_read64 hmem hlong hout
 
@@ -2727,7 +2727,7 @@ theorem barkVatIlksSelectorMem_read256 {σ : AccountMap} {I : ExecutionEnv}
   rw [barkVatIlksSelectorMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksMem σ I mem out) 384 256
       barkVatIlksSelectorWord
-      (by rw [barkIlksMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksMem_size hmem hlong hout]; decide⟩)]
   exact barkIlksMem_read256 hmem hlong hout
 
@@ -2739,7 +2739,7 @@ theorem barkVatIlksSelectorMem_read288 {σ : AccountMap} {I : ExecutionEnv}
   rw [barkVatIlksSelectorMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksMem σ I mem out) 384 288
       barkVatIlksSelectorWord
-      (by rw [barkIlksMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksMem_size hmem hlong hout]; decide⟩)]
   exact barkIlksMem_read288 hmem hlong hout
 
@@ -2751,7 +2751,7 @@ theorem barkVatIlksSelectorMem_read320 {σ : AccountMap} {I : ExecutionEnv}
   rw [barkVatIlksSelectorMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksMem σ I mem out) 384 320
       barkVatIlksSelectorWord
-      (by rw [barkIlksMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksMem_size hmem hlong hout]; decide⟩)]
   exact barkIlksMem_read320 hmem hlong hout
 
@@ -2763,7 +2763,7 @@ theorem barkVatIlksSelectorMem_read352 {σ : AccountMap} {I : ExecutionEnv}
   rw [barkVatIlksSelectorMem,
     Reasoning.Theory.writeWord_read_preserved (barkIlksMem σ I mem out) 384 352
       barkVatIlksSelectorWord
-      (by rw [barkIlksMem_size hmem hlong hout]; native_decide)
+      (by rw [barkIlksMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkIlksMem_size hmem hlong hout]⟩)]
   exact barkIlksMem_read352 hmem hlong hout
 
@@ -2775,7 +2775,7 @@ theorem barkVatIlksCallMem_read64 {σ : AccountMap} {I : ExecutionEnv}
   rw [barkVatIlksCallMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatIlksSelectorMem σ I mem out)
       388 64 (barkIlkWord I)
-      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; native_decide)
+      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatIlksSelectorMem_size hmem hlong hout]; decide⟩)]
   exact barkVatIlksSelectorMem_read64 hmem hlong hout
 
@@ -2787,7 +2787,7 @@ theorem barkVatIlksCallMem_read256 {σ : AccountMap} {I : ExecutionEnv}
   rw [barkVatIlksCallMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatIlksSelectorMem σ I mem out)
       388 256 (barkIlkWord I)
-      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; native_decide)
+      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatIlksSelectorMem_size hmem hlong hout]; decide⟩)]
   exact barkVatIlksSelectorMem_read256 hmem hlong hout
 
@@ -2799,7 +2799,7 @@ theorem barkVatIlksCallMem_read288 {σ : AccountMap} {I : ExecutionEnv}
   rw [barkVatIlksCallMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatIlksSelectorMem σ I mem out)
       388 288 (barkIlkWord I)
-      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; native_decide)
+      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatIlksSelectorMem_size hmem hlong hout]; decide⟩)]
   exact barkVatIlksSelectorMem_read288 hmem hlong hout
 
@@ -2811,7 +2811,7 @@ theorem barkVatIlksCallMem_read320 {σ : AccountMap} {I : ExecutionEnv}
   rw [barkVatIlksCallMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatIlksSelectorMem σ I mem out)
       388 320 (barkIlkWord I)
-      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; native_decide)
+      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatIlksSelectorMem_size hmem hlong hout]; decide⟩)]
   exact barkVatIlksSelectorMem_read320 hmem hlong hout
 
@@ -2823,7 +2823,7 @@ theorem barkVatIlksCallMem_read352 {σ : AccountMap} {I : ExecutionEnv}
   rw [barkVatIlksCallMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatIlksSelectorMem σ I mem out)
       388 352 (barkIlkWord I)
-      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; native_decide)
+      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatIlksSelectorMem_size hmem hlong hout]; decide⟩)]
   exact barkVatIlksSelectorMem_read352 hmem hlong hout
 
@@ -2839,8 +2839,8 @@ theorem barkVatIlksCallMem_mload64 {σ : AccountMap} {I : ExecutionEnv}
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 14) (v := (⟨384⟩ : UInt256))
     (by rw [barkVatIlksCallMem_size hmem hlong hout]; decide)
-    (by native_decide)
-    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+    (by decide +native)
+    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using
       barkVatIlksCallMem_read64 hmem hlong hout)
 
 theorem barkVatIlksPostCallMem_size_gt64 {σ : AccountMap} {I : ExecutionEnv}
@@ -2911,9 +2911,9 @@ theorem barkVatIlksPostCallMem_mload64 {σ : AccountMap} {I : ExecutionEnv}
     (by
       have hgt := barkVatIlksPostCallMem_size_gt64 (σ := σ) (I := I) hmem hlong
         hout hshort houtIlks
-      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hgt)
-    (by native_decide)
-    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using hgt)
+    (by decide +native)
+    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using
       barkVatIlksPostCallMem_read64 hmem hlong hout hshort houtIlks)
 
 theorem barkVatIlksPostCallMem_size_long {σ : AccountMap} {I : ExecutionEnv}
@@ -2969,8 +2969,8 @@ theorem barkVatIlksPostCallMem_mload64_long {σ : AccountMap} {I : ExecutionEnv}
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17) (v := (⟨384⟩ : UInt256))
     (by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks]; decide)
-    (by native_decide)
-    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+    (by decide +native)
+    (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using
       barkVatIlksPostCallMem_read64_long hmem hlong hout hlongIlks houtIlks)
 
 theorem barkVatIlksPostCallMem_read256_long {σ : AccountMap} {I : ExecutionEnv}
@@ -3008,9 +3008,9 @@ theorem barkVatIlksPostCallMem_mload256_long {σ : AccountMap} {I : ExecutionEnv
     (v := barkIlksClipWord σ I)
     (by
       rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks]
-      native_decide)
-    (by native_decide)
-    (by simpa [show (⟨256⟩ : UInt256).toNat = 256 by native_decide] using
+      decide +native)
+    (by decide +native)
+    (by simpa [show (⟨256⟩ : UInt256).toNat = 256 by decide +native] using
       barkVatIlksPostCallMem_read256_long hmem hlong hout hlongIlks houtIlks)
 
 theorem barkVatIlksPostCallMem_read288_long {σ : AccountMap} {I : ExecutionEnv}
@@ -3047,8 +3047,8 @@ theorem barkVatIlksPostCallMem_mload288_long {σ : AccountMap} {I : ExecutionEnv
     (off := (⟨288⟩ : UInt256)) (aw := UInt256.ofNat 17)
     (v := barkIlksChopWord σ I)
     (by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks]; decide)
-    (by native_decide)
-    (by simpa [show (⟨288⟩ : UInt256).toNat = 288 by native_decide] using
+    (by decide +native)
+    (by simpa [show (⟨288⟩ : UInt256).toNat = 288 by decide +native] using
       barkVatIlksPostCallMem_read288_long hmem hlong hout hlongIlks houtIlks)
 
 theorem barkVatIlksPostCallMem_read320_long {σ : AccountMap} {I : ExecutionEnv}
@@ -3085,8 +3085,8 @@ theorem barkVatIlksPostCallMem_mload320_long {σ : AccountMap} {I : ExecutionEnv
     (off := (⟨320⟩ : UInt256)) (aw := UInt256.ofNat 17)
     (v := barkIlksHoleWord σ I)
     (by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks]; decide)
-    (by native_decide)
-    (by simpa [show (⟨320⟩ : UInt256).toNat = 320 by native_decide] using
+    (by decide +native)
+    (by simpa [show (⟨320⟩ : UInt256).toNat = 320 by decide +native] using
       barkVatIlksPostCallMem_read320_long hmem hlong hout hlongIlks houtIlks)
 
 theorem barkVatIlksPostCallMem_read352_long {σ : AccountMap} {I : ExecutionEnv}
@@ -3123,8 +3123,8 @@ theorem barkVatIlksPostCallMem_mload352_long {σ : AccountMap} {I : ExecutionEnv
     (off := (⟨352⟩ : UInt256)) (aw := UInt256.ofNat 17)
     (v := barkIlksDirtWord σ I)
     (by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks]; decide)
-    (by native_decide)
-    (by simpa [show (⟨352⟩ : UInt256).toNat = 352 by native_decide] using
+    (by decide +native)
+    (by simpa [show (⟨352⟩ : UInt256).toNat = 352 by decide +native] using
       barkVatIlksPostCallMem_read352_long hmem hlong hout hlongIlks houtIlks)
 
 theorem barkVatIlksPostCallMem_read416_long {σ : AccountMap} {I : ExecutionEnv}
@@ -3188,7 +3188,7 @@ theorem barkVatIlksPostCallMem_mload416_long {σ : AccountMap} {I : ExecutionEnv
   · exact not_or.mpr
       ⟨by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks];
           decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem barkVatIlksPostCallMem_read448_long {σ : AccountMap} {I : ExecutionEnv}
     {mem out outIlks : ByteArray}
@@ -3251,7 +3251,7 @@ theorem barkVatIlksPostCallMem_mload448_long {σ : AccountMap} {I : ExecutionEnv
   · exact not_or.mpr
       ⟨by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks];
           decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem barkVatIlksPostCallMem_read512_long {σ : AccountMap} {I : ExecutionEnv}
     {mem out outIlks : ByteArray}
@@ -3313,33 +3313,33 @@ theorem barkVatIlksPostCallMem_mload512_long {σ : AccountMap} {I : ExecutionEnv
   · exact not_or.mpr
       ⟨by rw [barkVatIlksPostCallMem_size_long hmem hlong hout hlongIlks houtIlks];
           decide,
-        by native_decide⟩
+        by decide +native⟩
 
 theorem barkVatGrabSelectorMem_size {mem : ByteArray} (hmem : mem.size = 544) :
     (barkVatGrabSelectorMem mem).size = 544 := by
   rw [barkVatGrabSelectorMem,
     Reasoning.Theory.writeWord_size mem 384 barkVatGrabSelectorShifted
-      (by rw [hmem]; native_decide),
+      (by rw [hmem]; decide +native),
     hmem]
-  native_decide
+  decide +native
 
 theorem barkVatGrabIlkMem_size {I : ExecutionEnv} {mem : ByteArray}
     (hmem : mem.size = 544) :
     (barkVatGrabIlkMem I mem).size = 544 := by
   rw [barkVatGrabIlkMem,
     Reasoning.Theory.writeWord_size (barkVatGrabSelectorMem mem) 388 (barkIlkWord I)
-      (by rw [barkVatGrabSelectorMem_size hmem]; native_decide),
+      (by rw [barkVatGrabSelectorMem_size hmem]; decide +native),
     barkVatGrabSelectorMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkVatGrabUrnMem_size {I : ExecutionEnv} {mem : ByteArray}
     (hmem : mem.size = 544) :
     (barkVatGrabUrnMem I mem).size = 544 := by
   rw [barkVatGrabUrnMem,
     Reasoning.Theory.writeWord_size (barkVatGrabIlkMem I mem) 420 (barkUrnKey I)
-      (by rw [barkVatGrabIlkMem_size hmem]; native_decide),
+      (by rw [barkVatGrabIlkMem_size hmem]; decide +native),
     barkVatGrabIlkMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkVatGrabClipMem_size {σMem : AccountMap} {I : ExecutionEnv} {mem : ByteArray}
     (hmem : mem.size = 544) :
@@ -3347,18 +3347,18 @@ theorem barkVatGrabClipMem_size {σMem : AccountMap} {I : ExecutionEnv} {mem : B
   rw [barkVatGrabClipMem,
     Reasoning.Theory.writeWord_size (barkVatGrabUrnMem I mem) 452
       (barkIlksClipWord σMem I)
-      (by rw [barkVatGrabUrnMem_size hmem]; native_decide),
+      (by rw [barkVatGrabUrnMem_size hmem]; decide +native),
     barkVatGrabUrnMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkVatGrabVowMem_size {σ σMem : AccountMap} {I : ExecutionEnv} {mem : ByteArray}
     (hmem : mem.size = 544) :
     (barkVatGrabVowMem σ σMem I mem).size = 544 := by
   rw [barkVatGrabVowMem,
     Reasoning.Theory.writeWord_size (barkVatGrabClipMem σMem I mem) 484 (barkVowWord σ I)
-      (by rw [barkVatGrabClipMem_size hmem]; native_decide),
+      (by rw [barkVatGrabClipMem_size hmem]; decide +native),
     barkVatGrabClipMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkVatGrabDinkMem_size {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink : UInt256} (hmem : mem.size = 544) :
@@ -3366,9 +3366,9 @@ theorem barkVatGrabDinkMem_size {σ σMem : AccountMap} {I : ExecutionEnv}
   rw [barkVatGrabDinkMem,
     Reasoning.Theory.writeWord_size (barkVatGrabVowMem σ σMem I mem) 516
       (UInt256.sub ⟨0⟩ dink)
-      (by rw [barkVatGrabVowMem_size hmem]; native_decide),
+      (by rw [barkVatGrabVowMem_size hmem]; decide +native),
     barkVatGrabVowMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkVatGrabCallMem_size {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
@@ -3376,9 +3376,9 @@ theorem barkVatGrabCallMem_size {σ σMem : AccountMap} {I : ExecutionEnv}
   rw [barkVatGrabCallMem,
     Reasoning.Theory.writeWord_size (barkVatGrabDinkMem σ σMem I mem dink) 548
       (UInt256.sub ⟨0⟩ dart)
-      (by rw [barkVatGrabDinkMem_size hmem]; native_decide),
+      (by rw [barkVatGrabDinkMem_size hmem]; decide +native),
     barkVatGrabDinkMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkVatGrabCallMem_read64 {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink dart : UInt256}
@@ -3389,36 +3389,36 @@ theorem barkVatGrabCallMem_read64 {σ σMem : AccountMap} {I : ExecutionEnv}
   rw [barkVatGrabCallMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatGrabDinkMem σ σMem I mem dink)
       548 64 (UInt256.sub ⟨0⟩ dart)
-      (by rw [barkVatGrabDinkMem_size hmem]; native_decide)
+      (by rw [barkVatGrabDinkMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatGrabDinkMem_size hmem]; decide⟩)]
   rw [barkVatGrabDinkMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatGrabVowMem σ σMem I mem) 516 64
       (UInt256.sub ⟨0⟩ dink)
-      (by rw [barkVatGrabVowMem_size hmem]; native_decide)
+      (by rw [barkVatGrabVowMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatGrabVowMem_size hmem]; decide⟩)]
   rw [barkVatGrabVowMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatGrabClipMem σMem I mem) 484 64
       (barkVowWord σ I)
-      (by rw [barkVatGrabClipMem_size hmem]; native_decide)
+      (by rw [barkVatGrabClipMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatGrabClipMem_size hmem]; decide⟩)]
   rw [barkVatGrabClipMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatGrabUrnMem I mem) 452 64
       (barkIlksClipWord σMem I)
-      (by rw [barkVatGrabUrnMem_size hmem]; native_decide)
+      (by rw [barkVatGrabUrnMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatGrabUrnMem_size hmem]; decide⟩)]
   rw [barkVatGrabUrnMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatGrabIlkMem I mem) 420 64
       (barkUrnKey I)
-      (by rw [barkVatGrabIlkMem_size hmem]; native_decide)
+      (by rw [barkVatGrabIlkMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatGrabIlkMem_size hmem]; decide⟩)]
   rw [barkVatGrabIlkMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatGrabSelectorMem mem) 388 64
       (barkIlkWord I)
-      (by rw [barkVatGrabSelectorMem_size hmem]; native_decide)
+      (by rw [barkVatGrabSelectorMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatGrabSelectorMem_size hmem]; decide⟩)]
   rw [barkVatGrabSelectorMem,
     Reasoning.Theory.writeWord_read_preserved mem 384 64 barkVatGrabSelectorShifted
-      (by rw [hmem]; native_decide)
+      (by rw [hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
   exact hread64
 
@@ -3436,11 +3436,11 @@ theorem barkVatGrabCallMem_mload64 {σ σMem : AccountMap} {I : ExecutionEnv}
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
     (by rw [barkVatGrabCallMem_size hmem]; decide)
-    (by native_decide)
+    (by decide +native)
     (by
       have hread := barkVatGrabCallMem_read64 (σ := σ) (σMem := σMem) (I := I)
         (mem := mem) (dink := dink) (dart := dart) hmem hread64
-      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread)
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using hread)
 
 theorem barkVatGrabCallMem_read256 {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink dart word : UInt256}
@@ -3451,36 +3451,36 @@ theorem barkVatGrabCallMem_read256 {σ σMem : AccountMap} {I : ExecutionEnv}
   rw [barkVatGrabCallMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatGrabDinkMem σ σMem I mem dink)
       548 256 (UInt256.sub ⟨0⟩ dart)
-      (by rw [barkVatGrabDinkMem_size hmem]; native_decide)
+      (by rw [barkVatGrabDinkMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatGrabDinkMem_size hmem]; decide⟩)]
   rw [barkVatGrabDinkMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatGrabVowMem σ σMem I mem) 516 256
       (UInt256.sub ⟨0⟩ dink)
-      (by rw [barkVatGrabVowMem_size hmem]; native_decide)
+      (by rw [barkVatGrabVowMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatGrabVowMem_size hmem]; decide⟩)]
   rw [barkVatGrabVowMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatGrabClipMem σMem I mem) 484 256
       (barkVowWord σ I)
-      (by rw [barkVatGrabClipMem_size hmem]; native_decide)
+      (by rw [barkVatGrabClipMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatGrabClipMem_size hmem]; decide⟩)]
   rw [barkVatGrabClipMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatGrabUrnMem I mem) 452 256
       (barkIlksClipWord σMem I)
-      (by rw [barkVatGrabUrnMem_size hmem]; native_decide)
+      (by rw [barkVatGrabUrnMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatGrabUrnMem_size hmem]; decide⟩)]
   rw [barkVatGrabUrnMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatGrabIlkMem I mem) 420 256
       (barkUrnKey I)
-      (by rw [barkVatGrabIlkMem_size hmem]; native_decide)
+      (by rw [barkVatGrabIlkMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatGrabIlkMem_size hmem]; decide⟩)]
   rw [barkVatGrabIlkMem,
     Reasoning.Theory.writeWord_read_preserved (barkVatGrabSelectorMem mem) 388 256
       (barkIlkWord I)
-      (by rw [barkVatGrabSelectorMem_size hmem]; native_decide)
+      (by rw [barkVatGrabSelectorMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVatGrabSelectorMem_size hmem]; decide⟩)]
   rw [barkVatGrabSelectorMem,
     Reasoning.Theory.writeWord_read_preserved mem 384 256 barkVatGrabSelectorShifted
-      (by rw [hmem]; native_decide)
+      (by rw [hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
   exact hread256
 
@@ -3507,39 +3507,39 @@ theorem barkVatGrabCallMem_mload288 {σ σMem : AccountMap} {I : ExecutionEnv}
     rw [barkVatGrabCallMem,
       Reasoning.Theory.writeWord_read_preserved (barkVatGrabDinkMem σ σMem I mem dink)
         548 288 (UInt256.sub ⟨0⟩ dart)
-        (by rw [barkVatGrabDinkMem_size hmem]; native_decide)
+        (by rw [barkVatGrabDinkMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVatGrabDinkMem_size hmem]; decide⟩)]
     rw [barkVatGrabDinkMem,
       Reasoning.Theory.writeWord_read_preserved (barkVatGrabVowMem σ σMem I mem) 516 288
         (UInt256.sub ⟨0⟩ dink)
-        (by rw [barkVatGrabVowMem_size hmem]; native_decide)
+        (by rw [barkVatGrabVowMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVatGrabVowMem_size hmem]; decide⟩)]
     rw [barkVatGrabVowMem,
       Reasoning.Theory.writeWord_read_preserved (barkVatGrabClipMem σMem I mem) 484 288
         (barkVowWord σ I)
-        (by rw [barkVatGrabClipMem_size hmem]; native_decide)
+        (by rw [barkVatGrabClipMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVatGrabClipMem_size hmem]; decide⟩)]
     rw [barkVatGrabClipMem,
       Reasoning.Theory.writeWord_read_preserved (barkVatGrabUrnMem I mem) 452 288
         (barkIlksClipWord σMem I)
-        (by rw [barkVatGrabUrnMem_size hmem]; native_decide)
+        (by rw [barkVatGrabUrnMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVatGrabUrnMem_size hmem]; decide⟩)]
     rw [barkVatGrabUrnMem,
       Reasoning.Theory.writeWord_read_preserved (barkVatGrabIlkMem I mem) 420 288
         (barkUrnKey I)
-        (by rw [barkVatGrabIlkMem_size hmem]; native_decide)
+        (by rw [barkVatGrabIlkMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVatGrabIlkMem_size hmem]; decide⟩)]
     rw [barkVatGrabIlkMem,
       Reasoning.Theory.writeWord_read_preserved (barkVatGrabSelectorMem mem) 388 288
         (barkIlkWord I)
-        (by rw [barkVatGrabSelectorMem_size hmem]; native_decide)
+        (by rw [barkVatGrabSelectorMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVatGrabSelectorMem_size hmem]; decide⟩)]
     rw [barkVatGrabSelectorMem,
       Reasoning.Theory.writeWord_read_preserved mem 384 288 barkVatGrabSelectorShifted
-        (by rw [hmem]; native_decide)
+        (by rw [hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
   simpa [barkVatGrabCallMem_size hmem, hmem,
-    show (⟨288⟩ : UInt256).toNat = 288 by native_decide, hread] using hmload288
+    show (⟨288⟩ : UInt256).toNat = 288 by decide +native, hread] using hmload288
 
 theorem barkVatGrabPostCallMem_eq {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem out : ByteArray} {dink dart : UInt256} :
@@ -3618,39 +3618,39 @@ theorem barkVatGrabCallMem_mload352 {σ σMem : AccountMap} {I : ExecutionEnv}
     rw [barkVatGrabCallMem,
       Reasoning.Theory.writeWord_read_preserved (barkVatGrabDinkMem σ σMem I mem dink)
         548 352 (UInt256.sub ⟨0⟩ dart)
-        (by rw [barkVatGrabDinkMem_size hmem]; native_decide)
+        (by rw [barkVatGrabDinkMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVatGrabDinkMem_size hmem]; decide⟩)]
     rw [barkVatGrabDinkMem,
       Reasoning.Theory.writeWord_read_preserved (barkVatGrabVowMem σ σMem I mem) 516 352
         (UInt256.sub ⟨0⟩ dink)
-        (by rw [barkVatGrabVowMem_size hmem]; native_decide)
+        (by rw [barkVatGrabVowMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVatGrabVowMem_size hmem]; decide⟩)]
     rw [barkVatGrabVowMem,
       Reasoning.Theory.writeWord_read_preserved (barkVatGrabClipMem σMem I mem) 484 352
         (barkVowWord σ I)
-        (by rw [barkVatGrabClipMem_size hmem]; native_decide)
+        (by rw [barkVatGrabClipMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVatGrabClipMem_size hmem]; decide⟩)]
     rw [barkVatGrabClipMem,
       Reasoning.Theory.writeWord_read_preserved (barkVatGrabUrnMem I mem) 452 352
         (barkIlksClipWord σMem I)
-        (by rw [barkVatGrabUrnMem_size hmem]; native_decide)
+        (by rw [barkVatGrabUrnMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVatGrabUrnMem_size hmem]; decide⟩)]
     rw [barkVatGrabUrnMem,
       Reasoning.Theory.writeWord_read_preserved (barkVatGrabIlkMem I mem) 420 352
         (barkUrnKey I)
-        (by rw [barkVatGrabIlkMem_size hmem]; native_decide)
+        (by rw [barkVatGrabIlkMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVatGrabIlkMem_size hmem]; decide⟩)]
     rw [barkVatGrabIlkMem,
       Reasoning.Theory.writeWord_read_preserved (barkVatGrabSelectorMem mem) 388 352
         (barkIlkWord I)
-        (by rw [barkVatGrabSelectorMem_size hmem]; native_decide)
+        (by rw [barkVatGrabSelectorMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVatGrabSelectorMem_size hmem]; decide⟩)]
     rw [barkVatGrabSelectorMem,
       Reasoning.Theory.writeWord_read_preserved mem 384 352 barkVatGrabSelectorShifted
-        (by rw [hmem]; native_decide)
+        (by rw [hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
   simpa [barkVatGrabCallMem_size hmem, hmem,
-    show (⟨352⟩ : UInt256).toNat = 352 by native_decide, hread] using hmload352
+    show (⟨352⟩ : UInt256).toNat = 352 by decide +native, hread] using hmload352
 
 theorem barkVatGrabPostCallMem_mload352 {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem out : ByteArray} {dink dart word : UInt256}
@@ -3676,7 +3676,7 @@ theorem barkVatGrabPostCallMem_mload352 {σ σMem : AccountMap} {I : ExecutionEn
 
 theorem barkVatGrabSelectorShifted_extract :
     (UInt256.toByteArray barkVatGrabSelectorShifted).extract 0 4 = vatGrabSelector := by
-  native_decide
+  decide +native
 
 theorem barkVatGrabCallMem_read384_4 {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
@@ -3686,37 +3686,37 @@ theorem barkVatGrabCallMem_read384_4 {σ σMem : AccountMap} {I : ExecutionEnv}
   rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dart)
       (barkVatGrabDinkMem σ σMem I mem dink) 548 384 4
       (by rw [barkVatGrabDinkMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; decide +native)]
   unfold barkVatGrabDinkMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dink)
       (barkVatGrabVowMem σ σMem I mem) 516 384 4
       (by rw [barkVatGrabVowMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabVowMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabVowMem_size hmem]; decide +native)]
   unfold barkVatGrabVowMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkVowWord σ I)
       (barkVatGrabClipMem σMem I mem) 484 384 4
       (by rw [barkVatGrabClipMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabClipMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabClipMem_size hmem]; decide +native)]
   unfold barkVatGrabClipMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkIlksClipWord σMem I)
       (barkVatGrabUrnMem I mem) 452 384 4
       (by rw [barkVatGrabUrnMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabUrnMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabUrnMem_size hmem]; decide +native)]
   unfold barkVatGrabUrnMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkUrnKey I)
       (barkVatGrabIlkMem I mem) 420 384 4
       (by rw [barkVatGrabIlkMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabIlkMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabIlkMem_size hmem]; decide +native)]
   unfold barkVatGrabIlkMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkIlkWord I)
       (barkVatGrabSelectorMem mem) 388 384 4
-      (by rw [barkVatGrabSelectorMem_size hmem]; omega) (by native_decide)
-      (by omega) (by omega) (by rw [barkVatGrabSelectorMem_size hmem]; native_decide)]
+      (by rw [barkVatGrabSelectorMem_size hmem]; omega) (by decide +native)
+      (by omega) (by omega) (by rw [barkVatGrabSelectorMem_size hmem]; decide +native)]
   unfold barkVatGrabSelectorMem Reasoning.Theory.writeWord
   change (barkVatGrabSelectorShifted.toByteArray.write 0 mem 384 32).readWithPadding
       384 4 = vatGrabSelector
   rw [toByteArray_write_read_window_of_gap barkVatGrabSelectorShifted mem 384 0 4
-      (by omega) (by omega) (by omega) (by rw [hmem]; native_decide)]
+      (by omega) (by omega) (by omega) (by rw [hmem]; decide +native)]
   exact barkVatGrabSelectorShifted_extract
 
 theorem barkVatGrabCallMem_read388_32 {σ σMem : AccountMap} {I : ExecutionEnv}
@@ -3727,30 +3727,30 @@ theorem barkVatGrabCallMem_read388_32 {σ σMem : AccountMap} {I : ExecutionEnv}
   rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dart)
       (barkVatGrabDinkMem σ σMem I mem dink) 548 388 32
       (by rw [barkVatGrabDinkMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; decide +native)]
   unfold barkVatGrabDinkMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dink)
       (barkVatGrabVowMem σ σMem I mem) 516 388 32
       (by rw [barkVatGrabVowMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabVowMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabVowMem_size hmem]; decide +native)]
   unfold barkVatGrabVowMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkVowWord σ I)
       (barkVatGrabClipMem σMem I mem) 484 388 32
       (by rw [barkVatGrabClipMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabClipMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabClipMem_size hmem]; decide +native)]
   unfold barkVatGrabClipMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkIlksClipWord σMem I)
       (barkVatGrabUrnMem I mem) 452 388 32
       (by rw [barkVatGrabUrnMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabUrnMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabUrnMem_size hmem]; decide +native)]
   unfold barkVatGrabUrnMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkUrnKey I)
       (barkVatGrabIlkMem I mem) 420 388 32
       (by rw [barkVatGrabIlkMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabIlkMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabIlkMem_size hmem]; decide +native)]
   unfold barkVatGrabIlkMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap (barkIlkWord I) (barkVatGrabSelectorMem mem)
-      388 (by rw [barkVatGrabSelectorMem_size hmem]; native_decide)]
+      388 (by rw [barkVatGrabSelectorMem_size hmem]; decide +native)]
 
 theorem barkVatGrabCallMem_read420_32 {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
@@ -3760,25 +3760,25 @@ theorem barkVatGrabCallMem_read420_32 {σ σMem : AccountMap} {I : ExecutionEnv}
   rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dart)
       (barkVatGrabDinkMem σ σMem I mem dink) 548 420 32
       (by rw [barkVatGrabDinkMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; decide +native)]
   unfold barkVatGrabDinkMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dink)
       (barkVatGrabVowMem σ σMem I mem) 516 420 32
       (by rw [barkVatGrabVowMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabVowMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabVowMem_size hmem]; decide +native)]
   unfold barkVatGrabVowMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkVowWord σ I)
       (barkVatGrabClipMem σMem I mem) 484 420 32
       (by rw [barkVatGrabClipMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabClipMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabClipMem_size hmem]; decide +native)]
   unfold barkVatGrabClipMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkIlksClipWord σMem I)
       (barkVatGrabUrnMem I mem) 452 420 32
       (by rw [barkVatGrabUrnMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabUrnMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabUrnMem_size hmem]; decide +native)]
   unfold barkVatGrabUrnMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap (barkUrnKey I) (barkVatGrabIlkMem I mem)
-      420 (by rw [barkVatGrabIlkMem_size hmem]; native_decide)]
+      420 (by rw [barkVatGrabIlkMem_size hmem]; decide +native)]
 
 theorem barkVatGrabCallMem_read452_32 {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
@@ -3788,21 +3788,21 @@ theorem barkVatGrabCallMem_read452_32 {σ σMem : AccountMap} {I : ExecutionEnv}
   rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dart)
       (barkVatGrabDinkMem σ σMem I mem dink) 548 452 32
       (by rw [barkVatGrabDinkMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; decide +native)]
   unfold barkVatGrabDinkMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dink)
       (barkVatGrabVowMem σ σMem I mem) 516 452 32
       (by rw [barkVatGrabVowMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabVowMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabVowMem_size hmem]; decide +native)]
   unfold barkVatGrabVowMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkVowWord σ I)
       (barkVatGrabClipMem σMem I mem) 484 452 32
       (by rw [barkVatGrabClipMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabClipMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabClipMem_size hmem]; decide +native)]
   unfold barkVatGrabClipMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap (barkIlksClipWord σMem I)
       (barkVatGrabUrnMem I mem) 452
-      (by rw [barkVatGrabUrnMem_size hmem]; native_decide)]
+      (by rw [barkVatGrabUrnMem_size hmem]; decide +native)]
 
 theorem barkVatGrabCallMem_read484_32 {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
@@ -3812,16 +3812,16 @@ theorem barkVatGrabCallMem_read484_32 {σ σMem : AccountMap} {I : ExecutionEnv}
   rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dart)
       (barkVatGrabDinkMem σ σMem I mem dink) 548 484 32
       (by rw [barkVatGrabDinkMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; decide +native)]
   unfold barkVatGrabDinkMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dink)
       (barkVatGrabVowMem σ σMem I mem) 516 484 32
       (by rw [barkVatGrabVowMem_size hmem]; omega) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabVowMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabVowMem_size hmem]; decide +native)]
   unfold barkVatGrabVowMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap (barkVowWord σ I)
       (barkVatGrabClipMem σMem I mem) 484
-      (by rw [barkVatGrabClipMem_size hmem]; native_decide)]
+      (by rw [barkVatGrabClipMem_size hmem]; decide +native)]
 
 theorem barkVatGrabCallMem_read516_32 {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
@@ -3831,11 +3831,11 @@ theorem barkVatGrabCallMem_read516_32 {σ σMem : AccountMap} {I : ExecutionEnv}
   rw [toByteArray_write_read_below_len_of_gap (UInt256.sub ⟨0⟩ dart)
       (barkVatGrabDinkMem σ σMem I mem dink) 548 516 32
       (by rw [barkVatGrabDinkMem_size hmem]) (by omega) (by omega)
-      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+      (by omega) (by rw [barkVatGrabDinkMem_size hmem]; decide +native)]
   unfold barkVatGrabDinkMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap (UInt256.sub ⟨0⟩ dink)
       (barkVatGrabVowMem σ σMem I mem) 516
-      (by rw [barkVatGrabVowMem_size hmem]; native_decide)]
+      (by rw [barkVatGrabVowMem_size hmem]; decide +native)]
 
 theorem barkVatGrabCallMem_read548_32 {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
@@ -3844,7 +3844,7 @@ theorem barkVatGrabCallMem_read548_32 {σ σMem : AccountMap} {I : ExecutionEnv}
   unfold barkVatGrabCallMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap (UInt256.sub ⟨0⟩ dart)
       (barkVatGrabDinkMem σ σMem I mem dink) 548
-      (by rw [barkVatGrabDinkMem_size hmem]; native_decide)]
+      (by rw [barkVatGrabDinkMem_size hmem]; decide +native)]
 
 theorem barkVatGrabCallMem_read384_196 {σ σMem : AccountMap} {I : ExecutionEnv}
     {mem : ByteArray} {dink dart : UInt256} (hmem : mem.size = 544) :
@@ -3963,18 +3963,18 @@ theorem barkVowFessSelectorMem_size {mem : ByteArray} (hmem : mem.size = 580) :
     (barkVowFessSelectorMem mem).size = 580 := by
   rw [barkVowFessSelectorMem,
     Reasoning.Theory.writeWord_size mem 384 barkVowFessSelectorShifted
-      (by rw [hmem]; native_decide),
+      (by rw [hmem]; decide +native),
     hmem]
-  native_decide
+  decide +native
 
 theorem barkVowFessDueMem_size {mem : ByteArray} {due : UInt256}
     (hmem : mem.size = 580) :
     (barkVowFessDueMem mem due).size = 580 := by
   rw [barkVowFessDueMem,
     Reasoning.Theory.writeWord_size (barkVowFessSelectorMem mem) 388 due
-      (by rw [barkVowFessSelectorMem_size hmem]; native_decide),
+      (by rw [barkVowFessSelectorMem_size hmem]; decide +native),
     barkVowFessSelectorMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkVowFessDueMem_read64 {mem : ByteArray} {due : UInt256}
     (hmem : mem.size = 580)
@@ -3983,11 +3983,11 @@ theorem barkVowFessDueMem_read64 {mem : ByteArray} {due : UInt256}
       UInt256.toByteArray ⟨384⟩ := by
   rw [barkVowFessDueMem,
     Reasoning.Theory.writeWord_read_preserved (barkVowFessSelectorMem mem) 388 64 due
-      (by rw [barkVowFessSelectorMem_size hmem]; native_decide)
+      (by rw [barkVowFessSelectorMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVowFessSelectorMem_size hmem]; decide⟩)]
   rw [barkVowFessSelectorMem,
     Reasoning.Theory.writeWord_read_preserved mem 384 64 barkVowFessSelectorShifted
-      (by rw [hmem]; native_decide)
+      (by rw [hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
   exact hread64
 
@@ -4004,10 +4004,10 @@ theorem barkVowFessDueMem_mload64 {mem : ByteArray} {due : UInt256}
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
     (by rw [barkVowFessDueMem_size hmem]; decide)
-    (by native_decide)
+    (by decide +native)
     (by
       have hread := barkVowFessDueMem_read64 (mem := mem) (due := due) hmem hread64
-      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread)
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using hread)
 
 theorem barkVowFessDueMem_read256 {mem : ByteArray} {due word : UInt256}
     (hmem : mem.size = 580)
@@ -4016,11 +4016,11 @@ theorem barkVowFessDueMem_read256 {mem : ByteArray} {due word : UInt256}
       UInt256.toByteArray word := by
   rw [barkVowFessDueMem,
     Reasoning.Theory.writeWord_read_preserved (barkVowFessSelectorMem mem) 388 256 due
-      (by rw [barkVowFessSelectorMem_size hmem]; native_decide)
+      (by rw [barkVowFessSelectorMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkVowFessSelectorMem_size hmem]; decide⟩)]
   rw [barkVowFessSelectorMem,
     Reasoning.Theory.writeWord_read_preserved mem 384 256 barkVowFessSelectorShifted
-      (by rw [hmem]; native_decide)
+      (by rw [hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
   exact hread256
 
@@ -4044,14 +4044,14 @@ theorem barkVowFessDueMem_mload288 {mem : ByteArray} {due milkChop : UInt256}
         mem.readWithPadding 288 32 := by
     rw [barkVowFessDueMem,
       Reasoning.Theory.writeWord_read_preserved (barkVowFessSelectorMem mem) 388 288 due
-        (by rw [barkVowFessSelectorMem_size hmem]; native_decide)
+        (by rw [barkVowFessSelectorMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVowFessSelectorMem_size hmem]; decide⟩)]
     rw [barkVowFessSelectorMem,
       Reasoning.Theory.writeWord_read_preserved mem 384 288 barkVowFessSelectorShifted
-        (by rw [hmem]; native_decide)
+        (by rw [hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
   simpa [barkVowFessDueMem_size hmem, hmem,
-    show (⟨288⟩ : UInt256).toNat = 288 by native_decide, hread] using hmload288
+    show (⟨288⟩ : UInt256).toNat = 288 by decide +native, hread] using hmload288
 
 theorem barkVowFessPostCallMem_eq {mem out : ByteArray} {due : UInt256} :
     barkVowFessPostCallMem mem out due = barkVowFessDueMem mem due := by
@@ -4117,14 +4117,14 @@ theorem barkVowFessDueMem_mload352 {mem : ByteArray} {due word : UInt256}
         mem.readWithPadding 352 32 := by
     rw [barkVowFessDueMem,
       Reasoning.Theory.writeWord_read_preserved (barkVowFessSelectorMem mem) 388 352 due
-        (by rw [barkVowFessSelectorMem_size hmem]; native_decide)
+        (by rw [barkVowFessSelectorMem_size hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [barkVowFessSelectorMem_size hmem]; decide⟩)]
     rw [barkVowFessSelectorMem,
       Reasoning.Theory.writeWord_read_preserved mem 384 352 barkVowFessSelectorShifted
-        (by rw [hmem]; native_decide)
+        (by rw [hmem]; decide +native)
         (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
   simpa [barkVowFessDueMem_size hmem, hmem,
-    show (⟨352⟩ : UInt256).toNat = 352 by native_decide, hread] using hmload352
+    show (⟨352⟩ : UInt256).toNat = 352 by decide +native, hread] using hmload352
 
 theorem barkVowFessPostCallMem_mload352 {mem out : ByteArray} {due word : UInt256}
     (hmload352 :
@@ -4144,7 +4144,7 @@ theorem barkVowFessPostCallMem_mload352 {mem out : ByteArray} {due word : UInt25
 
 theorem barkVowFessSelectorShifted_extract :
     (UInt256.toByteArray barkVowFessSelectorShifted).extract 0 4 = vowFessSelector := by
-  native_decide
+  decide +native
 
 theorem barkVowFessDueMem_read384_4 {mem : ByteArray} {due : UInt256}
     (hmem : mem.size = 580) :
@@ -4153,13 +4153,13 @@ theorem barkVowFessDueMem_read384_4 {mem : ByteArray} {due : UInt256}
   unfold barkVowFessDueMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap due
       (barkVowFessSelectorMem mem) 388 384 4
-      (by rw [barkVowFessSelectorMem_size hmem]; omega) (by native_decide)
-      (by omega) (by omega) (by rw [barkVowFessSelectorMem_size hmem]; native_decide)]
+      (by rw [barkVowFessSelectorMem_size hmem]; omega) (by decide +native)
+      (by omega) (by omega) (by rw [barkVowFessSelectorMem_size hmem]; decide +native)]
   unfold barkVowFessSelectorMem Reasoning.Theory.writeWord
   change (barkVowFessSelectorShifted.toByteArray.write 0 mem 384 32).readWithPadding
       384 4 = vowFessSelector
   rw [toByteArray_write_read_window_of_gap barkVowFessSelectorShifted mem 384 0 4
-      (by omega) (by omega) (by omega) (by rw [hmem]; native_decide)]
+      (by omega) (by omega) (by omega) (by rw [hmem]; decide +native)]
   exact barkVowFessSelectorShifted_extract
 
 theorem barkVowFessDueMem_read388_32 {mem : ByteArray} {due : UInt256}
@@ -4168,7 +4168,7 @@ theorem barkVowFessDueMem_read388_32 {mem : ByteArray} {due : UInt256}
       due.toByteArray := by
   unfold barkVowFessDueMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap due (barkVowFessSelectorMem mem) 388
-      (by rw [barkVowFessSelectorMem_size hmem]; native_decide)]
+      (by rw [barkVowFessSelectorMem_size hmem]; decide +native)]
 
 theorem barkVowFessDueMem_read384_36 {mem : ByteArray} {due : UInt256}
     (hmem : mem.size = 580) :
@@ -4178,8 +4178,8 @@ theorem barkVowFessDueMem_read384_36 {mem : ByteArray} {due : UInt256}
     barkVowFessDueMem_size hmem
   rw [show 36 = 4 + 32 from rfl,
     byteArray_readWithPadding_split (barkVowFessDueMem mem due)
-      384 4 32 (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by rw [hsize]; native_decide)]
+      384 4 32 (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by rw [hsize]; decide +native)]
   rw [barkVowFessDueMem_read384_4 hmem, barkVowFessDueMem_read388_32 hmem]
 
 theorem barkVowFessEncodeWords {v : DogImmutables} {due : UInt256} :
@@ -4212,45 +4212,45 @@ theorem barkKickSelectorMem_size {mem : ByteArray} (hmem : mem.size = 580) :
     (barkKickSelectorMem mem).size = 580 := by
   rw [barkKickSelectorMem,
     Reasoning.Theory.writeWord_size mem 384 barkKickSelectorShifted
-      (by rw [hmem]; native_decide),
+      (by rw [hmem]; decide +native),
     hmem]
-  native_decide
+  decide +native
 
 theorem barkKickTabMem_size {mem : ByteArray} {tab : UInt256}
     (hmem : mem.size = 580) :
     (barkKickTabMem mem tab).size = 580 := by
   rw [barkKickTabMem,
     Reasoning.Theory.writeWord_size (barkKickSelectorMem mem) 388 tab
-      (by rw [barkKickSelectorMem_size hmem]; native_decide),
+      (by rw [barkKickSelectorMem_size hmem]; decide +native),
     barkKickSelectorMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkKickDinkMem_size {mem : ByteArray} {tab dink : UInt256}
     (hmem : mem.size = 580) :
     (barkKickDinkMem mem tab dink).size = 580 := by
   rw [barkKickDinkMem,
     Reasoning.Theory.writeWord_size (barkKickTabMem mem tab) 420 dink
-      (by rw [barkKickTabMem_size hmem]; native_decide),
+      (by rw [barkKickTabMem_size hmem]; decide +native),
     barkKickTabMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkKickUrnMem_size {I : ExecutionEnv} {mem : ByteArray}
     {tab dink : UInt256} (hmem : mem.size = 580) :
     (barkKickUrnMem I mem tab dink).size = 580 := by
   rw [barkKickUrnMem,
     Reasoning.Theory.writeWord_size (barkKickDinkMem mem tab dink) 452 (barkUrnKey I)
-      (by rw [barkKickDinkMem_size hmem]; native_decide),
+      (by rw [barkKickDinkMem_size hmem]; decide +native),
     barkKickDinkMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkKickCalldataMem_size {I : ExecutionEnv} {mem : ByteArray}
     {tab dink : UInt256} (hmem : mem.size = 580) :
     (barkKickCalldataMem I mem tab dink).size = 580 := by
   rw [barkKickCalldataMem,
     Reasoning.Theory.writeWord_size (barkKickUrnMem I mem tab dink) 484 (barkKprKey I)
-      (by rw [barkKickUrnMem_size hmem]; native_decide),
+      (by rw [barkKickUrnMem_size hmem]; decide +native),
     barkKickUrnMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkKickCalldataMem_read64 {I : ExecutionEnv} {mem : ByteArray}
     {tab dink : UInt256} (hmem : mem.size = 580)
@@ -4260,24 +4260,24 @@ theorem barkKickCalldataMem_read64 {I : ExecutionEnv} {mem : ByteArray}
   rw [barkKickCalldataMem,
     Reasoning.Theory.writeWord_read_preserved (barkKickUrnMem I mem tab dink) 484 64
       (barkKprKey I)
-      (by rw [barkKickUrnMem_size hmem]; native_decide)
+      (by rw [barkKickUrnMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkKickUrnMem_size hmem]; decide⟩)]
   rw [barkKickUrnMem,
     Reasoning.Theory.writeWord_read_preserved (barkKickDinkMem mem tab dink) 452 64
       (barkUrnKey I)
-      (by rw [barkKickDinkMem_size hmem]; native_decide)
+      (by rw [barkKickDinkMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkKickDinkMem_size hmem]; decide⟩)]
   rw [barkKickDinkMem,
     Reasoning.Theory.writeWord_read_preserved (barkKickTabMem mem tab) 420 64 dink
-      (by rw [barkKickTabMem_size hmem]; native_decide)
+      (by rw [barkKickTabMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkKickTabMem_size hmem]; decide⟩)]
   rw [barkKickTabMem,
     Reasoning.Theory.writeWord_read_preserved (barkKickSelectorMem mem) 388 64 tab
-      (by rw [barkKickSelectorMem_size hmem]; native_decide)
+      (by rw [barkKickSelectorMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkKickSelectorMem_size hmem]; decide⟩)]
   rw [barkKickSelectorMem,
     Reasoning.Theory.writeWord_read_preserved mem 384 64 barkKickSelectorShifted
-      (by rw [hmem]; native_decide)
+      (by rw [hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
   exact hread64
 
@@ -4294,11 +4294,11 @@ theorem barkKickCalldataMem_mload64 {I : ExecutionEnv} {mem : ByteArray}
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
     (by rw [barkKickCalldataMem_size hmem]; decide)
-    (by native_decide)
+    (by decide +native)
     (by
       have hread := barkKickCalldataMem_read64 (I := I) (mem := mem)
         (tab := tab) (dink := dink) hmem hread64
-      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread)
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using hread)
 
 theorem barkKickCalldataMem_read256 {I : ExecutionEnv} {mem : ByteArray}
     {tab dink clip : UInt256} (hmem : mem.size = 580)
@@ -4308,31 +4308,31 @@ theorem barkKickCalldataMem_read256 {I : ExecutionEnv} {mem : ByteArray}
   rw [barkKickCalldataMem,
     Reasoning.Theory.writeWord_read_preserved (barkKickUrnMem I mem tab dink) 484 256
       (barkKprKey I)
-      (by rw [barkKickUrnMem_size hmem]; native_decide)
+      (by rw [barkKickUrnMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkKickUrnMem_size hmem]; decide⟩)]
   rw [barkKickUrnMem,
     Reasoning.Theory.writeWord_read_preserved (barkKickDinkMem mem tab dink) 452 256
       (barkUrnKey I)
-      (by rw [barkKickDinkMem_size hmem]; native_decide)
+      (by rw [barkKickDinkMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkKickDinkMem_size hmem]; decide⟩)]
   rw [barkKickDinkMem,
     Reasoning.Theory.writeWord_read_preserved (barkKickTabMem mem tab) 420 256 dink
-      (by rw [barkKickTabMem_size hmem]; native_decide)
+      (by rw [barkKickTabMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkKickTabMem_size hmem]; decide⟩)]
   rw [barkKickTabMem,
     Reasoning.Theory.writeWord_read_preserved (barkKickSelectorMem mem) 388 256 tab
-      (by rw [barkKickSelectorMem_size hmem]; native_decide)
+      (by rw [barkKickSelectorMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkKickSelectorMem_size hmem]; decide⟩)]
   rw [barkKickSelectorMem,
     Reasoning.Theory.writeWord_read_preserved mem 384 256 barkKickSelectorShifted
-      (by rw [hmem]; native_decide)
+      (by rw [hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
   exact hread256
 
 theorem barkKickSelectorShifted_extract :
     (UInt256.toByteArray barkKickSelectorShifted).extract 0 4 =
       clipperKickSelector := by
-  native_decide
+  decide +native
 
 theorem barkKickCalldataMem_read384_4 {I : ExecutionEnv} {mem : ByteArray}
     {tab dink : UInt256} (hmem : mem.size = 580) :
@@ -4346,26 +4346,26 @@ theorem barkKickCalldataMem_read384_4 {I : ExecutionEnv} {mem : ByteArray}
   unfold barkKickCalldataMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkKprKey I)
       (barkKickUrnMem I mem tab dink) 484 384 4
-      (by rw [hUrnSize]; omega) (by native_decide) (by omega) (by omega)
-      (by rw [hUrnSize]; native_decide)]
+      (by rw [hUrnSize]; omega) (by decide +native) (by omega) (by omega)
+      (by rw [hUrnSize]; decide +native)]
   unfold barkKickUrnMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkUrnKey I)
       (barkKickDinkMem mem tab dink) 452 384 4
-      (by rw [hDinkSize]; omega) (by native_decide) (by omega) (by omega)
-      (by rw [hDinkSize]; native_decide)]
+      (by rw [hDinkSize]; omega) (by decide +native) (by omega) (by omega)
+      (by rw [hDinkSize]; decide +native)]
   unfold barkKickDinkMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap dink (barkKickTabMem mem tab) 420 384 4
-      (by rw [hTabSize]; omega) (by native_decide) (by omega) (by omega)
-      (by rw [hTabSize]; native_decide)]
+      (by rw [hTabSize]; omega) (by decide +native) (by omega) (by omega)
+      (by rw [hTabSize]; decide +native)]
   unfold barkKickTabMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap tab (barkKickSelectorMem mem) 388 384 4
-      (by rw [hSelectorSize]; omega) (by native_decide) (by omega) (by omega)
-      (by rw [hSelectorSize]; native_decide)]
+      (by rw [hSelectorSize]; omega) (by decide +native) (by omega) (by omega)
+      (by rw [hSelectorSize]; decide +native)]
   unfold barkKickSelectorMem Reasoning.Theory.writeWord
   change (barkKickSelectorShifted.toByteArray.write 0 mem 384 32).readWithPadding
       384 4 = clipperKickSelector
   rw [toByteArray_write_read_window_of_gap barkKickSelectorShifted mem 384 0 4
-      (by omega) (by omega) (by omega) (by rw [hmem]; native_decide)]
+      (by omega) (by omega) (by omega) (by rw [hmem]; decide +native)]
   exact barkKickSelectorShifted_extract
 
 theorem barkKickCalldataMem_read388_32 {I : ExecutionEnv} {mem : ByteArray}
@@ -4380,19 +4380,19 @@ theorem barkKickCalldataMem_read388_32 {I : ExecutionEnv} {mem : ByteArray}
   rw [toByteArray_write_read_below_len_of_gap (barkKprKey I)
       (barkKickUrnMem I mem tab dink) 484 388 32
       (by rw [hUrnSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hUrnSize]; native_decide)]
+      (by rw [hUrnSize]; decide +native)]
   unfold barkKickUrnMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkUrnKey I)
       (barkKickDinkMem mem tab dink) 452 388 32
       (by rw [hDinkSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hDinkSize]; native_decide)]
+      (by rw [hDinkSize]; decide +native)]
   unfold barkKickDinkMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap dink (barkKickTabMem mem tab) 420 388 32
       (by rw [hTabSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hTabSize]; native_decide)]
+      (by rw [hTabSize]; decide +native)]
   unfold barkKickTabMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap tab (barkKickSelectorMem mem) 388
-      (by rw [barkKickSelectorMem_size hmem]; native_decide)]
+      (by rw [barkKickSelectorMem_size hmem]; decide +native)]
 
 theorem barkKickCalldataMem_read420_32 {I : ExecutionEnv} {mem : ByteArray}
     {tab dink : UInt256} (hmem : mem.size = 580) :
@@ -4405,15 +4405,15 @@ theorem barkKickCalldataMem_read420_32 {I : ExecutionEnv} {mem : ByteArray}
   rw [toByteArray_write_read_below_len_of_gap (barkKprKey I)
       (barkKickUrnMem I mem tab dink) 484 420 32
       (by rw [hUrnSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hUrnSize]; native_decide)]
+      (by rw [hUrnSize]; decide +native)]
   unfold barkKickUrnMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkUrnKey I)
       (barkKickDinkMem mem tab dink) 452 420 32
       (by rw [hDinkSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hDinkSize]; native_decide)]
+      (by rw [hDinkSize]; decide +native)]
   unfold barkKickDinkMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap dink (barkKickTabMem mem tab) 420
-      (by rw [barkKickTabMem_size hmem]; native_decide)]
+      (by rw [barkKickTabMem_size hmem]; decide +native)]
 
 theorem barkKickCalldataMem_read452_32 {I : ExecutionEnv} {mem : ByteArray}
     {tab dink : UInt256} (hmem : mem.size = 580) :
@@ -4425,10 +4425,10 @@ theorem barkKickCalldataMem_read452_32 {I : ExecutionEnv} {mem : ByteArray}
   rw [toByteArray_write_read_below_len_of_gap (barkKprKey I)
       (barkKickUrnMem I mem tab dink) 484 452 32
       (by rw [hUrnSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hUrnSize]; native_decide)]
+      (by rw [hUrnSize]; decide +native)]
   unfold barkKickUrnMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap (barkUrnKey I) (barkKickDinkMem mem tab dink)
-      452 (by rw [barkKickDinkMem_size hmem]; native_decide)]
+      452 (by rw [barkKickDinkMem_size hmem]; decide +native)]
 
 theorem barkKickCalldataMem_read484_32 {I : ExecutionEnv} {mem : ByteArray}
     {tab dink : UInt256} (hmem : mem.size = 580) :
@@ -4437,7 +4437,7 @@ theorem barkKickCalldataMem_read484_32 {I : ExecutionEnv} {mem : ByteArray}
   unfold barkKickCalldataMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap (barkKprKey I)
       (barkKickUrnMem I mem tab dink) 484
-      (by rw [barkKickUrnMem_size hmem]; native_decide)]
+      (by rw [barkKickUrnMem_size hmem]; decide +native)]
 
 theorem barkKickCalldataMem_read384_132 {I : ExecutionEnv} {mem : ByteArray}
     {tab dink : UInt256} (hmem : mem.size = 580) :
@@ -4449,19 +4449,19 @@ theorem barkKickCalldataMem_read384_132 {I : ExecutionEnv} {mem : ByteArray}
   rw [show 132 = 4 + 128 from rfl,
     byteArray_readWithPadding_split (barkKickCalldataMem I mem tab dink)
       384 4 128 (by omega) (by omega) (by omega) (by omega) (by omega)
-      (by rw [hsize]; native_decide)]
+      (by rw [hsize]; decide +native)]
   rw [show 128 = 32 + 96 from rfl,
     byteArray_readWithPadding_split (barkKickCalldataMem I mem tab dink)
       388 32 96 (by omega) (by omega) (by omega) (by omega) (by omega)
-      (by rw [hsize]; native_decide)]
+      (by rw [hsize]; decide +native)]
   rw [show 96 = 32 + 64 from rfl,
     byteArray_readWithPadding_split (barkKickCalldataMem I mem tab dink)
       420 32 64 (by omega) (by omega) (by omega) (by omega) (by omega)
-      (by rw [hsize]; native_decide)]
+      (by rw [hsize]; decide +native)]
   rw [show 64 = 32 + 32 from rfl,
     byteArray_readWithPadding_split (barkKickCalldataMem I mem tab dink)
       452 32 32 (by omega) (by omega) (by omega) (by omega) (by omega)
-      (by rw [hsize]; native_decide)]
+      (by rw [hsize]; decide +native)]
   rw [barkKickCalldataMem_read384_4 hmem, barkKickCalldataMem_read388_32 hmem,
     barkKickCalldataMem_read420_32 hmem, barkKickCalldataMem_read452_32 hmem,
     barkKickCalldataMem_read484_32 hmem]
@@ -4609,9 +4609,9 @@ theorem barkKickPostCallWrite_mload64 {I : ExecutionEnv} {tab dink : UInt256}
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
     (by rw [barkKickPostCallWrite_size (I := I) (tab := tab) (dink := dink)
       (out := out) (L := L) hmem hL hLo]; decide)
-    (by native_decide)
+    (by decide +native)
     (by
-      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using
         barkKickPostCallWrite_read64 (I := I) (tab := tab) (dink := dink)
           (out := out) (L := L) hmem hread64 hL hLo)
 
@@ -4632,9 +4632,9 @@ theorem barkKickPostCallWrite_mload256 {I : ExecutionEnv} {tab dink clip : UInt2
     (off := (⟨256⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := clip)
     (by rw [barkKickPostCallWrite_size (I := I) (tab := tab) (dink := dink)
       (out := out) (L := L) hmem hL hLo]; decide)
-    (by native_decide)
+    (by decide +native)
     (by
-      simpa [show (⟨256⟩ : UInt256).toNat = 256 by native_decide] using
+      simpa [show (⟨256⟩ : UInt256).toNat = 256 by decide +native] using
         barkKickPostCallWrite_read256 (I := I) (tab := tab) (dink := dink)
           (out := out) (L := L) hmem hread256 hL hLo)
 
@@ -4682,9 +4682,9 @@ theorem barkKickPostCallMem_mload64_long {I : ExecutionEnv} {tab dink : UInt256}
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
     (by rw [barkKickPostCallMem_size_long hmem hlong hout]; decide)
-    (by native_decide)
+    (by decide +native)
     (by
-      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using
         barkKickPostCallMem_read64_long (I := I) (tab := tab) (dink := dink)
           hmem hread64 hlong hout)
 
@@ -4719,9 +4719,9 @@ theorem barkKickPostCallMem_mload256_long {I : ExecutionEnv} {tab dink clip : UI
   exact mloadWordValue_of_readWithPadding
     (off := (⟨256⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := clip)
     (by rw [barkKickPostCallMem_size_long hmem hlong hout]; decide)
-    (by native_decide)
+    (by decide +native)
     (by
-      simpa [show (⟨256⟩ : UInt256).toNat = 256 by native_decide] using
+      simpa [show (⟨256⟩ : UInt256).toNat = 256 by decide +native] using
         barkKickPostCallMem_read256_long (I := I) (tab := tab) (dink := dink)
           hmem hread256 hlong hout)
 
@@ -4757,7 +4757,7 @@ theorem barkKickPostCallMem_mload384_long {I : ExecutionEnv} {tab dink : UInt256
     rw [barkKickPostCallMem_read384_long hmem hlong hout]
   · exact not_or.mpr
       ⟨by rw [barkKickPostCallMem_size_long hmem hlong hout]; decide,
-        by native_decide⟩
+        by decide +native⟩
 
 noncomputable abbrev barkBarkLogDinkMem (mem : ByteArray) (dink : UInt256) :
     ByteArray :=
@@ -4782,36 +4782,36 @@ theorem barkBarkLogDinkMem_size {mem : ByteArray} {dink : UInt256}
     (hmem : mem.size = 580) :
     (barkBarkLogDinkMem mem dink).size = 580 := by
   rw [barkBarkLogDinkMem,
-    Reasoning.Theory.writeWord_size mem 384 dink (by rw [hmem]; native_decide),
+    Reasoning.Theory.writeWord_size mem 384 dink (by rw [hmem]; decide +native),
     hmem]
-  native_decide
+  decide +native
 
 theorem barkBarkLogDartMem_size {mem : ByteArray} {dink dart : UInt256}
     (hmem : mem.size = 580) :
     (barkBarkLogDartMem mem dink dart).size = 580 := by
   rw [barkBarkLogDartMem,
     Reasoning.Theory.writeWord_size (barkBarkLogDinkMem mem dink) 416 dart
-      (by rw [barkBarkLogDinkMem_size hmem]; native_decide),
+      (by rw [barkBarkLogDinkMem_size hmem]; decide +native),
     barkBarkLogDinkMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkBarkLogDueMem_size {mem : ByteArray} {dink dart due : UInt256}
     (hmem : mem.size = 580) :
     (barkBarkLogDueMem mem dink dart due).size = 580 := by
   rw [barkBarkLogDueMem,
     Reasoning.Theory.writeWord_size (barkBarkLogDartMem mem dink dart) 448 due
-      (by rw [barkBarkLogDartMem_size hmem]; native_decide),
+      (by rw [barkBarkLogDartMem_size hmem]; decide +native),
     barkBarkLogDartMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkBarkLogMem_size {mem : ByteArray} {dink dart due clip : UInt256}
     (hmem : mem.size = 580) :
     (barkBarkLogMem mem dink dart due clip).size = 580 := by
   rw [barkBarkLogMem,
     Reasoning.Theory.writeWord_size (barkBarkLogDueMem mem dink dart due) 480 clip
-      (by rw [barkBarkLogDueMem_size hmem]; native_decide),
+      (by rw [barkBarkLogDueMem_size hmem]; decide +native),
     barkBarkLogDueMem_size hmem]
-  native_decide
+  decide +native
 
 theorem barkBarkLogMem_read64 {mem : ByteArray} {dink dart due clip : UInt256}
     (hmem : mem.size = 580)
@@ -4821,21 +4821,21 @@ theorem barkBarkLogMem_read64 {mem : ByteArray} {dink dart due clip : UInt256}
   rw [barkBarkLogMem,
     Reasoning.Theory.writeWord_read_preserved (barkBarkLogDueMem mem dink dart due)
       480 64 clip
-      (by rw [barkBarkLogDueMem_size hmem]; native_decide)
+      (by rw [barkBarkLogDueMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkBarkLogDueMem_size hmem]; decide⟩)]
   rw [barkBarkLogDueMem,
     Reasoning.Theory.writeWord_read_preserved (barkBarkLogDartMem mem dink dart)
       448 64 due
-      (by rw [barkBarkLogDartMem_size hmem]; native_decide)
+      (by rw [barkBarkLogDartMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkBarkLogDartMem_size hmem]; decide⟩)]
   rw [barkBarkLogDartMem,
     Reasoning.Theory.writeWord_read_preserved (barkBarkLogDinkMem mem dink)
       416 64 dart
-      (by rw [barkBarkLogDinkMem_size hmem]; native_decide)
+      (by rw [barkBarkLogDinkMem_size hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [barkBarkLogDinkMem_size hmem]; decide⟩)]
   rw [barkBarkLogDinkMem,
     Reasoning.Theory.writeWord_read_preserved mem 384 64 dink
-      (by rw [hmem]; native_decide)
+      (by rw [hmem]; decide +native)
       (Or.inl ⟨by decide, by rw [hmem]; decide⟩)]
   exact hread64
 
@@ -4852,9 +4852,9 @@ theorem barkBarkLogMem_mload64 {mem : ByteArray} {dink dart due clip : UInt256}
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
     (by rw [barkBarkLogMem_size hmem]; decide)
-    (by native_decide)
+    (by decide +native)
     (by
-      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using
         barkBarkLogMem_read64 hmem hread64)
 
 theorem barkReturnIdMem_size {mem : ByteArray} {id : UInt256}
@@ -4887,9 +4887,9 @@ theorem barkReturnIdMem_mload64 {mem : ByteArray} {id : UInt256}
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
     (by rw [barkReturnIdMem_size hmem]; decide)
-    (by native_decide)
+    (by decide +native)
     (by
-      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using
         barkReturnIdMem_read64 hmem hread64)
 
 theorem barkReturnIdMem_read384 {mem : ByteArray} {id : UInt256}
@@ -4917,7 +4917,7 @@ theorem barkPostIlksErrorStringMem0_size {mem : ByteArray} (hmem : mem.size = 54
     (barkPostIlksErrorStringMem0 mem).size = 544 := by
   unfold barkPostIlksErrorStringMem0
   rw [Reasoning.Theory.writeWord_size mem 384 solcErrorStringSelector
-    (by rw [hmem]; native_decide)]
+    (by rw [hmem]; decide +native)]
   rw [hmem]
   norm_num
 
@@ -4925,7 +4925,7 @@ theorem barkPostIlksErrorStringMem1_size {mem : ByteArray} (hmem : mem.size = 54
     (barkPostIlksErrorStringMem1 mem).size = 544 := by
   unfold barkPostIlksErrorStringMem1
   rw [Reasoning.Theory.writeWord_size (barkPostIlksErrorStringMem0 mem) 388 ⟨32⟩
-    (by rw [barkPostIlksErrorStringMem0_size hmem]; native_decide)]
+    (by rw [barkPostIlksErrorStringMem0_size hmem]; decide +native)]
   rw [barkPostIlksErrorStringMem0_size hmem]
   norm_num
 
@@ -4934,7 +4934,7 @@ theorem barkPostIlksErrorStringMem2_size (len : UInt256) {mem : ByteArray}
     (barkPostIlksErrorStringMem2 len mem).size = 544 := by
   unfold barkPostIlksErrorStringMem2
   rw [Reasoning.Theory.writeWord_size (barkPostIlksErrorStringMem1 mem) 420 len
-    (by rw [barkPostIlksErrorStringMem1_size hmem]; native_decide)]
+    (by rw [barkPostIlksErrorStringMem1_size hmem]; decide +native)]
   rw [barkPostIlksErrorStringMem1_size hmem]
   norm_num
 
@@ -4946,16 +4946,16 @@ theorem barkPostIlksErrorStringMem2_read64 (len : UInt256) {mem : ByteArray}
   unfold barkPostIlksErrorStringMem2
   rw [Reasoning.Theory.writeWord_read_preserved
     (barkPostIlksErrorStringMem1 mem) 420 64 len
-    (by rw [barkPostIlksErrorStringMem1_size hmem]; native_decide)
+    (by rw [barkPostIlksErrorStringMem1_size hmem]; decide +native)
     (by left; rw [barkPostIlksErrorStringMem1_size hmem]; omega)]
   unfold barkPostIlksErrorStringMem1
   rw [Reasoning.Theory.writeWord_read_preserved
     (barkPostIlksErrorStringMem0 mem) 388 64 (⟨32⟩ : UInt256)
-    (by rw [barkPostIlksErrorStringMem0_size hmem]; native_decide)
+    (by rw [barkPostIlksErrorStringMem0_size hmem]; decide +native)
     (by left; rw [barkPostIlksErrorStringMem0_size hmem]; omega)]
   unfold barkPostIlksErrorStringMem0
   rw [Reasoning.Theory.writeWord_read_preserved mem 384 64 solcErrorStringSelector
-    (by rw [hmem]; native_decide) (by left; rw [hmem]; omega)]
+    (by rw [hmem]; decide +native) (by left; rw [hmem]; omega)]
   exact hread64
 
 theorem barkPostIlksErrorStringMem3_size (len word : UInt256) {mem : ByteArray}
@@ -4963,7 +4963,7 @@ theorem barkPostIlksErrorStringMem3_size (len word : UInt256) {mem : ByteArray}
     (barkPostIlksErrorStringMem3 len word mem).size = 544 := by
   unfold barkPostIlksErrorStringMem3
   rw [Reasoning.Theory.writeWord_size (barkPostIlksErrorStringMem2 len mem) 452 word
-    (by rw [barkPostIlksErrorStringMem2_size len hmem]; native_decide)]
+    (by rw [barkPostIlksErrorStringMem2_size len hmem]; decide +native)]
   rw [barkPostIlksErrorStringMem2_size len hmem]
   norm_num
 
@@ -4975,21 +4975,21 @@ theorem barkPostIlksErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray
   unfold barkPostIlksErrorStringMem3
   rw [Reasoning.Theory.writeWord_read_preserved
     (barkPostIlksErrorStringMem2 len mem) 452 64 word
-    (by rw [barkPostIlksErrorStringMem2_size len hmem]; native_decide)
+    (by rw [barkPostIlksErrorStringMem2_size len hmem]; decide +native)
     (by left; rw [barkPostIlksErrorStringMem2_size len hmem]; omega)]
   unfold barkPostIlksErrorStringMem2
   rw [Reasoning.Theory.writeWord_read_preserved
     (barkPostIlksErrorStringMem1 mem) 420 64 len
-    (by rw [barkPostIlksErrorStringMem1_size hmem]; native_decide)
+    (by rw [barkPostIlksErrorStringMem1_size hmem]; decide +native)
     (by left; rw [barkPostIlksErrorStringMem1_size hmem]; omega)]
   unfold barkPostIlksErrorStringMem1
   rw [Reasoning.Theory.writeWord_read_preserved
     (barkPostIlksErrorStringMem0 mem) 388 64 (⟨32⟩ : UInt256)
-    (by rw [barkPostIlksErrorStringMem0_size hmem]; native_decide)
+    (by rw [barkPostIlksErrorStringMem0_size hmem]; decide +native)
     (by left; rw [barkPostIlksErrorStringMem0_size hmem]; omega)]
   unfold barkPostIlksErrorStringMem0
   rw [Reasoning.Theory.writeWord_read_preserved mem 384 64 solcErrorStringSelector
-    (by rw [hmem]; native_decide) (by left; rw [hmem]; omega)]
+    (by rw [hmem]; decide +native) (by left; rw [hmem]; omega)]
   exact hread64
 
 theorem barkPostIlksErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArray}
@@ -5005,9 +5005,9 @@ theorem barkPostIlksErrorStringMem3_mload64 (len word : UInt256) {mem : ByteArra
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17) (v := (⟨384⟩ : UInt256))
     (by rw [barkPostIlksErrorStringMem3_size len word hmem]; decide)
-    (by native_decide)
+    (by decide +native)
     (by
-      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using
         barkPostIlksErrorStringMem3_read64 len word hmem hread64)
 
 noncomputable abbrev barkPostIlksCodecopyErrorMem
@@ -5020,7 +5020,7 @@ theorem barkPostIlksCodecopyErrorMem_size {code mem : ByteArray}
   unfold barkPostIlksCodecopyErrorMem
   rw [write_eq_gen_from code (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem)
     4691 452 42 (by decide) hsrc
-    (by rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]; native_decide)]
+    (by rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]; decide +native)]
   rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
     ByteArray.size_extract, ByteArray.size_extract]
   rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]
@@ -5035,7 +5035,7 @@ theorem barkPostIlksCodecopyErrorMem_read64 {code mem : ByteArray}
   unfold barkPostIlksCodecopyErrorMem
   rw [write_eq_gen_from code (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem)
     4691 452 42 (by decide) hsrc
-    (by rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]; native_decide)]
+    (by rw [barkPostIlksErrorStringMem2_size (⟨42⟩ : UInt256) hmem]; decide +native)]
   rw [readWithPadding_eq_extract _ 64 (by
     rw [ByteArray.size_append, ByteArray.size_append, ByteArray.size_extract,
       ByteArray.size_extract, ByteArray.size_extract]
@@ -5068,14 +5068,14 @@ theorem barkPostIlksCodecopyErrorMem_mload64 {code mem : ByteArray}
   exact mloadWordValue_of_readWithPadding
     (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17) (v := (⟨384⟩ : UInt256))
     (by rw [barkPostIlksCodecopyErrorMem_size hmem hsrc]; decide)
-    (by native_decide)
+    (by decide +native)
     (by
-      simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using
+      simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using
         barkPostIlksCodecopyErrorMem_read64 hmem hread64 hsrc)
 
 theorem barkVatIlksSelectorWord_extract :
     (UInt256.toByteArray barkVatIlksSelectorWord).extract 0 4 = vatIlksSelector := by
-  native_decide
+  decide +native
 
 theorem barkVatIlksCallMem_read384_4 {σ : AccountMap} {I : ExecutionEnv}
     {mem out : ByteArray}
@@ -5085,15 +5085,15 @@ theorem barkVatIlksCallMem_read384_4 {σ : AccountMap} {I : ExecutionEnv}
   unfold barkVatIlksCallMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_below_len_of_gap (barkIlkWord I)
       (barkVatIlksSelectorMem σ I mem out) 388 384 4
-      (by rw [hSelectorSize]; omega) (by native_decide) (by omega) (by omega)
-      (by rw [hSelectorSize]; native_decide)]
+      (by rw [hSelectorSize]; omega) (by decide +native) (by omega) (by omega)
+      (by rw [hSelectorSize]; decide +native)]
   unfold barkVatIlksSelectorMem Reasoning.Theory.writeWord
   change (barkVatIlksSelectorWord.toByteArray.write 0
     (barkIlksMem σ I mem out) 384 32).readWithPadding 384 4 = vatIlksSelector
   rw [toByteArray_write_read_window_of_gap barkVatIlksSelectorWord
       (barkIlksMem σ I mem out) 384 0 4
       (by omega) (by omega) (by omega)
-      (by rw [barkIlksMem_size hmem hlong hout]; native_decide)]
+      (by rw [barkIlksMem_size hmem hlong hout]; decide +native)]
   exact barkVatIlksSelectorWord_extract
 
 theorem barkVatIlksCallMem_read388_32 {σ : AccountMap} {I : ExecutionEnv}
@@ -5104,7 +5104,7 @@ theorem barkVatIlksCallMem_read388_32 {σ : AccountMap} {I : ExecutionEnv}
   unfold barkVatIlksCallMem Reasoning.Theory.writeWord
   rw [toByteArray_write_read_back_of_gap (barkIlkWord I)
       (barkVatIlksSelectorMem σ I mem out) 388
-      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; native_decide)]
+      (by rw [barkVatIlksSelectorMem_size hmem hlong hout]; decide +native)]
 
 theorem barkVatIlksCallMem_read384_36 {σ : AccountMap} {I : ExecutionEnv}
     {mem out : ByteArray}
@@ -5182,7 +5182,7 @@ theorem dogLiveGuardEval_false {v : DogImmutables}
     apply hload
     apply u256_inj
     simpa using hnat
-  all_goals native_decide
+  all_goals decide +native
 
 theorem dogLiveGuardEval_true {v : DogImmutables}
     {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store}
@@ -5216,7 +5216,7 @@ theorem dogLiveGuardEval_true {v : DogImmutables}
   simp only [initState] at hload' ⊢
   rw [hload']
   simp [evalExpr?, evalBinaryOp?]
-  all_goals native_decide
+  all_goals decide +native
 
 theorem dogAddrLitEval_locals {v : DogImmutables}
     {cA gh bl σ σ₀ A I} {g : Sat256} {locals : Store} (a : EVM.Address) :
@@ -6462,7 +6462,7 @@ theorem barkVatCode_zero_of_codeSize_zero {v : DogImmutables}
   cases hacc : σ.find? (AccountAddress.ofUInt256 (barkVatWord v)) with
   | none =>
       simpa [initState, State.lookupAccount, hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+        (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [initState, State.lookupAccount, hacc] using hword
@@ -6505,7 +6505,7 @@ theorem barkVatCode_zero_of_state_codeSize_zero {v : DogImmutables} {evm : EVM.S
   cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 (barkVatWord v)) with
   | none =>
       simpa [State.lookupAccount, hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+        (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [State.lookupAccount, hacc] using hword
@@ -6547,7 +6547,7 @@ theorem dogCode_zero_of_state_codeSize_zero {evm : EVM.State} {targetWord : UInt
   cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 targetWord) with
   | none =>
       simpa [State.lookupAccount, hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+        (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [State.lookupAccount, hacc] using hword
@@ -9206,7 +9206,7 @@ theorem dogBarkRoomWadCheckedMulOverflow {v : DogImmutables}
       evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
         (.intLit WAD) = .ok (.int (Int.ofNat dogWadWord.toNat)) := by
     have hWadNat : dogWadWord.toNat = 1000000000000000000 := by
-      native_decide
+      decide +native
     simp [evalExpr?, pure, WAD, hWadNat]
   have hmul :
       evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
@@ -9239,7 +9239,7 @@ theorem dogBarkRoomWadCheckedMulOk {v : DogImmutables}
       evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
         (.intLit WAD) = .ok (.int (Int.ofNat dogWadWord.toNat)) := by
     have hWadNat : dogWadWord.toNat = 1000000000000000000 := by
-      native_decide
+      decide +native
     simp [evalExpr?, pure, WAD, hWadNat]
   have hmul :
       evalExpr? (config v) { contract := contract v, locals := locals0 } evmIlks
@@ -9272,7 +9272,7 @@ theorem dogBarkRoomWadCheckedMulOk {v : DogImmutables}
       evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
         (.intLit WAD) = .ok (.int (Int.ofNat dogWadWord.toNat)) := by
     have hWadNat : dogWadWord.toNat = 1000000000000000000 := by
-      native_decide
+      decide +native
     simp [evalExpr?, pure, WAD, hWadNat]
   have hroomWad1 :
       evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
@@ -9295,7 +9295,7 @@ theorem dogBarkRoomWadCheckedMulOk {v : DogImmutables}
         evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
           (.binary .eq (.intLit WAD) (.intLit 0)) = .ok (.bool false) := by
       apply evalExpr_bark_eq_int_false hWad1 hzero
-      native_decide
+      decide +native
     have hdivWord : UInt256.div roomWad dogWadWord = room := by
       apply u256_inj
       rw [udiv_toNat]
@@ -9306,7 +9306,7 @@ theorem dogBarkRoomWadCheckedMulOk {v : DogImmutables}
         exact umul_toNat room dogWadWord (by simpa [room] using hfit)
       rw [hprod]
       have hWadPos : 0 < dogWadWord.toNat := by
-        native_decide
+        decide +native
       rw [Nat.mul_comm]
       exact Nat.mul_div_right room.toNat hWadPos
     have hdiv :
@@ -9316,7 +9316,7 @@ theorem dogBarkRoomWadCheckedMulOk {v : DogImmutables}
       have h := evalExpr_bark_div_uint256_ok (v := v) (evm := evmIlks)
         (locals := locals1) (x := .var "roomWad") (y := .intLit WAD)
         (a := roomWad) (b := dogWadWord) (q := UInt256.div roomWad dogWadWord)
-        hroomWad1 hWad1 (by native_decide) rfl
+        hroomWad1 hWad1 (by decide +native) rfl
       simpa [hdivWord] using h
     have hright :
         evalExpr? (config v) { contract := contract v, locals := locals1 } evmIlks
@@ -10120,14 +10120,14 @@ theorem dogBarkTabLetOk {v : DogImmutables} (evm : EVM.State)
       evalExpr? (config v) { contract := contract v, locals := locals } evm
         (.intLit WAD) = .ok (.int (Int.ofNat dogWadWord.toNat)) := by
     have hWadNat : dogWadWord.toNat = 1000000000000000000 := by
-      native_decide
+      decide +native
     simp [evalExpr?, pure, WAD, hWadNat]
   have hdiv :
       evalExpr? (config v) { contract := contract v, locals := locals } evm
         (.binary .div (.var "tabBase") (.intLit WAD)) =
           .ok (.int (Int.ofNat tab.toNat)) := by
     exact evalExpr_bark_div_uint256_ok htabBaseExpr hWad
-      (by native_decide : dogWadWord ≠ ⟨0⟩)
+      (by decide +native : dogWadWord ≠ ⟨0⟩)
       (by simp [tab, barkTabWord])
   have hlet :
       ExecStmt (config v) { contract := contract v, locals := locals } evm
@@ -11293,7 +11293,7 @@ theorem dogBarkInt256GuardOkSource {v : DogImmutables} (evm : EVM.State)
       evalExpr? (config v) { contract := contract v, locals := locals } evm
         (.intLit int256Limit) = .ok (.int (Int.ofNat dogInt256LimitWord.toNat)) := by
     have hnat : Int.ofNat dogInt256LimitWord.toNat = int256Limit := by
-      native_decide
+      decide +native
     simpa [evalExpr?, pure, hnat]
   have hdartLe :
       evalExpr? (config v) { contract := contract v, locals := locals } evm
@@ -11333,7 +11333,7 @@ theorem dogBarkInt256GuardDartOverflowSource {v : DogImmutables} (evm : EVM.Stat
       evalExpr? (config v) { contract := contract v, locals := locals } evm
         (.intLit int256Limit) = .ok (.int (Int.ofNat dogInt256LimitWord.toNat)) := by
     have hnat : Int.ofNat dogInt256LimitWord.toNat = int256Limit := by
-      native_decide
+      decide +native
     simpa [evalExpr?, pure, hnat]
   have hdartLe :
       evalExpr? (config v) { contract := contract v, locals := locals } evm
@@ -11374,7 +11374,7 @@ theorem dogBarkInt256GuardDinkOverflowSource {v : DogImmutables} (evm : EVM.Stat
       evalExpr? (config v) { contract := contract v, locals := locals } evm
         (.intLit int256Limit) = .ok (.int (Int.ofNat dogInt256LimitWord.toNat)) := by
     have hnat : Int.ofNat dogInt256LimitWord.toNat = int256Limit := by
-      native_decide
+      decide +native
     simpa [evalExpr?, pure, hnat]
   have hdartLe :
       evalExpr? (config v) { contract := contract v, locals := locals } evm
@@ -12845,7 +12845,7 @@ theorem dogDecodeCalldataWithMode_legacyBytes32_address_address_ok {cd : ByteArr
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress, abiAddress] = some 96 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiAddress, abiAddress] = some 96 by decide +native]
   simp only [bind, Option.bind]
   rw [dogDecodeABIValues_bytes32_address_address_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -12868,7 +12868,7 @@ theorem dogDecodeCalldataWithMode_legacyBytes32_address_address_none_short
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress, abiAddress] = some 96 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiAddress, abiAddress] = some 96 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 96
   · rw [if_pos hbytes]
@@ -12907,27 +12907,27 @@ theorem dogReachBarkBody {v : DogImmutables} {code : ByteArray}
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hword : solcSelectorWord I = ⟨0xed998908⟩ :=
     solcSelectorWord_eq_of_beq I hsz 0xed 0x99 0x89 0x08 ⟨0xed998908⟩
-      (by native_decide) (by simpa [dogSelBytes] using hsel)
+      (by decide +native) (by simpa [dogSelBytes] using hsel)
   obtain ⟨k32, C32, h32⟩ :=
     dogReachSelector (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hpatch hcode hwv hsz hsize
   have hrootWidth : armTgtWidth code (⟨32⟩ : UInt256) = 2 := by
     dsimp [armTgtWidth]
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPushTgtPc (⟨32⟩ : UInt256))
-      hpatch (by native_decide)]
-    native_decide
+      hpatch (by decide +native)]
+    decide +native
   have hhighWidth : armTgtWidth code (⟨43⟩ : UInt256) = 2 := by
     dsimp [armTgtWidth]
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPushTgtPc (⟨43⟩ : UInt256))
-      hpatch (by native_decide)]
-    native_decide
+      hpatch (by decide +native)]
+    decide +native
   have hroot :
       UInt256.gt (armSelNat code (⟨32⟩ : UInt256)) (solcSelectorWord I) = ⟨0⟩ := by
     rw [hword]
     dsimp [armSelNat]
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨32⟩ : UInt256))
-      hpatch (by native_decide)]
-    native_decide
+      hpatch (by decide +native)]
+    decide +native
   have h43 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨43⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ) (k32 + 5) (C32 + 22) := by
@@ -12938,8 +12938,8 @@ theorem dogReachBarkBody {v : DogImmutables} {code : ByteArray}
     rw [hword]
     dsimp [armSelNat]
     rw [dogPushAtPatchedEqTemplate1405 (pc := selArmPush4Pc (⟨43⟩ : UInt256))
-      hpatch (by native_decide)]
-    native_decide
+      hpatch (by decide +native)]
+    decide +native
   have h54 : RD code I g (initState cA gh bl σ σ₀ g A I) ⟨54⟩
       [solcSelectorWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty
       (cA, σ) (k32 + 5 + 5) (C32 + 22 + 22) := by
@@ -12947,36 +12947,36 @@ theorem dogReachBarkBody {v : DogImmutables} {code : ByteArray}
       RD.selectorSplitNotTakenAuto h43 (dogHighSplitWellFormed hpatch) hhigh (by simp)
   have hchop : UInt256.eq (dogSelectorWord 4) (solcSelectorWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hilks : UInt256.eq (dogSelectorWord 11) (solcSelectorWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hfileIlkClip : UInt256.eq (dogSelectorWord 10) (solcSelectorWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hbark : UInt256.eq (dogSelectorWord 2) (solcSelectorWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have h65 := by
     simpa [selArmNextPc] using
       h54.selectorArmNotTaken (selNat := dogSelectorWord 4) (tgt := (⟨629⟩ : UInt256))
         (width := 2) (op := .PUSH2)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by decide)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         hchop
         (by simp)
   have h76 := by
@@ -12984,21 +12984,21 @@ theorem dogReachBarkBody {v : DogImmutables} {code : ByteArray}
       h65.selectorArmNotTaken (selNat := dogSelectorWord 11) (tgt := (⟨658⟩ : UInt256))
         (width := 2) (op := .PUSH2)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by decide)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         hilks
         (by simp)
   have h87 := by
@@ -13006,21 +13006,21 @@ theorem dogReachBarkBody {v : DogImmutables} {code : ByteArray}
       h76.selectorArmNotTaken (selNat := dogSelectorWord 10) (tgt := (⟨735⟩ : UInt256))
         (width := 2) (op := .PUSH2)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by decide)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         hfileIlkClip
         (by simp)
   have h785 := by
@@ -13028,23 +13028,23 @@ theorem dogReachBarkBody {v : DogImmutables} {code : ByteArray}
       h87.selectorArmTaken (selNat := dogSelectorWord 2) (tgt := (⟨785⟩ : UInt256))
         (width := 2) (op := .PUSH2)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by decide)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         (by
-          rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]
+          decide +native)
         hbark
-        (dogPatchedDJumpPrefix1405 ⟨785⟩ hpatch (by native_decide))
+        (dogPatchedDJumpPrefix1405 ⟨785⟩ hpatch (by decide +native))
         (by simp)
   exact ⟨_, _, h785⟩
 
@@ -13062,70 +13062,70 @@ theorem RD.dogBarkDecodeToRoutine {v : DogImmutables} {code : ByteArray}
       mem aw rdata acc k' C' := by
   subst hdecoded
   have rd1 := h.jumpdest
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd2 := rd1.pop
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd3 := rd2.dup1
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd4 := rd3.calldataload
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd5 := rd4.swap1
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd7 := rd5.push1 ⟨1⟩
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd9 := rd7.push1 ⟨1⟩
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd11 := rd9.push1 ⟨160⟩
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd12 := rd11.shl
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd13 := rd12.sub
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd15 := rd13.push1 ⟨32⟩
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd16 := rd15.dup3
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd17 := rd16.add
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd18 := rd17.calldataload
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd19 := rd18.dup2
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd20 := rd19.and
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd21 := rd20.swap2
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd23 := rd21.push1 ⟨64⟩
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd24 := rd23.add
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd25 := rd24.calldataload
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd26 := rd25.and
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   have rd29 := rd26.push2 ⟨2813⟩
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     (by evm_ov)
   exact ⟨_, _, by
     simpa [barkKprKey, barkUrnKey, barkIlkWord, barkKprWord, barkUrnWord, calldataWord,
@@ -13135,7 +13135,7 @@ theorem RD.dogBarkDecodeToRoutine {v : DogImmutables} {code : ByteArray}
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide, u256_land_comm]
       using rd29.jump
-        (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+        (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
         hroutine (by evm_ov)⟩
 
 theorem RD.dogBarkDecodeToBody {v : DogImmutables} {code : ByteArray}
@@ -13153,23 +13153,23 @@ theorem RD.dogBarkDecodeToBody {v : DogImmutables} {code : ByteArray}
   have hdecoded := RD.solcExternalStaticArgsLenOk
     (code := code) (sel := sel) (entry := ⟨785⟩) (ret := ⟨448⟩)
     (decoded := ⟨807⟩) (need := ⟨96⟩) hreach
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (dogPatchedDJumpPrefix1405 ⟨807⟩ hpatch (by native_decide))
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (dogPatchedDJumpPrefix1405 ⟨807⟩ hpatch (by decide +native))
     hlt
   obtain ⟨_, _, hdecoded'⟩ := hdecoded
   obtain ⟨k, C, hbody⟩ := RD.dogBarkDecodeToRoutine hpatch hdecoded' rfl
-    (dogPatchedJumpDest hpatch (by native_decide))
+    (dogPatchedJumpDest hpatch (by decide +native))
     (by simp only [List.length_singleton]; omega)
   exact ⟨k, C, by simpa using hbody⟩
 
@@ -13212,33 +13212,33 @@ theorem RD.dogCheckedMulReturns {v : DogImmutables} {code : ByteArray}
   have rd4591prep := evm_run rd4564 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4591⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   by_cases hy0 : y = ⟨0⟩
   · have hcond : UInt256.isZero y ≠ ⟨0⟩ := by
@@ -13246,119 +13246,119 @@ theorem RD.dogCheckedMulReturns {v : DogImmutables} {code : ByteArray}
       decide
     have rd4591 := rd4591prep.jumpiT
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
-      hcond (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
+      hcond (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
     have rd4558prep := evm_run rd4591 with [
       raw jumpdest
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw push2 ⟨4558⟩
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rd4558 := rd4558prep.jumpiT
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
-      hcond (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
+      hcond (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
     have rd4563 := evm_run rd4558 with [
       raw jumpdest
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw swap3
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw swap2
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw pop
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw pop
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rdret := rd4563.jump
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       hret (by evm_ov)
     exact ⟨_, _, by simpa [hy0] using rdret⟩
   · have hcond : UInt256.isZero y = ⟨0⟩ := isZero_eq_zero_of_ne hy0
     have rd4574 := rd4591prep.jumpiNT
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       hcond (by evm_ov)
     have rd4586 := evm_run rd4574 with [
       raw pop
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw pop
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw dup1
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw dup3
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw mul
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw dup3
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw dup3
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw dup3
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw dup2
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw push2 ⟨4588⟩
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rd4588 := rd4586.jumpiT
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
-      hy0 (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
+      hy0 (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
     have hyNatNe : y.toNat ≠ 0 := by
       intro hzero
       exact hy0 (uint256_toNat_eq_zero hzero)
@@ -13373,67 +13373,67 @@ theorem RD.dogCheckedMulReturns {v : DogImmutables} {code : ByteArray}
     have rd4558prep := evm_run rd4588 with [
       raw jumpdest
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw div
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw eq
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw jumpdest
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw push2 ⟨4558⟩
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have heqCond : UInt256.eq (UInt256.div (x * y) y) x ≠ ⟨0⟩ := by
       rw [hdivWord, u256_eq_refl]
       exact one_ne_zero_uint
     have rd4558 := rd4558prep.jumpiT
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
-      heqCond (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
+      heqCond (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
     have rd4563 := evm_run rd4558 with [
       raw jumpdest
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw swap3
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw swap2
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw pop
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw pop
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rdret := rd4563.jump
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       hret (by evm_ov)
     exact ⟨_, _, by simpa using rdret⟩
 
@@ -13451,38 +13451,38 @@ theorem RD.dogMinReturns {v : DogImmutables} {code : ByteArray}
   have rd4610prep := evm_run rd4600 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4616⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   by_cases hle : x.toNat ≤ y.toNat
   · have hgt : UInt256.gt x y = ⟨0⟩ :=
@@ -13491,54 +13491,54 @@ theorem RD.dogMinReturns {v : DogImmutables} {code : ByteArray}
     rw [hgt, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd4610
     have rd4616 := rd4610.jumpiT
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
-      one_ne_zero_uint (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
+      one_ne_zero_uint (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
     have rd4624 := evm_run rd4616 with [
       raw jumpdest
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw dup3
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw jumpdest
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw swap4
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw swap3
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw pop
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw pop
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw pop
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rdret := rd4624.jump
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       hret (by evm_ov)
     exact ⟨_, _, by simpa [hle] using rdret⟩
   · have hylt : y.toNat < x.toNat := by omega
@@ -13548,60 +13548,60 @@ theorem RD.dogMinReturns {v : DogImmutables} {code : ByteArray}
     rw [hgt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd4610
     have rd4611 := rd4610.jumpiNT
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by rfl) (by evm_ov)
     have rd4615 := evm_run rd4611 with [
       raw dup2
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw push2 ⟨4618⟩
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rd4618 := rd4615.jump
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
-      (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
+      (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
     have rd4624 := evm_run rd4618 with [
       raw jumpdest
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw swap4
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw swap3
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw pop
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw pop
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw pop
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rdret := rd4624.jump
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       hret (by evm_ov)
     exact ⟨_, _, by simpa [hle] using rdret⟩
 
@@ -13632,139 +13632,139 @@ theorem RD.dogCheckedMulOverflowReverts {v : DogImmutables} {code : ByteArray}
   have rd4591prep := evm_run rd4564 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4591⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hcond : UInt256.isZero y = ⟨0⟩ := isZero_eq_zero_of_ne hyNe
   have rd4574 := rd4591prep.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hcond (by evm_ov)
   have rd4586 := evm_run rd4574 with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mul
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4588⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4588 := rd4586.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hyNe (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hyNe (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   have rd4558prep := evm_run rd4588 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw div
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw eq
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4558⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have heqCond : UInt256.eq (UInt256.div (x * y) y) x = ⟨0⟩ :=
     u256_eq_of_ne hdivNe
   have rdFallthrough := rd4558prep.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     heqCond (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.dogCheckedAddReturns {v : DogImmutables} {code : ByteArray}
@@ -13782,10 +13782,10 @@ theorem RD.dogCheckedAddReturns {v : DogImmutables} {code : ByteArray}
   have hwf : solcCheckedAddSuccessWf code ⟨4625⟩ ⟨4558⟩ := by
     dsimp [solcCheckedAddSuccessWf]
     repeat' first | apply And.intro |
-      (rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-       native_decide)
+      (rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+       decide +native)
   exact RD.solcCheckedAddSuccess rd4625 hwf hfit hret
-    (dogPatchedJumpDest hpatch (by native_decide)) (by omega)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by omega)
 
 theorem RD.dogCheckedAddOverflowReverts {v : DogImmutables} {code : ByteArray}
     {s0 : EVM.State} {I : ExecutionEnv} {g : Sat256}
@@ -13816,72 +13816,72 @@ theorem RD.dogCheckedAddOverflowReverts {v : DogImmutables} {code : ByteArray}
   have rd4632pre := evm_run rd4625 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4632₀ := evm_run rd4632pre with [
     raw lt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4632 := rd4632₀
   rw [hlt] at rd4632
   have rd4633₀ := evm_run rd4632 with [
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4633 := rd4633₀
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd4633
   have rd4636 := evm_run rd4633 with [
     raw push2 ⟨4558⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4637 := rd4636.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by simp only [List.length_cons]; omega)
   exact RD.solcPush1Dup1Revert0 rd4637
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem dogDecodePatchedEqTemplatePrecise {v : DogImmutables} {code : ByteArray}
@@ -13903,7 +13903,7 @@ theorem dogDecodePatchedEqTemplatePrecise {v : DogImmutables} {code : ByteArray}
     decode code pc = decode dogBytecode pc := by
   unfold decode
   have hsize := dogPatchedSize hpatch
-  have hsize64 : dogBytecode.size < 2 ^ 64 := by native_decide
+  have hsize64 : dogBytecode.size < 2 ^ 64 := by decide +native
   have hwinOp' : pc.toNat + 1 ≤ dogBytecode.size := by
     exact of_decide_eq_true hwinOp
   have hoffsetsOp' :
@@ -14014,11 +14014,11 @@ theorem dogBarkVatConstDecode2889 {v : DogImmutables} {code : ByteArray}
     change code.get? 2889 = dogBytecode.get? 2889
     apply get?_eq_of_extract_one
     · rw [hsize]
-      native_decide
-    · native_decide
+      decide +native
+    · decide +native
     · exact patchRuntime_extract_eq (start := 2889) (stop := 2890)
         (template := dogBytecode) (out := code) (ps := patches v)
-        (by omega) (by native_decide)
+        (by omega) (by decide +native)
         (by
           intro p hp
           have hm := dogPatchOffsetMem v p hp
@@ -14039,14 +14039,14 @@ theorem dogBarkVatConstDecode2889 {v : DogImmutables} {code : ByteArray}
     change code.extract' 2890 2922 = UInt256.toByteArray (EVM.Word.ofNat v.vat.toNat)
     unfold ByteArray.extract'
     have hguard : (decide (2890 < 2 ^ 64) && decide (2922 < 2 ^ 64)) = true := by
-      native_decide
+      decide +native
     rw [if_pos hguard]
     exact dogBarkVatPatchWord2890 hpatch
   have hgetSome : code.get? ({ val := 2889 } : UInt256).toNat = some 0x7f := by
     rw [hget]
-    native_decide
+    decide +native
   have hparse : (some (0x7f : UInt8) >>= parseInstr) = some (.Push .PUSH32) := by
-    native_decide
+    decide +native
   unfold decode
   rw [hgetSome, hparse]
   change some (Operation.Push Operation.POp.PUSH32,
@@ -14088,11 +14088,11 @@ theorem dogBarkVatConstDecode3169 {v : DogImmutables} {code : ByteArray}
     change code.get? 3169 = dogBytecode.get? 3169
     apply get?_eq_of_extract_one
     · rw [hsize]
-      native_decide
-    · native_decide
+      decide +native
+    · decide +native
     · exact patchRuntime_extract_eq (start := 3169) (stop := 3170)
         (template := dogBytecode) (out := code) (ps := patches v)
-        (by omega) (by native_decide)
+        (by omega) (by decide +native)
         (by
           intro p hp
           have hm := dogPatchOffsetMem v p hp
@@ -14113,14 +14113,14 @@ theorem dogBarkVatConstDecode3169 {v : DogImmutables} {code : ByteArray}
     change code.extract' 3170 3202 = UInt256.toByteArray (EVM.Word.ofNat v.vat.toNat)
     unfold ByteArray.extract'
     have hguard : (decide (3170 < 2 ^ 64) && decide (3202 < 2 ^ 64)) = true := by
-      native_decide
+      decide +native
     rw [if_pos hguard]
     exact dogBarkVatPatchWord3170 hpatch
   have hgetSome : code.get? ({ val := 3169 } : UInt256).toNat = some 0x7f := by
     rw [hget]
-    native_decide
+    decide +native
   have hparse : (some (0x7f : UInt8) >>= parseInstr) = some (.Push .PUSH32) := by
-    native_decide
+    decide +native
   unfold decode
   rw [hgetSome, hparse]
   change some (Operation.Push Operation.POp.PUSH32,
@@ -14160,11 +14160,11 @@ theorem dogBarkVatConstDecode3964 {v : DogImmutables} {code : ByteArray}
     change code.get? 3964 = dogBytecode.get? 3964
     apply get?_eq_of_extract_one
     · rw [hsize]
-      native_decide
-    · native_decide
+      decide +native
+    · decide +native
     · exact patchRuntime_extract_eq (start := 3964) (stop := 3965)
         (template := dogBytecode) (out := code) (ps := patches v)
-        (by omega) (by native_decide)
+        (by omega) (by decide +native)
         (by
           intro p hp
           have hm := dogPatchOffsetMem v p hp
@@ -14185,14 +14185,14 @@ theorem dogBarkVatConstDecode3964 {v : DogImmutables} {code : ByteArray}
     change code.extract' 3965 3997 = UInt256.toByteArray (EVM.Word.ofNat v.vat.toNat)
     unfold ByteArray.extract'
     have hguard : (decide (3965 < 2 ^ 64) && decide (3997 < 2 ^ 64)) = true := by
-      native_decide
+      decide +native
     rw [if_pos hguard]
     exact dogBarkVatPatchWord3965 hpatch
   have hgetSome : code.get? ({ val := 3964 } : UInt256).toNat = some 0x7f := by
     rw [hget]
-    native_decide
+    decide +native
   have hparse : (some (0x7f : UInt8) >>= parseInstr) = some (.Push .PUSH32) := by
-    native_decide
+    decide +native
   unfold decode
   rw [hgetSome, hparse]
   change some (Operation.Push Operation.POp.PUSH32,
@@ -14226,22 +14226,22 @@ theorem RD.dogBarkVatUrnsToCallMload {v : DogImmutables} {code : ByteArray}
     solcAddrMask_clean_left (barkVatWord_canonical v)
   have rd2886 := h.jumpdest
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd2889 := evm_run rd2886 with [
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd2922 := rd2889.pushConst (barkVatWord v) (width := 32) (op := .PUSH32)
     (hop := by decide)
@@ -14250,61 +14250,61 @@ theorem RD.dogBarkVatUrnsToCallMload {v : DogImmutables} {code : ByteArray}
   have rd2940raw := evm_run rd2922 with [
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨160⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push4 ⟨606387804⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd2941raw := rd2940raw.mload 0 ⟨128⟩ (UInt256.ofNat 3)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide, hvatCleanR, hvatCleanL] using rd2941raw⟩
@@ -14340,135 +14340,135 @@ theorem RD.dogBarkVatUrnsToExtcodesize {v : DogImmutables} {code : ByteArray}
   have rd2951prefix := evm_run h with [
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push4 ⟨4294967295⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨224⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd2953 := rd2951prefix.mstore 6 (barkVatUrnsSelectorMem mem) (UInt256.ofNat 5)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
       have hsel :
           UInt256.shiftLeft (UInt256.land (⟨4294967295⟩ : UInt256) ⟨606387804⟩) ⟨224⟩ =
             barkVatUrnsSelectorWord := by
-        native_decide
+        decide +native
       dsimp [barkVatUrnsSelectorMem, Reasoning.Theory.writeWord]
       rw [hsel]
-      rw [show (⟨128⟩ : UInt256).toNat = 128 by native_decide])
-    (by native_decide) (by evm_ov)
+      rw [show (⟨128⟩ : UInt256).toNat = 128 by decide +native])
+    (by decide +native) (by evm_ov)
   have rd2958prefix := evm_run rd2953 with [
     raw push1 ⟨4⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd2960 := rd2958prefix.mstore 3 (barkVatUrnsIlkMem I mem) (UInt256.ofNat 6)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
       have h132 : UInt256.add (⟨4⟩ : UInt256) ⟨128⟩ = ⟨132⟩ := by
-        native_decide
+        decide +native
       dsimp [barkVatUrnsIlkMem, Reasoning.Theory.writeWord]
-      rw [show ((⟨4⟩ : UInt256) + ⟨128⟩).toNat = 132 by native_decide])
-    (by native_decide) (by evm_ov)
+      rw [show ((⟨4⟩ : UInt256) + ⟨128⟩).toNat = 132 by decide +native])
+    (by decide +native) (by evm_ov)
   have rd2973raw := evm_run rd2960 with [
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨160⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨_, _, rd2974⟩ : ∃ k' C', RD code I g s0 ⟨2974⟩
       (⟨164⟩ :: barkUrnKey I :: ⟨164⟩ :: ⟨132⟩ :: barkUrnKey I ::
@@ -14476,103 +14476,103 @@ theorem RD.dogBarkVatUrnsToExtcodesize {v : DogImmutables} {code : ByteArray}
         ⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I :: ret :: sel :: R)
       (barkVatUrnsIlkMem I mem) (UInt256.ofNat 6) rdata acc k' C' := by
     exact ⟨_, _, by
-      simpa [show UInt256.add (⟨32⟩ : UInt256) ⟨132⟩ = ⟨164⟩ by native_decide,
-        show UInt256.add (⟨4⟩ : UInt256) ⟨128⟩ = ⟨132⟩ by native_decide,
+      simpa [show UInt256.add (⟨32⟩ : UInt256) ⟨132⟩ = ⟨164⟩ by decide +native,
+        show UInt256.add (⟨4⟩ : UInt256) ⟨128⟩ = ⟨132⟩ by decide +native,
         show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
           solcAddrMask from by decide, hurnCleanR, hurnCleanL] using rd2973raw⟩
   have rd2975 := rd2974.mstore 3 (barkVatUrnsCallMem I mem) (UInt256.ofNat 7)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
       dsimp [barkVatUrnsCallMem, Reasoning.Theory.writeWord]
-      rw [show (⟨164⟩ : UInt256).toNat = 164 by native_decide])
-    (by native_decide) (by evm_ov)
+      rw [show (⟨164⟩ : UInt256).toNat = 164 by decide +native])
+    (by decide +native) (by evm_ov)
   have rd2985prefix := evm_run rd2975 with [
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd2986 := rd2985prefix.mload 0 ⟨128⟩ (UInt256.ofNat 7)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (mloadFreePtrValue
       (by rw [barkVatUrnsCallMem_size hmem]; decide) (by decide)
       (barkVatUrnsCallMem_read64 hmem hread64))
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [
-      show UInt256.add (⟨32⟩ : UInt256) ⟨164⟩ = ⟨196⟩ from by native_decide,
-      show UInt256.sub (⟨196⟩ : UInt256) ⟨128⟩ = ⟨68⟩ from by native_decide] using
+      show UInt256.add (⟨32⟩ : UInt256) ⟨164⟩ = ⟨196⟩ from by decide +native,
+      show UInt256.sub (⟨196⟩ : UInt256) ⟨128⟩ = ⟨68⟩ from by decide +native] using
       evm_run rd2986 with [
         raw dup1
           (by
-            rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-            native_decide)
+            rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+            decide +native)
           (by evm_ov),
         raw dup4
           (by
-            rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-            native_decide)
+            rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+            decide +native)
           (by evm_ov),
         raw sub
           (by
-            rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-            native_decide)
+            rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+            decide +native)
           (by evm_ov),
         raw dup2
           (by
-            rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-            native_decide)
+            rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+            decide +native)
           (by evm_ov),
         raw dup7
           (by
-            rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-            native_decide)
+            rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+            decide +native)
           (by evm_ov),
         raw dup1
           (by
-            rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-            native_decide)
+            rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+            decide +native)
           (by evm_ov)]⟩
 
 theorem RD.dogBarkVatUrnsNoCodeRevert {v : DogImmutables} {code : ByteArray}
@@ -14595,32 +14595,32 @@ theorem RD.dogBarkVatUrnsNoCodeRevert {v : DogImmutables} {code : ByteArray}
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨2992⟩) (okPc := ⟨3004⟩)
     rd2992 hcodeSize
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
 
 theorem RD.dogBarkVatUrnsToStaticcall {v : DogImmutables} {code : ByteArray}
@@ -14649,33 +14649,33 @@ theorem RD.dogBarkVatUrnsToStaticcall {v : DogImmutables} {code : ByteArray}
     RD.solcExtcodesizeGuardOkGas (pc := ⟨2992⟩) (okPc := ⟨3004⟩)
       rd2992 hcodeSize
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
-      (dogPatchedJumpDest hpatch (by native_decide))
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
+      (dogPatchedJumpDest hpatch (by decide +native))
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by simp only [List.length_cons]; omega)
   exact ⟨gasWord, k', C', by simpa using rd3007⟩
 
@@ -14713,8 +14713,8 @@ theorem RD.dogBarkVatUrnsPostStaticcall {v : DogImmutables} {code : ByteArray}
   obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘpack, rd3008raw, hosz⟩ :=
     RD.solcStaticcall rd3007
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       hdepth
       (by simp only [List.length_cons]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
@@ -14723,7 +14723,7 @@ theorem RD.dogBarkVatUrnsPostStaticcall {v : DogImmutables} {code : ByteArray}
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 7).toNat
           (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat)
           (⟨128⟩ : UInt256).toNat (⟨64⟩ : UInt256).toNat) = UInt256.ofNat 7 := by
-      native_decide
+      decide +native
     change RD code I g (initState cA gh bl σ σ₀ g A I) ⟨3008⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨196⟩ :: ⟨606387804⟩ :: barkVatWord v ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: barkKprKey I :: barkUrnKey I :: barkIlkWord I ::
@@ -14780,41 +14780,41 @@ theorem RD.dogBarkVatUrnsCallFailure {v : DogImmutables} {code : ByteArray}
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3008⟩) (okPc := ⟨3024⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hrdataSize hov
 
 theorem RD.dogBarkVatUrnsCallSuccessToDecode {v : DogImmutables} {code : ByteArray}
@@ -14831,27 +14831,27 @@ theorem RD.dogBarkVatUrnsCallSuccessToDecode {v : DogImmutables} {code : ByteArr
   exact RD.solcCallSuccessGuardOk (pc := ⟨3008⟩) (okPc := ⟨3024⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide))
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native))
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simpa only [List.length_cons] using hov)
 
 theorem RD.dogBarkVatUrnsReturnDecodeShortReverts {v : DogImmutables} {code : ByteArray}
@@ -14868,51 +14868,51 @@ theorem RD.dogBarkVatUrnsReturnDecodeShortReverts {v : DogImmutables} {code : By
     RDrev code g s0 := by
   have rdPop0 := RD.pop rd
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPop1 := RD.pop rdPop0
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPop2 := RD.pop rdPop1
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by omega)
   have rdPush64 := RD.push1 rdPop2 ⟨64⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by omega)
   have rdMload64 := RD.mload 0 ⟨128⟩ (UInt256.ofNat 7) rdPush64
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (barkVatUrnsPostCallMem_mload64 hmem hread64 hshort hout)
     (by decide)
     (by omega)
   have rdReturndatasize := RD.returndatasize rdMload64
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPush64' := RD.push1 rdReturndatasize ⟨64⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdDup2 := RD.dup2 rdPush64'
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdLt := RD.lt rdDup2
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨64⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
@@ -14920,13 +14920,13 @@ theorem RD.dogBarkVatUrnsReturnDecodeShortReverts {v : DogImmutables} {code : By
     exact hshort
   have rdIszero := RD.iszero rdLt
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPushOk := RD.push2 rdIszero ⟨3046⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have hcond :
       UInt256.isZero (UInt256.lt (UInt256.ofNat out.size) (⟨64⟩ : UInt256)) = ⟨0⟩ := by
@@ -14934,20 +14934,20 @@ theorem RD.dogBarkVatUrnsReturnDecodeShortReverts {v : DogImmutables} {code : By
     decide
   have rdFallthrough := RD.jumpiNT rdPushOk
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hcond
     (by simp only [List.length_cons]; omega)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
 
 theorem RD.dogBarkVatUrnsReturnDecodeOk {v : DogImmutables} {code : ByteArray}
@@ -14978,108 +14978,108 @@ theorem RD.dogBarkVatUrnsReturnDecodeOk {v : DogImmutables} {code : ByteArray}
   have rd3036 := evm_run rd with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 7)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     raw returndatasize
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3037raw := RD.lt rd3036
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd3037 := by
     simpa [hlt] using rd3037raw
   have rd3043 := evm_run rd3037 with [
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3046⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3046 := rd3043.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    one_ne_zero_uint (dogPatchedJumpDest hpatch (by native_decide))
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    one_ne_zero_uint (dogPatchedJumpDest hpatch (by decide +native))
     (by simp only [List.length_cons]; omega)
   have rd3054 := evm_run rd3046 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 (barkVatUrnsInkWord out) (UInt256.ofNat 7)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload128 (by decide) (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3055raw := RD.add rd3054
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   obtain ⟨k3055, C3055, rd3055⟩ :
       ∃ k3055 C3055, RD code I g s0 ⟨3055⟩
@@ -15090,33 +15090,33 @@ theorem RD.dogBarkVatUrnsReturnDecodeOk {v : DogImmutables} {code : ByteArray}
   have rd3061 := evm_run rd3055 with [
     raw mload 0 (barkVatUrnsArtWord out) (UInt256.ofNat 7)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload160 (by decide) (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, by simpa using rd3061⟩
 
@@ -15142,259 +15142,259 @@ theorem RD.dogBarkVatUrnsMaterializeTuple {v : DogImmutables} {code : ByteArray}
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) ⟨0⟩ =
         ⟨0⟩ := by
-    native_decide
+    decide +native
   have rd3067 := evm_run rd with [
     raw push2 ⟨3068⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4641⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4641 := rd3067.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide))
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native))
     (by simp only [List.length_cons]; omega)
   have rd4651prefix := evm_run rd4641 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨128⟩ (UInt256.ofNat 7)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨128⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4652 := rd4651prefix.mstore 0 (barkVatUrnsTupleFreeMem I mem out)
     (UInt256.ofNat 7)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
-      rw [show ((⟨128⟩ : UInt256) + ⟨128⟩) = ⟨256⟩ by native_decide]
+      rw [show ((⟨128⟩ : UInt256) + ⟨128⟩) = ⟨256⟩ by decide +native]
       dsimp [barkVatUrnsTupleFreeMem, Reasoning.Theory.writeWord]
-      rw [show (⟨64⟩ : UInt256).toNat = 64 by native_decide])
-    (by native_decide)
+      rw [show (⟨64⟩ : UInt256).toNat = 64 by decide +native])
+    (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd4665prefix := evm_run rd4652 with [
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨160⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4666 := rd4665prefix.mstore 0 (barkVatUrnsTupleWord0Mem I mem out)
     (UInt256.ofNat 7)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
       dsimp [barkVatUrnsTupleWord0Mem, barkVatUrnsTupleFreeMem,
         Reasoning.Theory.writeWord]
-      rw [hmask0, show (⟨128⟩ : UInt256).toNat = 128 by native_decide])
-    (by native_decide)
+      rw [hmask0, show (⟨128⟩ : UInt256).toNat = 128 by decide +native])
+    (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd4672prefix := evm_run rd4666 with [
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4673 := rd4672prefix.mstore 0 (barkVatUrnsTupleWord1Mem I mem out)
     (UInt256.ofNat 7)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
       dsimp [barkVatUrnsTupleWord1Mem, barkVatUrnsTupleWord0Mem,
         barkVatUrnsTupleFreeMem, Reasoning.Theory.writeWord]
-      rw [show ((⟨32⟩ : UInt256) + ⟨128⟩).toNat = 160 by native_decide])
-    (by native_decide)
+      rw [show ((⟨32⟩ : UInt256) + ⟨128⟩).toNat = 160 by decide +native])
+    (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd4679prefix := evm_run rd4673 with [
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4680 := rd4679prefix.mstore 0 (barkVatUrnsTupleWord2Mem I mem out)
     (UInt256.ofNat 7)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
       dsimp [barkVatUrnsTupleWord2Mem, barkVatUrnsTupleWord1Mem,
         barkVatUrnsTupleWord0Mem, barkVatUrnsTupleFreeMem, Reasoning.Theory.writeWord]
       rw [show ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ⟨128⟩)).toNat = 192 by
-        native_decide])
-    (by native_decide)
+        decide +native])
+    (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd4686prefix := evm_run rd4680 with [
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4687 := rd4686prefix.mstore 3 (barkVatUrnsTupleMem I mem out)
     (UInt256.ofNat 8)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
       dsimp [barkVatUrnsTupleMem, barkVatUrnsTupleWord2Mem, barkVatUrnsTupleWord1Mem,
         barkVatUrnsTupleWord0Mem, barkVatUrnsTupleFreeMem, Reasoning.Theory.writeWord]
       rw [show
         ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ⟨128⟩))).toNat =
-          224 by native_decide])
-    (by native_decide)
+          224 by decide +native])
+    (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd4689 := evm_run rd4687 with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3068 := rd4689.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide))
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native))
     (by simp only [List.length_cons]; omega)
   have rd3070 := evm_run rd3068 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, by simpa using rd3070⟩
 
@@ -15419,331 +15419,331 @@ theorem RD.dogBarkLoadIlkFields {v : DogImmutables} {code : ByteArray}
     hmem hlong hout
   have hmask :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    native_decide
+    decide +native
   have rdMstore0Prefix := evm_run rd with [
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdAfterKey := rdMstore0Prefix.mstore 0
     (wordAt0Mem (barkIlkWord I) (barkVatUrnsTupleMem I mem out))
     (UInt256.ofNat 8)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    mem_cost (by rfl) (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdMstoreSlotPrefix := evm_run rdAfterKey with [
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdHashMem := rdMstoreSlotPrefix.mstore 0 (barkIlksHashMem I mem out)
     (UInt256.ofNat 8)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    mem_cost (by rfl) (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rdKeccakPrefix := evm_run rdHashMem with [
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdSlot := rdKeccakPrefix.keccak256 0 (barkIlksSlot I) (UInt256.ofNat 8)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    mem_cost hslot (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    mem_cost hslot (by decide +native) (by evm_ov)
   have rdAllocPrefix := evm_run rdSlot with [
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨256⟩ (UInt256.ofNat 8)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     raw push1 ⟨128⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdAfterAlloc := rdAllocPrefix.mstore 0 (barkIlksAllocMem I mem out)
     (UInt256.ofNat 8)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
       dsimp [barkIlksAllocMem, Reasoning.Theory.writeWord]
-      rw [show ((⟨256⟩ : UInt256) + ⟨128⟩) = ⟨384⟩ by native_decide,
-        show (⟨64⟩ : UInt256).toNat = 64 by native_decide])
-    (by native_decide)
+      rw [show ((⟨256⟩ : UInt256) + ⟨128⟩) = ⟨384⟩ by decide +native,
+        show (⟨64⟩ : UInt256).toNat = 64 by decide +native])
+    (by decide +native)
     (by evm_ov)
   have rdBeforeClipLoad := rdAfterAlloc.dup2
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   obtain ⟨_, _, rdAfterClipLoad⟩ := rdBeforeClipLoad.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rdClipStorePrefix := evm_run rdAfterClipLoad with [
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨160⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   rw [hmask] at rdClipStorePrefix
   have rdAfterClipStore := rdClipStorePrefix.mstore 3 (barkIlksClipMem σ I mem out)
     (UInt256.ofNat 9)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
       dsimp [barkIlksClipMem, barkIlksClipWord, solcSlotWord, Reasoning.Theory.writeWord]
-      rw [show (⟨256⟩ : UInt256).toNat = 256 by native_decide])
-    (by native_decide)
+      rw [show (⟨256⟩ : UInt256).toNat = 256 by decide +native])
+    (by decide +native)
     (by evm_ov)
   have rdChopLoadPrefix := evm_run rdAfterClipStore with [
     raw swap5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨_, _, rdAfterChopLoad⟩ := rdChopLoadPrefix.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rdChopStorePrefix := evm_run rdAfterChopLoad with [
     raw swap4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdAfterChopStore := rdChopStorePrefix.mstore 3 (barkIlksChopMem σ I mem out)
     (UInt256.ofNat 10)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
       dsimp [barkIlksChopMem, barkIlksChopWord, solcSlotWord, Reasoning.Theory.writeWord]
-      rw [show ((⟨256⟩ : UInt256) + ⟨32⟩).toNat = 288 by native_decide])
-    (by native_decide)
+      rw [show ((⟨256⟩ : UInt256) + ⟨32⟩).toNat = 288 by decide +native])
+    (by decide +native)
     (by evm_ov)
   have rdHoleLoadPrefix := evm_run rdAfterChopStore with [
     raw push1 ⟨2⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨_, _, rdAfterHoleLoad⟩ := rdHoleLoadPrefix.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rdHoleStorePrefix := evm_run rdAfterHoleLoad with [
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdAfterHoleStore := rdHoleStorePrefix.mstore 3 (barkIlksHoleMem σ I mem out)
     (UInt256.ofNat 11)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
       dsimp [barkIlksHoleMem, barkIlksHoleWord, solcSlotWord, Reasoning.Theory.writeWord]
-      rw [show ((⟨64⟩ : UInt256) + ⟨256⟩).toNat = 320 by native_decide])
-    (by native_decide)
+      rw [show ((⟨64⟩ : UInt256) + ⟨256⟩).toNat = 320 by decide +native])
+    (by decide +native)
     (by evm_ov)
   have rdDirtLoadPrefix := evm_run rdAfterHoleStore with [
     raw push1 ⟨3⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨_, _, rdAfterDirtLoad⟩ := rdDirtLoadPrefix.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rdDirtStorePrefix := evm_run rdAfterDirtLoad with [
     raw push1 ⟨96⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨_, _, rdDirtStorePrefix3138⟩ : ∃ kD C_D,
       RD code I g s0 ⟨3138⟩
@@ -15757,14 +15757,14 @@ theorem RD.dogBarkLoadIlkFields {v : DogImmutables} {code : ByteArray}
     (UInt256.ofNat 12)
     (by
       exact dogDecodePatchedNoArg (pc := ⟨3138⟩) (byte := 0x52) (op := .MSTORE)
-        hpatch (by native_decide)
-        (by native_decide)
-        (by native_decide) (by native_decide) (by native_decide))
+        hpatch (by decide +native)
+        (by decide +native)
+        (by decide +native) (by decide +native) (by decide +native))
     mem_cost
     (by
       dsimp [barkIlksMem, barkIlksDirtWord, solcSlotWord, Reasoning.Theory.writeWord]
-      rw [show ((⟨256⟩ : UInt256) + ⟨96⟩).toNat = 352 by native_decide])
-    (by native_decide)
+      rw [show ((⟨256⟩ : UInt256) + ⟨96⟩).toNat = 352 by decide +native])
+    (by decide +native)
     (by evm_ov)
   exact ⟨_, _, by simpa using rdAfterDirtStore⟩
 
@@ -15792,108 +15792,108 @@ theorem RD.dogBarkVatIlksToCallMload {v : DogImmutables} {code : ByteArray}
   have rd3150prefix := evm_run rd with [
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 12)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      mem_cost hmload64 (by native_decide) (by evm_ov),
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      mem_cost hmload64 (by decide +native) (by evm_ov),
     raw push4 ⟨1823590043⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨225⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3151 := rd3150prefix.mstore 3 (barkVatIlksSelectorMem σ I mem out)
     (UInt256.ofNat 13)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
       dsimp [barkVatIlksSelectorMem, barkVatIlksSelectorWord, Reasoning.Theory.writeWord]
-      rw [show (⟨384⟩ : UInt256).toNat = 384 by native_decide])
-    (by native_decide)
+      rw [show (⟨384⟩ : UInt256).toNat = 384 by decide +native])
+    (by decide +native)
     (by evm_ov)
   have rd3157prefix := evm_run rd3151 with [
     raw push1 ⟨4⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup12
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3158 := rd3157prefix.mstore 3 (barkVatIlksCallMem σ I mem out)
     (UInt256.ofNat 14)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (by
       dsimp [barkVatIlksCallMem, Reasoning.Theory.writeWord]
-      rw [show ((⟨384⟩ : UInt256) + ⟨4⟩).toNat = 388 by native_decide])
-    (by native_decide)
+      rw [show ((⟨384⟩ : UInt256) + ⟨4⟩).toNat = 388 by decide +native])
+    (by decide +native)
     (by evm_ov)
   have rd3160 := evm_run rd3158 with [
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 14)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      mem_cost hmloadCall (by native_decide) (by evm_ov)]
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      mem_cost hmloadCall (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa using rd3160⟩
 
 theorem RD.dogBarkVatIlksToGasPrep {v : DogImmutables} {code : ByteArray}
@@ -15918,57 +15918,57 @@ theorem RD.dogBarkVatIlksToGasPrep {v : DogImmutables} {code : ByteArray}
   have rd3169 := evm_run rd with [
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3202 := rd3169.pushConst (barkVatWord v) (width := 32) (op := .PUSH32)
     (hop := by decide)
@@ -15977,13 +15977,13 @@ theorem RD.dogBarkVatIlksToGasPrep {v : DogImmutables} {code : ByteArray}
   have rd3204 := evm_run rd3202 with [
     raw and
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, by simpa [hvatCleanR] using rd3204⟩
 
@@ -16013,103 +16013,103 @@ theorem RD.dogBarkVatIlksToExtcodesize {v : DogImmutables} {code : ByteArray}
   have rd3229 := evm_run rd3204 with [
     raw push4 ⟨3647180086⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨36⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨160⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, by
-    simpa [show UInt256.sub (⟨384⟩ : UInt256) ⟨384⟩ = ⟨0⟩ by native_decide,
-      show ((⟨0⟩ : UInt256) + ⟨36⟩) = ⟨36⟩ by native_decide,
-      show ((⟨384⟩ : UInt256) + ⟨36⟩) = ⟨420⟩ by native_decide]
+    simpa [show UInt256.sub (⟨384⟩ : UInt256) ⟨384⟩ = ⟨0⟩ by decide +native,
+      show ((⟨0⟩ : UInt256) + ⟨36⟩) = ⟨36⟩ by decide +native,
+      show ((⟨384⟩ : UInt256) + ⟨36⟩) = ⟨420⟩ by decide +native]
       using rd3229⟩
 
 theorem RD.dogBarkVatIlksToStaticcall {v : DogImmutables} {code : ByteArray}
@@ -16139,33 +16139,33 @@ theorem RD.dogBarkVatIlksToStaticcall {v : DogImmutables} {code : ByteArray}
     RD.solcExtcodesizeGuardOkGas (pc := ⟨3229⟩) (okPc := ⟨3241⟩)
       rd3229 hcodeSize
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
-      (dogPatchedJumpDest hpatch (by native_decide))
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
+      (dogPatchedJumpDest hpatch (by decide +native))
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by simp only [List.length_cons]; omega)
   exact ⟨gasWord, k', C', by simpa using rd3244⟩
 
@@ -16212,8 +16212,8 @@ theorem RD.dogBarkVatIlksPostStaticcall {v : DogImmutables} {code : ByteArray}
   obtain ⟨cA', σ', z, outIlks, A_in, callGas, k', C', hΘpack, rd3245raw, hosz⟩ :=
     RD.solcStaticcall rd3244
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       hdepth
       (by simp only [List.length_cons]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
@@ -16222,7 +16222,7 @@ theorem RD.dogBarkVatIlksPostStaticcall {v : DogImmutables} {code : ByteArray}
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 14).toNat
           (⟨384⟩ : UInt256).toNat (⟨36⟩ : UInt256).toNat)
           (⟨384⟩ : UInt256).toNat (⟨160⟩ : UInt256).toNat) = UInt256.ofNat 17 := by
-      native_decide
+      decide +native
     change RD code I g s0 ⟨3245⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: ⟨420⟩ :: ⟨3647180086⟩ :: barkVatWord v ::
         ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨0⟩ :: ⟨256⟩ ::
@@ -16284,32 +16284,32 @@ theorem RD.dogBarkVatIlksNoCodeRevert {v : DogImmutables} {code : ByteArray}
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨3229⟩) (okPc := ⟨3241⟩)
     rd3229 hcodeSize
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
 
 theorem RD.dogBarkVatIlksCallFailure {v : DogImmutables} {code : ByteArray}
@@ -16324,41 +16324,41 @@ theorem RD.dogBarkVatIlksCallFailure {v : DogImmutables} {code : ByteArray}
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3245⟩) (okPc := ⟨3261⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hrdataSize hov
 
 theorem RD.dogBarkVatIlksCallSuccessToDecode {v : DogImmutables} {code : ByteArray}
@@ -16380,27 +16380,27 @@ theorem RD.dogBarkVatIlksCallSuccessToDecode {v : DogImmutables} {code : ByteArr
   exact RD.solcCallSuccessGuardOk (pc := ⟨3245⟩) (okPc := ⟨3261⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide))
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native))
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
 
 theorem RD.dogBarkVatIlksReturnDecodeShortReverts {v : DogImmutables} {code : ByteArray}
@@ -16420,51 +16420,51 @@ theorem RD.dogBarkVatIlksReturnDecodeShortReverts {v : DogImmutables} {code : By
     RDrev code g s0 := by
   have rdPop0 := RD.pop rd
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPop1 := RD.pop rdPop0
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPop2 := RD.pop rdPop1
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPush64 := RD.push1 rdPop2 ⟨64⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdMload64 := RD.mload 0 ⟨384⟩ (UInt256.ofNat 17) rdPush64
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost
     (barkVatIlksPostCallMem_mload64 hmem hlong hout hshort houtIlks)
     (by decide)
     (by simp only [List.length_cons]; omega)
   have rdReturndatasize := RD.returndatasize rdMload64
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPush160 := RD.push1 rdReturndatasize ⟨160⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdDup2 := RD.dup2 rdPush160
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdLt := RD.lt rdDup2
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have hlt : UInt256.lt (UInt256.ofNat outIlks.size) (⟨160⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
@@ -16473,13 +16473,13 @@ theorem RD.dogBarkVatIlksReturnDecodeShortReverts {v : DogImmutables} {code : By
     exact hshort
   have rdIszero := RD.iszero rdLt
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPushOk := RD.push2 rdIszero ⟨3283⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have hcond :
       UInt256.isZero (UInt256.lt (UInt256.ofNat outIlks.size) (⟨160⟩ : UInt256)) =
@@ -16488,20 +16488,20 @@ theorem RD.dogBarkVatIlksReturnDecodeShortReverts {v : DogImmutables} {code : By
     decide
   have rdFallthrough := RD.jumpiNT rdPushOk
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hcond
     (by simp only [List.length_cons]; omega)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
 
 theorem RD.dogBarkVatIlksReturnDecodeOkToSpotGuard {v : DogImmutables} {code : ByteArray}
@@ -16539,195 +16539,195 @@ theorem RD.dogBarkVatIlksReturnDecodeOkToSpotGuard {v : DogImmutables} {code : B
   have rd3272 := evm_run rd with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     raw returndatasize
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨160⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3273raw := RD.lt rd3272
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd3273 := by
     simpa [hlt] using rd3273raw
   have rd3275 := evm_run rd3273 with [
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3283⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hcond : UInt256.isZero (⟨0⟩ : UInt256) ≠ ⟨0⟩ := by
     decide
   have rd3283 := RD.jumpiT rd3275
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hcond (dogPatchedJumpDest hpatch (by native_decide))
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hcond (dogPatchedJumpDest hpatch (by decide +native))
     (by simp only [List.length_cons]; omega)
   have rd3288pre := evm_run rd3283 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3289addrRaw := RD.add rd3288pre
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have hadd416 : (⟨384⟩ : UInt256) + ⟨32⟩ = ⟨416⟩ := by
-    native_decide
+    decide +native
   have rd3289addr := by
     simpa [hadd416] using rd3289addrRaw
   have rd3293pre := evm_run rd3289addr with [
     raw mload 0 (barkVatIlksRateWord outIlks) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload416 (by decide) (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3294addrRaw := RD.add rd3293pre
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have hadd448 : (⟨384⟩ : UInt256) + ⟨64⟩ = ⟨448⟩ := by
-    native_decide
+    decide +native
   have rd3294addr := by
     simpa [hadd448] using rd3294addrRaw
   have rd3299pre := evm_run rd3294addr with [
     raw mload 0 (barkVatIlksSpotWord outIlks) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload448 (by decide) (by evm_ov),
     raw push1 ⟨128⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3300addrRaw := RD.add rd3299pre
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have hadd512 : (⟨384⟩ : UInt256) + ⟨128⟩ = ⟨512⟩ := by
-    native_decide
+    decide +native
   have rd3300addr := by
     simpa [hadd512] using rd3300addrRaw
   have rd3308 := evm_run rd3300addr with [
     raw mload 0 (barkVatIlksDustWord outIlks) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload512 (by decide) (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, by simpa using rd3308⟩
 
@@ -16759,9 +16759,9 @@ theorem RD.dogBarkPostIlksErrorStringRevertTail {code : ByteArray} {g : Sat256}
       (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17)
       (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
+      (by decide +native)
       (by
-        simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
+        simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using hread64)
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ hd0 (by evm_ov),
     raw dup1 hd2 (by evm_ov),
@@ -16905,9 +16905,9 @@ theorem RD.dogBarkPostIlksErrorStringRevertTailFullWord {code : ByteArray}
       (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17)
       (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
+      (by decide +native)
       (by
-        simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
+        simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using hread64)
   have rdMload := evm_run h with [
     raw push1 ⟨64⟩ hd0 (by evm_ov),
     raw dup1 hd2 (by evm_ov),
@@ -16974,68 +16974,68 @@ theorem RD.dogBarkSpotZeroReverts {v : DogImmutables} {code : ByteArray}
     unfold solcErrorStringRevertTailWf
     repeat' first
       | apply And.intro
-      | (rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]; native_decide)
+      | (rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]; decide +native)
   have rd3316 := evm_run rd3308 with [
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3339⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hjump : UInt256.isZero spot ≠ ⟨0⟩ := by
     rw [hspot]
     decide
   have rd3339 := rd3316.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hjump (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hjump (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   have rd3343 := evm_run rd3339 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3405⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hfall : UInt256.isZero (UInt256.isZero spot) = ⟨0⟩ := by
     rw [hspot]
     decide
   have rd3344 := rd3343.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hfall (by evm_ov)
   have hpc3344 : (⟨3339⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ = ⟨3344⟩ := by
-    native_decide
+    decide +native
   have rd3344pc := rd3344
   rw [hpc3344] at rd3344pc
   exact RD.dogBarkPostIlksErrorStringRevertTail
@@ -17061,71 +17061,71 @@ theorem RD.dogBarkArtRateOverflowReverts {v : DogImmutables} {code : ByteArray}
   have rd3316 := evm_run rd3308 with [
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3339⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hzero : UInt256.isZero spot = ⟨0⟩ := isZero_eq_zero_of_ne hspot
   have rd3317 := rd3316.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hzero (by evm_ov)
   have rd3326 := evm_run rd3317 with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3327⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564 := rd3326.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact RD.dogCheckedMulOverflowReverts (v := v) hpatch
     (R := spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
       kpr :: urn :: ilk :: ret :: sel :: R)
@@ -17150,109 +17150,109 @@ theorem RD.dogBarkInkSpotOverflowReverts {v : DogImmutables} {code : ByteArray}
   have rd3316 := evm_run rd3308 with [
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3339⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hzero : UInt256.isZero spot = ⟨0⟩ := isZero_eq_zero_of_ne hspot
   have rd3317 := rd3316.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hzero (by evm_ov)
   have rd3326 := evm_run rd3317 with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3327⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564art := rd3326.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3327⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (R := spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
       (x := art) (y := rate) (ret := ⟨3327⟩)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitArt rd4564art
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitArt rd4564art
   have rd3336 := evm_run rd3327 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3337⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup9
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564ink := rd3336.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact RD.dogCheckedMulOverflowReverts (v := v) hpatch
     (R := art * rate :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink ::
       ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
@@ -17282,155 +17282,155 @@ theorem RD.dogBarkNotUnsafeReverts {v : DogImmutables} {code : ByteArray}
     unfold solcErrorStringRevertTailWf
     repeat' first
       | apply And.intro
-      | (rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
+      | (rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]; decide +native)
   have rd3316 := evm_run rd3308 with [
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3339⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hzero : UInt256.isZero spot = ⟨0⟩ := isZero_eq_zero_of_ne hspot
   have rd3317 := rd3316.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hzero (by evm_ov)
   have rd3326 := evm_run rd3317 with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3327⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564art := rd3326.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3327⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (R := spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
       (x := art) (y := rate) (ret := ⟨3327⟩)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitArt rd4564art
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitArt rd4564art
   have rd3336 := evm_run rd3327 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3337⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup9
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564ink := rd3336.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3337⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (R := art * rate :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (x := ink) (y := spot) (ret := ⟨3337⟩)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitInk rd4564ink
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitInk rd4564ink
   have hlt : UInt256.lt (ink * spot) (art * rate) = ⟨0⟩ :=
     Reasoning.Theory.ult_zero hnotLt
   have rd3339raw := evm_run rd3337 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw lt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hpc3339 : (⟨3337⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ = ⟨3339⟩ := by
-    native_decide
+    decide +native
   have rd3339 := rd3339raw
   rw [hlt, hpc3339] at rd3339
   have rd3343 := evm_run rd3339 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3405⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3344 := rd3343.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by rfl) (by evm_ov)
   have hpc3344 : (⟨3339⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ = ⟨3344⟩ := by
-    native_decide
+    decide +native
   have rd3344pc := rd3344
   rw [hpc3344] at rd3344pc
   exact RD.dogBarkPostIlksErrorStringRevertTail
@@ -17461,149 +17461,149 @@ theorem RD.dogBarkSafeToLimitGuard {v : DogImmutables} {code : ByteArray}
   have rd3316 := evm_run rd3308 with [
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3339⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hzero : UInt256.isZero spot = ⟨0⟩ := isZero_eq_zero_of_ne hspot
   have rd3317 := rd3316.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hzero (by evm_ov)
   have rd3326 := evm_run rd3317 with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3327⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564art := rd3326.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3327⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (R := spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink :: ⟨0⟩ ::
         kpr :: urn :: ilk :: ret :: sel :: R)
       (x := art) (y := rate) (ret := ⟨3327⟩)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitArt rd4564art
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitArt rd4564art
   have rd3336 := evm_run rd3327 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3337⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup9
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564ink := rd3336.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3337⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (R := art * rate :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (x := ink) (y := spot) (ret := ⟨3337⟩)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitInk rd4564ink
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitInk rd4564ink
   have hlt : UInt256.lt (ink * spot) (art * rate) = ⟨1⟩ :=
     Reasoning.Theory.ult_one hsafe
   have rd3339raw := evm_run rd3337 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw lt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hpc3339 : (⟨3337⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ = ⟨3339⟩ := by
-    native_decide
+    decide +native
   have rd3339 := rd3339raw
   rw [hlt, hpc3339] at rd3339
   have rd3343 := evm_run rd3339 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3405⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3405 := rd3343.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    one_ne_zero_uint (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    one_ne_zero_uint (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact ⟨_, _, by simpa using rd3405⟩
 
 theorem RD.dogBarkLimitGuardOk {v : DogImmutables} {code : ByteArray}
@@ -17647,18 +17647,18 @@ theorem RD.dogBarkLimitGuardOk {v : DogImmutables} {code : ByteArray}
   have rd3408 := evm_run rd3405 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨5⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨k3409, C3409, rd3409raw⟩ := rd3408.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd3409 : RD code I g s0 ⟨3409⟩
       (dogSlotWord ⟨5⟩ σ I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
@@ -17668,13 +17668,13 @@ theorem RD.dogBarkLimitGuardOk {v : DogImmutables} {code : ByteArray}
   have rd3411 := evm_run rd3409 with [
     raw push1 ⟨4⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨k3412, C3412, rd3412raw⟩ := rd3411.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd3412 : RD code I g s0 ⟨3412⟩
       (dogSlotWord ⟨4⟩ σ I :: dogSlotWord ⟨5⟩ σ I :: spot :: dust :: rate ::
@@ -17687,117 +17687,117 @@ theorem RD.dogBarkLimitGuardOk {v : DogImmutables} {code : ByteArray}
   have rd3413raw := evm_run rd3412 with [
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3413 := rd3413raw
   rw [hgtGlobal] at rd3413
   have rd3418raw := evm_run rd3413 with [
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3431⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3418 := rd3418raw
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd3418
   have rd3419 := rd3418.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by rfl) (by evm_ov)
   have rd3423 := evm_run rd3419 with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨96⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3424raw := RD.add rd3423
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have hadd352 : (⟨96⟩ : UInt256) + ⟨256⟩ = ⟨352⟩ := by
-    native_decide
+    decide +native
   have rd3424 := by
     simpa [hadd352] using rd3424raw
   have rd3425 := evm_run rd3424 with [
     raw mload 0 (barkIlksDirtWord σMem I) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload352 (by decide) (by evm_ov)]
   have rd3428 := evm_run rd3425 with [
     raw dup6
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3429raw := RD.add rd3428
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have hadd320 : (⟨64⟩ : UInt256) + ⟨256⟩ = ⟨320⟩ := by
-    native_decide
+    decide +native
   have rd3429 := by
     simpa [hadd320] using rd3429raw
   have rd3430 := evm_run rd3429 with [
     raw mload 0 (barkIlksHoleWord σMem I) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload320 (by decide) (by evm_ov)]
   have hgtMilk : UInt256.gt (barkIlksHoleWord σMem I) (barkIlksDirtWord σMem I) = ⟨1⟩ :=
     Reasoning.Theory.ugt_one hlimit.2
   have rd3431raw := evm_run rd3430 with [
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3431 := rd3431raw
   rw [hgtMilk] at rd3431
   have rd3435 := evm_run rd3431 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3512⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3512 := rd3435.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    one_ne_zero_uint (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    one_ne_zero_uint (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact ⟨_, _, by simpa using rd3512⟩
 
 theorem RD.dogBarkComputeRoom {v : DogImmutables} {code : ByteArray}
@@ -17831,28 +17831,28 @@ theorem RD.dogBarkComputeRoom {v : DogImmutables} {code : ByteArray}
   have rd3519 := evm_run rd3512 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3540⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨5⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨k3521, C3521, rd3521raw⟩ := rd3519.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd3521 : RD code I g s0 ⟨3521⟩
       (dogSlotWord ⟨5⟩ σ I :: ⟨3540⟩ :: ⟨0⟩ :: spot :: dust :: rate ::
@@ -17862,13 +17862,13 @@ theorem RD.dogBarkComputeRoom {v : DogImmutables} {code : ByteArray}
   have rd3523prep := evm_run rd3521 with [
     raw push1 ⟨4⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨k3524, C3524, rd3524raw⟩ := rd3523prep.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd3524 : RD code I g s0 ⟨3524⟩
       (dogSlotWord ⟨4⟩ σ I :: dogSlotWord ⟨5⟩ σ I :: ⟨3540⟩ :: ⟨0⟩ ::
@@ -17879,78 +17879,78 @@ theorem RD.dogBarkComputeRoom {v : DogImmutables} {code : ByteArray}
   have rd3525 := evm_run rd3524 with [
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨96⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3528raw := RD.add rd3525
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have hadd352 : (⟨96⟩ : UInt256) + ⟨256⟩ = ⟨352⟩ := by
-    native_decide
+    decide +native
   have rd3528 := by
     simpa [hadd352, barkGlobalRoomWord] using rd3528raw
   have rd3529 := evm_run rd3528 with [
     raw mload 0 (barkIlksDirtWord σMem I) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload352 (by decide) (by evm_ov)]
   have rd3533 := evm_run rd3529 with [
     raw dup9
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3533raw := RD.add rd3533
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have hadd320 : (⟨64⟩ : UInt256) + ⟨256⟩ = ⟨320⟩ := by
-    native_decide
+    decide +native
   have rd3533add := by
     simpa [hadd320, barkGlobalRoomWord] using rd3533raw
   have rd3534 := evm_run rd3533add with [
     raw mload 0 (barkIlksHoleWord σMem I) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload320 (by decide) (by evm_ov)]
   have rd3536 := evm_run rd3534 with [
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4600⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4600 := rd3536.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3540⟩ :=
-    RD.dogMinReturns (v := v) hpatch (dogPatchedJumpDest hpatch (by native_decide))
+    RD.dogMinReturns (v := v) hpatch (dogPatchedJumpDest hpatch (by decide +native))
       (x := barkGlobalRoomWord σ I) (y := barkIlkRoomWord σMem I)
       (ret := ⟨3540⟩)
       (R := ⟨0⟩ :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ :: art :: ink ::
@@ -17960,18 +17960,18 @@ theorem RD.dogBarkComputeRoom {v : DogImmutables} {code : ByteArray}
   have rd3543 := evm_run rd3540 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, by simpa [barkRoomWord] using rd3543⟩
 
@@ -18005,72 +18005,72 @@ theorem RD.dogBarkComputeDart {v : DogImmutables} {code : ByteArray}
   have rd3548 := evm_run rd3543 with [
     raw push2 ⟨3591⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3550raw := RD.add rd3548
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have hadd288 : (⟨32⟩ : UInt256) + ⟨256⟩ = ⟨288⟩ := by
-    native_decide
+    decide +native
   have rd3551 := by
     simpa [hadd288] using rd3550raw
   have rd3552 := evm_run rd3551 with [
     raw mload 0 (barkIlksChopWord σMem I) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload288 (by decide) (by evm_ov)]
   have rd3557 := evm_run rd3552 with [
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3570⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup6
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3566 := rd3557.pushConst dogWadWord (width := 8) (op := .PUSH8)
     (by decide)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd3569 := evm_run rd3566 with [
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564 := rd3569.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3570raw⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (x := barkRoomWord σ σMem I) (y := dogWadWord) (ret := ⟨3570⟩)
@@ -18078,84 +18078,84 @@ theorem RD.dogBarkComputeDart {v : DogImmutables} {code : ByteArray}
         barkRoomWord σ σMem I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
         art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitRoom rd4564
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitRoom rd4564
   have rd3575 := evm_run rd3570raw with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3577⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3577 := rd3575.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hrateNe (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hrateNe (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   have rd3579raw := evm_run rd3577 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw div
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3579 := by
     simpa [barkDartByRateWord] using rd3579raw
   have rd3583 := evm_run rd3579 with [
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3585⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3585 := rd3583.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hchopNe (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hchopNe (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   have rd3587raw := evm_run rd3585 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw div
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4600⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3587 := by
     simpa [barkDartCandidateWord] using rd3587raw
   have rd4600 := rd3587.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   have rd4600' := by
     simpa [barkDartCandidateWord, barkDartByRateWord, barkRoomWadWord] using rd4600
   obtain ⟨_, _, rd3591⟩ :=
-    RD.dogMinReturns (v := v) hpatch (dogPatchedJumpDest hpatch (by native_decide))
+    RD.dogMinReturns (v := v) hpatch (dogPatchedJumpDest hpatch (by decide +native))
       (x := art) (y := barkDartCandidateWord σ σMem I rate (barkIlksChopWord σMem I))
       (ret := ⟨3591⟩)
       (R := barkRoomWord σ σMem I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
@@ -18165,18 +18165,18 @@ theorem RD.dogBarkComputeDart {v : DogImmutables} {code : ByteArray}
   have rd3594 := evm_run rd3591 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, by simpa [barkDartWord] using rd3594⟩
 
@@ -18207,72 +18207,72 @@ theorem RD.dogBarkDartCandidateDivZeroInvalid {v : DogImmutables} {code : ByteAr
   have rd3548 := evm_run rd3543 with [
     raw push2 ⟨3591⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3550raw := RD.add rd3548
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have hadd288 : (⟨32⟩ : UInt256) + ⟨256⟩ = ⟨288⟩ := by
-    native_decide
+    decide +native
   have rd3551 := by
     simpa [hadd288] using rd3550raw
   have rd3552 := evm_run rd3551 with [
     raw mload 0 (barkIlksChopWord σMem I) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload288 (by decide) (by evm_ov)]
   have rd3557 := evm_run rd3552 with [
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3570⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup6
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3566 := rd3557.pushConst dogWadWord (width := 8) (op := .PUSH8)
     (by decide)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd3569 := evm_run rd3566 with [
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564 := rd3569.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3570raw⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (x := barkRoomWord σ σMem I) (y := dogWadWord) (ret := ⟨3570⟩)
@@ -18280,62 +18280,62 @@ theorem RD.dogBarkDartCandidateDivZeroInvalid {v : DogImmutables} {code : ByteAr
         barkRoomWord σ σMem I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
         art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitRoom rd4564
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitRoom rd4564
   have rd3575 := evm_run rd3570raw with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3577⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3577 := rd3575.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hrateNe (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hrateNe (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   have rd3579raw := evm_run rd3577 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw div
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3579 := by
     simpa [barkDartByRateWord] using rd3579raw
   have rd3583 := evm_run rd3579 with [
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3585⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   rw [hchopZero] at rd3583
   have rd3584 := rd3583.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by rfl) (by evm_ov)
   exact RD.invalidError rd3584
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
 
 theorem RD.dogBarkRoomWadOverflowReverts {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
@@ -18361,72 +18361,72 @@ theorem RD.dogBarkRoomWadOverflowReverts {v : DogImmutables} {code : ByteArray}
   have rd3548 := evm_run rd3543 with [
     raw push2 ⟨3591⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3550raw := RD.add rd3548
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have hadd288 : (⟨32⟩ : UInt256) + ⟨256⟩ = ⟨288⟩ := by
-    native_decide
+    decide +native
   have rd3551 := by
     simpa [hadd288] using rd3550raw
   have rd3552 := evm_run rd3551 with [
     raw mload 0 (barkIlksChopWord σMem I) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload288 (by decide) (by evm_ov)]
   have rd3557 := evm_run rd3552 with [
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3570⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup6
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3566 := rd3557.pushConst dogWadWord (width := 8) (op := .PUSH8)
     (by decide)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd3569 := evm_run rd3566 with [
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564 := rd3569.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact RD.dogCheckedMulOverflowReverts (v := v) hpatch
     (x := barkRoomWord σ σMem I) (y := dogWadWord) (ret := ⟨3570⟩)
     (R := rate :: barkIlksChopWord σMem I :: art :: ⟨3591⟩ ::
@@ -18454,28 +18454,28 @@ theorem RD.dogBarkNoLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray}
   have rd3601 := evm_run rd3594 with [
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3700⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hgtZero : UInt256.gt art dart = ⟨0⟩ :=
     Reasoning.Theory.ugt_zero hnoLeftover
@@ -18484,9 +18484,9 @@ theorem RD.dogBarkNoLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray}
     decide
   have rd3700 := rd3601.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hcond (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hcond (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact ⟨_, _, rd3700⟩
 
 theorem RD.dogBarkDustyLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray}
@@ -18511,28 +18511,28 @@ theorem RD.dogBarkDustyLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray
   have rd3601 := evm_run rd3594 with [
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3700⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hgtOne : UInt256.gt art dart = ⟨1⟩ :=
     Reasoning.Theory.ugt_one hleftover
@@ -18541,79 +18541,79 @@ theorem RD.dogBarkDustyLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray
     decide
   have rd3602 := rd3601.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hcondNoJump (by evm_ov)
   have rd3613 := evm_run rd3602 with [
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3614⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup10
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564 := rd3613.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3614raw⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (x := barkLeftoverArtWord art dart) (y := rate) (ret := ⟨3614⟩)
       (R := dust :: room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitLeftoverDue rd4564
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitLeftoverDue rd4564
   have rd3614 := by
     simpa [barkLeftoverDueWord, barkLeftoverArtWord] using rd3614raw
   have rd3620 := evm_run rd3614 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw lt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3628⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hltOne : UInt256.lt (barkLeftoverDueWord art dart rate) dust = ⟨1⟩ :=
     Reasoning.Theory.ult_one hdusty
@@ -18623,35 +18623,35 @@ theorem RD.dogBarkDustyLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray
     decide
   have rd3621 := rd3620.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hcondDusty (by evm_ov)
   have rd3627 := evm_run rd3621 with [
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3700⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3700 := rd3627.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact ⟨_, _, rd3700⟩
 
 theorem RD.dogBarkPartialLeftoverToDinkEntry {v : DogImmutables} {code : ByteArray}
@@ -18678,28 +18678,28 @@ theorem RD.dogBarkPartialLeftoverToDinkEntry {v : DogImmutables} {code : ByteArr
   have rd3601 := evm_run rd3594 with [
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3700⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hgtOne : UInt256.gt art dart = ⟨1⟩ :=
     Reasoning.Theory.ugt_one hleftover
@@ -18708,79 +18708,79 @@ theorem RD.dogBarkPartialLeftoverToDinkEntry {v : DogImmutables} {code : ByteArr
     decide
   have rd3602 := rd3601.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hcondNoJump (by evm_ov)
   have rd3613 := evm_run rd3602 with [
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3614⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup10
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564left := rd3613.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3614raw⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (x := barkLeftoverArtWord art dart) (y := rate) (ret := ⟨3614⟩)
       (R := dust :: room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitLeftoverDue rd4564left
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitLeftoverDue rd4564left
   have rd3614 := by
     simpa [barkLeftoverDueWord, barkLeftoverArtWord] using rd3614raw
   have rd3620 := evm_run rd3614 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw lt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3628⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hltZero : UInt256.lt (barkLeftoverDueWord art dart rate) dust = ⟨0⟩ :=
     Reasoning.Theory.ult_zero hnotDusty
@@ -18790,74 +18790,74 @@ theorem RD.dogBarkPartialLeftoverToDinkEntry {v : DogImmutables} {code : ByteArr
     decide
   have rd3628 := rd3620.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hcondContinue (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hcondContinue (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   have rd3638 := evm_run rd3628 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3639⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564partial := rd3638.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3639raw⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (x := dart) (y := rate) (ret := ⟨3639⟩)
       (R := dust :: room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitPartialDue rd4564partial
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitPartialDue rd4564partial
   have rd3639 := by
     simpa [barkPartialDueWord] using rd3639raw
   have rd3645 := evm_run rd3639 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw lt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3700⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hpartialLtZero : UInt256.lt (barkPartialDueWord dart rate) dust = ⟨0⟩ :=
     Reasoning.Theory.ult_zero hpartialDueOk
@@ -18867,9 +18867,9 @@ theorem RD.dogBarkPartialLeftoverToDinkEntry {v : DogImmutables} {code : ByteArr
     decide
   have rd3700 := rd3645.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hpartialCond (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hpartialCond (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact ⟨_, _, rd3700⟩
 
 theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteArray}
@@ -18895,28 +18895,28 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
   have rd3601 := evm_run rd3594 with [
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3700⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hgtOne : UInt256.gt art dart = ⟨1⟩ :=
     Reasoning.Theory.ugt_one hleftover
@@ -18925,79 +18925,79 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
     decide
   have rd3602 := rd3601.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hcondNoJump (by evm_ov)
   have rd3613 := evm_run rd3602 with [
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3614⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup10
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564left := rd3613.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3614raw⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (x := barkLeftoverArtWord art dart) (y := rate) (ret := ⟨3614⟩)
       (R := dust :: room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitLeftoverDue rd4564left
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitLeftoverDue rd4564left
   have rd3614 := by
     simpa [barkLeftoverDueWord, barkLeftoverArtWord] using rd3614raw
   have rd3620 := evm_run rd3614 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw lt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3628⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hltZero : UInt256.lt (barkLeftoverDueWord art dart rate) dust = ⟨0⟩ :=
     Reasoning.Theory.ult_zero hnotDusty
@@ -19007,74 +19007,74 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
     decide
   have rd3628 := rd3620.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hcondContinue (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hcondContinue (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   have rd3638 := evm_run rd3628 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3639⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564partial := rd3638.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3639raw⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (x := dart) (y := rate) (ret := ⟨3639⟩)
       (R := dust :: room :: spot :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitPartialDue rd4564partial
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitPartialDue rd4564partial
   have rd3639 := by
     simpa [barkPartialDueWord] using rd3639raw
   have rd3645 := evm_run rd3639 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw lt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3700⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hpartialLtOne : UInt256.lt (barkPartialDueWord dart rate) dust = ⟨1⟩ :=
     Reasoning.Theory.ult_one hpartialDueBad
@@ -19084,13 +19084,13 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
     decide
   have rdFallthrough := rd3645.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     hpartialCond (by evm_ov)
   have hpc3646 :
       (⟨3639⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ =
         ⟨3646⟩ := by
-    native_decide
+    decide +native
   have rd3646 := rdFallthrough
   rw [hpc3646] at rd3646
   have hmload64 :
@@ -19103,132 +19103,132 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
       (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17)
       (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
+      (by decide +native)
       (by
-        simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
+        simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using hread64)
   have rdMload := evm_run rd3646 with [
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload64 (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide)
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
     raw push1 ⟨229⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkPostIlksErrorStringMem0 mem) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 ⟨4⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkPostIlksErrorStringMem1 mem) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 ⟨42⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem)
       (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hcopy :
       code.write 4691 (barkPostIlksErrorStringMem2 (⟨42⟩ : UInt256) mem) 452 42 =
@@ -19236,95 +19236,95 @@ theorem RD.dogBarkPartialLeftoverDustyReverts {v : DogImmutables} {code : ByteAr
     rfl
   have hsrcCopy : 4691 + 42 ≤ code.size := by
     rw [dogPatchedSize hpatch]
-    native_decide
+    decide +native
   have rdCopy := evm_run rdPrefix with [
     raw push2 ⟨4691⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by simp only [List.length_cons]; omega),
     raw push1 ⟨42⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by simp only [List.length_cons]; omega),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by simp only [List.length_cons]; omega),
     raw codecopy 0 (barkPostIlksCodecopyErrorMem code mem) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (fun s haws hstks => by
         simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', haws, hstks,
           List.getElem!_cons_zero, List.getElem!_cons_succ]
-        native_decide)
+        decide +native)
       hcopy
-      (by native_decide)
+      (by decide +native)
       (by evm_ov)]
   exact evm_run rdCopy with [
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost (barkPostIlksCodecopyErrorMem_mload64 hmem hread64 hsrcCopy)
       (by decide) (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw rev 0
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost (by evm_ov)]
 
 theorem RD.dogBarkComputeDink {v : DogImmutables} {code : ByteArray}
@@ -19348,104 +19348,104 @@ theorem RD.dogBarkComputeDink {v : DogImmutables} {code : ByteArray}
   have rd3714 := evm_run rd3700 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup6
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3715⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup9
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564 := rd3714.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨_, _, rd3715raw⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (x := ink) (y := dart) (ret := ⟨3715⟩)
       (R := art :: ⟨0⟩ :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitInkDart rd4564
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitInkDart rd4564
   have rd3715 := by
     simpa [barkInkDartWord] using rd3715raw
   have rd3720 := evm_run rd3715 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3722⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3722 := rd3720.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hartNe (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hartNe (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   have rd3726 := evm_run rd3722 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw div
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, by simpa [barkDinkWord] using rd3726⟩
 
@@ -19466,54 +19466,54 @@ theorem RD.dogBarkInkDartOverflowReverts {v : DogImmutables} {code : ByteArray}
   have rd3714 := evm_run rd3700 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup6
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3715⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup9
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564 := rd3714.jump
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact RD.dogCheckedMulOverflowReverts (v := v) hpatch
     (x := ink) (y := dart) (ret := ⟨3715⟩)
     (R := art :: ⟨0⟩ :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
@@ -19540,23 +19540,23 @@ theorem RD.dogBarkDinkGuardOk {v : DogImmutables} {code : ByteArray}
   have rd3730 := evm_run rd3726 with [
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3797⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hgtOne : UInt256.gt dink ⟨0⟩ = ⟨1⟩ :=
     Reasoning.Theory.ugt_one (by simpa using hdinkPos)
@@ -19565,9 +19565,9 @@ theorem RD.dogBarkDinkGuardOk {v : DogImmutables} {code : ByteArray}
     decide
   have rd3797 := rd3730.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hcond (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hcond (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact ⟨_, _, rd3797⟩
 
 theorem RD.dogBarkDinkGuardReverts {v : DogImmutables} {code : ByteArray}
@@ -19589,23 +19589,23 @@ theorem RD.dogBarkDinkGuardReverts {v : DogImmutables} {code : ByteArray}
   have rd3730 := evm_run rd3726 with [
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3797⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hdinkZero : dink.toNat = 0 := Nat.eq_zero_of_not_pos hdinkNotPos
   have hgtZero : UInt256.gt dink ⟨0⟩ = ⟨0⟩ := by
@@ -19614,16 +19614,16 @@ theorem RD.dogBarkDinkGuardReverts {v : DogImmutables} {code : ByteArray}
   rw [hgtZero] at rd3734prep
   have rd3734 := rd3734prep.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by rfl) (by evm_ov)
   have htail : solcErrorStringRevertTailWf code ⟨3734⟩ ⟨16⟩
       dogNullAuctionRawWord ⟨129⟩ .PUSH16 16 := by
     unfold solcErrorStringRevertTailWf
     repeat' first
       | apply And.intro
-      | (rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)];
-          native_decide)
+      | (rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)];
+          decide +native)
   exact RD.dogBarkPostIlksErrorStringRevertTail
     (pc := ⟨3734⟩) (len := ⟨16⟩) (rawWord := dogNullAuctionRawWord)
     (shift := ⟨129⟩) (word := UInt256.shiftLeft dogNullAuctionRawWord ⟨129⟩)
@@ -19651,53 +19651,53 @@ theorem RD.dogBarkInt256GuardOk {v : DogImmutables} {code : ByteArray}
   have rd3808 := evm_run rd3797 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨255⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3821⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hgtDartZero :
       UInt256.gt dart (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩) = ⟨0⟩ := by
@@ -19709,54 +19709,54 @@ theorem RD.dogBarkInt256GuardOk {v : DogImmutables} {code : ByteArray}
     show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ by decide] at rd3812prep
   have rd3812 := rd3812prep.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by rfl) (by evm_ov)
   have rd3825 := evm_run rd3812 with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨255⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3885⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hgtDinkZero :
       UInt256.gt dink (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩) = ⟨0⟩ := by
@@ -19768,9 +19768,9 @@ theorem RD.dogBarkInt256GuardOk {v : DogImmutables} {code : ByteArray}
   have hcond : (⟨1⟩ : UInt256) ≠ ⟨0⟩ := by decide
   have rd3885 := rd3825prep.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
-    hcond (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
+    hcond (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact ⟨_, _, rd3885⟩
 
 theorem RD.dogBarkInt256GuardDartOverflowReverts {v : DogImmutables} {code : ByteArray}
@@ -19792,53 +19792,53 @@ theorem RD.dogBarkInt256GuardDartOverflowReverts {v : DogImmutables} {code : Byt
   have rd3808 := evm_run rd3797 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨255⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3821⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hgtDartOne :
       UInt256.gt dart (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩) = ⟨1⟩ := by
@@ -19850,33 +19850,33 @@ theorem RD.dogBarkInt256GuardDartOverflowReverts {v : DogImmutables} {code : Byt
     show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ by decide] at rd3821prep
   have rd3821 := rd3821prep.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   have rd3825 := evm_run rd3821 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3885⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd3826 := rd3825.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by rfl) (by evm_ov)
   have htail : solcErrorStringRevertTailWf code ⟨3826⟩ ⟨12⟩
       dogOverflowRawWord ⟨160⟩ .PUSH12 12 := by
     unfold solcErrorStringRevertTailWf
     repeat' first
       | apply And.intro
-      | (rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)];
-          native_decide)
+      | (rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)];
+          decide +native)
   exact RD.dogBarkPostIlksErrorStringRevertTail
     (pc := ⟨3826⟩) (len := ⟨12⟩) (rawWord := dogOverflowRawWord)
     (shift := ⟨160⟩) (word := UInt256.shiftLeft dogOverflowRawWord ⟨160⟩)
@@ -19903,53 +19903,53 @@ theorem RD.dogBarkInt256GuardDinkOverflowReverts {v : DogImmutables} {code : Byt
   have rd3808 := evm_run rd3797 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨255⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3821⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hgtDartZero :
       UInt256.gt dart (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩) = ⟨0⟩ := by
@@ -19961,54 +19961,54 @@ theorem RD.dogBarkInt256GuardDinkOverflowReverts {v : DogImmutables} {code : Byt
     show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ by decide] at rd3812prep
   have rd3812 := rd3812prep.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by rfl) (by evm_ov)
   have rd3825 := evm_run rd3812 with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨255⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw gt
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw iszero
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨3885⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hgtDinkOne :
       UInt256.gt dink (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨255⟩) = ⟨1⟩ := by
@@ -20019,16 +20019,16 @@ theorem RD.dogBarkInt256GuardDinkOverflowReverts {v : DogImmutables} {code : Byt
     show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ by decide] at rd3825prep
   have rd3826 := rd3825prep.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by rfl) (by evm_ov)
   have htail : solcErrorStringRevertTailWf code ⟨3826⟩ ⟨12⟩
       dogOverflowRawWord ⟨160⟩ .PUSH12 12 := by
     unfold solcErrorStringRevertTailWf
     repeat' first
       | apply And.intro
-      | (rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)];
-          native_decide)
+      | (rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)];
+          decide +native)
   exact RD.dogBarkPostIlksErrorStringRevertTail
     (pc := ⟨3826⟩) (len := ⟨12⟩) (rawWord := dogOverflowRawWord)
     (shift := ⟨160⟩) (word := UInt256.shiftLeft dogOverflowRawWord ⟨160⟩)
@@ -20072,8 +20072,8 @@ theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     exact mloadWordValue_of_readWithPadding
       (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 17) (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
-      (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
+      (by decide +native)
+      (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using hread64)
   have hmload64Call :=
     barkVatGrabCallMem_mload64 (σ := σ) (σMem := σMem) (I := I)
       (mem := mem) (dink := dink) (dart := dart) hmem hread64
@@ -20119,33 +20119,33 @@ theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
   have rd3890pre := evm_run rd3885 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 (barkIlksClipWord σMem I) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      mem_cost hmload256 (by native_decide) (by simp only [List.length_cons]; omega),
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      mem_cost hmload256 (by decide +native) (by simp only [List.length_cons]; omega),
     raw push1 ⟨2⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨k3891, C3891, rd3891raw⟩ := rd3890pre.sload
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd3891 : RD code I g s0 ⟨3891⟩
       (dogSlotWord ⟨2⟩ σ I :: barkIlksClipWord σMem I :: dink :: dust :: rate ::
@@ -20156,380 +20156,380 @@ theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
   have rd3964 := evm_run rd3891 with [
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      mem_cost hmload64 (by native_decide) (by simp only [List.length_cons]; omega),
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      mem_cost hmload64 (by decide +native) (by simp only [List.length_cons]; omega),
     raw push4 ⟨0x01eeacfd⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨230⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkVatGrabSelectorMem mem) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      mem_cost (by rfl) (by native_decide) (by simp only [List.length_cons]; omega),
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      mem_cost (by rfl) (by decide +native) (by simp only [List.length_cons]; omega),
     raw push1 ⟨4⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup16
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by simp only [List.length_cons]; omega),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkVatGrabIlkMem I mem) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
         rw [show ({ val := 384 } + { val := 4 } : UInt256).toNat = 388
-          from by native_decide]
+          from by decide +native]
         rfl)
-      (by native_decide) (by simp only [List.length_cons]; omega),
+      (by decide +native) (by simp only [List.length_cons]; omega),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨160⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup15
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by simp only [List.length_cons]; omega),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨36⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkVatGrabUrnMem I mem) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
         rw [show ({ val := 384 } + { val := 36 } : UInt256).toNat = 420
-          from by native_decide]
+          from by decide +native]
         simp only [barkVatGrabUrnMem, Reasoning.Theory.writeWord]
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
             solcAddrMask from by decide, hurnMask])
-      (by native_decide) (by simp only [List.length_cons]; omega),
+      (by decide +native) (by simp only [List.length_cons]; omega),
     raw swap4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨68⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkVatGrabClipMem σMem I mem) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
         rw [show ({ val := 384 } + { val := 68 } : UInt256).toNat = 452
-          from by native_decide]
+          from by decide +native]
         simp only [barkVatGrabClipMem, Reasoning.Theory.writeWord]
         rw [haddrMaskWord, hclipMask])
-      (by native_decide) (by simp only [List.length_cons]; omega),
+      (by decide +native) (by simp only [List.length_cons]; omega),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨100⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkVatGrabVowMem σ σMem I mem) (UInt256.ofNat 17)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
         rw [show ({ val := 384 } + { val := 100 } : UInt256).toNat = 484
-          from by native_decide]
+          from by decide +native]
         simp only [barkVatGrabVowMem, Reasoning.Theory.writeWord, barkVowWord]
         rw [haddrMaskWord])
-      (by native_decide) (by simp only [List.length_cons]; omega),
+      (by decide +native) (by simp only [List.length_cons]; omega),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨132⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 3 (barkVatGrabDinkMem σ σMem I mem dink) (UInt256.ofNat 18)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
         rw [show ({ val := 384 } + { val := 132 } : UInt256).toNat = 516
-          from by native_decide]
+          from by decide +native]
         rfl)
-      (by native_decide) (by simp only [List.length_cons]; omega),
+      (by decide +native) (by simp only [List.length_cons]; omega),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨164⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 3 (barkVatGrabCallMem σ σMem I mem dink dart) (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
         rw [show ({ val := 384 } + { val := 164 } : UInt256).toNat = 548
-          from by native_decide]
+          from by decide +native]
         rfl)
-      (by native_decide) (by simp only [List.length_cons]; omega),
+      (by decide +native) (by simp only [List.length_cons]; omega),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      mem_cost hmload64Call (by native_decide) (by simp only [List.length_cons]; omega)]
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      mem_cost hmload64Call (by decide +native) (by simp only [List.length_cons]; omega)]
   have rd3997 := rd3964.pushConst (barkVatWord v) (width := 32) (op := .PUSH32)
     (hop := by decide)
     (by simpa [barkVatWord] using dogBarkVatConstDecode3964 hpatch)
@@ -20537,139 +20537,139 @@ theorem RD.dogBarkVatGrabExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
   have rd4023 := evm_run rd3997 with [
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push4 barkVatGrabSelectorWord
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 barkVatGrabInSize
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, by
     convert rd4023 using 1 <;>
       simp only [barkVatGrabOutPtr, barkVatGrabInSize, barkVatGrabOutSize,
         barkVatGrabEndPtr, haddrMaskWord, hvatCleanL,
         show UInt256.sub (⟨384⟩ : UInt256) ⟨384⟩ + barkVatGrabInSize =
-          barkVatGrabInSize from by native_decide,
+          barkVatGrabInSize from by decide +native,
         show (⟨384⟩ : UInt256) + barkVatGrabInSize = barkVatGrabEndPtr
-          from by native_decide] <;>
-      native_decide⟩
+          from by decide +native] <;>
+      decide +native⟩
 
 theorem RD.dogBarkVatGrabNoCodeRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
@@ -20685,41 +20685,41 @@ theorem RD.dogBarkVatGrabNoCodeRevert {v : DogImmutables} {code : ByteArray}
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4023⟩) (okPc := ⟨4035⟩)
     rd4023 hcodeSize
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     hov
 
 theorem RD.dogBarkVatGrabToCall {v : DogImmutables} {code : ByteArray}
@@ -20738,42 +20738,42 @@ theorem RD.dogBarkVatGrabToCall {v : DogImmutables} {code : ByteArray}
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4023⟩) (okPc := ⟨4035⟩)
       rd4023 hcodeSize
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      (dogPatchedJumpDest hpatch (by native_decide))
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      (dogPatchedJumpDest hpatch (by decide +native))
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       hov
   exact ⟨gasWord, k', C', by simpa using rd4038⟩
 
@@ -20789,53 +20789,53 @@ theorem RD.dogBarkVatGrabCallFailure {v : DogImmutables} {code : ByteArray}
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4039⟩) (okPc := ⟨4055⟩) rd4039
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     hrdataSize hov
 
 theorem RD.dogBarkVatGrabCallSuccess {v : DogImmutables} {code : ByteArray}
@@ -20849,34 +20849,34 @@ theorem RD.dogBarkVatGrabCallSuccess {v : DogImmutables} {code : ByteArray}
   exact RD.solcCallSuccessGuardOk (pc := ⟨4039⟩) (okPc := ⟨4055⟩) rd4039
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide))
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native))
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     hov
 
 theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
@@ -20940,9 +20940,9 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
   obtain ⟨cA', σ', z, outGrab, A_in, callGas, k', C', hΘpack, rd4039raw, houtsz⟩ :=
     RD.call rd4038
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       hdepth
       (by simp only [List.length_cons]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
@@ -20952,7 +20952,7 @@ theorem RD.dogBarkVatGrabPostCall {v : DogImmutables} {code : ByteArray}
           barkVatGrabOutPtr.toNat barkVatGrabInSize.toNat)
           barkVatGrabOutPtr.toNat barkVatGrabOutSize.toNat) = UInt256.ofNat 19 := by
       unfold barkVatGrabOutPtr barkVatGrabInSize barkVatGrabOutSize
-      native_decide
+      decide +native
     change RD code I g s0 ⟨4039⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: barkVatGrabEndPtr ::
         barkVatGrabSelectorWord :: barkVatWord v :: dink :: dust :: rate ::
@@ -21021,65 +21021,65 @@ theorem RD.dogBarkDueCheckedMulOk {v : DogImmutables} {code : ByteArray}
   have rd4069 := evm_run rd4057 with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4071⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup6
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup6
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564 := rd4069.jump
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨k', C', rd4071⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (x := dart) (y := rate) (ret := ⟨4071⟩)
       (R := ⟨0⟩ :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfitDue rd4564
+      (dogPatchedJumpDest hpatch (by decide +native)) hfitDue rd4564
   exact ⟨k', C', by simpa [barkPartialDueWord] using rd4071⟩
 
 theorem RD.dogBarkDueCheckedMulOverflowReverts {v : DogImmutables} {code : ByteArray}
@@ -21099,58 +21099,58 @@ theorem RD.dogBarkDueCheckedMulOverflowReverts {v : DogImmutables} {code : ByteA
   have rd4069 := evm_run rd4057 with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4071⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup6
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup6
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564 := rd4069.jump
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact RD.dogCheckedMulOverflowReverts (v := v) hpatch
     (x := dart) (y := rate) (ret := ⟨4071⟩)
     (R := ⟨0⟩ :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
@@ -21187,8 +21187,8 @@ theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     exact mloadWordValue_of_readWithPadding
       (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
-      (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
+      (by decide +native)
+      (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using hread64)
   have hmload64Call :=
     barkVowFessDueMem_mload64 (mem := mem) (due := due) hmem hread64
   have hvowCanon : (barkVowWord σ I).toNat < EVM.addressModulus := by
@@ -21210,21 +21210,21 @@ theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
   have rd4074 := evm_run rd4071 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨2⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨k4075, C4075, rd4075raw⟩ := rd4074.sload
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd4075 : RD code I g s0 ⟨4075⟩
       (dogSlotWord ⟨2⟩ σ I :: due :: ⟨0⟩ :: dink :: dust :: rate ::
@@ -21234,296 +21234,296 @@ theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
   have rd4139 := evm_run rd4075 with [
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      mem_cost hmload64 (by native_decide) (by simp only [List.length_cons]; omega),
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      mem_cost hmload64 (by decide +native) (by simp only [List.length_cons]; omega),
     raw push4 ⟨0x0d2fdf6f⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨227⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkVowFessSelectorMem mem) (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      mem_cost (by rfl) (by native_decide) (by simp only [List.length_cons]; omega),
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      mem_cost (by rfl) (by decide +native) (by simp only [List.length_cons]; omega),
     raw push1 ⟨4⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkVowFessDueMem mem due) (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
         rw [show ({ val := 384 } + { val := 4 } : UInt256).toNat = 388
-          from by native_decide]
+          from by decide +native]
         rfl)
-      (by native_decide) (by simp only [List.length_cons]; omega),
+      (by decide +native) (by simp only [List.length_cons]; omega),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      mem_cost hmload64Call (by native_decide) (by simp only [List.length_cons]; omega),
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      mem_cost hmload64Call (by decide +native) (by simp only [List.length_cons]; omega),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨160⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push4 barkVowFessSelectorWord
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 barkVowFessInSize
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 barkVowFessOutSize
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, by
     convert rd4139 using 1 <;>
@@ -21531,10 +21531,10 @@ theorem RD.dogBarkFessExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
         barkVowFessOutSize, barkVowFessEndPtr, haddrMaskWord, hvowMask, hvowWordLit,
         hvowWordRight,
         show UInt256.sub (⟨384⟩ : UInt256) ⟨384⟩ + barkVowFessInSize =
-          barkVowFessInSize from by native_decide,
+          barkVowFessInSize from by decide +native,
         show (⟨384⟩ : UInt256) + barkVowFessInSize = barkVowFessEndPtr
-          from by native_decide] <;>
-      native_decide⟩
+          from by decide +native] <;>
+      decide +native⟩
 
 theorem RD.dogBarkFessNoCodeRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
@@ -21550,41 +21550,41 @@ theorem RD.dogBarkFessNoCodeRevert {v : DogImmutables} {code : ByteArray}
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4139⟩) (okPc := ⟨4151⟩)
     rd4139 hcodeSize
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     hov
 
 theorem RD.dogBarkFessToCall {v : DogImmutables} {code : ByteArray}
@@ -21603,42 +21603,42 @@ theorem RD.dogBarkFessToCall {v : DogImmutables} {code : ByteArray}
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4139⟩) (okPc := ⟨4151⟩)
       rd4139 hcodeSize
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      (dogPatchedJumpDest hpatch (by native_decide))
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      (dogPatchedJumpDest hpatch (by decide +native))
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       hov
   exact ⟨gasWord, k', C', by simpa using rd4154⟩
 
@@ -21654,53 +21654,53 @@ theorem RD.dogBarkFessCallFailure {v : DogImmutables} {code : ByteArray}
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4155⟩) (okPc := ⟨4171⟩) rd4155
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     hrdataSize hov
 
 theorem RD.dogBarkFessCallSuccess {v : DogImmutables} {code : ByteArray}
@@ -21717,53 +21717,53 @@ theorem RD.dogBarkFessCallSuccess {v : DogImmutables} {code : ByteArray}
     RD.solcCallSuccessGuardOk (pc := ⟨4155⟩) (okPc := ⟨4171⟩) rd4155
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      (dogPatchedJumpDest hpatch (by native_decide))
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      (dogPatchedJumpDest hpatch (by decide +native))
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by simp only [List.length_cons]; omega)
   have rd4176 := evm_run rd4173 with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, rd4176⟩
 
@@ -21813,9 +21813,9 @@ theorem RD.dogBarkFessPostCall {v : DogImmutables} {code : ByteArray}
   obtain ⟨cA', σ', z, outFess, A_in, callGas, k', C', hΘpack, rd4155raw, houtsz⟩ :=
     RD.call rd4154
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       hdepth
       (by simp only [List.length_cons]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
@@ -21825,7 +21825,7 @@ theorem RD.dogBarkFessPostCall {v : DogImmutables} {code : ByteArray}
           barkVowFessOutPtr.toNat barkVowFessInSize.toNat)
           barkVowFessOutPtr.toNat barkVowFessOutSize.toNat) = UInt256.ofNat 19 := by
       unfold barkVowFessOutPtr barkVowFessInSize barkVowFessOutSize
-      native_decide
+      decide +native
     change RD code I g s0 ⟨4155⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: barkVowFessEndPtr ::
         barkVowFessSelectorWord :: barkVowWord σ I :: due :: dink :: dust :: rate ::
@@ -21894,77 +21894,77 @@ theorem RD.dogBarkTabBaseCheckedMulOk {v : DogImmutables} {code : ByteArray}
   have rd4178 := evm_run rd4176 with [
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4187 := rd4178.pushConst dogWadWord (width := 8) (op := .PUSH8)
     (by decide)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd4199 := evm_run rd4187 with [
     raw push2 ⟨4200⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup10
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 milkChop (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
-        simpa [show ((⟨256⟩ : UInt256) + ⟨32⟩) = ⟨288⟩ from by native_decide]
+        simpa [show ((⟨256⟩ : UInt256) + ⟨32⟩) = ⟨288⟩ from by decide +native]
           using hmload288)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564 := rd4199.jump
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨k', C', rd4200⟩ :=
     RD.dogCheckedMulReturns (v := v) hpatch
       (x := due) (y := milkChop) (ret := ⟨4200⟩)
       (R := dogWadWord :: ⟨0⟩ :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ ::
         art :: ink :: ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (by simp only [List.length_cons]; omega)
-      (dogPatchedJumpDest hpatch (by native_decide)) hfit rd4564
+      (dogPatchedJumpDest hpatch (by decide +native)) hfit rd4564
   exact ⟨k', C', by simpa [barkTabBaseWord] using rd4200⟩
 
 theorem RD.dogBarkTabBaseCheckedMulOverflowReverts {v : DogImmutables} {code : ByteArray}
@@ -21989,70 +21989,70 @@ theorem RD.dogBarkTabBaseCheckedMulOverflowReverts {v : DogImmutables} {code : B
   have rd4178 := evm_run rd4176 with [
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4187 := rd4178.pushConst dogWadWord (width := 8) (op := .PUSH8)
     (by decide)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd4199 := evm_run rd4187 with [
     raw push2 ⟨4200⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup10
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 milkChop (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
-        simpa [show ((⟨256⟩ : UInt256) + ⟨32⟩) = ⟨288⟩ from by native_decide]
+        simpa [show ((⟨256⟩ : UInt256) + ⟨32⟩) = ⟨288⟩ from by decide +native]
           using hmload288)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     raw push2 ⟨4564⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4564 := rd4199.jump
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact RD.dogCheckedMulOverflowReverts (v := v) hpatch
     (x := due) (y := milkChop) (ret := ⟨4200⟩)
     (R := dogWadWord :: ⟨0⟩ :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ ::
@@ -22077,53 +22077,53 @@ theorem RD.dogBarkTabDivOk {v : DogImmutables} {code : ByteArray}
   have rd4205 := evm_run rd4200 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4207⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4207 := rd4205.jumpiT
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    (by native_decide : dogWadWord ≠ ⟨0⟩)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    (by decide +native : dogWadWord ≠ ⟨0⟩)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   have rd4211 := evm_run rd4207 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw div
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, by simpa [barkTabWord] using rd4211⟩
 
@@ -22148,21 +22148,21 @@ theorem RD.dogBarkDirtAddOk {v : DogImmutables} {code : ByteArray}
   have rd4216pre := evm_run rd4211 with [
     raw push2 ⟨4222⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨5⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨k4217, C4217, rd4217raw⟩ := rd4216pre.sload
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd4217 : RD code I g s0 ⟨4217⟩
       (dogSlotWord ⟨5⟩ σ I :: ⟨4222⟩ :: tab :: due :: dink :: dust :: rate ::
@@ -22172,29 +22172,29 @@ theorem RD.dogBarkDirtAddOk {v : DogImmutables} {code : ByteArray}
   have rd4221 := evm_run rd4217 with [
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4625⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4625 := rd4221.jump
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨k', C', rd4222⟩ :=
     RD.dogCheckedAddReturns (v := v) hpatch
       (x := dogSlotWord ⟨5⟩ σ I) (y := tab) (ret := ⟨4222⟩)
       (R := tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (by simp only [List.length_cons]; omega) hfit rd4625
-      (dogPatchedJumpDest hpatch (by native_decide))
+      (dogPatchedJumpDest hpatch (by decide +native))
   exact ⟨k', C', by simpa [barkDirtNewWord] using rd4222⟩
 
 theorem RD.dogBarkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
@@ -22214,21 +22214,21 @@ theorem RD.dogBarkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
   have rd4216pre := evm_run rd4211 with [
     raw push2 ⟨4222⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨5⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨k4217, C4217, rd4217raw⟩ := rd4216pre.sload
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd4217 : RD code I g s0 ⟨4217⟩
       (dogSlotWord ⟨5⟩ σ I :: ⟨4222⟩ :: tab :: due :: dink :: dust :: rate ::
@@ -22238,22 +22238,22 @@ theorem RD.dogBarkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
   have rd4221 := evm_run rd4217 with [
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4625⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4625 := rd4221.jump
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact RD.dogCheckedAddOverflowReverts (v := v) hpatch
     (x := dogSlotWord ⟨5⟩ σ I) (y := tab) (ret := ⟨4222⟩)
     (R := tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
@@ -22282,21 +22282,21 @@ theorem RD.dogBarkStoreDirt {v : DogImmutables} {code : ByteArray}
   have rd4225 := evm_run rd4222 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨5⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨k', C', rd4226⟩ := rd4225.sstore hperm
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   exact ⟨k', C', rd4226⟩
 
@@ -22326,71 +22326,71 @@ theorem RD.dogBarkIlkDirtAddOk {v : DogImmutables} {code : ByteArray}
   have rd4229pre := evm_run rd4226 with [
     raw push1 ⟨96⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4230raw := RD.add rd4229pre
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have hadd352 : (⟨256⟩ : UInt256) + ⟨96⟩ = ⟨352⟩ := by
-    native_decide
+    decide +native
   have rd4230 := by
     simpa [hadd352] using rd4230raw
   have rd4231 := evm_run rd4230 with [
     raw mload 0 milkDirt (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload352 (by decide) (by evm_ov)]
   have rd4239 := evm_run rd4231 with [
     raw push2 ⟨4240⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4625⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4625 := rd4239.jump
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   obtain ⟨k', C', rd4240⟩ :=
     RD.dogCheckedAddReturns (v := v) hpatch
       (x := milkDirt) (y := tab) (ret := ⟨4240⟩)
       (R := tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
         ⟨0⟩ :: kpr :: urn :: ilk :: ret :: sel :: R)
       (by simp only [List.length_cons]; omega) hfit rd4625
-      (dogPatchedJumpDest hpatch (by native_decide))
+      (dogPatchedJumpDest hpatch (by decide +native))
   exact ⟨k', C', by simpa [barkIlkDirtNewWord] using rd4240⟩
 
 theorem RD.dogBarkIlkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArray}
@@ -22415,64 +22415,64 @@ theorem RD.dogBarkIlkDirtAddOverflowReverts {v : DogImmutables} {code : ByteArra
   have rd4229pre := evm_run rd4226 with [
     raw push1 ⟨96⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4230raw := RD.add rd4229pre
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have hadd352 : (⟨256⟩ : UInt256) + ⟨96⟩ = ⟨352⟩ := by
-    native_decide
+    decide +native
   have rd4230 := by
     simpa [hadd352] using rd4230raw
   have rd4231 := evm_run rd4230 with [
     raw mload 0 milkDirt (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload352 (by decide) (by evm_ov)]
   have rd4239 := evm_run rd4231 with [
     raw push2 ⟨4240⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push2 ⟨4625⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4625 := rd4239.jump
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
   exact RD.dogCheckedAddOverflowReverts (v := v) hpatch
     (x := milkDirt) (y := tab) (ret := ⟨4240⟩)
     (R := tab :: due :: dink :: dust :: rate :: dart :: ⟨256⟩ :: art :: ink ::
@@ -22512,130 +22512,130 @@ theorem RD.dogBarkStoreIlkDirt {v : DogImmutables} {code : ByteArray}
   have rd4247pre := evm_run rd4240 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup16
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4248 := rd4247pre.mstore 0 (wordAt0Mem (barkIlkWord I) mem)
     (UInt256.ofNat 19)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    mem_cost (by rfl) (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd4253pre := evm_run rd4248 with [
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4254 := rd4253pre.mstore 0 (twoWordHashMem (barkIlkWord I) ⟨1⟩ mem)
     (UInt256.ofNat 19)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    mem_cost (by rfl) (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd4259pre := evm_run rd4254 with [
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rd4260 := rd4259pre.keccak256 0 (solcMappingSlot ⟨1⟩ (barkIlkWord I))
     (UInt256.ofNat 19)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    mem_cost hslot (by native_decide) (by evm_ov)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    mem_cost hslot (by decide +native) (by evm_ov)
   have rd4265preRaw := evm_run rd4260 with [
     raw push1 ⟨3⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hpc4265 :
       ((⟨4240⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 2 + UInt256.ofNat 2 +
         ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
         ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ +
         UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) = (⟨4265⟩ : UInt256) := by
-    native_decide
+    decide +native
   rw [hpc4265] at rd4265preRaw
   have hslotDirtLeft :
       (⟨3⟩ : UInt256) + solcMappingSlot ⟨1⟩ (barkIlkWord I) =
@@ -22644,19 +22644,19 @@ theorem RD.dogBarkStoreIlkDirt {v : DogImmutables} {code : ByteArray}
   rw [hslotDirtLeft] at rd4265preRaw
   obtain ⟨k4266, C4266, rd4266⟩ := rd4265preRaw.sstore hperm
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd4267raw := evm_run rd4266 with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have hpc4267 : (⟨4265⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ = (⟨4267⟩ : UInt256) := by
-    native_decide
+    decide +native
   rw [hpc4267] at rd4267raw
   exact ⟨_, _, rd4267raw⟩
 
@@ -22695,8 +22695,8 @@ theorem RD.dogBarkKickExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
     exact mloadWordValue_of_readWithPadding
       (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
-      (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
+      (by decide +native)
+      (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using hread64)
   have hmload64Call :=
     barkKickCalldataMem_mload64 (I := I) (mem := mem) (tab := tab) (dink := dink)
       hmem hread64
@@ -22724,475 +22724,475 @@ theorem RD.dogBarkKickExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
   have rd4370 := evm_run rd4267 with [
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 (barkIlksClipWord σMem I) (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      mem_cost (by simpa using hmload256) (by native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      mem_cost (by simpa using hmload256) (by decide +native)
       (by simp only [List.length_cons]; omega),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨160⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push4 barkKickSelectorWord
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup6
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup16
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup16
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      mem_cost hmload64 (by native_decide) (by simp only [List.length_cons]; omega),
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      mem_cost hmload64 (by decide +native) (by simp only [List.length_cons]; omega),
     raw dup6
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push4 ⟨4294967295⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨224⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkKickSelectorMem mem) (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      mem_cost (by rfl) (by native_decide) (by simp only [List.length_cons]; omega),
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      mem_cost (by rfl) (by decide +native) (by simp only [List.length_cons]; omega),
     raw push1 ⟨4⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup6
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkKickTabMem mem tab) (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
-        rw [show ((⟨4⟩ : UInt256) + ⟨384⟩).toNat = 388 by native_decide]
+        rw [show ((⟨4⟩ : UInt256) + ⟨384⟩).toNat = 388 by decide +native]
         rfl)
-      (by native_decide) (by simp only [List.length_cons]; omega),
+      (by decide +native) (by simp only [List.length_cons]; omega),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup5
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkKickDinkMem mem tab dink) (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
         rw [show ((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + ⟨384⟩)).toNat = 420
-          by native_decide]
+          by decide +native]
         rfl)
-      (by native_decide) (by simp only [List.length_cons]; omega),
+      (by decide +native) (by simp only [List.length_cons]; omega),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨160⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkKickUrnMem I mem tab dink) (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
         rw [show ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) +
-          ((⟨4⟩ : UInt256) + ⟨384⟩))).toNat = 452 by native_decide]
+          ((⟨4⟩ : UInt256) + ⟨384⟩))).toNat = 452 by decide +native]
         simp [barkKickUrnMem, Reasoning.Theory.writeWord, haddrMaskWord,
           hurnCleanL])
-      (by native_decide) (by simp only [List.length_cons]; omega),
+      (by decide +native) (by simp only [List.length_cons]; omega),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨160⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkKickCalldataMem I mem tab dink) (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
         rw [show ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) +
-          ((⟨4⟩ : UInt256) + ⟨384⟩)))).toNat = 484 by native_decide]
+          ((⟨4⟩ : UInt256) + ⟨384⟩)))).toNat = 484 by decide +native]
         simp [barkKickCalldataMem, barkKickUrnMem, Reasoning.Theory.writeWord,
           haddrMaskWord, hkprCleanL])
-      (by native_decide) (by simp only [List.length_cons]; omega),
+      (by decide +native) (by simp only [List.length_cons]; omega),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap5
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      mem_cost hmload64Call (by native_decide) (by simp only [List.length_cons]; omega),
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      mem_cost hmload64Call (by decide +native) (by simp only [List.length_cons]; omega),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨0⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, by
     convert rd4370 using 1 <;>
@@ -23200,20 +23200,20 @@ theorem RD.dogBarkKickExtcodesizeGuard {v : DogImmutables} {code : ByteArray}
         barkKickOutSize, barkKickEndPtr, haddrMaskWord, hclipCleanL,
         hurnCleanL, hkprCleanL,
         show UInt256.sub (⟨384⟩ : UInt256) ⟨384⟩ + barkKickInSize =
-          barkKickInSize from by native_decide,
+          barkKickInSize from by decide +native,
         show (⟨384⟩ : UInt256) + barkKickInSize = barkKickEndPtr
-          from by native_decide,
+          from by decide +native,
         show UInt256.sub
             ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) +
               ((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + ⟨384⟩)))))
-            ⟨384⟩ = barkKickInSize from by native_decide,
+            ⟨384⟩ = barkKickInSize from by decide +native,
         show UInt256.sub (⟨516⟩ : UInt256) ⟨384⟩ = barkKickInSize
-          from by native_decide,
+          from by decide +native,
         show ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) + ((⟨32⟩ : UInt256) +
               ((⟨32⟩ : UInt256) + ((⟨4⟩ : UInt256) + ⟨384⟩))))) =
             barkKickEndPtr
-          from by native_decide] <;>
-      native_decide⟩
+          from by decide +native] <;>
+      decide +native⟩
 
 theorem RD.dogBarkKickNoCodeRevert {v : DogImmutables} {code : ByteArray}
     {g : Sat256} {s0 : EVM.State} {I : ExecutionEnv}
@@ -23231,41 +23231,41 @@ theorem RD.dogBarkKickNoCodeRevert {v : DogImmutables} {code : ByteArray}
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨4370⟩) (okPc := ⟨4382⟩)
     rd4370 hcodeSize
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     hov
 
 theorem RD.dogBarkKickToCall {v : DogImmutables} {code : ByteArray}
@@ -23287,42 +23287,42 @@ theorem RD.dogBarkKickToCall {v : DogImmutables} {code : ByteArray}
     RD.solcExtcodesizeGuardOkGas (pc := ⟨4370⟩) (okPc := ⟨4382⟩)
       rd4370 hcodeSize
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
-      (dogPatchedJumpDest hpatch (by native_decide))
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
+      (dogPatchedJumpDest hpatch (by decide +native))
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       hov
   exact ⟨gasWord, k', C', by simpa using rd4385⟩
 
@@ -23384,9 +23384,9 @@ theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
     houtsz⟩ :=
     RD.call rd4385
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       hdepth
       (by simp only [List.length_cons]; omega)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
@@ -23396,7 +23396,7 @@ theorem RD.dogBarkKickPostCall {v : DogImmutables} {code : ByteArray}
           barkKickOutPtr.toNat barkKickInSize.toNat)
           barkKickOutPtr.toNat barkKickOutSize.toNat) = UInt256.ofNat 19 := by
       unfold barkKickOutPtr barkKickInSize barkKickOutSize
-      native_decide
+      decide +native
     change RD code I g s0 ⟨4386⟩
       ((if z then ⟨1⟩ else ⟨0⟩) :: barkKickEndPtr ::
         barkKickSelectorWord :: barkIlksClipWord σMem I :: tab :: due ::
@@ -23454,53 +23454,53 @@ theorem RD.dogBarkKickCallFailure {v : DogImmutables} {code : ByteArray}
   exact RD.solcCallSuccessGuardMissing (pc := ⟨4386⟩) (okPc := ⟨4402⟩) rd4386
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     hrdataSize hov
 
 theorem RD.dogBarkKickCallSuccessToDecode {v : DogImmutables} {code : ByteArray}
@@ -23517,34 +23517,34 @@ theorem RD.dogBarkKickCallSuccessToDecode {v : DogImmutables} {code : ByteArray}
   exact RD.solcCallSuccessGuardOk (pc := ⟨4386⟩) (okPc := ⟨4402⟩) rd4386
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    (dogPatchedJumpDest hpatch (by native_decide))
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    (dogPatchedJumpDest hpatch (by decide +native))
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simpa only [List.length_cons] using hov)
 
 theorem RD.dogBarkKickReturnDecodeShortReverts {v : DogImmutables} {code : ByteArray}
@@ -23565,57 +23565,57 @@ theorem RD.dogBarkKickReturnDecodeShortReverts {v : DogImmutables} {code : ByteA
     RDrev code g s0 := by
   have rdPop0 := RD.pop rd4404
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPop1 := RD.pop rdPop0
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPop2 := RD.pop rdPop1
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by omega)
   have rdPush64 := RD.push1 rdPop2 ⟨64⟩
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by omega)
   have rdMload64 := RD.mload 0 ⟨384⟩ (UInt256.ofNat 19) rdPush64
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost hmload64 (by decide) (by omega)
   have rdReturndatasize := RD.returndatasize rdMload64
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPush32 := RD.push1 rdReturndatasize ⟨32⟩
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdDup2 := RD.dup2 rdPush32
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdLt := RD.lt rdDup2
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
@@ -23623,15 +23623,15 @@ theorem RD.dogBarkKickReturnDecodeShortReverts {v : DogImmutables} {code : ByteA
     exact hshort
   have rdIszero := RD.iszero rdLt
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPushOk := RD.push2 rdIszero ⟨4424⟩
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have hcond :
       UInt256.isZero (UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256)) = ⟨0⟩ := by
@@ -23639,24 +23639,24 @@ theorem RD.dogBarkKickReturnDecodeShortReverts {v : DogImmutables} {code : ByteA
     decide
   have rdFallthrough := RD.jumpiNT rdPushOk
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     hcond
     (by simp only [List.length_cons]; omega)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
 
 theorem RD.dogBarkKickReturnDecodeOk {v : DogImmutables} {code : ByteArray}
@@ -23684,57 +23684,57 @@ theorem RD.dogBarkKickReturnDecodeOk {v : DogImmutables} {code : ByteArray}
       mem (UInt256.ofNat 19) out acc k' C' := by
   have rdPop0 := RD.pop rd4404
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPop1 := RD.pop rdPop0
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPop2 := RD.pop rdPop1
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by omega)
   have rdPush64 := RD.push1 rdPop2 ⟨64⟩
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by omega)
   have rdMload64 := RD.mload 0 ⟨384⟩ (UInt256.ofNat 19) rdPush64
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     mem_cost hmload64 (by decide) (by omega)
   have rdReturndatasize := RD.returndatasize rdMload64
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPush32 := RD.push1 rdReturndatasize ⟨32⟩
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdDup2 := RD.dup2 rdPush32
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdLt := RD.lt rdDup2
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨0⟩ := by
     apply Reasoning.Theory.ult_zero
@@ -23742,15 +23742,15 @@ theorem RD.dogBarkKickReturnDecodeOk {v : DogImmutables} {code : ByteArray}
     exact hlong
   have rdIszero := RD.iszero rdLt
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPushOk := RD.push2 rdIszero ⟨4424⟩
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have hcond :
       UInt256.isZero (UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256)) ≠ ⟨0⟩ := by
@@ -23758,28 +23758,28 @@ theorem RD.dogBarkKickReturnDecodeOk {v : DogImmutables} {code : ByteArray}
     decide
   have rd4424 := RD.jumpiT rdPushOk
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    hcond (dogPatchedJumpDest hpatch (by native_decide))
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    hcond (dogPatchedJumpDest hpatch (by decide +native))
     (by simp only [List.length_cons]; omega)
   have rd4425 := RD.jumpdest rd4424
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd4426 := RD.pop rd4425
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd4427 := RD.mload 0 retWord (UInt256.ofNat 19) rd4426
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
       mem_cost hmload384 (by decide) (by omega)
   exact ⟨_, _, rd4427⟩
 
@@ -23815,8 +23815,8 @@ theorem RD.dogBarkKickDecodedToPublicReturn {v : DogImmutables} {code : ByteArra
     exact mloadWordValue_of_readWithPadding
       (off := (⟨64⟩ : UInt256)) (aw := UInt256.ofNat 19) (v := (⟨384⟩ : UInt256))
       (by rw [hmem]; decide)
-      (by native_decide)
-      (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by native_decide] using hread64)
+      (by decide +native)
+      (by simpa [show (⟨64⟩ : UInt256).toNat = 64 by decide +native] using hread64)
   have hmload64Log :=
     barkBarkLogMem_mload64 (mem := mem) (dink := dink) (dart := dart)
       (due := due) (clip := barkIlksClipWord σMem I) hmem hread64
@@ -23846,442 +23846,442 @@ theorem RD.dogBarkKickDecodedToPublicReturn {v : DogImmutables} {code : ByteArra
   have rdLogMem := evm_run rd4427 with [
     raw dup8
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 (barkIlksClipWord σMem I) (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload256 (by decide) (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkBarkLogDinkMem mem dink) (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup11
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkBarkLogDartMem mem dink dart) (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
-        rw [show ((⟨384⟩ : UInt256) + ⟨32⟩).toNat = 416 by native_decide]
+        rw [show ((⟨384⟩ : UInt256) + ⟨32⟩).toNat = 416 by decide +native]
         rfl)
       (by decide) (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup7
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkBarkLogDueMem mem dink dart due) (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
-        rw [show ((⟨64⟩ : UInt256) + ⟨384⟩).toNat = 448 by native_decide]
+        rw [show ((⟨64⟩ : UInt256) + ⟨384⟩).toNat = 448 by decide +native]
         rfl)
       (by decide) (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨1⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨160⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw shl
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨96⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 (barkBarkLogMem mem dink dart due (barkIlksClipWord σMem I))
       (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
-        rw [show ((⟨384⟩ : UInt256) + ⟨96⟩).toNat = 480 by native_decide]
+        rw [show ((⟨384⟩ : UInt256) + ⟨96⟩).toNat = 480 by decide +native]
         simp [barkBarkLogMem, Reasoning.Theory.writeWord, haddrMaskWord,
           hclipCleanL, hclipCleanR])
       (by decide) (by evm_ov)]
   have rdLogPrep := evm_run rdLogMem with [
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload64Log (by decide) (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap13
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup13
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup15
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw and
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup16
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdTopic := rdLogPrep.pushConst dogBarkLogTopic
     (width := 32) (op := .PUSH32) (by decide)
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons, List.length_nil]; norm_num)
   have rdLogStack := evm_run rdTopic with [
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨128⟩
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   have rdLog := RD.log4 0 (UInt256.ofNat 19) rdLogStack
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
-    hperm mem_cost (by native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
+    hperm mem_cost (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; norm_num)
   have rdTail := evm_run rdLog with [
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap4
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap3
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw pop
       (by
-        rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   exact ⟨_, _, rdTail.jump
     (by
-      rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-        (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+        (by decide +native) (by decide +native)]
+      decide +native)
     hret (by evm_ov)⟩
 
 theorem RD.dogBarkPublicReturnId {v : DogImmutables} {code : ByteArray}
@@ -24309,85 +24309,85 @@ theorem RD.dogBarkPublicReturnId {v : DogImmutables} {code : ByteArray}
   exact evm_run rd448 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨64⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     raw swap2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup3
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw mstore 0 memout (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by rw [show (⟨384⟩ : UInt256).toNat = 384 from by decide]; exact hmemout)
       (by decide) (by evm_ov),
     raw mload 0 ⟨384⟩ (UInt256.ofNat 19)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost hmemoutLoad64 (by decide) (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw dup2
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw sub
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨32⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw add
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw swap1
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw ret 0 (UInt256.toByteArray id)
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       mem_cost
       (by
         rw [show (⟨384⟩ : UInt256).toNat = 384 from by decide,
@@ -24435,25 +24435,25 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
     unfold dogPostIlksErrorStringFullWordTailWf
     repeat' first
       | apply And.intro
-      | (rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]; native_decide)
+      | (rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]; decide +native)
   obtain ⟨_, _, rd3405⟩ :=
     RD.dogBarkSafeToLimitGuard (v := v) (code := code) (ret := ret) (sel := sel)
       (R := R) hpatch hspot hfitArt hfitInk hsafe rd3308 hov
   have rd3408 := evm_run rd3405 with [
     raw jumpdest
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov),
     raw push1 ⟨5⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨k3409, C3409, rd3409raw⟩ := rd3408.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd3409 : RD code I g s0 ⟨3409⟩
       (dogSlotWord ⟨5⟩ σ I :: spot :: dust :: rate :: ⟨0⟩ :: ⟨256⟩ ::
@@ -24463,13 +24463,13 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
   have rd3411 := evm_run rd3409 with [
     raw push1 ⟨4⟩
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)]
   obtain ⟨k3412, C3412, rd3412raw⟩ := rd3411.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by evm_ov)
   have rd3412 : RD code I g s0 ⟨3412⟩
       (dogSlotWord ⟨4⟩ σ I :: dogSlotWord ⟨5⟩ σ I :: spot :: dust :: rate ::
@@ -24484,90 +24484,90 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
     have rd3413raw := evm_run rd3412 with [
       raw gt
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rd3413 := rd3413raw
     rw [hgtGlobal] at rd3413
     have rd3418raw := evm_run rd3413 with [
       raw dup1
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw iszero
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw push2 ⟨3431⟩
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rd3418 := rd3418raw
     rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd3418
     have rd3419 := rd3418.jumpiNT
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by rfl) (by evm_ov)
     have rd3423 := evm_run rd3419 with [
       raw pop
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw dup5
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw push1 ⟨96⟩
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rd3424raw := RD.add rd3423
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)
     have hadd352 : (⟨96⟩ : UInt256) + ⟨256⟩ = ⟨352⟩ := by
-      native_decide
+      decide +native
     have rd3424 := by
       simpa [hadd352] using rd3424raw
     have rd3425 := evm_run rd3424 with [
       raw mload 0 (barkIlksDirtWord σMem I) (UInt256.ofNat 17)
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         mem_cost hmload352 (by decide) (by evm_ov)]
     have rd3428 := evm_run rd3425 with [
       raw dup6
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw push1 ⟨64⟩
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rd3429raw := RD.add rd3428
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by evm_ov)
     have hadd320 : (⟨64⟩ : UInt256) + ⟨256⟩ = ⟨320⟩ := by
-      native_decide
+      decide +native
     have rd3429 := by
       simpa [hadd320] using rd3429raw
     have rd3430 := evm_run rd3429 with [
       raw mload 0 (barkIlksHoleWord σMem I) (UInt256.ofNat 17)
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         mem_cost hmload320 (by decide) (by evm_ov)]
     have hmilkNot :
         ¬ (barkIlksDirtWord σMem I).toNat < (barkIlksHoleWord σMem I).toNat := by
@@ -24578,33 +24578,33 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
     have rd3431raw := evm_run rd3430 with [
       raw gt
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rd3431 := rd3431raw
     rw [hgtMilk] at rd3431
     have rd3435 := evm_run rd3431 with [
       raw jumpdest
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw push2 ⟨3512⟩
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rd3436raw := rd3435.jumpiNT
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by rfl) (by evm_ov)
     have hpc3436 :
         (⟨3412⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           UInt256.ofNat 3 + ⟨1⟩ = ⟨3436⟩ := by
-      native_decide
+      decide +native
     have rd3436 := rd3436raw
     rw [hpc3436] at rd3436
     exact RD.dogBarkPostIlksErrorStringRevertTailFullWord
@@ -24618,52 +24618,52 @@ theorem RD.dogBarkLiquidationLimitHitReverts {v : DogImmutables} {code : ByteArr
     have rd3413raw := evm_run rd3412 with [
       raw gt
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rd3413 := rd3413raw
     rw [hgtGlobal] at rd3413
     have rd3418raw := evm_run rd3413 with [
       raw dup1
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw iszero
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw push2 ⟨3431⟩
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rd3418 := rd3418raw
     rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd3418
     have rd3431 := rd3418.jumpiT
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
-      one_ne_zero_uint (dogPatchedJumpDest hpatch (by native_decide)) (by evm_ov)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
+      one_ne_zero_uint (dogPatchedJumpDest hpatch (by decide +native)) (by evm_ov)
     have rd3435 := evm_run rd3431 with [
       raw jumpdest
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov),
       raw push2 ⟨3512⟩
         (by
-          rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-          native_decide)
+          rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+          decide +native)
         (by evm_ov)]
     have rd3436raw := rd3435.jumpiNT
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       (by rfl) (by evm_ov)
     have hpc3436 : (⟨3431⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ = ⟨3436⟩ := by
-      native_decide
+      decide +native
     have rd3436 := rd3436raw
     rw [hpc3436] at rd3436
     exact RD.dogBarkPostIlksErrorStringRevertTailFullWord
@@ -24691,8 +24691,8 @@ theorem RD.dogBarkVatUrnsStaticcallDepthLimitRevert {v : DogImmutables} {code : 
   obtain ⟨_, _, rd3008raw⟩ :=
     RD.solcStaticcallDepthLimit rd3007
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       hdepth
       (by simp only [List.length_cons]; omega)
   have hmin : (min (⟨64⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -24707,9 +24707,9 @@ theorem RD.dogBarkVatUrnsStaticcallDepthLimitRevert {v : DogImmutables} {code : 
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 7).toNat
           (⟨128⟩ : UInt256).toNat (⟨68⟩ : UInt256).toNat)
           (⟨128⟩ : UInt256).toNat (⟨64⟩ : UInt256).toNat) = UInt256.ofNat 7 := by
-      native_decide
+      decide +native
     exact ⟨_, _, by simpa [hmin, byteArray_write_len_zero] using haw ▸ rd3008raw⟩
-  exact RD.dogBarkVatUrnsCallFailure hpatch rd3008 (by native_decide)
+  exact RD.dogBarkVatUrnsCallFailure hpatch rd3008 (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 theorem RD.dogBarkLiveOk {v : DogImmutables} {code : ByteArray}
@@ -24725,33 +24725,33 @@ theorem RD.dogBarkLiveOk {v : DogImmutables} {code : ByteArray}
   obtain ⟨_, _, h⟩ := hreach
   have rd1 := h.jumpdest
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by omega)
   have rd3 := rd1.push1 ⟨0⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by omega)
   have rd5 := rd3.push1 ⟨3⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rd6⟩ := rd5.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd8 := rd6.push1 ⟨1⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd9₀ := rd8.eq
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have hraw :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨3⟩ ⟨0⟩)) =
@@ -24761,16 +24761,16 @@ theorem RD.dogBarkLiveOk {v : DogImmutables} {code : ByteArray}
   rw [hraw, uInt256_eq_self] at rd9
   have rd12 := rd9.push2 ⟨2885⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   exact ⟨_, _, by
     simpa using rd12.jumpiT
       (by
-        rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-        native_decide)
+        rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+        decide +native)
       one_ne_zero_uint
-      (dogPatchedJumpDest hpatch (by native_decide))
+      (dogPatchedJumpDest hpatch (by decide +native))
       (by simp only [List.length_cons]; omega)⟩
 
 theorem RD.dogBarkLiveRevert {v : DogImmutables} {code : ByteArray}
@@ -24788,37 +24788,37 @@ theorem RD.dogBarkLiveRevert {v : DogImmutables} {code : ByteArray}
     unfold solcErrorStringRevertTailWf
     repeat' first
       | apply And.intro
-      | (rw [dogDecodePatchedEqTemplatePrecise hpatch (by native_decide) (by native_decide)
-          (by native_decide) (by native_decide)]; native_decide)
+      | (rw [dogDecodePatchedEqTemplatePrecise hpatch (by decide +native) (by decide +native)
+          (by decide +native) (by decide +native)]; decide +native)
   have rd1 := h.jumpdest
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by omega)
   have rd3 := rd1.push1 ⟨0⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by omega)
   have rd5 := rd3.push1 ⟨3⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   obtain ⟨_, _, rd6⟩ := rd5.sload
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd8 := rd6.push1 ⟨1⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rd9₀ := rd8.eq
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have hraw :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨3⟩ ⟨0⟩)) ≠
@@ -24833,13 +24833,13 @@ theorem RD.dogBarkLiveRevert {v : DogImmutables} {code : ByteArray}
   rw [heq0] at rd9
   have rd12 := rd9.push2 ⟨2885⟩
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by simp only [List.length_cons]; omega)
   have rdTail := rd12.jumpiNT
     (by
-      rw [dogDecodePatchedEqTemplateAway hpatch (by native_decide) (by native_decide)]
-      native_decide)
+      rw [dogDecodePatchedEqTemplateAway hpatch (by decide +native) (by decide +native)]
+      decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
     (by simp only [List.length_cons]; omega)
   exact RD.solcErrorStringRevertTail
@@ -24869,21 +24869,21 @@ theorem dogBarkBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := code) (sel := sel) (entry := ⟨785⟩) (ret := ⟨448⟩)
     (decoded := ⟨807⟩) (need := ⟨96⟩) hreach
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
-    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by native_decide)]; native_decide)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
+    (by rw [dogDecodePatchedEqTemplate1405 hpatch (by decide +native)]; decide +native)
     hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (dogDecode_bark_none_short (v := v) hsz4 hshort)
@@ -28245,7 +28245,7 @@ theorem dogBarkBodyCore {v : DogImmutables} {code : ByteArray}
                                                                     (v := v) (code := code)
                                                                     (σMem := σ') hpatch rd4427
                                                                     (dogPatchedJumpDest hpatch
-                                                                      (by native_decide))
+                                                                      (by decide +native))
                                                                     _hperm hmemKickPostSize
                                                                     hmemKickPostRead64
                                                                     hmload256KickPost

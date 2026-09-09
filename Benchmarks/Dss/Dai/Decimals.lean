@@ -42,7 +42,7 @@ theorem daiX_decimals_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     RDret daiBytecode g (initState cA gh bl σ σ₀ g A I) (cA, σ)
       (UInt256.toByteArray decimalsWord) := by
   have hmask : UInt256.land (⟨18⟩ : UInt256) ⟨255⟩ = decimalsWord := by
-    native_decide
+    decide +native
   simpa [decimalsWord, hmask] using
     RD.daiUint8ConstGetterExternal
       (entry := ⟨604⟩) (returnPc := ⟨612⟩) (routine := ⟨2000⟩)
@@ -85,7 +85,7 @@ theorem daiDecimalsBodyCoreOk
       (returnEquiv_of_encode
         (by
           simpa [uint8, decimalsWord] using
-            uint8ReturnEncoding decimalsWord (by native_decide)))
+            uint8ReturnEncoding decimalsWord (by decide +native)))
 
 /-- `decimals()` body refines its Solm transition. -/
 theorem daiDecimalsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -95,7 +95,7 @@ theorem daiDecimalsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (daiSelBytes 4) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (daiSelBytes 4) (by decide +native) hsel
   have hdispatch : dispatchMsg contract I.calldata = some decimalsTransition :=
     daiDispatchDecimals hsel
   have hreach := daiReachDecimalsBody (cA := cA) (gh := gh) (bl := bl)

@@ -29,6 +29,6 @@ theorem spotCtorVatStoreReach
   obtain ⟨_, _, rd108⟩ := spotCtorVatBeforeStoreReach vat rd75
   obtain ⟨k', C', rd109⟩ := rd108.sstore hperm (by spot_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [show (⟨108⟩ : UInt256) + ⟨1⟩ = ⟨109⟩ from by native_decide] using rd109⟩
+    simpa [show (⟨108⟩ : UInt256) + ⟨1⟩ = ⟨109⟩ from by decide +native] using rd109⟩
 
 end Benchmarks.Dss.Spot

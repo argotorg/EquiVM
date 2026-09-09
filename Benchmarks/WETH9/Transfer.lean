@@ -74,7 +74,7 @@ theorem weth9SelectorDispatchTransfer {I : ExecutionEnv} (hsel : selIs I (weth9S
     weth9NameSelectorBytes, weth9ApproveSelectorBytes, weth9TotalSupplySelectorBytes,
     weth9TransferFromSelectorBytes, weth9WithdrawSelectorBytes, weth9DecimalsSelectorBytes,
     weth9BalanceOfSelectorBytes, weth9SymbolSelectorBytes, weth9TransferSelectorBytes]
-  native_decide
+  decide +native
 
 /-! ## Storage slots and reconciliations
 
@@ -103,14 +103,14 @@ theorem transferCallStore_get_dst (I : ExecutionEnv) :
     (transferCallStore I).get? "dst" = some (xferDstVal I) := by
   unfold transferCallStore
   rw [store_get_ne (L := ((∅ : Store).insert "wad" (xferWadVal I)).insert "dst" (xferDstVal I))
-    (k := "src") (a := "dst") (.address I.source) (by native_decide)]; simp
+    (k := "src") (a := "dst") (.address I.source) (by decide +native)]; simp
 theorem transferCallStore_get_wad (I : ExecutionEnv) :
     (transferCallStore I).get? "wad" = some (xferWadVal I) := by
   unfold transferCallStore
   rw [store_get_ne (L := ((∅ : Store).insert "wad" (xferWadVal I)).insert "dst" (xferDstVal I))
-    (k := "src") (a := "wad") (.address I.source) (by native_decide)]
+    (k := "src") (a := "wad") (.address I.source) (by decide +native)]
   rw [store_get_ne (L := (∅ : Store).insert "wad" (xferWadVal I))
-    (k := "dst") (a := "wad") (xferDstVal I) (by native_decide)]; simp
+    (k := "dst") (a := "wad") (xferDstVal I) (by decide +native)]; simp
 theorem transferStore_index_dst (I : ExecutionEnv) : (transferStore I)["dst"] = xferDstVal I := by
   unfold transferStore; rw [Std.HashMap.getElem_insert]; simp
 theorem transferStore_index_wad (I : ExecutionEnv) : (transferStore I)["wad"] = xferWadVal I := by
@@ -409,34 +409,34 @@ theorem weth9TransferReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h644⟩ := weth9ReachTransfer (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h658⟩ := weth9GuardPeelOk (gt := ⟨656⟩) h644 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOkUnsigned (by simpa using hsz68) hsize
-  have h679 := h658.push2 ⟨361⟩ (by native_decide) (by simp)
-    |>.push1 ⟨4⟩ (by native_decide) (by simp)
-    |>.dup1 (by native_decide) (by simp)
-    |>.calldatasize (by native_decide) (by simp)
-    |>.sub (by native_decide) (by simp)
-    |>.push1 ⟨64⟩ (by native_decide) (by simp)
-    |>.dup2 (by native_decide) (by simp)
-    |>.lt (by native_decide) (by simp)
-    |>.iszero (by native_decide) (by simp)
-    |>.push2 ⟨679⟩ (by native_decide) (by simp)
-    |>.jumpiT (by native_decide) (by rw [hlt]; decide) (by jump_dest) (by simp)
+  have h679 := h658.push2 ⟨361⟩ (by decide +native) (by simp)
+    |>.push1 ⟨4⟩ (by decide +native) (by simp)
+    |>.dup1 (by decide +native) (by simp)
+    |>.calldatasize (by decide +native) (by simp)
+    |>.sub (by decide +native) (by simp)
+    |>.push1 ⟨64⟩ (by decide +native) (by simp)
+    |>.dup2 (by decide +native) (by simp)
+    |>.lt (by decide +native) (by simp)
+    |>.iszero (by decide +native) (by simp)
+    |>.push2 ⟨679⟩ (by decide +native) (by simp)
+    |>.jumpiT (by decide +native) (by rw [hlt]; decide) (by jump_dest) (by simp)
   obtain ⟨_, _, h1661⟩ := RD.solcAddressUint256ExternalMaskAndJumpMasked (routine := ⟨1661⟩) h679
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by simp only [List.length_singleton]; omega)
-  have h1087 := h1661.jumpdest (by native_decide) (by simp)
-    |>.push1 ⟨0⟩ (by native_decide) (by simp)
-    |>.push2 ⟨1674⟩ (by native_decide) (by simp)
-    |>.caller (by native_decide) (by simp)
-    |>.dup5 (by native_decide) (by simp)
-    |>.dup5 (by native_decide) (by simp)
-    |>.push2 ⟨1087⟩ (by native_decide) (by simp)
-    |>.jump (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by simp only [List.length_singleton]; omega)
+  have h1087 := h1661.jumpdest (by decide +native) (by simp)
+    |>.push1 ⟨0⟩ (by decide +native) (by simp)
+    |>.push2 ⟨1674⟩ (by decide +native) (by simp)
+    |>.caller (by decide +native) (by simp)
+    |>.dup5 (by decide +native) (by simp)
+    |>.dup5 (by decide +native) (by simp)
+    |>.push2 ⟨1087⟩ (by decide +native) (by simp)
+    |>.jump (by decide +native) (by jump_dest) (by simp)
   exact ⟨_, _, h1087⟩
 
 /-- `wordAt0Mem` leaves the free-pointer slot (bytes 64–95) untouched (local copy of the private
@@ -462,14 +462,14 @@ theorem weth9TransferReturnTrue {ee g s0 rdata cA σ k C} {src dst wad sel : UIn
       (UInt256.toByteArray (⟨1⟩ : UInt256)) := by
   obtain ⟨_, _, h1674⟩ := weth9TFTail (S := ⟨0⟩ :: wad :: dst :: ⟨361⟩ :: [sel]) h hperm hsrc hdst
     hmemsize hread64 (by jump_dest) (by simp only [List.length_cons, List.length_nil]; omega)
-  have h361 := h1674.jumpdest (by native_decide)
+  have h361 := h1674.jumpdest (by decide +native)
       (by simp only [List.length_cons, List.length_nil]; omega)
-    |>.swap4 (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
-    |>.swap3 (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
-    |>.pop (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
-    |>.pop (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
-    |>.pop (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
-    |>.jump (by native_decide) (by jump_dest)
+    |>.swap4 (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
+    |>.swap3 (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
+    |>.pop (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
+    |>.pop (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
+    |>.pop (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
+    |>.jump (by decide +native) (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)
   have hM1size : (wordAt0Mem dst (twoWordHashMem src ⟨3⟩ mem)).size = 96 :=
     wordAt0Mem_size_96 dst (twoWordHashMem_size_96 src ⟨3⟩ hmemsize)
@@ -479,8 +479,8 @@ theorem weth9TransferReturnTrue {ee g s0 rdata cA σ k C} {src dst wad sel : UIn
     exact twoWordHashMem_read64 src ⟨3⟩ hmemsize hread64
   have hretWf : solcReturnBoolFromMemWf weth9Bytecode ⟨361⟩ := by
     unfold solcReturnBoolFromMemWf
-    repeat' first | apply And.intro | native_decide
-  have hbool : UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ := by native_decide
+    repeat' first | apply And.intro | decide +native
+  have hbool : UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ := by decide +native
   have hmemoutLoad64 :
       (if (⟨64⟩ : UInt256).toNat ≥ (wtfBoolReturnMem src dst wad mem).size
           ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 5 * ⟨32⟩ then ⟨0⟩
@@ -520,8 +520,8 @@ theorem weth9TransferGuardRev {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h644⟩ := weth9ReachTransfer (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   exact weth9GuardPeelRev (gt := ⟨656⟩) h644 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 /-- Short calldata (`< 68`, but `callvalue = 0`): the 2-word length check reverts. -/
 theorem weth9TransferDecodeFailRev {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -532,26 +532,26 @@ theorem weth9TransferDecodeFailRev {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h644⟩ := weth9ReachTransfer (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h658⟩ := weth9GuardPeelOk (gt := ⟨656⟩) h644 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
   have hltShort : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
     rw [usub_ofNat_word_toNat (show (⟨4⟩ : UInt256).toNat ≤ I.calldata.size by simpa using hsz4)
       hsize]
     simp only [show (⟨64⟩ : UInt256).toNat = 64 from rfl, show (⟨4⟩ : UInt256).toNat = 4 from rfl]
     omega
-  exact h658.push2 ⟨361⟩ (by native_decide) (by simp)
-    |>.push1 ⟨4⟩ (by native_decide) (by simp)
-    |>.dup1 (by native_decide) (by simp)
-    |>.calldatasize (by native_decide) (by simp)
-    |>.sub (by native_decide) (by simp)
-    |>.push1 ⟨64⟩ (by native_decide) (by simp)
-    |>.dup2 (by native_decide) (by simp)
-    |>.lt (by native_decide) (by simp)
-    |>.iszero (by native_decide) (by simp)
-    |>.push2 ⟨679⟩ (by native_decide) (by simp)
-    |>.jumpiNT (by native_decide) (by rw [hltShort]; decide) (by simp)
-    |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+  exact h658.push2 ⟨361⟩ (by decide +native) (by simp)
+    |>.push1 ⟨4⟩ (by decide +native) (by simp)
+    |>.dup1 (by decide +native) (by simp)
+    |>.calldatasize (by decide +native) (by simp)
+    |>.sub (by decide +native) (by simp)
+    |>.push1 ⟨64⟩ (by decide +native) (by simp)
+    |>.dup2 (by decide +native) (by simp)
+    |>.lt (by decide +native) (by simp)
+    |>.iszero (by decide +native) (by simp)
+    |>.push2 ⟨679⟩ (by decide +native) (by simp)
+    |>.jumpiNT (by decide +native) (by rw [hltShort]; decide) (by simp)
+    |>.solcPush1Dup1Revert0 (by decide +native) (by decide +native) (by decide +native) (by simp)
 
 /-- `transfer(address,uint256)` body refines its Solm transition. -/
 theorem weth9TransferBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -560,7 +560,7 @@ theorem weth9TransferBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (weth9SelBytes 8) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (weth9SelBytes 8) (by decide +native) hsel
   have hdisp := weth9SelectorDispatchTransfer hsel
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz68 : 68 ≤ I.calldata.size

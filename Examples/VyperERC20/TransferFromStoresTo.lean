@@ -101,7 +101,7 @@ theorem erc20X_transferFromAfterToLoad {cA gh bl σ σ₀ A I} {g : Sat256}
       (⟨528⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         (⟨543⟩ : UInt256) := by
-    native_decide
+    decide +native
   exact ⟨_, _, by
     simpa [evm0, htoLoadRaw, hpc543, transferFromAfterToLoadMemI,
       transferFromToBalanceRawAfterBalance] using rdAfterLoad⟩
@@ -183,7 +183,7 @@ theorem erc20X_transferFromBeforeToStore {cA gh bl σ σ₀ A I} {g : Sat256}
           ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ =
         (⟨561⟩ : UInt256) := by
-    native_decide
+    decide +native
   exact ⟨_, _, by simpa [evm0, hnewRaw', hpc561] using rdBeforeStore⟩
 
 theorem erc20X_transferFromAfterToStore {cA gh bl σ σ₀ A I} {g : Sat256}

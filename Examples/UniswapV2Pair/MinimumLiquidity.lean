@@ -32,7 +32,7 @@ theorem uniswapX_minimumLiquidity {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UI
     uniswap_word_getter_entry_wf
     (by
       unfold minimumLiquidityWord Reasoning.Reach.uniswapConstGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by jump_dest)
 
 theorem uniswapDecode_minimumLiquidity {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
@@ -76,7 +76,7 @@ theorem uniswapMinimumLiquidityBodyCore
       (width := 2) (op := .PUSH2) hreach uniswap_word_getter_entry_wf
       (by
         unfold minimumLiquidityWord Reasoning.Reach.uniswapConstGetterWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by jump_dest)
       (by jump_dest)).reEquivExecutionTransport
     hcode hdispatch hdecode hbody rfl hAccounts henc

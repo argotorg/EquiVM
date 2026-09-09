@@ -82,9 +82,9 @@ theorem ballotProposalReturnEncoding (name count : UInt256) :
       encodeABIValue? uint256 (.int (Int.ofNat count.toNat)) =
         some (EVM.Word.toBytesBE count) := by
     simp [uint256, uint256Int, encodeABIValue?, encodeABIWord?, hword, hlt]
-  have hhead : abiTupleHeadSize? [bytes32, uint256] = some 64 := by native_decide
-  have hdynBytes : isDynamicABIType bytes32 = false := by native_decide
-  have hdynUint : isDynamicABIType uint256 = false := by native_decide
+  have hhead : abiTupleHeadSize? [bytes32, uint256] = some 64 := by decide +native
+  have hdynBytes : isDynamicABIType bytes32 = false := by decide +native
+  have hdynUint : isDynamicABIType uint256 = false := by decide +native
   rw [toByteArray_eq_toBytesBE name, toByteArray_eq_toBytesBE count]
   simp only [encodeReturnValues?, encodeABIValues?, encodeABIValuesFrom?,
     hhead, hencName, hencCount, hdynBytes, hdynUint, bind, Option.bind, Bool.false_eq_true, if_false,

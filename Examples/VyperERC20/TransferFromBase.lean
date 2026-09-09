@@ -1097,10 +1097,10 @@ def transferFromDispatchMem : ByteArray :=
   vyperERC20Bytecode.write 809 ByteArray.empty 30 2
 
 theorem transferFromDispatchMem_size : transferFromDispatchMem.size = 32 := by
-  native_decide
+  decide +native
 
 macro "vyper_erc20_transferFrom_decode" : tactic =>
-  `(tactic| native_decide)
+  `(tactic| decide +native)
 
 def transferFromFromArgMem (src : UInt256) : ByteArray :=
   (UInt256.toByteArray src).write 0 transferFromDispatchMem 64 32
@@ -2321,7 +2321,7 @@ theorem transferFromDispatchMem_mload0 :
       else UInt256.ofNat
         (fromByteArrayBigEndian (transferFromDispatchMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))
       = (⟨331⟩ : UInt256) := by
-  native_decide
+  decide +native
 
 theorem erc20TransferFromSelector_size {I : ExecutionEnv}
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
@@ -2336,7 +2336,7 @@ theorem transferFromSelectorWord_of_calldata {I : ExecutionEnv}
     (hsel : ((⟨#[0x23, 0xb8, 0x72, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ =
       transferFromSelectorWord := by
-  have h := evmSelectorDecode hsz 0x23 0xb8 0x72 0xdd transferFromSelectorWord (by native_decide)
+  have h := evmSelectorDecode hsz 0x23 0xb8 0x72 0xdd transferFromSelectorWord (by decide +native)
   rw [hsel] at h
   unfold UInt256.eq at h
   by_cases heq :
@@ -2363,15 +2363,15 @@ theorem erc20X_transferFromReach {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeCopy := by
     simpa [hword, transferFromSelectorWord] using rdBeforeCopy0
   have rdAfterCopy := rdBeforeCopy.codecopy 3 transferFromDispatchMem (UInt256.ofNat 1)
-    (by native_decide) mem_cost (by native_decide) (by decide) (by evm_ov)
+    (by decide +native) mem_cost (by decide +native) (by decide) (by evm_ov)
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
     raw mload 0 ⟨331⟩ (UInt256.ofNat 1)
-      (by native_decide)
+      (by decide +native)
       mem_cost
       transferFromDispatchMem_mload0
       (by decide) (by evm_ov)]
-  exact ⟨_, _, rdBeforeJump.jump (by native_decide) (by native_decide) (by evm_ov)⟩
+  exact ⟨_, _, rdBeforeJump.jump (by decide +native) (by decide +native) (by evm_ov)⟩
 
 theorem erc20TransferFromX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -2389,7 +2389,7 @@ theorem erc20TransferFromX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd801 := evm_run rd331 with [
     jumpdest,
     raw push4 transferFromSelectorWord (by vyper_erc20_transferFrom_decode) (by evm_ov),
-    dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
+    dup2, xor, push2 ⟨797⟩, jumpiNT (by decide +native),
     push1 ⟨100⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by rw [hwv, hsizeGuard100]; decide) (by vyper_erc20_transferFrom_decode)]
   exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
@@ -2414,7 +2414,7 @@ theorem erc20TransferFromX_noncanon_from {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd801 := evm_run rd331 with [
     jumpdest,
     raw push4 transferFromSelectorWord (by vyper_erc20_transferFrom_decode) (by evm_ov),
-    dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
+    dup2, xor, push2 ⟨797⟩, jumpiNT (by decide +native),
     push1 ⟨100⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiNT (by rw [hwv, hsizeGuard100]; decide),
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
@@ -2448,7 +2448,7 @@ theorem erc20TransferFromX_noncanon_to {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd801 := evm_run rd331 with [
     jumpdest,
     raw push4 transferFromSelectorWord (by vyper_erc20_transferFrom_decode) (by evm_ov),
-    dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
+    dup2, xor, push2 ⟨797⟩, jumpiNT (by decide +native),
     push1 ⟨100⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiNT (by rw [hwv, hsizeGuard100]; decide),
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,

@@ -748,7 +748,7 @@ theorem blindAuctionX_auctionEnd_afterStoreAndLog {cA gh bl σ σ₀ A I} {g : S
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk]
-      native_decide)
+      decide +native)
     (by decide) (by evm_ov)
   have rd723 := evm_run rd720 with [push1 ⟨3⟩, dup1]
   obtain ⟨_, _, rd724₀⟩ := rd723.sload (by decide) (by evm_ov)
@@ -1444,7 +1444,7 @@ theorem blindAuctionAuctionEndBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
               exact hret.reEquivExecutionGenAccountMapEquiv hcode hd hdec hbody
                 (by simp [evmSCall, evmECall])
                 (by simpa [evmSCall, evmECall] using hPostAccounts)
-                (returnEquiv.fallthrough rfl rfl (by native_decide))
+                (returnEquiv.fallthrough rfl rfl (by decide +native))
           · let evmSFail : EVM.State :=
               { evmSAfter with
                 substate := (evmSAfter.addAccessedAccount

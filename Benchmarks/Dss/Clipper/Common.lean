@@ -488,7 +488,7 @@ theorem decode_push32_of_get?_extract' {code : ByteArray} {pc w : UInt256}
     decode code pc = some (.Push .PUSH32, some (w, 32)) := by
   unfold decode
   rw [hget]
-  have hparse : parseInstr 0x7f = some (.Push .PUSH32) := by native_decide
+  have hparse : parseInstr 0x7f = some (.Push .PUSH32) := by decide +native
   simp [hparse, argOnNBytesOfInstr]
   rw [show pc.toNat + 1 + 32 = pc.toNat + 33 by omega]
   rw [hpayload]
@@ -922,7 +922,7 @@ theorem clipperCodeSize_ge_firstPatch (v : ClipperImmutables) {code : ByteArray}
   have hprefix := clipperPrefixBeforeFirstPatch v hpatch
   have hsz : (code.extract 0 1463).size = 1463 := by
     rw [hprefix]
-    native_decide
+    decide +native
   rw [ByteArray.size_extract] at hsz
   omega
 
@@ -1078,8 +1078,8 @@ theorem clipperReturnWord476Wf (v : ClipperImmutables) {code : ByteArray}
   unfold solcReturnWordFromMemWf
   repeat' first | apply And.intro
   all_goals
-    rw [clipperDecodeBeforeFirstPatch v hpatch _ (by native_decide)]
-    native_decide
+    rw [clipperDecodeBeforeFirstPatch v hpatch _ (by decide +native)]
+    decide +native
 
 theorem clipperReturnAddress716Wf (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
@@ -1087,8 +1087,8 @@ theorem clipperReturnAddress716Wf (v : ClipperImmutables) {code : ByteArray}
   unfold solcReturnAddressFromMemWf
   repeat' first | apply And.intro
   all_goals
-    rw [clipperDecodeBeforeFirstPatch v hpatch _ (by native_decide)]
-    native_decide
+    rw [clipperDecodeBeforeFirstPatch v hpatch _ (by decide +native)]
+    decide +native
 
 -- GENERALIZES Reasoning.Solc.solcWordSlotGetterWf: packed uint getters mask the loaded word
 -- before jumping back to the ABI return block.
@@ -1586,11 +1586,11 @@ theorem solcZeroSlotSingleMappingGetter {code : ByteArray} {g : Sat256} {s0 : St
   have rd6 := rd5.dup2 hd5 (by simp only [List.length_cons]; omega)
   have rd7 := rd6.swap1 hd6 (by simp only [List.length_cons]; omega)
   have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨0⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd9 := rd8.swap1 hd8 (by evm_ov)
   have rd10 := rd9.dup2 hd9 (by evm_ov)
   have rd11 := rd10.mstore 0 (solcMappingHashMem ⟨0⟩ key)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd13 := rd11.push1 ⟨64⟩ hd11 (by evm_ov)
   have rd14 := rd13.swap1 hd13 (by evm_ov)
   have hslot := solcMappingKeccakSlot ⟨0⟩ key
@@ -1598,7 +1598,7 @@ theorem solcZeroSlotSingleMappingGetter {code : ByteArray} {g : Sat256} {s0 : St
     (UInt256.ofNat 3) hd14 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   obtain ⟨k16, C16, rd16⟩ := rd15.sload hd15 (by evm_ov)
   have rd17 := rd16.dup2 hd16 (by evm_ov)
   have rd18 := rd17.jump hd17 hret (by evm_ov)

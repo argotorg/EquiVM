@@ -590,7 +590,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_success
         exact hbody)
       hCreated
       hAccounts
-      (returnEquiv.fallthrough rfl rfl (by native_decide))
+      (returnEquiv.fallthrough rfl rfl (by decide +native))
   · as_aux_lemma =>
     obtain ⟨mem1405, aw1405, k1405, C1405, rd1405⟩ :=
       scratch_blindAuctionReveal_postLoop_postCallNonempty
@@ -615,7 +615,7 @@ theorem scratch_blindAuctionReveal_postLoop_callMade_success
         exact hbody)
       hCreated
       hAccounts
-      (returnEquiv.fallthrough rfl rfl (by native_decide))
+      (returnEquiv.fallthrough rfl rfl (by decide +native))
 
 set_option maxHeartbeats 10000000 in
 theorem scratch_blindAuctionReveal_postLoop_callMade_fromCall

@@ -41,7 +41,7 @@ theorem erc20X_transferFromAllowanceStoreInnerSlot {cA gh bl σ σ₀ A I} {g : 
   have rd479 := rd477.keccak256 0
     (transferFromAllowanceInnerSlotWord (transferFromFromWord I) (transferFromToWord I))
     (UInt256.ofNat 5)
-    (by native_decide) mem_cost hslot (by decide) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide) (by evm_ov)
   exact ⟨_, _, rd479⟩
 
 

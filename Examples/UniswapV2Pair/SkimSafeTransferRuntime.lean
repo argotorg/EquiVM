@@ -12,7 +12,7 @@ namespace UniswapV2Pair
 theorem balanceOfThisSelectorMem_read96_zero :
     balanceOfThisSelectorMem.readWithPadding 96 32 = UInt256.toByteArray (⟨0⟩ : UInt256) := by
   unfold balanceOfThisSelectorMem solcFreePtrMem
-  native_decide
+  decide +native
 
 theorem balanceOfThisCalldataMem_read96_zero (self : UInt256) :
     (balanceOfThisCalldataMem self).readWithPadding 96 32 =
@@ -176,7 +176,7 @@ theorem skimSafeTransferMem7_mload64
       = ⟨292⟩ :=
   mloadWordValue_of_readWithPadding
     (by rw [skimSafeTransferMem7_size self toWord value ho32 hoSize]; decide)
-    (by native_decide) (skimSafeTransferMem7_read64 self toWord value ho32 hoSize)
+    (by decide +native) (skimSafeTransferMem7_read64 self toWord value ho32 hoSize)
 
 theorem skimSafeTransferMem5_read192
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
@@ -228,7 +228,7 @@ theorem skimSafeTransferMem7_mload192
       = ⟨68⟩ :=
   mloadWordValue_of_readWithPadding
     (by rw [skimSafeTransferMem7_size self toWord value ho32 hoSize]; decide)
-    (by native_decide) (skimSafeTransferMem7_read192 self toWord value ho32 hoSize)
+    (by decide +native) (skimSafeTransferMem7_read192 self toWord value ho32 hoSize)
 
 theorem skimSafeTransferMem7_read224
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
@@ -251,7 +251,7 @@ theorem skimSafeTransferMem7_mload224
       = skimSafeTransferPatchedSelectorWord self o toWord value :=
   mloadWordValue_of_readWithPadding
     (by rw [skimSafeTransferMem7_size self toWord value ho32 hoSize]; decide)
-    (by native_decide) (skimSafeTransferMem7_read224 self toWord value ho32 hoSize)
+    (by decide +native) (skimSafeTransferMem7_read224 self toWord value ho32 hoSize)
 
 noncomputable def skimSafeTransferCallMem0
     (self : UInt256) (o : ByteArray) (toWord value : UInt256) : ByteArray :=
@@ -380,7 +380,7 @@ theorem skimSafeTransferCallMem0_mload256
         ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩) := by
     exact not_or.mpr ⟨by
       rw [skimSafeTransferCallMem0_size self toWord value ho32 hoSize]
-      native_decide, by native_decide⟩
+      decide +native, by decide +native⟩
   rw [if_neg hguard]
   rfl
 
@@ -399,7 +399,7 @@ theorem skimSafeTransferCallMem1_mload288
         ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩) := by
     exact not_or.mpr ⟨by
       rw [skimSafeTransferCallMem1_size self toWord value ho32 hoSize]
-      native_decide, by native_decide⟩
+      decide +native, by decide +native⟩
   rw [if_neg hguard]
   rfl
 
@@ -418,7 +418,7 @@ theorem skimSafeTransferCallMem1_mload356
         ∨ (⟨356⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ := by
     left
     rw [skimSafeTransferCallMem1_size self toWord value ho32 hoSize]
-    native_decide
+    decide +native
   rw [if_pos hguard]
 
 theorem skimSafeTransferCallMem2_read64
@@ -457,7 +457,7 @@ theorem skimSafeTransferCallMem2_mload64
       = ⟨292⟩ :=
   mloadWordValue_of_readWithPadding
     (by rw [skimSafeTransferCallMem2_size self toWord value ho32 hoSize]; decide)
-    (by native_decide) (skimSafeTransferCallMem2_read64 self toWord value ho32 hoSize)
+    (by decide +native) (skimSafeTransferCallMem2_read64 self toWord value ho32 hoSize)
 
 theorem skimFromBytesBigEndian_append (a b : List UInt8) :
     fromBytesBigEndian (a ++ b) =
@@ -571,12 +571,12 @@ theorem fromByteArrayBigEndian_toByteArray_extract0_4 (w : UInt256) :
 
 theorem skimSafeTransferSelectorPatchMask_toNat :
     skimSafeTransferSelectorPatchMask.toNat = 2 ^ 224 - 1 := by
-  native_decide
+  decide +native
 
 theorem transferSelectorShifted_toNat :
     (UInt256.shiftLeft transferSelectorWord ⟨224⟩).toNat =
       transferSelectorWord.toNat * 2 ^ 224 := by
-  native_decide
+  decide +native
 
 theorem skimSafeTransferSelectorPatch_low224 (w : UInt256) :
     (UInt256.land skimSafeTransferSelectorPatchMask w).toNat = w.toNat % 2 ^ 224 := by
@@ -587,7 +587,7 @@ theorem skimSafeTransferSelectorPatch_low224 (w : UInt256) :
   have hlt : w.toNat % 2 ^ 224 < UInt256.size := by
     exact lt_of_lt_of_le (Nat.mod_lt _ (by positivity : 0 < (2 : Nat) ^ 224)) (by
       change 2 ^ 224 ≤ UInt256.size
-      native_decide)
+      decide +native)
   exact Nat.mod_eq_of_lt hlt
 
 theorem skimSafeTransferPatchedSelector_toNat (w : UInt256) :
@@ -609,13 +609,13 @@ theorem skimSafeTransferPatchedSelector_toNat (w : UInt256) :
 
 theorem transferSelector_fromByteArrayBigEndian :
     fromByteArrayBigEndian transferSelector = transferSelectorWord.toNat := by
-  native_decide
+  decide +native
 
 theorem skimSafeTransferPatchedSelector_toByteArray (w : UInt256) :
     UInt256.toByteArray (UInt256.lor (UInt256.shiftLeft transferSelectorWord ⟨224⟩)
       (UInt256.land skimSafeTransferSelectorPatchMask w)) =
       transferSelector ++ (UInt256.toByteArray w).extract 4 32 := by
-  have hselSize : transferSelector.size = 4 := by native_decide
+  have hselSize : transferSelector.size = 4 := by decide +native
   have hsize : (transferSelector ++ (UInt256.toByteArray w).extract 4 32).size = 32 := by
     rw [ByteArray.size_append, ByteArray.size_extract, hselSize, toByteArray_size]
     omega
@@ -814,14 +814,14 @@ theorem skimSafeTransferTailSourceWord_extract0_4
 
 theorem skimSafeTransferTailMask_toNat :
     skimSafeTransferTailMask.toNat = 2 ^ 224 - 1 := by
-  native_decide
+  decide +native
 
 theorem skimSafeTransferTailClear_toNat (w : UInt256) :
     (UInt256.land w (UInt256.lnot skimSafeTransferTailMask)).toNat =
       (w.toNat / 2 ^ 224) * 2 ^ 224 := by
   rw [u256_land_toNat]
   have hlnot : (UInt256.lnot skimSafeTransferTailMask).toNat = 2 ^ 256 - 2 ^ 224 := by
-    native_decide
+    decide +native
   rw [hlnot]
   have hwlt : w.toNat < 2 ^ 256 := by
     change w.val.val < 2 ^ 256
@@ -838,7 +838,7 @@ theorem skimSafeTransferTailWord_toNat_of_source (w : UInt256) :
   have hzero : UInt256.land (⟨0⟩ : UInt256) skimSafeTransferTailMask = ⟨0⟩ := by
     apply u256_inj
     rw [u256_land_toNat]
-    native_decide
+    decide +native
   rw [hzero, u256_lor_zero, skimSafeTransferTailClear_toNat]
 
 theorem skimSafeTransferTailWord_extract0_4_of_source (w : UInt256) :
@@ -985,19 +985,19 @@ theorem RD.uniswapSkimSafeTransferCopySetupToSelectorPatch {g : Sat256} {s0 : St
   have rd6471 := evm_run h with [
     swap2, dup2, add, dup1,
     raw mload 0 (skimSafeTransferWord224 self o toWord value) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (skimSafeTransferMem6_mload224 self toWord value ho32 hoSize)
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   have rd6480 := evm_run rd6471 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨224⟩, shl, sub, and]
   have rd6485 := rd6480.pushConst transferSelectorWord (width := 4) (op := .PUSH4)
-    (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by evm_ov)
   have rd6491 := evm_run rd6485 with [
     push1 ⟨224⟩, shl, or, dup2,
     raw mstore 0 (skimSafeTransferMem7 self o toWord value) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by unfold skimSafeTransferMem7 skimSafeTransferPatchedSelectorWord; rfl)
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   exact ⟨_, _, by simpa [skimSafeTransferSelectorPatchMask] using rd6491⟩
 
 set_option maxHeartbeats 1000000 in
@@ -1016,13 +1016,13 @@ theorem RD.uniswapSkimSafeTransferSelectorPatchToCopyLoop {g : Sat256} {s0 : Sta
       (skimSafeTransferMem7 self o toWord value) (UInt256.ofNat 10) o acc k' C' := by
   have rd6512 := evm_run h with [
     swap3,
-    raw mload 0 ⟨292⟩ (UInt256.ofNat 10) (by native_decide)
+    raw mload 0 ⟨292⟩ (UInt256.ofNat 10) (by decide +native)
       mem_cost (skimSafeTransferMem7_mload64 self toWord value ho32 hoSize)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     dup2,
-    raw mload 0 ⟨68⟩ (UInt256.ofNat 10) (by native_decide)
+    raw mload 0 ⟨68⟩ (UInt256.ofNat 10) (by decide +native)
       mem_cost (skimSafeTransferMem7_mload192 self toWord value ho32 hoSize)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     push1 ⟨0⟩, swap5, push1 ⟨96⟩, swap5, dup10, and,
     swap4, swap3, swap2, dup3, swap2, swap1, dup1, dup4, dup4]
   exact ⟨_, _, by simpa using rd6512⟩
@@ -1043,23 +1043,23 @@ theorem RD.uniswapSkimSafeTransferCopyLoopFirst {g : Sat256} {s0 : State}
         value :: toWord :: token :: ret :: token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSafeTransferCallMem0 self o toWord value) (UInt256.ofNat 11) o acc k' C' := by
   have rd6521 := evm_run h with [
-    jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by native_decide)]
+    jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by decide +native)]
   have rd6539 := evm_run rd6521 with [
     dup1,
     raw mload 0 (skimSafeTransferPatchedSelectorWord self o toWord value)
-      (UInt256.ofNat 10) (by native_decide)
+      (UInt256.ofNat 10) (by decide +native)
       mem_cost (skimSafeTransferMem7_mload224 self toWord value ho32 hoSize)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     dup3,
     raw mstore 3 (skimSafeTransferCallMem0 self o toWord value) (UInt256.ofNat 11)
-      (by native_decide) mem_cost
-      (by unfold skimSafeTransferCallMem0; rfl) (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost
+      (by unfold skimSafeTransferCallMem0; rfl) (by decide +native) (by evm_ov),
     push1 ⟨31⟩, not, swap1, swap3, add, swap2,
     push1 ⟨32⟩, swap2, dup3, add, swap2, add, push2 ⟨6512⟩]
-  have rd6512 := rd6539.jump (by native_decide) (by jump_dest) (by evm_ov)
-  rw [show (⟨32⟩ : UInt256) + ⟨224⟩ = ⟨256⟩ by native_decide,
-    show (⟨32⟩ : UInt256) + ⟨292⟩ = ⟨324⟩ by native_decide,
-    show (⟨68⟩ : UInt256) + UInt256.lnot ⟨31⟩ = ⟨36⟩ by native_decide]
+  have rd6512 := rd6539.jump (by decide +native) (by jump_dest) (by evm_ov)
+  rw [show (⟨32⟩ : UInt256) + ⟨224⟩ = ⟨256⟩ by decide +native,
+    show (⟨32⟩ : UInt256) + ⟨292⟩ = ⟨324⟩ by decide +native,
+    show (⟨68⟩ : UInt256) + UInt256.lnot ⟨31⟩ = ⟨36⟩ by decide +native]
     at rd6512
   exact ⟨_, _, by simpa using rd6512⟩
 
@@ -1079,23 +1079,23 @@ theorem RD.uniswapSkimSafeTransferCopyLoopSecond {g : Sat256} {s0 : State}
         value :: toWord :: token :: ret :: token1 :: token :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSafeTransferCallMem1 self o toWord value) (UInt256.ofNat 12) o acc k' C' := by
   have rd6521 := evm_run h with [
-    jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by native_decide)]
+    jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by decide +native)]
   have rd6539 := evm_run rd6521 with [
     dup1,
     raw mload 0 (skimSafeTransferCopyWord1 self o toWord value)
-      (UInt256.ofNat 11) (by native_decide)
+      (UInt256.ofNat 11) (by decide +native)
       mem_cost (skimSafeTransferCallMem0_mload256 self toWord value ho32 hoSize)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     dup3,
     raw mstore 3 (skimSafeTransferCallMem1 self o toWord value) (UInt256.ofNat 12)
-      (by native_decide) mem_cost
-      (by unfold skimSafeTransferCallMem1; rfl) (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost
+      (by unfold skimSafeTransferCallMem1; rfl) (by decide +native) (by evm_ov),
     push1 ⟨31⟩, not, swap1, swap3, add, swap2,
     push1 ⟨32⟩, swap2, dup3, add, swap2, add, push2 ⟨6512⟩]
-  have rd6512 := rd6539.jump (by native_decide) (by jump_dest) (by evm_ov)
-  rw [show (⟨32⟩ : UInt256) + ⟨256⟩ = ⟨288⟩ by native_decide,
-    show (⟨32⟩ : UInt256) + ⟨324⟩ = ⟨356⟩ by native_decide,
-    show (⟨36⟩ : UInt256) + UInt256.lnot ⟨31⟩ = ⟨4⟩ by native_decide]
+  have rd6512 := rd6539.jump (by decide +native) (by jump_dest) (by evm_ov)
+  rw [show (⟨32⟩ : UInt256) + ⟨256⟩ = ⟨288⟩ by decide +native,
+    show (⟨32⟩ : UInt256) + ⟨324⟩ = ⟨356⟩ by decide +native,
+    show (⟨36⟩ : UInt256) + UInt256.lnot ⟨31⟩ = ⟨4⟩ by decide +native]
     at rd6512
   exact ⟨_, _, by simpa using rd6512⟩
 
@@ -1116,23 +1116,23 @@ theorem RD.uniswapSkimSafeTransferCopyTail {g : Sat256} {s0 : State}
       (skimSafeTransferCallMem2 self o toWord value) (UInt256.ofNat 13) o acc k' C' := by
   have rd6543 := evm_run h with [
     jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩,
-    jumpiT (by native_decide) (by jump_dest)]
+    jumpiT (by decide +native) (by jump_dest)]
   have rd6575 := evm_run rd6543 with [
     jumpdest, push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub,
     dup1, not, dup3,
     raw mload 0 (skimSafeTransferTailSourceWord self o toWord value)
-      (UInt256.ofNat 12) (by native_decide)
+      (UInt256.ofNat 12) (by decide +native)
       mem_cost (skimSafeTransferCallMem1_mload288 self toWord value ho32 hoSize)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     and, dup2, dup5,
-    raw mload 3 ⟨0⟩ (UInt256.ofNat 13) (by native_decide)
+    raw mload 3 ⟨0⟩ (UInt256.ofNat 13) (by decide +native)
       mem_cost (skimSafeTransferCallMem1_mload356 self toWord value ho32 hoSize)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     and, dup1, dup3, or, dup6,
     raw mstore 0 (skimSafeTransferCallMem2 self o toWord value) (UInt256.ofNat 13)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by unfold skimSafeTransferCallMem2 skimSafeTransferTailWord skimSafeTransferTailMask; rfl)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     pop, pop, pop, pop, pop, pop]
   exact ⟨_, _, by simpa [skimSafeTransferTailMask] using rd6575⟩
 
@@ -1154,13 +1154,13 @@ theorem RD.uniswapSkimSafeTransferBuiltToCall {g : Sat256} {s0 : State}
       (skimSafeTransferCallMem2 self o toWord value) (UInt256.ofNat 13) o acc k' C' := by
   have rd6593 := evm_run h with [
     swap1, pop, add, swap2, pop, pop, push1 ⟨0⟩, push1 ⟨64⟩,
-    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by native_decide)
+    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by decide +native)
       mem_cost (skimSafeTransferCallMem2_mload64 self toWord value ho32 hoSize)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     dup1, dup4, sub, dup2, push1 ⟨0⟩, dup7]
-  obtain ⟨gasArg, rd6594⟩ := rd6593.gas (by native_decide) (by evm_ov)
-  rw [show (⟨68⟩ : UInt256) + ⟨292⟩ = ⟨360⟩ by native_decide,
-    show UInt256.sub (⟨360⟩ : UInt256) ⟨292⟩ = ⟨68⟩ by native_decide]
+  obtain ⟨gasArg, rd6594⟩ := rd6593.gas (by decide +native) (by evm_ov)
+  rw [show (⟨68⟩ : UInt256) + ⟨292⟩ = ⟨360⟩ by decide +native,
+    show UInt256.sub (⟨360⟩ : UInt256) ⟨292⟩ = ⟨68⟩ by decide +native]
     at rd6594
   exact ⟨gasArg, _, _, by simpa using rd6594⟩
 
@@ -1194,7 +1194,7 @@ theorem RD.uniswapSkimSafeTransferCallMade {g : Sat256} {s0 : State}
           (skimSafeTransferCallMem2 self o toWord value) (UInt256.ofNat 13) out (cA', σ') k' C'
       ∧ out.size < UInt256.size := by
   obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘ, rd6595, houtSize⟩ :=
-    h.call (by native_decide) hdepth (by evm_ov)
+    h.call (by decide +native) hdepth (by evm_ov)
   refine ⟨cA', σ', z, out, A_in, callGas, k', C', ?_, ?_, houtSize⟩
   · simpa using hΘ
   · have hlen :
@@ -1210,7 +1210,7 @@ theorem RD.uniswapSkimSafeTransferCallMade {g : Sat256} {s0 : State}
               (⟨68⟩ : UInt256).toNat)
             (⟨292⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
           UInt256.ofNat 13 := by
-      native_decide
+      decide +native
     rw [hlen, byteArray_write_len_zero, haw] at rd6595
     exact rd6595
 
@@ -1353,7 +1353,7 @@ theorem skimSafeTransferFailedMem0_read64
       UInt256.toByteArray (⟨292⟩ : UInt256) := by
   unfold skimSafeTransferFailedMem0
   rw [write32_read_below _ _ 292 64 (by rw [toByteArray_size])
-      (by rw [skimSafeTransferCallMem2_size self toWord value ho32 hoSize]; native_decide)
+      (by rw [skimSafeTransferCallMem2_size self toWord value ho32 hoSize]; decide +native)
       (by omega)]
   exact skimSafeTransferCallMem2_read64 self toWord value ho32 hoSize
 
@@ -1364,7 +1364,7 @@ theorem skimSafeTransferFailedMem1_read64
       UInt256.toByteArray (⟨292⟩ : UInt256) := by
   unfold skimSafeTransferFailedMem1
   rw [write32_read_below _ _ 296 64 (by rw [toByteArray_size])
-      (by rw [skimSafeTransferFailedMem0_size self toWord value ho32 hoSize]; native_decide)
+      (by rw [skimSafeTransferFailedMem0_size self toWord value ho32 hoSize]; decide +native)
       (by omega)]
   exact skimSafeTransferFailedMem0_read64 self toWord value ho32 hoSize
 
@@ -1375,7 +1375,7 @@ theorem skimSafeTransferFailedMem2_read64
       UInt256.toByteArray (⟨292⟩ : UInt256) := by
   unfold skimSafeTransferFailedMem2
   rw [write32_read_below _ _ 328 64 (by rw [toByteArray_size])
-      (by rw [skimSafeTransferFailedMem1_size self toWord value ho32 hoSize]; native_decide)
+      (by rw [skimSafeTransferFailedMem1_size self toWord value ho32 hoSize]; decide +native)
       (by omega)]
   exact skimSafeTransferFailedMem1_read64 self toWord value ho32 hoSize
 
@@ -1386,7 +1386,7 @@ theorem skimSafeTransferFailedMem3_read64
       UInt256.toByteArray (⟨292⟩ : UInt256) := by
   unfold skimSafeTransferFailedMem3
   rw [write32_read_below _ _ 360 64 (by rw [toByteArray_size])
-      (by rw [skimSafeTransferFailedMem2_size self toWord value ho32 hoSize]; native_decide)
+      (by rw [skimSafeTransferFailedMem2_size self toWord value ho32 hoSize]; decide +native)
       (by omega)]
   exact skimSafeTransferFailedMem2_read64 self toWord value ho32 hoSize
 
@@ -1401,8 +1401,8 @@ theorem skimSafeTransferFailedMem3_mload64
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨292⟩ :=
   mloadWordValue_of_readWithPadding
-    (by rw [skimSafeTransferFailedMem3_size self toWord value ho32 hoSize]; native_decide)
-    (by native_decide)
+    (by rw [skimSafeTransferFailedMem3_size self toWord value ho32 hoSize]; decide +native)
+    (by decide +native)
     (skimSafeTransferFailedMem3_read64 self toWord value ho32 hoSize)
 
 def skimSafeTransferReturnDataRounded (out : ByteArray) : UInt256 :=
@@ -1929,48 +1929,48 @@ theorem RD.uniswapSkimSafeTransferEmptyFailureReverts {g : Sat256} {s0 : State}
     swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
   have rd6607' := rd6607
   rw [hout] at rd6607'
-  have rd6641 := evm_run rd6607' with [jumpiT (by native_decide) (by jump_dest)]
+  have rd6641 := evm_run rd6607' with [jumpiT (by decide +native) (by jump_dest)]
   have rd6652 := evm_run rd6641 with [
     jumpdest, push1 ⟨96⟩, swap2, pop, jumpdest, pop, swap2, pop, swap2, pop]
   have rd6692 := evm_run rd6652 with [
-    dup2, dup1, iszero, push2 ⟨6692⟩, jumpiT (by native_decide) (by jump_dest)]
+    dup2, dup1, iszero, push2 ⟨6692⟩, jumpiT (by decide +native) (by jump_dest)]
   have rd6697 := evm_run rd6692 with [
-    jumpdest, push2 ⟨6773⟩, jumpiNT (by native_decide)]
+    jumpdest, push2 ⟨6773⟩, jumpiNT (by decide +native)]
   have rd6701 := evm_run rd6697 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by native_decide)
+    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by decide +native)
       mem_cost (skimSafeTransferCallMem2_mload64 self toWord value ho32 hoSize)
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   have rd6705 := rd6701.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by native_decide) (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide +native) (by decide +native) (by evm_ov)
   have rd6708 := evm_run rd6705 with [push1 ⟨229⟩, shl, dup2]
   have rd6710 := evm_run rd6708 with [
     raw mstore 0 (skimSafeTransferFailedMem0 self o toWord value) (UInt256.ofNat 13)
-      (by native_decide) mem_cost
-      (by unfold skimSafeTransferFailedMem0; rfl) (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost
+      (by unfold skimSafeTransferFailedMem0; rfl) (by decide +native) (by evm_ov)]
   have rd6716 := evm_run rd6710 with [push1 ⟨32⟩, push1 ⟨4⟩, dup3, add]
   have rd6717 := evm_run rd6716 with [
     raw mstore 0 (skimSafeTransferFailedMem1 self o toWord value) (UInt256.ofNat 13)
-      (by native_decide) mem_cost
-      (by unfold skimSafeTransferFailedMem1; rfl) (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost
+      (by unfold skimSafeTransferFailedMem1; rfl) (by decide +native) (by evm_ov)]
   have rd6723 := evm_run rd6717 with [push1 ⟨26⟩, push1 ⟨36⟩, dup3, add]
   have rd6724 := evm_run rd6723 with [
     raw mstore 0 (skimSafeTransferFailedMem2 self o toWord value) (UInt256.ofNat 13)
-      (by native_decide) mem_cost
-      (by unfold skimSafeTransferFailedMem2; rfl) (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost
+      (by unfold skimSafeTransferFailedMem2; rfl) (by decide +native) (by evm_ov)]
   have rd6757 := rd6724.pushConst uniswapSafeTransferFailedStringWord
-    (width := 32) (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide +native) (by decide +native) (by evm_ov)
   exact evm_run rd6757 with [
     push1 ⟨68⟩, dup3, add,
     raw mstore 0 (skimSafeTransferFailedMem3 self o toWord value) (UInt256.ofNat 13)
-      (by native_decide) mem_cost
-      (by unfold skimSafeTransferFailedMem3; rfl) (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost
+      (by unfold skimSafeTransferFailedMem3; rfl) (by decide +native) (by evm_ov),
     swap1,
-    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by native_decide)
+    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by decide +native)
       mem_cost (skimSafeTransferFailedMem3_mload64 self toWord value ho32 hoSize)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSafeTransferEmptyReturnToRet {g : Sat256} {s0 : State}
@@ -1991,23 +1991,23 @@ theorem RD.uniswapSkimSafeTransferEmptyReturnToRet {g : Sat256} {s0 : State}
     swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
   have rd6607' := rd6607
   rw [hout] at rd6607'
-  have rd6641 := evm_run rd6607' with [jumpiT (by native_decide) (by jump_dest)]
+  have rd6641 := evm_run rd6607' with [jumpiT (by decide +native) (by jump_dest)]
   have rd6652 := evm_run rd6641 with [
     jumpdest, push1 ⟨96⟩, swap2, pop, jumpdest, pop, swap2, pop, swap2, pop]
   have rd6658 := evm_run rd6652 with [
-    dup2, dup1, iszero, push2 ⟨6692⟩, jumpiNT (by native_decide)]
+    dup2, dup1, iszero, push2 ⟨6692⟩, jumpiNT (by decide +native)]
   have rd6668 := evm_run rd6658 with [
     pop, dup1,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 13) (by native_decide)
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 13) (by decide +native)
       mem_cost
       (mloadWordValue_of_readWithPadding
-        (by rw [skimSafeTransferCallMem2_size self toWord value ho32 hoSize]; native_decide)
-        (by native_decide)
+        (by rw [skimSafeTransferCallMem2_size self toWord value ho32 hoSize]; decide +native)
+        (by decide +native)
         (skimSafeTransferCallMem2_read96_zero self toWord value ho32 hoSize))
-      (by native_decide) (by evm_ov),
-    iszero, dup1, push2 ⟨6692⟩, jumpiT (by native_decide) (by jump_dest)]
+      (by decide +native) (by evm_ov),
+    iszero, dup1, push2 ⟨6692⟩, jumpiT (by decide +native) (by jump_dest)]
   have rd6773 := evm_run rd6668 with [jumpdest, push2 ⟨6773⟩,
-    jumpiT (by native_decide) (by jump_dest)]
+    jumpiT (by decide +native) (by jump_dest)]
   exact ⟨_, _, evm_run rd6773 with [jumpdest, pop, pop, pop, pop, pop,
     jump hret]⟩
 

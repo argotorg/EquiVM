@@ -90,17 +90,17 @@ theorem flapKickCalldataMem_read128_4 (bump : UInt256)
       (flapKickBumpMem bump mem) 164 128 4
       (by rw [hBumpSize]; omega)
       (by omega) (by omega) (by omega)
-      (by rw [hBumpSize]; native_decide)]
+      (by rw [hBumpSize]; decide +native)]
   unfold flapKickBumpMem
   rw [toByteArray_write_read_below_len_of_gap bump (flapKickSelectorMem mem) 132 128 4
       (by rw [hSelectorSize]; omega)
       (by omega) (by omega) (by omega)
-      (by rw [hSelectorSize]; native_decide)]
+      (by rw [hSelectorSize]; decide +native)]
   unfold flapKickSelectorMem
   rw [toByteArray_write_read_window_of_gap flapKickSelectorShifted mem 128 0 4
       (by omega) (by omega) (by omega)
-      (by rw [hmem]; native_decide)]
-  native_decide
+      (by rw [hmem]; decide +native)]
+  decide +native
 
 theorem flapKickCalldataMem_read132_32 (bump : UInt256)
     {mem : ByteArray} (hmem : mem.size = 164) :
@@ -113,10 +113,10 @@ theorem flapKickCalldataMem_read132_32 (bump : UInt256)
       (flapKickBumpMem bump mem) 164 132 32
       (by rw [hBumpSize])
       (by omega) (by omega) (by omega)
-      (by rw [hBumpSize]; native_decide)]
+      (by rw [hBumpSize]; decide +native)]
   unfold flapKickBumpMem
   rw [toByteArray_write_read_back_of_gap bump (flapKickSelectorMem mem) 132
-      (by rw [hSelectorSize]; native_decide)]
+      (by rw [hSelectorSize]; decide +native)]
 
 theorem flapKickCalldataMem_read164_32 (bump : UInt256)
     {mem : ByteArray} (hmem : mem.size = 164) :
@@ -125,7 +125,7 @@ theorem flapKickCalldataMem_read164_32 (bump : UInt256)
   have hBumpSize := flapKickBumpMem_size bump hmem
   unfold flapKickCalldataMem
   rw [toByteArray_write_read_back_of_gap (⟨0⟩ : UInt256) (flapKickBumpMem bump mem) 164
-      (by rw [hBumpSize]; native_decide)]
+      (by rw [hBumpSize]; decide +native)]
 
 theorem flapKickCalldataMem_read128_68 (bump : UInt256)
     {mem : ByteArray} (hmem : mem.size = 164) :
@@ -160,7 +160,7 @@ theorem flapKickEncode_eq (bump : UInt256) {mem : ByteArray}
     show UInt256.ofNat bump.toNat = bump
     exact u256_ofNat_toNat _
   have hzeroLt : (0 : ℕ) < EVM.twoPow 256 := by
-    native_decide
+    decide +native
   have hzeroWord : EVM.word 0 = (⟨0⟩ : UInt256) := rfl
   simp [config, vowExternalABI, ABI.encodeCallWithSelector?, ABI.encodeABIValues?,
     ABI.encodeABIValuesFrom?, ABI.encodeABIValue?, ABI.encodeABIWord?,
@@ -223,16 +223,16 @@ theorem RD.vowFlapToKickExtcodesizeGuard
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
     mloadFreePtrValue (by rw [hKickMem]; decide) (by decide) hKickRead64
-  have rd1404 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd1406 := rd1404.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1407, C1407, rd1407Raw⟩ := rd1406.sload (by native_decide) (by evm_ov)
+  have rd1404 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd1406 := rd1404.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1407, C1407, rd1407Raw⟩ := rd1406.sload (by decide +native) (by evm_ov)
   have rd1407 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1407⟩
       (vowSlotWord ⟨2⟩ acc.2 I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k1407 C1407 := by
     simpa [vowSlotWord, solcSlotWord] using rd1407Raw
-  have rd1409 := rd1407.push1 ⟨10⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1410, C1410, rd1410Raw⟩ := rd1409.sload (by native_decide) (by evm_ov)
+  have rd1409 := rd1407.push1 ⟨10⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1410, C1410, rd1410Raw⟩ := rd1409.sload (by decide +native) (by evm_ov)
   have rd1410 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1410⟩
       (bump :: vowSlotWord ⟨2⟩ acc.2 I :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
@@ -241,13 +241,13 @@ theorem RD.vowFlapToKickExtcodesizeGuard
   have rd1482 := evm_run rd1410 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     push4 flapKickSelectorWord,
     push1 ⟨224⟩,
     shl,
     dup2,
-    raw mstore 0 (flapKickSelectorMem mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (flapKickSelectorMem mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩,
     dup2,
@@ -255,7 +255,7 @@ theorem RD.vowFlapToKickExtcodesizeGuard
     swap3,
     swap1,
     swap3,
-    raw mstore 0 (flapKickBumpMem bump mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (flapKickBumpMem bump mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨0⟩,
     push1 ⟨36⟩,
@@ -264,9 +264,9 @@ theorem RD.vowFlapToKickExtcodesizeGuard
     dup2,
     swap1,
     raw mstore 3 (flapKickCalldataMem bump mem) (UInt256.ofNat 7)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide +native)
       mem_cost hmload64Kick (by decide) (by evm_ov),
     push1 ⟨1⟩,
     push1 ⟨1⟩,
@@ -327,9 +327,9 @@ theorem RD.vowFlapKickNoCode
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1482⟩) (okPc := ⟨1494⟩)
     (by simpa [target, bump] using rd1482)
     (by simpa [target] using hcodeSize)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.vowFlapKickCall
     {cA gh bl σ σ₀ A I} {g sel : UInt256}
@@ -359,9 +359,9 @@ theorem RD.vowFlapKickCall
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1482⟩) (okPc := ⟨1494⟩)
       (by simpa [target, bump] using rd1482)
       (by simpa [target] using hcodeSize)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by evm_ov)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by evm_ov)
   exact ⟨gasWord, k', C', by simpa [target, bump] using rd1497⟩
 
 theorem RD.vowFlapKickPostCall
@@ -402,7 +402,7 @@ theorem RD.vowFlapKickPostCall
   obtain ⟨gasWord, _, _, rd1497⟩ :=
     RD.vowFlapKickCall rd hmem hread64 hcodeSize
   obtain ⟨cA', σ', z, out, A_in, callGas, k1498, C1498, hΘpack, rd1498raw, houtsz⟩ :=
-    RD.call rd1497 (by native_decide) hdepth (by evm_ov)
+    RD.call rd1497 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, out, A', k1498, C1498, ?_, ?_, houtsz⟩
   · have haw :
@@ -410,7 +410,7 @@ theorem RD.vowFlapKickPostCall
           flapKickOutPtr.toNat flapKickInSize.toNat)
           flapKickOutPtr.toNat flapKickOutSize.toNat) = UInt256.ofNat 7 := by
       unfold flapKickOutPtr flapKickInSize flapKickOutSize
-      native_decide
+      decide +native
     exact haw ▸ rd1498raw
   · refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
       (callPerm := true) (targetWord := target)
@@ -470,9 +470,9 @@ theorem RD.vowFlapKickCallFailure
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) hosz hov
 
 theorem RD.vowFlapKickCallSuccessToDecode
     {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -488,8 +488,8 @@ theorem RD.vowFlapKickCallSuccessToDecode
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨1498⟩) (okPc := ⟨1514⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simpa only [List.length_cons] using hov)
 
 theorem RD.vowFlapKickReturnDecodeShortReverts
@@ -513,10 +513,10 @@ theorem RD.vowFlapKickReturnDecodeShortReverts
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨1516⟩) (okPc := ⟨1536⟩) rd
     hshort hhi
     mem_cost (by decide) hMload64Value
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by simp)
 
 theorem RD.vowFlapKickReturnDecodeOk
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
@@ -547,10 +547,10 @@ theorem RD.vowFlapKickReturnDecodeOk
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨1516⟩) (okPc := ⟨1536⟩) rd
     hlo hhi
     mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by jump_dest) (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by jump_dest) (by decide +native) (by decide +native) (by decide +native) (by evm_ov)
 
 theorem RD.vowFlapKickDecodedToPublicReturn
     {cA gh bl σ σ₀ A I} {g sel id : UInt256}
@@ -563,10 +563,10 @@ theorem RD.vowFlapKickDecodedToPublicReturn
     ∃ k' C', RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨357⟩
       (id :: sel :: []) mem (UInt256.ofNat 7) o acc k' C' := by
-  have rd1540 := rd.swap2 (by native_decide) (by evm_ov)
-  have rd1541 := rd1540.swap1 (by native_decide) (by evm_ov)
-  have rd1542 := rd1541.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1542.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  have rd1540 := rd.swap2 (by decide +native) (by evm_ov)
+  have rd1541 := rd1540.swap1 (by decide +native) (by evm_ov)
+  have rd1542 := rd1541.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1542.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vowFlapKickPublicReturn
     {cA gh bl σ σ₀ A I} {g sel id : UInt256}
@@ -593,26 +593,26 @@ theorem RD.vowFlapKickPublicReturn
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) acc
       (UInt256.toByteArray id) := by
   exact evm_run rd with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw mstore 0 memout (UInt256.ofNat 7) (by native_decide) mem_cost
+    raw swap2 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw mstore 0 memout (UInt256.ofNat 7) (by decide +native) mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; exact hmemout)
       (by decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 7) (by decide +native)
       mem_cost hmemoutLoad64 (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw ret 0 (UInt256.toByteArray id) (by native_decide) mem_cost
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw ret 0 (UInt256.toByteArray id) (by decide +native) mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
           show ((⟨32⟩ : UInt256) + UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩).toNat = 32
@@ -642,7 +642,7 @@ theorem RD.vowFlapKickSuccess
   have hmin : (min flapKickOutSize (UInt256.ofNat out.size)).toNat = 32 := by
     simpa [flapKickOutSize] using kissDaiMin32_toNat_of_ge ho32 hosz
   have rd1498 := rd
-  rw [hmin, show flapKickOutPtr.toNat = 128 from by native_decide] at rd1498
+  rw [hmin, show flapKickOutPtr.toNat = 128 from by decide +native] at rd1498
   obtain ⟨_, _, rd1516⟩ :=
     RD.vowFlapKickCallSuccessToDecode rd1498 (by simp)
   have hmemWrite : (out.write 0 (flapKickCalldataMem bump mem) 128 32).size =
@@ -676,7 +676,7 @@ theorem RD.vowFlapKickSuccess
               (out.write 0 (flapKickCalldataMem bump mem) 128 32).size
             ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 7 * ⟨32⟩) := by
       rw [hmemWrite]
-      native_decide
+      decide +native
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
       flapKickWrite_read128_32 bump out hmem ho32]
   obtain ⟨_, _, rd1539Raw⟩ :=

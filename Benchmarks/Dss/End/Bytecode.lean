@@ -947,7 +947,7 @@ def endBytecode : ByteArray :=
       ⟨9705⟩, ⟨9758⟩, ⟨9851⟩, ⟨9871⟩, ⟨9911⟩, ⟨10033⟩, ⟨10092⟩, ⟨10108⟩, ⟨10114⟩, ⟨10139⟩,
       ⟨10146⟩, ⟨10154⟩, ⟨10170⟩, ⟨10194⟩, ⟨10197⟩, ⟨10206⟩, ⟨10222⟩, ⟨10224⟩, ⟨10231⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def endCreationChunk0 : ByteArray :=
@@ -1875,7 +1875,7 @@ def endCreationBytecode : ByteArray :=
       ⟨9703⟩, ⟨9799⟩, ⟨9852⟩, ⟨9945⟩, ⟨9965⟩, ⟨10005⟩, ⟨10127⟩, ⟨10186⟩, ⟨10202⟩, ⟨10208⟩,
       ⟨10233⟩, ⟨10240⟩, ⟨10248⟩, ⟨10264⟩, ⟨10288⟩, ⟨10291⟩, ⟨10300⟩, ⟨10316⟩, ⟨10318⟩, ⟨10325⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.End

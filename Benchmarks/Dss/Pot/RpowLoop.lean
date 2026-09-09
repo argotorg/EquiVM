@@ -19,13 +19,13 @@ namespace Benchmarks.Dss.Pot
 /-! ## Word/expression helpers not already present in `ArithExpr` -/
 
 theorem potUInt256One_toNat : (⟨1⟩ : UInt256).toNat = 1 := by
-  native_decide
+  decide +native
 
 theorem potUInt256Two_toNat : (⟨2⟩ : UInt256).toNat = 2 := by
-  native_decide
+  decide +native
 
 theorem potUInt256Two_ne_zero : (⟨2⟩ : UInt256) ≠ ⟨0⟩ := by
-  native_decide
+  decide +native
 
 theorem u256_mul_div_overflow_ne (x y : UInt256)
     (hover : UInt256.size ≤ x.toNat * y.toNat) :

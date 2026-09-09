@@ -14,7 +14,7 @@ def symbolReturnBytes : ByteArray :=
 
 theorem symbolReturnEncoding :
     encodeReturnValue? .string (.bytes symbolBytes) = some symbolReturnBytes := by
-  native_decide
+  decide +native
 
 /-- The Solm `symbol()` body returns `"UNI-V2"` as a dynamic string value. -/
 theorem uniswapSymbolBodyReturns (evm : EVM.State) (locals : Store)
@@ -55,7 +55,7 @@ private def symbolAbiMem3 : ByteArray :=
 
 private theorem symbolReturnRead :
     symbolAbiMem3.readWithPadding 192 96 = symbolReturnBytes := by
-  native_decide
+  decide +native
 
 /-- Runtime-only `symbol()` slice from selector dispatch through dynamic string return. -/
 theorem uniswapX_symbol {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -68,53 +68,53 @@ theorem uniswapX_symbol {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   have h5027 := evm_run h1226 with [jumpdest, push2 ⟨580⟩, push2 ⟨5027⟩, jump (by jump_dest)]
   have h5037 := evm_run h5027 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     dup1, push1 ⟨64⟩, add, push1 ⟨64⟩]
   have h5037store := evm_run h5037 with [
-    raw mstore 0 symbolObjectMem0 (UInt256.ofNat 3) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov)]
+    raw mstore 0 symbolObjectMem0 (UInt256.ofNat 3) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov)]
   have h5042 := evm_run h5037store with [dup1, push1 ⟨6⟩, dup2]
   have h5042store := evm_run h5042 with [
-    raw mstore 6 symbolObjectMem1 (UInt256.ofNat 5) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov)]
+    raw mstore 6 symbolObjectMem1 (UInt256.ofNat 5) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov)]
   have h5046a := evm_run h5042store with [push1 ⟨32⟩, add]
   have h5053 := h5046a.pushConst (⟨46897361759001⟩ : UInt256)
-    (width := 6) (op := .PUSH6) (by decide) (by native_decide) (by evm_ov)
+    (width := 6) (op := .PUSH6) (by decide) (by decide +native) (by evm_ov)
   have h5058 := evm_run h5053 with [push1 ⟨209⟩, shl, dup2]
   have h5058store := evm_run h5058 with [
-    raw mstore 3 symbolObjectMem (UInt256.ofNat 6) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov)]
+    raw mstore 3 symbolObjectMem (UInt256.ofNat 6) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov)]
   have h580 := evm_run h5058store with [pop, dup2, jump (by jump_dest)]
   have h590 := evm_run h580 with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨192⟩ (UInt256.ofNat 6) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mload 0 ⟨192⟩ (UInt256.ofNat 6) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     push1 ⟨32⟩, dup1, dup3,
-    raw mstore 3 symbolAbiMem0 (UInt256.ofNat 7) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov)]
+    raw mstore 3 symbolAbiMem0 (UInt256.ofNat 7) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov)]
   have h596 := evm_run h590 with [
     dup4,
-    raw mload 0 ⟨6⟩ (UInt256.ofNat 7) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mload 0 ⟨6⟩ (UInt256.ofNat 7) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     dup2, dup4, add,
-    raw mstore 3 symbolAbiMem1 (UInt256.ofNat 8) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov)]
+    raw mstore 3 symbolAbiMem1 (UInt256.ofNat 8) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov)]
   have h614 := evm_run h596 with [
     dup4,
-    raw mload 0 ⟨6⟩ (UInt256.ofNat 8) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mload 0 ⟨6⟩ (UInt256.ofNat 8) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     swap2, swap3, dup4, swap3, swap1, dup4, add, swap2, dup6, add, swap1,
     dup1, dup4, dup4, push1 ⟨0⟩]
   have h623 := evm_run h614 with [
     jumpdest, dup4, dup2, lt, iszero, push2 ⟨638⟩, jumpiNT (by decide)]
   have h637 := evm_run h623 with [
     dup2, dup2, add,
-    raw mload 0 symbolLiteralWord (UInt256.ofNat 8) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mload 0 symbolLiteralWord (UInt256.ofNat 8) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     dup4, dup3, add,
-    raw mstore 3 symbolAbiMem2 (UInt256.ofNat 9) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mstore 3 symbolAbiMem2 (UInt256.ofNat 9) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨614⟩, jump (by jump_dest)]
   have h638 := evm_run h637 with [
     jumpdest, dup4, dup2, lt, iszero, push2 ⟨638⟩, jumpiT (by decide) (by jump_dest)]
@@ -123,19 +123,19 @@ theorem uniswapX_symbol {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     push1 ⟨31⟩, and, dup1, iszero, push2 ⟨683⟩, jumpiNT (by decide)]
   have h683 := evm_run h658 with [
     dup1, dup3, sub, dup1,
-    raw mload 0 symbolLiteralWord (UInt256.ofNat 9) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mload 0 symbolLiteralWord (UInt256.ofNat 9) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub, not, and, dup2,
-    raw mstore 0 symbolAbiMem3 (UInt256.ofNat 9) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mstore 0 symbolAbiMem3 (UInt256.ofNat 9) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     push1 ⟨32⟩, add, swap2, pop]
   have h696 := evm_run h683 with [
     jumpdest, pop, swap3, pop, pop, pop, push1 ⟨64⟩,
-    raw mload 0 ⟨192⟩ (UInt256.ofNat 9) (by native_decide)
-      mem_cost (by native_decide) (by decide) (by evm_ov),
+    raw mload 0 ⟨192⟩ (UInt256.ofNat 9) (by decide +native)
+      mem_cost (by decide +native) (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   exact evm_run h696 with [
-    raw ret 0 symbolReturnBytes (by native_decide)
+    raw ret 0 symbolReturnBytes (by decide +native)
       mem_cost symbolReturnRead (by evm_ov)]
 
 /-- `symbol()` body core, parameterized by dispatcher/decode facts owned by `Correct`. -/

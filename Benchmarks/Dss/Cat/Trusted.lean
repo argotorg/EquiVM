@@ -5,7 +5,7 @@ import Solm.Semantics
 # MakerDAO/Sky DSS Cat trusted bytecode facts
 
 The selector facts are trusted because `ffi.KEC` is opaque to Lean. The `JUMPDEST` tables are already
-proved (via `native_decide`) and tagged `@[valid_jumps]` in `Bytecode.lean` (`validJumps`,
+proved (via `decide +native`) and tagged `@[valid_jumps]` in `Bytecode.lean` (`validJumps`,
 `creationValidJumps`), so the `jump_dest` tactic sees them directly; no re-export is needed here.
 -/
 

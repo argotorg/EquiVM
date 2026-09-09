@@ -460,7 +460,7 @@ def flopperBytecode : ByteArray :=
       ⟨4292⟩, ⟨4400⟩, ⟨4515⟩, ⟨4558⟩, ⟨4565⟩, ⟨4618⟩, ⟨4674⟩, ⟨4698⟩, ⟨4701⟩, ⟨4710⟩,
       ⟨4716⟩, ⟨4733⟩, ⟨4740⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def flopperCreationChunk0 : ByteArray :=
@@ -919,7 +919,7 @@ def flopperCreationBytecode : ByteArray :=
       ⟨4485⟩, ⟨4506⟩, ⟨4512⟩, ⟨4620⟩, ⟨4735⟩, ⟨4778⟩, ⟨4785⟩, ⟨4838⟩, ⟨4894⟩, ⟨4918⟩,
       ⟨4921⟩, ⟨4930⟩, ⟨4936⟩, ⟨4953⟩, ⟨4960⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.Flopper

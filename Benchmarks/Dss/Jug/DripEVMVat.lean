@@ -25,7 +25,7 @@ theorem RD.jugDripToVatIlksExtcodesizeGuard
         rawTarget = target := by
     have hmask :
         UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-      native_decide
+      decide +native
     rw [u256_land_comm]
     rw [hmask]
   have htargetMaskSolc :
@@ -56,9 +56,9 @@ theorem RD.jugDripToVatIlksExtcodesizeGuard
             (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
     mloadFreePtrValue (by rw [hcallMem]; decide) (by decide) hcallRead64
-  have rd1324 := rd1323.jumpdest (by native_decide) (by evm_ov)
-  have rd1326 := rd1324.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k1327, C1327, rd1327raw⟩ := rd1326.sload (by native_decide) (by evm_ov)
+  have rd1324 := rd1323.jumpdest (by decide +native) (by evm_ov)
+  have rd1326 := rd1324.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k1327, C1327, rd1327raw⟩ := rd1326.sload (by decide +native) (by evm_ov)
   have rd1327 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1327⟩
       (rawTarget :: ⟨0⟩ :: fileDutyIlkWord I :: ⟨357⟩ :: sel :: [])
@@ -67,23 +67,23 @@ theorem RD.jugDripToVatIlksExtcodesizeGuard
   have rd1384 := evm_run rd1327 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov),
     push4 ⟨1823590043⟩,
     push1 ⟨225⟩,
     shl,
     dup2,
     raw mstore 6 (dripVatIlksSelectorMem (dripIlkHashMem I)) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨4⟩,
     dup2,
     add,
     dup6,
     swap1,
     raw mstore 3 (dripVatIlksCalldataMem I (dripIlkHashMem I)) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     dup2,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost hmload64Call (by decide) (by evm_ov),
     push1 ⟨0⟩,
     swap4,
@@ -118,7 +118,7 @@ theorem RD.jugDripToVatIlksExtcodesizeGuard
         ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 5 + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
         ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
         ⟨1⟩ + ⟨1⟩) = (⟨1384⟩ : UInt256) := by
-    native_decide
+    decide +native
   exact ⟨_, _, by
     simpa [target, dripVatIlksSelectorShifted, dripVatIlksSelectorWord, dripVatIlksSelectorMem,
       dripVatIlksCalldataMem, dripVatIlksOutPtr, dripVatIlksInSize, dripVatIlksEndPtr,
@@ -137,9 +137,9 @@ theorem RD.jugDripVatIlksNoCode
   obtain ⟨_, _, rd1384⟩ := RD.jugDripToVatIlksExtcodesizeGuard rd1323
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨1384⟩) (okPc := ⟨1396⟩) rd1384
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.jugDripVatIlksCallReady
     {cA gh bl σ σ₀ A I} {g sel : UInt256} {k C : ℕ}
@@ -161,9 +161,9 @@ theorem RD.jugDripVatIlksCallReady
   obtain ⟨gasWord, k', C', rd1399⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1384⟩) (okPc := ⟨1396⟩) rd1384
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   exact ⟨gasWord, k', C', by simpa using rd1399⟩
 
 theorem RD.jugDripVatIlksPostCall
@@ -196,7 +196,7 @@ theorem RD.jugDripVatIlksPostCall
           (dripVatIlksPostCallMem I out) (UInt256.ofNat 6) out (cA', σ') k' C'
       ∧ out.size < UInt256.size := by
   obtain ⟨cA', σ', z, out, Ain, callGas, k', C', hΘ, rd1400raw, hout⟩ :=
-    RD.call rd1399 (by native_decide) hdepth (by evm_ov)
+    RD.call rd1399 (by decide +native) hdepth (by evm_ov)
   refine ⟨cA', σ', z, out, Ain, callGas, k', C', ?_, ?_, hout⟩
   · simpa [initState] using hΘ
   · have haw :
@@ -204,7 +204,7 @@ theorem RD.jugDripVatIlksPostCall
           dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
           dripVatIlksOutPtr.toNat (⟨64⟩ : UInt256).toNat) = UInt256.ofNat 6 := by
       unfold dripVatIlksOutPtr dripVatIlksInSize
-      native_decide
+      decide +native
     simpa [dripVatIlksPostCallMem, dripVatIlksOutPtr, dripVatIlksInSize,
       dripVatIlksEndPtr, haw] using rd1400raw
 
@@ -226,7 +226,7 @@ theorem RD.jugDripVatIlksCallDepthLimit
       (dripVatIlksCalldataMem I (dripIlkHashMem I)) (UInt256.ofNat 6)
       ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨k', C', rd1400raw⟩ :=
-    RD.callDepthLimit rd1399 (by native_decide) hdepth
+    RD.callDepthLimit rd1399 (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k', C', ?_⟩
   have hmin :
@@ -237,7 +237,7 @@ theorem RD.jugDripVatIlksCallDepthLimit
         dripVatIlksOutPtr.toNat dripVatIlksInSize.toNat)
         dripVatIlksOutPtr.toNat (⟨64⟩ : UInt256).toNat) = UInt256.ofNat 6 := by
     unfold dripVatIlksOutPtr dripVatIlksInSize
-    native_decide
+    decide +native
   simpa [dripVatIlksOutPtr, dripVatIlksInSize, dripVatIlksEndPtr, hmin,
     byteArray_write_len_zero, haw] using rd1400raw
 
@@ -253,9 +253,9 @@ theorem RD.jugDripVatIlksCallFailed
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1400⟩) (okPc := ⟨1416⟩) rd1400
     rfl
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     hrdataSize (by simp)
 
 theorem RD.jugDripVatIlksCallSucceeded
@@ -273,8 +273,8 @@ theorem RD.jugDripVatIlksCallSucceeded
       mem (UInt256.ofNat 6) rdata acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨1400⟩) (okPc := ⟨1416⟩) rd1400
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.jugDripVatIlksReturnDecodeShortReverts
@@ -289,44 +289,44 @@ theorem RD.jugDripVatIlksReturnDecodeShortReverts
     (hshort : out.size < 64) (hout : out.size < UInt256.size) :
     RDrev jugBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  have rdPop0 := RD.pop rd1418 (by native_decide)
+  have rdPop0 := RD.pop rd1418 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPop1 := RD.pop rdPop0 (by native_decide)
+  have rdPop1 := RD.pop rdPop0 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPop2 := RD.pop rdPop1 (by native_decide)
+  have rdPop2 := RD.pop rdPop1 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by native_decide)
+  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdMload64 := RD.mload 0 ⟨128⟩ (UInt256.ofNat 6) rdPush64
-    (by native_decide)
+    (by decide +native)
     mem_cost
     (dripVatIlksPostCallMem_mload64 I out hshort hout)
     (by decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdReturndatasize := RD.returndatasize rdMload64 (by native_decide)
+  have rdReturndatasize := RD.returndatasize rdMload64 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPush64' := RD.push1 rdReturndatasize ⟨64⟩ (by native_decide)
+  have rdPush64' := RD.push1 rdReturndatasize ⟨64⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdDup2 := RD.dup2 rdPush64' (by native_decide)
+  have rdDup2 := RD.dup2 rdPush64' (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdLt := RD.lt rdDup2 (by native_decide)
+  have rdLt := RD.lt rdDup2 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨64⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, ulit_toNat' out.size hout]
     exact hshort
-  have rdIszero := RD.iszero rdLt (by native_decide)
+  have rdIszero := RD.iszero rdLt (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPushOk := RD.push2 rdIszero ⟨1438⟩ (by native_decide)
+  have rdPushOk := RD.push2 rdIszero ⟨1438⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hcond :
       UInt256.isZero (UInt256.lt (UInt256.ofNat out.size) (⟨64⟩ : UInt256)) = ⟨0⟩ := by
     rw [hlt]
     decide
-  have rdFallthrough := RD.jumpiNT rdPushOk (by native_decide) hcond
+  have rdFallthrough := RD.jumpiNT rdPushOk (by decide +native) hcond
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.jugDripVatIlksReturnDecodeOk
@@ -344,59 +344,59 @@ theorem RD.jugDripVatIlksReturnDecodeOk
       (dripVatIlksPrevWord out :: ⟨32⟩ :: ⟨0⟩ :: ⟨0⟩ :: fileDutyIlkWord I ::
         ⟨357⟩ :: sel :: [])
       (dripVatIlksPostCallMem I out) (UInt256.ofNat 6) out acc k' C' := by
-  have rdPop0 := RD.pop rd1418 (by native_decide)
+  have rdPop0 := RD.pop rd1418 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPop1 := RD.pop rdPop0 (by native_decide)
+  have rdPop1 := RD.pop rdPop0 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPop2 := RD.pop rdPop1 (by native_decide)
+  have rdPop2 := RD.pop rdPop1 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by native_decide)
+  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdMload64 := RD.mload 0 ⟨128⟩ (UInt256.ofNat 6) rdPush64
-    (by native_decide)
+    (by decide +native)
     mem_cost
     (dripVatIlksPostCallMem_mload64_long I out hlo hout)
     (by decide)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdReturndatasize := RD.returndatasize rdMload64 (by native_decide)
+  have rdReturndatasize := RD.returndatasize rdMload64 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPush64' := RD.push1 rdReturndatasize ⟨64⟩ (by native_decide)
+  have rdPush64' := RD.push1 rdReturndatasize ⟨64⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdDup2 := RD.dup2 rdPush64' (by native_decide)
+  have rdDup2 := RD.dup2 rdPush64' (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdLt := RD.lt rdDup2 (by native_decide)
+  have rdLt := RD.lt rdDup2 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨64⟩ : UInt256) = ⟨0⟩ := by
     apply Reasoning.Theory.ult_zero
     rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, ulit_toNat' out.size hout]
     exact hlo
-  have rdIszero := RD.iszero rdLt (by native_decide)
+  have rdIszero := RD.iszero rdLt (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPushOk := RD.push2 rdIszero ⟨1438⟩ (by native_decide)
+  have rdPushOk := RD.push2 rdIszero ⟨1438⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have hcond :
       UInt256.isZero (UInt256.lt (UInt256.ofNat out.size) (⟨64⟩ : UInt256)) ≠ ⟨0⟩ := by
     rw [hlt]
     decide
-  have rdJumpi := RD.jumpiT rdPushOk (by native_decide) hcond (by jump_dest)
+  have rdJumpi := RD.jumpiT rdPushOk (by decide +native) hcond (by jump_dest)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdJumpdest := RD.jumpdest rdJumpi (by native_decide)
+  have rdJumpdest := RD.jumpdest rdJumpi (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPopLen := RD.pop rdJumpdest (by native_decide)
+  have rdPopLen := RD.pop rdJumpdest (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdPush32 := RD.push1 rdPopLen ⟨32⟩ (by native_decide)
+  have rdPush32 := RD.push1 rdPopLen ⟨32⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdSwap1 := RD.swap1 rdPush32 (by native_decide)
+  have rdSwap1 := RD.swap1 rdPush32 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdDup2' := RD.dup2 rdSwap1 (by native_decide)
+  have rdDup2' := RD.dup2 rdSwap1 (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  have rdAdd := RD.add rdDup2' (by native_decide)
+  have rdAdd := RD.add rdDup2' (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdMload160 := RD.mload 0 (dripVatIlksPrevWord out) (UInt256.ofNat 6) rdAdd
-    (by native_decide)
+    (by decide +native)
     mem_cost
     (dripVatIlksPostCallMem_mload160_long I out hlo hout)
-    (by native_decide)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   exact ⟨_, _, by simpa using rdMload160⟩
 
@@ -423,9 +423,9 @@ theorem RD.jugDripLoadBaseDuty
         solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) := by
     exact drip_twoWordHashMem_solcMappingSlot_of_ge64 (⟨1⟩ : UInt256) (fileDutyIlkWord I)
       (by rw [dripVatIlksPostCallMem_size_long I out hlo hout]; omega)
-  have rd1448 := RD.push1 rd1446 ⟨4⟩ (by native_decide)
+  have rd1448 := RD.push1 rd1446 ⟨4⟩ (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
-  obtain ⟨k1449, C1449, rd1449raw⟩ := rd1448.sload (by native_decide)
+  obtain ⟨k1449, C1449, rd1449raw⟩ := rd1448.sload (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd1449 : RD jugBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨1449⟩
@@ -434,26 +434,26 @@ theorem RD.jugDripLoadBaseDuty
       (dripVatIlksPostCallMem I out) (UInt256.ofNat 6) out (cA', σ') k1449 C1449 := by
     simpa [jugSlotWord, solcSlotWord] using rd1449raw
   have rd1453pre := evm_run rd1449 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1454 := rd1453pre.mstore 0 (wordAt0Mem (fileDutyIlkWord I)
       (dripVatIlksPostCallMem I out))
-    (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 6) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1458pre := evm_run rd1454 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov)]
   have rd1459 := rd1458pre.mstore 0
     (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ (dripVatIlksPostCallMem I out))
-    (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 6) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1463pre := evm_run rd1459 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov)]
   have rd1464 := rd1463pre.keccak256 0 (solcMappingSlot ⟨1⟩ (fileDutyIlkWord I))
-    (UInt256.ofNat 6) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨k1465, C1465, rd1465raw⟩ := rd1464.sload (by native_decide)
+    (UInt256.ofNat 6) (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨k1465, C1465, rd1465raw⟩ := rd1464.sload (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k1465, C1465, ?_⟩
   have hpc :
@@ -461,7 +461,7 @@ theorem RD.jugDripLoadBaseDuty
                     UInt256.ofNat 2 + { val := 1 } + { val := 1 } + { val := 1 } +
                   UInt256.ofNat 2 + { val := 1 } + { val := 1 } + { val := 1 } +
                 { val := 1 }) = (⟨1465⟩ : UInt256) := by
-    native_decide
+    decide +native
   have hslotEq : fileDutyDutySlotFor I = solcMappingSlot ⟨1⟩ (fileDutyIlkWord I) :=
     fileDutyDutySlotFor_eq hsz36
   simpa [hpc, jugSlotWord, solcSlotWord, hslotEq] using rd1465raw
@@ -483,18 +483,18 @@ theorem RD.jugDripToAddRoutine
       (twoWordHashMem (fileDutyIlkWord I) ⟨1⟩ (dripVatIlksPostCallMem I out))
       (UInt256.ofNat 6) out (cA', σ') k' C' := by
   have rd1484 := evm_run rd1465 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw push2 ⟨1530⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push2 ⟨1524⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw push2 ⟨1485⟩ (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push2 ⟨2131⟩ (by native_decide) (by evm_ov)]
-  have rd2131 := rd1484.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw push2 ⟨1530⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push2 ⟨1524⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw push2 ⟨1485⟩ (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push2 ⟨2131⟩ (by decide +native) (by evm_ov)]
+  have rd2131 := rd1484.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa using rd2131⟩
 
 theorem RD.jugDripAddOverflowReverts
@@ -516,20 +516,20 @@ theorem RD.jugDripAddOverflowReverts
   have hlt : UInt256.lt (duty + base) base = ⟨1⟩ := by
     simpa [base, duty] using constructorCheckedAddOverflowLt base duty hover
   have rdPushOk := evm_run rd2131 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨2147⟩ (by native_decide) (by evm_ov)]
-  have rdFallthrough := rdPushOk.jumpiNT (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨2147⟩ (by decide +native) (by evm_ov)]
+  have rdFallthrough := rdPushOk.jumpiNT (by decide +native)
     (by rw [hlt]; decide)
     (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdFallthrough
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem RD.jugDripAddReturns
@@ -555,26 +555,26 @@ theorem RD.jugDripAddReturns
   have hlt : UInt256.lt (duty + base) base = ⟨0⟩ := by
     simpa [base, duty] using constructorCheckedAddNoOverflowLt base duty hno
   have rdPushOk := evm_run rd2131 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw lt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨2147⟩ (by native_decide) (by evm_ov)]
-  have rd2147 := rdPushOk.jumpiT (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw lt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨2147⟩ (by decide +native) (by evm_ov)]
+  have rd2147 := rdPushOk.jumpiT (by decide +native)
     (by rw [hlt]; decide)
     (by jump_dest)
     (by evm_ov)
   have rd2152 := evm_run rd2147 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  have rd1485 := rd2152.jump (by native_decide) (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  have rd1485 := rd2152.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact ⟨_, _, by simpa [base, duty, u256_add_comm] using rd1485⟩
 
 

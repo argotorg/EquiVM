@@ -413,12 +413,12 @@ theorem RD.solcIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
   have rd6 := rd5.dup2 hd5 (by evm_ov)
   have rd7 := rd6.swap1 hd6 (by evm_ov)
   have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨1⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd10 := rd8.push1 ⟨0⟩ hd8 (by evm_ov)
   have rd11 := rd10.swap2 hd10 (by evm_ov)
   have rd12 := rd11.dup3 hd11 (by evm_ov)
   have rd13 := rd12.mstore 0 (solcMappingHashMem ⟨1⟩ key)
-    (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := rd13.push1 ⟨64⟩ hd13 (by evm_ov)
   have rd16 := rd15.swap1 hd15 (by evm_ov)
   have rd17 := rd16.swap2 hd16 (by evm_ov)
@@ -427,7 +427,7 @@ theorem RD.solcIlksStructGetter {code : ByteArray} {g : Sat256} {s0 : State}
     (UInt256.ofNat 3) hd17 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd19 := rd18.dup1 hd18 (by evm_ov)
   obtain ⟨_, _, rd20⟩ := rd19.sload hd19 (by evm_ov)
   have rd21 := rd20.swap2 hd20 (by evm_ov)
@@ -466,16 +466,16 @@ theorem uint256PairReturnEncoding (first second : UInt256) :
   rw [show UInt256.toByteArray second = (EVM.Word.toBytesBE second).toByteArray by
     exact (word_toBytesBE_toByteArray_eq_toByteArray second).symm]
   unfold encodeReturnValues? encodeABIValues?
-  rw [show abiTupleHeadSize? [uint256, uint256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [uint256, uint256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   unfold encodeABIValuesFrom?
   rw [hencFirst]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
+  rw [show isDynamicABIType uint256 = false by decide +native]
   unfold encodeABIValuesFrom?
   rw [hencSecond]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
+  rw [show isDynamicABIType uint256 = false by decide +native]
   unfold encodeABIValuesFrom?
   simp only [Bool.false_eq_true, if_false, List.nil_append, List.append_nil]
   apply congrArg some
@@ -559,22 +559,22 @@ theorem jugReachIlksBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : jugSelWord I = ⟨0xd9638d36⟩ :=
     jugSelWord_eq_of_beq I hsz 0xd9 0x63 0x8d 0x36 ⟨0xd9638d36⟩
-      (by native_decide) (by simpa [jugSelBytes] using hsel)
+      (by decide +native) (by simpa [jugSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat jugBytecode jugRootSplitPc) (jugSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 5 →
       UInt256.eq (armSelNat jugBytecode (nthArmPc jugBytecode jugHighFirstArmPc j))
         (jugSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat jugBytecode (nthArmPc jugBytecode jugHighFirstArmPc 5))
         (jugSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact jugReachHighBody 5 (by omega) ⟨549⟩ hcode hwv hsz hsize hroot heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem jugIlksBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -613,9 +613,9 @@ theorem jugIlksBodyCoreOk
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := jugBytecode) (sel := sel) (entry := ⟨549⟩) (ret := ⟨578⟩)
     (decoded := ⟨571⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by
       exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
@@ -623,20 +623,20 @@ theorem jugIlksBodyCoreOk
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨2106⟩
       (ilksArgWord I :: ⟨578⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ_evm) k C := by
-    have rd572 := hdecoded.jumpdest (by native_decide) (by evm_ov)
-    have rd573 := rd572.pop (by native_decide) (by evm_ov)
-    have rd574 := rd573.calldataload (by native_decide) (by evm_ov)
-    have rd577 := rd574.push2 ⟨2106⟩ (by native_decide) (by evm_ov)
+    have rd572 := hdecoded.jumpdest (by decide +native) (by evm_ov)
+    have rd573 := rd572.pop (by decide +native) (by evm_ov)
+    have rd574 := rd573.calldataload (by decide +native) (by evm_ov)
+    have rd577 := rd574.push2 ⟨2106⟩ (by decide +native) (by evm_ov)
     exact ⟨_, _, by
       simpa [ilksArgWord, calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-        using rd577.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+        using rd577.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
   obtain ⟨_, _, htoRoutineRd⟩ := htoRoutine
   obtain ⟨_, _, hretPc⟩ := RD.solcIlksStructGetter
     (code := jugBytecode) (pc := ⟨2106⟩) (key := ilksArgWord I) (ret := ⟨578⟩)
     (R := [sel]) (by simpa using htoRoutineRd)
     (by
       unfold solcIlksStructGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   have hret :
       RDret jugBytecode (Sat256.ofUInt256 g)
@@ -649,7 +649,7 @@ theorem jugIlksBodyCoreOk
         simpa [dutyWord, rhoWord, dutySlot, rhoSlot, jugSlotWord] using hretPc)
       (by
         unfold solcTwoWordReturnFromMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (solcMappingHashMem_mload64 ⟨1⟩ (ilksArgWord I))
       (solcMappingHashMem_size ⟨1⟩ (ilksArgWord I))
       (solcMappingHashMem_read64 ⟨1⟩ (ilksArgWord I))
@@ -691,10 +691,10 @@ theorem jugIlksBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := jugBytecode) (sel := sel) (entry := ⟨549⟩) (ret := ⟨578⟩)
     (decoded := ⟨571⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (jugDecode_ilks_none_short hsz4 hshort)
 

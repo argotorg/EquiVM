@@ -103,7 +103,7 @@ theorem flapperCtorGuardSuccessReach
     (by flapper_ctor_jd) (by evm_ov)
   have rd79 := flapper_ctor_run rd77 with [jumpdest, pop]
   exact ⟨_, _, by
-    simpa [show (⟨77⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ = ⟨79⟩ from by native_decide]
+    simpa [show (⟨77⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ = ⟨79⟩ from by decide +native]
       using rd79⟩
 
 theorem flapperInitcodeNonpayableRevert

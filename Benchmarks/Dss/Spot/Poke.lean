@@ -82,7 +82,7 @@ theorem spotPokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
               (evmPip := { evmS with substate := A_pip }) (out := ByteArray.empty)
               hwv hsz36 hpipCodeSolm (by simpa [evmS] using hcallSolm))
-        have hrev := RD.spotPokePeekCallFailed rd680 (by native_decide)
+        have hrev := RD.spotPokePeekCallFailed rd680 (by decide +native)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hdepthLt : I.depth.val < 1024 := by
           have hlt := I.depth.isLt
@@ -383,7 +383,7 @@ theorem spotPokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                   have henc : returnEquiv ByteArray.empty none pokeTransition.returnType := by
                     simpa [pokeTransition] using
                       (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-                        (dvs := []) rfl (by native_decide) (by native_decide))
+                        (dvs := []) rfl (by decide +native) (by decide +native))
                   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
                     (by simp)
                     (by simpa using hAccounts'')
@@ -432,7 +432,7 @@ theorem spotPokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       spotSelWord I :: [])
                     (ret := (⟨766⟩ : UInt256))
                     (by simp only [List.length_cons, List.length_nil]; omega)
-                    (by native_decide)
+                    (by decide +native)
                     (by simpa [val] using hfitVal) rd2051Val
                 obtain ⟨_, _, rd2093Par⟩ := RD.spotPokeValScaledToRdivPar rd766
                 have hparEq :
@@ -478,7 +478,7 @@ theorem spotPokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                           spotSelWord I :: [])
                         (ret := (⟨774⟩ : UInt256))
                         (by simp only [List.length_cons, List.length_nil]; omega)
-                        (by native_decide) hfitPar hparZero rd2093Par
+                        (by decide +native) hfitPar hparZero rd2093Par
                     obtain ⟨_, _, rd2093Mat⟩ :=
                       RD.spotPokeAfterRdivParToRdivMat hsz36 hmem192 hread64 rd774
                     let memHash := twoWordHashMem (pokeIlkWord I) ⟨1⟩
@@ -544,7 +544,7 @@ theorem spotPokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               spotSelWord I :: [])
                             (ret := (⟨798⟩ : UInt256))
                             (by simp only [List.length_cons, List.length_nil]; omega)
-                            (by native_decide) hfitMat hmatZero rd2093Mat
+                            (by decide +native) hfitMat hmatZero rd2093Mat
                         have hmatNeS : pokeMatWord evmPipS.accountMap I ≠ ⟨0⟩ := by
                           intro hzero
                           exact hmatZero (by simpa [hmatEq] using hzero)
@@ -812,8 +812,8 @@ theorem spotPokeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                               simpa [pokeTransition] using
                                 (returnEquiv.fallthrough
                                   (o := ByteArray.empty) (r := none) (t := [])
-                                  (dvs := []) rfl (by native_decide)
-                                  (by native_decide))
+                                  (dvs := []) rfl (by decide +native)
+                                  (by decide +native))
                             exact hret.reEquivExecutionGenAccountMapEquiv
                               hcode hdispatch hdecode hbody
                               (by simp)

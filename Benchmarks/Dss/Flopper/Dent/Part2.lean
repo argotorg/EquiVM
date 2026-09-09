@@ -395,7 +395,7 @@ theorem evalExpr_dent_lotOne_ok (evm : EVM.State) (I : ExecutionEnv)
   have hprod := dentLotOneWord_toNat_of_fit evm I hfit
   unfold mul256 u256
   simp only [evalExpr?, hlot, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hone : dentOneWord.toNat = 1000000000000000000 := by native_decide
+  have hone : dentOneWord.toNat = 1000000000000000000 := by decide +native
   have hfitNat :
       (dentLotStoredWord evm I).toNat * 1000000000000000000 < 2 ^ 256 := by
     simpa [UInt256.size, hone] using hfit
@@ -426,7 +426,7 @@ theorem evalExpr_dent_lotOne_ok (evm : EVM.State) (I : ExecutionEnv)
   simp [uint256Int, ONE, hprod, dentOneWord]
   rw [if_neg]
   · simp [show ({ val := 1000000000000000000 } : UInt256).toNat =
-        1000000000000000000 from by native_decide]
+        1000000000000000000 from by decide +native]
   · intro hbad
     cases hbad with
     | inl hlt => exact hnonneg hlt
@@ -440,7 +440,7 @@ theorem evalExpr_dent_lotOne_overflow (evm : EVM.State) (I : ExecutionEnv)
   have hlot := evalExpr_dent_lot_storage_begLotLocals evm I
   unfold mul256 u256
   simp only [evalExpr?, hlot, EvalResult.bind, bind, pure, evalBinaryOp?]
-  have hone : dentOneWord.toNat = 1000000000000000000 := by native_decide
+  have hone : dentOneWord.toNat = 1000000000000000000 := by decide +native
   have hoverflowNat :
       2 ^ 256 ≤ (dentLotStoredWord evm I).toNat * 1000000000000000000 := by
     simpa [UInt256.size, hone] using hoverflow
@@ -536,7 +536,7 @@ theorem evalExpr_dent_lotOne_div_one_eq_lot (evm : EVM.State) (I : ExecutionEnv)
   have hbase := evalExpr_dent_lotOne_var evm I
   have hlotEval := evalExpr_dent_lot_storage_lotOneLocals evm I
   have hbaseNat := dentLotOneWord_toNat_of_fit evm I hfit
-  have honeNat : dentOneWord.toNat = 1000000000000000000 := by native_decide
+  have honeNat : dentOneWord.toNat = 1000000000000000000 := by decide +native
   have honePos : 0 < dentOneWord.toNat := by
     rw [honeNat]
     norm_num

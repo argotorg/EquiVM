@@ -37,7 +37,7 @@ theorem uniswapSqrtRuntimeSmallReturns {g : Sat256} {s0 : State} {ee : Execution
     exact ⟨_, _, rdRet⟩
   · have rd8123pre := evm_run rd8113 with [jumpdest, dup2, iszero, push2 ⟨8123⟩]
     rw [isZero_eq_zero_of_ne hy] at rd8123pre
-    have rd8123 := evm_run rd8123pre with [jumpiNT (by native_decide), pop, push1 ⟨1⟩]
+    have rd8123 := evm_run rd8123pre with [jumpiNT (by decide +native), pop, push1 ⟨1⟩]
     rw [if_neg hy]
     exact ⟨_, _, evm_run rd8123 with [jumpdest, swap2, swap1, pop, jump hret]⟩
 
@@ -59,7 +59,7 @@ theorem uniswapSqrtRuntimeLargePrefix {g : Sat256} {s0 : State} {ee : ExecutionE
   have rd8058pre := evm_run rd8046 with [
     jumpdest, push1 ⟨0⟩, push1 ⟨3⟩, dup3, gt, iszero, push2 ⟨8113⟩]
   rw [hgt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8058pre
-  have rd8058 := evm_run rd8058pre with [jumpiNT (by native_decide)]
+  have rd8058 := evm_run rd8058pre with [jumpiNT (by decide +native)]
   have rd8067 := evm_run rd8058 with [
     pop, dup1, push1 ⟨1⟩, push1 ⟨2⟩, dup3, div, add]
   exact ⟨_, _, by simpa [UInt256.add] using rd8067⟩
@@ -81,12 +81,12 @@ theorem uniswapSqrtRuntimeLoopStep {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   have rd8076pre := evm_run rd8067 with [
     jumpdest, dup2, dup2, lt, iszero, push2 ⟨8107⟩]
   rw [hltw, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd8076pre
-  have rd8076 := evm_run rd8076pre with [jumpiNT (by native_decide)]
+  have rd8076 := evm_run rd8076pre with [jumpiNT (by decide +native)]
   have rd8090pre := evm_run rd8076 with [
     dup1, swap2, pop, push1 ⟨2⟩, dup2, dup3, dup6, dup2, push2 ⟨8090⟩]
   have rd8090 := evm_run rd8090pre with [jumpiT hx (by jump_dest)]
   have rd8099pre := evm_run rd8090 with [jumpdest, div, add, dup2, push2 ⟨8099⟩]
-  have rd8099 := evm_run rd8099pre with [jumpiT (by native_decide) (by jump_dest)]
+  have rd8099 := evm_run rd8099pre with [jumpiT (by decide +native) (by jump_dest)]
   exact ⟨_, _, by
     simpa [UInt256.add] using
       evm_run rd8099 with [jumpdest, div, swap1, pop, push2 ⟨8067⟩, jump (by jump_dest)]⟩
@@ -499,7 +499,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSubEntry
   have rd7910pre := evm_run rd7899 with [
     jumpdest, swap1, pop, dup1, dup3, gt, iszero, push2 ⟨8018⟩]
   rw [hgt, show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd7910pre
-  have rd7910 := evm_run rd7910pre with [jumpiNT (by native_decide)]
+  have rd7910 := evm_run rd7910pre with [jumpiNT (by decide +native)]
   have rd6879 := evm_run rd7910 with [
     push1 ⟨0⟩, push2 ⟨7945⟩, push2 ⟨7930⟩, dup5, dup5, push4 ⟨0xffffffff⟩,
     push2 ⟨6879⟩, and, jump (by jump_dest)]
@@ -535,7 +535,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntry
     RD.uniswapSafeMathSubSuccess rd6879 (Nat.le_of_lt hrootGt) (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)
   have rd7933 := evm_run rd7930 with [jumpdest, push1 ⟨0⟩]
-  obtain ⟨k7934, C7934, rd7934₀⟩ := rd7933.sload (by native_decide) (by evm_ov)
+  obtain ⟨k7934, C7934, rd7934₀⟩ := rd7933.sload (by decide +native) (by evm_ov)
   have rd7934 : RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨7934⟩
       [uniswapSlotWord ⟨0⟩ σFee I, UInt256.sub rootK rootKLast, ⟨7945⟩, ⟨0⟩,
@@ -549,7 +549,7 @@ theorem uniswapMintFeeRuntimeAfterRootsPositiveSupplyMulEntry
   have hpc6780 : UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ := by
     decide
   rw [hpc6780] at rd6780pre
-  exact ⟨_, _, rd6780pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  exact ⟨_, _, rd6780pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` positive-root branch through the checked numerator multiplication. -/
@@ -606,7 +606,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorMulEntry
   have hpc6780 : UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ := by
     decide
   rw [hpc6780] at rd6780pre
-  exact ⟨_, _, rd6780pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  exact ⟨_, _, rd6780pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` positive-root branch through checked denominator multiplication. -/
@@ -657,7 +657,7 @@ theorem uniswapMintFeeRuntimePositiveDenominatorAddEntry
   have hpc8515 : UInt256.land (⟨8515⟩ : UInt256) ⟨0xffffffff⟩ = ⟨8515⟩ := by
     decide
   rw [hpc8515] at rd8515pre
-  exact ⟨_, _, rd8515pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  exact ⟨_, _, rd8515pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 /- Runtime-only `_mintFee` positive-root branch through checked denominator addition. -/
@@ -790,7 +790,7 @@ theorem uniswapMintFeeRuntimePositiveLiquidityMintEntry
       mem aw rdata (cAFee, σFee) k' C' := by
   have rd8005pre := evm_run rd7999 with [dup1, iszero, push2 ⟨8014⟩]
   rw [isZero_eq_zero_of_ne hliqNonzero] at rd8005pre
-  have rd8005 := evm_run rd8005pre with [jumpiNT (by native_decide)]
+  have rd8005 := evm_run rd8005pre with [jumpiNT (by decide +native)]
   exact ⟨_, _, evm_run rd8005 with [
     push2 ⟨8014⟩, dup8, dup3, push2 ⟨8128⟩, jump (by jump_dest)]⟩
 

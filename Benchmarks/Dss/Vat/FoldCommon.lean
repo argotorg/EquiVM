@@ -109,7 +109,7 @@ theorem int_neg_mul_bound_to_nat {a r : Nat}
 
 theorem u256_size_eq_two_sign :
     UInt256.size = EVM.twoPow 255 + EVM.twoPow 255 := by
-  native_decide
+  decide +native
 
 theorem u256_sign_lt_size : EVM.twoPow 255 < UInt256.size := by
   rw [u256_size_eq_two_sign]
@@ -127,7 +127,7 @@ theorem fin_uint256_neg_one_val :
     have hone : ((1 : Fin UInt256.size).val) = 1 := by
       show (Fin.ofNat UInt256.size 1).val = 1
       rw [Fin.ofNat]
-      exact Nat.mod_eq_of_lt (by native_decide)
+      exact Nat.mod_eq_of_lt (by decide +native)
     rw [hone] at hval
     norm_num at hval
 
@@ -185,7 +185,7 @@ theorem fold_mul_word_guard_true_of_art_zero (I : ExecutionEnv) {art : UInt256}
   · exact Or.inl hrate
   · exact Or.inr (by
       rw [hart, u256_mul_zero_right, u256_sdiv_zero_left, u256_eq_refl]
-      native_decide)
+      decide +native)
 
 abbrev foldRateInt (I : ExecutionEnv) : Int :=
   if (foldRateWord I).toNat < EVM.twoPow 255 then
@@ -197,7 +197,7 @@ theorem foldRateInt_zero_of_word_zero (I : ExecutionEnv)
     (hword : foldRateWord I = ⟨0⟩) : foldRateInt I = 0 := by
   unfold foldRateInt
   rw [hword]
-  rw [if_pos (by native_decide)]
+  rw [if_pos (by decide +native)]
   rfl
 
 theorem foldRateInt_ne_zero_of_word_ne_zero (I : ExecutionEnv)
@@ -282,8 +282,8 @@ theorem u256_slt_zero_ne_zero_of_high {w : UInt256}
   unfold UInt256.slt UInt256.sltBool UInt256.fromBool Bool.toUInt256
   simp only [UInt256.toNat]
   rw [if_pos hcond]
-  rw [if_neg (by native_decide : ¬ ((0 : Fin UInt256.size).val ≥ 2 ^ 255))]
-  native_decide
+  rw [if_neg (by decide +native : ¬ ((0 : Fin UInt256.size).val ≥ 2 ^ 255))]
+  decide +native
 
 theorem foldRateInt_mod_word (I : ExecutionEnv) :
     foldRateInt I % (Int.ofNat EVM.wordModulus) =
@@ -368,7 +368,7 @@ theorem fold_mul_word_guard_true_of_range_pos
       · simpa [EVM.twoPow] using hrateLowNot
     · simpa [EVM.twoPow] using hmulLow
   rw [hsdiv, u256_eq_refl]
-  native_decide
+  decide +native
 
 theorem fold_mul_word_range_hi_of_guard_pos
     (I : ExecutionEnv) {art : UInt256}
@@ -591,7 +591,7 @@ theorem fold_mul_word_guard_true_of_range_neg
     · exact hAbsRateToNat
     · exact hrabsPos
   rw [hsdiv, u256_eq_refl]
-  native_decide
+  decide +native
 
 theorem u256_abs_div_eq_bound_to_sign {rate prod art : UInt256} {rabs : Nat}
     (hrabs : (UInt256.abs rate).toNat = rabs)
@@ -1130,40 +1130,40 @@ theorem assign_fold_debt (evm : EVM.State) (locals : Store) (debtNew : UInt256)
 theorem foldStore_get_i (I : ExecutionEnv) :
     (foldStore I).get? "i" = some (foldIlkValue I) := by
   unfold foldStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 theorem foldStore_get_u (I : ExecutionEnv) :
     (foldStore I).get? "u" = some (foldUsrValue I) := by
   unfold foldStore
-  rw [store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native)]
   simp
 theorem foldStore_get_rate (I : ExecutionEnv) :
     (foldStore I).get? "rate" = some (foldRateValue I) := by
   simp [foldStore]
 theorem foldStoreRateNew_get_i (I : ExecutionEnv) (rateNew : UInt256) :
     (foldStoreRateNew I rateNew).get? "i" = some (foldIlkValue I) := by
-  rw [foldStoreRateNew, store_get_ne _ _ (by native_decide), foldStore_get_i]
+  rw [foldStoreRateNew, store_get_ne _ _ (by decide +native), foldStore_get_i]
 theorem foldStoreRateNew_get_u (I : ExecutionEnv) (rateNew : UInt256) :
     (foldStoreRateNew I rateNew).get? "u" = some (foldUsrValue I) := by
-  rw [foldStoreRateNew, store_get_ne _ _ (by native_decide), foldStore_get_u]
+  rw [foldStoreRateNew, store_get_ne _ _ (by decide +native), foldStore_get_u]
 theorem foldStoreRateNew_get_rate (I : ExecutionEnv) (rateNew : UInt256) :
     (foldStoreRateNew I rateNew).get? "rate" = some (foldRateValue I) := by
-  rw [foldStoreRateNew, store_get_ne _ _ (by native_decide), foldStore_get_rate]
+  rw [foldStoreRateNew, store_get_ne _ _ (by decide +native), foldStore_get_rate]
 theorem foldStoreRateNew_get_rateNew (I : ExecutionEnv) (rateNew : UInt256) :
     (foldStoreRateNew I rateNew).get? "rateNew" =
       some (.int (Int.ofNat rateNew.toNat)) := by
   simp [foldStoreRateNew]
 theorem foldStoreRad_get_i (I : ExecutionEnv) (rateNew : UInt256) (rad : Int) :
     (foldStoreRad I rateNew rad).get? "i" = some (foldIlkValue I) := by
-  rw [foldStoreRad, store_get_ne _ _ (by native_decide),
+  rw [foldStoreRad, store_get_ne _ _ (by decide +native),
     foldStoreRateNew_get_i]
 theorem foldStoreRad_get_u (I : ExecutionEnv) (rateNew : UInt256) (rad : Int) :
     (foldStoreRad I rateNew rad).get? "u" = some (foldUsrValue I) := by
-  rw [foldStoreRad, store_get_ne _ _ (by native_decide),
+  rw [foldStoreRad, store_get_ne _ _ (by decide +native),
     foldStoreRateNew_get_u]
 theorem foldStoreRad_get_rate (I : ExecutionEnv) (rateNew : UInt256) (rad : Int) :
     (foldStoreRad I rateNew rad).get? "rate" = some (foldRateValue I) := by
-  rw [foldStoreRad, store_get_ne _ _ (by native_decide),
+  rw [foldStoreRad, store_get_ne _ _ (by decide +native),
     foldStoreRateNew_get_rate]
 theorem foldStoreRad_get_rad (I : ExecutionEnv) (rateNew : UInt256) (rad : Int) :
     (foldStoreRad I rateNew rad).get? "rad" = some (.int rad) := by
@@ -1425,14 +1425,14 @@ theorem vatFoldSourceRevertAfterDebtBlock
 theorem foldStore_ilks (I : ExecutionEnv) :
     (foldStore I).get? "ilks" = none := by
   unfold foldStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 theorem foldStoreRateNew_ilks (I : ExecutionEnv) (rateNew : UInt256) :
     (foldStoreRateNew I rateNew).get? "ilks" = none := by
-  rw [foldStoreRateNew, store_get_ne _ _ (by native_decide), foldStore_ilks]
+  rw [foldStoreRateNew, store_get_ne _ _ (by decide +native), foldStore_ilks]
 theorem foldStoreRad_ilks (I : ExecutionEnv) (rateNew : UInt256) (rad : Int) :
     (foldStoreRad I rateNew rad).get? "ilks" = none := by
-  rw [foldStoreRad, store_get_ne _ _ (by native_decide), foldStoreRateNew_ilks]
+  rw [foldStoreRad, store_get_ne _ _ (by decide +native), foldStoreRateNew_ilks]
 
 theorem vatFoldRadMulRevertGuardFalse (evm : EVM.State) (I : ExecutionEnv)
     {rateNew artOld : UInt256} {rad : Int} (hsz100 : 100 ≤ I.calldata.size)
@@ -1532,12 +1532,12 @@ theorem vatFoldRadMulRevertRange (evm : EVM.State) (I : ExecutionEnv)
 theorem foldStoreDaiNew_get_u (I : ExecutionEnv) (rateNew : UInt256) (rad : Int)
     (daiNew : UInt256) :
     (foldStoreDaiNew I rateNew rad daiNew).get? "u" = some (foldUsrValue I) := by
-  rw [foldStoreDaiNew, store_get_ne _ _ (by native_decide),
+  rw [foldStoreDaiNew, store_get_ne _ _ (by decide +native),
     foldStoreRad_get_u]
 theorem foldStoreDaiNew_get_rad (I : ExecutionEnv) (rateNew : UInt256) (rad : Int)
     (daiNew : UInt256) :
     (foldStoreDaiNew I rateNew rad daiNew).get? "rad" = some (.int rad) := by
-  rw [foldStoreDaiNew, store_get_ne _ _ (by native_decide),
+  rw [foldStoreDaiNew, store_get_ne _ _ (by decide +native),
     foldStoreRad_get_rad]
 theorem foldStoreDaiNew_get_daiNew (I : ExecutionEnv) (rateNew : UInt256)
     (rad : Int) (daiNew : UInt256) :
@@ -1548,12 +1548,12 @@ theorem foldStoreDebtNew_get_daiNew (I : ExecutionEnv)
     (rateNew : UInt256) (rad : Int) (daiNew debtNew : UInt256) :
     (foldStoreDebtNew I rateNew rad daiNew debtNew).get? "daiNew" =
       some (.int (Int.ofNat daiNew.toNat)) := by
-  rw [foldStoreDebtNew, store_get_ne _ _ (by native_decide),
+  rw [foldStoreDebtNew, store_get_ne _ _ (by decide +native),
     foldStoreDaiNew_get_daiNew]
 theorem foldStoreDebtNew_get_rad (I : ExecutionEnv)
     (rateNew : UInt256) (rad : Int) (daiNew debtNew : UInt256) :
     (foldStoreDebtNew I rateNew rad daiNew debtNew).get? "rad" = some (.int rad) := by
-  rw [foldStoreDebtNew, store_get_ne _ _ (by native_decide),
+  rw [foldStoreDebtNew, store_get_ne _ _ (by decide +native),
     foldStoreDaiNew_get_rad]
 theorem foldStoreDebtNew_get_debtNew (I : ExecutionEnv)
     (rateNew : UInt256) (rad : Int) (daiNew debtNew : UInt256) :
@@ -1590,14 +1590,14 @@ theorem RD.vatFoldDaiStoreOk
   let daiSlotWord := solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)
   let old := solcSlotWord σ I daiSlotWord
   let sum := rad + old
-  have rd5783 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd5785 := rd5783.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5787 := rd5785.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5789 := rd5787.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd5790 := rd5789.shl (by native_decide) (by evm_ov)
-  have rd5791 := rd5790.sub (by native_decide) (by evm_ov)
-  have rd5792pre := rd5791.dup6 (by native_decide) (by evm_ov)
-  have rd5793pre := rd5792pre.and (by native_decide) (by evm_ov)
+  have rd5783 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd5785 := rd5783.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5787 := rd5785.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5789 := rd5787.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd5790 := rd5789.shl (by decide +native) (by evm_ov)
+  have rd5791 := rd5790.sub (by decide +native) (by evm_ov)
+  have rd5792pre := rd5791.dup6 (by decide +native) (by evm_ov)
+  have rd5793pre := rd5792pre.and (by decide +native) (by evm_ov)
   have hmask :
       UInt256.land (foldUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -1607,19 +1607,19 @@ theorem RD.vatFoldDaiStoreOk
     exact foldUsrMaskedWord_clean I
   have rd5793 := rd5793pre
   rw [hmask] at rd5793
-  have rd5795 := rd5793.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd5796 := rd5795.swap1 (by native_decide) (by evm_ov)
-  have rd5797 := rd5796.dup2 (by native_decide) (by evm_ov)
+  have rd5795 := rd5793.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd5796 := rd5795.swap1 (by decide +native) (by evm_ov)
+  have rd5797 := rd5796.dup2 (by decide +native) (by evm_ov)
   have rd5798 := rd5797.mstore 0 (wordAt0Mem (foldUsrMaskedWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd5800 := rd5798.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  have rd5802 := rd5800.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+  have rd5800 := rd5798.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  have rd5802 := rd5800.push1 ⟨32⟩ (by decide +native) (by evm_ov)
   have rd5803 := rd5802.mstore 0 (twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd5805 := rd5803.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd5806 := rd5805.swap1 (by native_decide) (by evm_ov)
+  have rd5805 := rd5803.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd5806 := rd5805.swap1 (by decide +native) (by evm_ov)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
@@ -1627,53 +1627,53 @@ theorem RD.vatFoldDaiStoreOk
     simpa [daiSlotWord] using
       twoWordHashMem_solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I) hmem
   have rd5807pre := rd5806.keccak256 0 daiSlotWord (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5808raw⟩ := rd5807pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5808raw⟩ := rd5807pre.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD daiSlotWord ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd5808 := rd5808raw
   rw [hold] at rd5808
-  have rd5809 := rd5808.swap1 (by native_decide) (by evm_ov)
-  have rd5810 := rd5809.swap2 (by native_decide) (by evm_ov)
-  have rd5811 := rd5810.pop (by native_decide) (by evm_ov)
-  have rd5814 := rd5811.push2 ⟨5820⟩ (by native_decide) (by evm_ov)
-  have rd5815 := rd5814.swap1 (by native_decide) (by evm_ov)
-  have rd5816 := rd5815.dup3 (by native_decide) (by evm_ov)
-  have rd5819 := rd5816.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd5819.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5809 := rd5808.swap1 (by decide +native) (by evm_ov)
+  have rd5810 := rd5809.swap2 (by decide +native) (by evm_ov)
+  have rd5811 := rd5810.pop (by decide +native) (by evm_ov)
+  have rd5814 := rd5811.push2 ⟨5820⟩ (by decide +native) (by evm_ov)
+  have rd5815 := rd5814.swap1 (by decide +native) (by evm_ov)
+  have rd5816 := rd5815.dup3 (by decide +native) (by evm_ov)
+  have rd5819 := rd5816.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd5819.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd5820⟩ := RD.vatSignedAddOk
     (x := old) (y := rad) (ret := ⟨5820⟩)
     (R := [rad, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel])
     rd6653 (by simpa [old, daiSlotWord] using hneg)
     (by simpa [old, daiSlotWord] using hpos)
     (by jump_dest) (by simp)
-  have rd5821 := rd5820.jumpdest (by native_decide) (by evm_ov)
-  have rd5823 := rd5821.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5825 := rd5823.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5827 := rd5825.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd5828 := rd5827.shl (by native_decide) (by evm_ov)
-  have rd5829 := rd5828.sub (by native_decide) (by evm_ov)
-  have rd5830pre := rd5829.dup6 (by native_decide) (by evm_ov)
-  have rd5831pre := rd5830pre.and (by native_decide) (by evm_ov)
+  have rd5821 := rd5820.jumpdest (by decide +native) (by evm_ov)
+  have rd5823 := rd5821.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5825 := rd5823.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5827 := rd5825.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd5828 := rd5827.shl (by decide +native) (by evm_ov)
+  have rd5829 := rd5828.sub (by decide +native) (by evm_ov)
+  have rd5830pre := rd5829.dup6 (by decide +native) (by evm_ov)
+  have rd5831pre := rd5830pre.and (by decide +native) (by evm_ov)
   have rd5831 := rd5831pre
   rw [hmask] at rd5831
-  have rd5833 := rd5831.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd5834 := rd5833.swap1 (by native_decide) (by evm_ov)
-  have rd5835 := rd5834.dup2 (by native_decide) (by evm_ov)
+  have rd5833 := rd5831.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd5834 := rd5833.swap1 (by decide +native) (by evm_ov)
+  have rd5835 := rd5834.dup2 (by decide +native) (by evm_ov)
   have rd5836 := rd5835.mstore 0 (wordAt0Mem (foldUsrMaskedWord I)
     (twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem)) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
-  have rd5838 := rd5836.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  have rd5840 := rd5838.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
+  have rd5838 := rd5836.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  have rd5840 := rd5838.push1 ⟨32⟩ (by decide +native) (by evm_ov)
   have rd5841 := rd5840.mstore 0
     (twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩
       (twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd5843 := rd5841.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd5844 := rd5843.swap1 (by native_decide) (by evm_ov)
+  have rd5843 := rd5841.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd5844 := rd5843.swap1 (by decide +native) (by evm_ov)
   have hmemDai :
       (twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem).size = 96 :=
     twoWordHashMem_size_96 (foldUsrMaskedWord I) ⟨5⟩ hmem
@@ -1686,8 +1686,8 @@ theorem RD.vatFoldDaiStoreOk
     simpa [daiSlotWord] using
       twoWordHashMem_solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I) hmemDai
   have rd5845pre := rd5844.keccak256 0 daiSlotWord (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5846⟩ := rd5845pre.sstore hperm (by native_decide) (by norm_num)
+    (by decide +native) mem_cost hslot2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5846⟩ := rd5845pre.sstore hperm (by decide +native) (by norm_num)
   exact ⟨_, _, by simpa [daiSlotWord, old, sum] using rd5846⟩
 
 theorem RD.vatFoldDaiStoreRevert
@@ -1714,14 +1714,14 @@ theorem RD.vatFoldDaiStoreRevert
   let daiSlotWord := solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I)
   let old := solcSlotWord σ I daiSlotWord
   let sum := rad + old
-  have rd5783 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd5785 := rd5783.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5787 := rd5785.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5789 := rd5787.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd5790 := rd5789.shl (by native_decide) (by evm_ov)
-  have rd5791 := rd5790.sub (by native_decide) (by evm_ov)
-  have rd5792pre := rd5791.dup6 (by native_decide) (by evm_ov)
-  have rd5793pre := rd5792pre.and (by native_decide) (by evm_ov)
+  have rd5783 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd5785 := rd5783.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5787 := rd5785.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5789 := rd5787.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd5790 := rd5789.shl (by decide +native) (by evm_ov)
+  have rd5791 := rd5790.sub (by decide +native) (by evm_ov)
+  have rd5792pre := rd5791.dup6 (by decide +native) (by evm_ov)
+  have rd5793pre := rd5792pre.and (by decide +native) (by evm_ov)
   have hmask :
       UInt256.land (foldUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -1731,19 +1731,19 @@ theorem RD.vatFoldDaiStoreRevert
     exact foldUsrMaskedWord_clean I
   have rd5793 := rd5793pre
   rw [hmask] at rd5793
-  have rd5795 := rd5793.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd5796 := rd5795.swap1 (by native_decide) (by evm_ov)
-  have rd5797 := rd5796.dup2 (by native_decide) (by evm_ov)
+  have rd5795 := rd5793.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd5796 := rd5795.swap1 (by decide +native) (by evm_ov)
+  have rd5797 := rd5796.dup2 (by decide +native) (by evm_ov)
   have rd5798 := rd5797.mstore 0 (wordAt0Mem (foldUsrMaskedWord I) mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd5800 := rd5798.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  have rd5802 := rd5800.push1 ⟨32⟩ (by native_decide) (by evm_ov)
+  have rd5800 := rd5798.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  have rd5802 := rd5800.push1 ⟨32⟩ (by decide +native) (by evm_ov)
   have rd5803 := rd5802.mstore 0 (twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd5805 := rd5803.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd5806 := rd5805.swap1 (by native_decide) (by evm_ov)
+  have rd5805 := rd5803.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd5806 := rd5805.swap1 (by decide +native) (by evm_ov)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (foldUsrMaskedWord I) ⟨5⟩ mem).readWithPadding 0 64))) =
@@ -1751,22 +1751,22 @@ theorem RD.vatFoldDaiStoreRevert
     simpa [daiSlotWord] using
       twoWordHashMem_solcMappingSlot ⟨5⟩ (foldUsrMaskedWord I) hmem
   have rd5807pre := rd5806.keccak256 0 daiSlotWord (UInt256.ofNat 3)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5808raw⟩ := rd5807pre.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5808raw⟩ := rd5807pre.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD daiSlotWord ⟨0⟩)) = old := by
     simp [old, solcSlotWord]
   have rd5808 := rd5808raw
   rw [hold] at rd5808
-  have rd5809 := rd5808.swap1 (by native_decide) (by evm_ov)
-  have rd5810 := rd5809.swap2 (by native_decide) (by evm_ov)
-  have rd5811 := rd5810.pop (by native_decide) (by evm_ov)
-  have rd5814 := rd5811.push2 ⟨5820⟩ (by native_decide) (by evm_ov)
-  have rd5815 := rd5814.swap1 (by native_decide) (by evm_ov)
-  have rd5816 := rd5815.dup3 (by native_decide) (by evm_ov)
-  have rd5819 := rd5816.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd5819.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5809 := rd5808.swap1 (by decide +native) (by evm_ov)
+  have rd5810 := rd5809.swap2 (by decide +native) (by evm_ov)
+  have rd5811 := rd5810.pop (by decide +native) (by evm_ov)
+  have rd5814 := rd5811.push2 ⟨5820⟩ (by decide +native) (by evm_ov)
+  have rd5815 := rd5814.swap1 (by decide +native) (by evm_ov)
+  have rd5816 := rd5815.dup3 (by decide +native) (by evm_ov)
+  have rd5819 := rd5816.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd5819.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedAddRevert
     (x := old) (y := rad) (ret := ⟨5820⟩)
     (R := [rad, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel])
@@ -1795,35 +1795,35 @@ theorem RD.vatFoldDebtStoreReturnOk
         (rad + solcSlotWord σ I ⟨7⟩)) k' C' := by
   let old := solcSlotWord σ I ⟨7⟩
   let sum := rad + old
-  have rd5848 := h.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5849raw⟩ := rd5848.sload (by native_decide) (by evm_ov)
+  have rd5848 := h.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5849raw⟩ := rd5848.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨7⟩ ⟨0⟩)) =
         old := by
     simp [old, solcSlotWord]
   have rd5849 := rd5849raw
   rw [hold] at rd5849
-  have rd5852 := rd5849.push2 ⟨5858⟩ (by native_decide) (by evm_ov)
-  have rd5853 := rd5852.swap1 (by native_decide) (by evm_ov)
-  have rd5854 := rd5853.dup3 (by native_decide) (by evm_ov)
-  have rd5857 := rd5854.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd5857.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5852 := rd5849.push2 ⟨5858⟩ (by decide +native) (by evm_ov)
+  have rd5853 := rd5852.swap1 (by decide +native) (by evm_ov)
+  have rd5854 := rd5853.dup3 (by decide +native) (by evm_ov)
+  have rd5857 := rd5854.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd5857.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd5858⟩ := RD.vatSignedAddOk
     (x := old) (y := rad) (ret := ⟨5858⟩)
     (R := [rad, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel])
     rd6653 (by simpa [old] using hneg)
     (by simpa [old] using hpos)
     (by jump_dest) (by simp)
-  have rd5859 := rd5858.jumpdest (by native_decide) (by evm_ov)
-  have rd5861pre := rd5859.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5862⟩ := rd5861pre.sstore hperm (by native_decide) (by norm_num)
-  have rd5863 := rd5862.pop (by native_decide) (by evm_ov)
-  have rd5864 := rd5863.pop (by native_decide) (by evm_ov)
-  have rd5865 := rd5864.pop (by native_decide) (by evm_ov)
-  have rd5866 := rd5865.pop (by native_decide) (by evm_ov)
-  have rd5867 := rd5866.pop (by native_decide) (by evm_ov)
+  have rd5859 := rd5858.jumpdest (by decide +native) (by evm_ov)
+  have rd5861pre := rd5859.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5862⟩ := rd5861pre.sstore hperm (by decide +native) (by norm_num)
+  have rd5863 := rd5862.pop (by decide +native) (by evm_ov)
+  have rd5864 := rd5863.pop (by decide +native) (by evm_ov)
+  have rd5865 := rd5864.pop (by decide +native) (by evm_ov)
+  have rd5866 := rd5865.pop (by decide +native) (by evm_ov)
+  have rd5867 := rd5866.pop (by decide +native) (by evm_ov)
   exact ⟨_, _, by
-    simpa [old, sum] using rd5867.jump (by native_decide) (by jump_dest)
+    simpa [old, sum] using rd5867.jump (by decide +native) (by jump_dest)
       (by evm_ov)⟩
 
 theorem RD.vatFoldDebtStoreRevert
@@ -1842,19 +1842,19 @@ theorem RD.vatFoldDebtStoreRevert
     RDrev vatBytecode g (initState cA gh bl σInit σ₀ g A I) := by
   let old := solcSlotWord σ I ⟨7⟩
   let sum := rad + old
-  have rd5848 := h.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5849raw⟩ := rd5848.sload (by native_decide) (by evm_ov)
+  have rd5848 := h.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5849raw⟩ := rd5848.sload (by decide +native) (by evm_ov)
   have hold :
       (σ.find? I.codeOwner |>.option ⟨0⟩ (fun acc => acc.storage.findD ⟨7⟩ ⟨0⟩)) =
         old := by
     simp [old, solcSlotWord]
   have rd5849 := rd5849raw
   rw [hold] at rd5849
-  have rd5852 := rd5849.push2 ⟨5858⟩ (by native_decide) (by evm_ov)
-  have rd5853 := rd5852.swap1 (by native_decide) (by evm_ov)
-  have rd5854 := rd5853.dup3 (by native_decide) (by evm_ov)
-  have rd5857 := rd5854.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd5857.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd5852 := rd5849.push2 ⟨5858⟩ (by decide +native) (by evm_ov)
+  have rd5853 := rd5852.swap1 (by decide +native) (by evm_ov)
+  have rd5854 := rd5853.dup3 (by decide +native) (by evm_ov)
+  have rd5857 := rd5854.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd5857.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedAddRevert
     (x := old) (y := rad) (ret := ⟨5858⟩)
     (R := [rad, base, foldRateWord I, foldUsrMaskedWord I, foldIlkWord I, ⟨524⟩, sel])
@@ -1863,40 +1863,40 @@ theorem RD.vatFoldDebtStoreRevert
 theorem foldStore_dai (I : ExecutionEnv) :
     (foldStore I).get? "dai" = none := by
   unfold foldStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 theorem foldStoreRad_dai (I : ExecutionEnv) (rateNew : UInt256) (rad : Int) :
     (foldStoreRad I rateNew rad).get? "dai" = none := by
-  rw [foldStoreRad, store_get_ne _ _ (by native_decide)]
-  rw [foldStoreRateNew, store_get_ne _ _ (by native_decide), foldStore_dai]
+  rw [foldStoreRad, store_get_ne _ _ (by decide +native)]
+  rw [foldStoreRateNew, store_get_ne _ _ (by decide +native), foldStore_dai]
 theorem foldStoreDaiNew_dai (I : ExecutionEnv) (rateNew : UInt256) (rad : Int)
     (daiNew : UInt256) :
     (foldStoreDaiNew I rateNew rad daiNew).get? "dai" = none := by
-  rw [foldStoreDaiNew, store_get_ne _ _ (by native_decide), foldStoreRad_dai]
+  rw [foldStoreDaiNew, store_get_ne _ _ (by decide +native), foldStoreRad_dai]
 theorem foldStore_debt (I : ExecutionEnv) :
     (foldStore I).get? "debt" = none := by
   unfold foldStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 theorem foldStoreDaiNew_debt (I : ExecutionEnv) (rateNew : UInt256) (rad : Int)
     (daiNew : UInt256) :
     (foldStoreDaiNew I rateNew rad daiNew).get? "debt" = none := by
-  rw [foldStoreDaiNew, store_get_ne _ _ (by native_decide)]
-  rw [foldStoreRad, store_get_ne _ _ (by native_decide)]
-  rw [foldStoreRateNew, store_get_ne _ _ (by native_decide), foldStore_debt]
+  rw [foldStoreDaiNew, store_get_ne _ _ (by decide +native)]
+  rw [foldStoreRad, store_get_ne _ _ (by decide +native)]
+  rw [foldStoreRateNew, store_get_ne _ _ (by decide +native), foldStore_debt]
 theorem foldStoreDebtNew_debt (I : ExecutionEnv)
     (rateNew : UInt256) (rad : Int) (daiNew debtNew : UInt256) :
     (foldStoreDebtNew I rateNew rad daiNew debtNew).get? "debt" = none := by
-  rw [foldStoreDebtNew, store_get_ne _ _ (by native_decide), foldStoreDaiNew_debt]
+  rw [foldStoreDebtNew, store_get_ne _ _ (by decide +native), foldStoreDaiNew_debt]
 theorem foldStore_wards (I : ExecutionEnv) :
     (foldStore I).get? "wards" = none := by
   unfold foldStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 theorem foldStore_live (I : ExecutionEnv) :
     (foldStore I).get? "live" = none := by
   unfold foldStore
-  repeat rw [store_get_ne _ _ (by native_decide)]
+  repeat rw [store_get_ne _ _ (by decide +native)]
   simp
 
 end Benchmarks.Dss.Vat

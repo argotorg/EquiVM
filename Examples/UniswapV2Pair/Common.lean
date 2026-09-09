@@ -140,7 +140,7 @@ theorem evalExpr_uniswap_unlocked_eq_one_false (evm : EVM.State) (locals : Store
           = UInt256.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨12⟩).toNat := by
               exact (u256_ofNat_toNat _).symm
       _ = UInt256.ofNat 1 := by rw [hnat]
-      _ = ⟨1⟩ := by native_decide
+      _ = ⟨1⟩ := by decide +native
   simp only [evalExpr?, evalExpr_uniswap_unlocked evm locals hbase, EvalResult.bind, bind, pure,
     evalBinaryOp?, hval]
 
@@ -230,7 +230,7 @@ theorem uniswapStorageLocLoad_uint112_offset0 (evm : EVM.State) (slot : UInt256)
     storageLocLoad evm (uint112Loc0 slot) =
       .int (Int.ofNat (UInt256.land
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot) reserve112Mask).toNat) := by
-  rw [← show UInt256.ofNat (2 ^ (8 * 14) - 1) = reserve112Mask by native_decide]
+  rw [← show UInt256.ofNat (2 ^ (8 * 14) - 1) = reserve112Mask by decide +native]
   simpa [uint112Loc0, uint112Int] using
     storageLocLoad_uint_offset0 evm slot (14 : Fin 33) ⟨112, by decide⟩ (by decide)
 
@@ -239,8 +239,8 @@ theorem uniswapStorageLocLoad_uint112_offset14 (evm : EVM.State) (slot : UInt256
       .int (Int.ofNat (UInt256.land
         (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
           reserve112Shift) reserve112Mask).toNat) := by
-  rw [← show UInt256.ofNat (256 ^ 14) = reserve112Shift by native_decide]
-  rw [← show UInt256.ofNat (256 ^ 14 - 1) = reserve112Mask by native_decide]
+  rw [← show UInt256.ofNat (256 ^ 14) = reserve112Shift by decide +native]
+  rw [← show UInt256.ofNat (256 ^ 14 - 1) = reserve112Mask by decide +native]
   simpa [uint112Loc14, uint112Int] using
     storageLocLoad_uint_offset evm slot (14 : Fin 32) (14 : Fin 33) ⟨112, by decide⟩
       (by decide) (by decide)
@@ -250,8 +250,8 @@ theorem uniswapStorageLocLoad_uint32_offset28 (evm : EVM.State) (slot : UInt256)
       .int (Int.ofNat (UInt256.land
         (UInt256.div (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot)
           reserve224Shift) reserve32Mask).toNat) := by
-  rw [← show UInt256.ofNat (256 ^ 28) = reserve224Shift by native_decide]
-  rw [← show UInt256.ofNat (256 ^ 4 - 1) = reserve32Mask by native_decide]
+  rw [← show UInt256.ofNat (256 ^ 28) = reserve224Shift by decide +native]
+  rw [← show UInt256.ofNat (256 ^ 4 - 1) = reserve32Mask by decide +native]
   simpa [uint32Loc28, uint32Int] using
     storageLocLoad_uint_offset evm slot (28 : Fin 32) (4 : Fin 33) ⟨32, by decide⟩
       (by decide) (by decide)
@@ -360,7 +360,7 @@ def setUint32Offset28Word (old val : UInt256) : UInt256 :=
 theorem uniswapUint112Masked_lt (w : UInt256) :
     (UInt256.land w reserve112Mask).toNat < 2 ^ 112 := by
   rw [u256_land_toNat]
-  have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+  have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
   rw [hmask]
   have hle : Nat.land w.toNat (2 ^ 112 - 1) ≤ 2 ^ 112 - 1 :=
     nat_land_le_right _ _
@@ -372,7 +372,7 @@ theorem uniswapUint112Masked_lt (w : UInt256) :
 theorem uniswapUint32Masked_lt (w : UInt256) :
     (UInt256.land w reserve32Mask).toNat < 2 ^ 32 := by
   rw [u256_land_toNat]
-  have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by native_decide
+  have hmask : reserve32Mask.toNat = 2 ^ 32 - 1 := by decide +native
   rw [hmask]
   have hle : Nat.land w.toNat (2 ^ 32 - 1) ≤ 2 ^ 32 - 1 :=
     nat_land_le_right _ _
@@ -384,7 +384,7 @@ theorem uniswapUint32Masked_lt (w : UInt256) :
 theorem uniswapUint112Masked_toNat (w : UInt256) :
     (UInt256.land w reserve112Mask).toNat = w.toNat % 2 ^ 112 := by
   rw [u256_land_toNat]
-  have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by native_decide
+  have hmask : reserve112Mask.toNat = 2 ^ 112 - 1 := by decide +native
   rw [hmask]
   rw [nat_land_mask_eq_mod]
   exact Nat.mod_eq_of_lt (by
@@ -447,7 +447,7 @@ theorem uint112Offset14MiddleClear_toNat (old : UInt256) :
   have hmask :
       (UInt256.lnot (UInt256.shiftLeft reserve112Mask ⟨112⟩)).toNat =
         (2 ^ 112 - 1) + (2 ^ 32 - 1) * 2 ^ 224 := by
-    native_decide
+    decide +native
   rw [hmask, nat_land_comm]
   rw [natLandClearMiddle112_224 old.toNat old.val.isLt]
   have hlt :
@@ -501,7 +501,7 @@ theorem setUint112Offset0Word_toNat (old val : UInt256) :
         (old.toNat / 2 ^ 112) * 2 ^ 112 := by
     rw [u256_land_toNat]
     have hlnot : (UInt256.lnot reserve112Mask).toNat = 2 ^ 256 - 2 ^ 112 := by
-      native_decide
+      decide +native
     rw [hlnot, nat_land_comm]
     rw [natLandClearLow old.toNat 112 (by norm_num) old.val.isLt]
     have hlt : old.toNat / 2 ^ 112 * 2 ^ 112 < UInt256.size :=
@@ -538,7 +538,7 @@ theorem setUint112Offset14Word_toNat (old val : UInt256) :
       (old.toNat / 2 ^ 224) * 2 ^ 224 := by
   unfold setUint112Offset14Word
   rw [u256_lor_toNat, u256_mul_toNat, uint112Offset14MiddleClear_toNat]
-  have hshift : reserve112Shift.toNat = 2 ^ 112 := by native_decide
+  have hshift : reserve112Shift.toNat = 2 ^ 112 := by decide +native
   rw [hshift]
   have hmidLt : (UInt256.land reserve112Mask val).toNat < 2 ^ 112 := by
     simpa [u256_land_comm reserve112Mask val] using uniswapUint112Masked_lt val
@@ -585,14 +585,14 @@ theorem setUint32Offset28Word_toNat (old val : UInt256) :
       old.toNat % 2 ^ 224 + (UInt256.land val reserve32Mask).toNat * 2 ^ 224 := by
   unfold setUint32Offset28Word
   rw [u256_lor_toNat, u256_mul_toNat]
-  have hshift : reserve224Shift.toNat = 2 ^ 224 := by native_decide
+  have hshift : reserve224Shift.toNat = 2 ^ 224 := by decide +native
   rw [hshift]
   have hlow :
       (UInt256.land (UInt256.sub reserve224Shift ⟨1⟩) old).toNat =
         old.toNat % 2 ^ 224 := by
     rw [u256_land_toNat]
     have hmask : (UInt256.sub reserve224Shift ⟨1⟩).toNat = 2 ^ 224 - 1 := by
-      native_decide
+      decide +native
     rw [hmask, nat_land_comm, nat_land_mask_eq_mod]
     exact Nat.mod_eq_of_lt (by
       exact lt_trans (Nat.mod_lt _ (by positivity : 0 < (2 : Nat) ^ 224))
@@ -648,7 +648,7 @@ theorem uniswapStorageLocStore_uint112_offset0 (evm : EVM.State) (slot val : UIn
   rw [show 2 ^ (8 * 14) = 2 ^ 112 by norm_num]
   rw [show 256 ^ 14 = 2 ^ 112 by norm_num]
   rw [setUint112Offset0Word_toNat]
-  rw [show UInt256.ofNat (2 ^ 112 - 1) = reserve112Mask by native_decide]
+  rw [show UInt256.ofNat (2 ^ 112 - 1) = reserve112Mask by decide +native]
   rw [u256_land_comm val reserve112Mask]
   ring_nf
 
@@ -696,7 +696,7 @@ theorem uniswapStorageLocStore_uint112_offset14 (evm : EVM.State) (slot val : UI
   rw [show 2 ^ (8 * 14) = 2 ^ 112 by norm_num]
   rw [show 256 ^ 28 = 2 ^ 224 by norm_num]
   rw [setUint112Offset14Word_toNat]
-  rw [show UInt256.ofNat (2 ^ 112 - 1) = reserve112Mask by native_decide]
+  rw [show UInt256.ofNat (2 ^ 112 - 1) = reserve112Mask by decide +native]
   rw [u256_land_comm val reserve112Mask]
   ring_nf
 
@@ -747,7 +747,7 @@ theorem uniswapStorageLocStore_uint32_offset28 (evm : EVM.State) (slot val : UIn
   rw [show (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).toNat / 2 ^ 256 = 0 by
     exact Nat.div_eq_of_lt (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot).val.isLt]
   rw [setUint32Offset28Word_toNat]
-  rw [show UInt256.ofNat (2 ^ 32 - 1) = reserve32Mask by native_decide]
+  rw [show UInt256.ofNat (2 ^ 32 - 1) = reserve32Mask by decide +native]
   ring_nf
 
 theorem uniswapAssignReserve0OfStore (evm evm' : EVM.State) (locals : Store)
@@ -1404,7 +1404,7 @@ back to the caller.  It appears at pc 2917 (`token0`), pc 5443 (`factory`), and 
 macro "uniswap_address_slot_getter_wf" : term =>
   `(by
     unfold Reasoning.Reach.uniswapAddressSlotGetterWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 /-- Bytecode shape for an external getter thunk that jumps to an internal getter routine. -/
 @[reducible] def uniswapGetterEntryWf (pc returnPc routine : UInt256) : Prop :=
@@ -1422,19 +1422,19 @@ macro "uniswap_address_slot_getter_wf" : term =>
 macro "uniswap_getter_entry_wf" : term =>
   `(by
     unfold Reasoning.Reach.uniswapGetterEntryWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 /-- Discharge a Uniswap address getter external-thunk bytecode-shape proof. -/
 macro "uniswap_address_getter_entry_wf" : term =>
   `(by
     unfold Reasoning.Reach.uniswapAddressGetterEntryWf Reasoning.Reach.uniswapGetterEntryWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 /-- Discharge a Uniswap word getter external-thunk bytecode-shape proof. -/
 macro "uniswap_word_getter_entry_wf" : term =>
   `(by
     unfold Reasoning.Reach.uniswapWordGetterEntryWf Reasoning.Reach.uniswapGetterEntryWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 /-- Bytecode shape for Uniswap's generated full-slot word getter routines. -/
 @[reducible] def uniswapWordSlotGetterWf (pc slot : UInt256) : Prop :=
@@ -1444,7 +1444,7 @@ macro "uniswap_word_getter_entry_wf" : term =>
 macro "uniswap_word_slot_getter_wf" : term =>
   `(by
     unfold Reasoning.Reach.uniswapWordSlotGetterWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 /-! ## Constant getter routines -/
 
@@ -1461,7 +1461,7 @@ back to the caller.  It appears for `PERMIT_TYPEHASH`, `decimals`, and `MINIMUM_
 macro "uniswap_const_getter_wf" : term =>
   `(by
     unfold Reasoning.Reach.uniswapConstGetterWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 theorem RD.uniswapGetterThunk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry returnPc routine : UInt256}
@@ -1489,7 +1489,7 @@ It appears at the front of `skim`, `sync`, and the larger liquidity/swap routine
 macro "uniswap_lock_enter_ok_wf" : term =>
   `(by
     unfold Reasoning.Reach.uniswapLockEnterOkWf Reasoning.Reach.solcLockEnterOkWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapLockEnterOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
@@ -1510,12 +1510,12 @@ theorem RD.uniswapLockEnterOk {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C
 macro "uniswap_lock_enter_guard_wf" : term =>
   `(by
     unfold solcLockEnterGuardWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 macro "uniswap_lock_revert_tail_wf" : term =>
   `(by
     unfold solcErrorStringRevertTailWf solcLockEnterRevertPc
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 /-- Bytecode shape for the lock guard after a routine-specific prelude.
 
@@ -1549,12 +1549,12 @@ storage-slot-12 lock check.  This predicate starts at the `PUSH1 12` guard instr
 macro "uniswap_lock_enter_body_guard_wf" : term =>
   `(by
     unfold uniswapLockEnterBodyGuardWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 macro "uniswap_lock_body_revert_tail_wf" : term =>
   `(by
     unfold solcErrorStringRevertTailWf uniswapLockEnterBodyRevertPc
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapLockEnterBodyLocked {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -1619,7 +1619,7 @@ theorem RD.uniswapLockEnterBodyLocked {g : Sat256} {s0 : State} {ee : ExecutionE
 macro "uniswap_lock_enter_body_ok_wf" : term =>
   `(by
     unfold uniswapLockEnterBodyOkWf uniswapLockEnterBodyGuardWf
-    repeat' first | apply And.intro | native_decide)
+    repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapLockEnterBodyOk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
@@ -1750,7 +1750,7 @@ theorem RD.uniswapReturnAddress825 {g : Sat256} {s0 : State} {ee : ExecutionEnv}
   exact RD.solcReturnAddressFromMem h
     (by
       unfold solcReturnAddressFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     solcFreePtrMem_mload64
     (by rfl)
     (solcReturnMem_mload64 (UInt256.land val solcAddrMask))
@@ -1768,7 +1768,7 @@ theorem RD.uniswapReturnWord861 {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k
   exact RD.solcReturnWordFromMem h
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     solcFreePtrMem_mload64
     (by rfl)
     (solcReturnMem_mload64 val)
@@ -1799,7 +1799,7 @@ theorem RD.uniswapReturnWord861FromMem {g : Sat256} {s0 : State} {ee : Execution
   exact RD.solcReturnWordFromMem h
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hmload64
     hmemout
     hmemoutLoad64
@@ -1818,7 +1818,7 @@ theorem RD.uniswapReturnUint8_949 {g : Sat256} {s0 : State} {ee : ExecutionEnv} 
   exact RD.solcReturnUint8FromMem h
     (by
       unfold solcReturnUint8FromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     solcFreePtrMem_mload64
     (by rfl)
     (solcReturnMem_mload64 (UInt256.land val ⟨255⟩))
@@ -1842,7 +1842,7 @@ theorem RD.addressGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
       hreach hentry hgetter hroutine hret825
       (by
         unfold solcReturnAddressFromMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
 
 theorem RD.uniswapWordGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry routine slot : UInt256}
@@ -1861,7 +1861,7 @@ theorem RD.uniswapWordGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel :
       hreach hentry hgetter hroutine hret861
       (by
         unfold solcReturnWordFromMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
 
 theorem RD.uniswapWordConstGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry routine val : UInt256} {width : Nat} {op : Operation.POp}
@@ -1879,7 +1879,7 @@ theorem RD.uniswapWordConstGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {
     hreach hentry hgetter hroutine hret861
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
 
 theorem RD.uniswapUint8ConstGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     {entry routine val : UInt256} {width : Nat} {op : Operation.POp}
@@ -1897,7 +1897,7 @@ theorem RD.uniswapUint8ConstGetterExternal {cA gh bl σ σ₀ A I} {g : Sat256} 
     hreach hentry hgetter hroutine hret949
     (by
       unfold solcReturnUint8FromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
 
 end Reasoning.Reach
 

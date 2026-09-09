@@ -728,7 +728,7 @@ def klimaCreationBytecode : ByteArray :=
       ⟨5918⟩, ⟨5926⟩, ⟨5977⟩, ⟨6006⟩, ⟨6054⟩, ⟨6114⟩, ⟨6124⟩, ⟨6145⟩, ⟨6156⟩, ⟨6247⟩,
       ⟨6267⟩, ⟨6289⟩, ⟨6295⟩
       ]
-  := by native_decide
+  := by decide +native
 
 /-- The `JUMPDEST` set of `klimaCreationBytecode`, computed from bytecode. -/
 @[valid_jumps] theorem validCreationJumps :
@@ -755,6 +755,6 @@ def klimaCreationBytecode : ByteArray :=
       ⟨6493⟩, ⟨6510⟩, ⟨6515⟩, ⟨6526⟩, ⟨6543⟩, ⟨6609⟩, ⟨6621⟩, ⟨6675⟩, ⟨6683⟩, ⟨6734⟩,
       ⟨6763⟩, ⟨6811⟩, ⟨6871⟩, ⟨6881⟩, ⟨6902⟩, ⟨6913⟩, ⟨7004⟩, ⟨7024⟩, ⟨7046⟩, ⟨7052⟩
       ]
-  := by native_decide
+  := by decide +native
 
 end Benchmarks.Klima

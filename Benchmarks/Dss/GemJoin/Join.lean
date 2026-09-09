@@ -64,7 +64,7 @@ theorem evalExpr_join_live_true (evm : EVM.State) (I : ExecutionEnv)
         (.storage liveRef) = .ok (.int 1) := by
     have hload : storageLocLoad evm (wordLoc ⟨5⟩) = .int 1 := by
       rw [gemJoinStorageLocLoad_uint256, hlive]
-      native_decide
+      decide +native
     rw [evalExpr_storage_scalar_value
       (cfg := config)
       (solm := { contract := contract, locals := joinStore I })
@@ -438,7 +438,7 @@ theorem evalExpr_join_wad_afterSlip (evm : EVM.State) (I : ExecutionEnv) :
   simp only [evalExpr?]
   rw [show (joinLocalsAfterSlip I).get? "wad" = some (joinWadValue I) by
     rw [joinLocalsAfterSlip, store_get_ne (L := joinStore I) (k := "slipRet") (a := "wad")
-      .unit (by native_decide)]
+      .unit (by decide +native)]
     unfold joinStore
     simp]
   unfold EvalResult.ofOption
@@ -1005,7 +1005,7 @@ theorem joinSlipSelectorMem_size_of_size96 {mem : ByteArray} (hmem : mem.size = 
     (joinSlipSelectorMem mem).size = 160 := by
   unfold joinSlipSelectorMem
   exact toByteArray_write32_size_of_ge mem joinSlipSelectorShifted 128 96 160 hmem
-    (by omega) (by native_decide) (by omega)
+    (by omega) (by decide +native) (by omega)
 
 theorem joinSlipIlkMem_size_of_size96 (ilk : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -1041,7 +1041,7 @@ theorem joinSlipSelectorMem_read64_of_size96 {mem : ByteArray} (hmem : mem.size 
     (joinSlipSelectorMem mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold joinSlipSelectorMem
   rw [toByteArray_write_read_below_of_gap joinSlipSelectorShifted mem 128 64
-    (by rw [hmem]) (by omega) (by rw [hmem]; native_decide), hread64]
+    (by rw [hmem]) (by omega) (by rw [hmem]; decide +native), hread64]
 
 theorem joinSlipIlkMem_read64_of_size96 (ilk : UInt256) {mem : ByteArray}
     (hmem : mem.size = 96)
@@ -1085,21 +1085,21 @@ theorem joinSlipCalldataMem_read128_4_of_size96 (I : ExecutionEnv) (σ : Account
   rw [toByteArray_write_read_below_len_of_gap (joinWadWord I)
       (joinSlipUsrMem (joinUsrMaskedWord I) (gemJoinSlotWord ⟨2⟩ σ I) mem) 196 128 4
       (by rw [hUsrSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hUsrSize]; native_decide)]
+      (by rw [hUsrSize]; decide +native)]
   unfold joinSlipUsrMem
   rw [toByteArray_write_read_below_len_of_gap (joinUsrMaskedWord I)
       (joinSlipIlkMem (gemJoinSlotWord ⟨2⟩ σ I) mem) 164 128 4
       (by rw [hIlkSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hIlkSize]; native_decide)]
+      (by rw [hIlkSize]; decide +native)]
   unfold joinSlipIlkMem
   rw [toByteArray_write_read_below_len_of_gap (gemJoinSlotWord ⟨2⟩ σ I)
       (joinSlipSelectorMem mem) 132 128 4
       (by rw [hSelectorSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hSelectorSize]; native_decide)]
+      (by rw [hSelectorSize]; decide +native)]
   unfold joinSlipSelectorMem
   rw [toByteArray_write_read_window_of_gap joinSlipSelectorShifted mem 128 0 4
-      (by omega) (by norm_num) (by norm_num) (by rw [hmem]; native_decide)]
-  native_decide
+      (by omega) (by norm_num) (by norm_num) (by rw [hmem]; decide +native)]
+  decide +native
 
 theorem joinSlipCalldataMem_read132_32_of_size96 (I : ExecutionEnv) (σ : AccountMap)
     {mem : ByteArray} (hmem : mem.size = 96) :
@@ -1113,16 +1113,16 @@ theorem joinSlipCalldataMem_read132_32_of_size96 (I : ExecutionEnv) (σ : Accoun
   rw [toByteArray_write_read_below_len_of_gap (joinWadWord I)
       (joinSlipUsrMem (joinUsrMaskedWord I) (gemJoinSlotWord ⟨2⟩ σ I) mem) 196 132 32
       (by rw [hUsrSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hUsrSize]; native_decide)]
+      (by rw [hUsrSize]; decide +native)]
   unfold joinSlipUsrMem
   rw [toByteArray_write_read_below_len_of_gap (joinUsrMaskedWord I)
       (joinSlipIlkMem (gemJoinSlotWord ⟨2⟩ σ I) mem) 164 132 32
       (by rw [hIlkSize]) (by omega) (by omega) (by omega)
-      (by rw [hIlkSize]; native_decide)]
+      (by rw [hIlkSize]; decide +native)]
   unfold joinSlipIlkMem
   rw [toByteArray_write_read_back_of_gap (gemJoinSlotWord ⟨2⟩ σ I)
       (joinSlipSelectorMem mem) 132
-      (by rw [hSelectorSize]; native_decide)]
+      (by rw [hSelectorSize]; decide +native)]
 
 theorem joinSlipCalldataMem_read164_32_of_size96 (I : ExecutionEnv) (σ : AccountMap)
     {mem : ByteArray} (hmem : mem.size = 96) :
@@ -1135,11 +1135,11 @@ theorem joinSlipCalldataMem_read164_32_of_size96 (I : ExecutionEnv) (σ : Accoun
   rw [toByteArray_write_read_below_len_of_gap (joinWadWord I)
       (joinSlipUsrMem (joinUsrMaskedWord I) (gemJoinSlotWord ⟨2⟩ σ I) mem) 196 164 32
       (by rw [hUsrSize]) (by omega) (by omega) (by omega)
-      (by rw [hUsrSize]; native_decide)]
+      (by rw [hUsrSize]; decide +native)]
   unfold joinSlipUsrMem
   rw [toByteArray_write_read_back_of_gap (joinUsrMaskedWord I)
       (joinSlipIlkMem (gemJoinSlotWord ⟨2⟩ σ I) mem) 164
-      (by rw [hIlkSize]; native_decide)]
+      (by rw [hIlkSize]; decide +native)]
 
 theorem joinSlipCalldataMem_read196_32_of_size96 (I : ExecutionEnv) (σ : AccountMap)
     {mem : ByteArray} (hmem : mem.size = 96) :
@@ -1150,7 +1150,7 @@ theorem joinSlipCalldataMem_read196_32_of_size96 (I : ExecutionEnv) (σ : Accoun
   unfold joinSlipCalldataMem
   rw [toByteArray_write_read_back_of_gap (joinWadWord I)
       (joinSlipUsrMem (joinUsrMaskedWord I) (gemJoinSlotWord ⟨2⟩ σ I) mem) 196
-      (by rw [hUsrSize]; native_decide)]
+      (by rw [hUsrSize]; decide +native)]
 
 theorem joinSlipCalldataMem_read128_100_of_size96 (I : ExecutionEnv) (σ : AccountMap)
     {mem : ByteArray} (hmem : mem.size = 96) :
@@ -1295,7 +1295,7 @@ theorem joinTransferFromSelectorMem_read64 {mem : ByteArray} (hmem : mem.size = 
     (joinTransferFromSelectorMem mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold joinTransferFromSelectorMem
   rw [toByteArray_write_read_below_of_gap joinTransferFromSelectorShifted mem 128 64
-    (by omega) (by omega) (by rw [hmem]; native_decide), hread64]
+    (by omega) (by omega) (by rw [hmem]; decide +native), hread64]
 
 theorem joinTransferFromSrcMem_read64 (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 228)
@@ -1334,21 +1334,21 @@ theorem joinTransferFromCalldataMem_read128_4 (I : ExecutionEnv) {mem : ByteArra
   rw [toByteArray_write_read_below_len_of_gap (joinWadWord I)
       (joinTransferFromDstMem I mem) 196 128 4
       (by rw [hDstSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hDstSize]; native_decide)]
+      (by rw [hDstSize]; decide +native)]
   unfold joinTransferFromDstMem
   rw [toByteArray_write_read_below_len_of_gap (UInt256.ofNat I.codeOwner.val)
       (joinTransferFromSrcMem I mem) 164 128 4
       (by rw [hSrcSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hSrcSize]; native_decide)]
+      (by rw [hSrcSize]; decide +native)]
   unfold joinTransferFromSrcMem
   rw [toByteArray_write_read_below_len_of_gap (UInt256.ofNat I.source.val)
       (joinTransferFromSelectorMem mem) 132 128 4
       (by rw [hSelectorSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hSelectorSize]; native_decide)]
+      (by rw [hSelectorSize]; decide +native)]
   unfold joinTransferFromSelectorMem
   rw [toByteArray_write_read_window_of_gap joinTransferFromSelectorShifted mem 128 0 4
-      (by omega) (by norm_num) (by norm_num) (by rw [hmem]; native_decide)]
-  native_decide
+      (by omega) (by norm_num) (by norm_num) (by rw [hmem]; decide +native)]
+  decide +native
 
 theorem joinTransferFromCalldataMem_read132_32 (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 228) :
@@ -1361,16 +1361,16 @@ theorem joinTransferFromCalldataMem_read132_32 (I : ExecutionEnv) {mem : ByteArr
   rw [toByteArray_write_read_below_len_of_gap (joinWadWord I)
       (joinTransferFromDstMem I mem) 196 132 32
       (by rw [hDstSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hDstSize]; native_decide)]
+      (by rw [hDstSize]; decide +native)]
   unfold joinTransferFromDstMem
   rw [toByteArray_write_read_below_len_of_gap (UInt256.ofNat I.codeOwner.val)
       (joinTransferFromSrcMem I mem) 164 132 32
       (by rw [hSrcSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hSrcSize]; native_decide)]
+      (by rw [hSrcSize]; decide +native)]
   unfold joinTransferFromSrcMem
   rw [toByteArray_write_read_back_of_gap (UInt256.ofNat I.source.val)
       (joinTransferFromSelectorMem mem) 132
-      (by rw [hSelectorSize]; native_decide)]
+      (by rw [hSelectorSize]; decide +native)]
 
 theorem joinTransferFromCalldataMem_read164_32 (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 228) :
@@ -1382,11 +1382,11 @@ theorem joinTransferFromCalldataMem_read164_32 (I : ExecutionEnv) {mem : ByteArr
   rw [toByteArray_write_read_below_len_of_gap (joinWadWord I)
       (joinTransferFromDstMem I mem) 196 164 32
       (by rw [hDstSize]; omega) (by omega) (by omega) (by omega)
-      (by rw [hDstSize]; native_decide)]
+      (by rw [hDstSize]; decide +native)]
   unfold joinTransferFromDstMem
   rw [toByteArray_write_read_back_of_gap (UInt256.ofNat I.codeOwner.val)
       (joinTransferFromSrcMem I mem) 164
-      (by rw [hSrcSize]; native_decide)]
+      (by rw [hSrcSize]; decide +native)]
 
 theorem joinTransferFromCalldataMem_read196_32 (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 228) :
@@ -1395,7 +1395,7 @@ theorem joinTransferFromCalldataMem_read196_32 (I : ExecutionEnv) {mem : ByteArr
   have hDstSize := joinTransferFromDstMem_size I hmem
   unfold joinTransferFromCalldataMem
   rw [toByteArray_write_read_back_of_gap (joinWadWord I) (joinTransferFromDstMem I mem) 196
-      (by rw [hDstSize]; native_decide)]
+      (by rw [hDstSize]; decide +native)]
 
 theorem joinTransferFromCalldataMem_read128_100 (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 228) :
@@ -1519,15 +1519,15 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
   let target := gemJoinAddressReturnWord ⟨1⟩ σ I
   let rawTarget := gemJoinSlotWord ⟨1⟩ σ I
   let ilk := gemJoinSlotWord ⟨2⟩ σ I
-  have rd635 := rd.jumpdest (by native_decide) (by evm_ov)
-  have rd637 := rd635.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k638, C638, rd638Raw⟩ := rd637.sload (by native_decide) (by evm_ov)
+  have rd635 := rd.jumpdest (by decide +native) (by evm_ov)
+  have rd637 := rd635.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k638, C638, rd638Raw⟩ := rd637.sload (by decide +native) (by evm_ov)
   have rd638 : RD gemJoinBytecode I (Sat256.ofUInt256 g) s0 ⟨638⟩
       (rawTarget :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k638 C638 := by
     simpa [rawTarget, gemJoinSlotWord, solcSlotWord] using rd638Raw
-  have rd640 := rd638.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k641, C641, rd641Raw⟩ := rd640.sload (by native_decide) (by evm_ov)
+  have rd640 := rd638.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k641, C641, rd641Raw⟩ := rd640.sload (by decide +native) (by evm_ov)
   have rd641 : RD gemJoinBytecode I (Sat256.ofUInt256 g) s0 ⟨641⟩
       (ilk :: rawTarget :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: sel :: [])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k641 C641 := by
@@ -1560,7 +1560,7 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
   have hSolcMaskLiteral :
       UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask := by
-    native_decide
+    decide +native
   have hUsrMask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -1571,10 +1571,10 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
   have hInSizeExpr :
       UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨100⟩ =
         (⟨100⟩ : UInt256) := by
-    native_decide
+    decide +native
   have hEndPtrExpr :
       (⟨128⟩ : UInt256) + ⟨100⟩ = (⟨228⟩ : UInt256) := by
-    native_decide
+    decide +native
   have hUsrMemEq :
       (UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -1590,7 +1590,7 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
   have hSelectorShift :
       UInt256.shiftLeft (⟨1047437295⟩ : UInt256) ⟨225⟩ =
         joinSlipSelectorShifted := by
-    native_decide
+    decide +native
   have hSelectorMemEq :
       (UInt256.shiftLeft (⟨1047437295⟩ : UInt256) ⟨225⟩).toByteArray.write 0
           solcFreePtrMem 128 32 =
@@ -1600,7 +1600,7 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
   have rd645 := evm_run rd641 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost hmload64 (by decide) (by evm_ov)]
   have rd645' : RD gemJoinBytecode I (Sat256.ofUInt256 g) s0 ⟨645⟩
       (⟨128⟩ :: ⟨64⟩ :: ilk :: rawTarget :: joinWadWord I :: joinUsrMaskedWord I ::
@@ -1614,7 +1614,7 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
     shl,
     dup2,
     raw mstore 6 (joinSlipSelectorMem solcFreePtrMem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost hSelectorMemEq (by decide) (by evm_ov),
+      (by decide +native) mem_cost hSelectorMemEq (by decide) (by evm_ov),
     push1 ⟨4⟩,
     dup2,
     add,
@@ -1622,7 +1622,7 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
     swap1,
     swap3,
     raw mstore 3 (joinSlipIlkMem ilk solcFreePtrMem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨1⟩,
     push1 ⟨1⟩,
     push1 ⟨160⟩,
@@ -1635,16 +1635,16 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
     dup5,
     add,
     raw mstore 3 (joinSlipUsrMem (joinUsrMaskedWord I) ilk solcFreePtrMem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost hUsrMemEq (by decide) (by evm_ov),
+      (UInt256.ofNat 7) (by decide +native) mem_cost hUsrMemEq (by decide) (by evm_ov),
     push1 ⟨68⟩,
     dup4,
     add,
     dup6,
     swap1,
     raw mstore 3 (joinSlipCalldataMem I σ solcFreePtrMem) (UInt256.ofNat 8)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost hmload64Slip (by decide) (by evm_ov),
     swap3,
     and,
@@ -1680,7 +1680,7 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
           UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨717⟩ := by
-    native_decide
+    decide +native
   rw [hpc717] at rd717
   exact ⟨_, _, by
     simpa [target, rawTarget, ilk, joinSlipSelectorShifted, joinSlipSelectorWord,
@@ -1689,10 +1689,10 @@ theorem RD.gemJoinToSlipExtcodesizeGuard
       gemJoinSlotWord, solcSlotWord, solcAddrMask, hSolcMaskLiteral, hInSizeExpr,
       hEndPtrExpr, hUsrMask, u256_land_comm,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-        solcAddrMask from by native_decide,
+        solcAddrMask from by decide +native,
       show UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨100⟩ = ⟨100⟩
-        from by native_decide,
-      show (⟨128⟩ : UInt256) + ⟨100⟩ = ⟨228⟩ from by native_decide] using rd717⟩
+        from by decide +native,
+      show (⟨128⟩ : UInt256) + ⟨100⟩ = ⟨228⟩ from by decide +native] using rd717⟩
 
 theorem RD.gemJoinToSlipCallReady
     {cA gh bl σ σ₀ A I} {g sel : UInt256}
@@ -1716,9 +1716,9 @@ theorem RD.gemJoinToSlipCallReady
   obtain ⟨gasWord, k, C, rd732⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨717⟩) (okPc := ⟨729⟩) rd717
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by evm_ov)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by evm_ov)
   exact ⟨gasWord, k, C, by simpa [joinSlipOutPtr] using rd732⟩
 
 theorem RD.gemJoinSlipNoCode
@@ -1736,9 +1736,9 @@ theorem RD.gemJoinSlipNoCode
   obtain ⟨_, _, rd717⟩ := RD.gemJoinToSlipExtcodesizeGuard rd634
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨717⟩) (okPc := ⟨729⟩) rd717
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.gemJoinSlipPostCall
     {cA gh bl σ σ₀ A I} {g sel : UInt256}
@@ -1770,7 +1770,7 @@ theorem RD.gemJoinSlipPostCall
     ∧ out.size < UInt256.size := by
   obtain ⟨gasWord, _, _, rd732⟩ := RD.gemJoinToSlipCallReady hreach hcodeSize
   obtain ⟨cA', σ', z, out, A_in, callGas, k733, C733, hΘpack, rd733raw, houtSize⟩ :=
-    RD.call rd732 (by native_decide) hdepth (by evm_ov)
+    RD.call rd732 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, out, A', k733, C733, ?_, ?_, houtSize⟩
   · have haw :
@@ -1778,7 +1778,7 @@ theorem RD.gemJoinSlipPostCall
           (⟨128⟩ : UInt256).toNat joinSlipInSize.toNat)
           joinSlipOutPtr.toNat (⟨0⟩ : UInt256).toNat) = UInt256.ofNat 8 := by
       unfold joinSlipInSize joinSlipOutPtr
-      native_decide
+      decide +native
     have hmin : (min (⟨0⟩ : UInt256) (UInt256.ofNat out.size)).toNat = 0 := by
       have hle : (⟨0⟩ : UInt256) ≤ UInt256.ofNat out.size := by
         show (0 : Nat) ≤ (UInt256.ofNat out.size).val.val
@@ -1832,9 +1832,9 @@ theorem RD.gemJoinSlipCallFailure
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨733⟩) (okPc := ⟨749⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     houtSize (by simp)
 
 theorem RD.gemJoinSlipCallDepthLimit
@@ -1856,17 +1856,17 @@ theorem RD.gemJoinSlipCallDepthLimit
       (cA, σ) k C := by
   obtain ⟨_, _, _, rd732⟩ := RD.gemJoinToSlipCallReady hreach hcodeSize
   obtain ⟨k733, C733, rd733raw⟩ :=
-    RD.callDepthLimit rd732 (by native_decide)
+    RD.callDepthLimit rd732 (by decide +native)
       (by simpa [initState] using hdepth) (by simp)
   have haw :
       UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 8).toNat
         (⟨128⟩ : UInt256).toNat joinSlipInSize.toNat)
         joinSlipOutPtr.toNat (⟨0⟩ : UInt256).toNat) = UInt256.ofNat 8 := by
     unfold joinSlipInSize joinSlipOutPtr
-    native_decide
+    decide +native
   have hmin :
       (min (⟨0⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
-    native_decide
+    decide +native
   have rd733 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨733⟩
       (⟨0⟩ :: joinSlipEndPtr :: joinSlipSelectorWord ::
@@ -1898,10 +1898,10 @@ theorem RD.gemJoinSlipCallSuccessToTransferSetup
   obtain ⟨_, _, rd751⟩ :=
     RD.solcCallSuccessGuardOk (pc := ⟨733⟩) (okPc := ⟨749⟩) rd
       (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
       (by simp)
-  exact ⟨_, _, RD.pop rd751 (by native_decide) (by simp)⟩
+  exact ⟨_, _, RD.pop rd751 (by decide +native) (by simp)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.gemJoinToTransferFromExtcodesizeGuard
@@ -1925,8 +1925,8 @@ theorem RD.gemJoinToTransferFromExtcodesizeGuard
       (UInt256.ofNat 8) outSlip (cAcur, σcur) k' C' := by
   let target := gemJoinAddressReturnWord ⟨3⟩ σcur I
   let rawTarget := gemJoinSlotWord ⟨3⟩ σcur I
-  have rd754 := rd.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k755, C755, rd755raw⟩ := rd754.sload (by native_decide) (by evm_ov)
+  have rd754 := rd.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k755, C755, rd755raw⟩ := rd754.sload (by decide +native) (by evm_ov)
   have rd755 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨755⟩
       (rawTarget :: joinSlipSelectorWord :: gemJoinAddressReturnWord ⟨1⟩ σ I ::
@@ -1971,7 +1971,7 @@ theorem RD.gemJoinToTransferFromExtcodesizeGuard
   have hSelectorShift :
       UInt256.shiftLeft (⟨599290589⟩ : UInt256) ⟨224⟩ =
         joinTransferFromSelectorShifted := by
-    native_decide
+    decide +native
   have hSelectorMemEq :
       (UInt256.shiftLeft (⟨599290589⟩ : UInt256) ⟨224⟩).toByteArray.write 0
           (joinSlipCalldataMem I σ solcFreePtrMem) 128 32 =
@@ -2008,26 +2008,26 @@ theorem RD.gemJoinToTransferFromExtcodesizeGuard
   have rd831 := evm_run rd755 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost hmload64Slip (by decide) (by evm_ov),
     push4 ⟨599290589⟩,
     push1 ⟨224⟩,
     shl,
     dup2,
     raw mstore 0 (joinTransferFromSelectorMem (joinSlipCalldataMem I σ solcFreePtrMem))
-      (UInt256.ofNat 8) (by native_decide) mem_cost hSelectorMemEq (by decide) (by evm_ov),
+      (UInt256.ofNat 8) (by decide +native) mem_cost hSelectorMemEq (by decide) (by evm_ov),
     caller,
     push1 ⟨4⟩,
     dup3,
     add,
     raw mstore 0 (joinTransferFromSrcMem I (joinSlipCalldataMem I σ solcFreePtrMem))
-      (UInt256.ofNat 8) (by native_decide) mem_cost hSrcMemEq (by decide) (by evm_ov),
+      (UInt256.ofNat 8) (by decide +native) mem_cost hSrcMemEq (by decide) (by evm_ov),
     address,
     push1 ⟨36⟩,
     dup3,
     add,
     raw mstore 0 (joinTransferFromDstMem I (joinSlipCalldataMem I σ solcFreePtrMem))
-      (UInt256.ofNat 8) (by native_decide) mem_cost hDstMemEq (by decide) (by evm_ov),
+      (UInt256.ofNat 8) (by decide +native) mem_cost hDstMemEq (by decide) (by evm_ov),
     push1 ⟨68⟩,
     dup2,
     add,
@@ -2035,9 +2035,9 @@ theorem RD.gemJoinToTransferFromExtcodesizeGuard
     swap1,
     raw mstore 0
       (joinTransferFromCalldataMem I (joinSlipCalldataMem I σ solcFreePtrMem))
-      (UInt256.ofNat 8) (by native_decide) mem_cost hWadMemEq (by decide) (by evm_ov),
+      (UInt256.ofNat 8) (by decide +native) mem_cost hWadMemEq (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost hmload64Transfer (by decide) (by evm_ov),
     push1 ⟨1⟩,
     push1 ⟨1⟩,
@@ -2084,7 +2084,7 @@ theorem RD.gemJoinToTransferFromExtcodesizeGuard
           UInt256.ofNat 2 +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ =
         ⟨831⟩ := by
-    native_decide
+    decide +native
   exact ⟨_, _, by
     simpa [target, rawTarget, joinTransferFromSelectorShifted,
       joinTransferFromSelectorWord, joinTransferFromSelectorMem, joinTransferFromSrcMem,
@@ -2093,10 +2093,10 @@ theorem RD.gemJoinToTransferFromExtcodesizeGuard
       gemJoinAddressReturnWord, gemJoinSlotWord, solcSlotWord, hpc831, UInt256.add,
       UInt256.sub,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
-        solcAddrMask from by native_decide,
+        solcAddrMask from by decide +native,
       show UInt256.sub (⟨128⟩ : UInt256) ⟨128⟩ + ⟨100⟩ = ⟨100⟩
-        from by native_decide,
-      show (⟨128⟩ : UInt256) + ⟨100⟩ = ⟨228⟩ from by native_decide]
+        from by decide +native,
+      show (⟨128⟩ : UInt256) + ⟨100⟩ = ⟨228⟩ from by decide +native]
       using rd831⟩
 
 theorem RD.gemJoinToTransferFromCallReady
@@ -2125,9 +2125,9 @@ theorem RD.gemJoinToTransferFromCallReady
   obtain ⟨gasWord, k, C, rd846⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨831⟩) (okPc := ⟨843⟩) rd831
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by evm_ov)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by evm_ov)
   exact ⟨gasWord, k, C, by simpa [joinTransferFromOutPtr] using rd846⟩
 
 theorem RD.gemJoinTransferFromNoCode
@@ -2148,9 +2148,9 @@ theorem RD.gemJoinTransferFromNoCode
   obtain ⟨_, _, rd831⟩ := RD.gemJoinToTransferFromExtcodesizeGuard rd
   exact RD.solcExtcodesizeGuardMissing (pc := ⟨831⟩) (okPc := ⟨843⟩) rd831
     hcodeSize
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by simp)
 
 theorem RD.gemJoinTransferFromPostCall
     {cA gh bl σ σ₀ A I} {g sel : UInt256}
@@ -2195,7 +2195,7 @@ theorem RD.gemJoinTransferFromPostCall
   obtain ⟨gasWord, _, _, rd846⟩ := RD.gemJoinToTransferFromCallReady rd hcodeSize
   obtain ⟨cA', σ', z, outTransfer, A_in, callGas, k847, C847, hΘpack, rd847raw,
       houtSize⟩ :=
-    RD.call rd846 (by native_decide) hdepth (by evm_ov)
+    RD.call rd846 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, outTransfer, A', k847, C847, ?_, ?_, houtSize⟩
   · have haw :
@@ -2204,7 +2204,7 @@ theorem RD.gemJoinTransferFromPostCall
           joinTransferFromOutPtr.toNat joinTransferFromOutSize.toNat) =
           UInt256.ofNat 8 := by
       unfold joinTransferFromInSize joinTransferFromOutPtr joinTransferFromOutSize
-      native_decide
+      decide +native
     exact haw ▸ rd847raw
   · have htgt :
         EVM.address (joinGemAddressOf
@@ -2248,9 +2248,9 @@ theorem RD.gemJoinTransferFromCallFailure
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨847⟩) (okPc := ⟨863⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     houtSize (by simp)
 
 theorem RD.gemJoinTransferFromCallDepthLimit
@@ -2276,17 +2276,17 @@ theorem RD.gemJoinTransferFromCallDepthLimit
       (UInt256.ofNat 8) ByteArray.empty (cAcur, σcur) k' C' := by
   obtain ⟨_, _, _, rd846⟩ := RD.gemJoinToTransferFromCallReady rd hcodeSize
   obtain ⟨k847, C847, rd847raw⟩ :=
-    RD.callDepthLimit rd846 (by native_decide)
+    RD.callDepthLimit rd846 (by decide +native)
       (by simpa [initState] using hdepth) (by simp)
   have haw :
       UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 8).toNat
         (⟨128⟩ : UInt256).toNat joinTransferFromInSize.toNat)
         joinTransferFromOutPtr.toNat joinTransferFromOutSize.toNat) = UInt256.ofNat 8 := by
     unfold joinTransferFromInSize joinTransferFromOutPtr joinTransferFromOutSize
-    native_decide
+    decide +native
   have hmin :
       (min joinTransferFromOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
-    native_decide
+    decide +native
   have rd847 : RD gemJoinBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨847⟩
       (⟨0⟩ :: joinTransferFromEndPtr :: joinTransferFromSelectorWord ::
@@ -2319,8 +2319,8 @@ theorem RD.gemJoinTransferFromCallSuccessToDecode
       mem aw outTransfer acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨847⟩) (okPc := ⟨863⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simp)
 
 theorem RD.gemJoinTransferFromReturnDecodeShortReverts
@@ -2346,10 +2346,10 @@ theorem RD.gemJoinTransferFromReturnDecodeShortReverts
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨865⟩) (okPc := ⟨885⟩) rd
     hshort hhi
     mem_cost (by decide) hMload64Value
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by simp)
 
 theorem RD.gemJoinTransferFromReturnDecodeOk
     {cA gh bl σ σ₀ A I} {g sel retWord gemTarget : UInt256}
@@ -2382,10 +2382,10 @@ theorem RD.gemJoinTransferFromReturnDecodeOk
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨865⟩) (okPc := ⟨885⟩) rd
     hlo hhi
     mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by jump_dest) (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by jump_dest) (by decide +native) (by decide +native) (by decide +native) (by evm_ov)
 
 theorem solcErrorStringMem0_size_of_size228 {mem : ByteArray} (hmem : mem.size = 228) :
     (solcErrorStringMem0 mem).size = 228 := by
@@ -2476,69 +2476,69 @@ theorem RD.gemJoinTransferFromReturnFalseReverts
         ⟨128⟩ :=
     mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
   have rd891 := rd.pushConst (⟨962⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd892 := rd891.jumpiNT (by native_decide) hret (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd892 := rd891.jumpiNT (by decide +native) hret (by evm_ov)
   have rdMload := evm_run rd892 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
-      mem_cost hmload64 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
+      mem_cost hmload64 (by decide +native) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 8)
-      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 8)
-      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
-    raw push1 ⟨23⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov),
+    raw push1 ⟨23⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0 (solcErrorStringMem2 ⟨23⟩ mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl)
-      (by native_decide) (by evm_ov)]
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl)
+      (by decide +native) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst
     (⟨0x23b2b6a537b4b717b330b4b632b216ba3930b739b332b9⟩ : UInt256)
-    (width := 23) (op := .PUSH23) (by decide) (by native_decide)
+    (width := 23) (op := .PUSH23) (by decide) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rdWord := evm_run rdRaw with [
-    raw push1 ⟨73⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov)]
+    raw push1 ⟨73⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov)]
   rw [show UInt256.shiftLeft
       (⟨0x23b2b6a537b4b717b330b4b632b216ba3930b739b332b9⟩ : UInt256) ⟨73⟩ =
-        ⟨0x47656d4a6f696e2f6661696c65642d7472616e73666572000000000000000000⟩ by native_decide] at rdWord
+        ⟨0x47656d4a6f696e2f6661696c65642d7472616e73666572000000000000000000⟩ by decide +native] at rdWord
   exact evm_run rdWord with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 0
       (solcErrorStringMem3 ⟨23⟩
         ⟨0x47656d4a6f696e2f6661696c65642d7472616e73666572000000000000000000⟩ mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl)
-      (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl)
+      (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64_of_size228 ⟨23⟩
         ⟨0x47656d4a6f696e2f6661696c65642d7472616e73666572000000000000000000⟩
         hmem hread64)
-      (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+      (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 1000000 in
 theorem RD.gemJoinTransferFromReturnTrueToStop
@@ -2563,18 +2563,18 @@ theorem RD.gemJoinTransferFromReturnTrueToStop
         ⟨128⟩ :=
     mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64
   have rd891 := rd.pushConst (⟨962⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd962 := rd891.jumpiT (by native_decide) hret (by jump_dest) (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd962 := rd891.jumpiT (by decide +native) hret (by jump_dest) (by evm_ov)
   have rd967pre := evm_run rd962 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
-      mem_cost hmload64 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
+      mem_cost hmload64 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd970 := rd967pre.mstore 0 ((joinWadWord I).toByteArray.write 0 mem 128 32)
-    (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have hmemWrite : ((joinWadWord I).toByteArray.write 0 mem 128 32).size = 228 := by
     exact toByteArray_write32_size_of_le mem (joinWadWord I) 128 228 228 hmem
@@ -2594,16 +2594,16 @@ theorem RD.gemJoinTransferFromReturnTrueToStop
         ⟨128⟩ :=
     mloadFreePtrValue (by rw [hmemWrite]; decide) (by decide) hread64Write
   have rd982pre := evm_run rd970 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
-      mem_cost hmload64Write (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
+      mem_cost hmload64Write (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hmask :
       UInt256.land (joinUsrMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -2616,19 +2616,19 @@ theorem RD.gemJoinTransferFromReturnTrueToStop
     exact solcAddrMask_clean hcanon
   rw [hmask] at rd982pre
   have rd1018pre := evm_run rd982pre with [
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd1016 := rd1018pre.pushConst
     (⟨0xb4e09949657f21548b58afe74e7b86cd2295da5ff1598ae1e5faecb1cf19ca95⟩ : UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native) (by evm_ov)
   have rd1025pre := evm_run rd1016 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1026 := RD.log2
     (a := ⟨128⟩) (b := ⟨32⟩)
     (c := ⟨0xb4e09949657f21548b58afe74e7b86cd2295da5ff1598ae1e5faecb1cf19ca95⟩)
@@ -2638,14 +2638,14 @@ theorem RD.gemJoinTransferFromReturnTrueToStop
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 8).toNat (⟨128⟩ : UInt256).toNat
         (⟨32⟩ : UInt256).toNat))
-    rd1025pre (by native_decide) hperm mem_cost (by native_decide)
+    rd1025pre (by decide +native) hperm mem_cost (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd1029pre := evm_run rd1026 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
-  have rd255 := rd1029pre.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd255 (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
+  have rd255 := rd1029pre.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd255 (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
 
 theorem gemJoin_typedCallViaEVM_zero_setSubstate
     {cfg : Config} {evm evm' : EVM.State}
@@ -2687,26 +2687,26 @@ theorem gemJoinReachJoinBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : gemJoinSelWord I = ⟨0x3b4da69f⟩ :=
     gemJoinSelWord_eq_of_beq I hsz 0x3b 0x4d 0xa6 0x9f ⟨0x3b4da69f⟩
-      (by native_decide) (by simpa [gemJoinSelBytes] using hsel)
+      (by decide +native) (by simpa [gemJoinSelBytes] using hsel)
   have hroot :
       UInt256.gt (armSelNat gemJoinBytecode gemJoinRootSplitPc) (gemJoinSelWord I)
         ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat gemJoinBytecode (nthArmPc gemJoinBytecode gemJoinLowFirstArmPc j))
         (gemJoinSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
     rw [hword]
-    native_decide
+    decide +native
   have htake :
       UInt256.eq (armSelNat gemJoinBytecode (nthArmPc gemJoinBytecode gemJoinLowFirstArmPc 1))
         (gemJoinSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact gemJoinReachLowBody 1 (by omega) ⟨210⟩ hcode hwv hsz hsize hroot heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem gemJoinJoinX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -2719,10 +2719,10 @@ theorem gemJoinJoinX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := gemJoinBytecode) (entry := ⟨210⟩) (ret := ⟨254⟩)
     (decoded := ⟨232⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native)
     (by
       apply ult_zero
       rw [usub_ofNat_word_toNat (by omega : 4 ≤ I.calldata.size) hsize]
@@ -2731,10 +2731,10 @@ theorem gemJoinJoinX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256
   obtain ⟨_, _, hroutine⟩ := RD.solcAddressUint256ExternalMaskAndJumpMasked
     (code := gemJoinBytecode) (decoded := ⟨232⟩) (ret := ⟨254⟩) (routine := ⟨487⟩)
     (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [joinWadWord, joinUsrMaskedWord, joinUsrWord, calldataWord] using hroutine⟩
 
@@ -2754,10 +2754,10 @@ theorem gemJoinJoinX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt25
   exact RD.solcExternalStaticArgsShortReverts
     (code := gemJoinBytecode) (sel := sel) (entry := ⟨210⟩) (ret := ⟨254⟩)
     (decoded := ⟨232⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 set_option maxHeartbeats 1000000 in
 theorem gemJoinJoinX_liveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -2769,20 +2769,20 @@ theorem gemJoinJoinX_liveOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [joinWadWord I, joinUsrMaskedWord I, ⟨254⟩, sel]
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   have rd490pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨k491, C491, rd491raw⟩ := rd490pre.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨k491, C491, rd491raw⟩ := rd490pre.sload (by decide +native) (by evm_ov)
   have rd491 : RD gemJoinBytecode I g s0 ⟨491⟩
       (gemJoinSlotWord ⟨5⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k491 C491 := by
     simpa [gemJoinSlotWord] using rd491raw
   have rd494pre := evm_run rd491 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hlive, u256_eq_refl] at rd494pre
   have rd497 := rd494pre.pushConst (⟨561⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd497.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd497.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
@@ -2793,22 +2793,22 @@ theorem gemJoinJoinX_liveRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev gemJoinBytecode g s0 := by
   have rd490pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨k491, C491, rd491raw⟩ := rd490pre.sload (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨k491, C491, rd491raw⟩ := rd490pre.sload (by decide +native) (by evm_ov)
   have rd491 : RD gemJoinBytecode I g s0 ⟨491⟩
       (gemJoinSlotWord ⟨5⟩ σ I :: joinWadWord I :: joinUsrMaskedWord I :: ⟨254⟩ :: [sel])
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k491 C491 := by
     simpa [gemJoinSlotWord] using rd491raw
   have rd494pre := evm_run rd491 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq : UInt256.eq (⟨1⟩ : UInt256) (gemJoinSlotWord ⟨5⟩ σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne (by intro hbad; exact hlive hbad.symm)
   rw [heq] at rd494pre
   have rd497 := rd494pre.pushConst (⟨561⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd498 := rd497.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd498 := rd497.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨498⟩)
     (len := ⟨16⟩)
@@ -2821,9 +2821,9 @@ theorem gemJoinJoinX_liveRevert {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     (by
       unfold solcErrorStringRevertTailWf
       repeat' apply And.intro
-      all_goals native_decide)
+      all_goals decide +native)
     (by decide)
-    (by native_decide)
+    (by decide +native)
     solcFreePtrMem_size
     solcFreePtrMem_read64
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -2840,15 +2840,15 @@ theorem gemJoinJoinX_overflowRevert {cA σ I} {g : Sat256} {s0 : State} {k C : �
       slt_lit_one_high (a := joinWadWord I) (m := 0) (by norm_num)
         (by simpa [intLimit] using hwadHigh)
   have rd567pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw slt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw slt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov)]
   rw [hslt] at rd567pre
   have rd570 := rd567pre.pushConst (⟨634⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd571 := rd570.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd571 := rd570.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨571⟩)
     (len := ⟨16⟩)
@@ -2861,9 +2861,9 @@ theorem gemJoinJoinX_overflowRevert {cA σ I} {g : Sat256} {s0 : State} {k C : �
     (by
       unfold solcErrorStringRevertTailWf
       repeat' apply And.intro
-      all_goals native_decide)
+      all_goals decide +native)
     (by decide)
-    (by native_decide)
+    (by decide +native)
     solcFreePtrMem_size
     solcFreePtrMem_read64
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -2882,15 +2882,15 @@ theorem gemJoinJoinX_nonoverflowOk {cA σ I} {g : Sat256} {s0 : State} {k C : �
       slt_lit_zero (a := joinWadWord I) (m := 0) (by norm_num)
         (by omega) (by simpa [intLimit] using hwadLow)
   have rd567pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw slt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw slt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov)]
   rw [hslt] at rd567pre
   have rd570 := rd567pre.pushConst (⟨634⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd570.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd570.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 theorem gemJoinX_join_notLive {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -2950,7 +2950,7 @@ theorem gemJoinX_join_slipCallDepthLimit {cA gh bl σ σ₀ A I} {g sel : UInt25
   obtain ⟨_, _, rd634⟩ := gemJoinJoinX_nonoverflowOk (I := I) hwadLow rd561
   obtain ⟨_, _, rd733⟩ :=
     RD.gemJoinSlipCallDepthLimit ⟨_, _, rd634⟩ hvatCode hdepth
-  exact RD.gemJoinSlipCallFailure rd733 (by native_decide)
+  exact RD.gemJoinSlipCallFailure rd733 (by decide +native)
 
 theorem gemJoinX_join_slipCallFailure {cA gh bl σ σ₀ A I} {g sel : UInt256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -3146,7 +3146,7 @@ theorem gemJoinJoinBodyCoreVatNoCode
       σ_solm.find? (AccountAddress.ofUInt256 (gemJoinAddressReturnWord ⟨1⟩ σ_solm I)) with
     | none =>
         simpa [evmSolm, initState, State.lookupAccount, hacc] using
-          (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+          (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
     | some acc =>
         have hword := congrArg UInt256.toNat hnoCodeSolm
         simpa [evmSolm, initState, State.lookupAccount, hacc] using hword
@@ -3580,7 +3580,7 @@ theorem gemJoinJoinBodyCoreGemNoCode
         (gemJoinAddressReturnWord ⟨3⟩ σ_slip_solm I)) with
     | none =>
         simpa [evmSolmSlip, evmSolm, initState, State.lookupAccount, hacc] using
-          (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+          (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
     | some acc =>
         have hword := congrArg UInt256.toNat hgemNoCodeSolmWord
         simpa [evmSolmSlip, evmSolm, initState, State.lookupAccount, hacc] using hword
@@ -4418,7 +4418,7 @@ theorem gemJoinJoinBodyCoreTransferReturnTrueSmall
     · simpa [evmEvmTransfer, evmSolmTransfer] using hAccountsTransfer
   have henc : returnEquiv ByteArray.empty none joinTransition.returnType := by
     rw [show joinTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hretFinal.reEquivExecutionGenEVMStateEquiv hcode hdispatch hdecode hbody
     rfl (accountMapEquiv.refl σ_transfer) hStateTransfer henc
 
@@ -5075,8 +5075,8 @@ theorem gemJoinJoinBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       exact not_or.mpr
                         ⟨by
                           rw [hmem]
-                          native_decide,
-                        by native_decide⟩
+                          decide +native,
+                        by decide +native⟩
                     have hmload128 :
                         (if (⟨128⟩ : UInt256).toNat ≥ transferReturnMem.size
                             ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 8 * ⟨32⟩ then
@@ -5088,7 +5088,7 @@ theorem gemJoinJoinBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                                     (⟨128⟩ : UInt256).toNat 32))) =
                           retWord := by
                         rw [if_neg hnot128]
-                        rw [show (⟨128⟩ : UInt256).toNat = 128 by native_decide]
+                        rw [show (⟨128⟩ : UInt256).toNat = 128 by decide +native]
                         rw [hread128]
                     obtain ⟨_, _, rd888⟩ :=
                       RD.gemJoinTransferFromReturnDecodeOk (retWord := retWord)

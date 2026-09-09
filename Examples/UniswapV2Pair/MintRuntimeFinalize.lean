@@ -41,7 +41,7 @@ theorem uniswapMintSyncLogMem_mload64_of_160
       ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [uniswapMintSyncLogMem_size_192_of_160 packed hmem]; decide)
-    (by native_decide)
+    (by decide +native)
     (uniswapMintSyncLogMem_read64_of_160 packed hmem hmem64)
 
 theorem uniswapMintSyncLogMem_size_192_of_size_le
@@ -79,7 +79,7 @@ theorem uniswapMintSyncLogMem_mload64_of_size_le
       ⟨128⟩ :=
   mloadFreePtrValue
     (by rw [uniswapMintSyncLogMem_size_192_of_size_le packed hlo hhi]; decide)
-    (by native_decide)
+    (by decide +native)
     (uniswapMintSyncLogMem_read64_of_size_le packed hlo hmem64)
 
 set_option maxHeartbeats 1000000 in
@@ -125,7 +125,7 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateElapsedZeroFeeOffReturns
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by omega) (by native_decide) hmem64
+    mloadFreePtrValue (by omega) (by decide +native) hmem64
   obtain ⟨_, _, rd3926⟩ :=
     uniswapMintRuntimeUpdateEmitSyncReturn
       (packed := packed)
@@ -142,30 +142,30 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateElapsedZeroFeeOffReturns
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+        decide +native)
       hmload64
-      (by native_decide)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
+        decide +native)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
+        decide +native)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+        decide +native)
       (uniswapMintSyncLogMem_mload64_of_size_le packed hmemLo hmemHi hmem64)
-      (by native_decide)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide) hperm
+        decide +native)
+      (by decide +native) hperm
   exact uniswapMintRuntimeAfterUpdateFeeOffReturns rd3926 hfeeOff
     (uniswapMintSyncLogMem_size_192_of_size_le packed hmemLo hmemHi)
     (uniswapMintSyncLogMem_read64_of_size_le packed hmemLo hmem64) hperm
@@ -224,7 +224,7 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateElapsedZeroFeeOnReturns
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by omega) (by native_decide) hmem64
+    mloadFreePtrValue (by omega) (by decide +native) hmem64
   obtain ⟨_, _, rd3926⟩ :=
     uniswapMintRuntimeUpdateEmitSyncReturn
       (packed := packed)
@@ -241,30 +241,30 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateElapsedZeroFeeOnReturns
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+        decide +native)
       hmload64
-      (by native_decide)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
+        decide +native)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
+        decide +native)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+        decide +native)
       (uniswapMintSyncLogMem_mload64_of_size_le packed hmemLo hmemHi hmem64)
-      (by native_decide)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide) hperm
+        decide +native)
+      (by decide +native) hperm
   exact uniswapMintRuntimeAfterUpdateFeeOnReturns rd3926 hfeeOn
     (by simpa [packed, σPacked] using hfitKLast)
     (uniswapMintSyncLogMem_size_192_of_size_le packed hmemLo hmemHi)
@@ -330,7 +330,7 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOffReturns
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by omega) (by native_decide) hmem64
+    mloadFreePtrValue (by omega) (by decide +native) hmem64
   obtain ⟨_, _, rd3926⟩ :=
     uniswapMintRuntimeUpdateEmitSyncReturn
       (packed :=
@@ -353,32 +353,32 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOffReturns
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+        decide +native)
       hmload64
-      (by native_decide)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
+        decide +native)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
+        decide +native)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+        decide +native)
       (uniswapMintSyncLogMem_mload64_of_size_le
         (uniswapUpdateCumulativePackedWordWith σMint I balance0 balance1 reserve0 reserve1)
         hmemLo hmemHi hmem64)
-      (by native_decide)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide) hperm
+        decide +native)
+      (by decide +native) hperm
   simpa [uniswapUpdateCumulativeReturnMapWith] using
     uniswapMintRuntimeAfterUpdateFeeOffReturns rd3926 hfeeOff
       (uniswapMintSyncLogMem_size_192_of_size_le
@@ -475,7 +475,7 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOnReturns
        else UInt256.ofNat
          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))) =
         ⟨128⟩ :=
-    mloadFreePtrValue (by omega) (by native_decide) hmem64
+    mloadFreePtrValue (by omega) (by decide +native) hmem64
   obtain ⟨_, _, rd3926⟩ :=
     uniswapMintRuntimeUpdateEmitSyncReturn
       (packed :=
@@ -498,32 +498,32 @@ theorem uniswapMintRuntimeAfterInternalMintUpdateCumulativeFeeOnReturns
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+        decide +native)
       hmload64
-      (by native_decide)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
+        decide +native)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
+        decide +native)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+        decide +native)
       (uniswapMintSyncLogMem_mload64_of_size_le
         (uniswapUpdateCumulativePackedWordWith σMint I balance0 balance1 reserve0 reserve1)
         hmemLo hmemHi hmem64)
-      (by native_decide)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide) hperm
+        decide +native)
+      (by decide +native) hperm
   simpa [uniswapUpdateCumulativePackedMapWith, uniswapUpdateCumulativePackedWordWith] using
     uniswapMintRuntimeAfterUpdateFeeOnReturns rd3926 hfeeOn
       (by

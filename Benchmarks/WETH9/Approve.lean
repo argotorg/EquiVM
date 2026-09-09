@@ -56,7 +56,7 @@ theorem approveStore_get_guy (I : ExecutionEnv) :
   unfold approveStore
   rw [store_get_ne
     (L := (∅ : Store).insert "guy" (approveGuyValue I))
-    (k := "wad") (a := "guy") (approveWadValue I) (by native_decide)]
+    (k := "wad") (a := "guy") (approveWadValue I) (by decide +native)]
   simp
 
 theorem approveStore_get_wad (I : ExecutionEnv) :
@@ -67,7 +67,7 @@ theorem approveStore_get_wad (I : ExecutionEnv) :
 theorem approveStore_allowance (I : ExecutionEnv) :
     (approveStore I).get? "allowance" = none := by
   unfold approveStore
-  rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
+  rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native)]
   simp
 
 theorem approveStore_index_guy (I : ExecutionEnv) :
@@ -95,7 +95,7 @@ theorem weth9SelectorDispatchApprove {I : ExecutionEnv} (hsel : selIs I (weth9Se
   rw [selectorDispatchMsg_eq_dispatchList contract I.calldata]
   simp only [contract, dispatchList, selectorOf, hcd,
     weth9NameSelectorBytes, weth9ApproveSelectorBytes]
-  native_decide
+  decide +native
 
 theorem weth9Decode_approve_ok {I : ExecutionEnv} (hsz68 : 68 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (approveTransition.params.map Param.name)
@@ -282,26 +282,26 @@ theorem weth9ApproveReachDecode {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h304⟩ := weth9ReachApprove (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode (by omega) hsize hsel
   obtain ⟨_, _, h318⟩ := weth9GuardPeelOk (gt := ⟨316⟩) h304 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOkUnsigned (by simpa using hsz68) hsize
-  have h339 := h318.push2 ⟨361⟩ (by native_decide) (by simp)
-    |>.push1 ⟨4⟩ (by native_decide) (by simp)
-    |>.dup1 (by native_decide) (by simp)
-    |>.calldatasize (by native_decide) (by simp)
-    |>.sub (by native_decide) (by simp)
-    |>.push1 ⟨64⟩ (by native_decide) (by simp)
-    |>.dup2 (by native_decide) (by simp)
-    |>.lt (by native_decide) (by simp)
-    |>.iszero (by native_decide) (by simp)
-    |>.push2 ⟨339⟩ (by native_decide) (by simp)
-    |>.jumpiT (by native_decide) (by rw [hlt]; decide) (by jump_dest) (by simp)
+  have h339 := h318.push2 ⟨361⟩ (by decide +native) (by simp)
+    |>.push1 ⟨4⟩ (by decide +native) (by simp)
+    |>.dup1 (by decide +native) (by simp)
+    |>.calldatasize (by decide +native) (by simp)
+    |>.sub (by decide +native) (by simp)
+    |>.push1 ⟨64⟩ (by decide +native) (by simp)
+    |>.dup2 (by decide +native) (by simp)
+    |>.lt (by decide +native) (by simp)
+    |>.iszero (by decide +native) (by simp)
+    |>.push2 ⟨339⟩ (by decide +native) (by simp)
+    |>.jumpiT (by decide +native) (by rw [hlt]; decide) (by jump_dest) (by simp)
   obtain ⟨_, _, h981⟩ := RD.solcAddressUint256ExternalMaskAndJumpMasked (routine := ⟨981⟩) h339
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) (by simp only [List.length_singleton]; omega)
   exact ⟨_, _, by
     simpa [approveWadWord, approveGuyMaskedWord, approveGuyWord, calldataWord] using h981⟩
@@ -330,36 +330,36 @@ theorem weth9ApproveStoreLog {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (approveInnerSlot I) (approveGuyMaskedWord I)
         (approveInnerMem_size I)
   have rd982pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd987 := rd982pre.mstore 0 (wordAt0Mem (solcSourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd993pre := evm_run rd987 with [
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd994 := rd993pre.mstore 0 (approveInnerMem I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd998pre := evm_run rd994 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have rd999 := rd998pre.keccak256 0 (approveInnerSlot I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost hinnerSlot (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hinnerSlot (by decide +native) (by evm_ov)
   have rd1011pre := evm_run rd999 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov)]
   have hmask :
       UInt256.land (approveGuyMaskedWord I)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -369,62 +369,62 @@ theorem weth9ApproveStoreLog {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     exact solcAddrMask_clean (approveGuyMaskedWord_canonical I)
   rw [hmask] at rd1011pre
   have rd1012 := rd1011pre.mstore 0 (wordAt0Mem (approveGuyMaskedWord I) (approveInnerMem I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1014pre := evm_run rd1012 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov)]
   have rd1015 := rd1014pre.mstore 0 (approveHashMem I) (UInt256.ofNat 3)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1017pre := evm_run rd1015 with [
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have rd1018 := rd1017pre.keccak256 0
     (mapSlot (approveGuyMaskedWord I) (approveInnerSlot I)) (UInt256.ofNat 3)
-    (by native_decide) mem_cost houterSlot (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost houterSlot (by decide +native) (by evm_ov)
   have rd1020pre := evm_run rd1018 with [
-    raw dup7 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1021raw⟩ := rd1020pre.sstore hperm (by native_decide)
+    raw dup7 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd1021raw⟩ := rd1020pre.sstore hperm (by decide +native)
     (by change 9 ≤ 1024; decide)
   have rd1026pre := evm_run rd1021raw with [
-    raw dup2 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
+    raw dup2 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost
       (approveHashMem_mload64 I) (by decide) (by evm_ov),
-    raw dup7 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw dup7 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1026 := rd1026pre.mstore 6 (approveLogMem I) (UInt256.ofNat 5)
-    (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1034pre := evm_run rd1026 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost
+    raw swap2 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide +native) mem_cost
       (approveLogMem_mload64 I) (by decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap5 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov)]
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap5 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov)]
   have rd1035 := rd1034pre.pushConst approveApprovalTopic (width := 32) (op := .PUSH32)
-    (by decide) (by native_decide) (by evm_ov)
+    (by decide) (by decide +native) (by evm_ov)
   have rd1074pre := evm_run rd1035 with [
-    raw swap3 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  have rd1074 := rd1074pre.log3 0 (UInt256.ofNat 5) (by native_decide) hperm
+    raw swap3 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  have rd1074 := rd1074pre.log3 0 (UInt256.ofNat 5) (by decide +native) hperm
     mem_cost (by decide) (by change 5 ≤ 1024; decide)
   have rd1082pre := evm_run rd1074 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
+    raw pop (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [approveStorageSlot_eq_innerSlot I] using
-      rd1082pre.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      rd1082pre.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 /-- The full `approve` EVM run (68 ≤ calldata): stores `allowance[caller][guy] = wad`, logs, and
     returns the ABI encoding of `true`. -/
@@ -439,8 +439,8 @@ theorem weth9ApproveX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h361⟩ := weth9ApproveStoreLog (I := I) hperm h981
   have hretWf : solcReturnBoolFromMemWf weth9Bytecode ⟨361⟩ := by
     unfold solcReturnBoolFromMemWf
-    repeat' first | apply And.intro | native_decide
-  have hbool : UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ := by native_decide
+    repeat' first | apply And.intro | decide +native
+  have hbool : UInt256.isZero (UInt256.isZero (⟨1⟩ : UInt256)) = ⟨1⟩ := by decide +native
   simpa [hbool] using
     RD.solcReturnBoolFromMem h361 hretWf (approveLogMem_mload64 I) (by rfl)
       (approveBoolReturnMem_mload64 I) (approveBoolReturnMem_read128 I)
@@ -481,8 +481,8 @@ theorem weth9ApproveBodyCoreDecodeFailed_short {cA gh bl σ_evm σ_solm σ₀ A 
   obtain ⟨_, _, h304⟩ := weth9ReachApprove (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
     (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h318⟩ := weth9GuardPeelOk (gt := ⟨316⟩) h304 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
   have hltShort : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨64⟩ = ⟨1⟩ := by
     apply ult_one
     rw [usub_ofNat_word_toNat (show (⟨4⟩ : UInt256).toNat ≤ I.calldata.size by simpa using hsz4)
@@ -491,18 +491,18 @@ theorem weth9ApproveBodyCoreDecodeFailed_short {cA gh bl σ_evm σ_solm σ₀ A 
       show (⟨4⟩ : UInt256).toNat = 4 from rfl]; omega
   have hrev : RDrev weth9Bytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) :=
-    h318.push2 ⟨361⟩ (by native_decide) (by simp)
-      |>.push1 ⟨4⟩ (by native_decide) (by simp)
-      |>.dup1 (by native_decide) (by simp)
-      |>.calldatasize (by native_decide) (by simp)
-      |>.sub (by native_decide) (by simp)
-      |>.push1 ⟨64⟩ (by native_decide) (by simp)
-      |>.dup2 (by native_decide) (by simp)
-      |>.lt (by native_decide) (by simp)
-      |>.iszero (by native_decide) (by simp)
-      |>.push2 ⟨339⟩ (by native_decide) (by simp)
-      |>.jumpiNT (by native_decide) (by rw [hltShort]; decide) (by simp)
-      |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+    h318.push2 ⟨361⟩ (by decide +native) (by simp)
+      |>.push1 ⟨4⟩ (by decide +native) (by simp)
+      |>.dup1 (by decide +native) (by simp)
+      |>.calldatasize (by decide +native) (by simp)
+      |>.sub (by decide +native) (by simp)
+      |>.push1 ⟨64⟩ (by decide +native) (by simp)
+      |>.dup2 (by decide +native) (by simp)
+      |>.lt (by decide +native) (by simp)
+      |>.iszero (by decide +native) (by simp)
+      |>.push2 ⟨339⟩ (by decide +native) (by simp)
+      |>.jumpiNT (by decide +native) (by rw [hltShort]; decide) (by simp)
+      |>.solcPush1Dup1Revert0 (by decide +native) (by decide +native) (by decide +native) (by simp)
   exact weth9ReEquivDecodeFailed hcode hrev (weth9SelectorDispatchApprove hsel)
     (weth9Decode_approve_none_short hsz4 hshort)
 
@@ -513,7 +513,7 @@ theorem weth9ApproveBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (weth9SelBytes 1) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (weth9SelBytes 1) (by decide +native) hsel
   by_cases hwv : I.weiValue = ⟨0⟩
   · by_cases hsz68 : 68 ≤ I.calldata.size
     · exact weth9ApproveBodyCoreOk hcode hsize hperm hwv hsz68 hsel hAccounts
@@ -521,8 +521,8 @@ theorem weth9ApproveBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   · obtain ⟨_, _, h304⟩ := weth9ReachApprove (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := weth9GuardPeelRev (gt := ⟨316⟩) h304 hwv
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     exact weth9NonpayableRevert hcode hrev (weth9SelectorDispatchApprove hsel)
       (fun callargs _ => bodyReverts_nonPayable (by simp only [initState]; exact hwv))
 

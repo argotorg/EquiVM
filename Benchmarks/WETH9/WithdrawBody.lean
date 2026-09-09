@@ -47,7 +47,7 @@ theorem weth9SelectorDispatchWithdraw {I : ExecutionEnv} (hsel : selIs I (weth9S
   simp only [contract, dispatchList, selectorOf, hcd,
     weth9NameSelectorBytes, weth9ApproveSelectorBytes, weth9TotalSupplySelectorBytes,
     weth9TransferFromSelectorBytes, weth9WithdrawSelectorBytes]
-  native_decide
+  decide +native
 
 /-- Legacy (solc 0.5) single-`uint256` calldata decode succeeds for any `size ≥ 36` — including huge
     calldata (`≥ 2^255`), matching the runtime's **unsigned** `LT` length guard. -/
@@ -277,8 +277,8 @@ theorem weth9WithdrawGuardRev {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h487⟩ := weth9ReachWithdraw (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   exact weth9GuardPeelRev (gt := ⟨499⟩) h487 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 /-- `callvalue = 0`, `size < 36`: the ABI length guard reverts. -/
 theorem weth9WithdrawDecodeRev {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -289,26 +289,26 @@ theorem weth9WithdrawDecodeRev {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h487⟩ := weth9ReachWithdraw (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h501⟩ := weth9GuardPeelOk (gt := ⟨499⟩) h487 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) (by decide +native)
   have hltShort : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨1⟩ := by
     apply ult_one
     rw [usub_ofNat_word_toNat (show (⟨4⟩ : UInt256).toNat ≤ I.calldata.size by simpa using hsz4)
       hsize]
     simp only [show (⟨32⟩ : UInt256).toNat = 32 from rfl,
       show (⟨4⟩ : UInt256).toNat = 4 from rfl]; omega
-  exact h501.push2 ⟨164⟩ (by native_decide) (by simp)
-    |>.push1 ⟨4⟩ (by native_decide) (by simp)
-    |>.dup1 (by native_decide) (by simp)
-    |>.calldatasize (by native_decide) (by simp)
-    |>.sub (by native_decide) (by simp)
-    |>.push1 ⟨32⟩ (by native_decide) (by simp)
-    |>.dup2 (by native_decide) (by simp)
-    |>.lt (by native_decide) (by simp)
-    |>.iszero (by native_decide) (by simp)
-    |>.push2 ⟨522⟩ (by native_decide) (by simp)
-    |>.jumpiNT (by native_decide) (by rw [hltShort]; decide) (by simp)
-    |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+  exact h501.push2 ⟨164⟩ (by decide +native) (by simp)
+    |>.push1 ⟨4⟩ (by decide +native) (by simp)
+    |>.dup1 (by decide +native) (by simp)
+    |>.calldatasize (by decide +native) (by simp)
+    |>.sub (by decide +native) (by simp)
+    |>.push1 ⟨32⟩ (by decide +native) (by simp)
+    |>.dup2 (by decide +native) (by simp)
+    |>.lt (by decide +native) (by simp)
+    |>.iszero (by decide +native) (by simp)
+    |>.push2 ⟨522⟩ (by decide +native) (by simp)
+    |>.jumpiNT (by decide +native) (by rw [hltShort]; decide) (by simp)
+    |>.solcPush1Dup1Revert0 (by decide +native) (by decide +native) (by decide +native) (by simp)
 
 /-- `callvalue = 0`, `size ≥ 36`: reach the body entry (pc 1395) with `[wad, 164, sel]`. -/
 theorem weth9WithdrawReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -321,26 +321,26 @@ theorem weth9WithdrawReachBody {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h487⟩ := weth9ReachWithdraw (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode (by omega) hsize hsel
   obtain ⟨_, _, h501⟩ := weth9GuardPeelOk (gt := ⟨499⟩) h487 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) (by decide +native)
   have hlt : UInt256.lt (UInt256.sub (UInt256.ofNat I.calldata.size) ⟨4⟩) ⟨32⟩ = ⟨0⟩ :=
     solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize
-  have h1395 := h501.push2 ⟨164⟩ (by native_decide) (by simp)
-    |>.push1 ⟨4⟩ (by native_decide) (by simp)
-    |>.dup1 (by native_decide) (by simp)
-    |>.calldatasize (by native_decide) (by simp)
-    |>.sub (by native_decide) (by simp)
-    |>.push1 ⟨32⟩ (by native_decide) (by simp)
-    |>.dup2 (by native_decide) (by simp)
-    |>.lt (by native_decide) (by simp)
-    |>.iszero (by native_decide) (by simp)
-    |>.push2 ⟨522⟩ (by native_decide) (by simp)
-    |>.jumpiT (by native_decide) (by rw [hlt]; decide) (by jump_dest) (by simp)
-    |>.jumpdest (by native_decide) (by simp)
-    |>.pop (by native_decide) (by simp)
-    |>.calldataload (by native_decide) (by simp)
-    |>.push2 ⟨1395⟩ (by native_decide) (by simp)
-    |>.jump (by native_decide) (by jump_dest) (by simp)
+  have h1395 := h501.push2 ⟨164⟩ (by decide +native) (by simp)
+    |>.push1 ⟨4⟩ (by decide +native) (by simp)
+    |>.dup1 (by decide +native) (by simp)
+    |>.calldatasize (by decide +native) (by simp)
+    |>.sub (by decide +native) (by simp)
+    |>.push1 ⟨32⟩ (by decide +native) (by simp)
+    |>.dup2 (by decide +native) (by simp)
+    |>.lt (by decide +native) (by simp)
+    |>.iszero (by decide +native) (by simp)
+    |>.push2 ⟨522⟩ (by decide +native) (by simp)
+    |>.jumpiT (by decide +native) (by rw [hlt]; decide) (by jump_dest) (by simp)
+    |>.jumpdest (by decide +native) (by simp)
+    |>.pop (by decide +native) (by simp)
+    |>.calldataload (by decide +native) (by simp)
+    |>.push2 ⟨1395⟩ (by decide +native) (by simp)
+    |>.jump (by decide +native) (by jump_dest) (by simp)
   exact ⟨_, _, by simpa [withdrawWadWord, calldataWord] using h1395⟩
 
 /-! ## EVM trace: `require(balanceOf ≥ wad)` check + `balanceOf -= wad` store -/
@@ -377,15 +377,15 @@ theorem weth9WithdrawRequireCheck {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
   have hA := evm_run h with [
     jumpdest, caller, push1 ⟨0⟩, swap1, dup2,
     raw mstore 0 (wordAt0Mem (solcSourceWord I) solcFreePtrMem) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov),
     push1 ⟨3⟩, push1 ⟨32⟩,
     raw mstore 0 (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rw [show (⟨32⟩ : UInt256).toNat = 32 from rfl]; rfl)
-      (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rw [show (⟨32⟩ : UInt256).toNat = 32 from rfl]; rfl)
+      (by decide +native) (by evm_ov),
     push1 ⟨64⟩, swap1,
-    raw keccak256 0 (callerBalSlot I) (UInt256.ofNat 3) (by native_decide) mem_cost
-      (withdrawKeccak1 I) (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, hSload⟩ := hA.sload (by native_decide) (by evm_ov)
+    raw keccak256 0 (callerBalSlot I) (UInt256.ofNat 3) (by decide +native) mem_cost
+      (withdrawKeccak1 I) (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, hSload⟩ := hA.sload (by decide +native) (by evm_ov)
   exact ⟨_, _, evm_run hSload with [dup2, gt, iszero]⟩
 
 /-- `bal < wad`: `require(balanceOf ≥ wad)` reverts at pc 1419. -/
@@ -398,9 +398,9 @@ theorem weth9WithdrawRequireRev {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
   obtain ⟨_, _, h1415⟩ := weth9WithdrawRequireCheck h
   have hgt : UInt256.gt (withdrawWadWord I) (solcSlotWord σ I (callerBalSlot I)) = ⟨1⟩ :=
     ugt_one (by omega)
-  exact h1415.push2 ⟨1423⟩ (by native_decide) (by simp)
-    |>.jumpiNT (by native_decide) (by rw [hgt]; decide) (by simp)
-    |>.solcPush1Dup1Revert0 (by native_decide) (by native_decide) (by native_decide) (by simp)
+  exact h1415.push2 ⟨1423⟩ (by decide +native) (by simp)
+    |>.jumpiNT (by decide +native) (by rw [hgt]; decide) (by simp)
+    |>.solcPush1Dup1Revert0 (by decide +native) (by decide +native) (by decide +native) (by simp)
 
 /-- `bal ≥ wad`: pass the require, re-keccak, `balanceOf[caller] -= wad` (`SSTORE`), reaching the
     `CALL` setup (pc 1447) with the mapping-hash memory and the decremented balance. -/
@@ -417,26 +417,26 @@ theorem weth9WithdrawReachStore {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
       (cA, sstoreAccountMap I.codeOwner σ (callerBalSlot I)
         (UInt256.sub (solcSlotWord σ I (callerBalSlot I)) (withdrawWadWord I))) k' C' := by
   obtain ⟨_, _, h1415⟩ := weth9WithdrawRequireCheck h
-  have h1423 := h1415.push2 ⟨1423⟩ (by native_decide) (by simp)
-    |>.jumpiT (by native_decide) (by rw [ugt_zero hle]; decide) (by jump_dest) (by simp)
-    |>.jumpdest (by native_decide) (by simp)
+  have h1423 := h1415.push2 ⟨1423⟩ (by decide +native) (by simp)
+    |>.jumpiT (by decide +native) (by rw [ugt_zero hle]; decide) (by jump_dest) (by simp)
+    |>.jumpdest (by decide +native) (by simp)
   have hC := evm_run h1423 with [
     caller, push1 ⟨0⟩, dup2, dup2,
     raw mstore 0 (wordAt0Mem (solcSourceWord I)
         (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov),
     push1 ⟨3⟩, push1 ⟨32⟩,
     raw mstore 0 (twoWordHashMem (solcSourceWord I) ⟨3⟩
         (twoWordHashMem (solcSourceWord I) ⟨3⟩ solcFreePtrMem)) (UInt256.ofNat 3)
-      (by native_decide) mem_cost (by rw [show (⟨32⟩ : UInt256).toNat = 32 from rfl]; rfl)
-      (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rw [show (⟨32⟩ : UInt256).toNat = 32 from rfl]; rfl)
+      (by decide +native) (by evm_ov),
     push1 ⟨64⟩, dup1, dup3,
-    raw keccak256 0 (callerBalSlot I) (UInt256.ofNat 3) (by native_decide) mem_cost
-      (withdrawKeccak2 I) (by native_decide) (by evm_ov),
+    raw keccak256 0 (callerBalSlot I) (UInt256.ofNat 3) (by decide +native) mem_cost
+      (withdrawKeccak2 I) (by decide +native) (by evm_ov),
     dup1]
-  obtain ⟨_, _, hSload2⟩ := hC.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, hSload2⟩ := hC.sload (by decide +native) (by evm_ov)
   have hD := evm_run hSload2 with [dup6, swap1, sub, swap1]
-  obtain ⟨_, _, hSstore⟩ := hD.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, hSstore⟩ := hD.sstore hperm (by decide +native) (by evm_ov)
   exact ⟨_, _, hSstore⟩
 
 /-! ## EVM trace: `CALL` setup (pc 1447 → 1464) -/
@@ -483,8 +483,8 @@ theorem weth9WithdrawToCall {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
       (withdrawStoreMem I) (UInt256.ofNat 3) ByteArray.empty (cA, withdrawStoreMap σ I) k' C' := by
   obtain ⟨_, _, h1447⟩ := weth9WithdrawReachStore hperm hle h
   exact ⟨_, _, evm_run h1447 with [
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost (withdrawStoreMem_mload64 I)
-      (by native_decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost (withdrawStoreMem_mload64 I)
+      (by decide +native) (by evm_ov),
     dup4, iszero, push2 ⟨2300⟩, mul, swap2, dup5, swap2, swap1, dup2, dup2, dup2, dup6, dup9, dup9]⟩
 
 /-! ## EVM trace: post-`CALL` cleanup + success/failure tails -/
@@ -516,12 +516,12 @@ theorem weth9WithdrawFailureTail {cA gh bl σ σ₀ A I} {g : Sat256} {mem o : B
       - Cₘ (UInt256.ofNat 3))
     (o.write 0 mem 0 (UInt256.ofNat o.size).toNat)
     (UInt256.ofNat (MachineState.M (UInt256.ofNat 3).toNat 0 (UInt256.ofNat o.size).toNat))
-    h1481 (by native_decide)
+    h1481 (by decide +native)
     (by rw [show (⟨0⟩ : UInt256).toNat = 0 from rfl, hrdstoNat]; omega)
     (by intro s haw hstk; simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk])
     (by rfl) (by rfl) (by evm_ov)
   have h1483 := evm_run h1482 with [returndatasize, push1 ⟨0⟩]
-  exact RD.rev _ h1483 (by native_decide)
+  exact RD.rev _ h1483 (by decide +native)
     (fun s haws hstks => by rw [memExpRevertZeroOff s hstks, haws]) (by evm_ov)
 
 /-- The `Withdrawal(caller, wad)` log-data memory (`wad` stored at the free pointer 0x80). -/
@@ -569,7 +569,7 @@ theorem withdrawLogMem_mload64 (I : ExecutionEnv) :
        ((withdrawLogMem I).readWithPadding (⟨64⟩ : UInt256).toNat 32))) = ⟨128⟩ := by
   rw [if_neg (by rw [withdrawLogMem_size]; decide),
     show (⟨64⟩ : UInt256).toNat = 64 from rfl, withdrawLogMem_read64]
-  native_decide
+  decide +native
 
 /-- Call succeeded (`status = 1`): store `wad`, emit the `Withdrawal` `LOG2`, and `STOP`. -/
 theorem weth9WithdrawSuccessTail {cA gh bl σ σ₀ A I} {g : Sat256} {o : ByteArray}
@@ -584,26 +584,26 @@ theorem weth9WithdrawSuccessTail {cA gh bl σ σ₀ A I} {g : Sat256} {o : ByteA
   have hA := evm_run h with [
     iszero, dup1, iszero, push2 ⟨1486⟩, jumpiT (by decide) (by jump_dest),
     jumpdest, pop, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost (withdrawStoreMem_mload64 I)
-      (by native_decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost (withdrawStoreMem_mload64 I)
+      (by decide +native) (by evm_ov),
     dup3, dup2,
-    raw mstore 6 (withdrawLogMem I) (UInt256.ofNat 5) (by native_decide) mem_cost
+    raw mstore 6 (withdrawLogMem I) (UInt256.ofNat 5) (by decide +native) mem_cost
       (by unfold withdrawLogMem; rw [show (⟨128⟩ : UInt256).toNat = 128 from rfl])
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide) mem_cost (withdrawLogMem_mload64 I)
-      (by native_decide) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide +native) mem_cost (withdrawLogMem_mload64 I)
+      (by decide +native) (by evm_ov),
     caller, swap2]
   have hB := hA.pushConst
     (⟨57810043145978950376228313794938171962422655018555593468903716172405399886693⟩ : UInt256)
-    (op := .PUSH32) (width := 32) (by decide) (by native_decide) (by evm_ov)
+    (op := .PUSH32) (width := 32) (by decide) (by decide +native) (by evm_ov)
   have h1541 := evm_run hB with [swap2, swap1, dup2, swap1, sub, push1 ⟨32⟩, add, swap1]
-  have h1542 := RD.log2 0 (UInt256.ofNat 5) h1541 (by native_decide) hpermI mem_cost
-    (by native_decide) (by evm_ov)
-  exact (h1542.pop (by native_decide) (by evm_ov)).jump (by native_decide) (by jump_dest)
+  have h1542 := RD.log2 0 (UInt256.ofNat 5) h1541 (by decide +native) hpermI mem_cost
+    (by decide +native) (by evm_ov)
+  exact (h1542.pop (by decide +native) (by evm_ov)).jump (by decide +native) (by jump_dest)
       (by evm_ov)
-    |>.jumpdest (by native_decide) (by evm_ov)
-    |>.stop (by native_decide) (by evm_ov)
+    |>.jumpdest (by decide +native) (by evm_ov)
+    |>.stop (by decide +native) (by evm_ov)
 
 /-! ## EVM trace: the three `CALL` outcomes -/
 
@@ -618,7 +618,7 @@ theorem weth9WithdrawCallDepthRev {cA gh bl σ σ₀ A I} {g : Sat256} {k C : �
     RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, h1464⟩ := weth9WithdrawToCall hperm hle h
   obtain ⟨_, _, rd1465⟩ :=
-    h1464.callValueDepthLimitEmptyInOut hperm (by native_decide) hdepth (by evm_ov)
+    h1464.callValueDepthLimitEmptyInOut hperm (by decide +native) hdepth (by evm_ov)
   obtain ⟨_, _, rd1470⟩ := weth9WithdrawAfterCall rd1465
   exact weth9WithdrawFailureTail (by decide) rd1470
 
@@ -635,7 +635,7 @@ theorem weth9WithdrawCallInsufficientRev {cA gh bl σ σ₀ A I} {g : Sat256} {k
     RDrev weth9Bytecode g (initState cA gh bl σ σ₀ g A I) := by
   obtain ⟨_, _, h1464⟩ := weth9WithdrawToCall hperm hle h
   obtain ⟨_, _, rd1465⟩ :=
-    h1464.callValueInsufficientBalanceEmptyInOut hperm (by native_decide) hbalance hdepth (by evm_ov)
+    h1464.callValueInsufficientBalanceEmptyInOut hperm (by decide +native) hbalance hdepth (by evm_ov)
   obtain ⟨_, _, rd1470⟩ := weth9WithdrawAfterCall rd1465
   exact weth9WithdrawFailureTail (by decide) rd1470
 
@@ -668,7 +668,7 @@ theorem weth9WithdrawCallMade {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
           (withdrawStoreMem I) (UInt256.ofNat 3) o (cA', σ') k' C' := by
   obtain ⟨_, _, h1464⟩ := weth9WithdrawToCall hperm hle h
   obtain ⟨cA', σ', z, o, A_in, callGas, _, _, hΘ, rd1465, hosz⟩ :=
-    h1464.callValueMadeEmptyInOut (by native_decide) hperm hbalance hdepth (by evm_ov)
+    h1464.callValueMadeEmptyInOut (by decide +native) hperm hbalance hdepth (by evm_ov)
   refine ⟨cA', σ', z, o, A_in, callGas, ?_, hosz, weth9WithdrawAfterCall rd1465⟩
   simpa [initState] using hΘ
 

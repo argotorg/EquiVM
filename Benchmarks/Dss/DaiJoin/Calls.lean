@@ -137,7 +137,7 @@ theorem daiJoin_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap}
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+        (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
@@ -174,7 +174,7 @@ theorem daiJoinCode_pos_of_codeSize_ne_zero {evm : EVM.State} {target : UInt256}
     cases hacc : evm.accountMap.find? (AccountAddress.ofUInt256 target) <;>
       simp [State.lookupAccount, Reasoning.Theory.extCodeSizeWord, hacc,
         Option.option] <;>
-      native_decide
+      decide +native
   exact hne (by rw [← hword, hwordZero])
 
 theorem daiJoinVatCode_zero_of_codeSize_zero {evm : EVM.State}

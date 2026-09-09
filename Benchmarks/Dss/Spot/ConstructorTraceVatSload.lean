@@ -33,7 +33,7 @@ theorem spotCtorVatSloadReach
     rfl
   rw [hload] at rd79
   have hpc79 : (⟨75⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ = ⟨79⟩ := by
-    native_decide
+    decide +native
   rw [hpc79] at rd79
   exact ⟨_, _, rd79⟩
 

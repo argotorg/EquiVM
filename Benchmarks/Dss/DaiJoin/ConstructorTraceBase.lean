@@ -16,11 +16,11 @@ macro "daiJoin_ctor_decode" : tactic =>
   `(tactic|
     (first
       | rw [Reasoning.Theory.decode_append_left_window
-          daiJoinCreationBytecode _ _ (by native_decide) (by native_decide)]
+          daiJoinCreationBytecode _ _ (by decide +native) (by decide +native)]
       | (unfold daiJoinCtorCode
          rw [Reasoning.Theory.decode_append_left_window
-          daiJoinCreationBytecode _ _ (by native_decide) (by native_decide)]);
-     native_decide))
+          daiJoinCreationBytecode _ _ (by decide +native) (by decide +native)]);
+     decide +native))
 
 macro "daiJoin_ctor_jd" : tactic =>
   `(tactic|
@@ -48,10 +48,10 @@ macro "daiJoin_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => d
   return acc
 
 theorem daiJoinCreationBytecode_size : daiJoinCreationBytecode.size = 1876 := by
-  native_decide
+  decide +native
 
 theorem daiJoinBytecode_size : daiJoinBytecode.size = 1733 := by
-  native_decide
+  decide +native
 
 theorem daiJoinCtorArgsTail_size (vat dai : AccountAddress) :
     (daiJoinCtorArgsTail vat dai).size = 64 := by
@@ -71,11 +71,11 @@ theorem daiJoinCtorCode_size (vat dai : AccountAddress) :
 theorem daiJoinCtorArgLen_eq (vat dai : AccountAddress) :
     (UInt256.ofNat (daiJoinCtorCode vat dai).size).sub ⟨1876⟩ = (⟨64⟩ : UInt256) := by
   rw [daiJoinCtorCode_size]
-  native_decide
+  decide +native
 
 theorem daiJoinCreationBytecode_runtime_window :
     daiJoinCreationBytecode.extract 143 (143 + 1733) = daiJoinBytecode := by
-  native_decide
+  decide +native
 
 private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : ℕ)
     (hlen : len ≠ 0) (hsrc : srcAddr + len ≤ src.size)
@@ -132,7 +132,7 @@ theorem daiJoinCtorArgMem_eq (vat dai : AccountAddress) :
     · rw [solcFreePtrMem_size]
     · exact daiJoinCreationBytecode_size.symm
     · rw [daiJoinCtorArgsTail_size]
-      native_decide
+      decide +native
   · decide
   · rw [ByteArray.size_append, daiJoinCreationBytecode_size, daiJoinCtorArgsTail_size]
   · rw [solcFreePtrMem_size]

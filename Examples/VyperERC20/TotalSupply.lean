@@ -21,7 +21,7 @@ def totalSupplyReturnMem (val : UInt256) : ByteArray :=
   (UInt256.toByteArray val).write 0 runtimeDispatchMem 64 32
 
 theorem runtimeDispatchMem_size : runtimeDispatchMem.size = 32 := by
-  native_decide
+  decide +native
 
 theorem runtimeDispatchMem_mload0 :
     (if (⟨0⟩ : UInt256).toNat ≥ runtimeDispatchMem.size ∨
@@ -30,7 +30,7 @@ theorem runtimeDispatchMem_mload0 :
       else UInt256.ofNat
         (fromByteArrayBigEndian (runtimeDispatchMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))
       = (⟨769⟩ : UInt256) := by
-  native_decide
+  decide +native
 
 theorem totalSupplyReturnMem_read64 (val : UInt256) :
     (totalSupplyReturnMem val).readWithPadding 64 32 = UInt256.toByteArray val := by
@@ -58,10 +58,10 @@ theorem erc20TotalSupplyBodyReturns (evm : EVM.State) (locals : Store)
         vyperERC20StorageLocLoad_uint256])
 
 macro "vyper_erc20_runtime_decode" : tactic =>
-  `(tactic| native_decide)
+  `(tactic| decide +native)
 
 macro "vyper_erc20_runtime_jd" : term =>
-  `(by native_decide)
+  `(by decide +native)
 
 theorem vyperRuntimeRevert801 {cA gh bl σ σ₀ A I} {g : Sat256}
     {pc stk mem aw rdata acc k C}
@@ -145,7 +145,7 @@ theorem totalSupplySelectorWord_of_calldata {I : ExecutionEnv}
     (hsel : ((⟨#[0x18, 0x16, 0x0d, 0xdd]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ =
       totalSupplySelectorWord := by
-  have h := evmSelectorDecode hsz 0x18 0x16 0x0d 0xdd totalSupplySelectorWord (by native_decide)
+  have h := evmSelectorDecode hsz 0x18 0x16 0x0d 0xdd totalSupplySelectorWord (by decide +native)
   rw [hsel] at h
   unfold UInt256.eq at h
   by_cases heq :
@@ -189,7 +189,7 @@ theorem erc20X_totalSupplyReach {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdAfterCopy := rdBeforeCopy.codecopy 3 runtimeDispatchMem (UInt256.ofNat 1)
     (by vyper_erc20_runtime_decode)
     mem_cost
-    (by native_decide)
+    (by decide +native)
     (by decide)
     (by evm_ov)
   have rdBeforeJump := evm_run rdAfterCopy with [
@@ -199,7 +199,7 @@ theorem erc20X_totalSupplyReach {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       runtimeDispatchMem_mload0
       (by decide) (by evm_ov)]
-  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_runtime_decode) (by native_decide) (by evm_ov)⟩
+  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_runtime_decode) (by decide +native) (by evm_ov)⟩
 
 theorem erc20X_totalSupplyFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -214,7 +214,7 @@ theorem erc20X_totalSupplyFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     dup2,
     xor,
     push2 ⟨797⟩,
-    jumpiNT (by native_decide),
+    jumpiNT (by decide +native),
     callvalue,
     push2 ⟨801⟩,
     jumpiNT (by simp [hwv]),

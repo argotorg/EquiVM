@@ -23,12 +23,12 @@ theorem erc20X_transferFromAfterFromLoadHashStore {cA gh bl σ σ₀ A I} {g : S
       (cA, transferFromAccountMapAfterAllowanceI σ I
         (transferFromAllowanceDebitI cA gh bl σ σ₀ A I g)) k C := by
   obtain ⟨k, C, rd500⟩ := hreach
-  have rd501 := rd500.push0 (by native_decide) (by evm_ov)
+  have rd501 := rd500.push0 (by decide +native) (by evm_ov)
   have rd502 := rd501.mstore 0
     (wordAt0Mem ⟨0⟩
       (wordAt32Mem (transferFromFromWord I) (transferFromAllowanceScratchMemI σ I)))
     (UInt256.ofNat 5)
-    (by native_decide) mem_cost rfl (by decide) (by evm_ov)
+    (by decide +native) mem_cost rfl (by decide) (by evm_ov)
   exact ⟨_, _, rd502⟩
 
 end VyperERC20

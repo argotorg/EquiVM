@@ -32,28 +32,28 @@ theorem fileUintWhat_length {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) 
   omega
 
 theorem fileUintBegBytes_length : fileUintBegBytes.length = 32 := by
-  native_decide
+  decide +native
 
 theorem fileUintTtlBytes_length : fileUintTtlBytes.length = 32 := by
-  native_decide
+  decide +native
 
 theorem fileUintTauBytes_length : fileUintTauBytes.length = 32 := by
-  native_decide
+  decide +native
 
 theorem fileUintBegBytes_word :
     ABI.bytesToWord fileUintBegBytes =
       UInt256.shiftLeft (⟨6448487⟩ : UInt256) ⟨232⟩ := by
-  native_decide
+  decide +native
 
 theorem fileUintTtlBytes_word :
     ABI.bytesToWord fileUintTtlBytes =
       UInt256.shiftLeft (⟨1907995⟩ : UInt256) ⟨234⟩ := by
-  native_decide
+  decide +native
 
 theorem fileUintTauBytes_word :
     ABI.bytesToWord fileUintTauBytes =
       UInt256.shiftLeft (⟨7627125⟩ : UInt256) ⟨232⟩ := by
-  native_decide
+  decide +native
 
 theorem fileUintWhatWord_eq {I : ExecutionEnv} (hsz36 : 36 ≤ I.calldata.size) :
     ABI.bytesToWord (fileUintWhat I) = calldataWord I.calldata 4 := by
@@ -140,7 +140,7 @@ theorem decodeCalldata_legacyBytes32_uint256_ok {cd : ByteArray} {x y : Solm.Ide
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [decodeABIValues_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -160,7 +160,7 @@ theorem decodeCalldata_legacyBytes32_uint256_none_short {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64
   · rw [if_pos hbytes]
@@ -662,29 +662,29 @@ theorem flipperReachFileUintBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : flipperSelWord I = ⟨0x29ae8114⟩ :=
     flipperSelWord_eq_of_beq I hsz 0x29 0xae 0x81 0x14 ⟨0x29ae8114⟩
-      (by native_decide) (by simpa [flipperSelBytes] using hsel)
+      (by decide +native) (by simpa [flipperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flipperBytecode flipperRootSplitPc)
       (flipperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat flipperBytecode flipperHighSplitPc)
       (flipperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperHighLowFirstArmPc j))
         (flipperSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperHighLowFirstArmPc 1))
         (flipperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact flipperReachHighLowBody 1 (by omega) ⟨325⟩ hcode hwv hsz hsize hroot hhigh
-    heq0 htake (by jump_dest) (by native_decide)
+    heq0 htake (by jump_dest) (by decide +native)
 
 theorem RD.flipperFileUintDecodeToRoutine {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256}
@@ -699,16 +699,16 @@ theorem RD.flipperFileUintDecodeToRoutine {code : ByteArray} {g : Sat256}
       mem aw rdata acc k' C' := by
   subst hwf
   have rd359 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw calldataload (by native_decide) (by evm_ov),
-    raw push2 ⟨1705⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) hroutine (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw calldataload (by decide +native) (by evm_ov),
+    raw push2 ⟨1705⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) hroutine (by evm_ov)]
   exact ⟨_, _, by simpa [calldataWord] using rd359⟩
 
 theorem flipperFileUintX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
@@ -722,9 +722,9 @@ theorem flipperFileUintX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flipperBytecode) (sel := sel) (entry := ⟨325⟩) (ret := ⟨323⟩)
     (decoded := ⟨347⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by
       exact solcDecodeLenCheckOkUnsigned (by simpa using hsz68) hsize)
@@ -752,7 +752,7 @@ theorem flipperFileUintX_authorized {cA σ I} {g : Sat256} {s0 : State}
     h
     (by
       unfold flipperAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
 
 theorem flipperFileUintX_unauthorized {cA σ I} {g : Sat256} {s0 : State}
@@ -771,10 +771,10 @@ theorem flipperFileUintX_unauthorized {cA σ I} {g : Sat256} {s0 : State}
     h
     (by
       unfold flipperAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold flipperAuthCodecopyRevertTailWf flipperAuthTailPc
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by simp)
 
 abbrev uint48MaskOffset6 : UInt256 :=
@@ -782,46 +782,46 @@ abbrev uint48MaskOffset6 : UInt256 :=
 
 theorem uint48MaskOffset6_eq :
     uint48MaskOffset6 = UInt256.shiftLeft uint48Mask ⟨48⟩ := by
-  native_decide
+  decide +native
 
 theorem uint48Divisor_shift_eq :
     UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨48⟩ = uint48Divisor := by
-  native_decide
+  decide +native
 
 theorem flipperFileUintDecodePushBeg1789 :
     decode flipperBytecode (⟨1789⟩ : UInt256) =
       some (.Push .PUSH3, some ((⟨6448487⟩ : UInt256), 3)) := by
-  native_decide
+  decide +native
 
 theorem flipperFileUintDecodePushTtl1813 :
     decode flipperBytecode (⟨1813⟩ : UInt256) =
       some (.Push .PUSH3, some ((⟨1907995⟩ : UInt256), 3)) := by
-  native_decide
+  decide +native
 
 theorem flipperFileUintDecodePushMask1830 :
     decode flipperBytecode (⟨1830⟩ : UInt256) =
       some (.Push .PUSH6, some (uint48Mask, 6)) := by
-  native_decide
+  decide +native
 
 theorem flipperFileUintDecodePushMask1839 :
     decode flipperBytecode (⟨1839⟩ : UInt256) =
       some (.Push .PUSH6, some (uint48Mask, 6)) := by
-  native_decide
+  decide +native
 
 theorem flipperFileUintDecodePushTau1857 :
     decode flipperBytecode (⟨1857⟩ : UInt256) =
       some (.Push .PUSH3, some ((⟨7627125⟩ : UInt256), 3)) := by
-  native_decide
+  decide +native
 
 theorem flipperFileUintDecodePushMask1874 :
     decode flipperBytecode (⟨1874⟩ : UInt256) =
       some (.Push .PUSH12, some (uint48MaskOffset6, 12)) := by
-  native_decide
+  decide +native
 
 theorem flipperFileUintDecodePushMask1894 :
     decode flipperBytecode (⟨1894⟩ : UInt256) =
       some (.Push .PUSH6, some (uint48Mask, 6)) := by
-  native_decide
+  decide +native
 
 theorem uint48MulDivisor_eq_shiftLeft (w : UInt256) :
     UInt256.mul w uint48Divisor = UInt256.shiftLeft w ⟨48⟩ := by
@@ -830,7 +830,7 @@ theorem uint48MulDivisor_eq_shiftLeft (w : UInt256) :
   unfold UInt256.shiftLeft
   rw [if_neg (by decide : ¬ ((⟨48⟩ : UInt256).val ≥ 256))]
   change w.toNat * uint48Divisor.toNat % UInt256.size = (w.toNat <<< 48) % UInt256.size
-  rw [show uint48Divisor.toNat = 2 ^ 48 by native_decide]
+  rw [show uint48Divisor.toNat = 2 ^ 48 by decide +native]
   rw [Nat.shiftLeft_eq]
 
 theorem fileUintOffset6RuntimeWord (old data : UInt256) :
@@ -874,41 +874,41 @@ theorem flipperFileUintX_skipBegTtl {cA σ I} {g : Sat256} {s0 : State}
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
-  have rd1788 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1789 := rd1788.dup2 (by native_decide) (by evm_ov)
+  have rd1788 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1789 := rd1788.dup2 (by decide +native) (by evm_ov)
   have rd1793 := rd1789.pushConst (⟨6448487⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) flipperFileUintDecodePushBeg1789
     (by evm_ov)
-  have rd1795 := rd1793.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd1796 := rd1795.shl (by native_decide) (by evm_ov)
-  have rd1797 := rd1796.eq (by native_decide) (by evm_ov)
+  have rd1795 := rd1793.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd1796 := rd1795.shl (by decide +native) (by evm_ov)
+  have rd1797 := rd1796.eq (by decide +native) (by evm_ov)
   have hbegEq :
       UInt256.eq (UInt256.shiftLeft (⟨6448487⟩ : UInt256) ⟨232⟩)
           (calldataWord I.calldata 4) = ⟨0⟩ := by
     rw [← fileUintBegBytes_word]
     exact u256_eq_of_ne (by intro hbad; exact hnotBeg hbad.symm)
   rw [hbegEq] at rd1797
-  have rd1798 := rd1797.iszero (by native_decide) (by evm_ov)
-  have rd1801 := rd1798.push2 ⟨1811⟩ (by native_decide) (by evm_ov)
-  have rd1811 := rd1801.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd1798 := rd1797.iszero (by decide +native) (by evm_ov)
+  have rd1801 := rd1798.push2 ⟨1811⟩ (by decide +native) (by evm_ov)
+  have rd1811 := rd1801.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
-  have rd1812 := rd1811.jumpdest (by native_decide) (by evm_ov)
-  have rd1813 := rd1812.dup2 (by native_decide) (by evm_ov)
+  have rd1812 := rd1811.jumpdest (by decide +native) (by evm_ov)
+  have rd1813 := rd1812.dup2 (by decide +native) (by evm_ov)
   have rd1817 := rd1813.pushConst (⟨1907995⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) flipperFileUintDecodePushTtl1813
     (by evm_ov)
-  have rd1819 := rd1817.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd1820 := rd1819.shl (by native_decide) (by evm_ov)
-  have rd1821 := rd1820.eq (by native_decide) (by evm_ov)
+  have rd1819 := rd1817.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd1820 := rd1819.shl (by decide +native) (by evm_ov)
+  have rd1821 := rd1820.eq (by decide +native) (by evm_ov)
   have httlEq :
       UInt256.eq (UInt256.shiftLeft (⟨1907995⟩ : UInt256) ⟨234⟩)
           (calldataWord I.calldata 4) = ⟨0⟩ := by
     rw [← fileUintTtlBytes_word]
     exact u256_eq_of_ne (by intro hbad; exact hnotTtl hbad.symm)
   rw [httlEq] at rd1821
-  have rd1822 := rd1821.iszero (by native_decide) (by evm_ov)
-  have rd1825 := rd1822.push2 ⟨1855⟩ (by native_decide) (by evm_ov)
-  have rd1855 := rd1825.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd1822 := rd1821.iszero (by decide +native) (by evm_ov)
+  have rd1825 := rd1822.push2 ⟨1855⟩ (by decide +native) (by evm_ov)
+  have rd1855 := rd1825.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
   exact ⟨_, _, rd1855⟩
 
@@ -922,32 +922,32 @@ theorem flipperFileUintX_storeBeg {cA σ I} {g : Sat256} {s0 : State}
     RDret flipperBytecode g s0
       (cA, sstoreAccountMap I.codeOwner σ ⟨4⟩ (fileUintData I)) ByteArray.empty := by
   have rd1796 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw pushConst (⟨6448487⟩ : UInt256)
-      (show Operation.POp.PUSH3 ≠ Operation.POp.PUSH0 by native_decide)
+      (show Operation.POp.PUSH3 ≠ Operation.POp.PUSH0 by decide +native)
       flipperFileUintDecodePushBeg1789
       (by evm_ov),
-    raw push1 ⟨232⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov)]
+    raw push1 ⟨232⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov)]
   rw [hmatch, fileUintBegBytes_word] at rd1796
   have rd1810 := evm_run rd1796 with [
-    raw eq (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1811⟩ (by native_decide) (by evm_ov),
-    raw jumpiNT (by native_decide) (by decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1807⟩ := rd1810.sstore hperm (by native_decide) (by evm_ov)
-  have rd1988 := rd1807.push2 ⟨1988⟩ (by native_decide) (by evm_ov)
-  have rd1989 := rd1988.jump (by native_decide) (by jump_dest) (by evm_ov)
-    |>.jumpdest (by native_decide) (by evm_ov)
-  have rd1990 := rd1989.pop (by native_decide) (by evm_ov)
-  have rd1991 := rd1990.pop (by native_decide) (by evm_ov)
-  have rd323 := rd1991.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
-  simpa [solcSlotWord] using RD.stop rd324 (by native_decide) (by evm_ov)
+    raw eq (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1811⟩ (by decide +native) (by evm_ov),
+    raw jumpiNT (by decide +native) (by decide) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd1807⟩ := rd1810.sstore hperm (by decide +native) (by evm_ov)
+  have rd1988 := rd1807.push2 ⟨1988⟩ (by decide +native) (by evm_ov)
+  have rd1989 := rd1988.jump (by decide +native) (by jump_dest) (by evm_ov)
+    |>.jumpdest (by decide +native) (by evm_ov)
+  have rd1990 := rd1989.pop (by decide +native) (by evm_ov)
+  have rd1991 := rd1990.pop (by decide +native) (by evm_ov)
+  have rd323 := rd1991.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd324 := rd323.jumpdest (by decide +native) (by evm_ov)
+  simpa [solcSlotWord] using RD.stop rd324 (by decide +native) (by evm_ov)
 
 theorem flipperFileUintX_storeTtl {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256} (hperm : I.perm = true)
@@ -962,15 +962,15 @@ theorem flipperFileUintX_storeTtl {cA σ I} {g : Sat256} {s0 : State}
         (setUint48Offset0Word (solcSlotWord σ I ⟨5⟩) (fileUintData48 I)))
       ByteArray.empty := by
   have rd1797 := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw pushConst (⟨6448487⟩ : UInt256)
-      (show Operation.POp.PUSH3 ≠ Operation.POp.PUSH0 by native_decide)
+      (show Operation.POp.PUSH3 ≠ Operation.POp.PUSH0 by decide +native)
       flipperFileUintDecodePushBeg1789
       (by evm_ov),
-    raw push1 ⟨232⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨232⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have hbegEq :
       UInt256.eq (UInt256.shiftLeft (⟨6448487⟩ : UInt256) ⟨232⟩)
           (calldataWord I.calldata 4) = ⟨0⟩ := by
@@ -978,48 +978,48 @@ theorem flipperFileUintX_storeTtl {cA σ I} {g : Sat256} {s0 : State}
     exact u256_eq_of_ne (by intro hbad; exact hnotBeg hbad.symm)
   rw [hbegEq] at rd1797
   have rd1811 := evm_run rd1797 with [
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1811⟩ (by native_decide) (by evm_ov),
-    raw jumpiT (by native_decide) one_ne_zero_uint (by jump_dest) (by evm_ov)]
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1811⟩ (by decide +native) (by evm_ov),
+    raw jumpiT (by decide +native) one_ne_zero_uint (by jump_dest) (by evm_ov)]
   have rd1820 := evm_run rd1811 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw pushConst (⟨1907995⟩ : UInt256)
-      (show Operation.POp.PUSH3 ≠ Operation.POp.PUSH0 by native_decide)
+      (show Operation.POp.PUSH3 ≠ Operation.POp.PUSH0 by decide +native)
       flipperFileUintDecodePushTtl1813
       (by evm_ov),
-    raw push1 ⟨234⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov)]
+    raw push1 ⟨234⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov)]
   rw [hmatch, fileUintTtlBytes_word] at rd1820
   have rd1826 := evm_run rd1820 with [
-    raw eq (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨1855⟩ (by native_decide) (by evm_ov),
-    raw jumpiNT (by native_decide) (by decide) (by evm_ov),
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1830⟩ := rd1826.sload (by native_decide) (by evm_ov)
+    raw eq (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨1855⟩ (by decide +native) (by evm_ov),
+    raw jumpiNT (by decide +native) (by decide) (by evm_ov),
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd1830⟩ := rd1826.sload (by decide +native) (by evm_ov)
   have rd1850 := evm_run rd1830 with [
     raw pushConst uint48Mask
-      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by native_decide)
+      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by decide +native)
       flipperFileUintDecodePushMask1830
       (by evm_ov),
-    raw not (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
+    raw not (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
     raw pushConst uint48Mask
-      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by native_decide)
+      (show Operation.POp.PUSH6 ≠ Operation.POp.PUSH0 by decide +native)
       flipperFileUintDecodePushMask1839
       (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1851⟩ := rd1850.sstore hperm (by native_decide) (by evm_ov)
-  have rd1988 := rd1851.push2 ⟨1988⟩ (by native_decide) (by evm_ov)
-  have rd1989 := rd1988.jump (by native_decide) (by jump_dest) (by evm_ov)
-    |>.jumpdest (by native_decide) (by evm_ov)
-  have rd1990 := rd1989.pop (by native_decide) (by evm_ov)
-  have rd1991 := rd1990.pop (by native_decide) (by evm_ov)
+    raw dup4 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd1851⟩ := rd1850.sstore hperm (by decide +native) (by evm_ov)
+  have rd1988 := rd1851.push2 ⟨1988⟩ (by decide +native) (by evm_ov)
+  have rd1989 := rd1988.jump (by decide +native) (by jump_dest) (by evm_ov)
+    |>.jumpdest (by decide +native) (by evm_ov)
+  have rd1990 := rd1989.pop (by decide +native) (by evm_ov)
+  have rd1991 := rd1990.pop (by decide +native) (by evm_ov)
   have hword :
       UInt256.lor (UInt256.land (fileUintData I) uint48Mask)
           (UInt256.land (UInt256.lnot uint48Mask) (solcSlotWord σ I ⟨5⟩)) =
@@ -1039,10 +1039,10 @@ theorem flipperFileUintX_storeTtl {cA σ I} {g : Sat256} {s0 : State}
       _ = setUint48Offset0Word (solcSlotWord σ I ⟨5⟩) (fileUintData48 I) := by
             unfold setUint48Offset0Word
             rw [hlow]
-  have rd323 := rd1991.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
+  have rd323 := rd1991.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd324 := rd323.jumpdest (by decide +native) (by evm_ov)
   simpa [solcSlotWord, setUint48Offset0Word, fileUintData48, hword] using
-    RD.stop rd324 (by native_decide) (by evm_ov)
+    RD.stop rd324 (by decide +native) (by evm_ov)
 
 theorem flipperFileUintX_matchTauToSload {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
@@ -1055,28 +1055,28 @@ theorem flipperFileUintX_matchTauToSload {cA σ I} {g : Sat256} {s0 : State}
       [solcSlotWord σ I ⟨5⟩, ⟨5⟩, fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
-  have rd1856 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1857 := rd1856.dup2 (by native_decide) (by evm_ov)
+  have rd1856 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1857 := rd1856.dup2 (by decide +native) (by evm_ov)
   have rd1861 := rd1857.pushConst (⟨7627125⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) flipperFileUintDecodePushTau1857
     (by evm_ov)
-  have rd1863 := rd1861.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd1864 := rd1863.shl (by native_decide) (by evm_ov)
-  have rd1865 := rd1864.eq (by native_decide) (by evm_ov)
+  have rd1863 := rd1861.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd1864 := rd1863.shl (by decide +native) (by evm_ov)
+  have rd1865 := rd1864.eq (by decide +native) (by evm_ov)
   have htauEq :
       UInt256.eq (UInt256.shiftLeft (⟨7627125⟩ : UInt256) ⟨232⟩)
           (calldataWord I.calldata 4) = ⟨1⟩ := by
     rw [hmatch, fileUintTauBytes_word]
     exact uInt256_eq_self _
   rw [htauEq] at rd1865
-  have rd1866 := rd1865.iszero (by native_decide) (by evm_ov)
+  have rd1866 := rd1865.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1866
-  have rd1869 := rd1866.push2 ⟨1911⟩ (by native_decide) (by evm_ov)
-  have rd1870 := rd1869.jumpiNT (by native_decide)
+  have rd1869 := rd1866.push2 ⟨1911⟩ (by decide +native) (by evm_ov)
+  have rd1870 := rd1869.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd1872 := rd1870.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  have rd1873 := rd1872.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨k1874, C1874, rd1874raw⟩ := rd1873.sload (by native_decide) (by evm_ov)
+  have rd1872 := rd1870.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  have rd1873 := rd1872.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨k1874, C1874, rd1874raw⟩ := rd1873.sload (by decide +native) (by evm_ov)
   have rd1874 : RD flipperBytecode I g s0 ⟨1874⟩
       [solcSlotWord σ I ⟨5⟩, ⟨5⟩, fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
@@ -1098,45 +1098,45 @@ theorem flipperFileUintX_storeTauTail {cA σ I} {g : Sat256} {s0 : State}
     (width := 12) (op := .PUSH12) (by decide) flipperFileUintDecodePushMask1874
     (by evm_ov)
   rw [uint48MaskOffset6_eq] at rd1887
-  have rd1888 := rd1887.not (by native_decide) (by evm_ov)
-  have rd1889 := rd1888.and (by native_decide) (by evm_ov)
-  have rd1891 := rd1889.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd1893 := rd1891.push1 ⟨48⟩ (by native_decide) (by evm_ov)
-  have rd1894 := rd1893.shl (by native_decide) (by evm_ov)
+  have rd1888 := rd1887.not (by decide +native) (by evm_ov)
+  have rd1889 := rd1888.and (by decide +native) (by evm_ov)
+  have rd1891 := rd1889.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd1893 := rd1891.push1 ⟨48⟩ (by decide +native) (by evm_ov)
+  have rd1894 := rd1893.shl (by decide +native) (by evm_ov)
   rw [uint48Divisor_shift_eq] at rd1894
   have rd1901 := rd1894.pushConst uint48Mask
     (width := 6) (op := .PUSH6) (by decide) flipperFileUintDecodePushMask1894
     (by evm_ov)
-  have rd1902 := rd1901.dup5 (by native_decide) (by evm_ov)
-  have rd1903 := rd1902.and (by native_decide) (by evm_ov)
-  have rd1904 := rd1903.mul (by native_decide) (by evm_ov)
-  have rd1905 := rd1904.or (by native_decide) (by evm_ov)
-  have rd1906 := rd1905.swap1 (by native_decide) (by evm_ov)
+  have rd1902 := rd1901.dup5 (by decide +native) (by evm_ov)
+  have rd1903 := rd1902.and (by decide +native) (by evm_ov)
+  have rd1904 := rd1903.mul (by decide +native) (by evm_ov)
+  have rd1905 := rd1904.or (by decide +native) (by evm_ov)
+  have rd1906 := rd1905.swap1 (by decide +native) (by evm_ov)
   let slot5New :=
     UInt256.lor (UInt256.mul (UInt256.land (fileUintData I) uint48Mask) uint48Divisor)
       (UInt256.land
         (UInt256.lnot (UInt256.shiftLeft uint48Mask ⟨48⟩)) (solcSlotWord σ I ⟨5⟩))
-  obtain ⟨k1907, C1907, rd1907raw⟩ := rd1906.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨k1907, C1907, rd1907raw⟩ := rd1906.sstore hperm (by decide +native) (by evm_ov)
   let σTau := sstoreAccountMap I.codeOwner σ ⟨5⟩ slot5New
   have rd1907 : RD flipperBytecode I g s0 ⟨1907⟩
       [fileUintData I, calldataWord I.calldata 4, ⟨323⟩, sel]
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σTau) k1907 C1907 := by
     simpa [slot5New, σTau, solcSlotWord] using rd1907raw
-  have rd1988 := rd1907.push2 ⟨1988⟩ (by native_decide) (by evm_ov)
-  have rd1989 := rd1988.jump (by native_decide) (by jump_dest) (by evm_ov)
-    |>.jumpdest (by native_decide) (by evm_ov)
-  have rd1990 := rd1989.pop (by native_decide) (by evm_ov)
-  have rd1991 := rd1990.pop (by native_decide) (by evm_ov)
+  have rd1988 := rd1907.push2 ⟨1988⟩ (by decide +native) (by evm_ov)
+  have rd1989 := rd1988.jump (by decide +native) (by jump_dest) (by evm_ov)
+    |>.jumpdest (by decide +native) (by evm_ov)
+  have rd1990 := rd1989.pop (by decide +native) (by evm_ov)
+  have rd1991 := rd1990.pop (by decide +native) (by evm_ov)
   have hword :
       slot5New =
         setUint48Offset6Word (solcSlotWord σ I ⟨5⟩) (fileUintData48 I) := by
     simpa [slot5New, fileUintData48] using
       fileUintOffset6RuntimeWord (solcSlotWord σ I ⟨5⟩) (fileUintData I)
-  have rd323 := rd1991.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
+  have rd323 := rd1991.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd324 := rd323.jumpdest (by decide +native) (by evm_ov)
   have hstop : RDret flipperBytecode g s0 (cA, σTau) ByteArray.empty :=
-    RD.stop rd324 (by native_decide) (by evm_ov)
+    RD.stop rd324 (by decide +native) (by evm_ov)
   simpa [σTau, hword] using hstop
 
 theorem flipperFileUintX_storeTau {cA σ I} {g : Sat256} {s0 : State}
@@ -1164,23 +1164,23 @@ theorem flipperFileUintX_unrecognizedTau {cA σ I} {g : Sat256} {s0 : State}
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
-  have rd1856 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1857 := rd1856.dup2 (by native_decide) (by evm_ov)
+  have rd1856 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1857 := rd1856.dup2 (by decide +native) (by evm_ov)
   have rd1861 := rd1857.pushConst (⟨7627125⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) flipperFileUintDecodePushTau1857
     (by evm_ov)
-  have rd1863 := rd1861.push1 ⟨232⟩ (by native_decide) (by evm_ov)
-  have rd1864 := rd1863.shl (by native_decide) (by evm_ov)
-  have rd1865 := rd1864.eq (by native_decide) (by evm_ov)
+  have rd1863 := rd1861.push1 ⟨232⟩ (by decide +native) (by evm_ov)
+  have rd1864 := rd1863.shl (by decide +native) (by evm_ov)
+  have rd1865 := rd1864.eq (by decide +native) (by evm_ov)
   have htauEq :
       UInt256.eq (UInt256.shiftLeft (⟨7627125⟩ : UInt256) ⟨232⟩)
           (calldataWord I.calldata 4) = ⟨0⟩ := by
     rw [← fileUintTauBytes_word]
     exact u256_eq_of_ne (by intro hbad; exact hnotTau hbad.symm)
   rw [htauEq] at rd1865
-  have rd1866 := rd1865.iszero (by native_decide) (by evm_ov)
-  have rd1869 := rd1866.push2 ⟨1911⟩ (by native_decide) (by evm_ov)
-  have rd1911 := rd1869.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd1866 := rd1865.iszero (by decide +native) (by evm_ov)
+  have rd1869 := rd1866.push2 ⟨1911⟩ (by decide +native) (by evm_ov)
+  have rd1911 := rd1869.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
   exact RD.flipperFileUnrecognizedRevert rd1911
     (twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size)
@@ -1217,10 +1217,10 @@ theorem flipperFileUintX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := flipperBytecode) (sel := sel) (entry := ⟨325⟩) (ret := ⟨323⟩)
     (decoded := ⟨347⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem flipperFileUintBodyCoreOkBeg
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -1267,7 +1267,7 @@ theorem flipperFileUintBodyCoreOkBeg
         accountMapEquiv_sstoreAccountMap I.codeOwner ⟨4⟩ (fileUintData I) hAccounts)
     (by
       rw [show fileUintTransition.returnType = [] by rfl]
-      exact returnEquiv.fallthrough rfl (by rfl) (by native_decide))
+      exact returnEquiv.fallthrough rfl (by rfl) (by decide +native))
 
 theorem flipperFileUintBodyCoreOkTtl
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -1332,7 +1332,7 @@ theorem flipperFileUintBodyCoreOkTtl
         accountMapEquiv_sstoreAccountMap I.codeOwner ⟨5⟩ stored hAccounts)
     (by
       rw [show fileUintTransition.returnType = [] by rfl]
-      exact returnEquiv.fallthrough rfl (by rfl) (by native_decide))
+      exact returnEquiv.fallthrough rfl (by rfl) (by decide +native))
 
 theorem flipperFileUintBodyCoreOkTau
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -1400,7 +1400,7 @@ theorem flipperFileUintBodyCoreOkTau
         accountMapEquiv_sstoreAccountMap I.codeOwner ⟨5⟩ stored hAccounts)
     (by
       rw [show fileUintTransition.returnType = [] by rfl]
-      exact returnEquiv.fallthrough rfl (by rfl) (by native_decide))
+      exact returnEquiv.fallthrough rfl (by rfl) (by decide +native))
 
 theorem flipperFileUintBodyCoreUnauthorized
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

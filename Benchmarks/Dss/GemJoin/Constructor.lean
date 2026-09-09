@@ -48,7 +48,7 @@ private theorem ctorExtCodeSize_zero_lookup_code_zero {σ : AccountMap} {target 
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+        (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
@@ -434,7 +434,7 @@ theorem gemJoinConstructorCorrect :
                     224 32))
                 (off := ⟨64⟩) (v := ⟨224⟩)
                 (by rw [hmemRetSize]; decide)
-                (by native_decide) hread64
+                (by decide +native) hread64
             have hread224 :
                 memRet.readWithPadding 224 32 = out.extract 0 32 := by
               simpa [memRet] using
@@ -463,20 +463,20 @@ theorem gemJoinConstructorCorrect :
                     224 32))
                 (off := ⟨224⟩) (v := retWord)
                 (by rw [hmemRetSize]; decide)
-                (by native_decide)
+                (by decide +native)
                 (by rw [hretWordBytes]; exact hread224)
             obtain ⟨_, _, rd241⟩ := gemJoinCtorDecimalsReturnDecodeOkReach
               vat ilk gem gemTarget retWord hlo hhi
               (by
                 intro s hs hstk
                 simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hs, hstk]
-                native_decide)
-              (by native_decide) hmload64 hmload224
+                decide +native)
+              (by decide +native) hmload64 hmload224
               (by
                 intro s hs hstk
                 simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hs, hstk]
-                native_decide)
-              (by native_decide)
+                decide +native)
+              (by decide +native)
               (by simpa [memRet, hL] using rd218)
             have hret := gemJoinCtorReturnTrace vat ilk retWord gem hperm hmload64
               (by simpa [memRet] using rd241)
@@ -523,8 +523,8 @@ theorem gemJoinConstructorCorrect :
               (by
                 intro s hs hstk
                 simp [memoryExpansionCost, memoryExpansionCost.μᵢ', hs, hstk]
-                native_decide)
-              (by native_decide)
+                decide +native)
+              (by decide +native)
               (by
                 have hLle : (min (⟨32⟩ : UInt256) (UInt256.ofNat out.size)).toNat ≤ 32 := by
                   rw [gemJoinCtorMin32_toNat_of_lt hshort]
@@ -553,7 +553,7 @@ theorem gemJoinConstructorCorrect :
                       224 32))
                   (off := ⟨64⟩) (v := ⟨224⟩)
                   (by rw [hmemRetSize]; decide)
-                  (by native_decide) hread64)
+                  (by decide +native) hread64)
               rd218
             rcases hrev.xiResult hcodeCtor with hOOG | ⟨g', outRev, hRev⟩
             · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)
@@ -581,7 +581,7 @@ theorem gemJoinConstructorCorrect :
           omega
         obtain ⟨_, _, rd200⟩ :=
           gemJoinCtorDecimalsStaticcallDepthLimitReach vat ilk gem gemTarget hcodeSize hdepthEq rd184
-        have houtEmpty : ByteArray.empty.size < UInt256.size := by native_decide
+        have houtEmpty : ByteArray.empty.size < UInt256.size := by decide +native
         have hrev := gemJoinCtorDecimalsStatusFailReverts vat ilk gem gemTarget
           (z := false) rfl houtEmpty rd200
         rcases hrev.xiResult hcodeCtor with hOOG | ⟨g', outRev, hRev⟩

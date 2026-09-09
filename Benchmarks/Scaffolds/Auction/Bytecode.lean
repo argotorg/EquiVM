@@ -436,7 +436,7 @@ def auctionBytecode : ByteArray :=
       ⟨5843⟩, ⟨5865⟩, ⟨5868⟩, ⟨5918⟩, ⟨5925⟩, ⟨5938⟩, ⟨5986⟩, ⟨6010⟩, ⟨6036⟩, ⟨6051⟩, ⟨6062⟩, ⟨6078⟩,
       ⟨6093⟩, ⟨6098⟩, ⟨6124⟩
       ] := by
-  native_decide
+  decide +native
 
 private def auctionCreationBytecodeChunk0 : ByteArray :=
   ⟨#[
@@ -854,4 +854,4 @@ def auctionCreationBytecode : ByteArray :=
       ⟨5865⟩, ⟨5872⟩, ⟨5894⟩, ⟨5897⟩, ⟨5947⟩, ⟨5954⟩, ⟨5967⟩, ⟨6015⟩, ⟨6039⟩, ⟨6065⟩, ⟨6080⟩, ⟨6091⟩,
       ⟨6107⟩, ⟨6122⟩, ⟨6127⟩, ⟨6153⟩
       ] := by
-  native_decide
+  decide +native

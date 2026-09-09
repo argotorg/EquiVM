@@ -224,10 +224,10 @@ theorem RD.uniswapUpdateCumulativesAndJump {g : Sat256} {s0 : State}
         ⟨0⟩ :=
     isZero_eq_zero_of_ne hreserve1NeLit
   have rd7063 := evm_run h with [jumpdest, push1 ⟨8⟩]
-  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by native_decide)
+  obtain ⟨_, _, rd7064⟩ := rd7063.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd7069 := evm_run rd7064 with [push4 ⟨4294967295⟩]
-  have rd7070 := RD.timestamp rd7069 (by native_decide) (by evm_ov)
+  have rd7070 := RD.timestamp rd7069 (by decide +native) (by evm_ov)
   have rd7091₀ := evm_run rd7070 with [
     dup2, and, swap2, push1 ⟨1⟩, push1 ⟨224⟩, shl, swap1, div, dup2, and,
     dup3, sub, swap1, dup2, and, iszero, dup1, iszero, swap1, push2 ⟨7108⟩]
@@ -269,12 +269,12 @@ theorem RD.uniswapUpdateCumulativesAndJump {g : Sat256} {s0 : State}
     RD.uniswapUQ112Div rd8478₀ hreserve0Ne (by jump_dest)
       (by simp only [List.length_cons]; omega)
   have rd7178 := evm_run rd7174 with [jumpdest, push1 ⟨9⟩, dup1]
-  obtain ⟨_, _, rd7179⟩ := rd7178.sload (by native_decide)
+  obtain ⟨_, _, rd7179⟩ := rd7178.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd7197 := evm_run rd7179 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨224⟩, shl, sub, swap3, swap1, swap3,
     and, swap3, swap1, swap3, mul, add, swap1]
-  obtain ⟨_, _, rd7198⟩ := rd7197.sstore hperm (by native_decide)
+  obtain ⟨_, _, rd7198⟩ := rd7197.sstore hperm (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd8460₁ := evm_run rd7198 with [
     push4 ⟨4294967295⟩, dup2, and, push2 ⟨7217⟩, dup5, push2 ⟨7153⟩,
@@ -289,19 +289,19 @@ theorem RD.uniswapUpdateCumulativesAndJump {g : Sat256} {s0 : State}
     RD.uniswapUQ112Div rd8478₁ hreserve1Ne (by jump_dest)
       (by simp only [List.length_cons]; omega)
   have rd7221 := evm_run rd7217 with [jumpdest, push1 ⟨10⟩, dup1]
-  obtain ⟨_, _, rd7222⟩ := rd7221.sload (by native_decide)
+  obtain ⟨_, _, rd7222⟩ := rd7221.sload (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd7240 := evm_run rd7222 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨224⟩, shl, sub, swap3, swap1, swap3,
     and, swap3, swap1, swap3, mul, add, swap1]
-  obtain ⟨k7241, C7241, rd7241⟩ := rd7240.sstore hperm (by native_decide)
+  obtain ⟨k7241, C7241, rd7241⟩ := rd7240.sstore hperm (by decide +native)
     (by simp only [List.length_cons]; omega)
   have hpc7241 :
       ((⟨7217⟩ : UInt256) + ⟨1⟩ + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
         UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
         ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩) =
         (⟨7241⟩ : UInt256) := by
-    native_decide
+    decide +native
   exact ⟨k7241, C7241, by
     simpa [hpc7241, elapsed, timestamp, elapsedMasked, price0, price1, cumulative0, cumulative1,
       σP0, uniswapUpdateElapsedFromStorage, uniswapUpdatePrice0CumulativeWord,
@@ -353,7 +353,7 @@ theorem uniswapUpdateUQ112Price_toNat
   have hmask112d : (UInt256.land denominator reserve112Mask).toNat = denominator.toNat := by
     rw [uniswapUint112Masked_toNat]
     exact Nat.mod_eq_of_lt hdenominator
-  have hshift : reserve112Shift.toNat = 2 ^ 112 := by native_decide
+  have hshift : reserve112Shift.toNat = 2 ^ 112 := by decide +native
   have hprodLt224 : 2 ^ 112 * numerator.toNat < 2 ^ 224 := by
     calc
       2 ^ 112 * numerator.toNat < 2 ^ 112 * 2 ^ 112 :=
@@ -371,7 +371,7 @@ theorem uniswapUpdateUQ112Price_toNat
         2 ^ 112 * numerator.toNat := by
     rw [u256_land_comm]
     rw [u256_land_toNat]
-    have hmask : reserve224Mask.toNat = 2 ^ 224 - 1 := by native_decide
+    have hmask : reserve224Mask.toNat = 2 ^ 224 - 1 := by decide +native
     rw [hmask, nat_land_mask_eq_mod, hencodedToNat]
     rw [Nat.mod_eq_of_lt hprodLt224]
     exact Nat.mod_eq_of_lt hprodLtSize
@@ -382,7 +382,7 @@ theorem uniswapUpdateUQ112Price_toNat
             reserve224Mask).toNat =
         2 ^ 112 * numerator.toNat := by
     rw [u256_land_toNat]
-    have hmask : reserve224Mask.toNat = 2 ^ 224 - 1 := by native_decide
+    have hmask : reserve224Mask.toNat = 2 ^ 224 - 1 := by decide +native
     rw [hmask, nat_land_mask_eq_mod, hland224]
     rw [Nat.mod_eq_of_lt hprodLt224]
     exact Nat.mod_eq_of_lt hprodLtSize
@@ -417,7 +417,7 @@ theorem uniswapUpdatePrice0CumulativeWord_toNat
         reserve1.toNat * 2 ^ 112 / reserve0.toNat := by
     rw [u256_land_comm]
     rw [u256_land_toNat]
-    have hmask : reserve224Mask.toNat = 2 ^ 224 - 1 := by native_decide
+    have hmask : reserve224Mask.toNat = 2 ^ 224 - 1 := by decide +native
     rw [hmask, nat_land_mask_eq_mod, hpriceToNat]
     rw [Nat.mod_eq_of_lt hpriceNatLt]
     exact Nat.mod_eq_of_lt (lt_trans hpriceNatLt (by norm_num [UInt256.size]))
@@ -463,7 +463,7 @@ theorem uniswapUpdatePrice1CumulativeWord_toNat
         reserve0.toNat * 2 ^ 112 / reserve1.toNat := by
     rw [u256_land_comm]
     rw [u256_land_toNat]
-    have hmask : reserve224Mask.toNat = 2 ^ 224 - 1 := by native_decide
+    have hmask : reserve224Mask.toNat = 2 ^ 224 - 1 := by decide +native
     rw [hmask, nat_land_mask_eq_mod, hpriceToNat]
     rw [Nat.mod_eq_of_lt hpriceNatLt]
     exact Nat.mod_eq_of_lt (lt_trans hpriceNatLt (by norm_num [UInt256.size]))
@@ -1305,36 +1305,36 @@ theorem RD.uniswapUpdateCumulativesToReturn {g : Sat256} {s0 : State}
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+        decide +native)
       (by
         exact balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
           (UInt256.ofNat ee.codeOwner.val) o o1 ho32 hoSize ho132 ho1Size)
-      (by native_decide)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
+        decide +native)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
+        decide +native)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+        decide +native)
       (by
         exact uniswapSyncLogMem_mload64
           (uniswapUpdateCumulativePackedWord σ ee balance0 balance1)
           (balanceOfThisRebuiltStaticcallMem (UInt256.ofNat ee.codeOwner.val) o o1)
           hmemSize128 hmemRead64)
-      (by native_decide)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide) hperm (by jump_dest)
+        decide +native)
+      (by decide +native) hperm (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)
   simpa [uniswapUpdateCumulativeReturnMap] using
     RD.uniswapSyncAfterUpdateToReturn rd6363 hperm
@@ -1944,7 +1944,7 @@ theorem uniswapSyncBodyCumulativeSuccess
       hPostAccounts1 henv1I hslotWordSource
   exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
     (uniswapDecode_sync hsz4) hbody hCreatedRet hAccountsRet
-    (returnEquiv.fallthrough rfl rfl (by native_decide))
+    (returnEquiv.fallthrough rfl rfl (by decide +native))
 /-
   let mem0 := balanceOfThisRebuiltStaticcallMem (UInt256.ofNat I.codeOwner.val) o o1
   have hmemSize128 : 128 ≤ mem0.size := by
@@ -2018,35 +2018,35 @@ theorem uniswapSyncBodyCumulativeSuccess
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+        decide +native)
       (by
         simpa [mem0] using
           balanceOfThisRebuiltStaticcallMem_mload64_of_size_ge
             (UInt256.ofNat I.codeOwner.val) o o1 ho32 hoSize ho132 ho1Size)
-      (by native_decide)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
+        decide +native)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide)
+        decide +native)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
+        decide +native)
       (by
         simpa [mem0] using
           uniswapSyncLogMem_mload64 packedCumulative mem0 hmemSize128 hmemRead64Local)
-      (by native_decide)
+      (by decide +native)
       (by
         intro s haw hstk
         simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-        native_decide)
-      (by native_decide) hperm (by jump_dest)
+        decide +native)
+      (by decide +native) hperm (by jump_dest)
       (by simp only [List.length_cons, List.length_nil]; omega)
   have rdRet := RD.uniswapSyncAfterUpdateToReturn rd6363 hperm
   let evmP0 :=
@@ -2159,7 +2159,7 @@ theorem uniswapSyncBodyCumulativeSuccess
       storageStore_executionEnv, syncUpdateCumulativePackedReserveState, henv1I] using hs
   exact rdRet.reEquivExecutionGenAccountMapEquiv hcode hdispatch
     (uniswapDecode_sync hsz4) hbody hCreatedRet hAccountsRet
-    (returnEquiv.fallthrough rfl rfl (by native_decide))
+    (returnEquiv.fallthrough rfl rfl (by decide +native))
 -/
 
 end UniswapV2Pair

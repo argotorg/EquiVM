@@ -128,7 +128,7 @@ theorem decodeCalldata_legacyBytes32_address_ok {cd : ByteArray} {x y : Solm.Ide
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [decodeABIValues_bytes32_address_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -148,7 +148,7 @@ theorem decodeCalldata_legacyBytes32_address_none_short {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64
   · rw [if_pos hbytes]
@@ -388,29 +388,29 @@ theorem flipperReachFileAddressBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : flipperSelWord I = ⟨0xd4e8be83⟩ :=
     flipperSelWord_eq_of_beq I hsz 0xd4 0xe8 0xbe 0x83 ⟨0xd4e8be83⟩
-      (by native_decide) (by simpa [flipperSelBytes] using hsel)
+      (by decide +native) (by simpa [flipperSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat flipperBytecode flipperRootSplitPc)
       (flipperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat flipperBytecode flipperLowSplitPc)
       (flipperSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperLowHighFirstArmPc j))
         (flipperSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat flipperBytecode
         (nthArmPc flipperBytecode flipperLowHighFirstArmPc 2))
         (flipperSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact flipperReachLowHighBody 2 (by omega) ⟨886⟩ hcode hwv hsz hsize hroot hlow
-    heq0 htake (by jump_dest) (by native_decide)
+    heq0 htake (by jump_dest) (by decide +native)
 
 theorem RD.flipperFileAddressDecodeToRoutine {code : ByteArray} {g : Sat256}
     {s0 : State} {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256}
@@ -425,27 +425,27 @@ theorem RD.flipperFileAddressDecodeToRoutine {code : ByteArray} {g : Sat256}
         calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
-  have rd909 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd910 := rd909.pop (by native_decide) (by evm_ov)
-  have rd911 := rd910.dup1 (by native_decide) (by evm_ov)
-  have rd912 := rd911.calldataload (by native_decide) (by evm_ov)
-  have rd913 := rd912.swap1 (by native_decide) (by evm_ov)
-  have rd915 := rd913.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd916 := rd915.add (by native_decide) (by evm_ov)
-  have rd917 := rd916.calldataload (by native_decide) (by evm_ov)
-  have rd919 := rd917.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd921 := rd919.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd923 := rd921.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd924 := rd923.shl (by native_decide) (by evm_ov)
-  have rd925 := rd924.sub (by native_decide) (by evm_ov)
-  have rd926 := rd925.and (by native_decide) (by evm_ov)
-  have rd929 := rd926.push2 ⟨5821⟩ (by native_decide) (by evm_ov)
+  have rd909 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd910 := rd909.pop (by decide +native) (by evm_ov)
+  have rd911 := rd910.dup1 (by decide +native) (by evm_ov)
+  have rd912 := rd911.calldataload (by decide +native) (by evm_ov)
+  have rd913 := rd912.swap1 (by decide +native) (by evm_ov)
+  have rd915 := rd913.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd916 := rd915.add (by decide +native) (by evm_ov)
+  have rd917 := rd916.calldataload (by decide +native) (by evm_ov)
+  have rd919 := rd917.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd921 := rd919.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd923 := rd921.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd924 := rd923.shl (by decide +native) (by evm_ov)
+  have rd925 := rd924.sub (by decide +native) (by evm_ov)
+  have rd926 := rd925.and (by decide +native) (by evm_ov)
+  have rd929 := rd926.push2 ⟨5821⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide,
       show (⟨36⟩ : UInt256).toNat = 36 from by decide,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide]
-      using rd929.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd929.jump (by decide +native) hroutine (by evm_ov)⟩
 
 theorem flipperFileAddressX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -458,9 +458,9 @@ theorem flipperFileAddressX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : 
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := flipperBytecode) (sel := sel) (entry := ⟨886⟩) (ret := ⟨323⟩)
     (decoded := ⟨908⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by
       exact solcDecodeLenCheckOkUnsigned (by simpa using hsz68) hsize)
@@ -488,7 +488,7 @@ theorem flipperFileAddressX_authorized {cA σ I} {g : Sat256} {s0 : State}
     h
     (by
       unfold flipperAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
 
 theorem flipperFileAddressX_unauthorized {cA σ I} {g : Sat256} {s0 : State}
@@ -507,10 +507,10 @@ theorem flipperFileAddressX_unauthorized {cA σ I} {g : Sat256} {s0 : State}
     h
     (by
       unfold flipperAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold flipperAuthCodecopyRevertTailWf flipperAuthTailPc
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by simp)
 
 theorem flipperFileAddressX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State}
@@ -524,49 +524,49 @@ theorem flipperFileAddressX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State}
       (cA, sstoreAccountMap I.codeOwner σ ⟨7⟩
         (setAddressOffset0Word (solcSlotWord σ I ⟨7⟩) (fileAddressDataKey I)))
       ByteArray.empty := by
-  have rd5904 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd5905 := rd5904.dup2 (by native_decide) (by evm_ov)
+  have rd5904 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd5905 := rd5904.dup2 (by decide +native) (by evm_ov)
   have rd5909 := rd5905.pushConst (⟨1628253⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd5911 := rd5909.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd5912 := rd5911.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd5911 := rd5909.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd5912 := rd5911.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft (⟨1628253⟩ : UInt256) ⟨234⟩ =
       ABI.bytesToWord fileAddressCatBytes := by
-    native_decide
+    decide +native
   rw [hmatch, ← hconst] at rd5912
-  have rd5913 := rd5912.eq (by native_decide) (by evm_ov)
+  have rd5913 := rd5912.eq (by decide +native) (by evm_ov)
   rw [uInt256_eq_self] at rd5913
-  have rd5914 := rd5913.iszero (by native_decide) (by evm_ov)
+  have rd5914 := rd5913.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd5914
   have rd5917 := rd5914.pushConst (⟨1911⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd5918 := rd5917.jumpiNT (by native_decide)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd5918 := rd5917.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd5920 := rd5918.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  have rd5921 := rd5920.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5922⟩ := rd5921.sload (by native_decide) (by evm_ov)
-  have rd5924 := rd5922.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5926 := rd5924.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5928 := rd5926.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd5929 := rd5928.shl (by native_decide) (by evm_ov)
-  have rd5930 := rd5929.sub (by native_decide) (by evm_ov)
-  have rd5931 := rd5930.not (by native_decide) (by evm_ov)
-  have rd5932 := rd5931.and (by native_decide) (by evm_ov)
-  have rd5934 := rd5932.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5936 := rd5934.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd5938 := rd5936.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd5939 := rd5938.shl (by native_decide) (by evm_ov)
-  have rd5940 := rd5939.sub (by native_decide) (by evm_ov)
-  have rd5941 := rd5940.dup4 (by native_decide) (by evm_ov)
-  have rd5942 := rd5941.and (by native_decide) (by evm_ov)
-  have rd5943 := rd5942.or (by native_decide) (by evm_ov)
-  have rd5944 := rd5943.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd5945⟩ := rd5944.sstore hperm (by native_decide) (by evm_ov)
-  have rd5948 := rd5945.push2 ⟨1988⟩ (by native_decide) (by evm_ov)
-  have rd1988 := rd5948.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd1989 := rd1988.jumpdest (by native_decide) (by evm_ov)
-  have rd1990 := rd1989.pop (by native_decide) (by evm_ov)
-  have rd1991 := rd1990.pop (by native_decide) (by evm_ov)
+  have rd5920 := rd5918.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  have rd5921 := rd5920.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5922⟩ := rd5921.sload (by decide +native) (by evm_ov)
+  have rd5924 := rd5922.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5926 := rd5924.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5928 := rd5926.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd5929 := rd5928.shl (by decide +native) (by evm_ov)
+  have rd5930 := rd5929.sub (by decide +native) (by evm_ov)
+  have rd5931 := rd5930.not (by decide +native) (by evm_ov)
+  have rd5932 := rd5931.and (by decide +native) (by evm_ov)
+  have rd5934 := rd5932.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5936 := rd5934.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd5938 := rd5936.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd5939 := rd5938.shl (by decide +native) (by evm_ov)
+  have rd5940 := rd5939.sub (by decide +native) (by evm_ov)
+  have rd5941 := rd5940.dup4 (by decide +native) (by evm_ov)
+  have rd5942 := rd5941.and (by decide +native) (by evm_ov)
+  have rd5943 := rd5942.or (by decide +native) (by evm_ov)
+  have rd5944 := rd5943.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd5945⟩ := rd5944.sstore hperm (by decide +native) (by evm_ov)
+  have rd5948 := rd5945.push2 ⟨1988⟩ (by decide +native) (by evm_ov)
+  have rd1988 := rd5948.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd1989 := rd1988.jumpdest (by decide +native) (by evm_ov)
+  have rd1990 := rd1989.pop (by decide +native) (by evm_ov)
+  have rd1991 := rd1990.pop (by decide +native) (by evm_ov)
   have hword :
       UInt256.lor (UInt256.land (fileAddressDataKey I) solcAddrMask)
           (UInt256.land (UInt256.lnot solcAddrMask) (solcSlotWord σ I ⟨7⟩)) =
@@ -582,12 +582,12 @@ theorem flipperFileAddressX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State}
             exact u256_lor_comm _ _
       _ = setAddressOffset0Word (solcSlotWord σ I ⟨7⟩) (fileAddressDataKey I) := by
             rfl
-  have rd323 := rd1991.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd324 := rd323.jumpdest (by native_decide) (by evm_ov)
+  have rd323 := rd1991.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd324 := rd323.jumpdest (by decide +native) (by evm_ov)
   simpa [solcSlotWord, setAddressOffset0Word, hword,
     show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
       solcAddrMask from by decide]
-    using RD.stop rd324 (by native_decide) (by evm_ov)
+    using RD.stop rd324 (by decide +native) (by evm_ov)
 
 theorem flipperFileAddressX_unrecognized {cA σ I} {g : Sat256} {s0 : State}
     {k C : ℕ} {sel : UInt256}
@@ -597,26 +597,26 @@ theorem flipperFileAddressX_unrecognized {cA σ I} {g : Sat256} {s0 : State}
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev flipperBytecode g s0 := by
-  have rd5904 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd5905 := rd5904.dup2 (by native_decide) (by evm_ov)
+  have rd5904 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd5905 := rd5904.dup2 (by decide +native) (by evm_ov)
   have rd5909 := rd5905.pushConst (⟨1628253⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd5911 := rd5909.push1 ⟨234⟩ (by native_decide) (by evm_ov)
-  have rd5912 := rd5911.shl (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd5911 := rd5909.push1 ⟨234⟩ (by decide +native) (by evm_ov)
+  have rd5912 := rd5911.shl (by decide +native) (by evm_ov)
   have hconst : UInt256.shiftLeft (⟨1628253⟩ : UInt256) ⟨234⟩ =
       ABI.bytesToWord fileAddressCatBytes := by
-    native_decide
+    decide +native
   rw [hconst] at rd5912
-  have rd5913 := rd5912.eq (by native_decide) (by evm_ov)
+  have rd5913 := rd5912.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord fileAddressCatBytes)
       (calldataWord I.calldata 4) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun h => hneq h.symm)
   rw [heq0] at rd5913
-  have rd5914 := rd5913.iszero (by native_decide) (by evm_ov)
+  have rd5914 := rd5913.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd5914
   have rd5917 := rd5914.pushConst (⟨1911⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1911 := rd5917.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1911 := rd5917.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
   exact RD.flipperFileUnrecognizedRevert rd1911
     (twoWordHashMem_size_96 (solcSourceWord I) ⟨0⟩ solcFreePtrMem_size)
@@ -640,10 +640,10 @@ theorem flipperFileAddressX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := flipperBytecode) (sel := sel) (entry := ⟨886⟩) (ret := ⟨323⟩)
     (decoded := ⟨908⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem flipperFileAddressBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -705,7 +705,7 @@ theorem flipperFileAddressBodyCoreOk
         accountMapEquiv_sstoreAccountMap I.codeOwner ⟨7⟩ stored hAccounts)
     (by
       rw [show fileAddressTransition.returnType = [] by rfl]
-      exact returnEquiv.fallthrough rfl (by rfl) (by native_decide))
+      exact returnEquiv.fallthrough rfl (by rfl) (by decide +native))
 
 theorem flipperFileAddressBodyCoreUnauthorized
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -775,7 +775,7 @@ theorem flipperFileAddressBodyCoreUnrecognized
     hsz68 hsize hreach
   obtain ⟨_, _, hswitch⟩ := flipperFileAddressX_authorized (I := I) hauth hdecoded
   have hneq : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileAddressCatBytes :=
-    fileAddressWhatWord_ne_of_bytes_ne (by omega) hwhat (by native_decide)
+    fileAddressWhatWord_ne_of_bytes_ne (by omega) hwhat (by decide +native)
   exact (flipperFileAddressX_unrecognized hneq hswitch)
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

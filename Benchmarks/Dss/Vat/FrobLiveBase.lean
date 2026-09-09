@@ -28,7 +28,7 @@ theorem vatFrobSuccessEquivFromFinalState
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have henc : returnEquiv ByteArray.empty none frobTransition.returnType := by
     rw [show frobTransition.returnType = [] by rfl]
-    exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+    exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
   exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
     hcreated haccounts henc
 
@@ -91,7 +91,7 @@ theorem vatFrobLiveOk {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (key := frobDartWord I) (ret := frobDinkWord I)
     (R := [frobWMaskedWord I, frobVMaskedWord I, frobUMaskedWord I, frobIWord I, ⟨524⟩, sel])
     hdecoded
-    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | decide +native)
     hliveSolc (by jump_dest) (by simp)
 
 def frobLiveSuccessGuards (σ : AccountMap) (I : ExecutionEnv) : Prop :=

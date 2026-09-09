@@ -34,7 +34,7 @@ theorem weth9SelectorDispatchTotalSupply {I : ExecutionEnv} (hsel : selIs I (wet
   rw [selectorDispatchMsg_eq_dispatchList contract I.calldata]
   simp only [contract, dispatchList, selectorOf, hcd,
     weth9NameSelectorBytes, weth9ApproveSelectorBytes, weth9TotalSupplySelectorBytes]
-  native_decide
+  decide +native
 
 theorem weth9Decode_totalSupply_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (totalSupplyTransition.params.map Param.name)
@@ -67,16 +67,16 @@ theorem weth9TotalSupplyX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h381⟩ := weth9ReachTotalSupply (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h395⟩ := weth9GuardPeelOk (gt := ⟨393⟩) h381 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
-  have h1083 := h395.push2 ⟨402⟩ (by native_decide) (by simp)
-    |>.push2 ⟨1083⟩ (by native_decide) (by simp)
-    |>.jump (by native_decide) (by jump_dest) (by simp)
-  have h402 := (RD.selfbalance (h1083.jumpdest (by native_decide) (by simp))
-      (by native_decide) (by simp)).swap1 (by native_decide) (by simp)
-    |>.jump (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
+  have h1083 := h395.push2 ⟨402⟩ (by decide +native) (by simp)
+    |>.push2 ⟨1083⟩ (by decide +native) (by simp)
+    |>.jump (by decide +native) (by jump_dest) (by simp)
+  have h402 := (RD.selfbalance (h1083.jumpdest (by decide +native) (by simp))
+      (by decide +native) (by simp)).swap1 (by decide +native) (by simp)
+    |>.jump (by decide +native) (by jump_dest) (by simp)
   exact RD.solcReturnWordFromMem h402
-    (by dsimp [solcReturnWordFromMemWf]; repeat' first | apply And.intro | native_decide)
+    (by dsimp [solcReturnWordFromMemWf]; repeat' first | apply And.intro | decide +native)
     solcFreePtrMem_mload64 rfl
     (solcReturnMem_mload64 (totalSupplyWord σ I))
     (solcReturnMem_read128 (totalSupplyWord σ I))
@@ -91,7 +91,7 @@ theorem weth9TotalSupplyBodyCoreOk {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (weth9SelBytes 2) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (weth9SelBytes 2) (by decide +native) hsel
   have hbal : totalSupplyWord σ_evm I = totalSupplyWord σ_solm I := totalSupplyWord_congr hAccounts
   exact weth9ReEquivExecTransport hcode
     (weth9TotalSupplyX_ok (g := Sat256.ofUInt256 g) hcode hwv hsz4 hsize hsel)
@@ -109,12 +109,12 @@ theorem weth9TotalSupplyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact weth9TotalSupplyBodyCoreOk hcode hsize hwv hsel hAccounts
   · have hsz4 : 4 ≤ I.calldata.size :=
-      calldata_size_ge_of_selIs I (weth9SelBytes 2) (by native_decide) hsel
+      calldata_size_ge_of_selIs I (weth9SelBytes 2) (by decide +native) hsel
     obtain ⟨_, _, h381⟩ := weth9ReachTotalSupply (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := weth9GuardPeelRev (gt := ⟨393⟩) h381 hwv
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     exact weth9NonpayableRevert hcode hrev (weth9SelectorDispatchTotalSupply hsel)
       (fun callargs _ => bodyReverts_nonPayable (by simp only [initState]; exact hwv))
 

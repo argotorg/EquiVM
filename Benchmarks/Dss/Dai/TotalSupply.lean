@@ -117,7 +117,7 @@ theorem daiTotalSupplyBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (daiSelBytes 17) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (daiSelBytes 17) (by decide +native) hsel
   have hdispatch : dispatchMsg contract I.calldata = some totalSupplyTransition :=
     daiDispatchTotalSupply hsel
   have hreach := daiReachTotalSupplyBody (cA := cA) (gh := gh) (bl := bl)

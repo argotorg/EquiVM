@@ -258,7 +258,7 @@ theorem vatDecodeABIValues_bytes32_address_address_address_int256_int256_legacy_
         (mode := DecodeMode.legacySolc05)
         (types := [addr, addr, addr, int256, int256])
         (bytes := bytes) (cursor := 32) (total := 192)
-        (by native_decide) (by norm_num)]
+        (by decide +native) (by norm_num)]
       rw [vatDecodeScalarWords_address_address_address_int256_int256_legacy_ok
         (bytes := bytes) hlen32 hlen64 hlen96 hlen128 hlen160]
     rw [decodeABIValues?]
@@ -327,7 +327,7 @@ theorem vatDecodeCalldata_legacyBytes32_address_address_address_int256_int256_ok
   simp only
   simp only [decodeCalldata.decodeArgs]
   rw [show abiTupleHeadSize? [bytes32, addr, addr, addr, int256, int256] =
-      some 192 by native_decide]
+      some 192 by decide +native]
   simp only [bind, Option.bind]
   rw [if_neg (by rw [List.length_drop, htlen]; omega :
     ¬ (cd.toList.drop 4).length < 192)]
@@ -661,11 +661,11 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
   have rd6 := rd5.dup2 hd5 (by evm_ov)
   have rd7 := rd6.swap1 hd6 (by evm_ov)
   have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨0⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd9 := rd8.swap1 hd8 (by evm_ov)
   have rd10 := rd9.dup2 hd9 (by evm_ov)
   have rd11 := rd10.mstore 0 (solcMappingHashMem ⟨0⟩ key)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd13 := rd11.push1 ⟨64⟩ hd11 (by evm_ov)
   have rd14 := rd13.swap1 hd13 (by evm_ov)
   have hslot := solcMappingKeccakSlot ⟨0⟩ key
@@ -673,7 +673,7 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
     (UInt256.ofNat 3) hd14 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd16⟩ := rd15.sload hd15 (by evm_ov)
   have rd17 := rd16.dup2 hd16 (by evm_ov)
   exact ⟨_, _, rd17.jump hd17 hret (by evm_ov)⟩
@@ -892,16 +892,16 @@ theorem uint256PairReturnEncoding (first second : UInt256) :
   rw [show UInt256.toByteArray second = (EVM.Word.toBytesBE second).toByteArray by
     exact (word_toBytesBE_toByteArray_eq_toByteArray second).symm]
   unfold encodeReturnValues? encodeABIValues?
-  rw [show abiTupleHeadSize? [uint256, uint256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [uint256, uint256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   unfold encodeABIValuesFrom?
   rw [hencFirst]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
+  rw [show isDynamicABIType uint256 = false by decide +native]
   unfold encodeABIValuesFrom?
   rw [hencSecond]
   simp only [bind, Option.bind]
-  rw [show isDynamicABIType uint256 = false by native_decide]
+  rw [show isDynamicABIType uint256 = false by decide +native]
   unfold encodeABIValuesFrom?
   simp only [Bool.false_eq_true, if_false, List.nil_append, List.append_nil]
   apply congrArg some
@@ -982,69 +982,69 @@ theorem RD.vatSignedMulOk {g : Sat256} {s0 : State}
     ∃ k' C', RD vatBytecode ee g s0 ret ((UInt256.mul y x) :: R) mem
       activeWords rdata acc k' C' := by
   let prod := UInt256.mul y x
-  have rd6707 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd6708 := rd6707.dup2 (by native_decide) (by evm_ov)
-  have rd6709 := rd6708.dup2 (by native_decide) (by evm_ov)
-  have rd6710 := rd6709.mul (by native_decide) (by evm_ov)
-  have rd6712 := rd6710.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6713 := rd6712.dup4 (by native_decide) (by evm_ov)
-  have rd6714 := rd6713.slt (by native_decide) (by evm_ov)
-  have rd6715pre := rd6714.iszero (by native_decide) (by evm_ov)
-  have rd6718pre := rd6715pre.push2 ⟨6723⟩ (by native_decide) (by evm_ov)
+  have rd6707 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd6708 := rd6707.dup2 (by decide +native) (by evm_ov)
+  have rd6709 := rd6708.dup2 (by decide +native) (by evm_ov)
+  have rd6710 := rd6709.mul (by decide +native) (by evm_ov)
+  have rd6712 := rd6710.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6713 := rd6712.dup4 (by decide +native) (by evm_ov)
+  have rd6714 := rd6713.slt (by decide +native) (by evm_ov)
+  have rd6715pre := rd6714.iszero (by decide +native) (by evm_ov)
+  have rd6718pre := rd6715pre.push2 ⟨6723⟩ (by decide +native) (by evm_ov)
   have rd6723 := by
     rw [hmax, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6718pre
-    simpa [prod] using rd6718pre.jumpiT (by native_decide) one_ne_zero_uint
+    simpa [prod] using rd6718pre.jumpiT (by decide +native) one_ne_zero_uint
       (by jump_dest) (by evm_ov)
-  have rd6724 := rd6723.jumpdest (by native_decide) (by evm_ov)
-  have rd6725 := rd6724.dup2 (by native_decide) (by evm_ov)
-  have rd6726 := rd6725.iszero (by native_decide) (by evm_ov)
-  have rd6727 := rd6726.dup1 (by native_decide) (by evm_ov)
-  have rd6730 := rd6727.push2 ⟨6697⟩ (by native_decide) (by evm_ov)
+  have rd6724 := rd6723.jumpdest (by decide +native) (by evm_ov)
+  have rd6725 := rd6724.dup2 (by decide +native) (by evm_ov)
+  have rd6726 := rd6725.iszero (by decide +native) (by evm_ov)
+  have rd6727 := rd6726.dup1 (by decide +native) (by evm_ov)
+  have rd6730 := rd6727.push2 ⟨6697⟩ (by decide +native) (by evm_ov)
   by_cases hyzero : y = ⟨0⟩
   · have rd6697 := by
       rw [hyzero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6730
-      simpa [prod] using rd6730.jumpiT (by native_decide) one_ne_zero_uint
+      simpa [prod] using rd6730.jumpiT (by decide +native) one_ne_zero_uint
         (by jump_dest) (by evm_ov)
-    have rd6698 := rd6697.jumpdest (by native_decide) (by evm_ov)
-    have rd6701 := rd6698.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
-    have rd6615 := rd6701.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    have rd6698 := rd6697.jumpdest (by decide +native) (by evm_ov)
+    have rd6701 := rd6698.push2 ⟨6615⟩ (by decide +native) (by evm_ov)
+    have rd6615 := rd6701.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
       (by evm_ov)
-    have rd6616 := rd6615.jumpdest (by native_decide) (by evm_ov)
-    have rd6617 := rd6616.swap3 (by native_decide) (by evm_ov)
-    have rd6618 := rd6617.swap2 (by native_decide) (by evm_ov)
-    have rd6619 := rd6618.pop (by native_decide) (by evm_ov)
-    have rd6620 := rd6619.pop (by native_decide) (by evm_ov)
+    have rd6616 := rd6615.jumpdest (by decide +native) (by evm_ov)
+    have rd6617 := rd6616.swap3 (by decide +native) (by evm_ov)
+    have rd6618 := rd6617.swap2 (by decide +native) (by evm_ov)
+    have rd6619 := rd6618.pop (by decide +native) (by evm_ov)
+    have rd6620 := rd6619.pop (by decide +native) (by evm_ov)
     exact ⟨_, _, by
-      simpa [prod, hyzero] using rd6620.jump (by native_decide) hret (by evm_ov)⟩
+      simpa [prod, hyzero] using rd6620.jump (by decide +native) hret (by evm_ov)⟩
   · have rd6731 := by
       have hcond : UInt256.isZero y = ⟨0⟩ := isZero_eq_zero_of_ne hyzero
       rw [hcond] at rd6730
-      simpa [prod] using rd6730.jumpiNT (by native_decide)
+      simpa [prod] using rd6730.jumpiNT (by decide +native)
         (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    have rd6732 := rd6731.pop (by native_decide) (by evm_ov)
-    have rd6733 := rd6732.dup3 (by native_decide) (by evm_ov)
-    have rd6734 := rd6733.dup3 (by native_decide) (by evm_ov)
-    have rd6735 := rd6734.dup3 (by native_decide) (by evm_ov)
-    have rd6736 := rd6735.dup2 (by native_decide)
+    have rd6732 := rd6731.pop (by decide +native) (by evm_ov)
+    have rd6733 := rd6732.dup3 (by decide +native) (by evm_ov)
+    have rd6734 := rd6733.dup3 (by decide +native) (by evm_ov)
+    have rd6735 := rd6734.dup3 (by decide +native) (by evm_ov)
+    have rd6736 := rd6735.dup2 (by decide +native)
       (by simp only [List.length_cons] at hov ⊢; omega)
-    have rd6739 := rd6736.push2 ⟨6741⟩ (by native_decide)
+    have rd6739 := rd6736.push2 ⟨6741⟩ (by decide +native)
       (by simp only [List.length_cons] at hov ⊢; omega)
     have rd6741 := by
-      simpa [prod] using rd6739.jumpiT (by native_decide) hyzero (by jump_dest)
+      simpa [prod] using rd6739.jumpiT (by decide +native) hyzero (by jump_dest)
         (by evm_ov)
-    have rd6742 := rd6741.jumpdest (by native_decide) (by evm_ov)
-    have rd6743pre := Benchmarks.Dss.Vat.RD.sdiv rd6742 (by native_decide) (by evm_ov)
-    have rd6744 := rd6743pre.eq (by native_decide) (by evm_ov)
-    have rd6747 := rd6744.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
+    have rd6742 := rd6741.jumpdest (by decide +native) (by evm_ov)
+    have rd6743pre := Benchmarks.Dss.Vat.RD.sdiv rd6742 (by decide +native) (by evm_ov)
+    have rd6744 := rd6743pre.eq (by decide +native) (by evm_ov)
+    have rd6747 := rd6744.push2 ⟨6615⟩ (by decide +native) (by evm_ov)
     have heq : UInt256.eq (UInt256.sdiv prod y) x ≠ ⟨0⟩ := by
       simpa [prod] using hmul.resolve_left hyzero
-    have rd6615 := rd6747.jumpiT (by native_decide) heq (by jump_dest) (by evm_ov)
-    have rd6616 := rd6615.jumpdest (by native_decide) (by evm_ov)
-    have rd6617 := rd6616.swap3 (by native_decide) (by evm_ov)
-    have rd6618 := rd6617.swap2 (by native_decide) (by evm_ov)
-    have rd6619 := rd6618.pop (by native_decide) (by evm_ov)
-    have rd6620 := rd6619.pop (by native_decide) (by evm_ov)
-    exact ⟨_, _, by simpa [prod] using rd6620.jump (by native_decide) hret (by evm_ov)⟩
+    have rd6615 := rd6747.jumpiT (by decide +native) heq (by jump_dest) (by evm_ov)
+    have rd6616 := rd6615.jumpdest (by decide +native) (by evm_ov)
+    have rd6617 := rd6616.swap3 (by decide +native) (by evm_ov)
+    have rd6618 := rd6617.swap2 (by decide +native) (by evm_ov)
+    have rd6619 := rd6618.pop (by decide +native) (by evm_ov)
+    have rd6620 := rd6619.pop (by decide +native) (by evm_ov)
+    exact ⟨_, _, by simpa [prod] using rd6620.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem RD.vatSignedMulRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
@@ -1059,15 +1059,15 @@ theorem RD.vatSignedMulRevert {g : Sat256} {s0 : State}
     (hov : R.length + 9 ≤ 1024) :
     RDrev vatBytecode g s0 := by
   let prod := UInt256.mul y x
-  have rd6707 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd6708 := rd6707.dup2 (by native_decide) (by evm_ov)
-  have rd6709 := rd6708.dup2 (by native_decide) (by evm_ov)
-  have rd6710 := rd6709.mul (by native_decide) (by evm_ov)
-  have rd6712 := rd6710.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6713 := rd6712.dup4 (by native_decide) (by evm_ov)
-  have rd6714 := rd6713.slt (by native_decide) (by evm_ov)
-  have rd6715pre := rd6714.iszero (by native_decide) (by evm_ov)
-  have rd6718pre := rd6715pre.push2 ⟨6723⟩ (by native_decide) (by evm_ov)
+  have rd6707 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd6708 := rd6707.dup2 (by decide +native) (by evm_ov)
+  have rd6709 := rd6708.dup2 (by decide +native) (by evm_ov)
+  have rd6710 := rd6709.mul (by decide +native) (by evm_ov)
+  have rd6712 := rd6710.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6713 := rd6712.dup4 (by decide +native) (by evm_ov)
+  have rd6714 := rd6713.slt (by decide +native) (by evm_ov)
+  have rd6715pre := rd6714.iszero (by decide +native) (by evm_ov)
+  have rd6718pre := rd6715pre.push2 ⟨6723⟩ (by decide +native) (by evm_ov)
   rcases hfail with hmaxFail | ⟨hmax, hmulFail⟩
   · have hsltNe : UInt256.slt x ⟨0⟩ ≠ ⟨0⟩ := by
       intro hslt
@@ -1076,50 +1076,50 @@ theorem RD.vatSignedMulRevert {g : Sat256} {s0 : State}
       have hcond : UInt256.isZero (UInt256.slt x ⟨0⟩) = ⟨0⟩ :=
         isZero_eq_zero_of_ne hsltNe
       rw [hcond] at rd6718pre
-      simpa [prod] using rd6718pre.jumpiNT (by native_decide)
+      simpa [prod] using rd6718pre.jumpiNT (by decide +native)
         (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
     exact RD.solcPush1Dup1Revert0 rd6719
-      (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native)
       (by simp only [List.length_cons]; omega)
   · have rd6723 := by
       rw [hmax, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6718pre
-      simpa [prod] using rd6718pre.jumpiT (by native_decide) one_ne_zero_uint
+      simpa [prod] using rd6718pre.jumpiT (by decide +native) one_ne_zero_uint
         (by jump_dest) (by evm_ov)
-    have rd6724 := rd6723.jumpdest (by native_decide) (by evm_ov)
-    have rd6725 := rd6724.dup2 (by native_decide) (by evm_ov)
-    have rd6726 := rd6725.iszero (by native_decide) (by evm_ov)
-    have rd6727 := rd6726.dup1 (by native_decide) (by evm_ov)
-    have rd6730 := rd6727.push2 ⟨6697⟩ (by native_decide) (by evm_ov)
+    have rd6724 := rd6723.jumpdest (by decide +native) (by evm_ov)
+    have rd6725 := rd6724.dup2 (by decide +native) (by evm_ov)
+    have rd6726 := rd6725.iszero (by decide +native) (by evm_ov)
+    have rd6727 := rd6726.dup1 (by decide +native) (by evm_ov)
+    have rd6730 := rd6727.push2 ⟨6697⟩ (by decide +native) (by evm_ov)
     have hyNe : y ≠ ⟨0⟩ := by
       intro hy
       exact hmulFail (Or.inl hy)
     have rd6731 := by
       have hcond : UInt256.isZero y = ⟨0⟩ := isZero_eq_zero_of_ne hyNe
       rw [hcond] at rd6730
-      simpa [prod] using rd6730.jumpiNT (by native_decide)
+      simpa [prod] using rd6730.jumpiNT (by decide +native)
         (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    have rd6732 := rd6731.pop (by native_decide) (by evm_ov)
-    have rd6733 := rd6732.dup3 (by native_decide) (by evm_ov)
-    have rd6734 := rd6733.dup3 (by native_decide) (by evm_ov)
-    have rd6735 := rd6734.dup3 (by native_decide) (by evm_ov)
-    have rd6736 := rd6735.dup2 (by native_decide)
+    have rd6732 := rd6731.pop (by decide +native) (by evm_ov)
+    have rd6733 := rd6732.dup3 (by decide +native) (by evm_ov)
+    have rd6734 := rd6733.dup3 (by decide +native) (by evm_ov)
+    have rd6735 := rd6734.dup3 (by decide +native) (by evm_ov)
+    have rd6736 := rd6735.dup2 (by decide +native)
       (by simp only [List.length_cons] at hov ⊢; omega)
-    have rd6739 := rd6736.push2 ⟨6741⟩ (by native_decide)
+    have rd6739 := rd6736.push2 ⟨6741⟩ (by decide +native)
       (by simp only [List.length_cons] at hov ⊢; omega)
     have rd6741 := by
-      simpa [prod] using rd6739.jumpiT (by native_decide) hyNe (by jump_dest)
+      simpa [prod] using rd6739.jumpiT (by decide +native) hyNe (by jump_dest)
         (by evm_ov)
-    have rd6742 := rd6741.jumpdest (by native_decide) (by evm_ov)
-    have rd6743pre := Benchmarks.Dss.Vat.RD.sdiv rd6742 (by native_decide) (by evm_ov)
-    have rd6744 := rd6743pre.eq (by native_decide) (by evm_ov)
-    have rd6747 := rd6744.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
+    have rd6742 := rd6741.jumpdest (by decide +native) (by evm_ov)
+    have rd6743pre := Benchmarks.Dss.Vat.RD.sdiv rd6742 (by decide +native) (by evm_ov)
+    have rd6744 := rd6743pre.eq (by decide +native) (by evm_ov)
+    have rd6747 := rd6744.push2 ⟨6615⟩ (by decide +native) (by evm_ov)
     have heq0 : UInt256.eq (UInt256.sdiv prod y) x = ⟨0⟩ := by
       by_contra heqNe
       exact hmulFail (Or.inr (by simpa [prod] using heqNe))
     have rd6748 := by
-      simpa [prod] using rd6747.jumpiNT (by native_decide) heq0 (by evm_ov)
+      simpa [prod] using rd6747.jumpiNT (by decide +native) heq0 (by evm_ov)
     exact RD.solcPush1Dup1Revert0 rd6748
-      (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native)
       (by simp only [List.length_cons]; omega)
 
 -- LIBRARY CANDIDATE: solc signed checked-subtract helper for optimized Vat bytecode.
@@ -1136,91 +1136,91 @@ theorem RD.vatSignedSubOk {g : Sat256} {s0 : State}
     ∃ k' C', RD vatBytecode ee g s0 ret ((UInt256.sub x y) :: R) mem
       activeWords rdata acc k' C' := by
   let diff := UInt256.sub x y
-  have rd6796 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd6797 := rd6796.dup1 (by native_decide) (by evm_ov)
-  have rd6798 := rd6797.dup3 (by native_decide) (by evm_ov)
-  have rd6799 := rd6798.sub (by native_decide) (by evm_ov)
-  have rd6801 := rd6799.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6802 := rd6801.dup3 (by native_decide) (by evm_ov)
-  have rd6803 := rd6802.sgt (by native_decide) (by evm_ov)
-  have rd6804 := rd6803.iszero (by native_decide) (by evm_ov)
-  have rd6805 := rd6804.dup1 (by native_decide) (by evm_ov)
-  have rd6808 := rd6805.push2 ⟨6814⟩ (by native_decide) (by evm_ov)
+  have rd6796 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd6797 := rd6796.dup1 (by decide +native) (by evm_ov)
+  have rd6798 := rd6797.dup3 (by decide +native) (by evm_ov)
+  have rd6799 := rd6798.sub (by decide +native) (by evm_ov)
+  have rd6801 := rd6799.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6802 := rd6801.dup3 (by decide +native) (by evm_ov)
+  have rd6803 := rd6802.sgt (by decide +native) (by evm_ov)
+  have rd6804 := rd6803.iszero (by decide +native) (by evm_ov)
+  have rd6805 := rd6804.dup1 (by decide +native) (by evm_ov)
+  have rd6808 := rd6805.push2 ⟨6814⟩ (by decide +native) (by evm_ov)
   have hrd6814 :
       ∃ k' C', RD vatBytecode ee g s0 ⟨6814⟩ (⟨1⟩ :: diff :: y :: x :: ret :: R)
         mem activeWords rdata acc k' C' := by
     by_cases hypos0 : UInt256.sgt y ⟨0⟩ = ⟨0⟩
     · rw [hypos0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6808
       exact ⟨_, _, by
-        simpa [diff] using rd6808.jumpiT (by native_decide) one_ne_zero_uint
+        simpa [diff] using rd6808.jumpiT (by decide +native) one_ne_zero_uint
           (by jump_dest) (by evm_ov)⟩
     · have rd6809 := by
         have hcond : UInt256.isZero (UInt256.sgt y ⟨0⟩) = ⟨0⟩ :=
           isZero_eq_zero_of_ne hypos0
         rw [hcond] at rd6808
-        simpa [diff] using rd6808.jumpiNT (by native_decide)
+        simpa [diff] using rd6808.jumpiNT (by decide +native)
           (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-      have rd6810 := rd6809.pop (by native_decide) (by evm_ov)
-      have rd6811 := rd6810.dup3 (by native_decide) (by evm_ov)
-      have rd6812 := rd6811.dup2 (by native_decide) (by evm_ov)
-      have rd6813 := rd6812.gt (by native_decide) (by evm_ov)
-      have rd6814pre := rd6813.iszero (by native_decide) (by evm_ov)
+      have rd6810 := rd6809.pop (by decide +native) (by evm_ov)
+      have rd6811 := rd6810.dup3 (by decide +native) (by evm_ov)
+      have rd6812 := rd6811.dup2 (by decide +native) (by evm_ov)
+      have rd6813 := rd6812.gt (by decide +native) (by evm_ov)
+      have rd6814pre := rd6813.iszero (by decide +native) (by evm_ov)
       have hgt0 : UInt256.gt diff x = ⟨0⟩ := by
         simpa [diff] using hpos.resolve_left hypos0
       rw [hgt0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6814pre
       exact ⟨_, _, rd6814pre⟩
   obtain ⟨_, _, rd6814⟩ := hrd6814
-  have rd6815 := rd6814.jumpdest (by native_decide) (by evm_ov)
-  have rd6818 := rd6815.push2 ⟨6823⟩ (by native_decide) (by evm_ov)
-  have rd6823 := rd6818.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd6815 := rd6814.jumpdest (by decide +native) (by evm_ov)
+  have rd6818 := rd6815.push2 ⟨6823⟩ (by decide +native) (by evm_ov)
+  have rd6823 := rd6818.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
-  have rd6824 := rd6823.jumpdest (by native_decide) (by evm_ov)
-  have rd6826 := rd6824.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6827 := rd6826.dup3 (by native_decide) (by evm_ov)
-  have rd6828 := rd6827.slt (by native_decide) (by evm_ov)
-  have rd6829 := rd6828.iszero (by native_decide) (by evm_ov)
-  have rd6830 := rd6829.dup1 (by native_decide) (by evm_ov)
-  have rd6833 := rd6830.push2 ⟨6697⟩ (by native_decide) (by evm_ov)
+  have rd6824 := rd6823.jumpdest (by decide +native) (by evm_ov)
+  have rd6826 := rd6824.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6827 := rd6826.dup3 (by decide +native) (by evm_ov)
+  have rd6828 := rd6827.slt (by decide +native) (by evm_ov)
+  have rd6829 := rd6828.iszero (by decide +native) (by evm_ov)
+  have rd6830 := rd6829.dup1 (by decide +native) (by evm_ov)
+  have rd6833 := rd6830.push2 ⟨6697⟩ (by decide +native) (by evm_ov)
   by_cases hyneg0 : UInt256.slt y ⟨0⟩ = ⟨0⟩
   · have rd6697 := by
       rw [hyneg0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6833
-      simpa [diff] using rd6833.jumpiT (by native_decide) one_ne_zero_uint
+      simpa [diff] using rd6833.jumpiT (by decide +native) one_ne_zero_uint
         (by jump_dest) (by evm_ov)
-    have rd6698 := rd6697.jumpdest (by native_decide) (by evm_ov)
-    have rd6701 := rd6698.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
+    have rd6698 := rd6697.jumpdest (by decide +native) (by evm_ov)
+    have rd6701 := rd6698.push2 ⟨6615⟩ (by decide +native) (by evm_ov)
     have rd6615 := by
-      simpa [diff] using rd6701.jumpiT (by native_decide) one_ne_zero_uint
+      simpa [diff] using rd6701.jumpiT (by decide +native) one_ne_zero_uint
         (by jump_dest) (by evm_ov)
-    have rd6616 := rd6615.jumpdest (by native_decide) (by evm_ov)
-    have rd6617 := rd6616.swap3 (by native_decide) (by evm_ov)
-    have rd6618 := rd6617.swap2 (by native_decide) (by evm_ov)
-    have rd6619 := rd6618.pop (by native_decide) (by evm_ov)
-    have rd6620 := rd6619.pop (by native_decide) (by evm_ov)
-    exact ⟨_, _, by simpa [diff] using rd6620.jump (by native_decide) hret (by evm_ov)⟩
+    have rd6616 := rd6615.jumpdest (by decide +native) (by evm_ov)
+    have rd6617 := rd6616.swap3 (by decide +native) (by evm_ov)
+    have rd6618 := rd6617.swap2 (by decide +native) (by evm_ov)
+    have rd6619 := rd6618.pop (by decide +native) (by evm_ov)
+    have rd6620 := rd6619.pop (by decide +native) (by evm_ov)
+    exact ⟨_, _, by simpa [diff] using rd6620.jump (by decide +native) hret (by evm_ov)⟩
   · have rd6834 := by
       have hcond : UInt256.isZero (UInt256.slt y ⟨0⟩) = ⟨0⟩ :=
         isZero_eq_zero_of_ne hyneg0
       rw [hcond] at rd6833
-      simpa [diff] using rd6833.jumpiNT (by native_decide)
+      simpa [diff] using rd6833.jumpiNT (by decide +native)
         (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    have rd6835 := rd6834.pop (by native_decide) (by evm_ov)
-    have rd6836 := rd6835.dup3 (by native_decide) (by evm_ov)
-    have rd6837 := rd6836.dup2 (by native_decide) (by evm_ov)
-    have rd6838 := rd6837.lt (by native_decide) (by evm_ov)
-    have rd6839 := rd6838.iszero (by native_decide) (by evm_ov)
-    have rd6842 := rd6839.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
+    have rd6835 := rd6834.pop (by decide +native) (by evm_ov)
+    have rd6836 := rd6835.dup3 (by decide +native) (by evm_ov)
+    have rd6837 := rd6836.dup2 (by decide +native) (by evm_ov)
+    have rd6838 := rd6837.lt (by decide +native) (by evm_ov)
+    have rd6839 := rd6838.iszero (by decide +native) (by evm_ov)
+    have rd6842 := rd6839.push2 ⟨6615⟩ (by decide +native) (by evm_ov)
     have hlt0 : UInt256.lt diff x = ⟨0⟩ := by
       simpa [diff] using hneg.resolve_left hyneg0
     have rd6615 := by
       rw [hlt0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6842
-      simpa [diff] using rd6842.jumpiT (by native_decide) one_ne_zero_uint
+      simpa [diff] using rd6842.jumpiT (by decide +native) one_ne_zero_uint
         (by jump_dest) (by evm_ov)
-    have rd6616 := rd6615.jumpdest (by native_decide) (by evm_ov)
-    have rd6617 := rd6616.swap3 (by native_decide) (by evm_ov)
-    have rd6618 := rd6617.swap2 (by native_decide) (by evm_ov)
-    have rd6619 := rd6618.pop (by native_decide) (by evm_ov)
-    have rd6620 := rd6619.pop (by native_decide) (by evm_ov)
-    exact ⟨_, _, by simpa [diff] using rd6620.jump (by native_decide) hret (by evm_ov)⟩
+    have rd6616 := rd6615.jumpdest (by decide +native) (by evm_ov)
+    have rd6617 := rd6616.swap3 (by decide +native) (by evm_ov)
+    have rd6618 := rd6617.swap2 (by decide +native) (by evm_ov)
+    have rd6619 := rd6618.pop (by decide +native) (by evm_ov)
+    have rd6620 := rd6619.pop (by decide +native) (by evm_ov)
+    exact ⟨_, _, by simpa [diff] using rd6620.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem RD.vatSignedSubRevert {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {x y ret : UInt256} {R : List UInt256}
@@ -1235,16 +1235,16 @@ theorem RD.vatSignedSubRevert {g : Sat256} {s0 : State}
     (hov : R.length + 7 ≤ 1024) :
     RDrev vatBytecode g s0 := by
   let diff := UInt256.sub x y
-  have rd6796 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd6797 := rd6796.dup1 (by native_decide) (by evm_ov)
-  have rd6798 := rd6797.dup3 (by native_decide) (by evm_ov)
-  have rd6799 := rd6798.sub (by native_decide) (by evm_ov)
-  have rd6801 := rd6799.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6802 := rd6801.dup3 (by native_decide) (by evm_ov)
-  have rd6803 := rd6802.sgt (by native_decide) (by evm_ov)
-  have rd6804 := rd6803.iszero (by native_decide) (by evm_ov)
-  have rd6805 := rd6804.dup1 (by native_decide) (by evm_ov)
-  have rd6808 := rd6805.push2 ⟨6814⟩ (by native_decide) (by evm_ov)
+  have rd6796 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd6797 := rd6796.dup1 (by decide +native) (by evm_ov)
+  have rd6798 := rd6797.dup3 (by decide +native) (by evm_ov)
+  have rd6799 := rd6798.sub (by decide +native) (by evm_ov)
+  have rd6801 := rd6799.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6802 := rd6801.dup3 (by decide +native) (by evm_ov)
+  have rd6803 := rd6802.sgt (by decide +native) (by evm_ov)
+  have rd6804 := rd6803.iszero (by decide +native) (by evm_ov)
+  have rd6805 := rd6804.dup1 (by decide +native) (by evm_ov)
+  have rd6808 := rd6805.push2 ⟨6814⟩ (by decide +native) (by evm_ov)
   rcases hfail with hposFail | ⟨hpos, hnegFail⟩
   · have hyposNe : UInt256.sgt y ⟨0⟩ ≠ ⟨0⟩ := by
       intro hypos0
@@ -1253,25 +1253,25 @@ theorem RD.vatSignedSubRevert {g : Sat256} {s0 : State}
       have hcond : UInt256.isZero (UInt256.sgt y ⟨0⟩) = ⟨0⟩ :=
         isZero_eq_zero_of_ne hyposNe
       rw [hcond] at rd6808
-      simpa [diff] using rd6808.jumpiNT (by native_decide)
+      simpa [diff] using rd6808.jumpiNT (by decide +native)
         (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    have rd6810 := rd6809.pop (by native_decide) (by evm_ov)
-    have rd6811 := rd6810.dup3 (by native_decide) (by evm_ov)
-    have rd6812 := rd6811.dup2 (by native_decide) (by evm_ov)
-    have rd6813 := rd6812.gt (by native_decide) (by evm_ov)
-    have rd6814 := rd6813.iszero (by native_decide) (by evm_ov)
+    have rd6810 := rd6809.pop (by decide +native) (by evm_ov)
+    have rd6811 := rd6810.dup3 (by decide +native) (by evm_ov)
+    have rd6812 := rd6811.dup2 (by decide +native) (by evm_ov)
+    have rd6813 := rd6812.gt (by decide +native) (by evm_ov)
+    have rd6814 := rd6813.iszero (by decide +native) (by evm_ov)
     have hgtNe : UInt256.gt diff x ≠ ⟨0⟩ := by
       intro hgt0
       exact hposFail (Or.inr (by simpa [diff] using hgt0))
     have rd6814zero : UInt256.isZero (UInt256.gt diff x) = ⟨0⟩ :=
       isZero_eq_zero_of_ne hgtNe
     rw [rd6814zero] at rd6814
-    have rd6815 := rd6814.jumpdest (by native_decide) (by evm_ov)
-    have rd6818 := rd6815.push2 ⟨6823⟩ (by native_decide) (by evm_ov)
-    have rd6819 := rd6818.jumpiNT (by native_decide)
+    have rd6815 := rd6814.jumpdest (by decide +native) (by evm_ov)
+    have rd6818 := rd6815.push2 ⟨6823⟩ (by decide +native) (by evm_ov)
+    have rd6819 := rd6818.jumpiNT (by decide +native)
       (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
     exact RD.solcPush1Dup1Revert0 rd6819
-      (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native)
       (by simp only [List.length_cons]; omega)
   · have hrd6814 :
         ∃ k' C', RD vatBytecode ee g s0 ⟨6814⟩ (⟨1⟩ :: diff :: y :: x :: ret :: R)
@@ -1279,35 +1279,35 @@ theorem RD.vatSignedSubRevert {g : Sat256} {s0 : State}
       by_cases hypos0 : UInt256.sgt y ⟨0⟩ = ⟨0⟩
       · rw [hypos0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6808
         exact ⟨_, _, by
-          simpa [diff] using rd6808.jumpiT (by native_decide) one_ne_zero_uint
+          simpa [diff] using rd6808.jumpiT (by decide +native) one_ne_zero_uint
             (by jump_dest) (by evm_ov)⟩
       · have rd6809 := by
           have hcond : UInt256.isZero (UInt256.sgt y ⟨0⟩) = ⟨0⟩ :=
             isZero_eq_zero_of_ne hypos0
           rw [hcond] at rd6808
-          simpa [diff] using rd6808.jumpiNT (by native_decide)
+          simpa [diff] using rd6808.jumpiNT (by decide +native)
             (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-        have rd6810 := rd6809.pop (by native_decide) (by evm_ov)
-        have rd6811 := rd6810.dup3 (by native_decide) (by evm_ov)
-        have rd6812 := rd6811.dup2 (by native_decide) (by evm_ov)
-        have rd6813 := rd6812.gt (by native_decide) (by evm_ov)
-        have rd6814pre := rd6813.iszero (by native_decide) (by evm_ov)
+        have rd6810 := rd6809.pop (by decide +native) (by evm_ov)
+        have rd6811 := rd6810.dup3 (by decide +native) (by evm_ov)
+        have rd6812 := rd6811.dup2 (by decide +native) (by evm_ov)
+        have rd6813 := rd6812.gt (by decide +native) (by evm_ov)
+        have rd6814pre := rd6813.iszero (by decide +native) (by evm_ov)
         have hgt0 : UInt256.gt diff x = ⟨0⟩ := by
           simpa [diff] using hpos.resolve_left hypos0
         rw [hgt0, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd6814pre
         exact ⟨_, _, rd6814pre⟩
     obtain ⟨_, _, rd6814⟩ := hrd6814
-    have rd6815 := rd6814.jumpdest (by native_decide) (by evm_ov)
-    have rd6818 := rd6815.push2 ⟨6823⟩ (by native_decide) (by evm_ov)
-    have rd6823 := rd6818.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+    have rd6815 := rd6814.jumpdest (by decide +native) (by evm_ov)
+    have rd6818 := rd6815.push2 ⟨6823⟩ (by decide +native) (by evm_ov)
+    have rd6823 := rd6818.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
       (by evm_ov)
-    have rd6824 := rd6823.jumpdest (by native_decide) (by evm_ov)
-    have rd6826 := rd6824.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-    have rd6827 := rd6826.dup3 (by native_decide) (by evm_ov)
-    have rd6828 := rd6827.slt (by native_decide) (by evm_ov)
-    have rd6829 := rd6828.iszero (by native_decide) (by evm_ov)
-    have rd6830 := rd6829.dup1 (by native_decide) (by evm_ov)
-    have rd6833 := rd6830.push2 ⟨6697⟩ (by native_decide) (by evm_ov)
+    have rd6824 := rd6823.jumpdest (by decide +native) (by evm_ov)
+    have rd6826 := rd6824.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+    have rd6827 := rd6826.dup3 (by decide +native) (by evm_ov)
+    have rd6828 := rd6827.slt (by decide +native) (by evm_ov)
+    have rd6829 := rd6828.iszero (by decide +native) (by evm_ov)
+    have rd6830 := rd6829.dup1 (by decide +native) (by evm_ov)
+    have rd6833 := rd6830.push2 ⟨6697⟩ (by decide +native) (by evm_ov)
     have hynegNe : UInt256.slt y ⟨0⟩ ≠ ⟨0⟩ := by
       intro hyneg0
       exact hnegFail (Or.inl hyneg0)
@@ -1315,24 +1315,24 @@ theorem RD.vatSignedSubRevert {g : Sat256} {s0 : State}
       have hcond : UInt256.isZero (UInt256.slt y ⟨0⟩) = ⟨0⟩ :=
         isZero_eq_zero_of_ne hynegNe
       rw [hcond] at rd6833
-      simpa [diff] using rd6833.jumpiNT (by native_decide)
+      simpa [diff] using rd6833.jumpiNT (by decide +native)
         (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-    have rd6835 := rd6834.pop (by native_decide) (by evm_ov)
-    have rd6836 := rd6835.dup3 (by native_decide) (by evm_ov)
-    have rd6837 := rd6836.dup2 (by native_decide) (by evm_ov)
-    have rd6838 := rd6837.lt (by native_decide) (by evm_ov)
-    have rd6839 := rd6838.iszero (by native_decide) (by evm_ov)
-    have rd6842 := rd6839.push2 ⟨6615⟩ (by native_decide) (by evm_ov)
+    have rd6835 := rd6834.pop (by decide +native) (by evm_ov)
+    have rd6836 := rd6835.dup3 (by decide +native) (by evm_ov)
+    have rd6837 := rd6836.dup2 (by decide +native) (by evm_ov)
+    have rd6838 := rd6837.lt (by decide +native) (by evm_ov)
+    have rd6839 := rd6838.iszero (by decide +native) (by evm_ov)
+    have rd6842 := rd6839.push2 ⟨6615⟩ (by decide +native) (by evm_ov)
     have hltNe : UInt256.lt diff x ≠ ⟨0⟩ := by
       intro hlt0
       exact hnegFail (Or.inr (by simpa [diff] using hlt0))
     have hltIsZero : UInt256.isZero (UInt256.lt diff x) = ⟨0⟩ :=
       isZero_eq_zero_of_ne hltNe
     rw [hltIsZero] at rd6842
-    have rd6843 := rd6842.jumpiNT (by native_decide)
+    have rd6843 := rd6842.jumpiNT (by decide +native)
       (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
     exact RD.solcPush1Dup1Revert0 rd6843
-      (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native)
       (by simp only [List.length_cons]; omega)
 
 end Benchmarks.Dss.Vat

@@ -52,7 +52,7 @@ theorem evalExprs_mint_minimumMintArgs (evm : EVM.State) (caller : Frame) :
   rw [evalExpr_mintFee_zeroAddr caller evm]
   simp [evalExpr?, minimumLiquidity, mintFunctionToValue, mintFunctionValueValue,
     uniswapUint256Value, uint256Value]
-  native_decide
+  decide +native
 
 theorem uniswapMintInitialLiquidityBranchPrefix
     {locals : Store} (evm : EVM.State) (rootLiquidity : Int) (liquidity : UInt256)
@@ -513,7 +513,7 @@ theorem uniswapMintRuntimeInitialLiquidityAfterRootUnderflowReverts
     jumpdest, swap1, push4 ⟨0xffffffff⟩, push2 ⟨6879⟩, and]
   rw [show UInt256.land (⟨6879⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6879⟩ from by decide]
     at rd6879pre
-  have rd6879 := rd6879pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd6879 := rd6879pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.uniswapSafeMathSubUnderflow_aw6_size164_shared
     (by simpa [feeToStaticcallActiveWords, balanceOfThisStaticcallActiveWords] using rd6879)
     hrootLt hmem hmem64

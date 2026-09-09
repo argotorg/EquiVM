@@ -46,19 +46,19 @@ theorem potReachPieBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : potSelWord I = ⟨0x0bebac86⟩ :=
     potSelWord_eq_of_beq I hsz 0x0b 0xeb 0xac 0x86 ⟨0x0bebac86⟩
-      (by native_decide) (by simpa [potSelBytes] using hsel)
+      (by decide +native) (by simpa [potSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat potBytecode potRootSplitPc) (potSelWord I) ≠ ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   have h163 : UInt256.gt (armSelNat potBytecode potSplit163Pc) (potSelWord I) ≠ ⟨0⟩ := by
-    rw [hword]; native_decide
+    rw [hword]; decide +native
   have heq0 : ∀ j, j < 1 →
       UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG223FirstArmPc j))
-        (potSelWord I) = ⟨0⟩ := by intro j hj; interval_cases j <;> rw [hword] <;> native_decide
+        (potSelWord I) = ⟨0⟩ := by intro j hj; interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat potBytecode (nthArmPc potBytecode potG223FirstArmPc 1))
-        (potSelWord I) ≠ ⟨0⟩ := by rw [hword]; native_decide
+        (potSelWord I) ≠ ⟨0⟩ := by rw [hword]; decide +native
   exact potReachG223Body 1 (by omega) ⟨303⟩ hcode hwv hsz hsize hroot h163 heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem potPieBodyCoreOk
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -101,20 +101,20 @@ theorem potPieBodyCoreOk
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := potBytecode) (sel := sel) (entry := ⟨303⟩) (ret := ⟨341⟩)
     (decoded := ⟨325⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcOneAddressExternalMaskAndJumpMasked
     (code := potBytecode) (decoded := ⟨325⟩) (ret := ⟨341⟩) (routine := ⟨966⟩)
     (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by jump_dest) (by simp)
   obtain ⟨_, _, hretPc⟩ := RD.solcSingleMappingGetter
     (code := potBytecode) (pc := ⟨966⟩) (baseSlot := ⟨1⟩) (key := key) (ret := ⟨341⟩) (R := [sel])
     (by simpa [key, pieMappingKey] using hroutine)
-    (by unfold solcSingleMappingGetterWf; repeat' first | apply And.intro | native_decide)
+    (by unfold solcSingleMappingGetterWf; repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   have hret :
       RDret potBytecode (Sat256.ofUInt256 g)
@@ -125,7 +125,7 @@ theorem potPieBodyCoreOk
       (memout := solcScratchReturnMem (solcMappingHashMem ⟨1⟩ key)
         (potSlotWord slot σ_evm I))
       (by simpa [slot, potSlotWord] using hretPc)
-      (by unfold solcReturnWordFromMemWf; repeat' first | apply And.intro | native_decide)
+      (by unfold solcReturnWordFromMemWf; repeat' first | apply And.intro | decide +native)
       (by simpa [slot] using solcMappingHashMem_mload64 ⟨1⟩ key)
       (by rfl)
       (by
@@ -169,10 +169,10 @@ theorem potPieBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := potBytecode) (sel := sel) (entry := ⟨303⟩) (ret := ⟨341⟩)
     (decoded := ⟨325⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch
     (potDecode_pie_none_short hsz4 hshort)
 

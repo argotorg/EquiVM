@@ -262,23 +262,23 @@ noncomputable def truthInitReturnMem : ByteArray :=
   truthBytecode.write 0 solcFreePtrMem 0 123
 
 theorem truthRuntime_size : truthBytecode.size = 123 := by
-  native_decide
+  decide +native
 
 theorem truthRuntime_extract_all :
     truthBytecode.extract 0 123 = truthBytecode := by
   apply ByteArray.ext
   rw [ByteArray.data_extract]
-  exact Array.extract_eq_self_of_le (by native_decide)
+  exact Array.extract_eq_self_of_le (by decide +native)
 
 theorem truthInitcode_runtime_window :
     ctorTruthInitcode.extract 15 (15 + 123) = truthBytecode := by
-  native_decide
+  decide +native
 
 theorem truthInitcode_codecopy_mem :
     ctorTruthInitcode.write 15 solcFreePtrMem 0 123 = truthInitReturnMem := by
   unfold truthInitReturnMem
   apply ByteArray.ext
-  rw [write0_data_from ctorTruthInitcode solcFreePtrMem 15 123 (by decide) (by native_decide)]
+  rw [write0_data_from ctorTruthInitcode solcFreePtrMem 15 123 (by decide) (by decide +native)]
   rw [write0_data truthBytecode solcFreePtrMem 123 (by decide)
     (by rw [truthRuntime_size])]
   have hwindow :

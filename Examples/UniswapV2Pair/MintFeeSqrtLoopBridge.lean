@@ -805,7 +805,7 @@ theorem mintFeeSqrtPrefixRuntimeProductZero
     rw [hprodWord, hprodZero]
   have hprodSmall : (mintFeeReserveProductWord reserve0 reserve1).toNat ≤ 3 := by
     rw [hyZero]
-    native_decide
+    decide +native
   have rdFirst :
       RD uniswapV2PairBytecode I (Sat256.ofUInt256 g)
         (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨8046⟩

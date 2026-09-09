@@ -23,7 +23,7 @@ theorem cureDispatchTCount {I : ExecutionEnv}
     cureLoadSelectorBytes, cureLoadedSelectorBytes, curePosSelectorBytes,
     cureRelySelectorBytes, cureSaySelectorBytes, cureSrcsSelectorBytes,
     cureTCountSelectorBytes]
-  native_decide
+  decide +native
 
 theorem cureDecode_tCount {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (tCountTransition.params.map Param.name)
@@ -68,13 +68,13 @@ theorem cureTCountBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     hcode hwv hsz hsize hsel
   have hentry : solcGetterEntryWf cureBytecode ⟨578⟩ ⟨343⟩ ⟨2333⟩ := by
     unfold solcGetterEntryWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   have hgetter : solcWordSlotGetterSwapJumpWf cureBytecode ⟨2333⟩ ⟨2⟩ := by
     unfold solcWordSlotGetterSwapJumpWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   have hretmem : solcReturnWordFromMemWf cureBytecode ⟨343⟩ := by
     unfold solcReturnWordFromMemWf
-    repeat' first | apply And.intro | native_decide
+    repeat' first | apply And.intro | decide +native
   obtain ⟨_, _, hroutine⟩ := RD.solcGetterThunk hreach hentry (by jump_dest)
   obtain ⟨_, _, hretPc⟩ := RD.solcWordSlotGetterSwapJump
     (slot := ⟨2⟩) (R := [cureSelWord I]) hroutine hgetter (by jump_dest)

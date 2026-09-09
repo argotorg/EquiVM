@@ -45,7 +45,7 @@ theorem flopperCtorWardsStoreReach
     push1 ⟨1⟩, swap1, dup2, swap1]
   obtain ⟨k', C', rd155⟩ := rdBeforeStore.sstore hperm (by flopper_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [show (⟨154⟩ : UInt256) + ⟨1⟩ = ⟨155⟩ from by native_decide] using rd155⟩
+    simpa [show (⟨154⟩ : UInt256) + ⟨1⟩ = ⟨155⟩ from by decide +native] using rd155⟩
 
 set_option maxHeartbeats 1000000 in
 theorem flopperCtorVatStoreReach
@@ -98,7 +98,7 @@ theorem flopperCtorVatStoreReach
       holdComm, hvatComm,
       show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
         solcAddrMask from by decide,
-      show (⟨185⟩ : UInt256) + ⟨1⟩ = ⟨186⟩ from by native_decide] using rd186raw⟩
+      show (⟨185⟩ : UInt256) + ⟨1⟩ = ⟨186⟩ from by decide +native] using rd186raw⟩
 
 set_option maxHeartbeats 1000000 in
 theorem flopperCtorGemStoreReach
@@ -139,7 +139,7 @@ theorem flopperCtorGemStoreReach
   obtain ⟨k', C', rd203raw⟩ := rd202.sstore hperm (by flopper_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
     simpa [flopperCtorGemStored, setAddressOffset0Word,
-      show (⟨202⟩ : UInt256) + ⟨1⟩ = ⟨203⟩ from by native_decide] using rd203raw⟩
+      show (⟨202⟩ : UInt256) + ⟨1⟩ = ⟨203⟩ from by decide +native] using rd203raw⟩
 
 theorem flopperCtorLiveStoreReach
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -161,7 +161,7 @@ theorem flopperCtorLiveStoreReach
   have rd205 := flopper_ctor_run rd203 with [push1 ⟨8⟩]
   obtain ⟨k', C', rd206⟩ := rd205.sstore hperm (by flopper_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [show (⟨205⟩ : UInt256) + ⟨1⟩ = ⟨206⟩ from by native_decide] using rd206⟩
+    simpa [show (⟨205⟩ : UInt256) + ⟨1⟩ = ⟨206⟩ from by decide +native] using rd206⟩
 
 theorem flopperCtorStoresReach
     {createdAccounts : Batteries.RBSet AccountAddress compare}

@@ -78,11 +78,11 @@ theorem gemJoinReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : gemJoinSelWord I = ⟨0x69245009⟩ :=
     gemJoinSelWord_eq_of_beq I hsz 0x69 0x24 0x50 0x09 ⟨0x69245009⟩
-      (by native_decide) (by simpa [gemJoinSelBytes] using hsel)
+      (by decide +native) (by simpa [gemJoinSelBytes] using hsel)
   have hroot :
       UInt256.gt (armSelNat gemJoinBytecode gemJoinRootSplitPc) (gemJoinSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat gemJoinBytecode (nthArmPc gemJoinBytecode gemJoinLowFirstArmPc j))
         (gemJoinSelWord I) = ⟨0⟩ := by
@@ -90,14 +90,14 @@ theorem gemJoinReachCageBody {cA gh bl σ σ₀ A I} {g : Sat256}
     interval_cases j
     all_goals
       rw [hword]
-      native_decide
+      decide +native
   have htake :
       UInt256.eq (armSelNat gemJoinBytecode (nthArmPc gemJoinBytecode gemJoinLowFirstArmPc 3))
         (gemJoinSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact gemJoinReachLowBody 3 (by omega) ⟨294⟩ hcode hwv hsz hsize hroot heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem gemJoinCageX_enter {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hreach : ∃ k C, RD gemJoinBytecode I g
@@ -107,10 +107,10 @@ theorem gemJoinCageX_enter {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
         [⟨254⟩, sel]
         solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, h294⟩ := hreach
-  have rd295 := h294.jumpdest (by native_decide) (by evm_ov)
-  have rd298 := rd295.push2 ⟨254⟩ (by native_decide) (by evm_ov)
-  have rd301 := rd298.push2 ⟨1191⟩ (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd301.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  have rd295 := h294.jumpdest (by decide +native) (by evm_ov)
+  have rd298 := rd295.push2 ⟨254⟩ (by decide +native) (by evm_ov)
+  have rd301 := rd298.push2 ⟨1191⟩ (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd301.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem gemJoinCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -127,44 +127,44 @@ theorem gemJoinCageX_authorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd1197pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1198 := rd1197pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1202pre := evm_run rd1198 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1203 := rd1202pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1206pre := evm_run rd1203 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1207 := rd1206pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k1208, C1208, rd1208raw⟩ := rd1207.sload (by native_decide) (by evm_ov)
+  obtain ⟨k1208, C1208, rd1208raw⟩ := rd1207.sload (by decide +native) (by evm_ov)
   have rd1208 : RD gemJoinBytecode I g s0 ⟨1208⟩
       (relyAuthWord σ I :: ⟨254⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1208 C1208 := by
     simpa [relyAuthWord, gemJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1208raw
   have rd1211pre := evm_run rd1208 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   rw [hauth, u256_eq_refl] at rd1211pre
   have rd1214 := rd1211pre.pushConst (⟨1284⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1214.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1214.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 theorem gemJoinNotAuthorizedWord :
     UInt256.shiftLeft
       (⟨0x47656d4a6f696e2f6e6f742d617574686f72697a6564⟩ : UInt256) ⟨80⟩ =
       ⟨0x47656d4a6f696e2f6e6f742d617574686f72697a656400000000000000000000⟩ := by
-  native_decide
+  decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem gemJoinCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
@@ -180,39 +180,39 @@ theorem gemJoinCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
       twoWordHashMem_solcMappingSlot (⟨0⟩ : UInt256) (relySourceWord I)
         solcFreePtrMem_size
   have rd1197pre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1198 := rd1197pre.mstore 0 (wordAt0Mem (relySourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1202pre := evm_run rd1198 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1203 := rd1202pre.mstore 0 (relyAuthHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1206pre := evm_run rd1203 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1207 := rd1206pre.keccak256 0 (mapSlot (relySourceWord I) ⟨0⟩)
-    (UInt256.ofNat 3) (by native_decide) mem_cost hauthSlot (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hauthSlot (by decide +native)
     (by evm_ov)
-  obtain ⟨k1208, C1208, rd1208raw⟩ := rd1207.sload (by native_decide) (by evm_ov)
+  obtain ⟨k1208, C1208, rd1208raw⟩ := rd1207.sload (by decide +native) (by evm_ov)
   have rd1208 : RD gemJoinBytecode I g s0 ⟨1208⟩
       (relyAuthWord σ I :: ⟨254⟩ :: [sel])
       (relyAuthHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k1208 C1208 := by
     simpa [relyAuthWord, gemJoinSlotWord, relyAuthStorageSlot_eq_mapSlot_source I] using rd1208raw
   have rd1211pre := evm_run rd1208 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw eq (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw eq (by decide +native) (by evm_ov)]
   have heq : UInt256.eq (⟨1⟩ : UInt256) (relyAuthWord σ I) = ⟨0⟩ := by
     exact u256_eq_of_ne (by intro hbad; exact hauth hbad.symm)
   rw [heq] at rd1211pre
   have rd1214 := rd1211pre.pushConst (⟨1284⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1215 := rd1214.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1215 := rd1214.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨1215⟩)
     (len := ⟨22⟩)
@@ -225,9 +225,9 @@ theorem gemJoinCageX_unauthorized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ
     (by
       unfold solcErrorStringRevertTailWf
       repeat' apply And.intro
-      all_goals native_decide)
+      all_goals decide +native)
     (by decide)
-    (by native_decide)
+    (by decide +native)
     (relyAuthHashMem_size I)
     (relyAuthHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -240,31 +240,31 @@ theorem gemJoinCageX_storeAuthorized {cA σ I} {g : Sat256} {s0 : State} {k C : 
     RDret gemJoinBytecode g s0
       (cA, sstoreAccountMap I.codeOwner σ ⟨5⟩ ⟨0⟩)
       ByteArray.empty := by
-  have rd1285 := h.jumpdest (by native_decide) (by evm_ov)
+  have rd1285 := h.jumpdest (by decide +native) (by evm_ov)
   have rd1291pre := evm_run rd1285 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨5⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd1292raw⟩ := rd1291pre.sstore hperm (by native_decide) (by evm_ov)
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨5⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd1292raw⟩ := rd1291pre.sstore hperm (by decide +native) (by evm_ov)
   have rd1295pre := evm_run rd1292raw with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [relyAuthHashMem_size I]; decide) (by decide)
         (relyAuthHashMem_read64 I))
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   have rd1328 := rd1295pre.pushConst
     (⟨0x2308ed18a14e800c39b86eb6ea43270105955ca385b603b64eca89f98ae8fbda⟩ : UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native) (by evm_ov)
   have rd1330pre := evm_run rd1328 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  have rd1331 := rd1330pre.log1 0 (UInt256.ofNat 3) (by native_decide) hperm
-    mem_cost (by native_decide) (by simp only [List.length_cons, List.length_nil]; omega)
-  have rd254 := rd1331.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd255 := rd254.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rd255 (by native_decide) (by evm_ov)
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  have rd1331 := rd1330pre.log1 0 (UInt256.ofNat 3) (by decide +native) hperm
+    mem_cost (by decide +native) (by simp only [List.length_cons, List.length_nil]; omega)
+  have rd254 := rd1331.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd255 := rd254.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rd255 (by decide +native) (by evm_ov)
 
 theorem gemJoinX_cage_ok {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hperm : I.perm = true) (hauth : relyAuthWord σ I = ⟨1⟩)
@@ -324,7 +324,7 @@ theorem gemJoinCageBodyCoreOk
       (by
         simpa [cageTransition] using
           (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-            (dvs := []) rfl (by native_decide) (by native_decide)))
+            (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem gemJoinCageBodyCoreUnauthorized
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

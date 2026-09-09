@@ -44,11 +44,11 @@ theorem weth9ReachSymbol1571 {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h623⟩ := weth9ReachSymbol (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h637⟩ := weth9GuardPeelOk (gt := ⟨635⟩) h623 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
-  have h1571 := h637.push2 ⟨187⟩ (by native_decide) (by simp)
-    |>.push2 ⟨1571⟩ (by native_decide) (by simp)
-    |>.jump (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
+  have h1571 := h637.push2 ⟨187⟩ (by decide +native) (by simp)
+    |>.push2 ⟨1571⟩ (by decide +native) (by simp)
+    |>.jump (by decide +native) (by jump_dest) (by simp)
   exact ⟨_, _, h1571⟩
 
 /-! ## Symbol string-load routine prefix (pc 1571 → 1628)
@@ -72,14 +72,14 @@ theorem weth9SymbolRoutineReach1628 {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h1571⟩ := weth9ReachSymbol1571 (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz4 hsize hsel
   obtain ⟨_, _, h1576raw⟩ := (evm_run h1571 with [jumpdest, push1 ⟨1⟩, dup1]).sload
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   obtain ⟨_, _, h1576⟩ : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨1576⟩
       [weth9StringSlotWord σ I ⟨1⟩, ⟨1⟩, ⟨187⟩, weth9SelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) k C :=
     ⟨_, _, by simpa [weth9StringSlotWord, initState] using h1576raw⟩
   have hAnd := evm_run h1576 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost
       solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨2⟩, dup5, dup7, and]
   rw [u256_land_comm ⟨1⟩ (weth9StringSlotWord σ I ⟨1⟩)] at hAnd
@@ -90,10 +90,10 @@ theorem weth9SymbolRoutineReach1628 {cA gh bl σ σ₀ A I} {g : Sat256}
   have h1628 := evm_run h886 with [
     raw mstore 0 ((UInt256.toByteArray (weth9StringNewFp (weth9StringSlotWord σ I ⟨1⟩))).write 0
         solcFreePtrMem (⟨64⟩ : UInt256).toNat 32) (UInt256.ofNat 3)
-      (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost rfl (by decide +native) (by evm_ov),
     dup2, dup2,
     raw mstore 6 (weth9RoutineMem (weth9StringSlotWord σ I ⟨1⟩)) (UInt256.ofNat 5)
-      (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost rfl (by decide +native) (by evm_ov),
     swap3, swap2, dup4, add, dup3, dup3]
   exact ⟨_, _, h1628⟩
 
@@ -114,21 +114,21 @@ theorem weth9SymbolStringEmptyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, pop, pop, pop, pop, pop, dup2, jump (by jump_dest)]
   have h196 := evm_run h187 with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨160⟩ (UInt256.ofNat 5) (by native_decide) mem_cost
-      (by native_decide) (by native_decide) (by evm_ov),
+    raw mload 0 ⟨160⟩ (UInt256.ofNat 5) (by decide +native) mem_cost
+      (by decide +native) (by decide +native) (by evm_ov),
     push1 ⟨32⟩, dup1, dup3,
-    raw mstore 3 _ (UInt256.ofNat 6) (by native_decide) mem_cost rfl
-      (by native_decide) (by evm_ov)]
+    raw mstore 3 _ (UInt256.ofNat 6) (by decide +native) mem_cost rfl
+      (by decide +native) (by evm_ov)]
   have h221 := evm_run h196 with [
     dup4,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by native_decide) mem_cost
-      (by native_decide) (by native_decide) (by evm_ov),
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 6) (by decide +native) mem_cost
+      (by decide +native) (by decide +native) (by evm_ov),
     dup2, dup4, add,
-    raw mstore 3 _ (UInt256.ofNat 7) (by native_decide) mem_cost rfl
-      (by native_decide) (by evm_ov),
+    raw mstore 3 _ (UInt256.ofNat 7) (by decide +native) mem_cost rfl
+      (by decide +native) (by evm_ov),
     dup4,
-    raw mload 0 ⟨0⟩ (UInt256.ofNat 7) (by native_decide) mem_cost
-      (by native_decide) (by native_decide) (by evm_ov),
+    raw mload 0 ⟨0⟩ (UInt256.ofNat 7) (by decide +native) mem_cost
+      (by decide +native) (by decide +native) (by evm_ov),
     swap2, swap3, dup4, swap3, swap1, dup4, add, swap2, dup6, add, swap1,
     dup1, dup4, dup4, push1 ⟨0⟩]
   have hret := evm_run h221 with [
@@ -136,11 +136,11 @@ theorem weth9SymbolStringEmptyReturns {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, pop, pop, pop, pop, swap1, pop, swap1, dup2, add, swap1,
     push1 ⟨31⟩, and, dup1, iszero, push2 ⟨290⟩, jumpiT (by decide) (by jump_dest),
     jumpdest, pop, swap3, pop, pop, pop, push1 ⟨64⟩,
-    raw mload 0 ⟨160⟩ (UInt256.ofNat 7) (by native_decide) mem_cost
-      (by native_decide) (by native_decide) (by evm_ov),
+    raw mload 0 ⟨160⟩ (UInt256.ofNat 7) (by decide +native) mem_cost
+      (by decide +native) (by decide +native) (by evm_ov),
     dup1, swap2, sub, swap1]
   exact evm_run hret with [
-    raw ret 0 weth9EmptyStringAbi (by native_decide) mem_cost (by native_decide) (by evm_ov)]
+    raw ret 0 weth9EmptyStringAbi (by decide +native) mem_cost (by decide +native) (by evm_ov)]
 
 /-! ## Short-string load routine (pc 1628 → encoder entry 187)
 
@@ -166,11 +166,11 @@ theorem weth9SymbolShortLoadReach187 {cA gh bl σ σ₀ A I} {g : Sat256}
     dup1, iszero, push2 ⟨973⟩, jumpiNT (isZero_eq_zero_of_ne hne),
     dup1, push1 ⟨31⟩, lt, push2 ⟨930⟩, jumpiNT hlt31,
     push2 ⟨256⟩, dup1, dup4]
-  obtain ⟨_, _, h916⟩ := h915.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, h916⟩ := h915.sload (by decide +native) (by evm_ov)
   have h187 := evm_run h916 with [
     div, mul, dup4,
     raw mstore 3 (weth9ShortObjMem (weth9StringSlotWord σ I ⟨1⟩)) (UInt256.ofNat 6)
-      (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost rfl (by decide +native) (by evm_ov),
     swap2, push1 ⟨32⟩, add, swap2, push2 ⟨973⟩, jump (by jump_dest),
     jumpdest, pop, pop, pop, pop, pop, dup2, jump (by jump_dest)]
   exact ⟨_, _, h187⟩
@@ -239,14 +239,14 @@ theorem weth9SymNameLongReachLoop {cA gh bl σ σ₀ A I} {g : Sat256}
   have h942 := evm_run h910 with [
     jumpdest, dup3, add, swap2, swap1, push1 ⟨0⟩,
     raw mstore 0 (weth9SymLongScratchMem (weth9StringSlotWord σ I ⟨1⟩)) (UInt256.ofNat 5)
-      (by native_decide) mem_cost rfl (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost rfl (by decide +native) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨0⟩]
-  have h943 := h942.keccak256 0 weth9SymLongDataBase (UInt256.ofNat 5) (by native_decide)
+  have h943 := h942.keccak256 0 weth9SymLongDataBase (UInt256.ofNat 5) (by decide +native)
     (by intro s haw hstk
         simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', hstk, haw,
           List.getElem!_cons_zero, List.getElem!_cons_succ,
           show (⟨0⟩ : UInt256).toNat = 0 from rfl, show (⟨32⟩ : UInt256).toNat = 32 from by decide]
-        native_decide)
+        decide +native)
     (weth9SymLongScratchMem_keccak1 _) (by decide) (by evm_ov)
   exact ⟨_, _, evm_run h943 with [swap1]⟩
 
@@ -284,17 +284,17 @@ theorem weth9SymNameLongCopyContinue {cA gh bl σ σ₀ A I}
       memout awStore ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd944⟩ := hreach
   have rd946 := evm_run rd944 with [jumpdest, dup2]
-  obtain ⟨_, _, rd947₀⟩ := rd946.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd947₀⟩ := rd946.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd947⟩ : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨947⟩
       [weth9LongStorageWord σ I slot, ptr, slot, endp, len, ⟨1⟩, ⟨128⟩,
         ⟨187⟩, weth9SelWord I] m aw ByteArray.empty (cA, σ) k C :=
     ⟨_, _, by simpa [weth9LongStorageWord, initState] using rd947₀⟩
   have rd948 := evm_run rd947 with [dup2]
-  have rd949 := rd948.mstore mstoreCost memout awStore (by native_decide) hmstoreCost hmemout
+  have rd949 := rd948.mstore mstoreCost memout awStore (by decide +native) hmstoreCost hmemout
     hawStore (by evm_ov)
   have rd960 := evm_run rd949 with [
     swap1, push1 ⟨1⟩, add, swap1, push1 ⟨32⟩, add, dup1, dup4, gt, push2 ⟨944⟩]
-  exact ⟨_, _, rd960.jumpiT (by native_decide) hcontinue (by jump_dest) (by evm_ov)⟩
+  exact ⟨_, _, rd960.jumpiT (by decide +native) hcontinue (by jump_dest) (by evm_ov)⟩
 
 /-- Copy-loop exit (pc 944 → 187), done branch (slot marker `⟨1⟩`). -/
 theorem weth9SymNameLongCopyExit {cA gh bl σ σ₀ A I}
@@ -315,21 +315,21 @@ theorem weth9SymNameLongCopyExit {cA gh bl σ σ₀ A I}
       [⟨128⟩, ⟨187⟩, weth9SelWord I] memout awStore ByteArray.empty (cA, σ) k C := by
   obtain ⟨_, _, rd944⟩ := hreach
   have rd946 := evm_run rd944 with [jumpdest, dup2]
-  obtain ⟨_, _, rd947₀⟩ := rd946.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd947₀⟩ := rd946.sload (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd947⟩ : ∃ k C, RD weth9Bytecode I g (initState cA gh bl σ σ₀ g A I) ⟨947⟩
       [weth9LongStorageWord σ I slot, ptr, slot, endp, len, ⟨1⟩, ⟨128⟩,
         ⟨187⟩, weth9SelWord I] m aw ByteArray.empty (cA, σ) k C :=
     ⟨_, _, by simpa [weth9LongStorageWord, initState] using rd947₀⟩
   have rd948 := evm_run rd947 with [dup2]
-  have rd949 := rd948.mstore mstoreCost memout awStore (by native_decide) hmstoreCost hmemout
+  have rd949 := rd948.mstore mstoreCost memout awStore (by decide +native) hmstoreCost hmemout
     hawStore (by evm_ov)
   have rd960 := evm_run rd949 with [
     swap1, push1 ⟨1⟩, add, swap1, push1 ⟨32⟩, add, dup1, dup4, gt, push2 ⟨944⟩]
-  have rd963 := rd960.jumpiNT (by native_decide) hdone (by evm_ov)
+  have rd963 := rd960.jumpiNT (by decide +native) hdone (by evm_ov)
   have rd980 := evm_run rd963 with [
     dup3, swap1, sub, push1 ⟨31⟩, and, dup3, add, swap2,
     jumpdest, pop, pop, pop, pop, pop, dup2]
-  exact ⟨_, _, rd980.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+  exact ⟨_, _, rd980.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 /-- Per-step data proving one symbol copy iteration advances the generated state (marker `⟨1⟩`). -/
 structure Weth9SymLongLoopStep (σ : AccountMap) (I : ExecutionEnv) (endp len : UInt256)

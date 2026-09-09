@@ -130,15 +130,15 @@ theorem RD.vowFlopSin0CallDepthLimit
       (cA, σ) k' C' := by
   obtain ⟨_, _, _, rd1276⟩ := RD.vowFlopToSin0Staticcall hreach hcodeSize
   obtain ⟨k1277, C1277, rd1277raw⟩ :=
-    RD.solcStaticcallDepthLimit rd1276 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcallDepthLimit rd1276 (by decide +native) hdepth (by evm_ov)
   have haw :
       UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
         healSinOutPtr.toNat healSinInSize.toNat)
         healSinOutPtr.toNat (⟨32⟩ : UInt256).toNat) = UInt256.ofNat 6 := by
     rw [healSinInSize_eq]
-    native_decide
+    decide +native
   have hoff : healSinOutPtr.toNat = 128 := by
-    native_decide
+    decide +native
   have hmin : (min (⟨32⟩ : UInt256) (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     rfl
   have rd1277 : RD vowBytecode I (Sat256.ofUInt256 g)
@@ -327,7 +327,7 @@ theorem vowFlopBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (outSin.write 0 (healSinCalldataMem I solcFreePtrMem) 128 32).size
                   ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
             rw [hmemSin]
-            native_decide
+            decide +native
           rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
             initialHealSinWrite_read128_32 I outSin ho32Sin]
         obtain ⟨_, _, rd1318⟩ :=
@@ -844,7 +844,7 @@ theorem vowFlopBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                       outKick.size := by
                   simpa [flopKickOutSize] using kissDaiMin32_toNat_of_lt hshortKick
                 have rd1498Short := rd1498True
-                rw [hminKick, show flopKickOutPtr.toNat = 128 from by native_decide] at rd1498Short
+                rw [hminKick, show flopKickOutPtr.toNat = 128 from by decide +native] at rd1498Short
                 obtain ⟨k1516, C1516, rd1516⟩ :=
                   RD.vowFlopKickCallSuccessToDecode rd1498Short (by simp)
                 have hmemKickShort :
@@ -951,6 +951,6 @@ theorem vowFlopBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     exact vowFlopSin0CallFailureBodyCore (acc := (cA, σ_evm))
       (evmSin := { evm0 with accountMap := σ_solm, substate := A_sin, createdAccounts := cA })
       (outSin := ByteArray.empty) hcode hwv hdispatch hdecode rd1277
-      (by native_decide) hvatCodeSolm hcallSinDepth
+      (by decide +native) hvatCodeSolm hcallSinDepth
 
 end Benchmarks.Dss.Vow

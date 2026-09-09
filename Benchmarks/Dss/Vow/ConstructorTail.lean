@@ -20,8 +20,8 @@ namespace Benchmarks.Dss.Vow
 macro "ctor_tail_decode" : tactic =>
   `(tactic|
     (rw [Reasoning.Theory.decode_append_left_window
-      vowCreationBytecode _ _ (by native_decide) (by native_decide)]
-     native_decide))
+      vowCreationBytecode _ _ (by decide +native) (by decide +native)]
+     decide +native))
 
 macro "ctor_tail_jump_dest" : tactic =>
   `(tactic|
@@ -93,16 +93,16 @@ theorem vowCtorHopeCallSuccessToReturnStart
   exact ⟨_, _, by simpa using rd246⟩
 
 private theorem vowCreationBytecode_size_tail : vowCreationBytecode.size = 5410 := by
-  native_decide
+  decide +native
 
 private theorem vowBytecode_size_tail : vowBytecode.size = 5150 := by
-  native_decide
+  decide +native
 
 theorem vowCtorRuntimeWindow (vat flapper flopper : AccountAddress) :
     (vowCreationBytecode ++ vowCtorArgsTail vat flapper flopper).extract 260 5410 =
       vowBytecode := by
   rw [Reasoning.Theory.byteArray_extract_append_left]
-  · native_decide
+  · decide +native
   · rw [vowCreationBytecode_size_tail]
 
 def vowCtorRuntimeMem (vat flapper flopper : AccountAddress) (mem : ByteArray) :
@@ -141,7 +141,7 @@ theorem vowCtorReturnRuntime
     raw push2 ⟨260⟩ (by ctor_tail_decode) (by evm_ov),
     raw push1 ⟨0⟩ (by ctor_tail_decode) (by evm_ov),
     raw codecopy 506 (vowCtorRuntimeMem vat flapper flopper mem) (UInt256.ofNat 161)
-      (by ctor_tail_decode) mem_cost (by rfl) (by native_decide) (by evm_ov),
+      (by ctor_tail_decode) mem_cost (by rfl) (by decide +native) (by evm_ov),
     raw push1 ⟨0⟩ (by ctor_tail_decode) (by evm_ov),
     raw ret 0 vowBytecode (by ctor_tail_decode) mem_cost
       (vowCtorRuntimeMem_read vat flapper flopper mem) (by evm_ov)]
@@ -151,7 +151,7 @@ theorem vowCtorHopeSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 224
   unfold vowCtorHopeSelectorMem
   have hgap : 224 - mem.size < USize.size := by
     rw [hmem]
-    native_decide
+    decide +native
   rw [toByteArray_write_eq vowCtorHopeSelectorShifted mem 224
     (by omega) hgap]
   have hprefix :
@@ -160,7 +160,7 @@ theorem vowCtorHopeSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 224
   rw [extract_append_right_window _ _ 224 228 (by rw [hprefix]), hprefix,
     show 224 - 224 = 0 from rfl, show 228 - 224 = 4 from rfl,
     toByteArray_eq_toBytesBE]
-  native_decide
+  decide +native
 
 theorem vowCtorHopeCalldataMem_read224_36 (arg : UInt256) {mem : ByteArray}
     (hmem : mem.size = 224) :
@@ -212,7 +212,7 @@ private theorem setAddressOffset0Word_low_address_tail (old : UInt256) (a : Acco
     UInt256.land solcAddrMask (setAddressOffset0Word old (EVM.word a.val)) = EVM.word a.val := by
   apply u256_inj
   rw [u256_land_toNat, setAddressOffset0Word_toNat]
-  · rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by native_decide]
+  · rw [show solcAddrMask.toNat = 2 ^ 160 - 1 by decide +native]
     rw [nat_land_comm]
     rw [nat_land_mask_eq_mod]
     have ha : (EVM.word a.val).toNat = a.val := by
@@ -298,7 +298,7 @@ private theorem ctorExtCodeSize_zero_lookup_code_zero {σ : AccountMap} {target 
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+        (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
@@ -353,7 +353,7 @@ theorem vowCtorHopeCallDepthLimit
         vowCtorCallOutPtr.toNat vowCtorCallInSize.toNat)
         vowCtorCallOutPtr.toNat vowCtorCallOutSize.toNat) = UInt256.ofNat 9 := by
     unfold vowCtorCallOutPtr vowCtorCallInSize vowCtorCallOutSize
-    native_decide
+    decide +native
   have hmin : (min vowCtorCallOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
     unfold vowCtorCallOutSize
     rfl
@@ -702,7 +702,7 @@ theorem vowConstructorCorrect :
         obtain ⟨_, _, rd217⟩ :=
           vowCtorHopeCallDepthLimit vat flapper flopper vatStored gasWord rd216 hdepthEq
         have hrev := vowCtorHopeCallFailure vat flapper flopper rd217
-          (by native_decide)
+          (by decide +native)
           (by simp only [List.length_cons, List.length_nil]; omega)
         rcases hrev.xiResult hcodeTail with hOOG | ⟨g', outRev, hRev⟩
         · exact constructorEquivalenceFor.outOfGas (by simpa [Sat256.ofUInt256] using hOOG)

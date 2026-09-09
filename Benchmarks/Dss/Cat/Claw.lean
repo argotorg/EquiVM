@@ -37,13 +37,13 @@ theorem RD.catClawDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     ∃ k' C', RD code ee g s0 ⟨3259⟩ (calldataWord ee.calldata 4 :: ret :: R)
       mem aw rdata acc k' C' := by
   subst hwf
-  have rd727 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd728 := rd727.pop (by native_decide) (by evm_ov)
-  have rd729 := rd728.calldataload (by native_decide) (by evm_ov)
-  have rd732 := rd729.push2 ⟨3259⟩ (by native_decide) (by evm_ov)
+  have rd727 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd728 := rd727.pop (by decide +native) (by evm_ov)
+  have rd729 := rd728.calldataload (by decide +native) (by evm_ov)
+  have rd732 := rd729.push2 ⟨3259⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-      using rd732.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd732.jump (by decide +native) hroutine (by evm_ov)⟩
 
 /-! ### `_sub(a, b)` routine (`@3762`): `[a, b, ret, R] → [b - a, R]` -/
 
@@ -58,23 +58,23 @@ theorem RD.catClawSubReturns {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   have hgt : UInt256.gt (UInt256.sub b a) b = ⟨0⟩ :=
     ugt_zero (by rw [usub_toNat hle]; omega)
   have rdPre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw gt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨3756⟩ (by native_decide) (by evm_ov)]
-  have rd3756 := rdPre.jumpiT (by native_decide) (by rw [hgt]; decide) (by jump_dest) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw gt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨3756⟩ (by decide +native) (by evm_ov)]
+  have rd3756 := rdPre.jumpiT (by decide +native) (by rw [hgt]; decide) (by jump_dest) (by evm_ov)
   have rdEnd := evm_run rd3756 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rdEnd.jump (by native_decide) hret (by evm_ov)⟩
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rdEnd.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem RD.catClawSubReverts {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {a b ret : UInt256} {R : List UInt256} {mem : ByteArray} {aw : UInt256}
@@ -87,18 +87,18 @@ theorem RD.catClawSubReverts {ee : ExecutionEnv} {g : Sat256} {s0 : State}
   have hgt : UInt256.gt (UInt256.sub b a) b = ⟨1⟩ :=
     ugt_one (by rw [usub_toNat_underflow hunder]; omega)
   have rdPre := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw gt (by native_decide) (by evm_ov),
-    raw iszero (by native_decide) (by evm_ov),
-    raw push2 ⟨3756⟩ (by native_decide) (by evm_ov)]
-  have rdRev := rdPre.jumpiNT (by native_decide) (by rw [hgt]; decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw gt (by decide +native) (by evm_ov),
+    raw iszero (by decide +native) (by evm_ov),
+    raw push2 ⟨3756⟩ (by decide +native) (by evm_ov)]
+  have rdRev := rdPre.jumpiNT (by decide +native) (by rw [hgt]; decide) (by evm_ov)
   exact RD.solcPush1Dup1Revert0 rdRev
-    (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 /-! ### Store routine (`3348 → 302`): SLOAD litter, `_sub rad`, SSTORE back -/
@@ -113,21 +113,21 @@ theorem RD.catClawStoreLitter {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD catBytecode ee g s0 ret R mem aw rdata
       (cA, sstoreAccountMap ee.codeOwner σ ⟨6⟩ (UInt256.sub (solcSlotWord σ ee ⟨6⟩) rad)) k' C' := by
-  have rd3349 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3352 := rd3349.push2 ⟨3360⟩ (by native_decide) (by evm_ov)
-  have rd3354 := rd3352.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3355⟩ := rd3354.sload (by native_decide) (by evm_ov)
-  have rd3356 := rd3355.dup3 (by native_decide) (by evm_ov)
-  have rd3359 := rd3356.push2 ⟨3762⟩ (by native_decide) (by evm_ov)
-  have rd3762 := rd3359.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3349 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3352 := rd3349.push2 ⟨3360⟩ (by decide +native) (by evm_ov)
+  have rd3354 := rd3352.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3355⟩ := rd3354.sload (by decide +native) (by evm_ov)
+  have rd3356 := rd3355.dup3 (by decide +native) (by evm_ov)
+  have rd3359 := rd3356.push2 ⟨3762⟩ (by decide +native) (by evm_ov)
+  have rd3762 := rd3359.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3360⟩ := RD.catClawSubReturns rd3762 hle (by jump_dest)
     (by simp only [List.length_cons]; omega)
-  have rd3360jd := rd3360.jumpdest (by native_decide) (by evm_ov)
-  have rd3361 := rd3360jd.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3364⟩ := rd3361.sstore hperm (by native_decide)
+  have rd3360jd := rd3360.jumpdest (by decide +native) (by evm_ov)
+  have rd3361 := rd3360jd.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3364⟩ := rd3361.sstore hperm (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rd3365 := rd3364.pop (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd3365.jump (by native_decide) hret (by evm_ov)⟩
+  have rd3365 := rd3364.pop (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd3365.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem RD.catClawStoreLitterRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State}
     {rad ret : UInt256} {R : List UInt256} {mem rdata : ByteArray} {aw : UInt256}
@@ -136,13 +136,13 @@ theorem RD.catClawStoreLitterRevert {ee : ExecutionEnv} {g : Sat256} {s0 : State
     (hunder : (solcSlotWord σ ee ⟨6⟩).toNat < rad.toNat)
     (hov : R.length + 8 ≤ 1024) :
     RDrev catBytecode g s0 := by
-  have rd3349 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3352 := rd3349.push2 ⟨3360⟩ (by native_decide) (by evm_ov)
-  have rd3354 := rd3352.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3355⟩ := rd3354.sload (by native_decide) (by evm_ov)
-  have rd3356 := rd3355.dup3 (by native_decide) (by evm_ov)
-  have rd3359 := rd3356.push2 ⟨3762⟩ (by native_decide) (by evm_ov)
-  have rd3762 := rd3359.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3349 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3352 := rd3349.push2 ⟨3360⟩ (by decide +native) (by evm_ov)
+  have rd3354 := rd3352.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3355⟩ := rd3354.sload (by decide +native) (by evm_ov)
+  have rd3356 := rd3355.dup3 (by decide +native) (by evm_ov)
+  have rd3359 := rd3356.push2 ⟨3762⟩ (by decide +native) (by evm_ov)
+  have rd3762 := rd3359.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.catClawSubReverts rd3762 hunder (by simp only [List.length_cons]; omega)
 
 /-! ### Dispatch, ABI, reachability -/
@@ -164,7 +164,7 @@ theorem catDispatch_claw {I : ExecutionEnv}
     rcases ht with rfl | rfl | rfl
     all_goals
       simp [selectorOf, biteSelectorBytes, boxSelectorBytes, cageSelectorBytes, hcd]
-      native_decide
+      decide +native
   · rw [selectorOf, clawSelectorBytes]
     exact hsel
 
@@ -190,25 +190,25 @@ theorem catReachClawBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : catSelWord I = ⟨3865913243⟩ :=
     catSelWord_eq_of_beq I hsz 0xe6 0x6d 0x27 0x9b ⟨3865913243⟩
-      (by native_decide) hsel
+      (by decide +native) hsel
   have hroot : UInt256.gt (armSelNat catBytecode catRootSplitPc) (catSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hhigh : UInt256.gt (armSelNat catBytecode catHighSplitPc) (catSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catHighHighFirstArmPc j))
         (catSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat catBytecode (nthArmPc catBytecode catHighHighFirstArmPc 2))
         (catSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact catReachHighHighBody 2 (by omega) ⟨704⟩ hcode hwv hsz hsize hroot hhigh heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 /-! ### Body core -/
 
@@ -236,9 +236,9 @@ theorem catClawBodyCore
   obtain ⟨_, _, hdecoded⟩ := RD.solcOneAddressExternalLenOk
     (code := catBytecode) (sel := sel) (entry := ⟨704⟩) (ret := ⟨302⟩)
     (decoded := ⟨726⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz36 hsize
   obtain ⟨_, _, hroutine⟩ := RD.catClawDecodeToRoutine
     (code := catBytecode) (ret := ⟨302⟩) (R := [sel]) hdecoded rfl (by jump_dest) (by simp)
@@ -255,7 +255,7 @@ theorem catClawBodyCore
       (by simpa [clawRad] using hroutine)
       (by
         unfold catAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by jump_dest) (by simp)
     -- Shared Solm-side prologue facts.
     have hcv := evalCallvalueEq_true (cfg := config)
@@ -302,13 +302,13 @@ theorem catClawBodyCore
       obtain ⟨_, _, hretPc⟩ := RD.catClawStoreLitter
         (ret := ⟨302⟩) (R := [sel]) hokPc (by jump_dest) hperm
         (by rw [hword]; exact hle) (by simp)
-      have hretPc' := hretPc.jumpdest (by native_decide) (by evm_ov)
+      have hretPc' := hretPc.jumpdest (by decide +native) (by evm_ov)
       have hret :
           RDret catBytecode (Sat256.ofUInt256 g)
             (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
             (cA, sstoreAccountMap I.codeOwner σ_evm ⟨6⟩
               (UInt256.sub (solcSlotWord σ_evm I ⟨6⟩) (clawRad I))) ByteArray.empty :=
-        RD.stop hretPc' (by native_decide) (by simp)
+        RD.stop hretPc' (by decide +native) (by simp)
       let diff := UInt256.sub (solcSlotWord σ_solm I ⟨6⟩) (clawRad I)
       let evm1 := Solm.EVM.storageStore evm0 I.codeOwner ⟨6⟩ diff
       have hbody :
@@ -389,7 +389,7 @@ theorem catClawBodyCore
           accountMapEquiv_sstoreAccountMap I.codeOwner ⟨6⟩ diff hAccounts
       have henc : returnEquiv ByteArray.empty none clawTransition.returnType := by
         rw [show clawTransition.returnType = [] by rfl]
-        exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+        exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
       exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
         hcreated haccounts henc
     · -- `rad > litter`: sub underflows, revert.
@@ -450,10 +450,10 @@ theorem catClawBodyCore
       (by simpa [clawRad] using hroutine)
       (by
         unfold catAuthCheckWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (by
         unfold solcErrorStringRevertTailWf catAuthTailPc catNotAuthorizedRawWord
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       hauthSolc (by simp)
     exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
@@ -477,10 +477,10 @@ theorem catClawShort {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := catBytecode) (sel := catSelWord I) (entry := ⟨704⟩) (ret := ⟨302⟩)
     (decoded := ⟨726⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode (catDispatch_claw hsel)
     (catDecode_claw_none_short hsz4 hshort)
 
@@ -493,7 +493,7 @@ theorem catClawBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I ⟨#[0xe6, 0x6d, 0x27, 0x9b]⟩ (by native_decide) hsel
+    calldata_size_ge_of_selIs I ⟨#[0xe6, 0x6d, 0x27, 0x9b]⟩ (by decide +native) hsel
   by_cases hshort : I.calldata.size < 36
   · exact catClawShort hcode hsize hperm hwv hsz hshort hsel hAccounts
   · have hsz36 : 36 ≤ I.calldata.size := by omega

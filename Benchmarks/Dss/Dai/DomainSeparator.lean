@@ -125,7 +125,7 @@ theorem daiDomainSeparatorBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (daiSelBytes 6) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (daiSelBytes 6) (by decide +native) hsel
   have hdispatch : dispatchMsg contract I.calldata = some domainSeparatorTransition :=
     daiDispatchDomainSeparator hsel
   have hreach := daiReachDomainSeparatorBody (cA := cA) (gh := gh) (bl := bl)

@@ -88,7 +88,7 @@ theorem erc20X_transferFromBeforeFromStoreCore {cA gh bl σ σ₀ A I} {g : Sat2
           ⟨1⟩ + ⟨1⟩ + UInt256.ofNat 3 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ =
         (⟨526⟩ : UInt256) := by
-    native_decide
+    decide +native
   exact ⟨_, _, by simpa [evm0, evm1, hdebitWordRaw', hpc526] using rdBeforeStore⟩
 
 end VyperERC20

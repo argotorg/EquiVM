@@ -16,15 +16,15 @@ set_option maxRecDepth 2000000
 
 theorem endCreationBytecode_size :
     endCreationBytecode.size = 10359 := by
-  native_decide
+  decide +native
 
 theorem endBytecode_size :
     endBytecode.size = 10265 := by
-  native_decide
+  decide +native
 
 theorem endCreationBytecode_runtime_window :
     endCreationBytecode.extract 94 (94 + 10265) = endBytecode := by
-  native_decide
+  decide +native
 
 theorem end_selfDeployment_eq :
     config.selfDeployment = genSolidityConstructorDeployment contract.ctor.params := rfl
@@ -228,14 +228,14 @@ theorem endCtorInitcodeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd12 := evm_run rd0 with [
     push1 ⟨128⟩, push1 ⟨64⟩,
     raw mstore 9 solcFreePtrMem (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov),
     callvalue, dup1, iszero, push2 ⟨16⟩,
     jumpiNT (isZero_eq_zero_of_ne hwv)]
   exact evm_run rd12 with [
     push1 ⟨0⟩, dup1,
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 set_option maxHeartbeats 5000000 in
 theorem endCtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -256,56 +256,56 @@ theorem endCtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd16 := evm_run rd0 with [
     push1 ⟨128⟩, push1 ⟨64⟩,
     raw mstore 9 solcFreePtrMem (UInt256.ofNat 3)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by evm_ov),
     callvalue, dup1, iszero, push2 ⟨16⟩,
-    jumpiT (by rw [hwv]; decide) (by native_decide)]
+    jumpiT (by rw [hwv]; decide) (by decide +native)]
   have rd23pre := evm_run rd16 with [
     jumpdest, pop, caller, push1 ⟨0⟩, dup2, dup2]
   have rd24 := rd23pre.mstore 0
     (wordAt0Mem (solcSourceWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd28pre := evm_run rd24 with [
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd29 := rd28pre.mstore 0 (endCtorWardsHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd33pre := evm_run rd29 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
   have rd34 := rd33pre.keccak256 0 (endCtorCallerWardsSlot I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (endCtorWardsHashSlot I)
-    (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (endCtorWardsHashSlot I)
+    (by decide +native) (by evm_ov)
   have rd38pre := evm_run rd34 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd39raw⟩ := rd38pre.sstore hperm (by native_decide)
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd39raw⟩ := rd38pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd39 := by
     simpa using rd39raw
   have rd41pre := evm_run rd39 with [
-    raw push1 ⟨8⟩ (by native_decide) (by evm_ov)]
-  obtain ⟨_, _, rd42raw⟩ := rd41pre.sstore hperm (by native_decide)
+    raw push1 ⟨8⟩ (by decide +native) (by evm_ov)]
+  obtain ⟨_, _, rd42raw⟩ := rd41pre.sstore hperm (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd42 := by
     simpa using rd42raw
-  have rd43 := rd42.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide) mem_cost
+  have rd43 := rd42.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native) mem_cost
     (mloadFreePtrValue (by rw [endCtorWardsHashMem_size I]; decide) (by decide)
       (endCtorWardsHashMem_read64 I))
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd76 := rd43.pushConst
     (⟨0xdd0e34038ac38b2a1ce960229778ac48a8719bc900b6c4f8d0475c6e8b385a60⟩ : UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native) (by evm_ov)
   have rd78pre := evm_run rd76 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd79 := RD.log2
     (a := ⟨128⟩) (b := ⟨0⟩)
     (c := ⟨0xdd0e34038ac38b2a1ce960229778ac48a8719bc900b6c4f8d0475c6e8b385a60⟩)
@@ -314,27 +314,27 @@ theorem endCtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
     (UInt256.ofNat
       (MachineState.M (UInt256.ofNat 3).toNat (⟨128⟩ : UInt256).toNat
         (⟨0⟩ : UInt256).toNat))
-    rd78pre (by native_decide) hperm mem_cost (by native_decide)
+    rd78pre (by decide +native) hperm mem_cost (by decide +native)
     (by simp only [List.length_nil]; omega)
   have hcopy :
       endCreationBytecode.write 94 (endCtorWardsHashMem I) 0 10265 =
         endCtorReturnMem I := by
     rfl
   have rd90pre := evm_run rd79 with [
-    raw push2 ⟨10265⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw push2 ⟨94⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
+    raw push2 ⟨10265⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw push2 ⟨94⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
     raw codecopy
       (Cₘ (UInt256.ofNat (MachineState.M (UInt256.ofNat (MachineState.M
           (UInt256.ofNat 3).toNat (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat)).toNat
           0 10265)) - Cₘ (UInt256.ofNat (MachineState.M
             (UInt256.ofNat 3).toNat (⟨128⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat)))
       (endCtorReturnMem I) (UInt256.ofNat 321)
-      (by native_decide) mem_cost hcopy (by native_decide) (by evm_ov),
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost hcopy (by decide +native) (by evm_ov),
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov)]
   exact rd90pre.ret 0 endBytecode
-    (by native_decide) mem_cost (endCtorReturnMem_read I) (by evm_ov)
+    (by decide +native) mem_cost (endCtorReturnMem_read I) (by evm_ov)
 
 /-! ## Constructor equivalence -/
 

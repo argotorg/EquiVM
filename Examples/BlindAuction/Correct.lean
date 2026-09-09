@@ -163,10 +163,10 @@ theorem blindAuctionCorrect :
 /-! ## Constructor side -/
 
 theorem blindAuctionCtorPrefix_size : blindAuctionCtorPrefix.size = 146 := by
-  native_decide
+  decide +native
 
 theorem blindAuctionBytecode_size : blindAuctionBytecode.size = 2137 := by
-  native_decide
+  decide +native
 
 theorem blindAuctionInitcode_size : blindAuctionInitcode.size = 2283 := by
   rw [blindAuctionInitcode, ByteArray.size_append, blindAuctionCtorPrefix_size,
@@ -207,13 +207,13 @@ macro "blind_ctor_decode" : tactic =>
     (first
       | rw [blindAuctionInitcode_decode_append _ _ (by decide)]
       | (unfold blindAuctionCtorCode; rw [blindAuctionInitcode_decode_append _ _ (by decide)]);
-     native_decide))
+     decide +native))
 
 macro "blind_ctor_jd" : tactic =>
   `(tactic|
     (first
-      | (apply Reasoning.Theory.D_J_contains_append_left; native_decide)
-      | (unfold blindAuctionCtorCode; apply Reasoning.Theory.D_J_contains_append_left; native_decide)))
+      | (apply Reasoning.Theory.D_J_contains_append_left; decide +native)
+      | (unfold blindAuctionCtorCode; apply Reasoning.Theory.D_J_contains_append_left; decide +native)))
 
 open Lean in
 macro "blind_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do

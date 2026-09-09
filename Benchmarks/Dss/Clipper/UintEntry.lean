@@ -23,7 +23,7 @@ theorem decodeCalldataWithMode_legacyUint256_ok {cd : ByteArray} {x : Solm.Ident
   have hword4 : ABI.bytesToWord ((cd.toList.drop 4).take 32) = calldataWord cd 4 := by
     exact decode_word_at_eq cd 4 (by omega) (by norm_num)
   rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [uint256])
-    (cd := cd) (by native_decide)]
+    (cd := cd) (by decide +native)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   simp only [decodeScalarWordsWithMode?]
   change (match do
@@ -49,7 +49,7 @@ theorem decodeCalldataWithMode_legacyUint256_none_short {cd : ByteArray} {x : So
     rw [byteArray_toList_eq, Array.length_toList]
     rfl
   rw [decodeCalldataWithMode_legacyScalarWords_eq (names := [x]) (types := [uint256])
-    (cd := cd) (by native_decide)]
+    (cd := cd) (by decide +native)]
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   simp only [decodeScalarWordsWithMode?]
   have htake0n : ¬ ((cd.toList.drop 4).take 32).length = 32 := by

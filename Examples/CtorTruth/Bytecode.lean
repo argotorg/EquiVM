@@ -57,74 +57,74 @@ axiom ctorTruthSelectorBytes :
 @[valid_jumps] theorem ctorTruthRuntimeValidJumps :
     Ethereum.EVM.D_J ctorTruthRuntimeBytecode 0
       = #[⟨14⟩, ⟨38⟩, ⟨42⟩, ⟨48⟩, ⟨59⟩, ⟨68⟩, ⟨76⟩, ⟨87⟩, ⟨94⟩, ⟨100⟩, ⟨117⟩]
-  := by native_decide
+  := by decide +native
 
 /-- The `JUMPDEST` positions of `ctorTruthInitcode`. -/
 @[valid_jumps] theorem ctorTruthInitcodeValidJumps :
     Ethereum.EVM.D_J ctorTruthInitcode 0
       = #[⟨29⟩, ⟨53⟩, ⟨57⟩, ⟨63⟩, ⟨74⟩, ⟨83⟩, ⟨91⟩, ⟨102⟩, ⟨109⟩,
           ⟨115⟩, ⟨132⟩]
-  := by native_decide
+  := by decide +native
 
 macro "ctor_truth_decode_prefix" : tactic =>
   `(tactic|
-    rw [decode_append_left ctorTruthInitcode _ _ (by native_decide)
+    rw [decode_append_left ctorTruthInitcode _ _ (by decide +native)
       (by
         intro b instr hget hinstr
-        cases instr <;> rename_i op <;> cases op <;> revert b <;> native_decide)
+        cases instr <;> rename_i op <;> cases op <;> revert b <;> decide +native)
       (by
         intro b instr hget hinstr
-        cases instr <;> rename_i op <;> cases op <;> revert b <;> native_decide)])
+        cases instr <;> rename_i op <;> cases op <;> revert b <;> decide +native)])
 
 theorem ctorTruthDecode0_append (tail : ByteArray) :
     decode (ctorTruthInitcode ++ tail) ⟨0⟩ = some (.Push .PUSH1, some (⟨128⟩, 1)) := by
   ctor_truth_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorTruthDecode2_append (tail : ByteArray) :
     decode (ctorTruthInitcode ++ tail) ⟨2⟩ = some (.Push .PUSH1, some (⟨64⟩, 1)) := by
   ctor_truth_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorTruthDecode4_append (tail : ByteArray) :
     decode (ctorTruthInitcode ++ tail) ⟨4⟩ = some (.MSTORE, .none) := by
   ctor_truth_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorTruthDecode5_append (tail : ByteArray) :
     decode (ctorTruthInitcode ++ tail) ⟨5⟩ = some (.Push .PUSH1, some (⟨123⟩, 1)) := by
   ctor_truth_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorTruthDecode7_append (tail : ByteArray) :
     decode (ctorTruthInitcode ++ tail) ⟨7⟩ = some (.DUP1, .none) := by
   ctor_truth_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorTruthDecode8_append (tail : ByteArray) :
     decode (ctorTruthInitcode ++ tail) ⟨8⟩ = some (.Push .PUSH1, some (⟨15⟩, 1)) := by
   ctor_truth_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorTruthDecode10_append (tail : ByteArray) :
     decode (ctorTruthInitcode ++ tail) ⟨10⟩ = some (.PUSH0, .none) := by
   ctor_truth_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorTruthDecode11_append (tail : ByteArray) :
     decode (ctorTruthInitcode ++ tail) ⟨11⟩ = some (.CODECOPY, .none) := by
   ctor_truth_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorTruthDecode12_append (tail : ByteArray) :
     decode (ctorTruthInitcode ++ tail) ⟨12⟩ = some (.PUSH0, .none) := by
   ctor_truth_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorTruthDecode13_append (tail : ByteArray) :
     decode (ctorTruthInitcode ++ tail) ⟨13⟩ = some (.RETURN, .none) := by
   ctor_truth_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorTruthDecode0 :
     decode ctorTruthInitcode ⟨0⟩ = some (.Push .PUSH1, some (⟨128⟩, 1)) := by

@@ -108,7 +108,7 @@ theorem decodeCalldata_legacyBytes32_uint256_ok {cd : ByteArray} {x y : Solm.Ide
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [decodeABIValues_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -128,7 +128,7 @@ theorem decodeCalldata_legacyBytes32_uint256_none_short {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64
   · rw [if_pos hbytes]
@@ -165,7 +165,7 @@ theorem cureDispatchFile {I : ExecutionEnv}
   simp [dispatchList, selectorOf, hcd, cureSelBytes,
     cureAmtSelectorBytes, cureCageSelectorBytes, cureDenySelectorBytes,
     cureDropSelectorBytes, cureFileSelectorBytes]
-  native_decide
+  decide +native
 
 theorem cureReachFileBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = cureBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -175,13 +175,13 @@ theorem cureReachFileBody {cA gh bl σ σ₀ A I} {g : Sat256}
       [cureSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
   have hsw : cureSelWord I = ⟨0x29ae8114⟩ :=
     cureSelWord_eq_of_beq I hsz 0x29 0xae 0x81 0x14 ⟨0x29ae8114⟩
-      (by native_decide) (by simpa [cureSelBytes] using hsel)
+      (by decide +native) (by simpa [cureSelBytes] using hsel)
   obtain ⟨_, _, h245⟩ := cureReachLowLowerFirstArm (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hwv hsz hsize
-    (by rw [hsw]; native_decide) (by rw [hsw]; native_decide)
+    (by rw [hsw]; decide +native) (by rw [hsw]; decide +native)
   exact RD.dispatchTo ⟨449⟩ 2 h245 (fun j hj => cureLowLowerArmsWellFormed j (by omega))
-    (fun j hj => by interval_cases j <;> · rw [hsw]; native_decide)
-    (by rw [hsw]; native_decide) (by jump_dest) (by native_decide) (by simp)
+    (fun j hj => by interval_cases j <;> · rw [hsw]; decide +native)
+    (by rw [hsw]; decide +native) (by jump_dest) (by decide +native) (by simp)
 
 theorem RD.cureFileDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
@@ -195,19 +195,19 @@ theorem RD.cureFileDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
       (calldataWord ee.calldata 36 :: calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
-  have rd472 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd473 := rd472.pop (by native_decide) (by evm_ov)
-  have rd474 := rd473.dup1 (by native_decide) (by evm_ov)
-  have rd475 := rd474.calldataload (by native_decide) (by evm_ov)
-  have rd476 := rd475.swap1 (by native_decide) (by evm_ov)
-  have rd478 := rd476.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd479 := rd478.add (by native_decide) (by evm_ov)
-  have rd480 := rd479.calldataload (by native_decide) (by evm_ov)
-  have rd483 := rd480.push2 ⟨1027⟩ (by native_decide) (by evm_ov)
+  have rd472 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd473 := rd472.pop (by decide +native) (by evm_ov)
+  have rd474 := rd473.dup1 (by decide +native) (by evm_ov)
+  have rd475 := rd474.calldataload (by decide +native) (by evm_ov)
+  have rd476 := rd475.swap1 (by decide +native) (by evm_ov)
+  have rd478 := rd476.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd479 := rd478.add (by decide +native) (by evm_ov)
+  have rd480 := rd479.calldataload (by decide +native) (by evm_ov)
+  have rd483 := rd480.push2 ⟨1027⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide,
       show (⟨36⟩ : UInt256).toNat = 36 from by decide]
-      using rd483.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd483.jump (by decide +native) hroutine (by evm_ov)⟩
 
 theorem cureFileX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz68 : 68 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -220,9 +220,9 @@ theorem cureFileX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := cureBytecode) (sel := sel) (entry := ⟨449⟩) (ret := ⟨484⟩)
     (decoded := ⟨471⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by
       exact solcDecodeLenCheckOkUnsigned (by simpa using hsz68) hsize)
@@ -247,10 +247,10 @@ theorem cureFileX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := cureBytecode) (sel := sel) (entry := ⟨449⟩) (ret := ⟨484⟩)
     (decoded := ⟨471⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem cureFileX_afterLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
@@ -272,7 +272,7 @@ theorem cureFileX_afterLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     h
     (by
       unfold cureAuthCheckWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hauthSolc (by jump_dest) (by simp)
   have hliveSolc : solcSlotWord σ I ⟨1⟩ = ⟨1⟩ := by
     simpa [cureSlotWord] using hlive
@@ -282,13 +282,13 @@ theorem cureFileX_afterLive {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     hafterAuth
     (by
       unfold cureLiveGuardWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hliveSolc (by jump_dest) (by simp)
 
 theorem fileWaitShiftConst :
     UInt256.shiftLeft (⟨500718173⟩ : UInt256) ⟨226⟩ =
       ABI.bytesToWord fileWaitBytes := by
-  native_decide
+  decide +native
 
 theorem RD.cureFileWaitStorePrefix {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {data what ret : UInt256} {R : List UInt256}
@@ -301,31 +301,31 @@ theorem RD.cureFileWaitStorePrefix {cA σ I} {g : Sat256} {s0 : State} {k C : �
     ∃ k' C', RD cureBytecode I g s0 ⟨1290⟩
       (data :: what :: ret :: R) mem aw rdata
       (cA, sstoreAccountMap I.codeOwner σ ⟨3⟩ data) k' C' := by
-  have rd1189 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1190 := rd1189.dup2 (by native_decide) (by evm_ov)
+  have rd1189 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1190 := rd1189.dup2 (by decide +native) (by evm_ov)
   have rd1195 := rd1190.pushConst (⟨500718173⟩ : UInt256)
-    (width := 4) (op := .PUSH4) (by decide) (by native_decide) (by evm_ov)
-  have rd1197 := rd1195.push1 ⟨226⟩ (by native_decide) (by evm_ov)
-  have rd1198raw := rd1197.shl (by native_decide) (by evm_ov)
+    (width := 4) (op := .PUSH4) (by decide) (by decide +native) (by evm_ov)
+  have rd1197 := rd1195.push1 ⟨226⟩ (by decide +native) (by evm_ov)
+  have rd1198raw := rd1197.shl (by decide +native) (by evm_ov)
   have rd1198 := rd1198raw
   rw [hmatch, ← fileWaitShiftConst] at rd1198
-  have rd1199raw := rd1198.eq (by native_decide) (by evm_ov)
+  have rd1199raw := rd1198.eq (by decide +native) (by evm_ov)
   have rd1199 := rd1199raw
   rw [uInt256_eq_self] at rd1199
-  have rd1200raw := rd1199.iszero (by native_decide) (by evm_ov)
+  have rd1200raw := rd1199.iszero (by decide +native) (by evm_ov)
   have rd1200 := rd1200raw
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1200
-  have rd1203 := rd1200.push2 ⟨1213⟩ (by native_decide) (by evm_ov)
-  have rd1204 := rd1203.jumpiNT (by native_decide)
+  have rd1203 := rd1200.push2 ⟨1213⟩ (by decide +native) (by evm_ov)
+  have rd1204 := rd1203.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd1206 := rd1204.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  have rd1207 := rd1206.dup2 (by native_decide) (by evm_ov)
-  have rd1208 := rd1207.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd1209⟩ := rd1208.sstore hperm (by native_decide) (by evm_ov)
-  have rd1212 := rd1209.push2 ⟨1290⟩ (by native_decide) (by evm_ov)
+  have rd1206 := rd1204.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  have rd1207 := rd1206.dup2 (by decide +native) (by evm_ov)
+  have rd1208 := rd1207.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd1209⟩ := rd1208.sstore hperm (by decide +native) (by evm_ov)
+  have rd1212 := rd1209.push2 ⟨1290⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [hmatch, fileWaitShiftConst] using
-      rd1212.jump (by native_decide) (by jump_dest) (by evm_ov)⟩
+      rd1212.jump (by decide +native) (by jump_dest) (by evm_ov)⟩
 
 theorem cureFileX_storeWaitPrefix {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
@@ -349,7 +349,7 @@ theorem fileEventMem_size {mem : ByteArray} (data : UInt256)
     (hmem : mem.size = 96) :
     ((UInt256.toByteArray data).write 0 mem 128 32).size = 160 := by
   exact toByteArray_write32_size_of_ge mem data 128 96 160 hmem (by omega)
-    (by native_decide) (by omega)
+    (by decide +native) (by omega)
 
 theorem fileEventMem_read64 {mem : ByteArray} (data : UInt256)
     (hmem : mem.size = 96)
@@ -358,7 +358,7 @@ theorem fileEventMem_read64 {mem : ByteArray} (data : UInt256)
       UInt256.toByteArray ⟨128⟩ := by
   have hgap : 128 - mem.size < USize.size := by
     rw [hmem]
-    native_decide
+    decide +native
   have hreadBound : 64 + 32 ≤ mem.size := by
     omega
   have hbelow : 64 + 32 ≤ 128 := by
@@ -401,45 +401,45 @@ theorem RD.cureFileEventTail {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
             (⟨64⟩ : UInt256).toNat 32)))
         = ⟨128⟩ :=
     mloadFreePtrValue (by rw [hmemoutSize]; decide) (by decide) hmemoutRead64
-  have rd1291 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1293 := rd1291.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd1294 := rd1293.dup1 (by native_decide) (by evm_ov)
-  have rd1295 := rd1294.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
-    mem_cost hmload64 (by native_decide) (by evm_ov)
+  have rd1291 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1293 := rd1291.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd1294 := rd1293.dup1 (by decide +native) (by evm_ov)
+  have rd1295 := rd1294.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
+    mem_cost hmload64 (by decide +native) (by evm_ov)
   have rd1297 := evm_run rd1295 with [
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd1298 := rd1297.mstore 6 ((UInt256.toByteArray data).write 0 mem 128 32)
-    (UInt256.ofNat 5) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 5) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd1300 := evm_run rd1298 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
-      mem_cost hlogMload (by native_decide) (by evm_ov),
-    raw dup4 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide +native)
+      mem_cost hlogMload (by decide +native) (by evm_ov),
+    raw dup4 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd1335 := rd1300.pushConst cureFileEventTopic
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native) (by evm_ov)
   have rd1344 := evm_run rd1335 with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1345 := RD.cureLog2 0 (UInt256.ofNat 5) rd1344
-    (by native_decide) hperm mem_cost (by native_decide)
+    (by decide +native) hperm mem_cost (by decide +native)
     (by
       simp only [List.length_cons]
       omega)
   have rd1347 := evm_run rd1345 with [
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  have rdRet := rd1347.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rdStop := rdRet.jumpdest (by native_decide) (by evm_ov)
-  exact RD.stop rdStop (by native_decide) (by evm_ov)
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  have rdRet := rd1347.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rdStop := rdRet.jumpdest (by decide +native) (by evm_ov)
+  exact RD.stop rdStop (by decide +native) (by evm_ov)
 
 theorem cureFileX_storeWait {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
@@ -474,56 +474,56 @@ theorem RD.cureFileUnrecognizedRevert {g : Sat256} {s0 : State} {ee : ExecutionE
     (hov : stk.length + 5 ≤ 1024) :
     RDrev cureBytecode g s0 := by
   have rdMload := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rdSelectorRaw := rdMload.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdPrefix := evm_run rdSelectorRaw with [
-    raw push1 ⟨229⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
+    raw push1 ⟨229⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
     raw mstore 6 (solcErrorStringMem0 mem) (UInt256.ofNat 5)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨4⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨4⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem1 mem) (UInt256.ofNat 6)
-      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw push1 ⟨28⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨36⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw push1 ⟨28⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨36⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem2 ⟨28⟩ mem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rdRaw := rdPrefix.pushConst cureFileUnrecognizedRawWord
-    (width := 32) (op := .PUSH32) (by decide) (by native_decide)
+    (width := 32) (op := .PUSH32) (by decide) (by decide +native)
     (by simp only [List.length_cons]; omega)
   exact evm_run rdRaw with [
-    raw push1 ⟨68⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
+    raw push1 ⟨68⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
     raw mstore 3 (solcErrorStringMem3 ⟨28⟩ cureFileUnrecognizedRawWord mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨28⟩ cureFileUnrecognizedRawWord hmem hread64)
       (by decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw push1 ⟨100⟩ (by native_decide) (by evm_ov),
-    raw add (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw push1 ⟨100⟩ (by decide +native) (by evm_ov),
+    raw add (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 theorem cureFileX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     {sel : UInt256}
@@ -533,21 +533,21 @@ theorem cureFileX_unrecognized {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem)
       (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev cureBytecode g s0 := by
-  have rd1189 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1190 := rd1189.dup2 (by native_decide) (by evm_ov)
+  have rd1189 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1190 := rd1189.dup2 (by decide +native) (by evm_ov)
   have rd1195 := rd1190.pushConst (⟨500718173⟩ : UInt256)
-    (width := 4) (op := .PUSH4) (by decide) (by native_decide) (by evm_ov)
-  have rd1197 := rd1195.push1 ⟨226⟩ (by native_decide) (by evm_ov)
-  have rd1198 := rd1197.shl (by native_decide) (by evm_ov)
+    (width := 4) (op := .PUSH4) (by decide) (by decide +native) (by evm_ov)
+  have rd1197 := rd1195.push1 ⟨226⟩ (by decide +native) (by evm_ov)
+  have rd1198 := rd1197.shl (by decide +native) (by evm_ov)
   rw [fileWaitShiftConst] at rd1198
-  have rd1199 := rd1198.eq (by native_decide) (by evm_ov)
+  have rd1199 := rd1198.eq (by decide +native) (by evm_ov)
   have heq0 : UInt256.eq (ABI.bytesToWord fileWaitBytes) (calldataWord I.calldata 4) = ⟨0⟩ := by
     exact u256_eq_of_ne (fun hbad => hneq hbad.symm)
   rw [heq0] at rd1199
-  have rd1200 := rd1199.iszero (by native_decide) (by evm_ov)
+  have rd1200 := rd1199.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1200
-  have rd1203 := rd1200.push2 ⟨1213⟩ (by native_decide) (by evm_ov)
-  have rd1213 := rd1203.jumpiT (by native_decide) one_ne_zero_uint (by jump_dest)
+  have rd1203 := rd1200.push2 ⟨1213⟩ (by decide +native) (by evm_ov)
+  have rd1213 := rd1203.jumpiT (by decide +native) one_ne_zero_uint (by jump_dest)
     (by evm_ov)
   have hmem :
       (twoWordHashMem (solcSourceWord I) ⟨0⟩ solcFreePtrMem).size = 96 :=
@@ -833,7 +833,7 @@ theorem cureFileBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         hdecoded
         (by
           unfold cureAuthCheckWf
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         hauthSolc (by jump_dest) (by simp)
       by_cases hliveEvm : cureSlotWord ⟨1⟩ σ_evm I = ⟨1⟩
       · have hliveSolm : cureSlotWord ⟨1⟩ σ_solm I = ⟨1⟩ := by
@@ -845,7 +845,7 @@ theorem cureFileBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           hafterAuth
           (by
             unfold cureLiveGuardWf
-            repeat' first | apply And.intro | native_decide)
+            repeat' first | apply And.intro | decide +native)
           (by simpa [cureSlotWord] using hliveEvm) (by jump_dest) (by simp)
         by_cases hwhat : fileWhat I = fileWaitBytes
         · let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
@@ -872,7 +872,7 @@ theorem cureFileBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
               accountMapEquiv_sstoreAccountMap I.codeOwner ⟨3⟩ (fileData I) hAccounts
           have henc : returnEquiv ByteArray.empty none fileTransition.returnType := by
             rw [show fileTransition.returnType = [] by rfl]
-            exact returnEquiv.fallthrough rfl (by rfl) (by native_decide)
+            exact returnEquiv.fallthrough rfl (by rfl) (by decide +native)
           exact hret.reEquivExecutionGenAccountMapEquiv hcode hdispatch hdecode hbody
             hcreated haccounts henc
         · let evm0 := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I
@@ -883,7 +883,7 @@ theorem cureFileBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                 (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I) (g := g)
                 hwv hauthSolm hliveSolm hwhat)
           have hneq : calldataWord I.calldata 4 ≠ ABI.bytesToWord fileWaitBytes :=
-            fileWhatWord_ne_of_bytes_ne (by omega) hwhat (by native_decide)
+            fileWhatWord_ne_of_bytes_ne (by omega) hwhat (by decide +native)
           exact (cureFileX_unrecognized (I := I) hneq hafterLive)
             |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
       · have hliveSolm : cureSlotWord ⟨1⟩ σ_solm I ≠ ⟨1⟩ := by
@@ -910,10 +910,10 @@ theorem cureFileBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           hafterAuth
           (by
             unfold cureLiveGuardWf
-            repeat' first | apply And.intro | native_decide)
+            repeat' first | apply And.intro | decide +native)
           (by
             unfold solcErrorStringRevertTailWf cureLiveGuardTailPc cureNotLiveRawWord
-            repeat' first | apply And.intro | native_decide)
+            repeat' first | apply And.intro | decide +native)
           (by simpa [cureSlotWord] using hliveEvm) hmemAuth hread64 (by simp)
         exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
     · have hauthSolm : cureSlotWord callerSlot σ_solm I ≠ ⟨1⟩ := by
@@ -935,10 +935,10 @@ theorem cureFileBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
         hdecoded
         (by
           unfold cureAuthCheckWf
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         (by
           unfold solcErrorStringRevertTailWf cureAuthTailPc cureNotAuthorizedRawWord
-          repeat' first | apply And.intro | native_decide)
+          repeat' first | apply And.intro | decide +native)
         hauthSolc (by simp)
       exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
   · have hrev := cureFileX_shortarg (g := Sat256.ofUInt256 g) (sel := sel)

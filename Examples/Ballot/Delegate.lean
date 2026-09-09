@@ -3045,7 +3045,7 @@ theorem ballotDelegateX_loopExit {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UIn
         u256_add_comm]
         using rd1002₀⟩
   have rd1005 := evm_run rd1002 with [push2 ⟨256⟩, swap1]
-  have rd1006 := RD.div rd1005 (by native_decide) (by norm_num)
+  have rd1006 := RD.div rd1005 (by decide +native) (by norm_num)
   have rd1008 := evm_run rd1006 with [and, iszero]
   have hzero :
       UInt256.isZero
@@ -4023,7 +4023,7 @@ theorem ballotDelegateNotVotedSuccessEquiv
       (delegateFalseSuccessState_EVMStateEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) hAccounts)
-      (returnEquiv.fallthrough rfl rfl (by native_decide))
+      (returnEquiv.fallthrough rfl rfl (by decide +native))
 
 theorem ballotDelegateVotedSuccessEquiv
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -4113,7 +4113,7 @@ theorem ballotDelegateVotedSuccessEquiv
       (delegateTrueSuccessState_EVMStateEquiv
         (cA := cA) (gh := gh) (bl := bl) (σ₀ := σ₀)
         (A := A) (I := I) (g := Sat256.ofUInt256 g) hAccounts)
-      (returnEquiv.fallthrough rfl rfl (by native_decide))
+      (returnEquiv.fallthrough rfl rfl (by decide +native))
 
 theorem ballotDelegateNotVotedOverflowEquiv
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}

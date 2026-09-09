@@ -58,12 +58,12 @@ theorem flopperYankX_suckCall
   obtain ⟨gasWord, _, _, rd1163⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1148⟩) (okPc := ⟨1160⟩) rd1148
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   obtain ⟨cA', σ', z, out, A_in, callGas, k1164, C1164, hΘpack, rd1164raw,
       houtsz⟩ :=
-    RD.call rd1163 (by native_decide) hdepth (by simp)
+    RD.call rd1163 (by decide +native) hdepth (by simp)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   refine ⟨cA', σ', z, out, A', k1164, C1164, ?_, ?_, houtsz⟩
   · have haw :
@@ -71,7 +71,7 @@ theorem flopperYankX_suckCall
           yankSuckOutPtr.toNat yankSuckInSize.toNat)
           yankSuckOutPtr.toNat yankSuckOutSize.toNat) = UInt256.ofNat 8 := by
       unfold yankSuckOutPtr yankSuckInSize yankSuckOutSize
-      native_decide
+      decide +native
     have hmin : (min yankSuckOutSize (UInt256.ofNat out.size)).toNat = 0 := by
       unfold yankSuckOutSize
       rfl
@@ -120,11 +120,11 @@ theorem flopperYankX_suckCallDepthLimit
   obtain ⟨gasWord, _, _, rd1163⟩ :=
     RD.solcExtcodesizeGuardOkGas (pc := ⟨1148⟩) (okPc := ⟨1160⟩) rd1148
       hcodeSize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by simp)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by simp)
   obtain ⟨k1164, C1164, rd1164raw⟩ :=
-    RD.callDepthLimit rd1163 (by native_decide) hdepth
+    RD.callDepthLimit rd1163 (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨k1164, C1164, ?_⟩
   have hmin : (min yankSuckOutSize (UInt256.ofNat ByteArray.empty.size)).toNat = 0 := by
@@ -135,7 +135,7 @@ theorem flopperYankX_suckCallDepthLimit
         yankSuckOutPtr.toNat yankSuckInSize.toNat)
         yankSuckOutPtr.toNat yankSuckOutSize.toNat) = UInt256.ofNat 8 := by
     unfold yankSuckOutPtr yankSuckInSize yankSuckOutSize
-    native_decide
+    decide +native
   simpa [yankSuckOutPtr, yankSuckInSize, yankSuckOutSize, hmin,
     byteArray_write_len_zero, haw] using rd1164raw
 
@@ -151,9 +151,9 @@ theorem flopperYankX_suckCallFailure
     RDrev flopperBytecode g (initState cA gh bl σ σ₀ g A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨1164⟩) (okPc := ⟨1180⟩) rd1164
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     houtSize (by simp)
 
 theorem flopperYankX_suckCallSuccessDelete
@@ -173,16 +173,16 @@ theorem flopperYankX_suckCallSuccessDelete
           (auctionLotSlot (yankIdWord I)) ⟨0⟩)
         (auctionPackedSlot (yankIdWord I)) ⟨0⟩)
       ByteArray.empty := by
-  have rd1165 := rd1164.iszero (by native_decide) (by evm_ov)
-  have rd1166 := rd1165.dup1 (by native_decide) (by evm_ov)
-  have rd1167 := rd1166.iszero (by native_decide) (by evm_ov)
-  have rd1170 := rd1167.push2 ⟨1180⟩ (by native_decide) (by evm_ov)
+  have rd1165 := rd1164.iszero (by decide +native) (by evm_ov)
+  have rd1166 := rd1165.dup1 (by decide +native) (by evm_ov)
+  have rd1167 := rd1166.iszero (by decide +native) (by evm_ov)
+  have rd1170 := rd1167.push2 ⟨1180⟩ (by decide +native) (by evm_ov)
   have hcond : UInt256.isZero (UInt256.isZero status) ≠ ⟨0⟩ := by
     rw [Reasoning.Theory.isZero_eq_zero_of_ne hstatus]
     decide
-  have rd1180 := rd1170.jumpiT (by native_decide) hcond (by jump_dest) (by evm_ov)
+  have rd1180 := rd1170.jumpiT (by decide +native) hcond (by jump_dest) (by evm_ov)
   exact RD.flopperAuctionDeleteTail hperm
-    (by native_decide) (by native_decide) (by native_decide) (by simp) rd1180
+    (by decide +native) (by decide +native) (by decide +native) (by simp) rd1180
 
 theorem flopperYankBodyCoreStillLive
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}
@@ -506,7 +506,7 @@ theorem flopperYankBodyCoreSuckCallDepthLimit
       (flopperYankX_decoded (g := Sat256.ofUInt256 g) hsz36 hsize hreach)
   obtain ⟨_, _, rd1164⟩ :=
     flopperYankX_suckCallDepthLimit (g := Sat256.ofUInt256 g) hcodeSize hdepth rd1050
-  exact (flopperYankX_suckCallFailure rd1164 (by native_decide))
+  exact (flopperYankX_suckCallFailure rd1164 (by decide +native))
     |>.reEquivExecutionRevert hcode hdispatch hdecode hbody
 
 theorem flopperYankBodyCoreSuckCallSuccess
@@ -644,7 +644,7 @@ theorem flopperYankBodyCoreSuckCallSuccess
     (by
       simpa [yankTransition] using
         (returnEquiv.fallthrough (o := ByteArray.empty) (r := none) (t := [])
-          (dvs := []) rfl (by native_decide) (by native_decide)))
+          (dvs := []) rfl (by decide +native) (by decide +native)))
 
 theorem flopperYankBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256} {sel : UInt256}

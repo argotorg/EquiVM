@@ -867,7 +867,7 @@ def clipperBytecode : ByteArray :=
       ⟨8856⟩, ⟨8878⟩, ⟨8949⟩, ⟨8969⟩, ⟨8991⟩, ⟨9079⟩, ⟨9096⟩, ⟨9176⟩, ⟨9196⟩, ⟨9218⟩,
       ⟨9225⟩, ⟨9233⟩, ⟨9258⟩, ⟨9274⟩, ⟨9290⟩
       ] := by
-  native_decide
+  decide +native
 
 
 private def clipperCreationChunk0 : ByteArray :=
@@ -1738,7 +1738,7 @@ def clipperCreationBytecode : ByteArray :=
       ⟨9075⟩, ⟨9183⟩, ⟨9203⟩, ⟨9225⟩, ⟨9296⟩, ⟨9316⟩, ⟨9338⟩, ⟨9426⟩, ⟨9443⟩, ⟨9523⟩,
       ⟨9543⟩, ⟨9565⟩, ⟨9572⟩, ⟨9580⟩, ⟨9605⟩, ⟨9621⟩, ⟨9637⟩
       ] := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.Clipper

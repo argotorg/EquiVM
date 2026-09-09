@@ -27,94 +27,94 @@ def ctorStoreRuntimeBytecode : ByteArray :=
 /-- The `JUMPDEST` positions of `ctorStoreRuntimeBytecode`. -/
 @[valid_jumps] theorem ctorStoreRuntimeValidJumps :
     Ethereum.EVM.D_J ctorStoreRuntimeBytecode 0 = #[]
-  := by native_decide
+  := by decide +native
 
 /-- The `JUMPDEST` positions of the pure `ctorStoreInitcode`. -/
 @[valid_jumps] theorem ctorStoreInitcodeValidJumps :
     Ethereum.EVM.D_J ctorStoreInitcode 0 = #[]
-  := by native_decide
+  := by decide +native
 
 macro "ctor_store_decode_prefix" : tactic =>
   `(tactic|
-    rw [decode_append_left ctorStoreInitcode _ _ (by native_decide)
+    rw [decode_append_left ctorStoreInitcode _ _ (by decide +native)
       (by
         intro b instr hget hinstr
-        cases instr <;> rename_i op <;> cases op <;> revert b <;> native_decide)
+        cases instr <;> rename_i op <;> cases op <;> revert b <;> decide +native)
       (by
         intro b instr hget hinstr
-        cases instr <;> rename_i op <;> cases op <;> revert b <;> native_decide)])
+        cases instr <;> rename_i op <;> cases op <;> revert b <;> decide +native)])
 
 theorem ctorStoreDecode0 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨0⟩ = some (.Push .PUSH1, some (⟨32⟩, 1)) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode2 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨2⟩ = some (.Push .PUSH1, some (⟨28⟩, 1)) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode4 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨4⟩ = some (.PUSH0, .none) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode5 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨5⟩ = some (.CODECOPY, .none) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode6 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨6⟩ = some (.PUSH0, .none) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode7 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨7⟩ = some (.MLOAD, .none) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode8 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨8⟩ = some (.PUSH0, .none) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode9 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨9⟩ = some (.SSTORE, .none) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode10 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨10⟩ = some (.Push .PUSH1, some (⟨8⟩, 1)) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode12 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨12⟩ = some (.Push .PUSH1, some (⟨20⟩, 1)) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode14 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨14⟩ = some (.PUSH0, .none) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode15 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨15⟩ = some (.CODECOPY, .none) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode16 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨16⟩ = some (.Push .PUSH1, some (⟨8⟩, 1)) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode18 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨18⟩ = some (.PUSH0, .none) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native
 
 theorem ctorStoreDecode19 (tail : ByteArray) :
     decode (ctorStoreInitcode ++ tail) ⟨19⟩ = some (.RETURN, .none) := by
   ctor_store_decode_prefix
-  native_decide
+  decide +native

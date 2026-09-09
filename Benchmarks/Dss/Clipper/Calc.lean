@@ -12,7 +12,7 @@ theorem clipperCalcSelectorWord {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size)
     clipperSelWord I = clipperSelNat 2 := by
   simpa [clipperSelWord, solcSelectorWord, clipperSelNat] using
     solcSelectorWord_eq_of_beq I hsz 0x96 0xf1 0xb6 0xbe (clipperSelNat 2)
-      (by native_decide) (by simpa [clipperSelBytes, selIs] using hsel)
+      (by decide +native) (by simpa [clipperSelBytes, selIs] using hsel)
 
 theorem clipperDispatch_calc (v : ClipperImmutables) {I : ExecutionEnv}
     (hsel : selIs I (clipperSelBytes 2)) :
@@ -32,9 +32,9 @@ theorem clipperDispatch_calc (v : ClipperImmutables) {I : ExecutionEnv}
     simp only [List.mem_cons, List.mem_nil_iff] at ht
     rcases ht with rfl | rfl | hfalse
     · rw [selectorOf, activeSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · rw [selectorOf, bufSelectorBytes, ← byteArray_eq_of_beq hsel]
-      native_decide
+      decide +native
     · cases hfalse
   · rw [selectorOf, calcSelectorBytes]
     simpa [clipperSelBytes] using hsel
@@ -111,8 +111,8 @@ theorem clipperReachCalcBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
         change decode code (selArmJumpiPc (⟨32⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h162 := clipperSplitTaken (pc := (⟨43⟩ : UInt256))
     (pivot := clipperSelNat 3) (tgt := (⟨162⟩ : UInt256)) h43
@@ -134,8 +134,8 @@ theorem clipperReachCalcBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
         change decode code (selArmJumpiPc (⟨43⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
-    (by rw [hword]; native_decide)
-    (clipperJumpDestBeforeFirstPatch v hpatch (⟨162⟩ : UInt256) (by native_decide))
+    (by rw [hword]; decide +native)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨162⟩ : UInt256) (by decide +native))
     (by simp)
   have h174 := clipperSplitNotTaken (pc := (⟨163⟩ : UInt256))
     (next := (⟨174⟩ : UInt256)) (pivot := clipperSelNat 13)
@@ -163,8 +163,8 @@ theorem clipperReachCalcBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
         change decode code (selArmJumpiPc (⟨163⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h185 := clipperArmNotTaken (pc := (⟨174⟩ : UInt256))
     (next := (⟨185⟩ : UInt256)) (sel := clipperSelNat 13)
@@ -187,8 +187,8 @@ theorem clipperReachCalcBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
         change decode code (selArmJumpiPc (⟨174⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
-    (by rw [hword]; native_decide)
-    (by native_decide)
+    (by rw [hword]; decide +native)
+    (by decide +native)
     (by simp)
   have h1115 := clipperArmTaken (pc := (⟨185⟩ : UInt256)) (sel := clipperSelNat 2)
     (tgt := (⟨1115⟩ : UInt256)) h185
@@ -210,8 +210,8 @@ theorem clipperReachCalcBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (by
         change decode code (selArmJumpiPc (⟨185⟩ : UInt256) 2) = some (.JUMPI, .none)
         clipper_decode)
-    (by rw [hword]; native_decide)
-    (clipperJumpDestBeforeFirstPatch v hpatch (⟨1115⟩ : UInt256) (by native_decide))
+    (by rw [hword]; decide +native)
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨1115⟩ : UInt256) (by decide +native))
     (by simp)
   exact ⟨_, _, h1115⟩
 
@@ -221,8 +221,8 @@ theorem clipperCalcGetterEntryWf (v : ClipperImmutables) {code : ByteArray}
   unfold solcGetterEntryWf
   repeat' first | apply And.intro
   all_goals
-    rw [clipperDecodeBeforeFirstPatch v hpatch _ (by native_decide)]
-    native_decide
+    rw [clipperDecodeBeforeFirstPatch v hpatch _ (by decide +native)]
+    decide +native
 
 theorem clipperCalcPatchesWindowDisjoint32 (v : ClipperImmutables) (lo hi : Nat)
     (hlo : lo ∈ [6503, 6504, 6505, 6506, 6507, 6508, 6509, 6510, 6511, 6512,
@@ -245,12 +245,12 @@ theorem clipperCalcSlotGetterWf (v : ClipperImmutables) {code : ByteArray}
   all_goals
     exact patchRuntime_decode_disjoint_of_decode_res hpatch
       (by
-        apply clipperCalcPatchesWindowDisjoint32 v <;> native_decide)
+        apply clipperCalcPatchesWindowDisjoint32 v <;> decide +native)
       (by
-        apply clipperCalcPatchesWindowDisjoint32 v <;> native_decide)
-      (by native_decide)
-      (by native_decide)
-      (by native_decide)
+        apply clipperCalcPatchesWindowDisjoint32 v <;> decide +native)
+      (by decide +native)
+      (by decide +native)
+      (by decide +native)
 
 theorem clipperJumpDest6503 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
@@ -261,10 +261,10 @@ theorem clipperJumpDest6503 (v : ClipperImmutables) {code : ByteArray}
   cases hIlk : wordBytes? v.ilk with
   | none =>
       simp [hIlk]
-      native_decide
+      decide +native
   | some bs =>
       simp [hIlk]
-      native_decide
+      decide +native
 
 theorem clipperCalcBody (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
@@ -275,7 +275,7 @@ theorem clipperCalcBody (v : ClipperImmutables) {code : ByteArray}
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor (config v) (contract v) cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (clipperSelBytes 2) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (clipperSelBytes 2) (by decide +native) hsel
   have hbody :
       ExecTransitionBody (config v) (contract v)
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅ calcTransition.body
@@ -299,7 +299,7 @@ theorem clipperCalcBody (v : ClipperImmutables) {code : ByteArray}
     (slot := (⟨4⟩ : UInt256)) (returnPc := (⟨716⟩ : UInt256))
     hcode (clipperDispatch_calc v hsel) (clipperDecode_calc v hsz) hreach hAccounts
     (clipperCalcGetterEntryWf v hpatch) (clipperCalcSlotGetterWf v hpatch) hroutine
-    (clipperJumpDestBeforeFirstPatch v hpatch (⟨716⟩ : UInt256) (by native_decide))
+    (clipperJumpDestBeforeFirstPatch v hpatch (⟨716⟩ : UInt256) (by decide +native))
     (clipperReturnAddress716Wf v hpatch) (by rfl) hbody
 
 end Benchmarks.Dss.Clipper

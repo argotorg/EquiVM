@@ -133,7 +133,7 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                     (oDai.write 0 (kissDaiCalldataMem I) 128 32).size
                   ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
             rw [hmemDai]
-            native_decide
+            decide +native
           rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
             kissDaiWrite_read128_32 I oDai ho32]
         obtain ⟨_, _, rd4760⟩ :=
@@ -382,7 +382,7 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
                         128 32).size
                     ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
               rw [hmemSin]
-              native_decide
+              decide +native
             rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
               healSinWrite_read128_32 I (oDai.write 0 (kissDaiCalldataMem I) 128 32)
                 outSin hmemDai hoSin32]
@@ -705,6 +705,6 @@ theorem vowHealBody {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
           (kissDaiEncode_eq I) (by simpa [evm0, initState] using hdepthEq))
     exact vowHealDaiCallFailureBodyCore (cA' := cA) (σ'_evm := σ_evm)
       (A'_evm := A_dai) hcode hwv hdispatch hdecode rd4719 hcallDaiDepth
-      (by native_decide) hvatCodeSolm hAccounts
+      (by decide +native) hvatCodeSolm hAccounts
 
 end Benchmarks.Dss.Vow

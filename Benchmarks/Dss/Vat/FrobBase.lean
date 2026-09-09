@@ -327,7 +327,7 @@ theorem uintCheckedMulGuard_to_fit_and_source_guard {a b : UInt256}
   by_cases hbzeroNat : b.toNat = 0
   · constructor
     · rw [hbzeroNat, Nat.mul_zero]
-      native_decide
+      decide +native
     · exact Or.inl hbzeroNat
   · have hbzeroWord : b ≠ ⟨0⟩ := by
       intro hzero
@@ -1673,7 +1673,7 @@ theorem writeWordMem_size_at_end {mem : ByteArray} {off : Nat} {word : UInt256}
   unfold writeWordMem
   have hgap : off - mem.size < USize.size := by
     rw [hend, Nat.sub_self]
-    native_decide
+    decide +native
   rw [toByteArray_write_eq _ _ _ (by omega) hgap,
     ByteArray.size_append, ByteArray.size_append, ByteArray_zeroes_size,
     toByteArray_size]
@@ -1705,12 +1705,12 @@ theorem writeWordMem_read32_above {mem : ByteArray} {off readOff : Nat} {word : 
 
 theorem frobAlloc2Mem_solc_size :
     (frobAlloc2Mem solcFreePtrMem).size = 192 := by
-  native_decide
+  decide +native
 
 theorem frobAlloc2Mem_solc_read64 :
     (frobAlloc2Mem solcFreePtrMem).readWithPadding 64 32 =
       UInt256.toByteArray ⟨192⟩ := by
-  native_decide
+  decide +native
 
 theorem wordAt0Mem_size_of_ge32 {mem : ByteArray} (word : UInt256)
     (hmem : 32 ≤ mem.size) :
@@ -1919,13 +1919,13 @@ theorem frobUrnLoadedMem_read64 (σ : AccountMap) (I : ExecutionEnv) :
     (by simpa [writeWordMem] using (by rw [hink]; omega :
       64 + 32 ≤ (writeWordMem 192 (solcSlotWord σ I (frobUrnInkSlot I))
         (writeWordMem 64 ⟨256⟩ (frobUrnBaseMem I))).size))
-    (by omega) (by simpa [writeWordMem] using (by rw [hink]; native_decide :
+    (by omega) (by simpa [writeWordMem] using (by rw [hink]; decide +native :
       224 - (writeWordMem 192 (solcSlotWord σ I (frobUrnInkSlot I))
         (writeWordMem 64 ⟨256⟩ (frobUrnBaseMem I))).size < USize.size))]
   rw [toByteArray_write_read_below_of_gap (solcSlotWord σ I (frobUrnInkSlot I)) _ 192 64
     (by simpa [writeWordMem] using (by rw [hfree]; omega :
       64 + 32 ≤ (writeWordMem 64 ⟨256⟩ (frobUrnBaseMem I)).size))
-    (by omega) (by simpa [writeWordMem] using (by rw [hfree]; native_decide :
+    (by omega) (by simpa [writeWordMem] using (by rw [hfree]; decide +native :
       192 - (writeWordMem 64 ⟨256⟩ (frobUrnBaseMem I)).size < USize.size))]
   exact toByteArray_write32_read_back (frobUrnBaseMem I) (⟨256⟩ : UInt256) 64
     (by rw [frobUrnBaseMem_size I]; omega)
@@ -1949,7 +1949,7 @@ theorem frobUrnLoadedMem_read192 (σ : AccountMap) (I : ExecutionEnv) :
     unfold memInk
     exact toByteArray_write_read_back_of_gap
       (solcSlotWord σ I (frobUrnInkSlot I)) memFree 192
-      (by rw [hfreeSize]; native_decide)
+      (by rw [hfreeSize]; decide +native)
   change (writeWordMem 224 (solcSlotWord σ I (frobUrnArtSlot I)) memInk).readWithPadding
     192 32 = UInt256.toByteArray (solcSlotWord σ I (frobUrnInkSlot I))
   rw [writeWordMem_read32_below (mem := memInk) (off := 224) (readOff := 192)
@@ -1958,7 +1958,7 @@ theorem frobUrnLoadedMem_read192 (σ : AccountMap) (I : ExecutionEnv) :
     (by
       rw [hinkSize]
       change 0 < USize.size
-      native_decide)]
+      decide +native)]
   exact hinkRead
 
 theorem frobUrnLoadedMem_read224 (σ : AccountMap) (I : ExecutionEnv) :
@@ -1981,7 +1981,7 @@ theorem frobUrnLoadedMem_read224 (σ : AccountMap) (I : ExecutionEnv) :
     (by
       rw [hinkSize]
       change 0 < USize.size
-      native_decide)
+      decide +native)
 
 theorem frobAlloc5Mem_frobUrnLoaded_size (σ : AccountMap) (I : ExecutionEnv) :
     (frobAlloc5Mem (frobUrnLoadedMem σ I)).size = 416 := by
@@ -2047,35 +2047,35 @@ theorem frobAlloc5Mem_frobUrnLoaded_read64 (σ : AccountMap) (I : ExecutionEnv) 
     · exact hfreeRead
     · rw [hfreeSize]; omega
     · omega
-    · rw [hfreeSize]; native_decide
+    · rw [hfreeSize]; decide +native
   have h1Read : mem1.readWithPadding 64 32 = UInt256.toByteArray ⟨416⟩ := by
     unfold mem1
     rw [writeWordMem_read64_below]
     · exact h0Read
     · rw [h0Size]; omega
     · omega
-    · rw [h0Size]; native_decide
+    · rw [h0Size]; decide +native
   have h2Read : mem2.readWithPadding 64 32 = UInt256.toByteArray ⟨416⟩ := by
     unfold mem2
     rw [writeWordMem_read64_below]
     · exact h1Read
     · rw [h1Size]; omega
     · omega
-    · rw [h1Size]; native_decide
+    · rw [h1Size]; decide +native
   have h3Read : mem3.readWithPadding 64 32 = UInt256.toByteArray ⟨416⟩ := by
     unfold mem3
     rw [writeWordMem_read64_below]
     · exact h2Read
     · rw [h2Size]; omega
     · omega
-    · rw [h2Size]; native_decide
+    · rw [h2Size]; decide +native
   change (writeWordMem 384 (⟨0⟩ : UInt256) mem3).readWithPadding 64 32 =
     UInt256.toByteArray ⟨416⟩
   rw [writeWordMem_read64_below]
   · exact h3Read
   · rw [h3Size]; omega
   · omega
-  · rw [h3Size]; native_decide
+  · rw [h3Size]; decide +native
 
 theorem frobAlloc5Mem_frobUrnLoaded_read192 (σ : AccountMap) (I : ExecutionEnv) :
     (frobAlloc5Mem (frobUrnLoadedMem σ I)).readWithPadding 192 32 =
@@ -2110,7 +2110,7 @@ theorem frobAlloc5Mem_frobUrnLoaded_read192 (σ : AccountMap) (I : ExecutionEnv)
     · exact hfreeRead
     · rw [hfreeSize]; omega
     · omega
-    · rw [hfreeSize]; native_decide
+    · rw [hfreeSize]; decide +native
   have h1Size : mem1.size = 320 := by
     unfold mem1
     exact writeWordMem_size_at_end h0Size
@@ -2122,7 +2122,7 @@ theorem frobAlloc5Mem_frobUrnLoaded_read192 (σ : AccountMap) (I : ExecutionEnv)
     · exact h0Read
     · rw [h0Size]; omega
     · omega
-    · rw [h0Size]; native_decide
+    · rw [h0Size]; decide +native
   have h2Size : mem2.size = 352 := by
     unfold mem2
     exact writeWordMem_size_at_end h1Size
@@ -2134,7 +2134,7 @@ theorem frobAlloc5Mem_frobUrnLoaded_read192 (σ : AccountMap) (I : ExecutionEnv)
     · exact h1Read
     · rw [h1Size]; omega
     · omega
-    · rw [h1Size]; native_decide
+    · rw [h1Size]; decide +native
   have h3Size : mem3.size = 384 := by
     unfold mem3
     exact writeWordMem_size_at_end h2Size
@@ -2146,14 +2146,14 @@ theorem frobAlloc5Mem_frobUrnLoaded_read192 (σ : AccountMap) (I : ExecutionEnv)
     · exact h2Read
     · rw [h2Size]; omega
     · omega
-    · rw [h2Size]; native_decide
+    · rw [h2Size]; decide +native
   change (writeWordMem 384 (⟨0⟩ : UInt256) mem3).readWithPadding 192 32 =
     UInt256.toByteArray (solcSlotWord σ I (frobUrnInkSlot I))
   rw [writeWordMem_read32_below]
   · exact h3Read
   · rw [h3Size]; omega
   · omega
-  · rw [h3Size]; native_decide
+  · rw [h3Size]; decide +native
 
 theorem frobAlloc5Mem_frobUrnLoaded_read224 (σ : AccountMap) (I : ExecutionEnv) :
     (frobAlloc5Mem (frobUrnLoadedMem σ I)).readWithPadding 224 32 =
@@ -2186,7 +2186,7 @@ theorem frobAlloc5Mem_frobUrnLoaded_read224 (σ : AccountMap) (I : ExecutionEnv)
     unfold mem0
     rw [writeWordMem_read32_below (mem := memFree) (off := 256) (readOff := 224)
       (word := (⟨0⟩ : UInt256))
-      (by rw [hfreeSize]) (by omega) (by rw [hfreeSize]; native_decide)]
+      (by rw [hfreeSize]) (by omega) (by rw [hfreeSize]; decide +native)]
     exact hfreeRead
   have h1Size : mem1.size = 320 := by
     unfold mem1
@@ -2199,7 +2199,7 @@ theorem frobAlloc5Mem_frobUrnLoaded_read224 (σ : AccountMap) (I : ExecutionEnv)
     · exact h0Read
     · rw [h0Size]; omega
     · omega
-    · rw [h0Size]; native_decide
+    · rw [h0Size]; decide +native
   have h2Size : mem2.size = 352 := by
     unfold mem2
     exact writeWordMem_size_at_end h1Size
@@ -2211,7 +2211,7 @@ theorem frobAlloc5Mem_frobUrnLoaded_read224 (σ : AccountMap) (I : ExecutionEnv)
     · exact h1Read
     · rw [h1Size]; omega
     · omega
-    · rw [h1Size]; native_decide
+    · rw [h1Size]; decide +native
   have h3Size : mem3.size = 384 := by
     unfold mem3
     exact writeWordMem_size_at_end h2Size
@@ -2223,14 +2223,14 @@ theorem frobAlloc5Mem_frobUrnLoaded_read224 (σ : AccountMap) (I : ExecutionEnv)
     · exact h2Read
     · rw [h2Size]; omega
     · omega
-    · rw [h2Size]; native_decide
+    · rw [h2Size]; decide +native
   change (writeWordMem 384 (⟨0⟩ : UInt256) mem3).readWithPadding 224 32 =
     UInt256.toByteArray (solcSlotWord σ I (frobUrnArtSlot I))
   rw [writeWordMem_read32_below]
   · exact h3Read
   · rw [h3Size]; omega
   · omega
-  · rw [h3Size]; native_decide
+  · rw [h3Size]; decide +native
 
 theorem frobIlkHashMem_size (σ : AccountMap) (I : ExecutionEnv) :
     (frobIlkHashMem σ I).size = 416 := by
@@ -2379,35 +2379,35 @@ theorem frobIlkLoadedMem_read64 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hfreeRead
     · rw [hfreeSize]; omega
     · omega
-    · rw [hfreeSize]; native_decide
+    · rw [hfreeSize]; decide +native
   have hrateRead : memRate.readWithPadding 64 32 = UInt256.toByteArray ⟨576⟩ := by
     unfold memRate
     rw [writeWordMem_read64_below]
     · exact hartRead
     · rw [hartSize]; omega
     · omega
-    · rw [hartSize]; native_decide
+    · rw [hartSize]; decide +native
   have hspotRead : memSpot.readWithPadding 64 32 = UInt256.toByteArray ⟨576⟩ := by
     unfold memSpot
     rw [writeWordMem_read64_below]
     · exact hrateRead
     · rw [hrateSize]; omega
     · omega
-    · rw [hrateSize]; native_decide
+    · rw [hrateSize]; decide +native
   have hlineRead : memLine.readWithPadding 64 32 = UInt256.toByteArray ⟨576⟩ := by
     unfold memLine
     rw [writeWordMem_read64_below]
     · exact hspotRead
     · rw [hspotSize]; omega
     · omega
-    · rw [hspotSize]; native_decide
+    · rw [hspotSize]; decide +native
   change (writeWordMem 544 (solcSlotWord σ I (frobIlkDustSlot I)) memLine).readWithPadding 64 32 =
     UInt256.toByteArray ⟨576⟩
   rw [writeWordMem_read64_below]
   · exact hlineRead
   · rw [hlineSize]; omega
   · omega
-  · rw [hlineSize]; native_decide
+  · rw [hlineSize]; decide +native
 
 theorem frobIlkArtUpdatedMem_read64 (σ : AccountMap) (I : ExecutionEnv)
     (urnInkNew urnArtNew ilkArtNew : UInt256) :
@@ -2420,13 +2420,13 @@ theorem frobIlkArtUpdatedMem_read64 (σ : AccountMap) (I : ExecutionEnv)
       · exact frobIlkLoadedMem_read64 σ I
       · rw [frobIlkLoadedMem_size σ I]; omega
       · omega
-      · rw [frobIlkLoadedMem_size σ I]; native_decide
+      · rw [frobIlkLoadedMem_size σ I]; decide +native
     · rw [writeWordMem_size_of_contains]
       · rw [frobIlkLoadedMem_size σ I]; omega
       · rw [frobIlkLoadedMem_size σ I]; omega
     · omega
     · rw [writeWordMem_size_of_contains]
-      · rw [frobIlkLoadedMem_size σ I]; native_decide
+      · rw [frobIlkLoadedMem_size σ I]; decide +native
       · rw [frobIlkLoadedMem_size σ I]; omega
   · rw [writeWordMem_size_of_contains]
     · rw [writeWordMem_size_of_contains]
@@ -2438,7 +2438,7 @@ theorem frobIlkArtUpdatedMem_read64 (σ : AccountMap) (I : ExecutionEnv)
   · omega
   · rw [writeWordMem_size_of_contains]
     · rw [writeWordMem_size_of_contains]
-      · rw [frobIlkLoadedMem_size σ I]; native_decide
+      · rw [frobIlkLoadedMem_size σ I]; decide +native
       · rw [frobIlkLoadedMem_size σ I]; omega
     · rw [writeWordMem_size_of_contains]
       · rw [frobIlkLoadedMem_size σ I]; omega
@@ -2477,7 +2477,7 @@ theorem frobIlkLoadedMem_read192 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hfreeRead
     · rw [hfreeSize]; omega
     · omega
-    · rw [hfreeSize]; native_decide
+    · rw [hfreeSize]; decide +native
   have hrateSize : memRate.size = 480 := by
     unfold memRate
     exact writeWordMem_size_at_end hartSize
@@ -2489,7 +2489,7 @@ theorem frobIlkLoadedMem_read192 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hartRead
     · rw [hartSize]; omega
     · omega
-    · rw [hartSize]; native_decide
+    · rw [hartSize]; decide +native
   have hspotSize : memSpot.size = 512 := by
     unfold memSpot
     exact writeWordMem_size_at_end hrateSize
@@ -2501,7 +2501,7 @@ theorem frobIlkLoadedMem_read192 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hrateRead
     · rw [hrateSize]; omega
     · omega
-    · rw [hrateSize]; native_decide
+    · rw [hrateSize]; decide +native
   have hlineSize : memLine.size = 544 := by
     unfold memLine
     exact writeWordMem_size_at_end hspotSize
@@ -2513,14 +2513,14 @@ theorem frobIlkLoadedMem_read192 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hspotRead
     · rw [hspotSize]; omega
     · omega
-    · rw [hspotSize]; native_decide
+    · rw [hspotSize]; decide +native
   change (writeWordMem 544 (solcSlotWord σ I (frobIlkDustSlot I)) memLine).readWithPadding
     192 32 = UInt256.toByteArray (solcSlotWord σ I (frobUrnInkSlot I))
   rw [writeWordMem_read32_below]
   · exact hlineRead
   · rw [hlineSize]; omega
   · omega
-  · rw [hlineSize]; native_decide
+  · rw [hlineSize]; decide +native
 
 theorem frobIlkLoadedMem_read224 (σ : AccountMap) (I : ExecutionEnv) :
     (frobIlkLoadedMem σ I).readWithPadding 224 32 =
@@ -2555,7 +2555,7 @@ theorem frobIlkLoadedMem_read224 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hfreeRead
     · rw [hfreeSize]; omega
     · omega
-    · rw [hfreeSize]; native_decide
+    · rw [hfreeSize]; decide +native
   have hrateSize : memRate.size = 480 := by
     unfold memRate
     exact writeWordMem_size_at_end hartSize
@@ -2567,7 +2567,7 @@ theorem frobIlkLoadedMem_read224 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hartRead
     · rw [hartSize]; omega
     · omega
-    · rw [hartSize]; native_decide
+    · rw [hartSize]; decide +native
   have hspotSize : memSpot.size = 512 := by
     unfold memSpot
     exact writeWordMem_size_at_end hrateSize
@@ -2579,7 +2579,7 @@ theorem frobIlkLoadedMem_read224 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hrateRead
     · rw [hrateSize]; omega
     · omega
-    · rw [hrateSize]; native_decide
+    · rw [hrateSize]; decide +native
   have hlineSize : memLine.size = 544 := by
     unfold memLine
     exact writeWordMem_size_at_end hspotSize
@@ -2591,14 +2591,14 @@ theorem frobIlkLoadedMem_read224 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hspotRead
     · rw [hspotSize]; omega
     · omega
-    · rw [hspotSize]; native_decide
+    · rw [hspotSize]; decide +native
   change (writeWordMem 544 (solcSlotWord σ I (frobIlkDustSlot I)) memLine).readWithPadding
     224 32 = UInt256.toByteArray (solcSlotWord σ I (frobUrnArtSlot I))
   rw [writeWordMem_read32_below]
   · exact hlineRead
   · rw [hlineSize]; omega
   · omega
-  · rw [hlineSize]; native_decide
+  · rw [hlineSize]; decide +native
 
 theorem frobUrnInkUpdatedMem_read224 (σ : AccountMap) (I : ExecutionEnv)
     (urnInkNew : UInt256) :
@@ -2636,7 +2636,7 @@ theorem frobIlkLoadedMem_read416 (σ : AccountMap) (I : ExecutionEnv) :
       (by
         rw [hfreeSize]
         change 0 < USize.size
-        native_decide)
+        decide +native)
   have hrateSize : memRate.size = 480 := by
     unfold memRate
     exact writeWordMem_size_at_end hartSize
@@ -2648,7 +2648,7 @@ theorem frobIlkLoadedMem_read416 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hartRead
     · rw [hartSize]
     · omega
-    · rw [hartSize]; native_decide
+    · rw [hartSize]; decide +native
   have hspotSize : memSpot.size = 512 := by
     unfold memSpot
     exact writeWordMem_size_at_end hrateSize
@@ -2660,7 +2660,7 @@ theorem frobIlkLoadedMem_read416 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hrateRead
     · rw [hrateSize]; omega
     · omega
-    · rw [hrateSize]; native_decide
+    · rw [hrateSize]; decide +native
   have hlineSize : memLine.size = 544 := by
     unfold memLine
     exact writeWordMem_size_at_end hspotSize
@@ -2672,14 +2672,14 @@ theorem frobIlkLoadedMem_read416 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hspotRead
     · rw [hspotSize]; omega
     · omega
-    · rw [hspotSize]; native_decide
+    · rw [hspotSize]; decide +native
   change (writeWordMem 544 (solcSlotWord σ I (frobIlkDustSlot I)) memLine).readWithPadding
     416 32 = UInt256.toByteArray (solcSlotWord σ I (frobIlkArtSlot I))
   rw [writeWordMem_read32_below]
   · exact hlineRead
   · rw [hlineSize]; omega
   · omega
-  · rw [hlineSize]; native_decide
+  · rw [hlineSize]; decide +native
 
 theorem frobUrnArtUpdatedMem_read416 (σ : AccountMap) (I : ExecutionEnv)
     (urnInkNew urnArtNew : UInt256) :
@@ -2718,7 +2718,7 @@ theorem frobIlkArtUpdatedMem_read416 (σ : AccountMap) (I : ExecutionEnv)
   unfold frobIlkArtUpdatedMem
   exact toByteArray_write_read_back_of_gap ilkArtNew
     (frobUrnArtUpdatedMem σ I urnInkNew urnArtNew) 416
-    (by rw [hbase]; native_decide)
+    (by rw [hbase]; decide +native)
 
 theorem frobIlkLoadedMem_read448 (σ : AccountMap) (I : ExecutionEnv) :
     (frobIlkLoadedMem σ I).readWithPadding 448 32 =
@@ -2748,7 +2748,7 @@ theorem frobIlkLoadedMem_read448 (σ : AccountMap) (I : ExecutionEnv) :
       (by
         rw [hartSize]
         change 0 < USize.size
-        native_decide)
+        decide +native)
   have hspotSize : memSpot.size = 512 := by
     unfold memSpot
     exact writeWordMem_size_at_end hrateSize
@@ -2760,7 +2760,7 @@ theorem frobIlkLoadedMem_read448 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hrateRead
     · rw [hrateSize]
     · omega
-    · rw [hrateSize]; native_decide
+    · rw [hrateSize]; decide +native
   have hlineSize : memLine.size = 544 := by
     unfold memLine
     exact writeWordMem_size_at_end hspotSize
@@ -2772,14 +2772,14 @@ theorem frobIlkLoadedMem_read448 (σ : AccountMap) (I : ExecutionEnv) :
     · exact hspotRead
     · rw [hspotSize]; omega
     · omega
-    · rw [hspotSize]; native_decide
+    · rw [hspotSize]; decide +native
   change (writeWordMem 544 (solcSlotWord σ I (frobIlkDustSlot I)) memLine).readWithPadding
     448 32 = UInt256.toByteArray (solcSlotWord σ I (frobIlkRateSlot I))
   rw [writeWordMem_read32_below]
   · exact hlineRead
   · rw [hlineSize]; omega
   · omega
-  · rw [hlineSize]; native_decide
+  · rw [hlineSize]; decide +native
 
 theorem frobIlkArtUpdatedMem_read448 (σ : AccountMap) (I : ExecutionEnv)
     (urnInkNew urnArtNew ilkArtNew : UInt256) :
@@ -2835,20 +2835,20 @@ theorem frobIlkArtUpdatedMem_read192 (σ : AccountMap) (I : ExecutionEnv)
         UInt256.toByteArray urnInkNew := by
     unfold frobUrnInkUpdatedMem
     exact toByteArray_write_read_back_of_gap urnInkNew (frobIlkLoadedMem σ I) 192
-      (by rw [hLoadedSize]; native_decide)
+      (by rw [hLoadedSize]; decide +native)
   unfold frobIlkArtUpdatedMem frobUrnArtUpdatedMem
   rw [writeWordMem_read32_below]
   · rw [writeWordMem_read32_below]
     · exact hInkRead
     · rw [hInkSize]; omega
     · omega
-    · rw [hInkSize]; native_decide
+    · rw [hInkSize]; decide +native
   · rw [writeWordMem_size_of_contains]
     · rw [hInkSize]; omega
     · rw [hInkSize]; omega
   · omega
   · rw [writeWordMem_size_of_contains]
-    · rw [hInkSize]; native_decide
+    · rw [hInkSize]; decide +native
     · rw [hInkSize]; omega
 
 theorem frobIlkLoadedMem_read480 (σ : AccountMap) (I : ExecutionEnv) :
@@ -2882,7 +2882,7 @@ theorem frobIlkLoadedMem_read480 (σ : AccountMap) (I : ExecutionEnv) :
       (by
         rw [hrateSize]
         change 0 < USize.size
-        native_decide)
+        decide +native)
   have hlineRead :
       memLine.readWithPadding 480 32 =
         UInt256.toByteArray (solcSlotWord σ I (frobIlkSpotSlot I)) := by
@@ -2890,7 +2890,7 @@ theorem frobIlkLoadedMem_read480 (σ : AccountMap) (I : ExecutionEnv) :
     rw [writeWordMem_read32_below
       (mem := memSpot) (off := 512) (readOff := 480)
       (word := solcSlotWord σ I (frobIlkLineSlot I))
-      (by rw [hspotSize]) (by omega) (by rw [hspotSize]; native_decide)]
+      (by rw [hspotSize]) (by omega) (by rw [hspotSize]; decide +native)]
     exact hspotRead
   change (writeWordMem 544 (solcSlotWord σ I (frobIlkDustSlot I)) memLine).readWithPadding
     480 32 = UInt256.toByteArray (solcSlotWord σ I (frobIlkSpotSlot I))
@@ -2904,7 +2904,7 @@ theorem frobIlkLoadedMem_read480 (σ : AccountMap) (I : ExecutionEnv) :
   · rw [show memLine.size = 544 by
       unfold memLine
       exact writeWordMem_size_at_end hspotSize]
-    native_decide
+    decide +native
 
 theorem frobIlkArtUpdatedMem_read480 (σ : AccountMap) (I : ExecutionEnv)
     (urnInkNew urnArtNew ilkArtNew : UInt256) :
@@ -2976,7 +2976,7 @@ theorem frobIlkLoadedMem_read512 (σ : AccountMap) (I : ExecutionEnv) :
       (by
         rw [hspotSize]
         change 0 < USize.size
-        native_decide)
+        decide +native)
   change (writeWordMem 544 (solcSlotWord σ I (frobIlkDustSlot I)) memLine).readWithPadding
     512 32 = UInt256.toByteArray (solcSlotWord σ I (frobIlkLineSlot I))
   rw [writeWordMem_read32_below]
@@ -2988,7 +2988,7 @@ theorem frobIlkLoadedMem_read512 (σ : AccountMap) (I : ExecutionEnv) :
   · rw [show memLine.size = 544 by
       unfold memLine
       exact writeWordMem_size_at_end hspotSize]
-    native_decide
+    decide +native
 
 theorem frobIlkLoadedMem_read544 (σ : AccountMap) (I : ExecutionEnv) :
     (frobIlkLoadedMem σ I).readWithPadding 544 32 =
@@ -3019,7 +3019,7 @@ theorem frobIlkLoadedMem_read544 (σ : AccountMap) (I : ExecutionEnv) :
     544 32 = UInt256.toByteArray (solcSlotWord σ I (frobIlkDustSlot I))
   exact toByteArray_write_read_back_of_gap
     (solcSlotWord σ I (frobIlkDustSlot I)) memLine 544
-    (by rw [hlineSize]; native_decide)
+    (by rw [hlineSize]; decide +native)
 
 theorem frobIlkArtUpdatedMem_read512 (σ : AccountMap) (I : ExecutionEnv)
     (urnInkNew urnArtNew ilkArtNew : UInt256) :
@@ -3112,14 +3112,14 @@ theorem frobIlkArtUpdatedMem_read224 (σ : AccountMap) (I : ExecutionEnv)
   rw [writeWordMem_read32_below]
   · exact toByteArray_write_read_back_of_gap urnArtNew
       (frobUrnInkUpdatedMem σ I urnInkNew) 224
-      (by rw [hInkSize]; native_decide)
+      (by rw [hInkSize]; decide +native)
   · rw [writeWordMem_size_of_contains]
     · rw [hInkSize]; omega
     · rw [hInkSize]; omega
   · omega
   · rw [writeWordMem_size_of_contains]
-    · rw [hInkSize]; native_decide
-    · rw [hInkSize]; native_decide
+    · rw [hInkSize]; decide +native
+    · rw [hInkSize]; decide +native
 
 theorem RD.vatFrobAlloc2
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
@@ -3131,36 +3131,36 @@ theorem RD.vatFrobAlloc2
     (hov : R.length + 5 ≤ 1024) :
     ∃ k' C', RD vatBytecode ee g s0 ret (⟨128⟩ :: R) (frobAlloc2Mem solcFreePtrMem)
       (UInt256.ofNat 6) rdata acc k' C' := by
-  have rd6848 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd6850 := rd6848.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd6851 := rd6850.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
-    mem_cost solcFreePtrMem_mload64 (by native_decide) (by evm_ov)
-  have rd6852 := rd6851.dup1 (by native_decide) (by evm_ov)
-  have rd6854 := rd6852.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd6855 := rd6854.add (by native_decide) (by evm_ov)
-  have rd6857 := rd6855.push1 ⟨64⟩ (by native_decide) (by evm_ov)
+  have rd6848 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd6850 := rd6848.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd6851 := rd6850.mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide +native)
+    mem_cost solcFreePtrMem_mload64 (by decide +native) (by evm_ov)
+  have rd6852 := rd6851.dup1 (by decide +native) (by evm_ov)
+  have rd6854 := rd6852.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd6855 := rd6854.add (by decide +native) (by evm_ov)
+  have rd6857 := rd6855.push1 ⟨64⟩ (by decide +native) (by evm_ov)
   have rd6858 := rd6857.mstore 0 (writeWordMem 64 ⟨192⟩ solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd6859 := rd6858.dup1 (by native_decide) (by evm_ov)
-  have rd6861 := rd6859.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6862 := rd6861.dup2 (by native_decide)
+  have rd6859 := rd6858.dup1 (by decide +native) (by evm_ov)
+  have rd6861 := rd6859.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6862 := rd6861.dup2 (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd6863 := rd6862.mstore 6 (writeWordMem 128 ⟨0⟩
       (writeWordMem 64 ⟨192⟩ solcFreePtrMem))
-    (UInt256.ofNat 5) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 5) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd6865 := rd6863.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd6866 := rd6865.add (by native_decide) (by evm_ov)
-  have rd6868 := rd6866.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6869 := rd6868.dup2 (by native_decide)
+  have rd6865 := rd6863.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd6866 := rd6865.add (by decide +native) (by evm_ov)
+  have rd6868 := rd6866.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6869 := rd6868.dup2 (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd6870 := rd6869.mstore 3 (frobAlloc2Mem solcFreePtrMem)
-    (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 6) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd6871 := rd6870.pop (by native_decide) (by evm_ov)
-  have rd6872 := rd6871.swap1 (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd6872.jump (by native_decide) hret (by evm_ov)⟩
+  have rd6871 := rd6870.pop (by decide +native) (by evm_ov)
+  have rd6872 := rd6871.swap1 (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd6872.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem RD.vatFrobAlloc5
     {ee : ExecutionEnv} {g : Sat256} {s0 : State}
@@ -3182,68 +3182,68 @@ theorem RD.vatFrobAlloc5
         ⟨256⟩ := by
     exact mloadWordValue_of_readWithPadding
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hmemLt)
-      (by native_decide)
+      (by decide +native)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hread64)
-  have rd6874 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd6876 := rd6874.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd6877 := rd6876.mload 0 ⟨256⟩ (UInt256.ofNat 8) (by native_decide)
-    mem_cost hmload (by native_decide) (by evm_ov)
-  have rd6878 := rd6877.dup1 (by native_decide) (by evm_ov)
-  have rd6880 := rd6878.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd6881 := rd6880.add (by native_decide) (by evm_ov)
-  have rd6883 := rd6881.push1 ⟨64⟩ (by native_decide) (by evm_ov)
+  have rd6874 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd6876 := rd6874.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd6877 := rd6876.mload 0 ⟨256⟩ (UInt256.ofNat 8) (by decide +native)
+    mem_cost hmload (by decide +native) (by evm_ov)
+  have rd6878 := rd6877.dup1 (by decide +native) (by evm_ov)
+  have rd6880 := rd6878.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd6881 := rd6880.add (by decide +native) (by evm_ov)
+  have rd6883 := rd6881.push1 ⟨64⟩ (by decide +native) (by evm_ov)
   have rd6884 := rd6883.mstore 0 (writeWordMem 64 ⟨416⟩ mem)
-    (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd6885 := rd6884.dup1 (by native_decide) (by evm_ov)
-  have rd6887 := rd6885.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6888 := rd6887.dup2 (by native_decide)
+  have rd6885 := rd6884.dup1 (by decide +native) (by evm_ov)
+  have rd6887 := rd6885.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6888 := rd6887.dup2 (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd6889 := rd6888.mstore 3 (writeWordMem 256 ⟨0⟩ (writeWordMem 64 ⟨416⟩ mem))
-    (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 9) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd6891 := rd6889.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd6892 := rd6891.add (by native_decide) (by evm_ov)
-  have rd6894 := rd6892.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6895 := rd6894.dup2 (by native_decide)
+  have rd6891 := rd6889.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd6892 := rd6891.add (by decide +native) (by evm_ov)
+  have rd6894 := rd6892.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6895 := rd6894.dup2 (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd6896 := rd6895.mstore 3
     (writeWordMem 288 ⟨0⟩ (writeWordMem 256 ⟨0⟩ (writeWordMem 64 ⟨416⟩ mem)))
-    (UInt256.ofNat 10) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 10) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd6898 := rd6896.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd6899 := rd6898.add (by native_decide) (by evm_ov)
-  have rd6901 := rd6899.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6902 := rd6901.dup2 (by native_decide)
+  have rd6898 := rd6896.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd6899 := rd6898.add (by decide +native) (by evm_ov)
+  have rd6901 := rd6899.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6902 := rd6901.dup2 (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd6903 := rd6902.mstore 3
     (writeWordMem 320 ⟨0⟩
       (writeWordMem 288 ⟨0⟩ (writeWordMem 256 ⟨0⟩ (writeWordMem 64 ⟨416⟩ mem))))
-    (UInt256.ofNat 11) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 11) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd6905 := rd6903.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd6906 := rd6905.add (by native_decide) (by evm_ov)
-  have rd6908 := rd6906.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6909 := rd6908.dup2 (by native_decide)
+  have rd6905 := rd6903.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd6906 := rd6905.add (by decide +native) (by evm_ov)
+  have rd6908 := rd6906.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6909 := rd6908.dup2 (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd6910 := rd6909.mstore 3
     (writeWordMem 352 ⟨0⟩
       (writeWordMem 320 ⟨0⟩
         (writeWordMem 288 ⟨0⟩
           (writeWordMem 256 ⟨0⟩ (writeWordMem 64 ⟨416⟩ mem)))))
-    (UInt256.ofNat 12) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 12) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd6912 := rd6910.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd6913 := rd6912.add (by native_decide) (by evm_ov)
-  have rd6915 := rd6913.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd6916 := rd6915.dup2 (by native_decide)
+  have rd6912 := rd6910.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd6913 := rd6912.add (by decide +native) (by evm_ov)
+  have rd6915 := rd6913.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd6916 := rd6915.dup2 (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rd6917 := rd6916.mstore 3 (frobAlloc5Mem mem)
-    (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 13) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd6918 := rd6917.pop (by native_decide) (by evm_ov)
-  have rd6919 := rd6918.swap1 (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd6919.jump (by native_decide) hret (by evm_ov)⟩
+  have rd6918 := rd6917.pop (by decide +native) (by evm_ov)
+  have rd6919 := rd6918.swap1 (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd6919.jump (by decide +native) hret (by evm_ov)⟩
 
 theorem RD.vatFrobUrnLoads
     {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ} {sel : UInt256}
@@ -3260,30 +3260,30 @@ theorem RD.vatFrobUrnLoads
   let urnBase := solcMappingSlot urnsIlk (frobUMaskedWord I)
   let urnInkOld := solcSlotWord σ I urnBase
   let urnArtOld := solcSlotWord σ I (urnBase + ⟨1⟩)
-  have rd3046 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3049 := rd3046.push2 ⟨3053⟩ (by native_decide) (by evm_ov)
-  have rd3052 := rd3049.push2 ⟨6847⟩ (by native_decide) (by evm_ov)
-  have rd6847 := rd3052.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3046 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3049 := rd3046.push2 ⟨3053⟩ (by decide +native) (by evm_ov)
+  have rd3052 := rd3049.push2 ⟨6847⟩ (by decide +native) (by evm_ov)
+  have rd6847 := rd3052.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3053raw⟩ := RD.vatFrobAlloc2 rd6847 (by jump_dest) (by simp)
-  have rd3054pre := rd3053raw.jumpdest (by native_decide) (by evm_ov)
-  have rd3055 := rd3054pre.pop (by native_decide) (by evm_ov)
-  have rd3057 := rd3055.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3058 := rd3057.dup7 (by native_decide) (by evm_ov)
-  have rd3059 := rd3058.dup2 (by native_decide) (by evm_ov)
+  have rd3054pre := rd3053raw.jumpdest (by decide +native) (by evm_ov)
+  have rd3055 := rd3054pre.pop (by decide +native) (by evm_ov)
+  have rd3057 := rd3055.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3058 := rd3057.dup7 (by decide +native) (by evm_ov)
+  have rd3059 := rd3058.dup2 (by decide +native) (by evm_ov)
   have rd3060 := rd3059.mstore 0
     (wordAt0Mem (frobIWord I) (frobAlloc2Mem solcFreePtrMem))
-    (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 6) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3062 := rd3060.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  have rd3064 := rd3062.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3065 := rd3064.swap1 (by native_decide) (by evm_ov)
-  have rd3066 := rd3065.dup2 (by native_decide) (by evm_ov)
+  have rd3062 := rd3060.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  have rd3064 := rd3062.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3065 := rd3064.swap1 (by decide +native) (by evm_ov)
+  have rd3066 := rd3065.dup2 (by decide +native) (by evm_ov)
   have rd3067 := rd3066.mstore 0 (frobUrnHashMem I)
-    (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 6) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3069 := rd3067.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd3070 := rd3069.dup1 (by native_decide) (by evm_ov)
-  have rd3071 := rd3070.dup4 (by native_decide) (by evm_ov)
+  have rd3069 := rd3067.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd3070 := rd3069.dup1 (by decide +native) (by evm_ov)
+  have rd3071 := rd3070.dup4 (by decide +native) (by evm_ov)
   have hurnsIlk :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((frobUrnHashMem I).readWithPadding 0 64))) = urnsIlk := by
@@ -3291,14 +3291,14 @@ theorem RD.vatFrobUrnLoads
       twoWordHashMem_solcMappingSlot_of_ge64 ⟨3⟩ (frobIWord I)
         (by rw [frobAlloc2Mem_solc_size]; omega)
   have rd3072 := rd3071.keccak256 0 urnsIlk (UInt256.ofNat 6)
-    (by native_decide) mem_cost hurnsIlk (by native_decide) (by evm_ov)
-  have rd3074 := rd3072.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3076 := rd3074.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3078 := rd3076.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd3079 := rd3078.shl (by native_decide) (by evm_ov)
-  have rd3080 := rd3079.sub (by native_decide) (by evm_ov)
-  have rd3081 := rd3080.dup10 (by native_decide) (by evm_ov)
-  have rd3082raw := rd3081.and (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hurnsIlk (by decide +native) (by evm_ov)
+  have rd3074 := rd3072.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3076 := rd3074.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3078 := rd3076.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd3079 := rd3078.shl (by decide +native) (by evm_ov)
+  have rd3080 := rd3079.sub (by decide +native) (by evm_ov)
+  have rd3081 := rd3080.dup10 (by decide +native) (by evm_ov)
+  have rd3082raw := rd3081.and (by decide +native) (by evm_ov)
   have hmask :
       UInt256.land (frobUMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -3308,18 +3308,18 @@ theorem RD.vatFrobUrnLoads
     exact frobUMaskedWord_clean I
   have rd3082 := rd3082raw
   rw [hmask] at rd3082
-  have rd3083 := rd3082.dup5 (by native_decide) (by evm_ov)
+  have rd3083 := rd3082.dup5 (by decide +native) (by evm_ov)
   have rd3084 := rd3083.mstore 0
     (wordAt0Mem (frobUMaskedWord I) (frobUrnHashMem I))
-    (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 6) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3085 := rd3084.dup3 (by native_decide) (by evm_ov)
+  have rd3085 := rd3084.dup3 (by decide +native) (by evm_ov)
   have rd3086 := rd3085.mstore 0 (frobUrnBaseMem I)
-    (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 6) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3087 := rd3086.swap2 (by native_decide) (by evm_ov)
-  have rd3088 := rd3087.dup3 (by native_decide) (by evm_ov)
-  have rd3089 := rd3088.swap1 (by native_decide) (by evm_ov)
+  have rd3087 := rd3086.swap2 (by decide +native) (by evm_ov)
+  have rd3088 := rd3087.dup3 (by decide +native) (by evm_ov)
+  have rd3089 := rd3088.swap1 (by decide +native) (by evm_ov)
   have hurnBase :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((frobUrnBaseMem I).readWithPadding 0 64))) = urnBase := by
@@ -3327,8 +3327,8 @@ theorem RD.vatFrobUrnLoads
       twoWordHashMem_solcMappingSlot_of_ge64 urnsIlk (frobUMaskedWord I)
         (by rw [frobUrnHashMem_size I]; omega)
   have rd3090 := rd3089.keccak256 0 urnBase (UInt256.ofNat 6)
-    (by native_decide) mem_cost hurnBase (by native_decide) (by evm_ov)
-  have rd3091pre := rd3090.dup3 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hurnBase (by decide +native) (by evm_ov)
+  have rd3091pre := rd3090.dup3 (by decide +native) (by evm_ov)
   have h64ToNat : (⟨64⟩ : UInt256).toNat = 64 := by decide
   have hmload192 :
       (if (⟨64⟩ : UInt256).toNat ≥ (frobUrnBaseMem I).size
@@ -3339,60 +3339,60 @@ theorem RD.vatFrobUrnLoads
         ⟨192⟩ := by
     exact mloadWordValue_of_readWithPadding
       (by rw [h64ToNat, frobUrnBaseMem_size I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by simpa [h64ToNat] using frobUrnBaseMem_read64 I)
   have rd3092 := rd3091pre.mload 0 ⟨192⟩ (UInt256.ofNat 6)
-    (by native_decide) mem_cost hmload192 (by native_decide) (by evm_ov)
-  have rd3093 := rd3092.dup1 (by native_decide) (by evm_ov)
-  have rd3094 := rd3093.dup5 (by native_decide) (by evm_ov)
-  have rd3095 := rd3094.add (by native_decide) (by evm_ov)
-  have rd3096 := rd3095.swap1 (by native_decide) (by evm_ov)
-  have rd3097 := rd3096.swap4 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload192 (by decide +native) (by evm_ov)
+  have rd3093 := rd3092.dup1 (by decide +native) (by evm_ov)
+  have rd3094 := rd3093.dup5 (by decide +native) (by evm_ov)
+  have rd3095 := rd3094.add (by decide +native) (by evm_ov)
+  have rd3096 := rd3095.swap1 (by decide +native) (by evm_ov)
+  have rd3097 := rd3096.swap4 (by decide +native) (by evm_ov)
   have rd3098 := rd3097.mstore 0
     (writeWordMem 64 ⟨256⟩ (frobUrnBaseMem I))
-    (UInt256.ofNat 6) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 6) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3099pre := rd3098.dup1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3100raw⟩ := rd3099pre.sload (by native_decide) (by evm_ov)
+  have rd3099pre := rd3098.dup1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3100raw⟩ := rd3099pre.sload (by decide +native) (by evm_ov)
   have hInkRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD urnBase ⟨0⟩)) = urnInkOld := by
     simp [urnInkOld, solcSlotWord]
   have rd3100 := rd3100raw
   rw [hInkRaw] at rd3100
-  have rd3101pre := rd3100.dup4 (by native_decide) (by evm_ov)
+  have rd3101pre := rd3100.dup4 (by decide +native) (by evm_ov)
   have rd3102 := rd3101pre.mstore 3
     (writeWordMem 192 urnInkOld (writeWordMem 64 ⟨256⟩ (frobUrnBaseMem I)))
-    (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3104 := rd3102.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3105pre := rd3104.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3106raw⟩ := rd3105pre.sload (by native_decide) (by evm_ov)
+  have rd3104 := rd3102.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3105pre := rd3104.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3106raw⟩ := rd3105pre.sload (by decide +native) (by evm_ov)
   have hArtRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨1⟩ + urnBase) ⟨0⟩)) = urnArtOld := by
     simp [urnArtOld, solcSlotWord, u256_add_comm (⟨1⟩ : UInt256) urnBase]
   have rd3106 := rd3106raw
   rw [hArtRaw] at rd3106
-  have rd3107 := rd3106.swap1 (by native_decide) (by evm_ov)
-  have rd3108 := rd3107.dup3 (by native_decide) (by evm_ov)
-  have rd3109pre := rd3108.add (by native_decide) (by evm_ov)
+  have rd3107 := rd3106.swap1 (by decide +native) (by evm_ov)
+  have rd3108 := rd3107.dup3 (by decide +native) (by evm_ov)
+  have rd3109pre := rd3108.add (by decide +native) (by evm_ov)
   have rd3110 := rd3109pre.mstore 3
     (frobUrnLoadedMem σ I) (UInt256.ofNat 8)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     (by
-      rw [show ((⟨192⟩ : UInt256) + ⟨32⟩).toNat = 224 from by native_decide]
+      rw [show ((⟨192⟩ : UInt256) + ⟨32⟩).toNat = 224 from by decide +native]
       simp [writeWordMem, frobUrnLoadedMem, urnInkOld, urnArtOld, frobUrnInkSlot,
         frobUrnArtSlot, frobUrnBase, urnBase, urnsIlk])
-    (by native_decide) (by evm_ov)
-  have rd3113 := rd3110.push2 ⟨3117⟩ (by native_decide) (by evm_ov)
-  have rd3116 := rd3113.push2 ⟨6873⟩ (by native_decide) (by evm_ov)
-  have rd6873 := rd3116.jump (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  have rd3113 := rd3110.push2 ⟨3117⟩ (by decide +native) (by evm_ov)
+  have rd3116 := rd3113.push2 ⟨6873⟩ (by decide +native) (by evm_ov)
+  have rd6873 := rd3116.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3117raw⟩ := RD.vatFrobAlloc5 rd6873
     (by rw [frobUrnLoadedMem_size σ I]; omega)
     (frobUrnLoadedMem_read64 σ I) (by jump_dest) (by simp)
-  have rd3118 := rd3117raw.jumpdest (by native_decide) (by evm_ov)
-  have rd3119 := rd3118.pop (by native_decide) (by evm_ov)
+  have rd3118 := rd3117raw.jumpdest (by decide +native) (by evm_ov)
+  have rd3119 := rd3118.pop (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [urnsIlk, urnBase, urnInkOld, urnArtOld, frobUrnInkSlot,
       frobUrnArtSlot, frobUrnBase, u256_add_comm (⟨1⟩ : UInt256) urnBase]
@@ -3418,7 +3418,7 @@ theorem frobNotInitErrorMem0_size {mem : ByteArray} (hmem : mem.size = 576) :
     (frobNotInitErrorMem0 mem).size = 608 := by
   unfold frobNotInitErrorMem0 writeWordMem
   rw [toByteArray_write32_size_of_ge mem solcErrorStringSelector 576 576 608
-    hmem (by omega) (by native_decide) (by omega)]
+    hmem (by omega) (by decide +native) (by omega)]
 
 theorem frobNotInitErrorMem1_size {mem : ByteArray} (hmem : mem.size = 576) :
     (frobNotInitErrorMem1 mem).size = 612 := by
@@ -3432,7 +3432,7 @@ theorem frobNotInitErrorMem2_size {mem : ByteArray} (hmem : mem.size = 576) :
   unfold frobNotInitErrorMem2 writeWordMem
   rw [toByteArray_write32_size_of_ge (frobNotInitErrorMem1 mem) (⟨16⟩ : UInt256)
     612 612 644 (frobNotInitErrorMem1_size hmem) (by omega)
-    (by native_decide) (by omega)]
+    (by decide +native) (by omega)]
 
 theorem frobNotInitErrorMem3_size {mem : ByteArray} (hmem : mem.size = 576) :
     (frobNotInitErrorMem3 mem).size = 676 := by
@@ -3440,7 +3440,7 @@ theorem frobNotInitErrorMem3_size {mem : ByteArray} (hmem : mem.size = 576) :
   rw [toByteArray_write32_size_of_ge (frobNotInitErrorMem2 mem)
     (UInt256.shiftLeft vatNotInitRawWord ⟨130⟩) 644 644 676
     (frobNotInitErrorMem2_size hmem) (by omega)
-    (by native_decide) (by omega)]
+    (by decide +native) (by omega)]
 
 theorem frobNotInitErrorMem3_read64 {mem : ByteArray}
     (hmem : mem.size = 576)
@@ -3465,7 +3465,7 @@ theorem frobNotInitErrorMem3_read64 {mem : ByteArray}
     · exact hread64
     · rw [hmem]; omega
     · omega
-    · rw [hmem]; native_decide
+    · rw [hmem]; decide +native
   have herr1Read : err1.readWithPadding 64 32 = UInt256.toByteArray ⟨576⟩ := by
     unfold err1 frobNotInitErrorMem1
     change (writeWordMem 580 (⟨32⟩ : UInt256) err0).readWithPadding 64 32 =
@@ -3474,7 +3474,7 @@ theorem frobNotInitErrorMem3_read64 {mem : ByteArray}
     · exact herr0Read
     · rw [herr0Size]; omega
     · omega
-    · rw [herr0Size]; native_decide
+    · rw [herr0Size]; decide +native
   have herr2Read : err2.readWithPadding 64 32 = UInt256.toByteArray ⟨576⟩ := by
     unfold err2 frobNotInitErrorMem2
     change (writeWordMem 612 (⟨16⟩ : UInt256) err1).readWithPadding 64 32 =
@@ -3483,7 +3483,7 @@ theorem frobNotInitErrorMem3_read64 {mem : ByteArray}
     · exact herr1Read
     · rw [herr1Size]; omega
     · omega
-    · rw [herr1Size]; native_decide
+    · rw [herr1Size]; decide +native
   unfold frobNotInitErrorMem3
   change (writeWordMem 644 (UInt256.shiftLeft vatNotInitRawWord ⟨130⟩) err2).readWithPadding 64 32 =
     UInt256.toByteArray ⟨576⟩
@@ -3491,7 +3491,7 @@ theorem frobNotInitErrorMem3_read64 {mem : ByteArray}
   · exact herr2Read
   · rw [herr2Size]; omega
   · omega
-  · rw [herr2Size]; native_decide
+  · rw [herr2Size]; decide +native
 
 noncomputable def frobErrorStringMem0 (mem : ByteArray) : ByteArray :=
   writeWordMem 576 solcErrorStringSelector mem
@@ -3509,7 +3509,7 @@ theorem frobErrorStringMem0_size {mem : ByteArray} (hmem : mem.size = 576) :
     (frobErrorStringMem0 mem).size = 608 := by
   unfold frobErrorStringMem0 writeWordMem
   rw [toByteArray_write32_size_of_ge mem solcErrorStringSelector 576 576 608
-    hmem (by omega) (by native_decide) (by omega)]
+    hmem (by omega) (by decide +native) (by omega)]
 
 theorem frobErrorStringMem1_size {mem : ByteArray} (hmem : mem.size = 576) :
     (frobErrorStringMem1 mem).size = 612 := by
@@ -3524,7 +3524,7 @@ theorem frobErrorStringMem2_size (len : UInt256) {mem : ByteArray}
   unfold frobErrorStringMem2 writeWordMem
   rw [toByteArray_write32_size_of_ge (frobErrorStringMem1 mem) len
     612 612 644 (frobErrorStringMem1_size hmem) (by omega)
-    (by native_decide) (by omega)]
+    (by decide +native) (by omega)]
 
 theorem frobErrorStringMem3_size (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 576) :
@@ -3532,7 +3532,7 @@ theorem frobErrorStringMem3_size (len word : UInt256) {mem : ByteArray}
   unfold frobErrorStringMem3 writeWordMem
   rw [toByteArray_write32_size_of_ge (frobErrorStringMem2 len mem) word
     644 644 676 (frobErrorStringMem2_size len hmem) (by omega)
-    (by native_decide) (by omega)]
+    (by decide +native) (by omega)]
 
 theorem frobErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
     (hmem : mem.size = 576)
@@ -3557,7 +3557,7 @@ theorem frobErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
     · exact hread64
     · rw [hmem]; omega
     · omega
-    · rw [hmem]; native_decide
+    · rw [hmem]; decide +native
   have herr1Read : err1.readWithPadding 64 32 = UInt256.toByteArray ⟨576⟩ := by
     unfold err1 frobErrorStringMem1
     change (writeWordMem 580 (⟨32⟩ : UInt256) err0).readWithPadding 64 32 =
@@ -3566,7 +3566,7 @@ theorem frobErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
     · exact herr0Read
     · rw [herr0Size]; omega
     · omega
-    · rw [herr0Size]; native_decide
+    · rw [herr0Size]; decide +native
   have herr2Read : err2.readWithPadding 64 32 = UInt256.toByteArray ⟨576⟩ := by
     unfold err2 frobErrorStringMem2
     change (writeWordMem 612 len err1).readWithPadding 64 32 =
@@ -3575,7 +3575,7 @@ theorem frobErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
     · exact herr1Read
     · rw [herr1Size]; omega
     · omega
-    · rw [herr1Size]; native_decide
+    · rw [herr1Size]; decide +native
   unfold frobErrorStringMem3
   change (writeWordMem 644 word err2).readWithPadding 64 32 =
     UInt256.toByteArray ⟨576⟩
@@ -3583,7 +3583,7 @@ theorem frobErrorStringMem3_read64 (len word : UInt256) {mem : ByteArray}
   · exact herr2Read
   · rw [herr2Size]; omega
   · omega
-  · rw [herr2Size]; native_decide
+  · rw [herr2Size]; decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem RD.solcErrorStringRevertTail576 {code : ByteArray} {g : Sat256} {s0 : State}
@@ -3615,10 +3615,10 @@ theorem RD.solcErrorStringRevertTail576 {code : ByteArray} {g : Sat256} {s0 : St
         ⟨576⟩ := by
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, hmem]; omega)
-      (by native_decide)
+      (by decide +native)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hread64)
   have rd3201 := rd3200.mload 0 ⟨576⟩ (UInt256.ofNat 18)
-    hd3 mem_cost hmload576 (by native_decide) (by evm_ov)
+    hd3 mem_cost hmload576 (by decide +native) (by evm_ov)
   have rd3205 := rd3201.pushConst (⟨4594637⟩ : UInt256)
     (width := 3) (op := .PUSH3) (by decide) hd4 (by simp only [List.length_cons]; omega)
   have rd3207 := rd3205.push1 ⟨229⟩ hd8 (by evm_ov)
@@ -3626,22 +3626,22 @@ theorem RD.solcErrorStringRevertTail576 {code : ByteArray} {g : Sat256} {s0 : St
   have rd3209 := rd3208.dup2 hd11 (by evm_ov)
   have rd3210 := rd3209.mstore 3 (frobErrorStringMem0 mem)
     (UInt256.ofNat 19) hd12 mem_cost
-    (by rw [show (⟨576⟩ : UInt256).toNat = 576 from by native_decide]
+    (by rw [show (⟨576⟩ : UInt256).toNat = 576 from by decide +native]
         simp [frobErrorStringMem0, writeWordMem, solcErrorStringSelector])
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd3212 := rd3210.push1 ⟨32⟩ hd13 (by evm_ov)
   have rd3214 := rd3212.push1 ⟨4⟩ hd15 (by evm_ov)
   have rd3215 := rd3214.dup3 hd17 (by evm_ov)
   have rd3216 := rd3215.add hd18 (by evm_ov)
   have rd3217 := rd3216.mstore 3 (frobErrorStringMem1 mem)
-    (UInt256.ofNat 20) hd19 mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 20) hd19 mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3219 := rd3217.push1 len hd20 (by evm_ov)
   have rd3221 := rd3219.push1 ⟨36⟩ hd22 (by evm_ov)
   have rd3222 := rd3221.dup3 hd24 (by evm_ov)
   have rd3223 := rd3222.add hd25 (by evm_ov)
   have rd3224 := rd3223.mstore 3 (frobErrorStringMem2 len mem)
-    (UInt256.ofNat 21) hd26 mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 21) hd26 mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rdRaw := rd3224.pushConst rawWord
     (width := width) (op := op) hpush hd27 (by simp only [List.length_cons]; omega)
@@ -3653,7 +3653,7 @@ theorem RD.solcErrorStringRevertTail576 {code : ByteArray} {g : Sat256} {s0 : St
   have rd3247 := rd3246.dup3 hdDup3 (by evm_ov)
   have rd3248 := rd3247.add hdAdd (by evm_ov)
   have rd3249 := rd3248.mstore 3 (frobErrorStringMem3 len word mem)
-    (UInt256.ofNat 22) hdMstore3 mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 22) hdMstore3 mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3250 := rd3249.swap1 hdSwap (by evm_ov)
   have herrMload64 :
@@ -3669,12 +3669,12 @@ theorem RD.solcErrorStringRevertTail576 {code : ByteArray} {g : Sat256} {s0 : St
         rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
           frobErrorStringMem3_size len word hmem]
         omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
           frobErrorStringMem3_read64 len word hmem hread64)
   have rd3251 := rd3250.mload 0 ⟨576⟩ (UInt256.ofNat 22)
-    hdMload mem_cost herrMload64 (by native_decide) (by evm_ov)
+    hdMload mem_cost herrMload64 (by decide +native) (by evm_ov)
   have rd3252 := rd3251.swap1 hdSwap2 (by evm_ov)
   have rd3253 := rd3252.dup2 hdDup2 (by evm_ov)
   have rd3254 := rd3253.swap1 hdSwap3 (by evm_ov)
@@ -3688,7 +3688,7 @@ theorem vatFrobUWishNotAllowedTailWf :
     solcErrorStringRevertTailWf vatBytecode ⟨3641⟩ ⟨17⟩
       ⟨29393821939250277271513265368272845679989⟩ ⟨120⟩ .PUSH17 17 := by
   unfold solcErrorStringRevertTailWf
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatFrobIlkLoadsRateZero
@@ -3706,27 +3706,27 @@ theorem RD.vatFrobIlkLoadsRateZero
   let ilkSpotOld := solcSlotWord σ I (ilkBase + ⟨2⟩)
   let ilkLineOld := solcSlotWord σ I (ilkBase + ⟨3⟩)
   let ilkDustOld := solcSlotWord σ I (ilkBase + ⟨4⟩)
-  have rd3121 := h.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3122 := rd3121.dup8 (by native_decide) (by evm_ov)
-  have rd3123pre := rd3122.dup2 (by native_decide) (by evm_ov)
+  have rd3121 := h.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3122 := rd3121.dup8 (by decide +native) (by evm_ov)
+  have rd3123pre := rd3122.dup2 (by decide +native) (by evm_ov)
   have rd3124 := rd3123pre.mstore 0
     (wordAt0Mem (frobIWord I) (frobAlloc5Mem (frobUrnLoadedMem σ I)))
-    (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 13) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3126 := rd3124.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd3128 := rd3126.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3129 := rd3128.dup2 (by native_decide) (by evm_ov)
-  have rd3130pre := rd3129.dup2 (by native_decide) (by evm_ov)
+  have rd3126 := rd3124.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd3128 := rd3126.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3129 := rd3128.dup2 (by decide +native) (by evm_ov)
+  have rd3130pre := rd3129.dup2 (by decide +native) (by evm_ov)
   have rd3131 := rd3130pre.mstore 0 (frobIlkHashMem σ I)
-    (UInt256.ofNat 13) (by native_decide) mem_cost
+    (UInt256.ofNat 13) (by decide +native) mem_cost
     (by
-      rw [show (⟨32⟩ : UInt256).toNat = 32 from by native_decide]
+      rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide +native]
       simp [frobIlkHashMem, twoWordHashMem, wordAt32Mem])
-    (by native_decide) (by evm_ov)
-  have rd3133 := rd3131.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd3134 := rd3133.swap3 (by native_decide) (by evm_ov)
-  have rd3135 := rd3134.dup4 (by native_decide) (by evm_ov)
-  have rd3136pre := rd3135.swap1 (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  have rd3133 := rd3131.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd3134 := rd3133.swap3 (by decide +native) (by evm_ov)
+  have rd3135 := rd3134.dup4 (by decide +native) (by evm_ov)
+  have rd3136pre := rd3135.swap1 (by decide +native) (by evm_ov)
   have hilkBase :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((frobIlkHashMem σ I).readWithPadding 0 64))) = ilkBase := by
@@ -3734,8 +3734,8 @@ theorem RD.vatFrobIlkLoadsRateZero
       twoWordHashMem_solcMappingSlot_of_ge64 ⟨2⟩ (frobIWord I)
         (by rw [frobAlloc5Mem_frobUrnLoaded_size σ I]; omega)
   have rd3137 := rd3136pre.keccak256 0 ilkBase (UInt256.ofNat 13)
-    (by native_decide) mem_cost hilkBase (by native_decide) (by evm_ov)
-  have rd3138pre := rd3137.dup4 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hilkBase (by decide +native) (by evm_ov)
+  have rd3138pre := rd3137.dup4 (by decide +native) (by evm_ov)
   have hmload416 :
       (if (⟨64⟩ : UInt256).toNat ≥ (frobIlkHashMem σ I).size
           ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
@@ -3746,126 +3746,126 @@ theorem RD.vatFrobIlkLoadsRateZero
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
         frobIlkHashMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
         using frobIlkHashMem_read64 σ I)
   have rd3139 := rd3138pre.mload 0 ⟨416⟩ (UInt256.ofNat 13)
-    (by native_decide) mem_cost hmload416 (by native_decide) (by evm_ov)
-  have rd3141 := rd3139.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd3142 := rd3141.dup2 (by native_decide) (by evm_ov)
-  have rd3143 := rd3142.add (by native_decide) (by evm_ov)
-  have rd3144pre := rd3143.dup6 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload416 (by decide +native) (by evm_ov)
+  have rd3141 := rd3139.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd3142 := rd3141.dup2 (by decide +native) (by evm_ov)
+  have rd3143 := rd3142.add (by decide +native) (by evm_ov)
+  have rd3144pre := rd3143.dup6 (by decide +native) (by evm_ov)
   have rd3145 := rd3144pre.mstore 0
     (writeWordMem 64 ⟨576⟩ (frobIlkHashMem σ I))
-    (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 13) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3146pre := rd3145.dup2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3147raw⟩ := rd3146pre.sload (by native_decide) (by evm_ov)
+  have rd3146pre := rd3145.dup2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3147raw⟩ := rd3146pre.sload (by decide +native) (by evm_ov)
   have hArtRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ilkBase ⟨0⟩)) = ilkArtOld := by
     simp [ilkArtOld, solcSlotWord]
   have rd3147 := rd3147raw
   rw [hArtRaw] at rd3147
-  have rd3148pre := rd3147.dup2 (by native_decide) (by evm_ov)
+  have rd3148pre := rd3147.dup2 (by decide +native) (by evm_ov)
   have rd3149 := rd3148pre.mstore 3
     (writeWordMem 416 ilkArtOld (writeWordMem 64 ⟨576⟩ (frobIlkHashMem σ I)))
-    (UInt256.ofNat 14) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 14) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3151 := rd3149.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3152 := rd3151.dup3 (by native_decide) (by evm_ov)
-  have rd3153pre := rd3152.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3154raw⟩ := rd3153pre.sload (by native_decide) (by evm_ov)
+  have rd3151 := rd3149.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3152 := rd3151.dup3 (by decide +native) (by evm_ov)
+  have rd3153pre := rd3152.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3154raw⟩ := rd3153pre.sload (by decide +native) (by evm_ov)
   have hRateRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (ilkBase + ⟨1⟩) ⟨0⟩)) = ilkRateOld := by
     simp [ilkRateOld, solcSlotWord]
   have rd3154 := rd3154raw
   rw [hRateRaw] at rd3154
-  have rd3155 := rd3154.swap3 (by native_decide) (by evm_ov)
-  have rd3156 := rd3155.dup2 (by native_decide) (by evm_ov)
-  have rd3157 := rd3156.add (by native_decide) (by evm_ov)
-  have rd3158 := rd3157.dup4 (by native_decide) (by evm_ov)
-  have rd3159pre := rd3158.swap1 (by native_decide) (by evm_ov)
+  have rd3155 := rd3154.swap3 (by decide +native) (by evm_ov)
+  have rd3156 := rd3155.dup2 (by decide +native) (by evm_ov)
+  have rd3157 := rd3156.add (by decide +native) (by evm_ov)
+  have rd3158 := rd3157.dup4 (by decide +native) (by evm_ov)
+  have rd3159pre := rd3158.swap1 (by decide +native) (by evm_ov)
   have rd3160 := rd3159pre.mstore 3
     (writeWordMem 448 ilkRateOld
       (writeWordMem 416 ilkArtOld (writeWordMem 64 ⟨576⟩ (frobIlkHashMem σ I))))
-    (UInt256.ofNat 15) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 15) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3161 := rd3160.swap3 (by native_decide) (by evm_ov)
-  have rd3162 := rd3161.dup2 (by native_decide) (by evm_ov)
-  have rd3163pre := rd3162.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3164raw⟩ := rd3163pre.sload (by native_decide) (by evm_ov)
+  have rd3161 := rd3160.swap3 (by decide +native) (by evm_ov)
+  have rd3162 := rd3161.dup2 (by decide +native) (by evm_ov)
+  have rd3163pre := rd3162.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3164raw⟩ := rd3163pre.sload (by decide +native) (by evm_ov)
   have hSpotRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (ilkBase + ⟨2⟩) ⟨0⟩)) = ilkSpotOld := by
     simp [ilkSpotOld, solcSlotWord]
   have rd3164 := rd3164raw
   rw [hSpotRaw] at rd3164
-  have rd3165 := rd3164.swap4 (by native_decide) (by evm_ov)
-  have rd3166 := rd3165.dup4 (by native_decide) (by evm_ov)
-  have rd3167 := rd3166.add (by native_decide) (by evm_ov)
-  have rd3168 := rd3167.swap4 (by native_decide) (by evm_ov)
-  have rd3169 := rd3168.swap1 (by native_decide) (by evm_ov)
-  have rd3170pre := rd3169.swap4 (by native_decide) (by evm_ov)
+  have rd3165 := rd3164.swap4 (by decide +native) (by evm_ov)
+  have rd3166 := rd3165.dup4 (by decide +native) (by evm_ov)
+  have rd3167 := rd3166.add (by decide +native) (by evm_ov)
+  have rd3168 := rd3167.swap4 (by decide +native) (by evm_ov)
+  have rd3169 := rd3168.swap1 (by decide +native) (by evm_ov)
+  have rd3170pre := rd3169.swap4 (by decide +native) (by evm_ov)
   have rd3171 := rd3170pre.mstore 3
     (writeWordMem 480 ilkSpotOld
       (writeWordMem 448 ilkRateOld
         (writeWordMem 416 ilkArtOld (writeWordMem 64 ⟨576⟩ (frobIlkHashMem σ I)))))
-    (UInt256.ofNat 16) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 16) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3173 := rd3171.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  have rd3174 := rd3173.dup4 (by native_decide) (by evm_ov)
-  have rd3175pre := rd3174.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3176raw⟩ := rd3175pre.sload (by native_decide) (by evm_ov)
+  have rd3173 := rd3171.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  have rd3174 := rd3173.dup4 (by decide +native) (by evm_ov)
+  have rd3175pre := rd3174.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3176raw⟩ := rd3175pre.sload (by decide +native) (by evm_ov)
   have hLineRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (ilkBase + ⟨3⟩) ⟨0⟩)) = ilkLineOld := by
     simp [ilkLineOld, solcSlotWord]
   have rd3176 := rd3176raw
   rw [hLineRaw] at rd3176
-  have rd3178 := rd3176.push1 ⟨96⟩ (by native_decide) (by evm_ov)
-  have rd3179 := rd3178.dup4 (by native_decide) (by evm_ov)
-  have rd3180pre := rd3179.add (by native_decide) (by evm_ov)
+  have rd3178 := rd3176.push1 ⟨96⟩ (by decide +native) (by evm_ov)
+  have rd3179 := rd3178.dup4 (by decide +native) (by evm_ov)
+  have rd3180pre := rd3179.add (by decide +native) (by evm_ov)
   have rd3181 := rd3180pre.mstore 3
     (writeWordMem 512 ilkLineOld
       (writeWordMem 480 ilkSpotOld
         (writeWordMem 448 ilkRateOld
           (writeWordMem 416 ilkArtOld (writeWordMem 64 ⟨576⟩ (frobIlkHashMem σ I))))))
-    (UInt256.ofNat 17) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 17) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3183 := rd3181.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd3184 := rd3183.swap1 (by native_decide) (by evm_ov)
-  have rd3185 := rd3184.swap3 (by native_decide) (by evm_ov)
-  have rd3186pre := rd3185.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3187raw⟩ := rd3186pre.sload (by native_decide) (by evm_ov)
+  have rd3183 := rd3181.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd3184 := rd3183.swap1 (by decide +native) (by evm_ov)
+  have rd3185 := rd3184.swap3 (by decide +native) (by evm_ov)
+  have rd3186pre := rd3185.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3187raw⟩ := rd3186pre.sload (by decide +native) (by evm_ov)
   have hDustRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (ilkBase + ⟨4⟩) ⟨0⟩)) = ilkDustOld := by
     simp [ilkDustOld, solcSlotWord]
   have rd3187 := rd3187raw
   rw [hDustRaw] at rd3187
-  have rd3189 := rd3187.push1 ⟨128⟩ (by native_decide) (by evm_ov)
-  have rd3190 := rd3189.dup3 (by native_decide) (by evm_ov)
-  have rd3191pre := rd3190.add (by native_decide) (by evm_ov)
+  have rd3189 := rd3187.push1 ⟨128⟩ (by decide +native) (by evm_ov)
+  have rd3190 := rd3189.dup3 (by decide +native) (by evm_ov)
+  have rd3191pre := rd3190.add (by decide +native) (by evm_ov)
   have rd3192 := rd3191pre.mstore 3 (frobIlkLoadedMem σ I)
-    (UInt256.ofNat 18) (by native_decide) mem_cost
+    (UInt256.ofNat 18) (by decide +native) mem_cost
     (by
-      rw [show ((⟨416⟩ : UInt256) + ⟨128⟩).toNat = 544 from by native_decide]
+      rw [show ((⟨416⟩ : UInt256) + ⟨128⟩).toNat = 544 from by decide +native]
       simp [writeWordMem, frobIlkLoadedMem, ilkArtOld, ilkRateOld, ilkSpotOld,
         ilkLineOld, ilkDustOld, frobIlkArtSlot, frobIlkRateSlot, frobIlkSpotSlot,
         frobIlkLineSlot, frobIlkDustSlot, frobIlkBase, ilkBase])
-    (by native_decide) (by evm_ov)
-  have rd3193 := rd3192.swap1 (by native_decide) (by evm_ov)
-  have rd3196 := rd3193.push2 ⟨3260⟩ (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  have rd3193 := rd3192.swap1 (by decide +native) (by evm_ov)
+  have rd3196 := rd3193.push2 ⟨3260⟩ (by decide +native) (by evm_ov)
   have hrateZero' : ilkRateOld = ⟨0⟩ := by
     simpa [ilkRateOld, frobIlkRateSlot, frobIlkBase, ilkBase] using hrateZero
   have rd3197pre := rd3196
   rw [hrateZero'] at rd3197pre
-  have rd3197 := rd3197pre.jumpiNT (by native_decide)
+  have rd3197 := rd3197pre.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
-  have rd3199 := rd3197.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd3200 := rd3199.dup1 (by native_decide) (by evm_ov)
+  have rd3199 := rd3197.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd3200 := rd3199.dup1 (by decide +native) (by evm_ov)
   have hmload576 :
       (if (⟨64⟩ : UInt256).toNat ≥ (frobIlkLoadedMem σ I).size
           ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -3876,49 +3876,49 @@ theorem RD.vatFrobIlkLoadsRateZero
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
         frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
         using frobIlkLoadedMem_read64 σ I)
   have rd3201 := rd3200.mload 0 ⟨576⟩ (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload576 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload576 (by decide +native) (by evm_ov)
   have rd3205 := rd3201.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
-  have rd3207 := rd3205.push1 ⟨229⟩ (by native_decide) (by evm_ov)
-  have rd3208 := rd3207.shl (by native_decide) (by evm_ov)
-  have rd3209 := rd3208.dup2 (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
+  have rd3207 := rd3205.push1 ⟨229⟩ (by decide +native) (by evm_ov)
+  have rd3208 := rd3207.shl (by decide +native) (by evm_ov)
+  have rd3209 := rd3208.dup2 (by decide +native) (by evm_ov)
   have rd3210 := rd3209.mstore 3 (frobNotInitErrorMem0 (frobIlkLoadedMem σ I))
-    (UInt256.ofNat 19) (by native_decide) mem_cost
-    (by rw [show (⟨576⟩ : UInt256).toNat = 576 from by native_decide]
+    (UInt256.ofNat 19) (by decide +native) mem_cost
+    (by rw [show (⟨576⟩ : UInt256).toNat = 576 from by decide +native]
         simp [frobNotInitErrorMem0, writeWordMem, solcErrorStringSelector])
-    (by native_decide) (by evm_ov)
-  have rd3212 := rd3210.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3214 := rd3212.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd3215 := rd3214.dup3 (by native_decide) (by evm_ov)
-  have rd3216 := rd3215.add (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  have rd3212 := rd3210.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3214 := rd3212.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd3215 := rd3214.dup3 (by decide +native) (by evm_ov)
+  have rd3216 := rd3215.add (by decide +native) (by evm_ov)
   have rd3217 := rd3216.mstore 3 (frobNotInitErrorMem1 (frobIlkLoadedMem σ I))
-    (UInt256.ofNat 20) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 20) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3219 := rd3217.push1 ⟨16⟩ (by native_decide) (by evm_ov)
-  have rd3221 := rd3219.push1 ⟨36⟩ (by native_decide) (by evm_ov)
-  have rd3222 := rd3221.dup3 (by native_decide) (by evm_ov)
-  have rd3223 := rd3222.add (by native_decide) (by evm_ov)
+  have rd3219 := rd3217.push1 ⟨16⟩ (by decide +native) (by evm_ov)
+  have rd3221 := rd3219.push1 ⟨36⟩ (by decide +native) (by evm_ov)
+  have rd3222 := rd3221.dup3 (by decide +native) (by evm_ov)
+  have rd3223 := rd3222.add (by decide +native) (by evm_ov)
   have rd3224 := rd3223.mstore 3 (frobNotInitErrorMem2 (frobIlkLoadedMem σ I))
-    (UInt256.ofNat 21) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 21) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd3241 := rd3224.pushConst vatNotInitRawWord
-    (width := 16) (op := .PUSH16) (by decide) (by native_decide) (by evm_ov)
-  have rd3243 := rd3241.push1 ⟨130⟩ (by native_decide) (by evm_ov)
-  have rd3244raw := rd3243.shl (by native_decide) (by evm_ov)
+    (width := 16) (op := .PUSH16) (by decide) (by decide +native) (by evm_ov)
+  have rd3243 := rd3241.push1 ⟨130⟩ (by decide +native) (by evm_ov)
+  have rd3244raw := rd3243.shl (by decide +native) (by evm_ov)
   have rd3244 := rd3244raw
   rw [show UInt256.shiftLeft vatNotInitRawWord ⟨130⟩ =
     UInt256.shiftLeft vatNotInitRawWord ⟨130⟩ from rfl] at rd3244
-  have rd3246 := rd3244.push1 ⟨68⟩ (by native_decide) (by evm_ov)
-  have rd3247 := rd3246.dup3 (by native_decide) (by evm_ov)
-  have rd3248 := rd3247.add (by native_decide) (by evm_ov)
+  have rd3246 := rd3244.push1 ⟨68⟩ (by decide +native) (by evm_ov)
+  have rd3247 := rd3246.dup3 (by decide +native) (by evm_ov)
+  have rd3248 := rd3247.add (by decide +native) (by evm_ov)
   have rd3249 := rd3248.mstore 3 (frobNotInitErrorMem3 (frobIlkLoadedMem σ I))
-    (UInt256.ofNat 22) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 22) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3250 := rd3249.swap1 (by native_decide) (by evm_ov)
+  have rd3250 := rd3249.swap1 (by decide +native) (by evm_ov)
   have herrMload64 :
     (if (⟨64⟩ : UInt256).toNat ≥
         (frobNotInitErrorMem3 (frobIlkLoadedMem σ I)).size
@@ -3933,21 +3933,21 @@ theorem RD.vatFrobIlkLoadsRateZero
         rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
           frobNotInitErrorMem3_size (frobIlkLoadedMem_size σ I)]
         omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
           frobNotInitErrorMem3_read64 (frobIlkLoadedMem_size σ I)
           (frobIlkLoadedMem_read64 σ I))
   have rd3251 := rd3250.mload 0 ⟨576⟩ (UInt256.ofNat 22)
-    (by native_decide) mem_cost herrMload64 (by native_decide) (by evm_ov)
-  have rd3252 := rd3251.swap1 (by native_decide) (by evm_ov)
-  have rd3253 := rd3252.dup2 (by native_decide) (by evm_ov)
-  have rd3254 := rd3253.swap1 (by native_decide) (by evm_ov)
-  have rd3255 := rd3254.sub (by native_decide) (by evm_ov)
-  have rd3257 := rd3255.push1 ⟨100⟩ (by native_decide) (by evm_ov)
-  have rd3258 := rd3257.add (by native_decide) (by evm_ov)
-  have rd3259 := rd3258.swap1 (by native_decide) (by evm_ov)
-  exact rd3259.rev 0 (by native_decide) mem_cost (by evm_ov)
+    (by decide +native) mem_cost herrMload64 (by decide +native) (by evm_ov)
+  have rd3252 := rd3251.swap1 (by decide +native) (by evm_ov)
+  have rd3253 := rd3252.dup2 (by decide +native) (by evm_ov)
+  have rd3254 := rd3253.swap1 (by decide +native) (by evm_ov)
+  have rd3255 := rd3254.sub (by decide +native) (by evm_ov)
+  have rd3257 := rd3255.push1 ⟨100⟩ (by decide +native) (by evm_ov)
+  have rd3258 := rd3257.add (by decide +native) (by evm_ov)
+  have rd3259 := rd3258.swap1 (by decide +native) (by evm_ov)
+  exact rd3259.rev 0 (by decide +native) mem_cost (by evm_ov)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatFrobIlkLoadsRateNonzero
@@ -3969,27 +3969,27 @@ theorem RD.vatFrobIlkLoadsRateNonzero
   let ilkSpotOld := solcSlotWord σ I (ilkBase + ⟨2⟩)
   let ilkLineOld := solcSlotWord σ I (ilkBase + ⟨3⟩)
   let ilkDustOld := solcSlotWord σ I (ilkBase + ⟨4⟩)
-  have rd3121 := h.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3122 := rd3121.dup8 (by native_decide) (by evm_ov)
-  have rd3123pre := rd3122.dup2 (by native_decide) (by evm_ov)
+  have rd3121 := h.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3122 := rd3121.dup8 (by decide +native) (by evm_ov)
+  have rd3123pre := rd3122.dup2 (by decide +native) (by evm_ov)
   have rd3124 := rd3123pre.mstore 0
     (wordAt0Mem (frobIWord I) (frobAlloc5Mem (frobUrnLoadedMem σ I)))
-    (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 13) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3126 := rd3124.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd3128 := rd3126.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3129 := rd3128.dup2 (by native_decide) (by evm_ov)
-  have rd3130pre := rd3129.dup2 (by native_decide) (by evm_ov)
+  have rd3126 := rd3124.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd3128 := rd3126.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3129 := rd3128.dup2 (by decide +native) (by evm_ov)
+  have rd3130pre := rd3129.dup2 (by decide +native) (by evm_ov)
   have rd3131 := rd3130pre.mstore 0 (frobIlkHashMem σ I)
-    (UInt256.ofNat 13) (by native_decide) mem_cost
+    (UInt256.ofNat 13) (by decide +native) mem_cost
     (by
-      rw [show (⟨32⟩ : UInt256).toNat = 32 from by native_decide]
+      rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide +native]
       simp [frobIlkHashMem, twoWordHashMem, wordAt32Mem])
-    (by native_decide) (by evm_ov)
-  have rd3133 := rd3131.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd3134 := rd3133.swap3 (by native_decide) (by evm_ov)
-  have rd3135 := rd3134.dup4 (by native_decide) (by evm_ov)
-  have rd3136pre := rd3135.swap1 (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  have rd3133 := rd3131.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd3134 := rd3133.swap3 (by decide +native) (by evm_ov)
+  have rd3135 := rd3134.dup4 (by decide +native) (by evm_ov)
+  have rd3136pre := rd3135.swap1 (by decide +native) (by evm_ov)
   have hilkBase :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((frobIlkHashMem σ I).readWithPadding 0 64))) = ilkBase := by
@@ -3997,8 +3997,8 @@ theorem RD.vatFrobIlkLoadsRateNonzero
       twoWordHashMem_solcMappingSlot_of_ge64 ⟨2⟩ (frobIWord I)
         (by rw [frobAlloc5Mem_frobUrnLoaded_size σ I]; omega)
   have rd3137 := rd3136pre.keccak256 0 ilkBase (UInt256.ofNat 13)
-    (by native_decide) mem_cost hilkBase (by native_decide) (by evm_ov)
-  have rd3138pre := rd3137.dup4 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hilkBase (by decide +native) (by evm_ov)
+  have rd3138pre := rd3137.dup4 (by decide +native) (by evm_ov)
   have hmload416 :
       (if (⟨64⟩ : UInt256).toNat ≥ (frobIlkHashMem σ I).size
           ∨ (⟨64⟩ : UInt256) ≥ UInt256.ofNat 13 * ⟨32⟩ then ⟨0⟩
@@ -4009,123 +4009,123 @@ theorem RD.vatFrobIlkLoadsRateNonzero
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide,
         frobIlkHashMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide]
         using frobIlkHashMem_read64 σ I)
   have rd3139 := rd3138pre.mload 0 ⟨416⟩ (UInt256.ofNat 13)
-    (by native_decide) mem_cost hmload416 (by native_decide) (by evm_ov)
-  have rd3141 := rd3139.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd3142 := rd3141.dup2 (by native_decide) (by evm_ov)
-  have rd3143 := rd3142.add (by native_decide) (by evm_ov)
-  have rd3144pre := rd3143.dup6 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload416 (by decide +native) (by evm_ov)
+  have rd3141 := rd3139.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd3142 := rd3141.dup2 (by decide +native) (by evm_ov)
+  have rd3143 := rd3142.add (by decide +native) (by evm_ov)
+  have rd3144pre := rd3143.dup6 (by decide +native) (by evm_ov)
   have rd3145 := rd3144pre.mstore 0
     (writeWordMem 64 ⟨576⟩ (frobIlkHashMem σ I))
-    (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 13) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3146pre := rd3145.dup2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3147raw⟩ := rd3146pre.sload (by native_decide) (by evm_ov)
+  have rd3146pre := rd3145.dup2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3147raw⟩ := rd3146pre.sload (by decide +native) (by evm_ov)
   have hArtRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD ilkBase ⟨0⟩)) = ilkArtOld := by
     simp [ilkArtOld, solcSlotWord]
   have rd3147 := rd3147raw
   rw [hArtRaw] at rd3147
-  have rd3148pre := rd3147.dup2 (by native_decide) (by evm_ov)
+  have rd3148pre := rd3147.dup2 (by decide +native) (by evm_ov)
   have rd3149 := rd3148pre.mstore 3
     (writeWordMem 416 ilkArtOld (writeWordMem 64 ⟨576⟩ (frobIlkHashMem σ I)))
-    (UInt256.ofNat 14) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 14) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3151 := rd3149.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3152 := rd3151.dup3 (by native_decide) (by evm_ov)
-  have rd3153pre := rd3152.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3154raw⟩ := rd3153pre.sload (by native_decide) (by evm_ov)
+  have rd3151 := rd3149.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3152 := rd3151.dup3 (by decide +native) (by evm_ov)
+  have rd3153pre := rd3152.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3154raw⟩ := rd3153pre.sload (by decide +native) (by evm_ov)
   have hRateRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (ilkBase + ⟨1⟩) ⟨0⟩)) = ilkRateOld := by
     simp [ilkRateOld, solcSlotWord]
   have rd3154 := rd3154raw
   rw [hRateRaw] at rd3154
-  have rd3155 := rd3154.swap3 (by native_decide) (by evm_ov)
-  have rd3156 := rd3155.dup2 (by native_decide) (by evm_ov)
-  have rd3157 := rd3156.add (by native_decide) (by evm_ov)
-  have rd3158 := rd3157.dup4 (by native_decide) (by evm_ov)
-  have rd3159pre := rd3158.swap1 (by native_decide) (by evm_ov)
+  have rd3155 := rd3154.swap3 (by decide +native) (by evm_ov)
+  have rd3156 := rd3155.dup2 (by decide +native) (by evm_ov)
+  have rd3157 := rd3156.add (by decide +native) (by evm_ov)
+  have rd3158 := rd3157.dup4 (by decide +native) (by evm_ov)
+  have rd3159pre := rd3158.swap1 (by decide +native) (by evm_ov)
   have rd3160 := rd3159pre.mstore 3
     (writeWordMem 448 ilkRateOld
       (writeWordMem 416 ilkArtOld (writeWordMem 64 ⟨576⟩ (frobIlkHashMem σ I))))
-    (UInt256.ofNat 15) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 15) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3161 := rd3160.swap3 (by native_decide) (by evm_ov)
-  have rd3162 := rd3161.dup2 (by native_decide) (by evm_ov)
-  have rd3163pre := rd3162.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3164raw⟩ := rd3163pre.sload (by native_decide) (by evm_ov)
+  have rd3161 := rd3160.swap3 (by decide +native) (by evm_ov)
+  have rd3162 := rd3161.dup2 (by decide +native) (by evm_ov)
+  have rd3163pre := rd3162.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3164raw⟩ := rd3163pre.sload (by decide +native) (by evm_ov)
   have hSpotRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (ilkBase + ⟨2⟩) ⟨0⟩)) = ilkSpotOld := by
     simp [ilkSpotOld, solcSlotWord]
   have rd3164 := rd3164raw
   rw [hSpotRaw] at rd3164
-  have rd3165 := rd3164.swap4 (by native_decide) (by evm_ov)
-  have rd3166 := rd3165.dup4 (by native_decide) (by evm_ov)
-  have rd3167 := rd3166.add (by native_decide) (by evm_ov)
-  have rd3168 := rd3167.swap4 (by native_decide) (by evm_ov)
-  have rd3169 := rd3168.swap1 (by native_decide) (by evm_ov)
-  have rd3170pre := rd3169.swap4 (by native_decide) (by evm_ov)
+  have rd3165 := rd3164.swap4 (by decide +native) (by evm_ov)
+  have rd3166 := rd3165.dup4 (by decide +native) (by evm_ov)
+  have rd3167 := rd3166.add (by decide +native) (by evm_ov)
+  have rd3168 := rd3167.swap4 (by decide +native) (by evm_ov)
+  have rd3169 := rd3168.swap1 (by decide +native) (by evm_ov)
+  have rd3170pre := rd3169.swap4 (by decide +native) (by evm_ov)
   have rd3171 := rd3170pre.mstore 3
     (writeWordMem 480 ilkSpotOld
       (writeWordMem 448 ilkRateOld
         (writeWordMem 416 ilkArtOld (writeWordMem 64 ⟨576⟩ (frobIlkHashMem σ I)))))
-    (UInt256.ofNat 16) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 16) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3173 := rd3171.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  have rd3174 := rd3173.dup4 (by native_decide) (by evm_ov)
-  have rd3175pre := rd3174.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3176raw⟩ := rd3175pre.sload (by native_decide) (by evm_ov)
+  have rd3173 := rd3171.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  have rd3174 := rd3173.dup4 (by decide +native) (by evm_ov)
+  have rd3175pre := rd3174.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3176raw⟩ := rd3175pre.sload (by decide +native) (by evm_ov)
   have hLineRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (ilkBase + ⟨3⟩) ⟨0⟩)) = ilkLineOld := by
     simp [ilkLineOld, solcSlotWord]
   have rd3176 := rd3176raw
   rw [hLineRaw] at rd3176
-  have rd3178 := rd3176.push1 ⟨96⟩ (by native_decide) (by evm_ov)
-  have rd3179 := rd3178.dup4 (by native_decide) (by evm_ov)
-  have rd3180pre := rd3179.add (by native_decide) (by evm_ov)
+  have rd3178 := rd3176.push1 ⟨96⟩ (by decide +native) (by evm_ov)
+  have rd3179 := rd3178.dup4 (by decide +native) (by evm_ov)
+  have rd3180pre := rd3179.add (by decide +native) (by evm_ov)
   have rd3181 := rd3180pre.mstore 3
     (writeWordMem 512 ilkLineOld
       (writeWordMem 480 ilkSpotOld
         (writeWordMem 448 ilkRateOld
           (writeWordMem 416 ilkArtOld (writeWordMem 64 ⟨576⟩ (frobIlkHashMem σ I))))))
-    (UInt256.ofNat 17) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 17) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3183 := rd3181.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd3184 := rd3183.swap1 (by native_decide) (by evm_ov)
-  have rd3185 := rd3184.swap3 (by native_decide) (by evm_ov)
-  have rd3186pre := rd3185.add (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3187raw⟩ := rd3186pre.sload (by native_decide) (by evm_ov)
+  have rd3183 := rd3181.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd3184 := rd3183.swap1 (by decide +native) (by evm_ov)
+  have rd3185 := rd3184.swap3 (by decide +native) (by evm_ov)
+  have rd3186pre := rd3185.add (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3187raw⟩ := rd3186pre.sload (by decide +native) (by evm_ov)
   have hDustRaw :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (ilkBase + ⟨4⟩) ⟨0⟩)) = ilkDustOld := by
     simp [ilkDustOld, solcSlotWord]
   have rd3187 := rd3187raw
   rw [hDustRaw] at rd3187
-  have rd3189 := rd3187.push1 ⟨128⟩ (by native_decide) (by evm_ov)
-  have rd3190 := rd3189.dup3 (by native_decide) (by evm_ov)
-  have rd3191pre := rd3190.add (by native_decide) (by evm_ov)
+  have rd3189 := rd3187.push1 ⟨128⟩ (by decide +native) (by evm_ov)
+  have rd3190 := rd3189.dup3 (by decide +native) (by evm_ov)
+  have rd3191pre := rd3190.add (by decide +native) (by evm_ov)
   have rd3192 := rd3191pre.mstore 3 (frobIlkLoadedMem σ I)
-    (UInt256.ofNat 18) (by native_decide) mem_cost
+    (UInt256.ofNat 18) (by decide +native) mem_cost
     (by
-      rw [show ((⟨416⟩ : UInt256) + ⟨128⟩).toNat = 544 from by native_decide]
+      rw [show ((⟨416⟩ : UInt256) + ⟨128⟩).toNat = 544 from by decide +native]
       simp [writeWordMem, frobIlkLoadedMem, ilkArtOld, ilkRateOld, ilkSpotOld,
         ilkLineOld, ilkDustOld, frobIlkArtSlot, frobIlkRateSlot, frobIlkSpotSlot,
         frobIlkLineSlot, frobIlkDustSlot, frobIlkBase, ilkBase])
-    (by native_decide) (by evm_ov)
-  have rd3193 := rd3192.swap1 (by native_decide) (by evm_ov)
-  have rd3196 := rd3193.push2 ⟨3260⟩ (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
+  have rd3193 := rd3192.swap1 (by decide +native) (by evm_ov)
+  have rd3196 := rd3193.push2 ⟨3260⟩ (by decide +native) (by evm_ov)
   have hrateNonzero' : ilkRateOld ≠ ⟨0⟩ := by
     intro hzero
     apply hrateNonzero
     simpa [ilkRateOld, frobIlkRateSlot, frobIlkBase, ilkBase] using hzero
-  have rd3260 := rd3196.jumpiT (by native_decide) hrateNonzero' (by jump_dest)
+  have rd3260 := rd3196.jumpiT (by decide +native) hrateNonzero' (by jump_dest)
     (by evm_ov)
   exact ⟨_, _, by
     simpa [ilkBase, ilkRateOld, frobIlkRateSlot, frobIlkBase] using rd3260⟩
@@ -4151,8 +4151,8 @@ theorem RD.vatFrobUrnInkAddSuccess
           frobUMaskedWord I, frobIWord I, ⟨524⟩, sel]
         (frobIlkLoadedMem σ I) (UInt256.ofNat 18) ByteArray.empty (cA, σ) k' C' := by
   let urnInkOld := solcSlotWord σ I (frobUrnInkSlot I)
-  have rd3261 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3262pre := rd3261.dup2 (by native_decide) (by evm_ov)
+  have rd3261 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3262pre := rd3261.dup2 (by decide +native) (by evm_ov)
   have hmload192 :
       (if (⟨192⟩ : UInt256).toNat ≥ (frobIlkLoadedMem σ I).size
           ∨ (⟨192⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -4163,17 +4163,17 @@ theorem RD.vatFrobUrnInkAddSuccess
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨192⟩ : UInt256).toNat = 192 from by decide,
         frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨192⟩ : UInt256).toNat = 192 from by decide, urnInkOld]
           using frobIlkLoadedMem_read192 σ I)
   have rd3263 := rd3262pre.mload 0 urnInkOld (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload192 (by native_decide) (by evm_ov)
-  have rd3266 := rd3263.push2 ⟨3272⟩ (by native_decide) (by evm_ov)
-  have rd3267 := rd3266.swap1 (by native_decide) (by evm_ov)
-  have rd3268 := rd3267.dup6 (by native_decide) (by evm_ov)
-  have rd3271 := rd3268.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd3271.jump (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) mem_cost hmload192 (by decide +native) (by evm_ov)
+  have rd3266 := rd3263.push2 ⟨3272⟩ (by decide +native) (by evm_ov)
+  have rd3267 := rd3266.swap1 (by decide +native) (by evm_ov)
+  have rd3268 := rd3267.dup6 (by decide +native) (by evm_ov)
+  have rd3271 := rd3268.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd3271.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3272⟩ := RD.vatSignedAddOk
     (x := urnInkOld) (y := frobDinkWord I) (ret := ⟨3272⟩)
     (R := (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) :: frobDartWord I ::
@@ -4203,8 +4203,8 @@ theorem RD.vatFrobUrnInkAddRevert
             (solcSlotWord σ I (frobUrnInkSlot I)) = ⟨0⟩)) :
     RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
   let urnInkOld := solcSlotWord σ I (frobUrnInkSlot I)
-  have rd3261 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3262pre := rd3261.dup2 (by native_decide) (by evm_ov)
+  have rd3261 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3262pre := rd3261.dup2 (by decide +native) (by evm_ov)
   have hmload192 :
       (if (⟨192⟩ : UInt256).toNat ≥ (frobIlkLoadedMem σ I).size
           ∨ (⟨192⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -4215,17 +4215,17 @@ theorem RD.vatFrobUrnInkAddRevert
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨192⟩ : UInt256).toNat = 192 from by decide,
         frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨192⟩ : UInt256).toNat = 192 from by decide, urnInkOld]
           using frobIlkLoadedMem_read192 σ I)
   have rd3263 := rd3262pre.mload 0 urnInkOld (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload192 (by native_decide) (by evm_ov)
-  have rd3266 := rd3263.push2 ⟨3272⟩ (by native_decide) (by evm_ov)
-  have rd3267 := rd3266.swap1 (by native_decide) (by evm_ov)
-  have rd3268 := rd3267.dup6 (by native_decide) (by evm_ov)
-  have rd3271 := rd3268.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd3271.jump (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) mem_cost hmload192 (by decide +native) (by evm_ov)
+  have rd3266 := rd3263.push2 ⟨3272⟩ (by decide +native) (by evm_ov)
+  have rd3267 := rd3266.swap1 (by decide +native) (by evm_ov)
+  have rd3268 := rd3267.dup6 (by decide +native) (by evm_ov)
+  have rd3271 := rd3268.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd3271.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedAddRevert
     (x := urnInkOld) (y := frobDinkWord I) (ret := ⟨3272⟩)
     (R := (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) :: frobDartWord I ::
@@ -4257,15 +4257,15 @@ theorem RD.vatFrobUrnArtAddSuccess
         (frobUrnInkUpdatedMem σ I urnInkNew) (UInt256.ofNat 18)
         ByteArray.empty (cA, σ) k' C' := by
   let urnArtOld := solcSlotWord σ I (frobUrnArtSlot I)
-  have rd3273 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3274pre := rd3273.dup3 (by native_decide) (by evm_ov)
+  have rd3273 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3274pre := rd3273.dup3 (by decide +native) (by evm_ov)
   have rd3275 := rd3274pre.mstore 0 (frobUrnInkUpdatedMem σ I urnInkNew)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3277 := rd3275.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3278pre := rd3277.dup3 (by native_decide) (by evm_ov)
-  have rd3279raw := rd3278pre.add (by native_decide) (by evm_ov)
-  have hoff : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
+  have rd3277 := rd3275.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3278pre := rd3277.dup3 (by decide +native) (by evm_ov)
+  have rd3279raw := rd3278pre.add (by decide +native) (by evm_ov)
+  have hoff : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by decide +native
   have hmload224 :
       (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥
             (frobUrnInkUpdatedMem σ I urnInkNew).size
@@ -4283,19 +4283,19 @@ theorem RD.vatFrobUrnArtAddSuccess
         rw [writeWordMem_size_of_contains]
         · rw [frobIlkLoadedMem_size σ I]; omega
         · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨224⟩ : UInt256).toNat = 224 from by decide, urnArtOld]
           using frobUrnInkUpdatedMem_read224 σ I urnInkNew)
   have rd3280raw := rd3279raw.mload 0 urnArtOld (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload224 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload224 (by decide +native) (by evm_ov)
   have rd3280 := by
     simpa [hoff] using rd3280raw
-  have rd3283 := rd3280.push2 ⟨3289⟩ (by native_decide) (by evm_ov)
-  have rd3284 := rd3283.swap1 (by native_decide) (by evm_ov)
-  have rd3285 := rd3284.dup5 (by native_decide) (by evm_ov)
-  have rd3288 := rd3285.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd3288.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3283 := rd3280.push2 ⟨3289⟩ (by decide +native) (by evm_ov)
+  have rd3284 := rd3283.swap1 (by decide +native) (by evm_ov)
+  have rd3285 := rd3284.dup5 (by decide +native) (by evm_ov)
+  have rd3288 := rd3285.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd3288.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3289⟩ := RD.vatSignedAddOk
     (x := urnArtOld) (y := frobDartWord I) (ret := ⟨3289⟩)
     (R := (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) :: frobDartWord I ::
@@ -4325,15 +4325,15 @@ theorem RD.vatFrobUrnArtAddRevert
             (solcSlotWord σ I (frobUrnArtSlot I)) = ⟨0⟩)) :
     RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
   let urnArtOld := solcSlotWord σ I (frobUrnArtSlot I)
-  have rd3273 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3274pre := rd3273.dup3 (by native_decide) (by evm_ov)
+  have rd3273 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3274pre := rd3273.dup3 (by decide +native) (by evm_ov)
   have rd3275 := rd3274pre.mstore 0 (frobUrnInkUpdatedMem σ I urnInkNew)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3277 := rd3275.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3278pre := rd3277.dup3 (by native_decide) (by evm_ov)
-  have rd3279raw := rd3278pre.add (by native_decide) (by evm_ov)
-  have hoff : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
+  have rd3277 := rd3275.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3278pre := rd3277.dup3 (by decide +native) (by evm_ov)
+  have rd3279raw := rd3278pre.add (by decide +native) (by evm_ov)
+  have hoff : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by decide +native
   have hmload224 :
       (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥
             (frobUrnInkUpdatedMem σ I urnInkNew).size
@@ -4351,19 +4351,19 @@ theorem RD.vatFrobUrnArtAddRevert
         rw [writeWordMem_size_of_contains]
         · rw [frobIlkLoadedMem_size σ I]; omega
         · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨224⟩ : UInt256).toNat = 224 from by decide, urnArtOld]
           using frobUrnInkUpdatedMem_read224 σ I urnInkNew)
   have rd3280raw := rd3279raw.mload 0 urnArtOld (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload224 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload224 (by decide +native) (by evm_ov)
   have rd3280 := by
     simpa [hoff] using rd3280raw
-  have rd3283 := rd3280.push2 ⟨3289⟩ (by native_decide) (by evm_ov)
-  have rd3284 := rd3283.swap1 (by native_decide) (by evm_ov)
-  have rd3285 := rd3284.dup5 (by native_decide) (by evm_ov)
-  have rd3288 := rd3285.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd3288.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3283 := rd3280.push2 ⟨3289⟩ (by decide +native) (by evm_ov)
+  have rd3284 := rd3283.swap1 (by decide +native) (by evm_ov)
+  have rd3285 := rd3284.dup5 (by decide +native) (by evm_ov)
+  have rd3288 := rd3285.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd3288.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedAddRevert
     (x := urnArtOld) (y := frobDartWord I) (ret := ⟨3289⟩)
     (R := (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) :: frobDartWord I ::
@@ -4397,11 +4397,11 @@ theorem RD.vatFrobIlkArtAddSuccess
         (frobUrnArtUpdatedMem σ I urnInkNew urnArtNew) (UInt256.ofNat 18)
         ByteArray.empty (cA, σ) k' C' := by
   let ilkArtOld := solcSlotWord σ I (frobIlkArtSlot I)
-  have rd3290 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3292 := rd3290.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3293pre := rd3292.dup4 (by native_decide) (by evm_ov)
-  have rd3294raw := rd3293pre.add (by native_decide) (by evm_ov)
-  have hoff : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
+  have rd3290 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3292 := rd3290.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3293pre := rd3292.dup4 (by decide +native) (by evm_ov)
+  have rd3294raw := rd3293pre.add (by decide +native) (by evm_ov)
+  have hoff : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by decide +native
   have rd3295pre := by
     have hmem :
         urnArtNew.toByteArray.write 0 (frobUrnInkUpdatedMem σ I urnInkNew)
@@ -4410,11 +4410,11 @@ theorem RD.vatFrobIlkArtAddSuccess
       rw [hoff]
       rfl
     exact rd3294raw.mstore 0 (frobUrnArtUpdatedMem σ I urnInkNew urnArtNew)
-      (UInt256.ofNat 18) (by native_decide) mem_cost hmem (by native_decide)
+      (UInt256.ofNat 18) (by decide +native) mem_cost hmem (by decide +native)
       (by evm_ov)
   have rd3295 := by
     simpa [hoff] using rd3295pre
-  have rd3296pre := rd3295.dup1 (by native_decide) (by evm_ov)
+  have rd3296pre := rd3295.dup1 (by decide +native) (by evm_ov)
   have hmload416 :
       (if (⟨416⟩ : UInt256).toNat ≥
             (frobUrnArtUpdatedMem σ I urnInkNew urnArtNew).size
@@ -4435,17 +4435,17 @@ theorem RD.vatFrobIlkArtAddSuccess
         · rw [writeWordMem_size_of_contains]
           · rw [frobIlkLoadedMem_size σ I]; omega
           · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨416⟩ : UInt256).toNat = 416 from by decide, ilkArtOld]
           using frobUrnArtUpdatedMem_read416 σ I urnInkNew urnArtNew)
   have rd3297 := rd3296pre.mload 0 ilkArtOld (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload416 (by native_decide) (by evm_ov)
-  have rd3300 := rd3297.push2 ⟨3306⟩ (by native_decide) (by evm_ov)
-  have rd3301 := rd3300.swap1 (by native_decide) (by evm_ov)
-  have rd3302 := rd3301.dup5 (by native_decide) (by evm_ov)
-  have rd3305 := rd3302.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd3305.jump (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) mem_cost hmload416 (by decide +native) (by evm_ov)
+  have rd3300 := rd3297.push2 ⟨3306⟩ (by decide +native) (by evm_ov)
+  have rd3301 := rd3300.swap1 (by decide +native) (by evm_ov)
+  have rd3302 := rd3301.dup5 (by decide +native) (by evm_ov)
+  have rd3305 := rd3302.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd3305.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3306⟩ := RD.vatSignedAddOk
     (x := ilkArtOld) (y := frobDartWord I) (ret := ⟨3306⟩)
     (R := (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) :: frobDartWord I ::
@@ -4477,11 +4477,11 @@ theorem RD.vatFrobIlkArtAddRevert
             (solcSlotWord σ I (frobIlkArtSlot I)) = ⟨0⟩)) :
     RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
   let ilkArtOld := solcSlotWord σ I (frobIlkArtSlot I)
-  have rd3290 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3292 := rd3290.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3293pre := rd3292.dup4 (by native_decide) (by evm_ov)
-  have rd3294raw := rd3293pre.add (by native_decide) (by evm_ov)
-  have hoff : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
+  have rd3290 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3292 := rd3290.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3293pre := rd3292.dup4 (by decide +native) (by evm_ov)
+  have rd3294raw := rd3293pre.add (by decide +native) (by evm_ov)
+  have hoff : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by decide +native
   have rd3295pre := by
     have hmem :
         urnArtNew.toByteArray.write 0 (frobUrnInkUpdatedMem σ I urnInkNew)
@@ -4490,11 +4490,11 @@ theorem RD.vatFrobIlkArtAddRevert
       rw [hoff]
       rfl
     exact rd3294raw.mstore 0 (frobUrnArtUpdatedMem σ I urnInkNew urnArtNew)
-      (UInt256.ofNat 18) (by native_decide) mem_cost hmem (by native_decide)
+      (UInt256.ofNat 18) (by decide +native) mem_cost hmem (by decide +native)
       (by evm_ov)
   have rd3295 := by
     simpa [hoff] using rd3295pre
-  have rd3296pre := rd3295.dup1 (by native_decide) (by evm_ov)
+  have rd3296pre := rd3295.dup1 (by decide +native) (by evm_ov)
   have hmload416 :
       (if (⟨416⟩ : UInt256).toNat ≥
             (frobUrnArtUpdatedMem σ I urnInkNew urnArtNew).size
@@ -4515,17 +4515,17 @@ theorem RD.vatFrobIlkArtAddRevert
         · rw [writeWordMem_size_of_contains]
           · rw [frobIlkLoadedMem_size σ I]; omega
           · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨416⟩ : UInt256).toNat = 416 from by decide, ilkArtOld]
           using frobUrnArtUpdatedMem_read416 σ I urnInkNew urnArtNew)
   have rd3297 := rd3296pre.mload 0 ilkArtOld (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload416 (by native_decide) (by evm_ov)
-  have rd3300 := rd3297.push2 ⟨3306⟩ (by native_decide) (by evm_ov)
-  have rd3301 := rd3300.swap1 (by native_decide) (by evm_ov)
-  have rd3302 := rd3301.dup5 (by native_decide) (by evm_ov)
-  have rd3305 := rd3302.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd3305.jump (by native_decide) (by jump_dest) (by evm_ov)
+    (by decide +native) mem_cost hmload416 (by decide +native) (by evm_ov)
+  have rd3300 := rd3297.push2 ⟨3306⟩ (by decide +native) (by evm_ov)
+  have rd3301 := rd3300.swap1 (by decide +native) (by evm_ov)
+  have rd3302 := rd3301.dup5 (by decide +native) (by evm_ov)
+  have rd3305 := rd3302.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd3305.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedAddRevert
     (x := ilkArtOld) (y := frobDartWord I) (ret := ⟨3306⟩)
     (R := (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) :: frobDartWord I ::
@@ -4559,16 +4559,16 @@ theorem RD.vatFrobDtabMulSuccess
         (frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew) (UInt256.ofNat 18)
         ByteArray.empty (cA, σ) k' C' := by
   let rateOld := solcSlotWord σ I (frobIlkRateSlot I)
-  have rd3307 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3308pre := rd3307.dup2 (by native_decide) (by evm_ov)
+  have rd3307 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3308pre := rd3307.dup2 (by decide +native) (by evm_ov)
   have rd3309 := rd3308pre.mstore 0
     (frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3311 := rd3309.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3312pre := rd3311.dup2 (by native_decide) (by evm_ov)
-  have rd3313raw := rd3312pre.add (by native_decide) (by evm_ov)
-  have hoff : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
+  have rd3311 := rd3309.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3312pre := rd3311.dup2 (by decide +native) (by evm_ov)
+  have rd3313raw := rd3312pre.add (by decide +native) (by evm_ov)
+  have hoff : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by decide +native
   have hmload448 :
       (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥
             (frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew).size
@@ -4598,21 +4598,21 @@ theorem RD.vatFrobDtabMulSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3314raw := rd3313raw.mload 0 rateOld (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload448 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload448 (by decide +native) (by evm_ov)
   have rd3314 := by
     simpa [hoff] using rd3314raw
-  have rd3316 := rd3314.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3317 := rd3316.swap1 (by native_decide) (by evm_ov)
-  have rd3320 := rd3317.push2 ⟨3326⟩ (by native_decide) (by evm_ov)
-  have rd3321 := rd3320.swap1 (by native_decide) (by evm_ov)
-  have rd3322 := rd3321.dup6 (by native_decide) (by evm_ov)
-  have rd3325 := rd3322.push2 ⟨6706⟩ (by native_decide) (by evm_ov)
-  have rd6706 := rd3325.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3316 := rd3314.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3317 := rd3316.swap1 (by decide +native) (by evm_ov)
+  have rd3320 := rd3317.push2 ⟨3326⟩ (by decide +native) (by evm_ov)
+  have rd3321 := rd3320.swap1 (by decide +native) (by evm_ov)
+  have rd3322 := rd3321.dup6 (by decide +native) (by evm_ov)
+  have rd3325 := rd3322.push2 ⟨6706⟩ (by decide +native) (by evm_ov)
+  have rd6706 := rd3325.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3326⟩ := RD.vatSignedMulOk
     (x := rateOld) (y := frobDartWord I) (ret := ⟨3326⟩)
     (R := (⟨0⟩ : UInt256) :: (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) ::
@@ -4620,9 +4620,9 @@ theorem RD.vatFrobDtabMulSuccess
       frobVMaskedWord I :: frobUMaskedWord I :: frobIWord I :: ⟨524⟩ :: sel :: [])
     rd6706 (by simpa [rateOld] using hmax) (by simpa [rateOld] using hmul)
     (by jump_dest) (by simp)
-  have rd3327 := rd3326.jumpdest (by native_decide) (by evm_ov)
-  have rd3328 := rd3327.swap1 (by native_decide) (by evm_ov)
-  have rd3329 := rd3328.pop (by native_decide) (by evm_ov)
+  have rd3327 := rd3326.jumpdest (by decide +native) (by evm_ov)
+  have rd3328 := rd3327.swap1 (by decide +native) (by evm_ov)
+  have rd3329 := rd3328.pop (by decide +native) (by evm_ov)
   exact ⟨_, _, by simpa [rateOld] using rd3329⟩
 
 theorem RD.vatFrobDtabMulRevert
@@ -4644,16 +4644,16 @@ theorem RD.vatFrobDtabMulRevert
             (solcSlotWord σ I (frobIlkRateSlot I)) ≠ ⟨0⟩)) :
     RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
   let rateOld := solcSlotWord σ I (frobIlkRateSlot I)
-  have rd3307 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3308pre := rd3307.dup2 (by native_decide) (by evm_ov)
+  have rd3307 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3308pre := rd3307.dup2 (by decide +native) (by evm_ov)
   have rd3309 := rd3308pre.mstore 0
     (frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3311 := rd3309.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3312pre := rd3311.dup2 (by native_decide) (by evm_ov)
-  have rd3313raw := rd3312pre.add (by native_decide) (by evm_ov)
-  have hoff : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
+  have rd3311 := rd3309.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3312pre := rd3311.dup2 (by decide +native) (by evm_ov)
+  have rd3313raw := rd3312pre.add (by decide +native) (by evm_ov)
+  have hoff : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by decide +native
   have hmload448 :
       (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥
             (frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew).size
@@ -4683,21 +4683,21 @@ theorem RD.vatFrobDtabMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3314raw := rd3313raw.mload 0 rateOld (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload448 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload448 (by decide +native) (by evm_ov)
   have rd3314 := by
     simpa [hoff] using rd3314raw
-  have rd3316 := rd3314.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3317 := rd3316.swap1 (by native_decide) (by evm_ov)
-  have rd3320 := rd3317.push2 ⟨3326⟩ (by native_decide) (by evm_ov)
-  have rd3321 := rd3320.swap1 (by native_decide) (by evm_ov)
-  have rd3322 := rd3321.dup6 (by native_decide) (by evm_ov)
-  have rd3325 := rd3322.push2 ⟨6706⟩ (by native_decide) (by evm_ov)
-  have rd6706 := rd3325.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3316 := rd3314.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3317 := rd3316.swap1 (by decide +native) (by evm_ov)
+  have rd3320 := rd3317.push2 ⟨3326⟩ (by decide +native) (by evm_ov)
+  have rd3321 := rd3320.swap1 (by decide +native) (by evm_ov)
+  have rd3322 := rd3321.dup6 (by decide +native) (by evm_ov)
+  have rd3325 := rd3322.push2 ⟨6706⟩ (by decide +native) (by evm_ov)
+  have rd6706 := rd3325.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedMulRevert
     (x := rateOld) (y := frobDartWord I) (ret := ⟨3326⟩)
     (R := (⟨0⟩ : UInt256) :: (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) ::
@@ -4729,12 +4729,12 @@ theorem RD.vatFrobTabMulSuccess
         ByteArray.empty (cA, σ) k' C' := by
   let rateOld := solcSlotWord σ I (frobIlkRateSlot I)
   let mem := frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew
-  have rd3330 := h.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3333 := rd3330.push2 ⟨3348⟩ (by native_decide) (by evm_ov)
-  have rd3334 := rd3333.dup4 (by native_decide) (by evm_ov)
-  have rd3336 := rd3334.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3337raw := rd3336.add (by native_decide) (by evm_ov)
-  have hoff416 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
+  have rd3330 := h.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3333 := rd3330.push2 ⟨3348⟩ (by decide +native) (by evm_ov)
+  have rd3334 := rd3333.dup4 (by decide +native) (by evm_ov)
+  have rd3336 := rd3334.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3337raw := rd3336.add (by decide +native) (by evm_ov)
+  have hoff416 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by decide +native
   have hmload448 :
       (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -4762,18 +4762,18 @@ theorem RD.vatFrobTabMulSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, mem, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3338raw := rd3337raw.mload 0 rateOld (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload448 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload448 (by decide +native) (by evm_ov)
   have rd3338 := by
     simpa [hoff416] using rd3338raw
-  have rd3339 := rd3338.dup6 (by native_decide) (by evm_ov)
-  have rd3341 := rd3339.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3342raw := rd3341.add (by native_decide) (by evm_ov)
-  have hoff192 : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
+  have rd3339 := rd3338.dup6 (by decide +native) (by evm_ov)
+  have rd3341 := rd3339.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3342raw := rd3341.add (by decide +native) (by evm_ov)
+  have hoff192 : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by decide +native
   have hmload224 :
       (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
           ∨ ((⟨192⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -4801,16 +4801,16 @@ theorem RD.vatFrobTabMulSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨224⟩ : UInt256).toNat = 224 from by decide, mem]
           using frobIlkArtUpdatedMem_read224 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3343raw := rd3342raw.mload 0 urnArtNew (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload224 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload224 (by decide +native) (by evm_ov)
   have rd3343 := by
     simpa [hoff192] using rd3343raw
-  have rd3346 := rd3343.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd3346.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3346 := rd3343.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd3346.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3348⟩ := Benchmarks.Dss.Vat.RD.vatCheckedMulUintOk
     (x := urnArtNew) (y := rateOld) (ret := ⟨3348⟩)
     (R := (⟨0⟩ : UInt256) :: dtabWord :: (⟨416⟩ : UInt256) ::
@@ -4818,9 +4818,9 @@ theorem RD.vatFrobTabMulSuccess
       frobWMaskedWord I :: frobVMaskedWord I :: frobUMaskedWord I ::
       frobIWord I :: ⟨524⟩ :: sel :: [])
     rd6752 (by simpa [rateOld] using hok) (by jump_dest) (by simp)
-  have rd3349 := rd3348.jumpdest (by native_decide) (by evm_ov)
-  have rd3350 := rd3349.swap1 (by native_decide) (by evm_ov)
-  have rd3351 := rd3350.pop (by native_decide) (by evm_ov)
+  have rd3349 := rd3348.jumpdest (by decide +native) (by evm_ov)
+  have rd3350 := rd3349.swap1 (by decide +native) (by evm_ov)
+  have rd3351 := rd3350.pop (by decide +native) (by evm_ov)
   exact ⟨_, _, by simpa [rateOld, mem] using rd3351⟩
 
 theorem RD.vatFrobTabMulRevert
@@ -4841,12 +4841,12 @@ theorem RD.vatFrobTabMulRevert
     RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
   let rateOld := solcSlotWord σ I (frobIlkRateSlot I)
   let mem := frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew
-  have rd3330 := h.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3333 := rd3330.push2 ⟨3348⟩ (by native_decide) (by evm_ov)
-  have rd3334 := rd3333.dup4 (by native_decide) (by evm_ov)
-  have rd3336 := rd3334.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3337raw := rd3336.add (by native_decide) (by evm_ov)
-  have hoff416 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
+  have rd3330 := h.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3333 := rd3330.push2 ⟨3348⟩ (by decide +native) (by evm_ov)
+  have rd3334 := rd3333.dup4 (by decide +native) (by evm_ov)
+  have rd3336 := rd3334.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3337raw := rd3336.add (by decide +native) (by evm_ov)
+  have hoff416 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by decide +native
   have hmload448 :
       (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -4874,18 +4874,18 @@ theorem RD.vatFrobTabMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, mem, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3338raw := rd3337raw.mload 0 rateOld (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload448 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload448 (by decide +native) (by evm_ov)
   have rd3338 := by
     simpa [hoff416] using rd3338raw
-  have rd3339 := rd3338.dup6 (by native_decide) (by evm_ov)
-  have rd3341 := rd3339.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3342raw := rd3341.add (by native_decide) (by evm_ov)
-  have hoff192 : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
+  have rd3339 := rd3338.dup6 (by decide +native) (by evm_ov)
+  have rd3341 := rd3339.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3342raw := rd3341.add (by decide +native) (by evm_ov)
+  have hoff192 : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by decide +native
   have hmload224 :
       (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
           ∨ ((⟨192⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -4913,16 +4913,16 @@ theorem RD.vatFrobTabMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨224⟩ : UInt256).toNat = 224 from by decide, mem]
           using frobIlkArtUpdatedMem_read224 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3343raw := rd3342raw.mload 0 urnArtNew (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload224 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload224 (by decide +native) (by evm_ov)
   have rd3343 := by
     simpa [hoff192] using rd3343raw
-  have rd3346 := rd3343.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd3346.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3346 := rd3343.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd3346.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatCheckedMulUintRevert
     (x := urnArtNew) (y := rateOld) (ret := ⟨3348⟩)
     (R := (⟨0⟩ : UInt256) :: dtabWord :: (⟨416⟩ : UInt256) ::
@@ -4961,18 +4961,18 @@ theorem RD.vatFrobDebtAddStoreSuccess
   let debtOld := solcSlotWord σ I foldDebtSlot
   let debtNew := dtabWord + debtOld
   let mem := frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew
-  have rd3354 := h.push2 ⟨3362⟩ (by native_decide) (by evm_ov)
-  have rd3356 := rd3354.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3357raw⟩ := rd3356.sload (by native_decide) (by evm_ov)
+  have rd3354 := h.push2 ⟨3362⟩ (by decide +native) (by evm_ov)
+  have rd3356 := rd3354.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3357raw⟩ := rd3356.sload (by decide +native) (by evm_ov)
   have hload :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) = debtOld := by
     simp [debtOld, foldDebtSlot, solcSlotWord]
   have rd3357 := rd3357raw
   rw [hload] at rd3357
-  have rd3358 := rd3357.dup4 (by native_decide) (by evm_ov)
-  have rd3361 := rd3358.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd3361.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3358 := rd3357.dup4 (by decide +native) (by evm_ov)
+  have rd3361 := rd3358.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd3361.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3362⟩ := RD.vatSignedAddOk
     (x := debtOld) (y := dtabWord) (ret := ⟨3362⟩)
     (R := tab :: dtabWord :: (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) ::
@@ -4982,12 +4982,12 @@ theorem RD.vatFrobDebtAddStoreSuccess
     (by simpa [debtOld, debtNew] using hneg)
     (by simpa [debtOld, debtNew] using hpos)
     (by jump_dest) (by simp)
-  have rd3363 := rd3362.jumpdest (by native_decide) (by evm_ov)
-  have rd3365 := rd3363.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  have rd3366 := rd3365.dup2 (by native_decide) (by evm_ov)
-  have rd3367pre := rd3366.swap1 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3368⟩ := rd3367pre.sstore hperm (by native_decide) (by evm_ov)
-  have rd3369 := rd3368.pop (by native_decide) (by evm_ov)
+  have rd3363 := rd3362.jumpdest (by decide +native) (by evm_ov)
+  have rd3365 := rd3363.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  have rd3366 := rd3365.dup2 (by decide +native) (by evm_ov)
+  have rd3367pre := rd3366.swap1 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3368⟩ := rd3367pre.sstore hperm (by decide +native) (by evm_ov)
+  have rd3369 := rd3368.pop (by decide +native) (by evm_ov)
   exact ⟨_, _, by simpa [debtOld, debtNew, mem, foldDebtSlot] using rd3369⟩
 
 theorem RD.vatFrobDebtAddStoreRevert
@@ -5012,18 +5012,18 @@ theorem RD.vatFrobDebtAddStoreRevert
     RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
   let debtOld := solcSlotWord σ I foldDebtSlot
   let debtNew := dtabWord + debtOld
-  have rd3354 := h.push2 ⟨3362⟩ (by native_decide) (by evm_ov)
-  have rd3356 := rd3354.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3357raw⟩ := rd3356.sload (by native_decide) (by evm_ov)
+  have rd3354 := h.push2 ⟨3362⟩ (by decide +native) (by evm_ov)
+  have rd3356 := rd3354.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3357raw⟩ := rd3356.sload (by decide +native) (by evm_ov)
   have hload :
       (σ.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) = debtOld := by
     simp [debtOld, foldDebtSlot, solcSlotWord]
   have rd3357 := rd3357raw
   rw [hload] at rd3357
-  have rd3358 := rd3357.dup4 (by native_decide) (by evm_ov)
-  have rd3361 := rd3358.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd3361.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3358 := rd3357.dup4 (by decide +native) (by evm_ov)
+  have rd3361 := rd3358.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd3361.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedAddRevert
     (x := debtOld) (y := dtabWord) (ret := ⟨3362⟩)
     (R := tab :: dtabWord :: (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) ::
@@ -5077,16 +5077,16 @@ theorem RD.vatFrobCeilingCheckSuccess
   let ilkLine := solcSlotWord σ I (frobIlkLineSlot I)
   let Line := solcSlotWord σ I ⟨9⟩
   let ceilingDebt := UInt256.mul rateOld ilkArtNew
-  have rd3372 := h.push2 ⟨3422⟩ (by native_decide) (by evm_ov)
-  have rd3374 := rd3372.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3375 := rd3374.dup7 (by native_decide) (by evm_ov)
-  have rd3376 := rd3375.sgt (by native_decide) (by evm_ov)
-  have rd3377 := rd3376.iszero (by native_decide) (by evm_ov)
-  have rd3380 := rd3377.push2 ⟨3417⟩ (by native_decide) (by evm_ov)
-  have rd3381 := rd3380.dup6 (by native_decide) (by evm_ov)
-  have rd3383 := rd3381.push1 ⟨96⟩ (by native_decide) (by evm_ov)
-  have rd3384raw := rd3383.add (by native_decide) (by evm_ov)
-  have hoff512 : (⟨416⟩ : UInt256) + ⟨96⟩ = ⟨512⟩ := by native_decide
+  have rd3372 := h.push2 ⟨3422⟩ (by decide +native) (by evm_ov)
+  have rd3374 := rd3372.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3375 := rd3374.dup7 (by decide +native) (by evm_ov)
+  have rd3376 := rd3375.sgt (by decide +native) (by evm_ov)
+  have rd3377 := rd3376.iszero (by decide +native) (by evm_ov)
+  have rd3380 := rd3377.push2 ⟨3417⟩ (by decide +native) (by evm_ov)
+  have rd3381 := rd3380.dup6 (by decide +native) (by evm_ov)
+  have rd3383 := rd3381.push1 ⟨96⟩ (by decide +native) (by evm_ov)
+  have rd3384raw := rd3383.add (by decide +native) (by evm_ov)
+  have hoff512 : (⟨416⟩ : UInt256) + ⟨96⟩ = ⟨512⟩ := by decide +native
   have hmload512 :
       (if ((⟨416⟩ : UInt256) + ⟨96⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨96⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -5114,19 +5114,19 @@ theorem RD.vatFrobCeilingCheckSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨512⟩ : UInt256).toNat = 512 from by decide, mem, ilkLine]
           using frobIlkArtUpdatedMem_read512 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3384raw' := rd3384raw.mload 0 ilkLine (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload512 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload512 (by decide +native) (by evm_ov)
   have rd3384 := by
     simpa [hoff512] using rd3384raw'
-  have rd3388 := rd3384.push2 ⟨3402⟩ (by native_decide) (by evm_ov)
-  have rd3389 := rd3388.dup8 (by native_decide) (by evm_ov)
-  have rd3391 := rd3389.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3392raw := rd3391.add (by native_decide) (by evm_ov)
-  have hoff416 : (⟨416⟩ : UInt256) + ⟨0⟩ = ⟨416⟩ := by native_decide
+  have rd3388 := rd3384.push2 ⟨3402⟩ (by decide +native) (by evm_ov)
+  have rd3389 := rd3388.dup8 (by decide +native) (by evm_ov)
+  have rd3391 := rd3389.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3392raw := rd3391.add (by decide +native) (by evm_ov)
+  have hoff416 : (⟨416⟩ : UInt256) + ⟨0⟩ = ⟨416⟩ := by decide +native
   have hmload416 :
       (if ((⟨416⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨0⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -5156,18 +5156,18 @@ theorem RD.vatFrobCeilingCheckSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨416⟩ : UInt256).toNat = 416 from by decide, mem]
           using frobIlkArtUpdatedMem_read416 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3392raw' := rd3392raw.mload 0 ilkArtNew (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload416 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload416 (by decide +native) (by evm_ov)
   have rd3392 := by
     simpa [hoff416] using rd3392raw'
-  have rd3393 := rd3392.dup9 (by native_decide) (by evm_ov)
-  have rd3396 := rd3393.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3397raw := rd3396.add (by native_decide) (by evm_ov)
-  have hoff448 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
+  have rd3393 := rd3392.dup9 (by decide +native) (by evm_ov)
+  have rd3396 := rd3393.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3397raw := rd3396.add (by decide +native) (by evm_ov)
+  have hoff448 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by decide +native
   have hmload448 :
       (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -5195,16 +5195,16 @@ theorem RD.vatFrobCeilingCheckSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, mem, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3397raw' := rd3397raw.mload 0 rateOld (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload448 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload448 (by decide +native) (by evm_ov)
   have rd3397 := by
     simpa [hoff448] using rd3397raw'
-  have rd3401 := rd3397.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd3401.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3401 := rd3397.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd3401.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3402raw⟩ := RD.vatCheckedMulUintOk
     (x := rateOld) (y := ilkArtNew) (ret := ⟨3402⟩)
     (R := ilkLine :: (⟨3417⟩ : UInt256) ::
@@ -5213,11 +5213,11 @@ theorem RD.vatFrobCeilingCheckSuccess
       frobDartWord I :: frobDinkWord I :: frobWMaskedWord I ::
       frobVMaskedWord I :: frobUMaskedWord I :: frobIWord I :: ⟨524⟩ :: sel :: [])
     rd6752 (by simpa [rateOld] using hok) (by jump_dest) (by simp)
-  have rd3402 := rd3402raw.jumpdest (by native_decide) (by evm_ov)
-  have rd3403 := rd3402.gt (by native_decide) (by evm_ov)
-  have rd3404 := rd3403.iszero (by native_decide) (by evm_ov)
-  have rd3407 := rd3404.push1 ⟨9⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3408raw⟩ := rd3407.sload (by native_decide) (by evm_ov)
+  have rd3402 := rd3402raw.jumpdest (by decide +native) (by evm_ov)
+  have rd3403 := rd3402.gt (by decide +native) (by evm_ov)
+  have rd3404 := rd3403.iszero (by decide +native) (by evm_ov)
+  have rd3407 := rd3404.push1 ⟨9⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3408raw⟩ := rd3407.sload (by decide +native) (by evm_ov)
   have hLineLoad :
       (σDebt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨9⟩ : UInt256) ⟨0⟩)) = Line := by
@@ -5227,38 +5227,38 @@ theorem RD.vatFrobCeilingCheckSuccess
       solcSlotWord_sstore_ne σ I ⟨9⟩ foldDebtSlot debtNew hne
   have rd3408 := rd3408raw
   rw [hLineLoad] at rd3408
-  have rd3410 := rd3408.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3411raw⟩ := rd3410.sload (by native_decide) (by evm_ov)
+  have rd3410 := rd3408.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3411raw⟩ := rd3410.sload (by decide +native) (by evm_ov)
   have hDebtLoad :
       (σDebt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) = debtNew := by
     simpa [σDebt, foldDebtSlot] using hdebtLoadStore
   have rd3411 := rd3411raw
   rw [hDebtLoad] at rd3411
-  have rd3412 := rd3411.gt (by native_decide) (by evm_ov)
-  have rd3413 := rd3412.iszero (by native_decide) (by evm_ov)
-  have rd3416 := rd3413.push2 ⟨6787⟩ (by native_decide) (by evm_ov)
-  have rd6787 := rd3416.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3412 := rd3411.gt (by decide +native) (by evm_ov)
+  have rd3413 := rd3412.iszero (by decide +native) (by evm_ov)
+  have rd3416 := rd3413.push2 ⟨6787⟩ (by decide +native) (by evm_ov)
+  have rd6787 := rd3416.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd3417 := evm_run rd6787 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3421 := evm_run rd3417 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨6791⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3422 := evm_run rd3421 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3426 := evm_run rd3422 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨3494⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨3494⟩ (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [σDebt, mem, rateOld, ilkLine, Line, ceilingDebt] using
-      rd3426.jumpiT (by native_decide) hceiling (by jump_dest) (by evm_ov)⟩
+      rd3426.jumpiT (by decide +native) hceiling (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vatFrobCeilingCheckRevert
     {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -5297,16 +5297,16 @@ theorem RD.vatFrobCeilingCheckRevert
   let ilkLine := solcSlotWord σ I (frobIlkLineSlot I)
   let Line := solcSlotWord σ I ⟨9⟩
   let ceilingDebt := UInt256.mul rateOld ilkArtNew
-  have rd3372 := h.push2 ⟨3422⟩ (by native_decide) (by evm_ov)
-  have rd3374 := rd3372.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3375 := rd3374.dup7 (by native_decide) (by evm_ov)
-  have rd3376 := rd3375.sgt (by native_decide) (by evm_ov)
-  have rd3377 := rd3376.iszero (by native_decide) (by evm_ov)
-  have rd3380 := rd3377.push2 ⟨3417⟩ (by native_decide) (by evm_ov)
-  have rd3381 := rd3380.dup6 (by native_decide) (by evm_ov)
-  have rd3383 := rd3381.push1 ⟨96⟩ (by native_decide) (by evm_ov)
-  have rd3384raw := rd3383.add (by native_decide) (by evm_ov)
-  have hoff512 : (⟨416⟩ : UInt256) + ⟨96⟩ = ⟨512⟩ := by native_decide
+  have rd3372 := h.push2 ⟨3422⟩ (by decide +native) (by evm_ov)
+  have rd3374 := rd3372.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3375 := rd3374.dup7 (by decide +native) (by evm_ov)
+  have rd3376 := rd3375.sgt (by decide +native) (by evm_ov)
+  have rd3377 := rd3376.iszero (by decide +native) (by evm_ov)
+  have rd3380 := rd3377.push2 ⟨3417⟩ (by decide +native) (by evm_ov)
+  have rd3381 := rd3380.dup6 (by decide +native) (by evm_ov)
+  have rd3383 := rd3381.push1 ⟨96⟩ (by decide +native) (by evm_ov)
+  have rd3384raw := rd3383.add (by decide +native) (by evm_ov)
+  have hoff512 : (⟨416⟩ : UInt256) + ⟨96⟩ = ⟨512⟩ := by decide +native
   have hmload512 :
       (if ((⟨416⟩ : UInt256) + ⟨96⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨96⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -5334,19 +5334,19 @@ theorem RD.vatFrobCeilingCheckRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨512⟩ : UInt256).toNat = 512 from by decide, mem, ilkLine]
           using frobIlkArtUpdatedMem_read512 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3384raw' := rd3384raw.mload 0 ilkLine (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload512 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload512 (by decide +native) (by evm_ov)
   have rd3384 := by
     simpa [hoff512] using rd3384raw'
-  have rd3388 := rd3384.push2 ⟨3402⟩ (by native_decide) (by evm_ov)
-  have rd3389 := rd3388.dup8 (by native_decide) (by evm_ov)
-  have rd3391 := rd3389.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3392raw := rd3391.add (by native_decide) (by evm_ov)
-  have hoff416 : (⟨416⟩ : UInt256) + ⟨0⟩ = ⟨416⟩ := by native_decide
+  have rd3388 := rd3384.push2 ⟨3402⟩ (by decide +native) (by evm_ov)
+  have rd3389 := rd3388.dup8 (by decide +native) (by evm_ov)
+  have rd3391 := rd3389.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3392raw := rd3391.add (by decide +native) (by evm_ov)
+  have hoff416 : (⟨416⟩ : UInt256) + ⟨0⟩ = ⟨416⟩ := by decide +native
   have hmload416 :
       (if ((⟨416⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨0⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -5376,18 +5376,18 @@ theorem RD.vatFrobCeilingCheckRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨416⟩ : UInt256).toNat = 416 from by decide, mem]
           using frobIlkArtUpdatedMem_read416 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3392raw' := rd3392raw.mload 0 ilkArtNew (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload416 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload416 (by decide +native) (by evm_ov)
   have rd3392 := by
     simpa [hoff416] using rd3392raw'
-  have rd3393 := rd3392.dup9 (by native_decide) (by evm_ov)
-  have rd3396 := rd3393.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3397raw := rd3396.add (by native_decide) (by evm_ov)
-  have hoff448 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
+  have rd3393 := rd3392.dup9 (by decide +native) (by evm_ov)
+  have rd3396 := rd3393.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3397raw := rd3396.add (by decide +native) (by evm_ov)
+  have hoff448 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by decide +native
   have hmload448 :
       (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -5415,16 +5415,16 @@ theorem RD.vatFrobCeilingCheckRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, mem, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3397raw' := rd3397raw.mload 0 rateOld (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload448 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload448 (by decide +native) (by evm_ov)
   have rd3397 := by
     simpa [hoff448] using rd3397raw'
-  have rd3401 := rd3397.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd3401.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3401 := rd3397.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd3401.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3402raw⟩ := RD.vatCheckedMulUintOk
     (x := rateOld) (y := ilkArtNew) (ret := ⟨3402⟩)
     (R := ilkLine :: (⟨3417⟩ : UInt256) ::
@@ -5433,11 +5433,11 @@ theorem RD.vatFrobCeilingCheckRevert
       frobDartWord I :: frobDinkWord I :: frobWMaskedWord I ::
       frobVMaskedWord I :: frobUMaskedWord I :: frobIWord I :: ⟨524⟩ :: sel :: [])
     rd6752 (by simpa [rateOld] using hok) (by jump_dest) (by simp)
-  have rd3402 := rd3402raw.jumpdest (by native_decide) (by evm_ov)
-  have rd3403 := rd3402.gt (by native_decide) (by evm_ov)
-  have rd3404 := rd3403.iszero (by native_decide) (by evm_ov)
-  have rd3407 := rd3404.push1 ⟨9⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3408raw⟩ := rd3407.sload (by native_decide) (by evm_ov)
+  have rd3402 := rd3402raw.jumpdest (by decide +native) (by evm_ov)
+  have rd3403 := rd3402.gt (by decide +native) (by evm_ov)
+  have rd3404 := rd3403.iszero (by decide +native) (by evm_ov)
+  have rd3407 := rd3404.push1 ⟨9⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3408raw⟩ := rd3407.sload (by decide +native) (by evm_ov)
   have hLineLoad :
       (σDebt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨9⟩ : UInt256) ⟨0⟩)) = Line := by
@@ -5447,38 +5447,38 @@ theorem RD.vatFrobCeilingCheckRevert
       solcSlotWord_sstore_ne σ I ⟨9⟩ foldDebtSlot debtNew hne
   have rd3408 := rd3408raw
   rw [hLineLoad] at rd3408
-  have rd3410 := rd3408.push1 ⟨7⟩ (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3411raw⟩ := rd3410.sload (by native_decide) (by evm_ov)
+  have rd3410 := rd3408.push1 ⟨7⟩ (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3411raw⟩ := rd3410.sload (by decide +native) (by evm_ov)
   have hDebtLoad :
       (σDebt.find? I.codeOwner |>.option ⟨0⟩
         (fun acc => acc.storage.findD (⟨7⟩ : UInt256) ⟨0⟩)) = debtNew := by
     simpa [σDebt, foldDebtSlot] using hdebtLoadStore
   have rd3411 := rd3411raw
   rw [hDebtLoad] at rd3411
-  have rd3412 := rd3411.gt (by native_decide) (by evm_ov)
-  have rd3413 := rd3412.iszero (by native_decide) (by evm_ov)
-  have rd3416 := rd3413.push2 ⟨6787⟩ (by native_decide) (by evm_ov)
-  have rd6787 := rd3416.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3412 := rd3411.gt (by decide +native) (by evm_ov)
+  have rd3413 := rd3412.iszero (by decide +native) (by evm_ov)
+  have rd3416 := rd3413.push2 ⟨6787⟩ (by decide +native) (by evm_ov)
+  have rd6787 := rd3416.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd3417 := evm_run rd6787 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3421 := evm_run rd3417 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨6791⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3422 := evm_run rd3421 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3426 := evm_run rd3422 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨3494⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨3494⟩ (by decide +native) (by evm_ov)]
   have rdFall := by
     simpa [σDebt, mem, rateOld, ilkLine, Line, ceilingDebt] using
-      rd3426.jumpiNT (by native_decide) hceiling (by evm_ov)
+      rd3426.jumpiNT (by decide +native) hceiling (by evm_ov)
   exact RD.solcErrorStringRevertTail576
     (code := vatBytecode) (pc := ⟨3427⟩) (len := ⟨20⟩)
     (rawWord := ⟨123286624931416782702299037100121319580670433625⟩)
@@ -5486,8 +5486,8 @@ theorem RD.vatFrobCeilingCheckRevert
     (word := UInt256.shiftLeft
       ⟨123286624931416782702299037100121319580670433625⟩ ⟨98⟩)
     (op := .PUSH20) (width := 20) rdFall
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
-    (by native_decide) rfl
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
+    (by decide +native) rfl
     (by exact frobIlkArtUpdatedMem_size σ I urnInkNew urnArtNew ilkArtNew)
     (by exact frobIlkArtUpdatedMem_read64 σ I urnInkNew urnArtNew ilkArtNew)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -5516,16 +5516,16 @@ theorem RD.vatFrobCeilingMulRevert
   let mem := frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew
   let rateOld := solcSlotWord σ I (frobIlkRateSlot I)
   let ilkLine := solcSlotWord σ I (frobIlkLineSlot I)
-  have rd3372 := h.push2 ⟨3422⟩ (by native_decide) (by evm_ov)
-  have rd3374 := rd3372.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3375 := rd3374.dup7 (by native_decide) (by evm_ov)
-  have rd3376 := rd3375.sgt (by native_decide) (by evm_ov)
-  have rd3377 := rd3376.iszero (by native_decide) (by evm_ov)
-  have rd3380 := rd3377.push2 ⟨3417⟩ (by native_decide) (by evm_ov)
-  have rd3381 := rd3380.dup6 (by native_decide) (by evm_ov)
-  have rd3383 := rd3381.push1 ⟨96⟩ (by native_decide) (by evm_ov)
-  have rd3384raw := rd3383.add (by native_decide) (by evm_ov)
-  have hoff512 : (⟨416⟩ : UInt256) + ⟨96⟩ = ⟨512⟩ := by native_decide
+  have rd3372 := h.push2 ⟨3422⟩ (by decide +native) (by evm_ov)
+  have rd3374 := rd3372.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3375 := rd3374.dup7 (by decide +native) (by evm_ov)
+  have rd3376 := rd3375.sgt (by decide +native) (by evm_ov)
+  have rd3377 := rd3376.iszero (by decide +native) (by evm_ov)
+  have rd3380 := rd3377.push2 ⟨3417⟩ (by decide +native) (by evm_ov)
+  have rd3381 := rd3380.dup6 (by decide +native) (by evm_ov)
+  have rd3383 := rd3381.push1 ⟨96⟩ (by decide +native) (by evm_ov)
+  have rd3384raw := rd3383.add (by decide +native) (by evm_ov)
+  have hoff512 : (⟨416⟩ : UInt256) + ⟨96⟩ = ⟨512⟩ := by decide +native
   have hmload512 :
       (if ((⟨416⟩ : UInt256) + ⟨96⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨96⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -5553,19 +5553,19 @@ theorem RD.vatFrobCeilingMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨512⟩ : UInt256).toNat = 512 from by decide, mem, ilkLine]
           using frobIlkArtUpdatedMem_read512 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3384raw' := rd3384raw.mload 0 ilkLine (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload512 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload512 (by decide +native) (by evm_ov)
   have rd3384 := by
     simpa [hoff512] using rd3384raw'
-  have rd3388 := rd3384.push2 ⟨3402⟩ (by native_decide) (by evm_ov)
-  have rd3389 := rd3388.dup8 (by native_decide) (by evm_ov)
-  have rd3391 := rd3389.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3392raw := rd3391.add (by native_decide) (by evm_ov)
-  have hoff416 : (⟨416⟩ : UInt256) + ⟨0⟩ = ⟨416⟩ := by native_decide
+  have rd3388 := rd3384.push2 ⟨3402⟩ (by decide +native) (by evm_ov)
+  have rd3389 := rd3388.dup8 (by decide +native) (by evm_ov)
+  have rd3391 := rd3389.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3392raw := rd3391.add (by decide +native) (by evm_ov)
+  have hoff416 : (⟨416⟩ : UInt256) + ⟨0⟩ = ⟨416⟩ := by decide +native
   have hmload416 :
       (if ((⟨416⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨0⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -5595,18 +5595,18 @@ theorem RD.vatFrobCeilingMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨416⟩ : UInt256).toNat = 416 from by decide, mem]
           using frobIlkArtUpdatedMem_read416 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3392raw' := rd3392raw.mload 0 ilkArtNew (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload416 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload416 (by decide +native) (by evm_ov)
   have rd3392 := by
     simpa [hoff416] using rd3392raw'
-  have rd3393 := rd3392.dup9 (by native_decide) (by evm_ov)
-  have rd3396 := rd3393.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3397raw := rd3396.add (by native_decide) (by evm_ov)
-  have hoff448 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
+  have rd3393 := rd3392.dup9 (by decide +native) (by evm_ov)
+  have rd3396 := rd3393.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3397raw := rd3396.add (by decide +native) (by evm_ov)
+  have hoff448 : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by decide +native
   have hmload448 :
       (if ((⟨416⟩ : UInt256) + ⟨32⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -5634,16 +5634,16 @@ theorem RD.vatFrobCeilingMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨448⟩ : UInt256).toNat = 448 from by decide, mem, rateOld]
           using frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3397raw' := rd3397raw.mload 0 rateOld (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload448 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload448 (by decide +native) (by evm_ov)
   have rd3397 := by
     simpa [hoff448] using rd3397raw'
-  have rd3401 := rd3397.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd3401.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3401 := rd3397.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd3401.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatCheckedMulUintRevert
     (x := rateOld) (y := ilkArtNew) (ret := ⟨3402⟩)
     (R := ilkLine :: (⟨3417⟩ : UInt256) ::
@@ -5690,30 +5690,30 @@ theorem RD.vatFrobSafetyCheckSuccess
   let mem := frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew
   let ilkSpot := solcSlotWord σ I (frobIlkSpotSlot I)
   let inkSpot := UInt256.mul urnInkNew ilkSpot
-  have rd3495 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3498 := rd3495.push2 ⟨3541⟩ (by native_decide) (by evm_ov)
-  have rd3501 := rd3498.push2 ⟨3515⟩ (by native_decide) (by evm_ov)
-  have rd3503 := rd3501.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3504 := rd3503.dup8 (by native_decide) (by evm_ov)
-  have rd3505 := rd3504.sgt (by native_decide) (by evm_ov)
-  have rd3506 := rd3505.iszero (by native_decide) (by evm_ov)
-  have rd3508 := rd3506.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3509 := rd3508.dup10 (by native_decide) (by evm_ov)
-  have rd3510 := rd3509.slt (by native_decide) (by evm_ov)
-  have rd3511 := rd3510.iszero (by native_decide) (by evm_ov)
-  have rd3514 := rd3511.push2 ⟨6787⟩ (by native_decide) (by evm_ov)
-  have rd6787 := rd3514.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3495 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3498 := rd3495.push2 ⟨3541⟩ (by decide +native) (by evm_ov)
+  have rd3501 := rd3498.push2 ⟨3515⟩ (by decide +native) (by evm_ov)
+  have rd3503 := rd3501.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3504 := rd3503.dup8 (by decide +native) (by evm_ov)
+  have rd3505 := rd3504.sgt (by decide +native) (by evm_ov)
+  have rd3506 := rd3505.iszero (by decide +native) (by evm_ov)
+  have rd3508 := rd3506.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3509 := rd3508.dup10 (by decide +native) (by evm_ov)
+  have rd3510 := rd3509.slt (by decide +native) (by evm_ov)
+  have rd3511 := rd3510.iszero (by decide +native) (by evm_ov)
+  have rd3514 := rd3511.push2 ⟨6787⟩ (by decide +native) (by evm_ov)
+  have rd6787 := rd3514.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd3515 := evm_run rd6787 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
-  have rd3516 := rd3515.jumpdest (by native_decide) (by evm_ov)
-  have rd3519 := rd3516.push2 ⟨3533⟩ (by native_decide) (by evm_ov)
-  have rd3520 := rd3519.dup7 (by native_decide) (by evm_ov)
-  have rd3522 := rd3520.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3523raw := rd3522.add (by native_decide) (by evm_ov)
-  have hoff192 : (⟨192⟩ : UInt256) + ⟨0⟩ = ⟨192⟩ := by native_decide
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
+  have rd3516 := rd3515.jumpdest (by decide +native) (by evm_ov)
+  have rd3519 := rd3516.push2 ⟨3533⟩ (by decide +native) (by evm_ov)
+  have rd3520 := rd3519.dup7 (by decide +native) (by evm_ov)
+  have rd3522 := rd3520.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3523raw := rd3522.add (by decide +native) (by evm_ov)
+  have hoff192 : (⟨192⟩ : UInt256) + ⟨0⟩ = ⟨192⟩ := by decide +native
   have hmload192 :
       (if ((⟨192⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size
           ∨ ((⟨192⟩ : UInt256) + ⟨0⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -5741,18 +5741,18 @@ theorem RD.vatFrobSafetyCheckSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨192⟩ : UInt256).toNat = 192 from by decide, mem]
           using frobIlkArtUpdatedMem_read192 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3523raw' := rd3523raw.mload 0 urnInkNew (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload192 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload192 (by decide +native) (by evm_ov)
   have rd3523 := by
     simpa [hoff192] using rd3523raw'
-  have rd3524 := rd3523.dup7 (by native_decide) (by evm_ov)
-  have rd3527 := rd3524.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd3528raw := rd3527.add (by native_decide) (by evm_ov)
-  have hoff480 : (⟨416⟩ : UInt256) + ⟨64⟩ = ⟨480⟩ := by native_decide
+  have rd3524 := rd3523.dup7 (by decide +native) (by evm_ov)
+  have rd3527 := rd3524.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd3528raw := rd3527.add (by decide +native) (by evm_ov)
+  have hoff480 : (⟨416⟩ : UInt256) + ⟨64⟩ = ⟨480⟩ := by decide +native
   have hmload480 :
       (if ((⟨416⟩ : UInt256) + ⟨64⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨64⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -5780,16 +5780,16 @@ theorem RD.vatFrobSafetyCheckSuccess
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨480⟩ : UInt256).toNat = 480 from by decide, mem, ilkSpot]
           using frobIlkArtUpdatedMem_read480 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3528raw' := rd3528raw.mload 0 ilkSpot (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload480 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload480 (by decide +native) (by evm_ov)
   have rd3528 := by
     simpa [hoff480] using rd3528raw'
-  have rd3532 := rd3528.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd3532.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3532 := rd3528.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd3532.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3533raw⟩ := RD.vatCheckedMulUintOk
     (x := ilkSpot) (y := urnInkNew) (ret := ⟨3533⟩)
     (R := UInt256.land
@@ -5800,23 +5800,23 @@ theorem RD.vatFrobSafetyCheckSuccess
       frobWMaskedWord I :: frobVMaskedWord I :: frobUMaskedWord I ::
       frobIWord I :: ⟨524⟩ :: sel :: [])
     rd6752 (by simpa [ilkSpot] using hok) (by jump_dest) (by simp)
-  have rd3533 := rd3533raw.jumpdest (by native_decide) (by evm_ov)
-  have rd3534 := rd3533.dup4 (by native_decide) (by evm_ov)
-  have rd3535 := rd3534.gt (by native_decide) (by evm_ov)
-  have rd3536 := rd3535.iszero (by native_decide) (by evm_ov)
-  have rd3540 := rd3536.push2 ⟨6791⟩ (by native_decide) (by evm_ov)
-  have rd6791 := rd3540.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3533 := rd3533raw.jumpdest (by decide +native) (by evm_ov)
+  have rd3534 := rd3533.dup4 (by decide +native) (by evm_ov)
+  have rd3535 := rd3534.gt (by decide +native) (by evm_ov)
+  have rd3536 := rd3535.iszero (by decide +native) (by evm_ov)
+  have rd3540 := rd3536.push2 ⟨6791⟩ (by decide +native) (by evm_ov)
+  have rd6791 := rd3540.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd3541 := evm_run rd6791 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3545 := evm_run rd3541 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨3605⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨3605⟩ (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [σDebt, mem, ilkSpot, inkSpot] using
-      rd3545.jumpiT (by native_decide) hsafe (by jump_dest) (by evm_ov)⟩
+      rd3545.jumpiT (by decide +native) hsafe (by jump_dest) (by evm_ov)⟩
 
 theorem RD.vatFrobSafetyCheckRevert
     {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
@@ -5848,30 +5848,30 @@ theorem RD.vatFrobSafetyCheckRevert
   let mem := frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew
   let ilkSpot := solcSlotWord σ I (frobIlkSpotSlot I)
   let inkSpot := UInt256.mul urnInkNew ilkSpot
-  have rd3495 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3498 := rd3495.push2 ⟨3541⟩ (by native_decide) (by evm_ov)
-  have rd3501 := rd3498.push2 ⟨3515⟩ (by native_decide) (by evm_ov)
-  have rd3503 := rd3501.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3504 := rd3503.dup8 (by native_decide) (by evm_ov)
-  have rd3505 := rd3504.sgt (by native_decide) (by evm_ov)
-  have rd3506 := rd3505.iszero (by native_decide) (by evm_ov)
-  have rd3508 := rd3506.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3509 := rd3508.dup10 (by native_decide) (by evm_ov)
-  have rd3510 := rd3509.slt (by native_decide) (by evm_ov)
-  have rd3511 := rd3510.iszero (by native_decide) (by evm_ov)
-  have rd3514 := rd3511.push2 ⟨6787⟩ (by native_decide) (by evm_ov)
-  have rd6787 := rd3514.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3495 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3498 := rd3495.push2 ⟨3541⟩ (by decide +native) (by evm_ov)
+  have rd3501 := rd3498.push2 ⟨3515⟩ (by decide +native) (by evm_ov)
+  have rd3503 := rd3501.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3504 := rd3503.dup8 (by decide +native) (by evm_ov)
+  have rd3505 := rd3504.sgt (by decide +native) (by evm_ov)
+  have rd3506 := rd3505.iszero (by decide +native) (by evm_ov)
+  have rd3508 := rd3506.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3509 := rd3508.dup10 (by decide +native) (by evm_ov)
+  have rd3510 := rd3509.slt (by decide +native) (by evm_ov)
+  have rd3511 := rd3510.iszero (by decide +native) (by evm_ov)
+  have rd3514 := rd3511.push2 ⟨6787⟩ (by decide +native) (by evm_ov)
+  have rd6787 := rd3514.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd3515 := evm_run rd6787 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
-  have rd3516 := rd3515.jumpdest (by native_decide) (by evm_ov)
-  have rd3519 := rd3516.push2 ⟨3533⟩ (by native_decide) (by evm_ov)
-  have rd3520 := rd3519.dup7 (by native_decide) (by evm_ov)
-  have rd3522 := rd3520.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3523raw := rd3522.add (by native_decide) (by evm_ov)
-  have hoff192 : (⟨192⟩ : UInt256) + ⟨0⟩ = ⟨192⟩ := by native_decide
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
+  have rd3516 := rd3515.jumpdest (by decide +native) (by evm_ov)
+  have rd3519 := rd3516.push2 ⟨3533⟩ (by decide +native) (by evm_ov)
+  have rd3520 := rd3519.dup7 (by decide +native) (by evm_ov)
+  have rd3522 := rd3520.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3523raw := rd3522.add (by decide +native) (by evm_ov)
+  have hoff192 : (⟨192⟩ : UInt256) + ⟨0⟩ = ⟨192⟩ := by decide +native
   have hmload192 :
       (if ((⟨192⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size
           ∨ ((⟨192⟩ : UInt256) + ⟨0⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -5899,18 +5899,18 @@ theorem RD.vatFrobSafetyCheckRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨192⟩ : UInt256).toNat = 192 from by decide, mem]
           using frobIlkArtUpdatedMem_read192 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3523raw' := rd3523raw.mload 0 urnInkNew (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload192 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload192 (by decide +native) (by evm_ov)
   have rd3523 := by
     simpa [hoff192] using rd3523raw'
-  have rd3524 := rd3523.dup7 (by native_decide) (by evm_ov)
-  have rd3527 := rd3524.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd3528raw := rd3527.add (by native_decide) (by evm_ov)
-  have hoff480 : (⟨416⟩ : UInt256) + ⟨64⟩ = ⟨480⟩ := by native_decide
+  have rd3524 := rd3523.dup7 (by decide +native) (by evm_ov)
+  have rd3527 := rd3524.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd3528raw := rd3527.add (by decide +native) (by evm_ov)
+  have hoff480 : (⟨416⟩ : UInt256) + ⟨64⟩ = ⟨480⟩ := by decide +native
   have hmload480 :
       (if ((⟨416⟩ : UInt256) + ⟨64⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨64⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -5938,16 +5938,16 @@ theorem RD.vatFrobSafetyCheckRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨480⟩ : UInt256).toNat = 480 from by decide, mem, ilkSpot]
           using frobIlkArtUpdatedMem_read480 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3528raw' := rd3528raw.mload 0 ilkSpot (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload480 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload480 (by decide +native) (by evm_ov)
   have rd3528 := by
     simpa [hoff480] using rd3528raw'
-  have rd3532 := rd3528.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd3532.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3532 := rd3528.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd3532.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd3533raw⟩ := RD.vatCheckedMulUintOk
     (x := ilkSpot) (y := urnInkNew) (ret := ⟨3533⟩)
     (R := UInt256.land
@@ -5958,30 +5958,30 @@ theorem RD.vatFrobSafetyCheckRevert
       frobWMaskedWord I :: frobVMaskedWord I :: frobUMaskedWord I ::
       frobIWord I :: ⟨524⟩ :: sel :: [])
     rd6752 (by simpa [ilkSpot] using hok) (by jump_dest) (by simp)
-  have rd3533 := rd3533raw.jumpdest (by native_decide) (by evm_ov)
-  have rd3534 := rd3533.dup4 (by native_decide) (by evm_ov)
-  have rd3535 := rd3534.gt (by native_decide) (by evm_ov)
-  have rd3536 := rd3535.iszero (by native_decide) (by evm_ov)
-  have rd3540 := rd3536.push2 ⟨6791⟩ (by native_decide) (by evm_ov)
-  have rd6791 := rd3540.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3533 := rd3533raw.jumpdest (by decide +native) (by evm_ov)
+  have rd3534 := rd3533.dup4 (by decide +native) (by evm_ov)
+  have rd3535 := rd3534.gt (by decide +native) (by evm_ov)
+  have rd3536 := rd3535.iszero (by decide +native) (by evm_ov)
+  have rd3540 := rd3536.push2 ⟨6791⟩ (by decide +native) (by evm_ov)
+  have rd6791 := rd3540.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd3541 := evm_run rd6791 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3545 := evm_run rd3541 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨3605⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨3605⟩ (by decide +native) (by evm_ov)]
   have rdFall := by
     simpa [σDebt, mem, ilkSpot, inkSpot] using
-      rd3545.jumpiNT (by native_decide) hsafe (by evm_ov)
+      rd3545.jumpiNT (by decide +native) hsafe (by evm_ov)
   exact RD.solcErrorStringRevertTail576
     (code := vatBytecode) (pc := ⟨3546⟩) (len := ⟨12⟩)
     (rawWord := ⟨26733525318604986088616453733⟩) (shift := ⟨160⟩)
     (word := UInt256.shiftLeft ⟨26733525318604986088616453733⟩ ⟨160⟩)
     (op := .PUSH12) (width := 12) rdFall
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
-    (by native_decide) rfl
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
+    (by decide +native) rfl
     (by exact frobIlkArtUpdatedMem_size σ I urnInkNew urnArtNew ilkArtNew)
     (by exact frobIlkArtUpdatedMem_read64 σ I urnInkNew urnArtNew ilkArtNew)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -6008,30 +6008,30 @@ theorem RD.vatFrobInkSpotMulRevert
     RDrev vatBytecode g (initState cA gh bl σ σ₀ g A I) := by
   let mem := frobIlkArtUpdatedMem σ I urnInkNew urnArtNew ilkArtNew
   let ilkSpot := solcSlotWord σ I (frobIlkSpotSlot I)
-  have rd3495 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3498 := rd3495.push2 ⟨3541⟩ (by native_decide) (by evm_ov)
-  have rd3501 := rd3498.push2 ⟨3515⟩ (by native_decide) (by evm_ov)
-  have rd3503 := rd3501.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3504 := rd3503.dup8 (by native_decide) (by evm_ov)
-  have rd3505 := rd3504.sgt (by native_decide) (by evm_ov)
-  have rd3506 := rd3505.iszero (by native_decide) (by evm_ov)
-  have rd3508 := rd3506.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3509 := rd3508.dup10 (by native_decide) (by evm_ov)
-  have rd3510 := rd3509.slt (by native_decide) (by evm_ov)
-  have rd3511 := rd3510.iszero (by native_decide) (by evm_ov)
-  have rd3514 := rd3511.push2 ⟨6787⟩ (by native_decide) (by evm_ov)
-  have rd6787 := rd3514.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3495 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3498 := rd3495.push2 ⟨3541⟩ (by decide +native) (by evm_ov)
+  have rd3501 := rd3498.push2 ⟨3515⟩ (by decide +native) (by evm_ov)
+  have rd3503 := rd3501.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3504 := rd3503.dup8 (by decide +native) (by evm_ov)
+  have rd3505 := rd3504.sgt (by decide +native) (by evm_ov)
+  have rd3506 := rd3505.iszero (by decide +native) (by evm_ov)
+  have rd3508 := rd3506.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3509 := rd3508.dup10 (by decide +native) (by evm_ov)
+  have rd3510 := rd3509.slt (by decide +native) (by evm_ov)
+  have rd3511 := rd3510.iszero (by decide +native) (by evm_ov)
+  have rd3514 := rd3511.push2 ⟨6787⟩ (by decide +native) (by evm_ov)
+  have rd6787 := rd3514.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd3515 := evm_run rd6787 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
-  have rd3516 := rd3515.jumpdest (by native_decide) (by evm_ov)
-  have rd3519 := rd3516.push2 ⟨3533⟩ (by native_decide) (by evm_ov)
-  have rd3520 := rd3519.dup7 (by native_decide) (by evm_ov)
-  have rd3522 := rd3520.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3523raw := rd3522.add (by native_decide) (by evm_ov)
-  have hoff192 : (⟨192⟩ : UInt256) + ⟨0⟩ = ⟨192⟩ := by native_decide
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
+  have rd3516 := rd3515.jumpdest (by decide +native) (by evm_ov)
+  have rd3519 := rd3516.push2 ⟨3533⟩ (by decide +native) (by evm_ov)
+  have rd3520 := rd3519.dup7 (by decide +native) (by evm_ov)
+  have rd3522 := rd3520.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3523raw := rd3522.add (by decide +native) (by evm_ov)
+  have hoff192 : (⟨192⟩ : UInt256) + ⟨0⟩ = ⟨192⟩ := by decide +native
   have hmload192 :
       (if ((⟨192⟩ : UInt256) + ⟨0⟩).toNat ≥ mem.size
           ∨ ((⟨192⟩ : UInt256) + ⟨0⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -6059,18 +6059,18 @@ theorem RD.vatFrobInkSpotMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨192⟩ : UInt256).toNat = 192 from by decide, mem]
           using frobIlkArtUpdatedMem_read192 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3523raw' := rd3523raw.mload 0 urnInkNew (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload192 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload192 (by decide +native) (by evm_ov)
   have rd3523 := by
     simpa [hoff192] using rd3523raw'
-  have rd3524 := rd3523.dup7 (by native_decide) (by evm_ov)
-  have rd3527 := rd3524.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd3528raw := rd3527.add (by native_decide) (by evm_ov)
-  have hoff480 : (⟨416⟩ : UInt256) + ⟨64⟩ = ⟨480⟩ := by native_decide
+  have rd3524 := rd3523.dup7 (by decide +native) (by evm_ov)
+  have rd3527 := rd3524.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd3528raw := rd3527.add (by decide +native) (by evm_ov)
+  have hoff480 : (⟨416⟩ : UInt256) + ⟨64⟩ = ⟨480⟩ := by decide +native
   have hmload480 :
       (if ((⟨416⟩ : UInt256) + ⟨64⟩).toNat ≥ mem.size
           ∨ ((⟨416⟩ : UInt256) + ⟨64⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -6098,16 +6098,16 @@ theorem RD.vatFrobInkSpotMulRevert
           · rw [writeWordMem_size_of_contains]
             · rw [frobIlkLoadedMem_size σ I]; omega
             · rw [frobIlkLoadedMem_size σ I]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨480⟩ : UInt256).toNat = 480 from by decide, mem, ilkSpot]
           using frobIlkArtUpdatedMem_read480 σ I urnInkNew urnArtNew ilkArtNew)
   have rd3528raw' := rd3528raw.mload 0 ilkSpot (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload480 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload480 (by decide +native) (by evm_ov)
   have rd3528 := by
     simpa [hoff480] using rd3528raw'
-  have rd3532 := rd3528.push2 ⟨6752⟩ (by native_decide) (by evm_ov)
-  have rd6752 := rd3532.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3532 := rd3528.push2 ⟨6752⟩ (by decide +native) (by evm_ov)
+  have rd6752 := rd3532.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatCheckedMulUintRevert
     (x := ilkSpot) (y := urnInkNew) (ret := ⟨3533⟩)
     (R := UInt256.land
@@ -6138,15 +6138,15 @@ theorem RD.vatWishLoadedAt6557
         (twoWordHashMem usr ⟨1⟩ mem))
       (UInt256.ofNat 18) ByteArray.empty (cA, σacc) k' C' := by
   have rd6568raw := evm_run h with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨160⟩ (by native_decide) (by evm_ov),
-    raw shl (by native_decide) (by evm_ov),
-    raw sub (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨160⟩ (by decide +native) (by evm_ov),
+    raw shl (by decide +native) (by evm_ov),
+    raw sub (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hmask :
       UInt256.land
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -6158,25 +6158,25 @@ theorem RD.vatWishLoadedAt6557
   have rd6568 := rd6568raw
   rw [hmask] at rd6568
   have rd6573pre := evm_run rd6568 with [
-    raw push1 ⟨0⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨0⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6573 := rd6573pre.mstore 0 (wordAt0Mem usr mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd6580pre := evm_run rd6573 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov)]
   have rd6580 := rd6580pre.mstore 0
     (twoWordHashMem usr ⟨1⟩ mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd6585pre := evm_run rd6580 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup5 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup5 (by decide +native) (by evm_ov)]
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem usr ⟨1⟩ mem)
@@ -6185,11 +6185,11 @@ theorem RD.vatWishLoadedAt6557
     twoWordHashMem_solcMappingSlot_of_ge64 ⟨1⟩ usr hmem64
   have rd6585 := rd6585pre.keccak256 0
     (solcMappingSlot ⟨1⟩ usr) (UInt256.ofNat 18)
-    (by native_decide) mem_cost hinner (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hinner (by decide +native) (by evm_ov)
   have rd6588raw := evm_run rd6585 with [
-    raw swap6 (by native_decide) (by evm_ov),
-    raw dup8 (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov)]
+    raw swap6 (by decide +native) (by evm_ov),
+    raw dup8 (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov)]
   have hcallerMask :
       UInt256.land (UInt256.ofNat I.source.val)
           (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -6204,24 +6204,24 @@ theorem RD.vatWishLoadedAt6557
   have rd6588 := rd6588raw
   rw [hcallerMask] at rd6588
   have rd6591pre := evm_run rd6588 with [
-    raw dup1 (by native_decide) (by evm_ov),
-    raw dup6 (by native_decide) (by evm_ov)]
+    raw dup1 (by decide +native) (by evm_ov),
+    raw dup6 (by decide +native) (by evm_ov)]
   have rd6591 := rd6591pre.mstore 0
     (wordAt0Mem (hopeSourceWord I)
       (twoWordHashMem usr ⟨1⟩ mem))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd6595pre := evm_run rd6591 with [
-    raw swap6 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov)]
+    raw swap6 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov)]
   have rd6595 := rd6595pre.mstore 0
     (twoWordHashMem (hopeSourceWord I) (solcMappingSlot ⟨1⟩ usr)
       (twoWordHashMem usr ⟨1⟩ mem))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have rd6597pre := evm_run rd6595 with [
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw dup3 (by decide +native) (by evm_ov)]
   have houter :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (hopeSourceWord I)
@@ -6233,8 +6233,8 @@ theorem RD.vatWishLoadedAt6557
       (hopeSourceWord I)
       (by rw [twoWordHashMem_size_of_ge64 usr ⟨1⟩ hmem64]; omega)
   have rd6597 := rd6597pre.keccak256 0 slot (UInt256.ofNat 18)
-    (by native_decide) mem_cost houter (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd6599raw⟩ := rd6597.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost houter (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd6599raw⟩ := rd6597.sload (by decide +native) (by evm_ov)
   exact ⟨_, _, by simpa [vatSlotWord, solcSlotWord] using rd6599raw⟩
 
 set_option maxHeartbeats 1000000 in
@@ -6254,33 +6254,33 @@ theorem RD.vatWishReturnOk
         (UInt256.eq usr (hopeSourceWord I)) :: R)
       mem activeWords ByteArray.empty (cA, σacc) k' C' := by
   have rd6608pre := evm_run h with [
-    raw swap2 (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov),
-    raw push2 ⟨6612⟩ (by native_decide) (by evm_ov),
-    raw swap4 (by native_decide) (by evm_ov)]
-  have rd6605 := rd6608pre.eq (by native_decide) (by evm_ov)
+    raw swap2 (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov),
+    raw push2 ⟨6612⟩ (by decide +native) (by evm_ov),
+    raw swap4 (by decide +native) (by evm_ov)]
+  have rd6605 := rd6608pre.eq (by decide +native) (by evm_ov)
   have rd6608mid := evm_run rd6605 with [
-    raw swap2 (by native_decide) (by evm_ov)]
-  have rd6608 := rd6608mid.eq (by native_decide) (by evm_ov)
+    raw swap2 (by decide +native) (by evm_ov)]
+  have rd6608 := rd6608mid.eq (by decide +native) (by evm_ov)
   have rd6791 := evm_run rd6608 with [
-    raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw push2 ⟨6791⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd6792 := evm_run rd6791 with [
-    raw jumpdest (by native_decide) (by evm_ov)]
-  have rd6793 := rd6792.or (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov)]
+  have rd6793 := rd6792.or (by decide +native) (by evm_ov)
   have rd6612raw := evm_run rd6793 with [
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd6620 := evm_run rd6612raw with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw swap3 (by native_decide) (by evm_ov),
-    raw swap2 (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov),
-    raw pop (by native_decide) (by evm_ov)]
-  exact ⟨_, _, rd6620.jump (by native_decide) hret (by evm_ov)⟩
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw swap3 (by decide +native) (by evm_ov),
+    raw swap2 (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov),
+    raw pop (by decide +native) (by evm_ov)]
+  exact ⟨_, _, rd6620.jump (by decide +native) hret (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatFrobUWishCheckSuccess
@@ -6322,31 +6322,31 @@ theorem RD.vatFrobUWishCheckSuccess
     UInt256.lor
       (UInt256.eq (vatSlotWord (frobUWishSlot I) σDebt I) ⟨1⟩)
       (UInt256.eq (frobUMaskedWord I) (hopeSourceWord I))
-  have rd3606 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3609 := rd3606.push2 ⟨3636⟩ (by native_decide) (by evm_ov)
-  have rd3612 := rd3609.push2 ⟨3626⟩ (by native_decide) (by evm_ov)
-  have rd3614 := rd3612.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3615 := rd3614.dup8 (by native_decide) (by evm_ov)
-  have rd3616 := rd3615.sgt (by native_decide) (by evm_ov)
-  have rd3617 := rd3616.iszero (by native_decide) (by evm_ov)
-  have rd3619 := rd3617.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3620 := rd3619.dup10 (by native_decide) (by evm_ov)
-  have rd3621 := rd3620.slt (by native_decide) (by evm_ov)
-  have rd3622 := rd3621.iszero (by native_decide) (by evm_ov)
-  have rd3625 := rd3622.push2 ⟨6787⟩ (by native_decide) (by evm_ov)
-  have rd6787 := rd3625.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3606 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3609 := rd3606.push2 ⟨3636⟩ (by decide +native) (by evm_ov)
+  have rd3612 := rd3609.push2 ⟨3626⟩ (by decide +native) (by evm_ov)
+  have rd3614 := rd3612.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3615 := rd3614.dup8 (by decide +native) (by evm_ov)
+  have rd3616 := rd3615.sgt (by decide +native) (by evm_ov)
+  have rd3617 := rd3616.iszero (by decide +native) (by evm_ov)
+  have rd3619 := rd3617.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3620 := rd3619.dup10 (by decide +native) (by evm_ov)
+  have rd3621 := rd3620.slt (by decide +native) (by evm_ov)
+  have rd3622 := rd3621.iszero (by decide +native) (by evm_ov)
+  have rd3625 := rd3622.push2 ⟨6787⟩ (by decide +native) (by evm_ov)
+  have rd6787 := rd3625.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd3626 := evm_run rd6787 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov)]
-  have rd3627 := rd3626.push2 ⟨3417⟩ (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov)]
+  have rd3627 := rd3626.push2 ⟨3417⟩ (by decide +native) (by evm_ov)
   have rd6557 := evm_run rd3627 with [
-    raw dup12 (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push2 ⟨6557⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw dup12 (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push2 ⟨6557⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   obtain ⟨_, _, rd6599⟩ := RD.vatWishLoadedAt6557
     (σacc := σDebt)
     (usr := frobUMaskedWord I) (slot := frobUWishSlot I) (ret := ⟨3417⟩)
@@ -6368,19 +6368,19 @@ theorem RD.vatFrobUWishCheckSuccess
       frobIWord I :: ⟨524⟩ :: sel :: [])
     rd6599 (by jump_dest) (by simp)
   have rd3636 := evm_run rd3417 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨6791⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3640 := evm_run rd3636 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨3705⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨3705⟩ (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [σDebt, mem, both, wish, frobUWishSlot] using
-      rd3640.jumpiT (by native_decide) hwish (by jump_dest) (by evm_ov)⟩
+      rd3640.jumpiT (by decide +native) hwish (by jump_dest) (by evm_ov)⟩
 
 set_option maxRecDepth 4096 in
 set_option maxHeartbeats 5000000 in
@@ -6419,31 +6419,31 @@ theorem RD.vatFrobUWishCheckRevertFall
     UInt256.lor
       (UInt256.eq (vatSlotWord (frobUWishSlot I) σDebt I) ⟨1⟩)
       (UInt256.eq (frobUMaskedWord I) (hopeSourceWord I))
-  have rd3606 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3609 := rd3606.push2 ⟨3636⟩ (by native_decide) (by evm_ov)
-  have rd3612 := rd3609.push2 ⟨3626⟩ (by native_decide) (by evm_ov)
-  have rd3614 := rd3612.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3615 := rd3614.dup8 (by native_decide) (by evm_ov)
-  have rd3616 := rd3615.sgt (by native_decide) (by evm_ov)
-  have rd3617 := rd3616.iszero (by native_decide) (by evm_ov)
-  have rd3619 := rd3617.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3620 := rd3619.dup10 (by native_decide) (by evm_ov)
-  have rd3621 := rd3620.slt (by native_decide) (by evm_ov)
-  have rd3622 := rd3621.iszero (by native_decide) (by evm_ov)
-  have rd3625 := rd3622.push2 ⟨6787⟩ (by native_decide) (by evm_ov)
-  have rd6787 := rd3625.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3606 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3609 := rd3606.push2 ⟨3636⟩ (by decide +native) (by evm_ov)
+  have rd3612 := rd3609.push2 ⟨3626⟩ (by decide +native) (by evm_ov)
+  have rd3614 := rd3612.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3615 := rd3614.dup8 (by decide +native) (by evm_ov)
+  have rd3616 := rd3615.sgt (by decide +native) (by evm_ov)
+  have rd3617 := rd3616.iszero (by decide +native) (by evm_ov)
+  have rd3619 := rd3617.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3620 := rd3619.dup10 (by decide +native) (by evm_ov)
+  have rd3621 := rd3620.slt (by decide +native) (by evm_ov)
+  have rd3622 := rd3621.iszero (by decide +native) (by evm_ov)
+  have rd3625 := rd3622.push2 ⟨6787⟩ (by decide +native) (by evm_ov)
+  have rd6787 := rd3625.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd3626 := evm_run rd6787 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw and (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov)]
-  have rd3627 := rd3626.push2 ⟨3417⟩ (by native_decide) (by evm_ov)
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw and (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov)]
+  have rd3627 := rd3626.push2 ⟨3417⟩ (by decide +native) (by evm_ov)
   have rd6557 := evm_run rd3627 with [
-    raw dup12 (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push2 ⟨6557⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw dup12 (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push2 ⟨6557⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   obtain ⟨_, _, rd6599⟩ := RD.vatWishLoadedAt6557
     (σacc := σDebt)
     (usr := frobUMaskedWord I) (slot := frobUWishSlot I) (ret := ⟨3417⟩)
@@ -6465,19 +6465,19 @@ theorem RD.vatFrobUWishCheckRevertFall
       frobIWord I :: ⟨524⟩ :: sel :: [])
     rd6599 (by jump_dest) (by simp)
   have rd3636 := evm_run rd3417 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨6791⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3640 := evm_run rd3636 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨3705⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨3705⟩ (by decide +native) (by evm_ov)]
   have rdFall := by
     simpa [both, wish, frobUWishSlot] using
-      rd3640.jumpiNT (by native_decide) hwish (by evm_ov)
+      rd3640.jumpiNT (by decide +native) hwish (by evm_ov)
   exact ⟨_, _, rdFall⟩
 
 set_option maxRecDepth 4096 in
@@ -6600,18 +6600,18 @@ theorem RD.vatFrobVWishCheckSuccess
     UInt256.lor
       (UInt256.eq (vatSlotWord (frobVWishSlot I) σDebt I) ⟨1⟩)
       (UInt256.eq (frobVMaskedWord I) (hopeSourceWord I))
-  have rd3706 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3709 := rd3706.push2 ⟨3723⟩ (by native_decide) (by evm_ov)
-  have rd3711 := rd3709.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3712 := rd3711.dup8 (by native_decide) (by evm_ov)
-  have rd3713 := rd3712.sgt (by native_decide) (by evm_ov)
-  have rd3714 := rd3713.iszero (by native_decide) (by evm_ov)
-  have rd3717 := rd3714.push2 ⟨3417⟩ (by native_decide) (by evm_ov)
+  have rd3706 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3709 := rd3706.push2 ⟨3723⟩ (by decide +native) (by evm_ov)
+  have rd3711 := rd3709.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3712 := rd3711.dup8 (by decide +native) (by evm_ov)
+  have rd3713 := rd3712.sgt (by decide +native) (by evm_ov)
+  have rd3714 := rd3713.iszero (by decide +native) (by evm_ov)
+  have rd3717 := rd3714.push2 ⟨3417⟩ (by decide +native) (by evm_ov)
   have rd6557 := evm_run rd3717 with [
-    raw dup11 (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push2 ⟨6557⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw dup11 (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push2 ⟨6557⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have hmemBase : 64 ≤ memBase.size := by
     exact frobIlkArtUpdatedMem_ge64 σ I urnInkNew urnArtNew ilkArtNew
   have hmemU : 64 ≤ memU.size := by
@@ -6644,19 +6644,19 @@ theorem RD.vatFrobVWishCheckSuccess
       frobIWord I :: ⟨524⟩ :: sel :: [])
     rd6599 (by jump_dest) (by simp)
   have rd3723 := evm_run rd3417 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨6791⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3727 := evm_run rd3723 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨3792⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨3792⟩ (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [σDebt, memBase, memU, shortcut, wish, frobVWishSlot] using
-      rd3727.jumpiT (by native_decide) hwish (by jump_dest) (by evm_ov)⟩
+      rd3727.jumpiT (by decide +native) hwish (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatFrobVWishCheckRevert
@@ -6689,18 +6689,18 @@ theorem RD.vatFrobVWishCheckRevert
     UInt256.lor
       (UInt256.eq (vatSlotWord (frobVWishSlot I) σDebt I) ⟨1⟩)
       (UInt256.eq (frobVMaskedWord I) (hopeSourceWord I))
-  have rd3706 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3709 := rd3706.push2 ⟨3723⟩ (by native_decide) (by evm_ov)
-  have rd3711 := rd3709.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3712 := rd3711.dup8 (by native_decide) (by evm_ov)
-  have rd3713 := rd3712.sgt (by native_decide) (by evm_ov)
-  have rd3714 := rd3713.iszero (by native_decide) (by evm_ov)
-  have rd3717 := rd3714.push2 ⟨3417⟩ (by native_decide) (by evm_ov)
+  have rd3706 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3709 := rd3706.push2 ⟨3723⟩ (by decide +native) (by evm_ov)
+  have rd3711 := rd3709.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3712 := rd3711.dup8 (by decide +native) (by evm_ov)
+  have rd3713 := rd3712.sgt (by decide +native) (by evm_ov)
+  have rd3714 := rd3713.iszero (by decide +native) (by evm_ov)
+  have rd3717 := rd3714.push2 ⟨3417⟩ (by decide +native) (by evm_ov)
   have rd6557 := evm_run rd3717 with [
-    raw dup11 (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push2 ⟨6557⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw dup11 (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push2 ⟨6557⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have hmemBase : 64 ≤ memBase.size := by
     exact frobIlkArtUpdatedMem_ge64 σ I urnInkNew urnArtNew ilkArtNew
   have hmemU : 64 ≤ memU.size := by
@@ -6733,26 +6733,26 @@ theorem RD.vatFrobVWishCheckRevert
       frobIWord I :: ⟨524⟩ :: sel :: [])
     rd6599 (by jump_dest) (by simp)
   have rd3723 := evm_run rd3417 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨6791⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3727 := evm_run rd3723 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨3792⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨3792⟩ (by decide +native) (by evm_ov)]
   have rdFall := by
     simpa [σDebt, memBase, memU, shortcut, wish, frobVWishSlot] using
-      rd3727.jumpiNT (by native_decide) hwish (by evm_ov)
+      rd3727.jumpiNT (by decide +native) hwish (by evm_ov)
   exact RD.solcErrorStringRevertTail576
     (code := vatBytecode) (pc := ⟨3728⟩) (len := ⟨17⟩)
     (rawWord := ⟨14696910969625138635756632684136422839995⟩) (shift := ⟨121⟩)
     (word := UInt256.shiftLeft ⟨14696910969625138635756632684136422839995⟩ ⟨121⟩)
     (op := .PUSH17) (width := 17) rdFall
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
-    (by native_decide) rfl
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
+    (by decide +native) rfl
     (by
       exact twoWordHashMem_size_576 (hopeSourceWord I)
         (solcMappingSlot ⟨1⟩ (frobVMaskedWord I))
@@ -6832,18 +6832,18 @@ theorem RD.vatFrobWWishCheckSuccess
     UInt256.lor
       (UInt256.eq (vatSlotWord (frobWWishSlot I) σDebt I) ⟨1⟩)
       (UInt256.eq (frobWMaskedWord I) (hopeSourceWord I))
-  have rd3793 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3796 := rd3793.push2 ⟨3810⟩ (by native_decide) (by evm_ov)
-  have rd3798 := rd3796.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3799 := rd3798.dup7 (by native_decide) (by evm_ov)
-  have rd3800 := rd3799.slt (by native_decide) (by evm_ov)
-  have rd3801 := rd3800.iszero (by native_decide) (by evm_ov)
-  have rd3804 := rd3801.push2 ⟨3417⟩ (by native_decide) (by evm_ov)
+  have rd3793 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3796 := rd3793.push2 ⟨3810⟩ (by decide +native) (by evm_ov)
+  have rd3798 := rd3796.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3799 := rd3798.dup7 (by decide +native) (by evm_ov)
+  have rd3800 := rd3799.slt (by decide +native) (by evm_ov)
+  have rd3801 := rd3800.iszero (by decide +native) (by evm_ov)
+  have rd3804 := rd3801.push2 ⟨3417⟩ (by decide +native) (by evm_ov)
   have rd6557 := evm_run rd3804 with [
-    raw dup10 (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push2 ⟨6557⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw dup10 (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push2 ⟨6557⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have hmemBase : 64 ≤ memBase.size := by
     exact frobIlkArtUpdatedMem_ge64 σ I urnInkNew urnArtNew ilkArtNew
   have hmemU : 64 ≤ memU.size := by
@@ -6885,19 +6885,19 @@ theorem RD.vatFrobWWishCheckSuccess
       frobIWord I :: ⟨524⟩ :: sel :: [])
     rd6599 (by jump_dest) (by simp)
   have rd3810 := evm_run rd3417 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨6791⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3814 := evm_run rd3810 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨3879⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨3879⟩ (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [σDebt, memBase, memU, memV, shortcut, wish, frobWWishSlot] using
-      rd3814.jumpiT (by native_decide) hwish (by jump_dest) (by evm_ov)⟩
+      rd3814.jumpiT (by decide +native) hwish (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatFrobWWishCheckRevert
@@ -6935,18 +6935,18 @@ theorem RD.vatFrobWWishCheckRevert
     UInt256.lor
       (UInt256.eq (vatSlotWord (frobWWishSlot I) σDebt I) ⟨1⟩)
       (UInt256.eq (frobWMaskedWord I) (hopeSourceWord I))
-  have rd3793 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3796 := rd3793.push2 ⟨3810⟩ (by native_decide) (by evm_ov)
-  have rd3798 := rd3796.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3799 := rd3798.dup7 (by native_decide) (by evm_ov)
-  have rd3800 := rd3799.slt (by native_decide) (by evm_ov)
-  have rd3801 := rd3800.iszero (by native_decide) (by evm_ov)
-  have rd3804 := rd3801.push2 ⟨3417⟩ (by native_decide) (by evm_ov)
+  have rd3793 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3796 := rd3793.push2 ⟨3810⟩ (by decide +native) (by evm_ov)
+  have rd3798 := rd3796.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3799 := rd3798.dup7 (by decide +native) (by evm_ov)
+  have rd3800 := rd3799.slt (by decide +native) (by evm_ov)
+  have rd3801 := rd3800.iszero (by decide +native) (by evm_ov)
+  have rd3804 := rd3801.push2 ⟨3417⟩ (by decide +native) (by evm_ov)
   have rd6557 := evm_run rd3804 with [
-    raw dup10 (by native_decide) (by evm_ov),
-    raw caller (by native_decide) (by evm_ov),
-    raw push2 ⟨6557⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw dup10 (by decide +native) (by evm_ov),
+    raw caller (by decide +native) (by evm_ov),
+    raw push2 ⟨6557⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have hmemBase : 64 ≤ memBase.size := by
     exact frobIlkArtUpdatedMem_ge64 σ I urnInkNew urnArtNew ilkArtNew
   have hmemU : 64 ≤ memU.size := by
@@ -6988,26 +6988,26 @@ theorem RD.vatFrobWWishCheckRevert
       frobIWord I :: ⟨524⟩ :: sel :: [])
     rd6599 (by jump_dest) (by simp)
   have rd3810 := evm_run rd3417 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨6791⟩ (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov),
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨6791⟩ (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov),
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3814 := evm_run rd3810 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨3879⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨3879⟩ (by decide +native) (by evm_ov)]
   have rdFall := by
     simpa [σDebt, memBase, memU, memV, shortcut, wish, frobWWishSlot] using
-      rd3814.jumpiNT (by native_decide) hwish (by evm_ov)
+      rd3814.jumpiNT (by decide +native) hwish (by evm_ov)
   exact RD.solcErrorStringRevertTail576
     (code := vatBytecode) (pc := ⟨3815⟩) (len := ⟨17⟩)
     (rawWord := ⟨29393821939250277271513265368272845679991⟩) (shift := ⟨120⟩)
     (word := UInt256.shiftLeft ⟨29393821939250277271513265368272845679991⟩ ⟨120⟩)
     (op := .PUSH17) (width := 17) rdFall
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
-    (by native_decide) rfl
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
+    (by decide +native) rfl
     (by
       exact twoWordHashMem_size_576 (hopeSourceWord I)
         (solcMappingSlot ⟨1⟩ (frobWMaskedWord I))
@@ -7192,12 +7192,12 @@ theorem RD.vatFrobDustCheckSuccess
     · rw [twoWordHashMem_size_of_ge64]
       · rw [hmemVSize]
       · rw [hmemVSize]; omega
-  have rd3880 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3883 := rd3880.push2 ⟨3903⟩ (by native_decide) (by evm_ov)
-  have rd3884 := rd3883.dup5 (by native_decide) (by evm_ov)
-  have rd3886 := rd3884.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3887raw := rd3886.add (by native_decide) (by evm_ov)
-  have hoff224 : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
+  have rd3880 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3883 := rd3880.push2 ⟨3903⟩ (by decide +native) (by evm_ov)
+  have rd3884 := rd3883.dup5 (by decide +native) (by evm_ov)
+  have rd3886 := rd3884.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3887raw := rd3886.add (by decide +native) (by evm_ov)
+  have hoff224 : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by decide +native
   have hmload224 :
       (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥ memW.size
           ∨ ((⟨192⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -7208,19 +7208,19 @@ theorem RD.vatFrobDustCheckSuccess
     rw [hoff224]
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨224⟩ : UInt256).toNat = 224 from by decide, hmemWSize]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨224⟩ : UInt256).toNat = 224 from by decide] using hread224)
   have rd3887raw' := rd3887raw.mload 0 urnArtNew (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload224 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload224 (by decide +native) (by evm_ov)
   have rd3887 := by
     simpa [hoff224, memW] using rd3887raw'
-  have rd3888 := rd3887.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3890 := rd3888.eq (by native_decide) (by evm_ov)
-  have rd3891 := rd3890.dup5 (by native_decide) (by evm_ov)
-  have rd3892 := rd3891.push1 ⟨128⟩ (by native_decide) (by evm_ov)
-  have rd3895raw := rd3892.add (by native_decide) (by evm_ov)
-  have hoff544 : (⟨416⟩ : UInt256) + ⟨128⟩ = ⟨544⟩ := by native_decide
+  have rd3888 := rd3887.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3890 := rd3888.eq (by decide +native) (by evm_ov)
+  have rd3891 := rd3890.dup5 (by decide +native) (by evm_ov)
+  have rd3892 := rd3891.push1 ⟨128⟩ (by decide +native) (by evm_ov)
+  have rd3895raw := rd3892.add (by decide +native) (by evm_ov)
+  have hoff544 : (⟨416⟩ : UInt256) + ⟨128⟩ = ⟨544⟩ := by decide +native
   have hmload544 :
       (if ((⟨416⟩ : UInt256) + ⟨128⟩).toNat ≥ memW.size
           ∨ ((⟨416⟩ : UInt256) + ⟨128⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -7231,29 +7231,29 @@ theorem RD.vatFrobDustCheckSuccess
     rw [hoff544]
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨544⟩ : UInt256).toNat = 544 from by decide, hmemWSize]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨544⟩ : UInt256).toNat = 544 from by decide] using hread544)
   have rd3895raw' := rd3895raw.mload 0 dust (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload544 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload544 (by decide +native) (by evm_ov)
   have rd3895 := by
     simpa [hoff544, memW] using rd3895raw'
-  have rd3896 := rd3895.dup4 (by native_decide) (by evm_ov)
-  have rd3897 := rd3896.lt (by native_decide) (by evm_ov)
-  have rd3898 := rd3897.iszero (by native_decide) (by evm_ov)
-  have rd3902 := rd3898.push2 ⟨6791⟩ (by native_decide) (by evm_ov)
-  have rd6791 := rd3902.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3896 := rd3895.dup4 (by decide +native) (by evm_ov)
+  have rd3897 := rd3896.lt (by decide +native) (by evm_ov)
+  have rd3898 := rd3897.iszero (by decide +native) (by evm_ov)
+  have rd3902 := rd3898.push2 ⟨6791⟩ (by decide +native) (by evm_ov)
+  have rd6791 := rd3902.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd3903 := evm_run rd6791 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3907 := evm_run rd3903 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨3963⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨3963⟩ (by decide +native) (by evm_ov)]
   exact ⟨_, _, by
     simpa [memW, dust] using
-      rd3907.jumpiT (by native_decide) hdust (by jump_dest) (by evm_ov)⟩
+      rd3907.jumpiT (by decide +native) hdust (by jump_dest) (by evm_ov)⟩
 
 set_option maxHeartbeats 1000000 in
 theorem RD.vatFrobDustCheckRevert
@@ -7375,12 +7375,12 @@ theorem RD.vatFrobDustCheckRevert
     · rw [twoWordHashMem_size_of_ge64]
       · rw [hmemVSize]
       · rw [hmemVSize]; omega
-  have rd3880 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3883 := rd3880.push2 ⟨3903⟩ (by native_decide) (by evm_ov)
-  have rd3884 := rd3883.dup5 (by native_decide) (by evm_ov)
-  have rd3886 := rd3884.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3887raw := rd3886.add (by native_decide) (by evm_ov)
-  have hoff224 : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by native_decide
+  have rd3880 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3883 := rd3880.push2 ⟨3903⟩ (by decide +native) (by evm_ov)
+  have rd3884 := rd3883.dup5 (by decide +native) (by evm_ov)
+  have rd3886 := rd3884.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3887raw := rd3886.add (by decide +native) (by evm_ov)
+  have hoff224 : (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ := by decide +native
   have hmload224 :
       (if ((⟨192⟩ : UInt256) + ⟨32⟩).toNat ≥ memW.size
           ∨ ((⟨192⟩ : UInt256) + ⟨32⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -7391,19 +7391,19 @@ theorem RD.vatFrobDustCheckRevert
     rw [hoff224]
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨224⟩ : UInt256).toNat = 224 from by decide, hmemWSize]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨224⟩ : UInt256).toNat = 224 from by decide] using hread224)
   have rd3887raw' := rd3887raw.mload 0 urnArtNew (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload224 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload224 (by decide +native) (by evm_ov)
   have rd3887 := by
     simpa [hoff224, memW] using rd3887raw'
-  have rd3888 := rd3887.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3890 := rd3888.eq (by native_decide) (by evm_ov)
-  have rd3891 := rd3890.dup5 (by native_decide) (by evm_ov)
-  have rd3892 := rd3891.push1 ⟨128⟩ (by native_decide) (by evm_ov)
-  have rd3895raw := rd3892.add (by native_decide) (by evm_ov)
-  have hoff544 : (⟨416⟩ : UInt256) + ⟨128⟩ = ⟨544⟩ := by native_decide
+  have rd3888 := rd3887.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3890 := rd3888.eq (by decide +native) (by evm_ov)
+  have rd3891 := rd3890.dup5 (by decide +native) (by evm_ov)
+  have rd3892 := rd3891.push1 ⟨128⟩ (by decide +native) (by evm_ov)
+  have rd3895raw := rd3892.add (by decide +native) (by evm_ov)
+  have hoff544 : (⟨416⟩ : UInt256) + ⟨128⟩ = ⟨544⟩ := by decide +native
   have hmload544 :
       (if ((⟨416⟩ : UInt256) + ⟨128⟩).toNat ≥ memW.size
           ∨ ((⟨416⟩ : UInt256) + ⟨128⟩) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -7414,36 +7414,36 @@ theorem RD.vatFrobDustCheckRevert
     rw [hoff544]
     exact mloadWordValue_of_readWithPadding
       (by rw [show (⟨544⟩ : UInt256).toNat = 544 from by decide, hmemWSize]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         simpa [show (⟨544⟩ : UInt256).toNat = 544 from by decide] using hread544)
   have rd3895raw' := rd3895raw.mload 0 dust (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload544 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload544 (by decide +native) (by evm_ov)
   have rd3895 := by
     simpa [hoff544, memW] using rd3895raw'
-  have rd3896 := rd3895.dup4 (by native_decide) (by evm_ov)
-  have rd3897 := rd3896.lt (by native_decide) (by evm_ov)
-  have rd3898 := rd3897.iszero (by native_decide) (by evm_ov)
-  have rd3902 := rd3898.push2 ⟨6791⟩ (by native_decide) (by evm_ov)
-  have rd6791 := rd3902.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3896 := rd3895.dup4 (by decide +native) (by evm_ov)
+  have rd3897 := rd3896.lt (by decide +native) (by evm_ov)
+  have rd3898 := rd3897.iszero (by decide +native) (by evm_ov)
+  have rd3902 := rd3898.push2 ⟨6791⟩ (by decide +native) (by evm_ov)
+  have rd6791 := rd3902.jump (by decide +native) (by jump_dest) (by evm_ov)
   have rd3903 := evm_run rd6791 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw or (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov),
-    raw jump (by native_decide) (by jump_dest) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw or (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov),
+    raw jump (by decide +native) (by jump_dest) (by evm_ov)]
   have rd3907 := evm_run rd3903 with [
-    raw jumpdest (by native_decide) (by evm_ov),
-    raw push2 ⟨3963⟩ (by native_decide) (by evm_ov)]
+    raw jumpdest (by decide +native) (by evm_ov),
+    raw push2 ⟨3963⟩ (by decide +native) (by evm_ov)]
   have rdFall := by
     simpa [memW, dust] using
-      rd3907.jumpiNT (by native_decide) hdust (by evm_ov)
+      rd3907.jumpiNT (by decide +native) hdust (by evm_ov)
   exact RD.solcErrorStringRevertTail576
     (code := vatBytecode) (pc := ⟨3908⟩) (len := ⟨8⟩)
     (rawWord := ⟨1556095976725109981⟩) (shift := ⟨194⟩)
     (word := UInt256.shiftLeft ⟨1556095976725109981⟩ ⟨194⟩)
     (op := .PUSH8) (width := 8) rdFall
-    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | native_decide)
-    (by native_decide) rfl
+    (by unfold solcErrorStringRevertTailWf; repeat' first | apply And.intro | decide +native)
+    (by decide +native) rfl
     hmemWSize
     (by
       exact twoWordHashMem_read64_of_size576 (hopeSourceWord I)
@@ -7574,37 +7574,37 @@ theorem RD.vatFrobGemSubSuccess
   let gemBase := solcMappingSlot ⟨4⟩ (frobIWord I)
   let gemSlot := frobGemVSlot I
   let gemOld := solcSlotWord σ I gemSlot
-  have rd3964 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3966 := rd3964.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3967 := rd3966.dup11 (by native_decide) (by evm_ov)
-  have rd3968 := rd3967.dup2 (by native_decide) (by evm_ov)
+  have rd3964 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3966 := rd3964.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3967 := rd3966.dup11 (by decide +native) (by evm_ov)
+  have rd3968 := rd3967.dup2 (by decide +native) (by evm_ov)
   have rd3969 := rd3968.mstore 0 (wordAt0Mem (frobIWord I) mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3971 := rd3969.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd3973 := rd3971.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3974 := rd3973.swap1 (by native_decide) (by evm_ov)
-  have rd3975 := rd3974.dup2 (by native_decide) (by evm_ov)
+  have rd3971 := rd3969.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd3973 := rd3971.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3974 := rd3973.swap1 (by decide +native) (by evm_ov)
+  have rd3975 := rd3974.dup2 (by decide +native) (by evm_ov)
   have rd3976 := rd3975.mstore 0 (twoWordHashMem (frobIWord I) ⟨4⟩ mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3978 := rd3976.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd3979 := rd3978.dup1 (by native_decide) (by evm_ov)
-  have rd3980 := rd3979.dup4 (by native_decide) (by evm_ov)
+  have rd3978 := rd3976.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd3979 := rd3978.dup1 (by decide +native) (by evm_ov)
+  have rd3980 := rd3979.dup4 (by decide +native) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (frobIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     exact twoWordHashMem_solcMappingSlot_of_ge64 ⟨4⟩ (frobIWord I) hmem
-  have rd3981 := rd3980.keccak256 0 gemBase (UInt256.ofNat 18) (by native_decide)
-    mem_cost hgemBase (by native_decide) (by evm_ov)
-  have rd3983 := rd3981.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3985 := rd3983.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3987 := rd3985.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd3988 := rd3987.shl (by native_decide) (by evm_ov)
-  have rd3989 := rd3988.sub (by native_decide) (by evm_ov)
-  have rd3990 := rd3989.dup13 (by native_decide) (by evm_ov)
-  have rd3991pre := rd3990.and (by native_decide) (by evm_ov)
+  have rd3981 := rd3980.keccak256 0 gemBase (UInt256.ofNat 18) (by decide +native)
+    mem_cost hgemBase (by decide +native) (by evm_ov)
+  have rd3983 := rd3981.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3985 := rd3983.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3987 := rd3985.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd3988 := rd3987.shl (by decide +native) (by evm_ov)
+  have rd3989 := rd3988.sub (by decide +native) (by evm_ov)
+  have rd3990 := rd3989.dup13 (by decide +native) (by evm_ov)
+  have rd3991pre := rd3990.and (by decide +native) (by evm_ov)
   have hmask :
       UInt256.land (frobVMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -7613,19 +7613,19 @@ theorem RD.vatFrobGemSubSuccess
       solcAddrMask from by decide]
     exact frobVMaskedWord_clean I
   rw [hmask] at rd3991pre
-  have rd3992 := rd3991pre.dup5 (by native_decide) (by evm_ov)
+  have rd3992 := rd3991pre.dup5 (by decide +native) (by evm_ov)
   have rd3993 := rd3992.mstore 0
     (wordAt0Mem (frobVMaskedWord I) (twoWordHashMem (frobIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3994 := rd3993.swap1 (by native_decide) (by evm_ov)
-  have rd3995 := rd3994.swap2 (by native_decide) (by evm_ov)
+  have rd3994 := rd3993.swap1 (by decide +native) (by evm_ov)
+  have rd3995 := rd3994.swap2 (by decide +native) (by evm_ov)
   have rd3996 := rd3995.mstore 0
     (twoWordHashMem (frobVMaskedWord I) gemBase
       (twoWordHashMem (frobIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3997 := rd3996.swap1 (by native_decide) (by evm_ov)
+  have rd3997 := rd3996.swap1 (by decide +native) (by evm_ov)
   have hmemGemBase :
       64 ≤ (twoWordHashMem (frobIWord I) ⟨4⟩ mem).size := by
     rw [twoWordHashMem_size_of_ge64]
@@ -7639,8 +7639,8 @@ theorem RD.vatFrobGemSubSuccess
     simpa [gemSlot, frobGemVSlot, gemBase] using
       twoWordHashMem_solcMappingSlot_of_ge64 gemBase (frobVMaskedWord I) hmemGemBase
   have rd3998 := rd3997.keccak256 0 gemSlot (UInt256.ofNat 18)
-    (by native_decide) mem_cost hgemSlot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3999raw⟩ := rd3998.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hgemSlot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3999raw⟩ := rd3998.sload (by decide +native) (by evm_ov)
   have hrd3999 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨3999⟩
         [gemOld, tab, dtabWord, ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
@@ -7651,11 +7651,11 @@ theorem RD.vatFrobGemSubSuccess
         (UInt256.ofNat 18) ByteArray.empty (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [gemOld, gemSlot, solcSlotWord] using rd3999raw⟩
   obtain ⟨_, _, rd3999⟩ := hrd3999
-  have rd4002 := rd3999.push2 ⟨4008⟩ (by native_decide) (by evm_ov)
-  have rd4003 := rd4002.swap1 (by native_decide) (by evm_ov)
-  have rd4004 := rd4003.dup8 (by native_decide) (by evm_ov)
-  have rd4007 := rd4004.push2 ⟨6795⟩ (by native_decide) (by evm_ov)
-  have rd6795 := rd4007.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4002 := rd3999.push2 ⟨4008⟩ (by decide +native) (by evm_ov)
+  have rd4003 := rd4002.swap1 (by decide +native) (by evm_ov)
+  have rd4004 := rd4003.dup8 (by decide +native) (by evm_ov)
+  have rd4007 := rd4004.push2 ⟨6795⟩ (by decide +native) (by evm_ov)
+  have rd6795 := rd4007.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4008⟩ := RD.vatSignedSubOk
     (x := gemOld) (y := frobDinkWord I) (ret := ⟨4008⟩)
     (R := tab :: dtabWord :: (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) ::
@@ -7694,37 +7694,37 @@ theorem RD.vatFrobGemSubRevert
   let gemBase := solcMappingSlot ⟨4⟩ (frobIWord I)
   let gemSlot := frobGemVSlot I
   let gemOld := solcSlotWord σ I gemSlot
-  have rd3964 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd3966 := rd3964.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd3967 := rd3966.dup11 (by native_decide) (by evm_ov)
-  have rd3968 := rd3967.dup2 (by native_decide) (by evm_ov)
+  have rd3964 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd3966 := rd3964.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd3967 := rd3966.dup11 (by decide +native) (by evm_ov)
+  have rd3968 := rd3967.dup2 (by decide +native) (by evm_ov)
   have rd3969 := rd3968.mstore 0 (wordAt0Mem (frobIWord I) mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3971 := rd3969.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd3973 := rd3971.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd3974 := rd3973.swap1 (by native_decide) (by evm_ov)
-  have rd3975 := rd3974.dup2 (by native_decide) (by evm_ov)
+  have rd3971 := rd3969.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd3973 := rd3971.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd3974 := rd3973.swap1 (by decide +native) (by evm_ov)
+  have rd3975 := rd3974.dup2 (by decide +native) (by evm_ov)
   have rd3976 := rd3975.mstore 0 (twoWordHashMem (frobIWord I) ⟨4⟩ mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3978 := rd3976.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd3979 := rd3978.dup1 (by native_decide) (by evm_ov)
-  have rd3980 := rd3979.dup4 (by native_decide) (by evm_ov)
+  have rd3978 := rd3976.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd3979 := rd3978.dup1 (by decide +native) (by evm_ov)
+  have rd3980 := rd3979.dup4 (by decide +native) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (frobIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     exact twoWordHashMem_solcMappingSlot_of_ge64 ⟨4⟩ (frobIWord I) hmem
   have rd3981 := rd3980.keccak256 0 gemBase (UInt256.ofNat 18)
-    (by native_decide) mem_cost hgemBase (by native_decide) (by evm_ov)
-  have rd3983 := rd3981.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3985 := rd3983.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd3987 := rd3985.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd3988 := rd3987.shl (by native_decide) (by evm_ov)
-  have rd3989 := rd3988.sub (by native_decide) (by evm_ov)
-  have rd3990 := rd3989.dup13 (by native_decide) (by evm_ov)
-  have rd3991pre := rd3990.and (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hgemBase (by decide +native) (by evm_ov)
+  have rd3983 := rd3981.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3985 := rd3983.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd3987 := rd3985.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd3988 := rd3987.shl (by decide +native) (by evm_ov)
+  have rd3989 := rd3988.sub (by decide +native) (by evm_ov)
+  have rd3990 := rd3989.dup13 (by decide +native) (by evm_ov)
+  have rd3991pre := rd3990.and (by decide +native) (by evm_ov)
   have hmask :
       UInt256.land (frobVMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -7733,19 +7733,19 @@ theorem RD.vatFrobGemSubRevert
       solcAddrMask from by decide]
     exact frobVMaskedWord_clean I
   rw [hmask] at rd3991pre
-  have rd3992 := rd3991pre.dup5 (by native_decide) (by evm_ov)
+  have rd3992 := rd3991pre.dup5 (by decide +native) (by evm_ov)
   have rd3993 := rd3992.mstore 0
     (wordAt0Mem (frobVMaskedWord I) (twoWordHashMem (frobIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3994 := rd3993.swap1 (by native_decide) (by evm_ov)
-  have rd3995 := rd3994.swap2 (by native_decide) (by evm_ov)
+  have rd3994 := rd3993.swap1 (by decide +native) (by evm_ov)
+  have rd3995 := rd3994.swap2 (by decide +native) (by evm_ov)
   have rd3996 := rd3995.mstore 0
     (twoWordHashMem (frobVMaskedWord I) gemBase
       (twoWordHashMem (frobIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd3997 := rd3996.swap1 (by native_decide) (by evm_ov)
+  have rd3997 := rd3996.swap1 (by decide +native) (by evm_ov)
   have hmemGemBase :
       64 ≤ (twoWordHashMem (frobIWord I) ⟨4⟩ mem).size := by
     rw [twoWordHashMem_size_of_ge64]
@@ -7759,8 +7759,8 @@ theorem RD.vatFrobGemSubRevert
     simpa [gemSlot, frobGemVSlot, gemBase] using
       twoWordHashMem_solcMappingSlot_of_ge64 gemBase (frobVMaskedWord I) hmemGemBase
   have rd3998 := rd3997.keccak256 0 gemSlot (UInt256.ofNat 18)
-    (by native_decide) mem_cost hgemSlot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd3999raw⟩ := rd3998.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hgemSlot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd3999raw⟩ := rd3998.sload (by decide +native) (by evm_ov)
   have hrd3999 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨3999⟩
         [gemOld, tab, dtabWord, ⟨416⟩, ⟨192⟩, frobDartWord I, frobDinkWord I,
@@ -7771,11 +7771,11 @@ theorem RD.vatFrobGemSubRevert
         (UInt256.ofNat 18) ByteArray.empty (cA, σ) k' C' := by
     exact ⟨_, _, by simpa [gemOld, gemSlot, solcSlotWord] using rd3999raw⟩
   obtain ⟨_, _, rd3999⟩ := hrd3999
-  have rd4002 := rd3999.push2 ⟨4008⟩ (by native_decide) (by evm_ov)
-  have rd4003 := rd4002.swap1 (by native_decide) (by evm_ov)
-  have rd4004 := rd4003.dup8 (by native_decide) (by evm_ov)
-  have rd4007 := rd4004.push2 ⟨6795⟩ (by native_decide) (by evm_ov)
-  have rd6795 := rd4007.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4002 := rd3999.push2 ⟨4008⟩ (by decide +native) (by evm_ov)
+  have rd4003 := rd4002.swap1 (by decide +native) (by evm_ov)
+  have rd4004 := rd4003.dup8 (by decide +native) (by evm_ov)
+  have rd4007 := rd4004.push2 ⟨6795⟩ (by decide +native) (by evm_ov)
+  have rd6795 := rd4007.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedSubRevert
     (x := gemOld) (y := frobDinkWord I) (ret := ⟨4008⟩)
     (R := tab :: dtabWord :: (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) ::
@@ -7830,38 +7830,38 @@ theorem RD.vatFrobGemStoreDaiAddSuccess
   let daiSlot := frobDaiWSlot I
   let daiOld := solcSlotWord σGem I daiSlot
   let daiNew := dtabWord + daiOld
-  have rd4009 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4011 := rd4009.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4012 := rd4011.dup12 (by native_decide) (by evm_ov)
-  have rd4013 := rd4012.dup2 (by native_decide) (by evm_ov)
+  have rd4009 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4011 := rd4009.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4012 := rd4011.dup12 (by decide +native) (by evm_ov)
+  have rd4013 := rd4012.dup2 (by decide +native) (by evm_ov)
   have rd4014 := rd4013.mstore 0 (wordAt0Mem (frobIWord I) mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4016 := rd4014.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd4018 := rd4016.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4019 := rd4018.swap1 (by native_decide) (by evm_ov)
-  have rd4020 := rd4019.dup2 (by native_decide) (by evm_ov)
+  have rd4016 := rd4014.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd4018 := rd4016.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4019 := rd4018.swap1 (by decide +native) (by evm_ov)
+  have rd4020 := rd4019.dup2 (by decide +native) (by evm_ov)
   have rd4021 := rd4020.mstore 0 (twoWordHashMem (frobIWord I) ⟨4⟩ mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4023 := rd4021.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4024 := rd4023.dup1 (by native_decide) (by evm_ov)
-  have rd4025 := rd4024.dup4 (by native_decide) (by evm_ov)
+  have rd4023 := rd4021.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4024 := rd4023.dup1 (by decide +native) (by evm_ov)
+  have rd4025 := rd4024.dup4 (by decide +native) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (frobIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     exact twoWordHashMem_solcMappingSlot_of_ge64 ⟨4⟩ (frobIWord I) hmem
-  have rd4026 := rd4025.keccak256 0 gemBase (UInt256.ofNat 18) (by native_decide)
-    mem_cost hgemBase (by native_decide) (by evm_ov)
-  have rd4028 := rd4026.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4030 := rd4028.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4032 := rd4030.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4033 := rd4032.shl (by native_decide) (by evm_ov)
-  have rd4034 := rd4033.sub (by native_decide) (by evm_ov)
-  have rd4035 := rd4034.dup1 (by native_decide) (by evm_ov)
-  have rd4036 := rd4035.dup15 (by native_decide) (by evm_ov)
-  have rd4037pre := rd4036.and (by native_decide) (by evm_ov)
+  have rd4026 := rd4025.keccak256 0 gemBase (UInt256.ofNat 18) (by decide +native)
+    mem_cost hgemBase (by decide +native) (by evm_ov)
+  have rd4028 := rd4026.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4030 := rd4028.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4032 := rd4030.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4033 := rd4032.shl (by decide +native) (by evm_ov)
+  have rd4034 := rd4033.sub (by decide +native) (by evm_ov)
+  have rd4035 := rd4034.dup1 (by decide +native) (by evm_ov)
+  have rd4036 := rd4035.dup15 (by decide +native) (by evm_ov)
+  have rd4037pre := rd4036.and (by decide +native) (by evm_ov)
   have hmaskV :
       UInt256.land (frobVMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -7870,20 +7870,20 @@ theorem RD.vatFrobGemStoreDaiAddSuccess
       solcAddrMask from by decide]
     exact frobVMaskedWord_clean I
   rw [hmaskV] at rd4037pre
-  have rd4038 := rd4037pre.dup6 (by native_decide) (by evm_ov)
+  have rd4038 := rd4037pre.dup6 (by decide +native) (by evm_ov)
   have rd4039 := rd4038.mstore 0
     (wordAt0Mem (frobVMaskedWord I) (twoWordHashMem (frobIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4040 := rd4039.swap1 (by native_decide) (by evm_ov)
-  have rd4041 := rd4040.dup4 (by native_decide) (by evm_ov)
+  have rd4040 := rd4039.swap1 (by decide +native) (by evm_ov)
+  have rd4041 := rd4040.dup4 (by decide +native) (by evm_ov)
   have rd4042 := rd4041.mstore 0
     (twoWordHashMem (frobVMaskedWord I) gemBase
       (twoWordHashMem (frobIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4043 := rd4042.dup2 (by native_decide) (by evm_ov)
-  have rd4044 := rd4043.dup5 (by native_decide) (by evm_ov)
+  have rd4043 := rd4042.dup2 (by decide +native) (by evm_ov)
+  have rd4044 := rd4043.dup5 (by decide +native) (by evm_ov)
   have hmemGemBase :
       64 ≤ (twoWordHashMem (frobIWord I) ⟨4⟩ mem).size := by
     rw [twoWordHashMem_size_of_ge64]
@@ -7897,11 +7897,11 @@ theorem RD.vatFrobGemStoreDaiAddSuccess
     simpa [gemSlot, frobGemVSlot, gemBase] using
       twoWordHashMem_solcMappingSlot_of_ge64 gemBase (frobVMaskedWord I) hmemGemBase
   have rd4045 := rd4044.keccak256 0 gemSlot (UInt256.ofNat 18)
-    (by native_decide) mem_cost hgemSlot (by native_decide) (by evm_ov)
-  have rd4046 := rd4045.swap5 (by native_decide) (by evm_ov)
-  have rd4047 := rd4046.swap1 (by native_decide) (by evm_ov)
-  have rd4048pre := rd4047.swap5 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4049raw⟩ := rd4048pre.sstore hperm (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hgemSlot (by decide +native) (by evm_ov)
+  have rd4046 := rd4045.swap5 (by decide +native) (by evm_ov)
+  have rd4047 := rd4046.swap1 (by decide +native) (by evm_ov)
+  have rd4048pre := rd4047.swap5 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4049raw⟩ := rd4048pre.sstore hperm (by decide +native) (by evm_ov)
   have rd4049 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4049⟩
         [⟨64⟩, ⟨32⟩, ⟨0⟩,
@@ -7915,9 +7915,9 @@ theorem RD.vatFrobGemStoreDaiAddSuccess
         (UInt256.ofNat 18) ByteArray.empty (cA, σGem) k' C' := by
     exact ⟨_, _, by simpa [σGem, gemSlot, gemBase] using rd4049raw⟩
   obtain ⟨_, _, rd4049'⟩ := rd4049
-  have rd4050 := rd4049'.swap3 (by native_decide) (by evm_ov)
-  have rd4051 := rd4050.dup11 (by native_decide) (by evm_ov)
-  have rd4052pre := rd4051.and (by native_decide) (by evm_ov)
+  have rd4050 := rd4049'.swap3 (by decide +native) (by evm_ov)
+  have rd4051 := rd4050.dup11 (by decide +native) (by evm_ov)
+  have rd4052pre := rd4051.and (by decide +native) (by evm_ov)
   have hmaskW :
       UInt256.land (frobWMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -7926,20 +7926,20 @@ theorem RD.vatFrobGemStoreDaiAddSuccess
       solcAddrMask from by decide]
     exact frobWMaskedWord_clean I
   rw [hmaskW] at rd4052pre
-  have rd4053 := rd4052pre.dup3 (by native_decide) (by evm_ov)
+  have rd4053 := rd4052pre.dup3 (by decide +native) (by evm_ov)
   have rd4054 := rd4053.mstore 0
     (wordAt0Mem (frobWMaskedWord I)
       (twoWordHashMem (frobVMaskedWord I) gemBase
         (twoWordHashMem (frobIWord I) ⟨4⟩ mem)))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4056 := rd4054.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  have rd4057 := rd4056.swap1 (by native_decide) (by evm_ov)
+  have rd4056 := rd4054.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  have rd4057 := rd4056.swap1 (by decide +native) (by evm_ov)
   have rd4058 := rd4057.mstore 0
     (twoWordHashMem (frobWMaskedWord I) ⟨5⟩
       (twoWordHashMem (frobVMaskedWord I) gemBase
         (twoWordHashMem (frobIWord I) ⟨4⟩ mem)))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have hmemGem :
       64 ≤ (twoWordHashMem (frobVMaskedWord I) gemBase
@@ -7956,8 +7956,8 @@ theorem RD.vatFrobGemStoreDaiAddSuccess
     simpa [daiSlot, frobDaiWSlot] using
       twoWordHashMem_solcMappingSlot_of_ge64 ⟨5⟩ (frobWMaskedWord I) hmemGem
   have rd4059 := rd4058.keccak256 0 daiSlot (UInt256.ofNat 18)
-    (by native_decide) mem_cost hdaiSlot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4060raw⟩ := rd4059.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hdaiSlot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4060raw⟩ := rd4059.sload (by decide +native) (by evm_ov)
   have hrd4060 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4060⟩
         [daiOld, tab, dtabWord, ⟨416⟩, ⟨192⟩, frobDartWord I,
@@ -7969,11 +7969,11 @@ theorem RD.vatFrobGemStoreDaiAddSuccess
         (UInt256.ofNat 18) ByteArray.empty (cA, σGem) k' C' := by
     exact ⟨_, _, by simpa [daiOld, daiSlot, solcSlotWord] using rd4060raw⟩
   obtain ⟨_, _, rd4060⟩ := hrd4060
-  have rd4063 := rd4060.push2 ⟨4069⟩ (by native_decide) (by evm_ov)
-  have rd4064 := rd4063.swap1 (by native_decide) (by evm_ov)
-  have rd4065 := rd4064.dup4 (by native_decide) (by evm_ov)
-  have rd4068 := rd4065.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4068.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4063 := rd4060.push2 ⟨4069⟩ (by decide +native) (by evm_ov)
+  have rd4064 := rd4063.swap1 (by decide +native) (by evm_ov)
+  have rd4065 := rd4064.dup4 (by decide +native) (by evm_ov)
+  have rd4068 := rd4065.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4068.jump (by decide +native) (by jump_dest) (by evm_ov)
   obtain ⟨_, _, rd4069⟩ := RD.vatSignedAddOk
     (x := daiOld) (y := dtabWord) (ret := ⟨4069⟩)
     (R := tab :: dtabWord :: (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) ::
@@ -8025,38 +8025,38 @@ theorem RD.vatFrobGemStoreDaiAddRevert
   let daiSlot := frobDaiWSlot I
   let daiOld := solcSlotWord σGem I daiSlot
   let daiNew := dtabWord + daiOld
-  have rd4009 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4011 := rd4009.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4012 := rd4011.dup12 (by native_decide) (by evm_ov)
-  have rd4013 := rd4012.dup2 (by native_decide) (by evm_ov)
+  have rd4009 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4011 := rd4009.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4012 := rd4011.dup12 (by decide +native) (by evm_ov)
+  have rd4013 := rd4012.dup2 (by decide +native) (by evm_ov)
   have rd4014 := rd4013.mstore 0 (wordAt0Mem (frobIWord I) mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4016 := rd4014.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd4018 := rd4016.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4019 := rd4018.swap1 (by native_decide) (by evm_ov)
-  have rd4020 := rd4019.dup2 (by native_decide) (by evm_ov)
+  have rd4016 := rd4014.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd4018 := rd4016.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4019 := rd4018.swap1 (by decide +native) (by evm_ov)
+  have rd4020 := rd4019.dup2 (by decide +native) (by evm_ov)
   have rd4021 := rd4020.mstore 0 (twoWordHashMem (frobIWord I) ⟨4⟩ mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4023 := rd4021.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4024 := rd4023.dup1 (by native_decide) (by evm_ov)
-  have rd4025 := rd4024.dup4 (by native_decide) (by evm_ov)
+  have rd4023 := rd4021.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4024 := rd4023.dup1 (by decide +native) (by evm_ov)
+  have rd4025 := rd4024.dup4 (by decide +native) (by evm_ov)
   have hgemBase :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (frobIWord I) ⟨4⟩ mem).readWithPadding 0 64))) =
         gemBase := by
     exact twoWordHashMem_solcMappingSlot_of_ge64 ⟨4⟩ (frobIWord I) hmem
-  have rd4026 := rd4025.keccak256 0 gemBase (UInt256.ofNat 18) (by native_decide)
-    mem_cost hgemBase (by native_decide) (by evm_ov)
-  have rd4028 := rd4026.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4030 := rd4028.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4032 := rd4030.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4033 := rd4032.shl (by native_decide) (by evm_ov)
-  have rd4034 := rd4033.sub (by native_decide) (by evm_ov)
-  have rd4035 := rd4034.dup1 (by native_decide) (by evm_ov)
-  have rd4036 := rd4035.dup15 (by native_decide) (by evm_ov)
-  have rd4037pre := rd4036.and (by native_decide) (by evm_ov)
+  have rd4026 := rd4025.keccak256 0 gemBase (UInt256.ofNat 18) (by decide +native)
+    mem_cost hgemBase (by decide +native) (by evm_ov)
+  have rd4028 := rd4026.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4030 := rd4028.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4032 := rd4030.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4033 := rd4032.shl (by decide +native) (by evm_ov)
+  have rd4034 := rd4033.sub (by decide +native) (by evm_ov)
+  have rd4035 := rd4034.dup1 (by decide +native) (by evm_ov)
+  have rd4036 := rd4035.dup15 (by decide +native) (by evm_ov)
+  have rd4037pre := rd4036.and (by decide +native) (by evm_ov)
   have hmaskV :
       UInt256.land (frobVMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -8065,20 +8065,20 @@ theorem RD.vatFrobGemStoreDaiAddRevert
       solcAddrMask from by decide]
     exact frobVMaskedWord_clean I
   rw [hmaskV] at rd4037pre
-  have rd4038 := rd4037pre.dup6 (by native_decide) (by evm_ov)
+  have rd4038 := rd4037pre.dup6 (by decide +native) (by evm_ov)
   have rd4039 := rd4038.mstore 0
     (wordAt0Mem (frobVMaskedWord I) (twoWordHashMem (frobIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4040 := rd4039.swap1 (by native_decide) (by evm_ov)
-  have rd4041 := rd4040.dup4 (by native_decide) (by evm_ov)
+  have rd4040 := rd4039.swap1 (by decide +native) (by evm_ov)
+  have rd4041 := rd4040.dup4 (by decide +native) (by evm_ov)
   have rd4042 := rd4041.mstore 0
     (twoWordHashMem (frobVMaskedWord I) gemBase
       (twoWordHashMem (frobIWord I) ⟨4⟩ mem))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4043 := rd4042.dup2 (by native_decide) (by evm_ov)
-  have rd4044 := rd4043.dup5 (by native_decide) (by evm_ov)
+  have rd4043 := rd4042.dup2 (by decide +native) (by evm_ov)
+  have rd4044 := rd4043.dup5 (by decide +native) (by evm_ov)
   have hmemGemBase :
       64 ≤ (twoWordHashMem (frobIWord I) ⟨4⟩ mem).size := by
     rw [twoWordHashMem_size_of_ge64]
@@ -8092,11 +8092,11 @@ theorem RD.vatFrobGemStoreDaiAddRevert
     simpa [gemSlot, frobGemVSlot, gemBase] using
       twoWordHashMem_solcMappingSlot_of_ge64 gemBase (frobVMaskedWord I) hmemGemBase
   have rd4045 := rd4044.keccak256 0 gemSlot (UInt256.ofNat 18)
-    (by native_decide) mem_cost hgemSlot (by native_decide) (by evm_ov)
-  have rd4046 := rd4045.swap5 (by native_decide) (by evm_ov)
-  have rd4047 := rd4046.swap1 (by native_decide) (by evm_ov)
-  have rd4048pre := rd4047.swap5 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4049raw⟩ := rd4048pre.sstore hperm (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hgemSlot (by decide +native) (by evm_ov)
+  have rd4046 := rd4045.swap5 (by decide +native) (by evm_ov)
+  have rd4047 := rd4046.swap1 (by decide +native) (by evm_ov)
+  have rd4048pre := rd4047.swap5 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4049raw⟩ := rd4048pre.sstore hperm (by decide +native) (by evm_ov)
   have rd4049 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4049⟩
         [⟨64⟩, ⟨32⟩, ⟨0⟩,
@@ -8110,9 +8110,9 @@ theorem RD.vatFrobGemStoreDaiAddRevert
         (UInt256.ofNat 18) ByteArray.empty (cA, σGem) k' C' := by
     exact ⟨_, _, by simpa [σGem, gemSlot, gemBase] using rd4049raw⟩
   obtain ⟨_, _, rd4049'⟩ := rd4049
-  have rd4050 := rd4049'.swap3 (by native_decide) (by evm_ov)
-  have rd4051 := rd4050.dup11 (by native_decide) (by evm_ov)
-  have rd4052pre := rd4051.and (by native_decide) (by evm_ov)
+  have rd4050 := rd4049'.swap3 (by decide +native) (by evm_ov)
+  have rd4051 := rd4050.dup11 (by decide +native) (by evm_ov)
+  have rd4052pre := rd4051.and (by decide +native) (by evm_ov)
   have hmaskW :
       UInt256.land (frobWMaskedWord I)
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩) =
@@ -8121,20 +8121,20 @@ theorem RD.vatFrobGemStoreDaiAddRevert
       solcAddrMask from by decide]
     exact frobWMaskedWord_clean I
   rw [hmaskW] at rd4052pre
-  have rd4053 := rd4052pre.dup3 (by native_decide) (by evm_ov)
+  have rd4053 := rd4052pre.dup3 (by decide +native) (by evm_ov)
   have rd4054 := rd4053.mstore 0
     (wordAt0Mem (frobWMaskedWord I)
       (twoWordHashMem (frobVMaskedWord I) gemBase
         (twoWordHashMem (frobIWord I) ⟨4⟩ mem)))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4056 := rd4054.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  have rd4057 := rd4056.swap1 (by native_decide) (by evm_ov)
+  have rd4056 := rd4054.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  have rd4057 := rd4056.swap1 (by decide +native) (by evm_ov)
   have rd4058 := rd4057.mstore 0
     (twoWordHashMem (frobWMaskedWord I) ⟨5⟩
       (twoWordHashMem (frobVMaskedWord I) gemBase
         (twoWordHashMem (frobIWord I) ⟨4⟩ mem)))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
   have hmemGem :
       64 ≤ (twoWordHashMem (frobVMaskedWord I) gemBase
@@ -8151,8 +8151,8 @@ theorem RD.vatFrobGemStoreDaiAddRevert
     simpa [daiSlot, frobDaiWSlot] using
       twoWordHashMem_solcMappingSlot_of_ge64 ⟨5⟩ (frobWMaskedWord I) hmemGem
   have rd4059 := rd4058.keccak256 0 daiSlot (UInt256.ofNat 18)
-    (by native_decide) mem_cost hdaiSlot (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4060raw⟩ := rd4059.sload (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hdaiSlot (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4060raw⟩ := rd4059.sload (by decide +native) (by evm_ov)
   have hrd4060 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4060⟩
         [daiOld, tab, dtabWord, ⟨416⟩, ⟨192⟩, frobDartWord I,
@@ -8164,11 +8164,11 @@ theorem RD.vatFrobGemStoreDaiAddRevert
         (UInt256.ofNat 18) ByteArray.empty (cA, σGem) k' C' := by
     exact ⟨_, _, by simpa [daiOld, daiSlot, solcSlotWord] using rd4060raw⟩
   obtain ⟨_, _, rd4060⟩ := hrd4060
-  have rd4063 := rd4060.push2 ⟨4069⟩ (by native_decide) (by evm_ov)
-  have rd4064 := rd4063.swap1 (by native_decide) (by evm_ov)
-  have rd4065 := rd4064.dup4 (by native_decide) (by evm_ov)
-  have rd4068 := rd4065.push2 ⟨6653⟩ (by native_decide) (by evm_ov)
-  have rd6653 := rd4068.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd4063 := rd4060.push2 ⟨4069⟩ (by decide +native) (by evm_ov)
+  have rd4064 := rd4063.swap1 (by decide +native) (by evm_ov)
+  have rd4065 := rd4064.dup4 (by decide +native) (by evm_ov)
+  have rd4068 := rd4065.push2 ⟨6653⟩ (by decide +native) (by evm_ov)
+  have rd6653 := rd4068.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.vatSignedAddRevert
     (x := daiOld) (y := dtabWord) (ret := ⟨4069⟩)
     (R := tab :: dtabWord :: (⟨416⟩ : UInt256) :: (⟨192⟩ : UInt256) ::
@@ -8199,15 +8199,15 @@ theorem RD.vatFrobDaiStoreSuccess
         (cA, sstoreAccountMap I.codeOwner σ (frobDaiWSlot I) daiNew) k' C' := by
   let daiSlot := frobDaiWSlot I
   let σDai := sstoreAccountMap I.codeOwner σ daiSlot daiNew
-  have rd4070 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd4072 := rd4070.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4074 := rd4072.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4076 := rd4074.push1 ⟨160⟩ (by native_decide) (by evm_ov)
-  have rd4077 := rd4076.shl (by native_decide) (by evm_ov)
-  have rd4078 := rd4077.sub (by native_decide) (by evm_ov)
-  have rd4079 := rd4078.swap8 (by native_decide) (by evm_ov)
-  have rd4080 := rd4079.dup9 (by native_decide) (by evm_ov)
-  have rd4081pre := rd4080.and (by native_decide) (by evm_ov)
+  have rd4070 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd4072 := rd4070.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4074 := rd4072.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4076 := rd4074.push1 ⟨160⟩ (by decide +native) (by evm_ov)
+  have rd4077 := rd4076.shl (by decide +native) (by evm_ov)
+  have rd4078 := rd4077.sub (by decide +native) (by evm_ov)
+  have rd4079 := rd4078.swap8 (by decide +native) (by evm_ov)
+  have rd4080 := rd4079.dup9 (by decide +native) (by evm_ov)
+  have rd4081pre := rd4080.and (by decide +native) (by evm_ov)
   have hmaskW :
       UInt256.land
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -8218,22 +8218,22 @@ theorem RD.vatFrobDaiStoreSuccess
       solcAddrMask from by decide]
     exact frobWMaskedWord_clean I
   rw [hmaskW] at rd4081pre
-  have rd4083 := rd4081pre.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd4084 := rd4083.swap1 (by native_decide) (by evm_ov)
-  have rd4085 := rd4084.dup2 (by native_decide) (by evm_ov)
+  have rd4083 := rd4081pre.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd4084 := rd4083.swap1 (by decide +native) (by evm_ov)
+  have rd4085 := rd4084.dup2 (by decide +native) (by evm_ov)
   have rd4086 := rd4085.mstore 0 (wordAt0Mem (frobWMaskedWord I) mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4088 := rd4086.push1 ⟨5⟩ (by native_decide) (by evm_ov)
-  have rd4090 := rd4088.push1 ⟨32⟩ (by native_decide) (by evm_ov)
-  have rd4091 := rd4090.swap1 (by native_decide) (by evm_ov)
-  have rd4092 := rd4091.dup2 (by native_decide) (by evm_ov)
+  have rd4088 := rd4086.push1 ⟨5⟩ (by decide +native) (by evm_ov)
+  have rd4090 := rd4088.push1 ⟨32⟩ (by decide +native) (by evm_ov)
+  have rd4091 := rd4090.swap1 (by decide +native) (by evm_ov)
+  have rd4092 := rd4091.dup2 (by decide +native) (by evm_ov)
   have rd4093 := rd4092.mstore 0 (twoWordHashMem (frobWMaskedWord I) ⟨5⟩ mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4095 := rd4093.push1 ⟨64⟩ (by native_decide) (by evm_ov)
-  have rd4096 := rd4095.dup1 (by native_decide) (by evm_ov)
-  have rd4097 := rd4096.dup4 (by native_decide) (by evm_ov)
+  have rd4095 := rd4093.push1 ⟨64⟩ (by decide +native) (by evm_ov)
+  have rd4096 := rd4095.dup1 (by decide +native) (by evm_ov)
+  have rd4097 := rd4096.dup4 (by decide +native) (by evm_ov)
   have hdaiSlot :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (frobWMaskedWord I) ⟨5⟩ mem).readWithPadding
@@ -8242,11 +8242,11 @@ theorem RD.vatFrobDaiStoreSuccess
     simpa [daiSlot, frobDaiWSlot] using
       twoWordHashMem_solcMappingSlot_of_ge64 ⟨5⟩ (frobWMaskedWord I) hmem
   have rd4098 := rd4097.keccak256 0 daiSlot (UInt256.ofNat 18)
-    (by native_decide) mem_cost hdaiSlot (by native_decide) (by evm_ov)
-  have rd4099 := rd4098.swap4 (by native_decide) (by evm_ov)
-  have rd4100 := rd4099.swap1 (by native_decide) (by evm_ov)
-  have rd4101pre := rd4100.swap4 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4102raw⟩ := rd4101pre.sstore hperm (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hdaiSlot (by decide +native) (by evm_ov)
+  have rd4099 := rd4098.swap4 (by decide +native) (by evm_ov)
+  have rd4100 := rd4099.swap1 (by decide +native) (by evm_ov)
+  have rd4101pre := rd4100.swap4 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4102raw⟩ := rd4101pre.sstore hperm (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [σDai, daiSlot] using rd4102raw⟩
 
@@ -8275,19 +8275,19 @@ theorem RD.vatFrobFinalUrnInkStoreSuccess
   let urnSlot := frobUrnInkSlot I
   let memUrn := twoWordHashMem (frobUMaskedWord I) urnInner
     (twoWordHashMem (frobIWord I) ⟨3⟩ mem)
-  have rd4103 := h.dup13 (by native_decide) (by evm_ov)
-  have rd4104 := rd4103.dup3 (by native_decide) (by evm_ov)
+  have rd4103 := h.dup13 (by decide +native) (by evm_ov)
+  have rd4104 := rd4103.dup3 (by decide +native) (by evm_ov)
   have rd4105 := rd4104.mstore 0 (wordAt0Mem (frobIWord I) mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4107 := rd4105.push1 ⟨3⟩ (by native_decide) (by evm_ov)
-  have rd4108 := rd4107.dup1 (by native_decide) (by evm_ov)
-  have rd4109 := rd4108.dup3 (by native_decide) (by evm_ov)
+  have rd4107 := rd4105.push1 ⟨3⟩ (by decide +native) (by evm_ov)
+  have rd4108 := rd4107.dup1 (by decide +native) (by evm_ov)
+  have rd4109 := rd4108.dup3 (by decide +native) (by evm_ov)
   have rd4110 := rd4109.mstore 0 (twoWordHashMem (frobIWord I) ⟨3⟩ mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4111 := rd4110.dup4 (by native_decide) (by evm_ov)
-  have rd4112 := rd4111.dup4 (by native_decide) (by evm_ov)
+  have rd4111 := rd4110.dup4 (by decide +native) (by evm_ov)
+  have rd4112 := rd4111.dup4 (by decide +native) (by evm_ov)
   have hinner :
       UInt256.ofNat (fromByteArrayBigEndian
           (ffi.KEC ((twoWordHashMem (frobIWord I) ⟨3⟩ mem).readWithPadding 0 64))) =
@@ -8304,7 +8304,7 @@ theorem RD.vatFrobFinalUrnInkStoreSuccess
         ByteArray.empty (cA, σ) k' C' := by
     exact ⟨_, _, by
       simpa using rd4112.keccak256 0 urnInner (UInt256.ofNat 18)
-        (by native_decide) mem_cost hinner (by native_decide) (by evm_ov)⟩
+        (by decide +native) mem_cost hinner (by decide +native) (by evm_ov)⟩
   obtain ⟨k4113, C4113, rd4113⟩ := hrd4113
   have rd4113' :
       RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4113⟩
@@ -8314,10 +8314,10 @@ theorem RD.vatFrobFinalUrnInkStoreSuccess
           frobVMaskedWord I, frobUMaskedWord I, frobIWord I, ⟨524⟩, sel]
         (twoWordHashMem (frobIWord I) ⟨3⟩ mem) (UInt256.ofNat 18)
         ByteArray.empty (cA, σ) k4113 C4113 := rd4113
-  have rd4114 := rd4113'.swap13 (by native_decide) (by evm_ov)
-  have rd4115 := rd4114.swap1 (by native_decide) (by evm_ov)
-  have rd4116 := rd4115.swap11 (by native_decide) (by evm_ov)
-  have rd4117pre := rd4116.and (by native_decide) (by evm_ov)
+  have rd4114 := rd4113'.swap13 (by decide +native) (by evm_ov)
+  have rd4115 := rd4114.swap1 (by decide +native) (by evm_ov)
+  have rd4116 := rd4115.swap11 (by decide +native) (by evm_ov)
+  have rd4117pre := rd4116.and (by decide +native) (by evm_ov)
   have hmaskU :
       UInt256.land
         (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
@@ -8328,18 +8328,18 @@ theorem RD.vatFrobFinalUrnInkStoreSuccess
       solcAddrMask from by decide]
     exact frobUMaskedWord_clean I
   rw [hmaskU] at rd4117pre
-  have rd4118 := rd4117pre.dup3 (by native_decide) (by evm_ov)
+  have rd4118 := rd4117pre.dup3 (by decide +native) (by evm_ov)
   have rd4119 := rd4118.mstore 0
     (wordAt0Mem (frobUMaskedWord I) (twoWordHashMem (frobIWord I) ⟨3⟩ mem))
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4120 := rd4119.swap11 (by native_decide) (by evm_ov)
-  have rd4121 := rd4120.dup12 (by native_decide) (by evm_ov)
+  have rd4120 := rd4119.swap11 (by decide +native) (by evm_ov)
+  have rd4121 := rd4120.dup12 (by decide +native) (by evm_ov)
   have rd4122 := rd4121.mstore 0 memUrn
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4123 := rd4122.dup2 (by native_decide) (by evm_ov)
-  have rd4124 := rd4123.dup2 (by native_decide) (by evm_ov)
+  have rd4123 := rd4122.dup2 (by decide +native) (by evm_ov)
+  have rd4124 := rd4123.dup2 (by decide +native) (by evm_ov)
   have hslot :
       UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (memUrn.readWithPadding 0 64))) =
         urnSlot := by
@@ -8350,8 +8350,8 @@ theorem RD.vatFrobFinalUrnInkStoreSuccess
     simpa [memUrn, urnSlot, frobUrnInkSlot, frobUrnBase, urnInner] using
       twoWordHashMem_solcMappingSlot_of_ge64 urnInner (frobUMaskedWord I) hmemInner
   have rd4125 := rd4124.keccak256 0 urnSlot (UInt256.ofNat 18)
-    (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  have rd4126 := rd4125.dup7 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  have rd4126 := rd4125.dup7 (by decide +native) (by evm_ov)
   have hmload192 :
       (if (⟨192⟩ : UInt256).toNat ≥ memUrn.size
           ∨ (⟨192⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -8369,7 +8369,7 @@ theorem RD.vatFrobFinalUrnInkStoreSuccess
         · rw [twoWordHashMem_size_of_ge64]
           · rw [hmemSize]; omega
           · rw [hmemSize]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         rw [show (⟨192⟩ : UInt256).toNat = 192 from by decide]
         dsimp [memUrn]
@@ -8383,9 +8383,9 @@ theorem RD.vatFrobFinalUrnInkStoreSuccess
           · rw [hmemSize]; omega
           · rw [hmemSize]; omega)
   have rd4127 := rd4126.mload 0 urnInkNew (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload192 (by native_decide) (by evm_ov)
-  have rd4128 := rd4127.dup2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4129raw⟩ := rd4128.sstore hperm (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload192 (by decide +native) (by evm_ov)
+  have rd4128 := rd4127.dup2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4129raw⟩ := rd4128.sstore hperm (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [memUrn, urnSlot, frobUrnInkSlot, frobUrnBase] using rd4129raw⟩
 
@@ -8407,11 +8407,11 @@ theorem RD.vatFrobFinalUrnArtStoreSuccess
           frobIWord I, ⟨524⟩, sel]
         mem (UInt256.ofNat 18) ByteArray.empty
         (cA, sstoreAccountMap I.codeOwner σ (frobUrnArtSlot I) urnArtNew) k' C' := by
-  have rd4130 := h.swap6 (by native_decide) (by evm_ov)
-  have rd4131 := rd4130.dup12 (by native_decide) (by evm_ov)
-  have rd4132pre := rd4131.add (by native_decide) (by evm_ov)
+  have rd4130 := h.swap6 (by decide +native) (by evm_ov)
+  have rd4131 := rd4130.dup12 (by decide +native) (by evm_ov)
+  have rd4132pre := rd4131.add (by decide +native) (by evm_ov)
   have hoff :
-      (⟨32⟩ : UInt256) + (⟨192⟩ : UInt256) = ⟨224⟩ := by native_decide
+      (⟨32⟩ : UInt256) + (⟨192⟩ : UInt256) = ⟨224⟩ := by decide +native
   rw [hoff] at rd4132pre
   have hmload224 :
       (if (⟨224⟩ : UInt256).toNat ≥ mem.size
@@ -8424,22 +8424,22 @@ theorem RD.vatFrobFinalUrnArtStoreSuccess
         rw [show (⟨224⟩ : UInt256).toNat = 224 from by decide]
         rw [hmemSize]
         omega)
-      (by native_decide)
+      (by decide +native)
       (by
         rw [show (⟨224⟩ : UInt256).toNat = 224 from by decide]
         exact hread224)
   have rd4133 := rd4132pre.mload 0 urnArtNew (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload224 (by native_decide) (by evm_ov)
-  have rd4135 := rd4133.push1 ⟨1⟩ (by native_decide) (by evm_ov)
-  have rd4136 := rd4135.swap7 (by native_decide) (by evm_ov)
-  have rd4137 := rd4136.dup8 (by native_decide) (by evm_ov)
-  have rd4138pre := rd4137.add (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload224 (by decide +native) (by evm_ov)
+  have rd4135 := rd4133.push1 ⟨1⟩ (by decide +native) (by evm_ov)
+  have rd4136 := rd4135.swap7 (by decide +native) (by evm_ov)
+  have rd4137 := rd4136.dup8 (by decide +native) (by evm_ov)
+  have rd4138pre := rd4137.add (by decide +native) (by evm_ov)
   have hslot :
       (⟨1⟩ : UInt256) + frobUrnInkSlot I = frobUrnArtSlot I := by
     rw [u256_add_comm]
     rfl
   rw [hslot] at rd4138pre
-  obtain ⟨_, _, rd4139raw⟩ := rd4138pre.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd4139raw⟩ := rd4138pre.sstore hperm (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa using rd4139raw⟩
 
@@ -8464,20 +8464,20 @@ theorem RD.vatFrobFinalIlkArtStoreSuccess
         (cA, sstoreAccountMap I.codeOwner σ (frobIlkArtSlot I) ilkArtNew) k' C' := by
   let ilkSlot := frobIlkArtSlot I
   let memIlk := twoWordHashMem (frobIWord I) ⟨2⟩ mem
-  have rd4140 := h.swap11 (by native_decide) (by evm_ov)
-  have rd4141 := rd4140.dup12 (by native_decide) (by evm_ov)
+  have rd4140 := h.swap11 (by decide +native) (by evm_ov)
+  have rd4141 := rd4140.dup12 (by decide +native) (by evm_ov)
   have rd4142 := rd4141.mstore 0 (wordAt0Mem (frobIWord I) mem)
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4144 := rd4142.push1 ⟨2⟩ (by native_decide) (by evm_ov)
-  have rd4145 := rd4144.dup1 (by native_decide) (by evm_ov)
-  have rd4146 := rd4145.dup12 (by native_decide) (by evm_ov)
+  have rd4144 := rd4142.push1 ⟨2⟩ (by decide +native) (by evm_ov)
+  have rd4145 := rd4144.dup1 (by decide +native) (by evm_ov)
+  have rd4146 := rd4145.dup12 (by decide +native) (by evm_ov)
   have rd4147 := rd4146.mstore 0 memIlk
-    (UInt256.ofNat 18) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 18) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by evm_ov)
-  have rd4148 := rd4147.swap11 (by native_decide) (by evm_ov)
-  have rd4149 := rd4148.dup2 (by native_decide) (by evm_ov)
-  have rd4150 := rd4149.swap1 (by native_decide) (by evm_ov)
+  have rd4148 := rd4147.swap11 (by decide +native) (by evm_ov)
+  have rd4149 := rd4148.dup2 (by decide +native) (by evm_ov)
+  have rd4150 := rd4149.swap1 (by decide +native) (by evm_ov)
   have hilkSlot :
       UInt256.ofNat (fromByteArrayBigEndian (ffi.KEC (memIlk.readWithPadding 0 64))) =
         ilkSlot := by
@@ -8485,8 +8485,8 @@ theorem RD.vatFrobFinalIlkArtStoreSuccess
     simpa [memIlk, ilkSlot, frobIlkArtSlot, frobIlkBase] using
       twoWordHashMem_solcMappingSlot_of_ge64 ⟨2⟩ (frobIWord I) hmem64
   have rd4151 := rd4150.keccak256 0 ilkSlot (UInt256.ofNat 18)
-    (by native_decide) mem_cost hilkSlot (by native_decide) (by evm_ov)
-  have rd4152 := rd4151.dup5 (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hilkSlot (by decide +native) (by evm_ov)
+  have rd4152 := rd4151.dup5 (by decide +native) (by evm_ov)
   have hmload416 :
       (if (⟨416⟩ : UInt256).toNat ≥ memIlk.size
           ∨ (⟨416⟩ : UInt256) ≥ UInt256.ofNat 18 * ⟨32⟩ then ⟨0⟩
@@ -8500,7 +8500,7 @@ theorem RD.vatFrobFinalIlkArtStoreSuccess
         rw [twoWordHashMem_size_of_ge64]
         · rw [hmemSize]; omega
         · rw [hmemSize]; omega)
-      (by native_decide)
+      (by decide +native)
       (by
         rw [show (⟨416⟩ : UInt256).toNat = 416 from by decide]
         dsimp [memIlk]
@@ -8509,9 +8509,9 @@ theorem RD.vatFrobFinalIlkArtStoreSuccess
         · omega
         · rw [hmemSize]; omega)
   have rd4153 := rd4152.mload 0 ilkArtNew (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload416 (by native_decide) (by evm_ov)
-  have rd4154 := rd4153.dup2 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4155raw⟩ := rd4154.sstore hperm (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload416 (by decide +native) (by evm_ov)
+  have rd4154 := rd4153.dup2 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4155raw⟩ := rd4154.sstore hperm (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [memIlk, ilkSlot, frobIlkArtSlot, frobIlkBase] using rd4155raw⟩
 
@@ -8543,11 +8543,11 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
   let σSpot := sstoreAccountMap I.codeOwner σRate (frobIlkSpotSlot I) spot
   let σLine := sstoreAccountMap I.codeOwner σSpot (frobIlkLineSlot I) line
   let σDust := sstoreAccountMap I.codeOwner σLine (frobIlkDustSlot I) dust
-  have rd4156 := h.swap10 (by native_decide) (by evm_ov)
-  have rd4157 := rd4156.dup5 (by native_decide) (by evm_ov)
-  have rd4158pre := rd4157.add (by native_decide) (by evm_ov)
-  have hoff448 : (⟨416⟩ : UInt256) + ⟨64⟩ = ⟨480⟩ := by native_decide
-  have hoffRate : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by native_decide
+  have rd4156 := h.swap10 (by decide +native) (by evm_ov)
+  have rd4157 := rd4156.dup5 (by decide +native) (by evm_ov)
+  have rd4158pre := rd4157.add (by decide +native) (by evm_ov)
+  have hoff448 : (⟨416⟩ : UInt256) + ⟨64⟩ = ⟨480⟩ := by decide +native
+  have hoffRate : (⟨416⟩ : UInt256) + ⟨32⟩ = ⟨448⟩ := by decide +native
   rw [hoffRate] at rd4158pre
   have hmload448 :
       (if (⟨448⟩ : UInt256).toNat ≥ mem.size
@@ -8560,23 +8560,23 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
         rw [show (⟨448⟩ : UInt256).toNat = 448 from by decide]
         rw [hmemSize]
         omega)
-      (by native_decide)
+      (by decide +native)
       (by
         rw [show (⟨448⟩ : UInt256).toNat = 448 from by decide]
         exact hread448)
   have rd4159 := rd4158pre.mload 0 rate (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload448 (by native_decide) (by evm_ov)
-  have rd4160 := rd4159.swap5 (by native_decide) (by evm_ov)
-  have rd4161 := rd4160.dup11 (by native_decide) (by evm_ov)
-  have rd4162pre := rd4161.add (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload448 (by decide +native) (by evm_ov)
+  have rd4160 := rd4159.swap5 (by decide +native) (by evm_ov)
+  have rd4161 := rd4160.dup11 (by decide +native) (by evm_ov)
+  have rd4162pre := rd4161.add (by decide +native) (by evm_ov)
   have hslotRate :
       frobIlkArtSlot I + (⟨1⟩ : UInt256) = frobIlkRateSlot I := by
     rfl
   rw [hslotRate] at rd4162pre
-  have rd4163 := rd4162pre.swap5 (by native_decide) (by evm_ov)
-  have rd4164 := rd4163.swap1 (by native_decide) (by evm_ov)
-  have rd4165pre := rd4164.swap5 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4165raw⟩ := rd4165pre.sstore hperm (by native_decide) (by evm_ov)
+  have rd4163 := rd4162pre.swap5 (by decide +native) (by evm_ov)
+  have rd4164 := rd4163.swap1 (by decide +native) (by evm_ov)
+  have rd4165pre := rd4164.swap5 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4165raw⟩ := rd4165pre.sstore hperm (by decide +native) (by evm_ov)
   have hrd4165 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4166⟩
         [tab, dtabWord, ⟨416⟩, ⟨64⟩, frobDartWord I, frobDinkWord I, ⟨3⟩,
@@ -8584,11 +8584,11 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
         mem (UInt256.ofNat 18) ByteArray.empty (cA, σRate) k' C' := by
     exact ⟨_, _, by simpa [σRate] using rd4165raw⟩
   obtain ⟨_, _, rd4165⟩ := hrd4165
-  have rd4166 := rd4165.pop (by native_decide) (by evm_ov)
-  have rd4167 := rd4166.pop (by native_decide) (by evm_ov)
-  have rd4168 := rd4167.swap1 (by native_decide) (by evm_ov)
-  have rd4169 := rd4168.dup2 (by native_decide) (by evm_ov)
-  have rd4170pre := rd4169.add (by native_decide) (by evm_ov)
+  have rd4166 := rd4165.pop (by decide +native) (by evm_ov)
+  have rd4167 := rd4166.pop (by decide +native) (by evm_ov)
+  have rd4168 := rd4167.swap1 (by decide +native) (by evm_ov)
+  have rd4169 := rd4168.dup2 (by decide +native) (by evm_ov)
+  have rd4170pre := rd4169.add (by decide +native) (by evm_ov)
   rw [hoff448] at rd4170pre
   have hmload480 :
       (if (⟨480⟩ : UInt256).toNat ≥ mem.size
@@ -8601,23 +8601,23 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
         rw [show (⟨480⟩ : UInt256).toNat = 480 from by decide]
         rw [hmemSize]
         omega)
-      (by native_decide)
+      (by decide +native)
       (by
         rw [show (⟨480⟩ : UInt256).toNat = 480 from by decide]
         exact hread480)
   have rd4171 := rd4170pre.mload 0 spot (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload480 (by native_decide) (by evm_ov)
-  have rd4172 := rd4171.swap7 (by native_decide) (by evm_ov)
-  have rd4173 := rd4172.dup7 (by native_decide) (by evm_ov)
-  have rd4174pre := rd4173.add (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload480 (by decide +native) (by evm_ov)
+  have rd4172 := rd4171.swap7 (by decide +native) (by evm_ov)
+  have rd4173 := rd4172.dup7 (by decide +native) (by evm_ov)
+  have rd4174pre := rd4173.add (by decide +native) (by evm_ov)
   have hslotSpot :
       frobIlkArtSlot I + (⟨2⟩ : UInt256) = frobIlkSpotSlot I := by
     rfl
   rw [hslotSpot] at rd4174pre
-  have rd4175 := rd4174pre.swap7 (by native_decide) (by evm_ov)
-  have rd4176 := rd4175.swap1 (by native_decide) (by evm_ov)
-  have rd4177 := rd4176.swap7 (by native_decide) (by evm_ov)
-  obtain ⟨_, _, rd4178raw⟩ := rd4177.sstore hperm (by native_decide) (by evm_ov)
+  have rd4175 := rd4174pre.swap7 (by decide +native) (by evm_ov)
+  have rd4176 := rd4175.swap1 (by decide +native) (by evm_ov)
+  have rd4177 := rd4176.swap7 (by decide +native) (by evm_ov)
+  obtain ⟨_, _, rd4178raw⟩ := rd4177.sstore hperm (by decide +native) (by evm_ov)
   have hrd4178 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4179⟩
         [frobDartWord I, frobDinkWord I, ⟨3⟩, frobVMaskedWord I, frobIlkArtSlot I,
@@ -8625,12 +8625,12 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
         mem (UInt256.ofNat 18) ByteArray.empty (cA, σSpot) k' C' := by
     exact ⟨_, _, by simpa [σRate, σSpot] using rd4178raw⟩
   obtain ⟨_, _, rd4178⟩ := hrd4178
-  have rd4179 := rd4178.pop (by native_decide) (by evm_ov)
-  have rd4180 := rd4179.pop (by native_decide) (by evm_ov)
-  have rd4183 := rd4180.push1 ⟨96⟩ (by native_decide) (by evm_ov)
-  have rd4184 := rd4183.dup5 (by native_decide) (by evm_ov)
-  have rd4185pre := rd4184.add (by native_decide) (by evm_ov)
-  have hoff512 : (⟨416⟩ : UInt256) + ⟨96⟩ = ⟨512⟩ := by native_decide
+  have rd4179 := rd4178.pop (by decide +native) (by evm_ov)
+  have rd4180 := rd4179.pop (by decide +native) (by evm_ov)
+  have rd4183 := rd4180.push1 ⟨96⟩ (by decide +native) (by evm_ov)
+  have rd4184 := rd4183.dup5 (by decide +native) (by evm_ov)
+  have rd4185pre := rd4184.add (by decide +native) (by evm_ov)
+  have hoff512 : (⟨416⟩ : UInt256) + ⟨96⟩ = ⟨512⟩ := by decide +native
   rw [hoff512] at rd4185pre
   have hmload512 :
       (if (⟨512⟩ : UInt256).toNat ≥ mem.size
@@ -8643,32 +8643,32 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
         rw [show (⟨512⟩ : UInt256).toNat = 512 from by decide]
         rw [hmemSize]
         omega)
-      (by native_decide)
+      (by decide +native)
       (by
         rw [show (⟨512⟩ : UInt256).toNat = 512 from by decide]
         exact hread512)
   have rd4186 := rd4185pre.mload 0 line (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload512 (by native_decide) (by evm_ov)
-  have rd4187 := rd4186.swap1 (by native_decide) (by evm_ov)
-  have rd4188 := rd4187.dup4 (by native_decide) (by evm_ov)
-  have rd4189pre := rd4188.add (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload512 (by decide +native) (by evm_ov)
+  have rd4187 := rd4186.swap1 (by decide +native) (by evm_ov)
+  have rd4188 := rd4187.dup4 (by decide +native) (by evm_ov)
+  have rd4189pre := rd4188.add (by decide +native) (by evm_ov)
   have hslotLine :
       frobIlkArtSlot I + (⟨3⟩ : UInt256) = frobIlkLineSlot I := by
     rfl
   rw [hslotLine] at rd4189pre
-  obtain ⟨_, _, rd4189raw⟩ := rd4189pre.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd4189raw⟩ := rd4189pre.sstore hperm (by decide +native) (by evm_ov)
   have hrd4189 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4190⟩
         [frobVMaskedWord I, frobIlkArtSlot I, ⟨416⟩, ⟨524⟩, sel]
         mem (UInt256.ofNat 18) ByteArray.empty (cA, σLine) k' C' := by
     exact ⟨_, _, by simpa [σRate, σSpot, σLine] using rd4189raw⟩
   obtain ⟨_, _, rd4189⟩ := hrd4189
-  have rd4190 := rd4189.pop (by native_decide) (by evm_ov)
-  have rd4193 := rd4190.push1 ⟨128⟩ (by native_decide) (by evm_ov)
-  have rd4194 := rd4193.swap1 (by native_decide) (by evm_ov)
-  have rd4195 := rd4194.swap2 (by native_decide) (by evm_ov)
-  have rd4196pre := rd4195.add (by native_decide) (by evm_ov)
-  have hoff544 : (⟨416⟩ : UInt256) + ⟨128⟩ = ⟨544⟩ := by native_decide
+  have rd4190 := rd4189.pop (by decide +native) (by evm_ov)
+  have rd4193 := rd4190.push1 ⟨128⟩ (by decide +native) (by evm_ov)
+  have rd4194 := rd4193.swap1 (by decide +native) (by evm_ov)
+  have rd4195 := rd4194.swap2 (by decide +native) (by evm_ov)
+  have rd4196pre := rd4195.add (by decide +native) (by evm_ov)
+  have hoff544 : (⟨416⟩ : UInt256) + ⟨128⟩ = ⟨544⟩ := by decide +native
   rw [hoff544] at rd4196pre
   have hmload544 :
       (if (⟨544⟩ : UInt256).toNat ≥ mem.size
@@ -8681,30 +8681,30 @@ theorem RD.vatFrobFinalIlkTailReturnSuccess
         rw [show (⟨544⟩ : UInt256).toNat = 544 from by decide]
         rw [hmemSize]
         omega)
-      (by native_decide)
+      (by decide +native)
       (by
         rw [show (⟨544⟩ : UInt256).toNat = 544 from by decide]
         exact hread544)
   have rd4197 := rd4196pre.mload 0 dust (UInt256.ofNat 18)
-    (by native_decide) mem_cost hmload544 (by native_decide) (by evm_ov)
-  have rd4199 := rd4197.push1 ⟨4⟩ (by native_decide) (by evm_ov)
-  have rd4200 := rd4199.swap1 (by native_decide) (by evm_ov)
-  have rd4201 := rd4200.swap2 (by native_decide) (by evm_ov)
-  have rd4202pre := rd4201.add (by native_decide) (by evm_ov)
+    (by decide +native) mem_cost hmload544 (by decide +native) (by evm_ov)
+  have rd4199 := rd4197.push1 ⟨4⟩ (by decide +native) (by evm_ov)
+  have rd4200 := rd4199.swap1 (by decide +native) (by evm_ov)
+  have rd4201 := rd4200.swap2 (by decide +native) (by evm_ov)
+  have rd4202pre := rd4201.add (by decide +native) (by evm_ov)
   have hslotDust :
       frobIlkArtSlot I + (⟨4⟩ : UInt256) = frobIlkDustSlot I := by
     rfl
   rw [hslotDust] at rd4202pre
-  obtain ⟨_, _, rd4202raw⟩ := rd4202pre.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd4202raw⟩ := rd4202pre.sstore hperm (by decide +native) (by evm_ov)
   have hrd4202 :
       ∃ k' C', RD vatBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨4203⟩
         [⟨524⟩, sel]
         mem (UInt256.ofNat 18) ByteArray.empty (cA, σDust) k' C' := by
     exact ⟨_, _, by simpa [σRate, σSpot, σLine, σDust] using rd4202raw⟩
   obtain ⟨_, _, rd4202⟩ := hrd4202
-  have rd524 := rd4202.jump (by native_decide) (by jump_dest) (by evm_ov)
-  have rd525 := rd524.jumpdest (by native_decide) (by evm_ov)
-  simpa [σRate, σSpot, σLine, σDust] using RD.stop rd525 (by native_decide) (by simp)
+  have rd524 := rd4202.jump (by decide +native) (by jump_dest) (by evm_ov)
+  have rd525 := rd524.jumpdest (by decide +native) (by evm_ov)
+  simpa [σRate, σSpot, σLine, σDust] using RD.stop rd525 (by decide +native) (by simp)
 
 set_option maxHeartbeats 2000000 in
 theorem RD.vatFrobStoreSuccess
@@ -8901,7 +8901,7 @@ theorem RD.vatFrobStoreSuccess
       preserveRead (frobWMaskedWord I) ⟨5⟩ habove hin hmemDai rDai
   have hread192 :
       memDaiStored.readWithPadding 192 32 = UInt256.toByteArray urnInkNew := by
-    exact readMemDaiStored (by omega) (by native_decide)
+    exact readMemDaiStored (by omega) (by decide +native)
       (by
         simpa [memBase] using
           frobIlkArtUpdatedMem_read192 σ I urnInkNew urnArtNew ilkArtNew)
@@ -8929,7 +8929,7 @@ theorem RD.vatFrobStoreSuccess
         (solcMappingSlot (⟨3⟩ : UInt256) (frobIWord I)) habove hin hmemUrn0 rUrn0
   have hread224 :
       memUrnInk.readWithPadding 224 32 = UInt256.toByteArray urnArtNew := by
-    exact readMemUrnInk (by omega) (by native_decide)
+    exact readMemUrnInk (by omega) (by decide +native)
       (by
         simpa [memBase] using
           frobIlkArtUpdatedMem_read224 σ I urnInkNew urnArtNew ilkArtNew)
@@ -8939,7 +8939,7 @@ theorem RD.vatFrobStoreSuccess
     hmemUrnInk hread224 hperm
   have hread416 :
       memUrnInk.readWithPadding 416 32 = UInt256.toByteArray ilkArtNew := by
-    exact readMemUrnInk (by omega) (by native_decide)
+    exact readMemUrnInk (by omega) (by decide +native)
       (by
         simpa [memBase] using
           frobIlkArtUpdatedMem_read416 σ I urnInkNew urnArtNew ilkArtNew)
@@ -8960,28 +8960,28 @@ theorem RD.vatFrobStoreSuccess
   have hread448 :
       memIlk.readWithPadding 448 32 =
         UInt256.toByteArray (solcSlotWord σ I (frobIlkRateSlot I)) := by
-    exact readMemIlk (by omega) (by native_decide)
+    exact readMemIlk (by omega) (by decide +native)
       (by
         simpa [memBase] using
           frobIlkArtUpdatedMem_read448 σ I urnInkNew urnArtNew ilkArtNew)
   have hread480 :
       memIlk.readWithPadding 480 32 =
         UInt256.toByteArray (solcSlotWord σ I (frobIlkSpotSlot I)) := by
-    exact readMemIlk (by omega) (by native_decide)
+    exact readMemIlk (by omega) (by decide +native)
       (by
         simpa [memBase] using
           frobIlkArtUpdatedMem_read480 σ I urnInkNew urnArtNew ilkArtNew)
   have hread512 :
       memIlk.readWithPadding 512 32 =
         UInt256.toByteArray (solcSlotWord σ I (frobIlkLineSlot I)) := by
-    exact readMemIlk (by omega) (by native_decide)
+    exact readMemIlk (by omega) (by decide +native)
       (by
         simpa [memBase] using
           frobIlkArtUpdatedMem_read512 σ I urnInkNew urnArtNew ilkArtNew)
   have hread544 :
       memIlk.readWithPadding 544 32 =
         UInt256.toByteArray (solcSlotWord σ I (frobIlkDustSlot I)) := by
-    exact readMemIlk (by omega) (by native_decide)
+    exact readMemIlk (by omega) (by decide +native)
       (by
         simpa [memBase] using
           frobIlkArtUpdatedMem_read544 σ I urnInkNew urnArtNew ilkArtNew)
@@ -10075,7 +10075,7 @@ theorem frobCeilingSourceFalseCond_of_evm {I : ExecutionEnv}
       rw [show bounds = UInt256.land (UInt256.isZero (UInt256.gt debtNew Line))
         (UInt256.isZero (UInt256.gt ceilingDebt ilkLine)) from rfl]
       rw [hdebtGtZero, hceilingGtZero]
-      native_decide
+      decide +native
     have hlorNe :
         UInt256.lor bounds (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) ≠
           ⟨0⟩ := by
@@ -10155,7 +10155,7 @@ theorem frobSafetySourceFalseCond_of_evm {I : ExecutionEnv} {tab inkSpot : UInt2
         (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
         (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) from rfl]
       rw [hdinkSlt, hdartSgt]
-      native_decide
+      decide +native
     have hlorNe :
         UInt256.lor (UInt256.isZero (UInt256.gt tab inkSpot)) shortcut ≠ ⟨0⟩ := by
       rw [hshortcutOne, u256_lor_comm]
@@ -10450,7 +10450,7 @@ theorem frobAuthUSourceFalseCond_of_evm {I : ExecutionEnv} {uWish : UInt256}
         (UInt256.isZero (UInt256.slt (frobDinkWord I) ⟨0⟩))
         (UInt256.isZero (UInt256.sgt (frobDartWord I) ⟨0⟩)) from rfl]
       rw [hdinkSlt, hdartSgt]
-      native_decide
+      decide +native
     have hlorNe :
         UInt256.lor
           (UInt256.lor (UInt256.eq uWish ⟨1⟩)
@@ -10598,7 +10598,7 @@ theorem frobAuthVSourceFalseCond_of_evm {I : ExecutionEnv} {vWish : UInt256}
     have hrightOne :
         UInt256.isZero (UInt256.sgt (frobDinkWord I) ⟨0⟩) = ⟨1⟩ := by
       rw [hsgtZero]
-      native_decide
+      decide +native
     rw [hrightOne] at hrightZero
     exact one_ne_zero_uint hrightZero
   · constructor
@@ -10714,7 +10714,7 @@ theorem frobAuthWSourceFalseCond_of_evm {I : ExecutionEnv} {wWish : UInt256}
     have hrightOne :
         UInt256.isZero (UInt256.slt (frobDartWord I) ⟨0⟩) = ⟨1⟩ := by
       rw [hsltZero]
-      native_decide
+      decide +native
     rw [hrightOne] at hrightZero
     exact one_ne_zero_uint hrightZero
   · constructor
@@ -11690,7 +11690,7 @@ theorem execFrobUrnInkAddRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
       .reverted := by
   exact execFrobCheckedAddVarRevertGuardNeg locals "urnInkNew" "urnInk" "dink"
     urnInk urnInkNew (frobDinkWord I) (frobDinkInt I)
-    (by native_decide) (by native_decide) hurnInk
+    (by decide +native) (by decide +native) hurnInk
     (by simpa [frobDinkValue] using hdink) (frobDinkInt_mod_word I) hnew hcond
 
 theorem execFrobUrnInkAddRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
@@ -11705,7 +11705,7 @@ theorem execFrobUrnInkAddRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
       .reverted := by
   exact execFrobCheckedAddVarRevertGuardPos locals "urnInkNew" "urnInk" "dink"
     urnInk urnInkNew (frobDinkWord I) (frobDinkInt I)
-    (by native_decide) (by native_decide) hurnInk
+    (by decide +native) (by decide +native) hurnInk
     (by simpa [frobDinkValue] using hdink) (frobDinkInt_mod_word I) hnew hguardNeg hcond
 
 theorem execFrobUrnArtAddOk {evm : EVM.State} {I : ExecutionEnv}
@@ -11723,7 +11723,7 @@ theorem execFrobUrnArtAddOk {evm : EVM.State} {I : ExecutionEnv}
         evm) := by
   exact execFrobCheckedAddVarOk locals "urnArtNew" "urnArt" "dart"
     urnArt urnArtNew (frobDartWord I) (frobDartInt I)
-    (by native_decide) (by native_decide) hurnArt
+    (by decide +native) (by decide +native) hurnArt
     (by simpa [frobDartValue] using hdart) (frobDartInt_mod_word I)
     hnew hguardNeg hguardPos
 
@@ -11738,7 +11738,7 @@ theorem execFrobUrnArtAddRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
       .reverted := by
   exact execFrobCheckedAddVarRevertGuardNeg locals "urnArtNew" "urnArt" "dart"
     urnArt urnArtNew (frobDartWord I) (frobDartInt I)
-    (by native_decide) (by native_decide) hurnArt
+    (by decide +native) (by decide +native) hurnArt
     (by simpa [frobDartValue] using hdart) (frobDartInt_mod_word I) hnew hcond
 
 theorem execFrobUrnArtAddRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
@@ -11753,7 +11753,7 @@ theorem execFrobUrnArtAddRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
       .reverted := by
   exact execFrobCheckedAddVarRevertGuardPos locals "urnArtNew" "urnArt" "dart"
     urnArt urnArtNew (frobDartWord I) (frobDartInt I)
-    (by native_decide) (by native_decide) hurnArt
+    (by decide +native) (by decide +native) hurnArt
     (by simpa [frobDartValue] using hdart) (frobDartInt_mod_word I) hnew hguardNeg hcond
 
 theorem execFrobIlkArtAddOk {evm : EVM.State} {I : ExecutionEnv}
@@ -11771,7 +11771,7 @@ theorem execFrobIlkArtAddOk {evm : EVM.State} {I : ExecutionEnv}
         evm) := by
   exact execFrobCheckedAddVarOk locals "ilkArtNew" "ilkArt" "dart"
     ilkArt ilkArtNew (frobDartWord I) (frobDartInt I)
-    (by native_decide) (by native_decide) hilkArt
+    (by decide +native) (by decide +native) hilkArt
     (by simpa [frobDartValue] using hdart) (frobDartInt_mod_word I)
     hnew hguardNeg hguardPos
 
@@ -11786,7 +11786,7 @@ theorem execFrobIlkArtAddRevertGuardNeg {evm : EVM.State} {I : ExecutionEnv}
       .reverted := by
   exact execFrobCheckedAddVarRevertGuardNeg locals "ilkArtNew" "ilkArt" "dart"
     ilkArt ilkArtNew (frobDartWord I) (frobDartInt I)
-    (by native_decide) (by native_decide) hilkArt
+    (by decide +native) (by decide +native) hilkArt
     (by simpa [frobDartValue] using hdart) (frobDartInt_mod_word I) hnew hcond
 
 theorem execFrobIlkArtAddRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
@@ -11801,7 +11801,7 @@ theorem execFrobIlkArtAddRevertGuardPos {evm : EVM.State} {I : ExecutionEnv}
       .reverted := by
   exact execFrobCheckedAddVarRevertGuardPos locals "ilkArtNew" "ilkArt" "dart"
     ilkArt ilkArtNew (frobDartWord I) (frobDartInt I)
-    (by native_decide) (by native_decide) hilkArt
+    (by decide +native) (by decide +native) hilkArt
     (by simpa [frobDartValue] using hdart) (frobDartInt_mod_word I) hnew hguardNeg hcond
 
 theorem execFrobLoadedPrefixThreeAdds {evm : EVM.State} {I : ExecutionEnv}
@@ -14138,38 +14138,38 @@ theorem execFrobFinalStoreTailOk {evm : EVM.State} {I : ExecutionEnv}
         (.ok { contract := contract, locals := localsDai } evmDust) := by
     refine ExecBlock.consNormal
       (ExecStmt.assign
-        (evalVarAfterDai (evm' := evmDai) hurnInkNew (by native_decide)
-          (by native_decide))
+        (evalVarAfterDai (evm' := evmDai) hurnInkNew (by decide +native)
+          (by decide +native))
         hassignInk) ?_
     refine ExecBlock.consNormal
       (ExecStmt.assign
-        (evalVarAfterDai (evm' := evmInk) hurnArtNew (by native_decide)
-          (by native_decide))
+        (evalVarAfterDai (evm' := evmInk) hurnArtNew (by decide +native)
+          (by decide +native))
         hassignArt) ?_
     refine ExecBlock.consNormal
       (ExecStmt.assign
-        (evalVarAfterDai (evm' := evmArt) hilkArtNew (by native_decide)
-          (by native_decide))
+        (evalVarAfterDai (evm' := evmArt) hilkArtNew (by decide +native)
+          (by decide +native))
         hassignIlkArt) ?_
     refine ExecBlock.consNormal
       (ExecStmt.assign
-        (evalVarAfterDai (evm' := evmIlk) hilkRate (by native_decide)
-          (by native_decide))
+        (evalVarAfterDai (evm' := evmIlk) hilkRate (by decide +native)
+          (by decide +native))
         hassignRate) ?_
     refine ExecBlock.consNormal
       (ExecStmt.assign
-        (evalVarAfterDai (evm' := evmRate) hilkSpot (by native_decide)
-          (by native_decide))
+        (evalVarAfterDai (evm' := evmRate) hilkSpot (by decide +native)
+          (by decide +native))
         hassignSpot) ?_
     refine ExecBlock.consNormal
       (ExecStmt.assign
-        (evalVarAfterDai (evm' := evmSpot) hilkLine (by native_decide)
-          (by native_decide))
+        (evalVarAfterDai (evm' := evmSpot) hilkLine (by decide +native)
+          (by decide +native))
         hassignLine) ?_
     exact ExecBlock.consNormal
       (ExecStmt.assign
-        (evalVarAfterDai (evm' := evmLine) hilkDust (by native_decide)
-          (by native_decide))
+        (evalVarAfterDai (evm' := evmLine) hilkDust (by decide +native)
+          (by decide +native))
         hassignDust) ExecBlock.nil
   have h01 := execBlock_append hgemBlock hdaiBlock
   have h02 := execBlock_append h01 hstores
@@ -14844,7 +14844,7 @@ theorem vatDecode_frob_none_short {I : ExecutionEnv}
   simp only
   simp only [decodeCalldata.decodeArgs]
   rw [show abiTupleHeadSize? [bytes32, addr, addr, addr, int256, int256] =
-    some 192 by native_decide]
+    some 192 by decide +native]
   simp only [bind, Option.bind]
   rw [if_pos (by rw [List.length_drop, htlen]; omega :
     (I.calldata.toList.drop 4).length < 192)]
@@ -14871,7 +14871,7 @@ theorem vatDispatchFrob {I : ExecutionEnv}
     canSelectorBytes, daiSelectorBytes, debtSelectorBytes, denySelectorBytes,
     fileIlkSelectorBytes, fileLineSelectorBytes, fluxSelectorBytes, foldSelectorBytes,
     forkSelectorBytes, frobSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachFrobBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -14882,33 +14882,33 @@ theorem vatReachFrobBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0x76088703⟩ :=
     vatSelWord_eq_of_beq I hsz 0x76 0x08 0x87 0x03 ⟨0x76088703⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlowhigh :
       UInt256.gt (armSelNat vatBytecode vatLowHighSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms272FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
     intro j hj
     interval_cases j
     · rw [hword]
-      native_decide
+      decide +native
     · rw [hword]
-      native_decide
+      decide +native
   have htake :
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms272FirstPc 2))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms272Body 2 (by omega) ⟨901⟩ hcode hwv hsz hsize
-    hroot hlow hlowhigh heq0 htake (by jump_dest) (by native_decide)
+    hroot hlow hlowhigh heq0 htake (by jump_dest) (by decide +native)
 
 theorem vatFrobX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz196 : 196 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -14922,9 +14922,9 @@ theorem vatFrobX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨901⟩) (ret := ⟨524⟩)
     (decoded := ⟨923⟩) (need := ⟨192⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by exact solcDecodeLenCheckOkUnsigned (by simpa using hsz196) hsize)
   obtain ⟨_, _, hroutine⟩ := RD.solcSixWordThreeAddressExternalLoadAndJump
@@ -14932,7 +14932,7 @@ theorem vatFrobX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (R := [sel]) hdecoded
     (by
       unfold solcSixWordThreeAddressExternalLoadAndJumpWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   exact ⟨_, _, by
     simpa [frobDartWord, frobDinkWord, frobWMaskedWord, frobWWord,
@@ -14955,10 +14955,10 @@ theorem vatFrobX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   exact RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨901⟩) (ret := ⟨524⟩)
     (decoded := ⟨923⟩) (need := ⟨192⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
 
 theorem vatFrobBodyCoreDecodeFailed_short
     {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
@@ -15014,10 +15014,10 @@ theorem vatFrobBodyCoreNotLive
     (key := frobDartWord I) (ret := frobDinkWord I)
     (R := [frobWMaskedWord I, frobVMaskedWord I, frobUMaskedWord I, frobIWord I, ⟨524⟩, sel])
     hdecoded
-    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | native_decide)
+    (by unfold vatLiveGuardWf; repeat' first | apply And.intro | decide +native)
     (by
       unfold solcErrorStringRevertTailWf vatLiveGuardTailPc vatNotLiveRawWord
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     hliveSolc hmem hread64 (by simp)
   exact hrev.reEquivExecutionRevert hcode hdispatch hdecode hbody
 

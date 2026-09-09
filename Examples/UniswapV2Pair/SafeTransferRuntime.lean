@@ -155,7 +155,7 @@ theorem safeTransferRuntimeMem2_mload64 {base : ByteArray}
       = ⟨192⟩ :=
   mloadWordValue_of_readWithPadding
     (by rw [safeTransferRuntimeMem2_size hbase]; decide)
-    (by native_decide) (safeTransferRuntimeMem2_read64 hbase)
+    (by decide +native) (safeTransferRuntimeMem2_read64 hbase)
 
 theorem safeTransferRuntimeMem3_size
     {base : ByteArray} (toWord : UInt256)
@@ -215,7 +215,7 @@ theorem safeTransferRuntimeMem4_mload64
       = ⟨192⟩ :=
   mloadWordValue_of_readWithPadding
     (by rw [safeTransferRuntimeMem4_size toWord value hbase]; decide)
-    (by native_decide) (safeTransferRuntimeMem4_read64 toWord value hbase)
+    (by decide +native) (safeTransferRuntimeMem4_read64 toWord value hbase)
 
 theorem safeTransferRuntimeMem5_size
     {base : ByteArray} (toWord value : UInt256)
@@ -295,7 +295,7 @@ theorem safeTransferRuntimeMem7_mload64
       = ⟨292⟩ :=
   mloadWordValue_of_readWithPadding
     (by rw [safeTransferRuntimeMem7_size toWord value hbase]; decide)
-    (by native_decide) (safeTransferRuntimeMem7_read64 toWord value hbase)
+    (by decide +native) (safeTransferRuntimeMem7_read64 toWord value hbase)
 
 theorem safeTransferRuntimeMem5_read192
     {base : ByteArray} (toWord value : UInt256)
@@ -344,7 +344,7 @@ theorem safeTransferRuntimeMem7_mload192
       = ⟨68⟩ :=
   mloadWordValue_of_readWithPadding
     (by rw [safeTransferRuntimeMem7_size toWord value hbase]; decide)
-    (by native_decide) (safeTransferRuntimeMem7_read192 toWord value hbase)
+    (by decide +native) (safeTransferRuntimeMem7_read192 toWord value hbase)
 
 theorem safeTransferRuntimeMem6_mload224
     {base : ByteArray} (toWord value : UInt256)
@@ -359,7 +359,7 @@ theorem safeTransferRuntimeMem6_mload224
   unfold safeTransferRuntimeWord224
   exact mloadValue_eq_readWithPadding_of_lt_size _ (UInt256.ofNat 10) ⟨224⟩ 292
     (safeTransferRuntimeMem6_size toWord value hbase)
-    (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native)
 
 theorem safeTransferRuntimeMem7_read224
     {base : ByteArray} (toWord value : UInt256)
@@ -388,7 +388,7 @@ theorem safeTransferRuntimeMem7_mload224
       = safeTransferRuntimePatchedSelectorWord base toWord value :=
   mloadWordValue_of_readWithPadding
     (by rw [safeTransferRuntimeMem7_size toWord value hbase]; decide)
-    (by native_decide) (safeTransferRuntimeMem7_read224 toWord value hbase)
+    (by decide +native) (safeTransferRuntimeMem7_read224 toWord value hbase)
 
 noncomputable def safeTransferRuntimeCallMem0
     (base : ByteArray) (toWord value : UInt256) : ByteArray :=
@@ -484,7 +484,7 @@ theorem safeTransferRuntimeCallMem0_mload256
         ∨ (⟨256⟩ : UInt256) ≥ UInt256.ofNat 11 * ⟨32⟩) := by
     exact not_or.mpr ⟨by
       rw [safeTransferRuntimeCallMem0_size toWord value hbase]
-      native_decide, by native_decide⟩
+      decide +native, by decide +native⟩
   rw [if_neg hguard]
   rfl
 
@@ -503,7 +503,7 @@ theorem safeTransferRuntimeCallMem1_mload288
         ∨ (⟨288⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩) := by
     exact not_or.mpr ⟨by
       rw [safeTransferRuntimeCallMem1_size toWord value hbase]
-      native_decide, by native_decide⟩
+      decide +native, by decide +native⟩
   rw [if_neg hguard]
   rfl
 
@@ -522,7 +522,7 @@ theorem safeTransferRuntimeCallMem1_mload356
         ∨ (⟨356⟩ : UInt256) ≥ UInt256.ofNat 12 * ⟨32⟩ := by
     left
     rw [safeTransferRuntimeCallMem1_size toWord value hbase]
-    native_decide
+    decide +native
   rw [if_pos hguard]
 
 theorem safeTransferRuntimeCallMem2_read64
@@ -605,7 +605,7 @@ theorem safeTransferRuntimeCallMem2_mload96_zero
       = ⟨0⟩ :=
   mloadWordValue_of_readWithPadding
     (by rw [safeTransferRuntimeCallMem2_size toWord value hbase]; decide)
-    (by native_decide)
+    (by decide +native)
     (safeTransferRuntimeCallMem2_read96_zero toWord value hbase hbaseRead96)
 
 theorem safeTransferRuntimeMem6_read228_28
@@ -893,7 +893,7 @@ theorem safeTransferRuntimeCallMem2_mload64
       = ⟨292⟩ :=
   mloadWordValue_of_readWithPadding
     (by rw [safeTransferRuntimeCallMem2_size toWord value hbase]; decide)
-    (by native_decide) (safeTransferRuntimeCallMem2_read64 toWord value hbase)
+    (by decide +native) (safeTransferRuntimeCallMem2_read64 toWord value hbase)
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
@@ -933,158 +933,158 @@ theorem RD.uniswapSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
       ∧ out.size < UInt256.size := by
   have rd6375 := evm_run h with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords (by native_decide)
-      mem_cost hbaseMload64 (by native_decide) (by evm_ov)]
+    raw mload 0 ⟨128⟩ balanceOfThisStaticcallActiveWords (by decide +native)
+      mem_cost hbaseMload64 (by decide +native) (by evm_ov)]
   have rd6380 := evm_run rd6375 with [
     dup1, dup3, add, dup3,
     raw mstore 0 (safeTransferRuntimeMem0 base) balanceOfThisStaticcallActiveWords
-      (by native_decide) mem_cost
-      (by unfold safeTransferRuntimeMem0; rfl) (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost
+      (by unfold safeTransferRuntimeMem0; rfl) (by decide +native) (by evm_ov)]
   have rd6384 := evm_run rd6380 with [
     push1 ⟨25⟩, dup2,
     raw mstore 0 (safeTransferRuntimeMem1 base) balanceOfThisStaticcallActiveWords
-      (by native_decide) mem_cost
-      (by unfold safeTransferRuntimeMem1; rfl) (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost
+      (by unfold safeTransferRuntimeMem1; rfl) (by decide +native) (by evm_ov)]
   have rd6417 := rd6384.pushConst skimSafeTransferSignatureWord (width := 32)
-    (op := .PUSH32) (by native_decide) (by native_decide) (by evm_ov)
+    (op := .PUSH32) (by decide +native) (by decide +native) (by evm_ov)
   have rd6423 := evm_run rd6417 with [
     push1 ⟨32⟩, swap2, dup3, add,
     raw mstore 0 (safeTransferRuntimeMem2 base) balanceOfThisStaticcallActiveWords
-      (by native_decide) mem_cost
-      (by unfold safeTransferRuntimeMem2; rfl) (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost
+      (by unfold safeTransferRuntimeMem2; rfl) (by decide +native) (by evm_ov)]
   have rd6425 := evm_run rd6423 with [
     dup2,
     raw mload 0 ⟨192⟩ balanceOfThisStaticcallActiveWords
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (safeTransferRuntimeMem2_mload64 hbase)
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   have rd6441 := evm_run rd6425 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup6, dup2, and,
     push1 ⟨36⟩, dup4, add,
     raw mstore 9 (safeTransferRuntimeMem3 base toWord) (UInt256.ofNat 9)
-      (by native_decide) mem_cost
-      (by unfold safeTransferRuntimeMem3; rfl) (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost
+      (by unfold safeTransferRuntimeMem3; rfl) (by decide +native) (by evm_ov)]
   have rd6449 := evm_run rd6441 with [
     push1 ⟨68⟩, dup1, dup4, add, dup7, swap1,
     raw mstore 3 (safeTransferRuntimeMem4 base toWord value) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
-      (by unfold safeTransferRuntimeMem4; rfl) (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost
+      (by unfold safeTransferRuntimeMem4; rfl) (by decide +native) (by evm_ov)]
   have rd6451 := evm_run rd6449 with [
     dup5,
     raw mload 0 ⟨192⟩ (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (safeTransferRuntimeMem4_mload64 toWord value hbase)
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   have rd6459 := evm_run rd6451 with [
     dup1, dup5, sub, swap1, swap2, add, dup2,
     raw mstore 0 (safeTransferRuntimeMem5 base toWord value) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
-      (by unfold safeTransferRuntimeMem5; rfl) (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost
+      (by unfold safeTransferRuntimeMem5; rfl) (by decide +native) (by evm_ov)]
   have rd6466 := evm_run rd6459 with [
     push1 ⟨100⟩, swap1, swap3, add, dup5,
     raw mstore 0 (safeTransferRuntimeMem6 base toWord value) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
-      (by unfold safeTransferRuntimeMem6; rfl) (by native_decide) (by evm_ov)]
+      (by decide +native) mem_cost
+      (by unfold safeTransferRuntimeMem6; rfl) (by decide +native) (by evm_ov)]
   have rd6471 := evm_run rd6466 with [
     swap2, dup2, add, dup1,
     raw mload 0 (safeTransferRuntimeWord224 base toWord value) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (safeTransferRuntimeMem6_mload224 toWord value hbase)
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   have rd6480 := evm_run rd6471 with [
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨224⟩, shl, sub, and]
   have rd6485 := rd6480.pushConst transferSelectorWord (width := 4) (op := .PUSH4)
-    (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by evm_ov)
   have rd6491 := evm_run rd6485 with [
     push1 ⟨224⟩, shl, or, dup2,
     raw mstore 0 (safeTransferRuntimeMem7 base toWord value) (UInt256.ofNat 10)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by unfold safeTransferRuntimeMem7 safeTransferRuntimePatchedSelectorWord; rfl)
-      (by native_decide) (by evm_ov)]
+      (by decide +native) (by evm_ov)]
   have rd6512 := evm_run rd6491 with [
     swap3,
-    raw mload 0 ⟨292⟩ (UInt256.ofNat 10) (by native_decide)
+    raw mload 0 ⟨292⟩ (UInt256.ofNat 10) (by decide +native)
       mem_cost (safeTransferRuntimeMem7_mload64 toWord value hbase)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     dup2,
-    raw mload 0 ⟨68⟩ (UInt256.ofNat 10) (by native_decide)
+    raw mload 0 ⟨68⟩ (UInt256.ofNat 10) (by decide +native)
       mem_cost (safeTransferRuntimeMem7_mload192 toWord value hbase)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     push1 ⟨0⟩, swap5, push1 ⟨96⟩, swap5, dup10, and,
     swap4, swap3, swap2, dup3, swap2, swap1, dup1, dup4, dup4]
   have rd6521a := evm_run rd6512 with [
-    jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by native_decide)]
+    jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by decide +native)]
   have rd6539a := evm_run rd6521a with [
     dup1,
     raw mload 0 (safeTransferRuntimePatchedSelectorWord base toWord value)
-      (UInt256.ofNat 10) (by native_decide)
+      (UInt256.ofNat 10) (by decide +native)
       mem_cost (safeTransferRuntimeMem7_mload224 toWord value hbase)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     dup3,
     raw mstore 3 (safeTransferRuntimeCallMem0 base toWord value) (UInt256.ofNat 11)
-      (by native_decide) mem_cost
-      (by unfold safeTransferRuntimeCallMem0; rfl) (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost
+      (by unfold safeTransferRuntimeCallMem0; rfl) (by decide +native) (by evm_ov),
     push1 ⟨31⟩, not, swap1, swap3, add, swap2,
     push1 ⟨32⟩, swap2, dup3, add, swap2, add, push2 ⟨6512⟩]
-  have rd6512a := rd6539a.jump (by native_decide) (by jump_dest) (by evm_ov)
-  rw [show (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ by native_decide,
-    show (⟨32⟩ : UInt256) + ⟨224⟩ = ⟨256⟩ by native_decide,
-    show (⟨32⟩ : UInt256) + ⟨292⟩ = ⟨324⟩ by native_decide,
-    show (⟨68⟩ : UInt256) + UInt256.lnot ⟨31⟩ = ⟨36⟩ by native_decide]
+  have rd6512a := rd6539a.jump (by decide +native) (by jump_dest) (by evm_ov)
+  rw [show (⟨192⟩ : UInt256) + ⟨32⟩ = ⟨224⟩ by decide +native,
+    show (⟨32⟩ : UInt256) + ⟨224⟩ = ⟨256⟩ by decide +native,
+    show (⟨32⟩ : UInt256) + ⟨292⟩ = ⟨324⟩ by decide +native,
+    show (⟨68⟩ : UInt256) + UInt256.lnot ⟨31⟩ = ⟨36⟩ by decide +native]
     at rd6512a
   have rd6521b := evm_run rd6512a with [
-    jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by native_decide)]
+    jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩, jumpiNT (by decide +native)]
   have rd6539b := evm_run rd6521b with [
     dup1,
     raw mload 0 (safeTransferRuntimeCopyWord1 base toWord value)
-      (UInt256.ofNat 11) (by native_decide)
+      (UInt256.ofNat 11) (by decide +native)
       mem_cost (safeTransferRuntimeCallMem0_mload256 toWord value hbase)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     dup3,
     raw mstore 3 (safeTransferRuntimeCallMem1 base toWord value) (UInt256.ofNat 12)
-      (by native_decide) mem_cost
-      (by unfold safeTransferRuntimeCallMem1; rfl) (by native_decide) (by evm_ov),
+      (by decide +native) mem_cost
+      (by unfold safeTransferRuntimeCallMem1; rfl) (by decide +native) (by evm_ov),
     push1 ⟨31⟩, not, swap1, swap3, add, swap2,
     push1 ⟨32⟩, swap2, dup3, add, swap2, add, push2 ⟨6512⟩]
-  have rd6512b := rd6539b.jump (by native_decide) (by jump_dest) (by evm_ov)
-  rw [show (⟨32⟩ : UInt256) + ⟨256⟩ = ⟨288⟩ by native_decide,
-    show (⟨32⟩ : UInt256) + ⟨324⟩ = ⟨356⟩ by native_decide,
-    show (⟨36⟩ : UInt256) + UInt256.lnot ⟨31⟩ = ⟨4⟩ by native_decide]
+  have rd6512b := rd6539b.jump (by decide +native) (by jump_dest) (by evm_ov)
+  rw [show (⟨32⟩ : UInt256) + ⟨256⟩ = ⟨288⟩ by decide +native,
+    show (⟨32⟩ : UInt256) + ⟨324⟩ = ⟨356⟩ by decide +native,
+    show (⟨36⟩ : UInt256) + UInt256.lnot ⟨31⟩ = ⟨4⟩ by decide +native]
     at rd6512b
   have rd6543 := evm_run rd6512b with [
     jumpdest, push1 ⟨32⟩, dup4, lt, push2 ⟨6543⟩,
-    jumpiT (by native_decide) (by jump_dest)]
+    jumpiT (by decide +native) (by jump_dest)]
   have rd6575 := evm_run rd6543 with [
     jumpdest, push1 ⟨1⟩, dup4, push1 ⟨32⟩, sub, push2 ⟨256⟩, exp, sub,
     dup1, not, dup3,
     raw mload 0 (safeTransferRuntimeTailSourceWord base toWord value)
-      (UInt256.ofNat 12) (by native_decide)
+      (UInt256.ofNat 12) (by decide +native)
       mem_cost (safeTransferRuntimeCallMem1_mload288 toWord value hbase)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     and, dup2, dup5,
-    raw mload 3 ⟨0⟩ (UInt256.ofNat 13) (by native_decide)
+    raw mload 3 ⟨0⟩ (UInt256.ofNat 13) (by decide +native)
       mem_cost (safeTransferRuntimeCallMem1_mload356 toWord value hbase)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     and, dup1, dup3, or, dup6,
     raw mstore 0 (safeTransferRuntimeCallMem2 base toWord value) (UInt256.ofNat 13)
-      (by native_decide) mem_cost
+      (by decide +native) mem_cost
       (by
         unfold safeTransferRuntimeCallMem2 safeTransferRuntimeTailWord skimSafeTransferTailMask
         rfl)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     pop, pop, pop, pop, pop, pop]
   have rd6593 := evm_run rd6575 with [
     swap1, pop, add, swap2, pop, pop, push1 ⟨0⟩, push1 ⟨64⟩,
-    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by native_decide)
+    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by decide +native)
       mem_cost (safeTransferRuntimeCallMem2_mload64 toWord value hbase)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     dup1, dup4, sub, dup2, push1 ⟨0⟩, dup7]
-  obtain ⟨gasArg, rd6594⟩ := rd6593.gas (by native_decide) (by evm_ov)
-  rw [show (⟨68⟩ : UInt256) + ⟨292⟩ = ⟨360⟩ by native_decide,
-    show UInt256.sub (⟨360⟩ : UInt256) ⟨292⟩ = ⟨68⟩ by native_decide]
+  obtain ⟨gasArg, rd6594⟩ := rd6593.gas (by decide +native) (by evm_ov)
+  rw [show (⟨68⟩ : UInt256) + ⟨292⟩ = ⟨360⟩ by decide +native,
+    show UInt256.sub (⟨360⟩ : UInt256) ⟨292⟩ = ⟨68⟩ by decide +native]
     at rd6594
   obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘ, rd6595, houtSize⟩ :=
-    rd6594.call (by native_decide) hdepth (by evm_ov)
+    rd6594.call (by decide +native) hdepth (by evm_ov)
   refine ⟨cA', σ', z, out, A_in, callGas, gasArg, k', C', ?_, ?_, houtSize⟩
   · simpa using hΘ
   · have hlen :
@@ -1100,7 +1100,7 @@ theorem RD.uniswapSafeTransferEntryToCallMade {g : Sat256} {s0 : State}
               (⟨68⟩ : UInt256).toNat)
             (⟨292⟩ : UInt256).toNat (⟨0⟩ : UInt256).toNat) =
           UInt256.ofNat 13 := by
-      native_decide
+      decide +native
     rw [hlen, byteArray_write_len_zero, haw] at rd6595
     exact rd6595
 
@@ -1119,7 +1119,7 @@ theorem RD.uniswapSafeTransferEmptyFailureReverts {g : Sat256} {s0 : State}
     swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
   have rd6607' := rd6607
   rw [hout] at rd6607'
-  have rd6641 := evm_run rd6607' with [jumpiT (by native_decide) (by jump_dest)]
+  have rd6641 := evm_run rd6607' with [jumpiT (by decide +native) (by jump_dest)]
   have rd6652 := evm_run rd6641 with [
     jumpdest, push1 ⟨96⟩, swap2, pop, jumpdest, pop, swap2, pop, swap2, pop]
   exact RD.uniswapSafeTransferReturnNonemptyFailureReverts (R := R) rd6652 hR
@@ -1148,22 +1148,22 @@ theorem RD.uniswapSafeTransferEmptyReturnToRet {g : Sat256} {s0 : State}
     swap2, pop, pop, returndatasize, dup1, push1 ⟨0⟩, dup2, eq, push2 ⟨6641⟩]
   have rd6607' := rd6607
   rw [hout] at rd6607'
-  have rd6641 := evm_run rd6607' with [jumpiT (by native_decide) (by jump_dest)]
+  have rd6641 := evm_run rd6607' with [jumpiT (by decide +native) (by jump_dest)]
   have rd6652 := evm_run rd6641 with [
     jumpdest, push1 ⟨96⟩, swap2, pop, jumpdest, pop, swap2, pop, swap2, pop]
   have rd6658 := evm_run rd6652 with [
-    dup2, dup1, iszero, push2 ⟨6692⟩, jumpiNT (by native_decide)]
+    dup2, dup1, iszero, push2 ⟨6692⟩, jumpiNT (by decide +native)]
   have rd6661 := evm_run rd6658 with [pop, dup1]
-  have rd6662 := RD.mload 0 ⟨0⟩ aw rd6661 (by native_decide)
+  have rd6662 := RD.mload 0 ⟨0⟩ aw rd6661 (by decide +native)
     (by
       intro s haw hstk
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, haw96])
     hload96 haw96
     (by simp only [List.length_cons]; omega)
   have rd6668 := evm_run rd6662 with [
-    iszero, dup1, push2 ⟨6692⟩, jumpiT (by native_decide) (by jump_dest)]
+    iszero, dup1, push2 ⟨6692⟩, jumpiT (by decide +native) (by jump_dest)]
   have rd6773 := evm_run rd6668 with [jumpdest, push2 ⟨6773⟩,
-    jumpiT (by native_decide) (by jump_dest)]
+    jumpiT (by decide +native) (by jump_dest)]
   exact ⟨_, _, evm_run rd6773 with [jumpdest, pop, pop, pop, pop, pop, jump hret]⟩
 
 def safeTransferRuntimeReturnDataRounded (out : ByteArray) : UInt256 :=
@@ -1565,8 +1565,8 @@ theorem RD.uniswapSafeTransferCallMem2NonemptyReturnToCheck
     (memFinal := safeTransferRuntimeReturnDataMem base toWord value out)
     h houtNe houtSize
     (safeTransferRuntimeCallMem2_mload64 toWord value hbase)
-    (by native_decide)
-    (by native_decide)
+    (by decide +native)
+    (by decide +native)
     (by
       rw [show (⟨292⟩ : UInt256).toNat = 292 from by decide,
         show ((⟨292⟩ : UInt256) + ⟨32⟩).toNat = 324 from by decide]
@@ -1645,7 +1645,7 @@ theorem RD.uniswapSafeTransferCallMem2NonemptyTrueStatusToLengthLoaded
     rd6652 houtNe houtSize
     (safeTransferRuntimeReturnDataMem_mload292 toWord value out hbase houtNe houtSize)
     (safeTransferRuntimeReturnDataActiveWords_mload292_same out houtSize)
-    (by native_decide)
+    (by decide +native)
     hR
 
 set_option maxHeartbeats 1000000 in

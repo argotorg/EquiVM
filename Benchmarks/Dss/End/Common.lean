@@ -459,7 +459,7 @@ theorem endDecode_legacyBytes32_address_ok {cd : ByteArray} {x y : Ident}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [endDecodeABIValues_bytes32_address_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -479,7 +479,7 @@ theorem endDecode_legacyBytes32_address_none_short {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiAddress, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiAddress] = some 64 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64
   · rw [if_pos hbytes]
@@ -588,7 +588,7 @@ theorem endDecode_legacyBytes32_uint256_ok {cd : ByteArray} {x y : Ident}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   rw [endDecodeABIValues_bytes32_uint256_legacy_ok (bytes := cd.toList.drop 4)
     (by simpa using htake4)
@@ -608,7 +608,7 @@ theorem endDecode_legacyBytes32_uint256_none_short {cd : ByteArray}
   rw [if_neg (by rw [htlen]; omega : ¬ cd.toList.length < 4)]
   rw [if_neg (by simp [abiBytes32, abiUInt256, isDynamicABIType])]
   simp only [decodeCalldata.decodeArgs]
-  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by native_decide]
+  rw [show abiTupleHeadSize? [abiBytes32, abiUInt256] = some 64 by decide +native]
   simp only [bind, Option.bind]
   by_cases hbytes : (cd.toList.drop 4).length < 64
   · rw [if_pos hbytes]
@@ -745,11 +745,11 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
   have rd6 := rd5.dup2 hd5 (by evm_ov)
   have rd7 := rd6.swap1 hd6 (by evm_ov)
   have rd8 := rd7.mstore 0 (solcMappingBaseSlotMem ⟨0⟩)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd9 := rd8.swap1 hd8 (by evm_ov)
   have rd10 := rd9.dup2 hd9 (by evm_ov)
   have rd11 := rd10.mstore 0 (solcMappingHashMem ⟨0⟩ key)
-    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd10 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd13 := rd11.push1 ⟨64⟩ hd11 (by evm_ov)
   have rd14 := rd13.swap1 hd13 (by evm_ov)
   have hslot := solcMappingKeccakSlot ⟨0⟩ key
@@ -757,7 +757,7 @@ theorem RD.solcZeroSlotMappingGetter {code : ByteArray} {g : Sat256} {s0 : State
     (UInt256.ofNat 3) hd14 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   obtain ⟨_, _, rd16⟩ := rd15.sload hd15 (by evm_ov)
   have rd17 := rd16.dup2 hd16 (by evm_ov)
   exact ⟨_, _, rd17.jump hd17 hret (by evm_ov)⟩
@@ -1106,7 +1106,7 @@ theorem endUniswapExtCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {targe
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+        (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
@@ -1419,13 +1419,13 @@ theorem endExecRmulFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
       evalExpr? config { contract := contract, locals := localsM } evm (.intLit RAY) =
         .ok (.int (Int.ofNat endRayWord.toNat)) := by
     have hRayEq : RAY = Int.ofNat endRayWord.toNat := by
-      native_decide
+      decide +native
     simp [evalExpr?, pure, hRayEq]
   have hDiv :
       evalExpr? config { contract := contract, locals := localsM } evm
         (.binary .div (.var "m") (.intLit RAY)) =
           .ok (.int (Int.ofNat q.toNat)) :=
-    endEvalExpr_div_uint256_ok hm hRay (by native_decide) hq
+    endEvalExpr_div_uint256_ok hm hRay (by decide +native) hq
   have hblock :
       ExecBlock config { contract := contract, locals := locals } evm
         [ .internalCall "mul" [.var "x", .var "y"] "m",
@@ -1497,7 +1497,7 @@ theorem endExecWdivFunctionReturn (evm : EVM.State) {x y prod q : UInt256}
       evalExpr? config { contract := contract, locals := locals } evm (.intLit WAD) =
         .ok (.int (Int.ofNat endWadWord.toNat)) := by
     have hWadEq : WAD = Int.ofNat endWadWord.toNat := by
-      native_decide
+      decide +native
     simp [evalExpr?, pure, hWadEq]
   have hargs :
       evalExprs? config { contract := contract, locals := locals } evm [.var "x", .intLit WAD] =
@@ -1564,7 +1564,7 @@ theorem endExecWdivFunctionRevertMul (evm : EVM.State) {x y : UInt256}
       evalExpr? config { contract := contract, locals := locals } evm (.intLit WAD) =
         .ok (.int (Int.ofNat endWadWord.toNat)) := by
     have hWadEq : WAD = Int.ofNat endWadWord.toNat := by
-      native_decide
+      decide +native
     simp [evalExpr?, pure, hWadEq]
   have hargs :
       evalExprs? config { contract := contract, locals := locals } evm [.var "x", .intLit WAD] =
@@ -1611,7 +1611,7 @@ theorem endExecWdivFunctionRevertDivZero (evm : EVM.State) {x y prod : UInt256}
       evalExpr? config { contract := contract, locals := locals } evm (.intLit WAD) =
         .ok (.int (Int.ofNat endWadWord.toNat)) := by
     have hWadEq : WAD = Int.ofNat endWadWord.toNat := by
-      native_decide
+      decide +native
     simp [evalExpr?, pure, hWadEq]
   have hargs :
       evalExprs? config { contract := contract, locals := locals } evm [.var "x", .intLit WAD] =

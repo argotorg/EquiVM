@@ -82,7 +82,7 @@ theorem skimSecondBalanceSelectorMem_read64
       UInt256.toByteArray (⟨292⟩ : UInt256) := by
   unfold skimSecondBalanceSelectorMem
   rw [write32_read_below _ _ 292 64 (by rw [toByteArray_size])
-      (by rw [skimSafeTransferCallMem2_size self toWord value ho32 hoSize]; native_decide)
+      (by rw [skimSafeTransferCallMem2_size self toWord value ho32 hoSize]; decide +native)
       (by omega)]
   exact skimSafeTransferCallMem2_read64 self toWord value ho32 hoSize
 
@@ -108,8 +108,8 @@ theorem skimSecondBalanceCalldataMem_mload64
           (⟨64⟩ : UInt256).toNat 32)))
       = ⟨292⟩ :=
   mloadWordValue_of_readWithPadding
-    (by rw [skimSecondBalanceCalldataMem_size self toWord value ho32 hoSize]; native_decide)
-    (by native_decide) (skimSecondBalanceCalldataMem_read64 self toWord value ho32 hoSize)
+    (by rw [skimSecondBalanceCalldataMem_size self toWord value ho32 hoSize]; decide +native)
+    (by decide +native) (skimSecondBalanceCalldataMem_read64 self toWord value ho32 hoSize)
 
 theorem skimSecondBalanceSelectorMem_read292_4
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
@@ -120,7 +120,7 @@ theorem skimSecondBalanceSelectorMem_read292_4
   rw [write32_read_prefix_len _ _ 292 4 (by rw [toByteArray_size])
       (by rw [skimSafeTransferCallMem2_size self toWord value ho32 hoSize]; omega)
       (by norm_num) (by norm_num) (by norm_num)]
-  native_decide
+  decide +native
 
 theorem skimSecondBalanceCalldataMem_read292_4
     (self : UInt256) {o : ByteArray} (toWord value : UInt256)
@@ -218,8 +218,8 @@ theorem skimSecondBalanceStaticcallMem_mload64_of_size_ge
     (by
       rw [skimSecondBalanceStaticcallMem_size_of_size_ge self toWord value out
         ho32 hoSize hout32 houtSize]
-      native_decide)
-    (by native_decide)
+      decide +native)
+    (by decide +native)
     (skimSecondBalanceStaticcallMem_read64_of_size_ge self toWord value out
       ho32 hoSize hout32 houtSize)
 
@@ -278,8 +278,8 @@ theorem skimSecondBalanceStaticcallMem_mload64_of_size_lt
     (by
       rw [skimSecondBalanceStaticcallMem_size_of_size_lt self toWord value out
         ho32 hoSize hshort houtSize]
-      native_decide)
-    (by native_decide)
+      decide +native)
+    (by decide +native)
     (skimSecondBalanceStaticcallMem_read64_of_size_lt self toWord value out
       ho32 hoSize hshort houtSize)
 
@@ -314,8 +314,8 @@ theorem skimSecondBalanceStaticcallMem_mload292_of_size_ge
     constructor
     · rw [skimSecondBalanceStaticcallMem_size_of_size_ge self toWord value out
         ho32 hoSize hout32 houtSize]
-      native_decide
-    · native_decide
+      decide +native
+    · decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSkimSecondBalanceReturnWordDecodeOk {g : Sat256} {s0 : State}
@@ -332,54 +332,54 @@ theorem RD.uniswapSkimSecondBalanceReturnWordDecodeOk {g : Sat256} {s0 : State}
       (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32)) :: R)
       (skimSecondBalanceStaticcallMem self o toWord value out) (UInt256.ofNat 13) out
       acc k' C' := by
-  have rdPop0 := RD.pop h (by native_decide) (by simp only [List.length_cons]; omega)
-  have rdPop1 := RD.pop rdPop0 (by native_decide)
+  have rdPop0 := RD.pop h (by decide +native) (by simp only [List.length_cons]; omega)
+  have rdPop1 := RD.pop rdPop0 (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdPop2 := RD.pop rdPop1 (by native_decide) (by omega)
-  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by native_decide) (by omega)
+  have rdPop2 := RD.pop rdPop1 (by decide +native) (by omega)
+  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by decide +native) (by omega)
   have rdMload64 := RD.mload 0 ⟨292⟩ (UInt256.ofNat 13)
-    rdPush64 (by native_decide)
+    rdPush64 (by decide +native)
     (fun s haw hstk => by
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
+      decide +native)
     (skimSecondBalanceStaticcallMem_mload64_of_size_ge self toWord value out
       ho32 hoSize hout32 houtSize)
-    (by native_decide)
+    (by decide +native)
     (by omega)
-  have rdReturndatasize := RD.returndatasize rdMload64 (by native_decide)
+  have rdReturndatasize := RD.returndatasize rdMload64 (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdPush32 := RD.push1 rdReturndatasize ⟨32⟩ (by native_decide)
+  have rdPush32 := RD.push1 rdReturndatasize ⟨32⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdDup2 := RD.dup2 rdPush32 (by native_decide)
+  have rdDup2 := RD.dup2 rdPush32 (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdLt := RD.lt rdDup2 (by native_decide) (by simp only [List.length_cons]; omega)
+  have rdLt := RD.lt rdDup2 (by decide +native) (by simp only [List.length_cons]; omega)
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨0⟩ := by
     apply Reasoning.Theory.ult_zero
     rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide, ulit_toNat' out.size houtSize]
     exact hout32
-  have rdIszero := RD.iszero rdLt (by native_decide)
+  have rdIszero := RD.iszero rdLt (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdPushOk := RD.push2 rdIszero ⟨5311⟩ (by native_decide)
+  have rdPushOk := RD.push2 rdIszero ⟨5311⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
   have hcond :
       UInt256.isZero (UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256)) ≠ ⟨0⟩ := by
     rw [hlt]
     decide
-  have rdJumpi := RD.jumpiT rdPushOk (by native_decide) hcond (by jump_dest)
+  have rdJumpi := RD.jumpiT rdPushOk (by decide +native) hcond (by jump_dest)
     (by simp only [List.length_cons]; omega)
-  have rdJumpdest := RD.jumpdest rdJumpi (by native_decide)
+  have rdJumpdest := RD.jumpdest rdJumpi (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdPopLen := RD.pop rdJumpdest (by native_decide)
+  have rdPopLen := RD.pop rdJumpdest (by decide +native)
     (by simp only [List.length_cons]; omega)
   have rdMload292 := RD.mload 0
     (UInt256.ofNat (fromByteArrayBigEndian (out.extract 0 32))) (UInt256.ofNat 13)
-    rdPopLen (by native_decide)
+    rdPopLen (by decide +native)
     (fun s haw hstk => by
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
+      decide +native)
     (skimSecondBalanceStaticcallMem_mload292_of_size_ge self toWord value out
       ho32 hoSize hout32 houtSize)
-    (by native_decide)
+    (by decide +native)
     (by omega)
   exact ⟨_, _, by simpa using rdMload292⟩
 
@@ -395,43 +395,43 @@ theorem RD.uniswapSkimSecondBalanceReturnWordDecodeShortReverts {g : Sat256} {s0
     (hshort : out.size < 32) (houtSize : out.size < UInt256.size)
     (hov : R.length + 4 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
-  have rdPop0 := RD.pop h (by native_decide) (by simp only [List.length_cons]; omega)
-  have rdPop1 := RD.pop rdPop0 (by native_decide)
+  have rdPop0 := RD.pop h (by decide +native) (by simp only [List.length_cons]; omega)
+  have rdPop1 := RD.pop rdPop0 (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdPop2 := RD.pop rdPop1 (by native_decide) (by omega)
-  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by native_decide) (by omega)
+  have rdPop2 := RD.pop rdPop1 (by decide +native) (by omega)
+  have rdPush64 := RD.push1 rdPop2 ⟨64⟩ (by decide +native) (by omega)
   have rdMload64 := RD.mload 0 ⟨292⟩ (UInt256.ofNat 13)
-    rdPush64 (by native_decide)
+    rdPush64 (by decide +native)
     (fun s haw hstk => by
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', Cₘ, haw, hstk]
-      native_decide)
+      decide +native)
     (skimSecondBalanceStaticcallMem_mload64_of_size_lt self toWord value out
       ho32 hoSize hshort houtSize)
-    (by native_decide)
+    (by decide +native)
     (by omega)
-  have rdReturndatasize := RD.returndatasize rdMload64 (by native_decide)
+  have rdReturndatasize := RD.returndatasize rdMload64 (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdPush32 := RD.push1 rdReturndatasize ⟨32⟩ (by native_decide)
+  have rdPush32 := RD.push1 rdReturndatasize ⟨32⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdDup2 := RD.dup2 rdPush32 (by native_decide)
+  have rdDup2 := RD.dup2 rdPush32 (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdLt := RD.lt rdDup2 (by native_decide) (by simp only [List.length_cons]; omega)
+  have rdLt := RD.lt rdDup2 (by decide +native) (by simp only [List.length_cons]; omega)
   have hlt : UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256) = ⟨1⟩ := by
     apply Reasoning.Theory.ult_one
     rw [show (⟨32⟩ : UInt256).toNat = 32 from by decide, ulit_toNat' out.size houtSize]
     exact hshort
-  have rdIszero := RD.iszero rdLt (by native_decide)
+  have rdIszero := RD.iszero rdLt (by decide +native)
     (by simp only [List.length_cons]; omega)
-  have rdPushOk := RD.push2 rdIszero ⟨5311⟩ (by native_decide)
+  have rdPushOk := RD.push2 rdIszero ⟨5311⟩ (by decide +native)
     (by simp only [List.length_cons]; omega)
   have hcond :
       UInt256.isZero (UInt256.lt (UInt256.ofNat out.size) (⟨32⟩ : UInt256)) = ⟨0⟩ := by
     rw [hlt]
     decide
-  have rdFallthrough := RD.jumpiNT rdPushOk (by native_decide) hcond
+  have rdFallthrough := RD.jumpiNT rdPushOk (by decide +native) hcond
     (by simp only [List.length_cons]; omega)
-  exact RD.solcPush1Dup1Revert0 rdFallthrough (by native_decide)
-    (by native_decide) (by native_decide)
+  exact RD.solcPush1Dup1Revert0 rdFallthrough (by decide +native)
+    (by decide +native) (by decide +native)
     (by simp only [List.length_cons]; omega)
 
 theorem RD.uniswapSkimSecondBalanceCallFailureReverts {g : Sat256} {s0 : State}
@@ -444,10 +444,10 @@ theorem RD.uniswapSkimSecondBalanceCallFailureReverts {g : Sat256} {s0 : State}
     (hov : R.length + 5 ≤ 1024) :
     RDrev UniswapV2Pair.uniswapV2PairBytecode g s0 := by
   exact RD.solcCallSuccessGuardMissing (okPc := ⟨5289⟩) h hstatus
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) houtSize hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) houtSize hov
 
 theorem RD.uniswapSkimSecondBalanceCallSuccessToDecode {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {mem out : ByteArray}
@@ -459,8 +459,8 @@ theorem RD.uniswapSkimSecondBalanceCallSuccessToDecode {g : Sat256} {s0 : State}
     ∃ k' C', RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5291⟩
       R mem (UInt256.ofNat 13) out acc k' C' := by
   exact RD.solcCallSuccessGuardOk (okPc := ⟨5289⟩) h hstatus
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide) hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native) hov
 
 set_option maxHeartbeats 1000000 in
 theorem RD.uniswapSafeMathSubUnderflow_aw13_free292 {g : Sat256} {s0 : State}
@@ -498,7 +498,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw13_free292 {g : Sat256} {s0 : State}
     raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by decide)
       mem_cost
       (mloadWordValue_of_readWithPadding
-        (by rw [hmem]; decide) (by native_decide) hread64)
+        (by rw [hmem]; decide) (by decide +native) hread64)
       (by decide) (by evm_ov)]
   let mem0 : ByteArray := (UInt256.toByteArray uniswapErrorStringSelector).write 0 mem 292 32
   have hmem0 : mem0.size = 388 := by
@@ -554,25 +554,25 @@ theorem RD.uniswapSafeMathSubUnderflow_aw13_free292 {g : Sat256} {s0 : State}
       mem0.readWithPadding 64 32 = UInt256.toByteArray ⟨292⟩ := by
     unfold mem0
     rw [write32_read_below _ _ 292 64 (by rw [toByteArray_size])
-      (by rw [hmem]; native_decide) (by omega)]
+      (by rw [hmem]; decide +native) (by omega)]
     exact hread64
   have hread64_mem1 :
       mem1.readWithPadding 64 32 = UInt256.toByteArray ⟨292⟩ := by
     unfold mem1
     rw [write32_read_below _ _ 296 64 (by rw [toByteArray_size])
-      (by rw [hmem0]; native_decide) (by omega)]
+      (by rw [hmem0]; decide +native) (by omega)]
     exact hread64_mem0
   have hread64_mem2 :
       mem2.readWithPadding 64 32 = UInt256.toByteArray ⟨292⟩ := by
     unfold mem2
     rw [write32_read_below _ _ 328 64 (by rw [toByteArray_size])
-      (by rw [hmem1]; native_decide) (by omega)]
+      (by rw [hmem1]; decide +native) (by omega)]
     exact hread64_mem1
   have hread64_mem3 :
       mem3.readWithPadding 64 32 = UInt256.toByteArray ⟨292⟩ := by
     unfold mem3
     rw [write32_read_below _ _ 360 64 (by rw [toByteArray_size])
-      (by rw [hmem2]; native_decide) (by omega)]
+      (by rw [hmem2]; decide +native) (by omega)]
     exact hread64_mem2
   exact evm_run rd6940 with [
     push1 ⟨88⟩, shl, push1 ⟨68⟩, dup3, add,
@@ -583,7 +583,7 @@ theorem RD.uniswapSafeMathSubUnderflow_aw13_free292 {g : Sat256} {s0 : State}
     raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by decide)
       mem_cost
       (mloadWordValue_of_readWithPadding
-        (by rw [hmem3]; decide) (by native_decide) hread64_mem3)
+        (by rw [hmem3]; decide) (by decide +native) hread64_mem3)
       (by decide) (by evm_ov),
     swap1, dup2, swap1, sub, push1 ⟨100⟩, add, swap1,
     raw rev 0 (by decide) mem_cost (by evm_ov)]
@@ -624,7 +624,7 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade {g : Sat256} {s0 : State}
   let token1Clean := UInt256.land token1 solcAddrMask
   let reserve1Word := UInt256.land reserve112Mask (UInt256.div packedWord reserve112Shift)
   have rd5333 := evm_run h with [jumpdest, push1 ⟨8⟩]
-  obtain ⟨k5334, C5334, rd5334₀⟩ := rd5333.sload (by native_decide) (by evm_ov)
+  obtain ⟨k5334, C5334, rd5334₀⟩ := rd5333.sload (by decide +native) (by evm_ov)
   have rd5334 : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5334⟩
       (packedWord :: token1 :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSafeTransferCallMem2 (UInt256.ofNat ee.codeOwner.val) o toWord value)
@@ -632,32 +632,32 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade {g : Sat256} {s0 : State}
     simpa [packedWord, uniswapSlotWord] using rd5334₀
   have rd5347 := evm_run rd5334 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by native_decide)
+    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by decide +native)
       mem_cost
       (skimSafeTransferCallMem2_mload64 (UInt256.ofNat ee.codeOwner.val) toWord value
         ho32 hoSize)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     push4 balanceOfSelectorWord, push1 ⟨224⟩, shl, dup2]
   have rd5348 := rd5347.mstore 0
     (skimSecondBalanceSelectorMem (UInt256.ofNat ee.codeOwner.val) o toWord value)
-    (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 13) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd5353 := evm_run rd5348 with [address, push1 ⟨4⟩, dup3, add]
   have rd5354 := rd5353.mstore 0
     (skimSecondBalanceCalldataMem (UInt256.ofNat ee.codeOwner.val) o toWord value)
-    (UInt256.ofNat 13) (by native_decide) mem_cost
+    (UInt256.ofNat 13) (by decide +native) mem_cost
     (by
-      rw [show (⟨292⟩ : UInt256) + ⟨4⟩ = ⟨296⟩ by native_decide]
+      rw [show (⟨292⟩ : UInt256) + ⟨4⟩ = ⟨296⟩ by decide +native]
       rfl)
-    (by native_decide)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd5356 := evm_run rd5354 with [
     swap1,
-    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by native_decide)
+    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by decide +native)
       mem_cost
       (skimSecondBalanceCalldataMem_mload64 (UInt256.ofNat ee.codeOwner.val) toWord value
         ho32 hoSize)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     push2 ⟨5433⟩, swap3, dup5, swap3, dup8, swap3, push2 ⟨5325⟩, swap3]
   have rd5384₀ := evm_run rd5356 with [
     push1 ⟨1⟩, push1 ⟨112⟩, shl, swap1, div, push1 ⟨1⟩, push1 ⟨1⟩,
@@ -680,12 +680,12 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade {g : Sat256} {s0 : State}
     show (⟨0⟩ : UInt256) + ⟨36⟩ = ⟨36⟩ from by decide] at rd5421
   obtain ⟨gasWord, _, _, rd5272⟩ :=
     RD.solcExtcodesizeGuardOkGas (okPc := ⟨5269⟩) rd5421 htoken1Code
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by jump_dest)
-      (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by jump_dest)
+      (by decide +native) (by decide +native) (by decide +native)
       (by simp only [List.length_cons, List.length_nil]; omega)
   obtain ⟨cA', σ', z, out, A_in, callGas, k', C', hΘ, rd5273, houtSize⟩ :=
-    RD.solcStaticcall rd5272 (by native_decide) hdepth
+    RD.solcStaticcall rd5272 (by decide +native) hdepth
       (by simp only [List.length_cons, List.length_nil]; omega)
   refine ⟨cA', σ', z, out, A_in, callGas, k', C', ?_, ?_, houtSize⟩
   · simpa [token1Clean, skimSecondBalanceStaticcallMem] using hΘ
@@ -693,7 +693,7 @@ theorem RD.uniswapSkimSecondBalanceOfStaticcallMade {g : Sat256} {s0 : State}
         UInt256.ofNat
           (MachineState.M (MachineState.M (UInt256.ofNat 13).toNat 292 36) 292 32) =
           UInt256.ofNat 13 := by
-      native_decide
+      decide +native
     simpa [packedWord, token1Clean, reserve1Word, reserve112Shift, reserve112Mask,
       skimSecondBalanceStaticcallMem, haw] using rd5273
 
@@ -711,7 +711,7 @@ theorem RD.uniswapSkimSecondBalanceOfNoCodeReverts {g : Sat256} {s0 : State}
   let packedWord := uniswapSlotWord ⟨8⟩ σ ee
   let token1Clean := UInt256.land token1 solcAddrMask
   have rd5333 := evm_run h with [jumpdest, push1 ⟨8⟩]
-  obtain ⟨k5334, C5334, rd5334₀⟩ := rd5333.sload (by native_decide) (by evm_ov)
+  obtain ⟨k5334, C5334, rd5334₀⟩ := rd5333.sload (by decide +native) (by evm_ov)
   have rd5334 : RD UniswapV2Pair.uniswapV2PairBytecode ee g s0 ⟨5334⟩
       (packedWord :: token1 :: token0 :: toWord :: ⟨570⟩ :: sel :: [])
       (skimSafeTransferCallMem2 (UInt256.ofNat ee.codeOwner.val) o toWord value)
@@ -719,32 +719,32 @@ theorem RD.uniswapSkimSecondBalanceOfNoCodeReverts {g : Sat256} {s0 : State}
     simpa [packedWord, uniswapSlotWord] using rd5334₀
   have rd5347 := evm_run rd5334 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by native_decide)
+    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by decide +native)
       mem_cost
       (skimSafeTransferCallMem2_mload64 (UInt256.ofNat ee.codeOwner.val) toWord value
         ho32 hoSize)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     push4 balanceOfSelectorWord, push1 ⟨224⟩, shl, dup2]
   have rd5348 := rd5347.mstore 0
     (skimSecondBalanceSelectorMem (UInt256.ofNat ee.codeOwner.val) o toWord value)
-    (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl) (by native_decide)
+    (UInt256.ofNat 13) (by decide +native) mem_cost (by rfl) (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd5353 := evm_run rd5348 with [address, push1 ⟨4⟩, dup3, add]
   have rd5354 := rd5353.mstore 0
     (skimSecondBalanceCalldataMem (UInt256.ofNat ee.codeOwner.val) o toWord value)
-    (UInt256.ofNat 13) (by native_decide) mem_cost
+    (UInt256.ofNat 13) (by decide +native) mem_cost
     (by
-      rw [show (⟨292⟩ : UInt256) + ⟨4⟩ = ⟨296⟩ by native_decide]
+      rw [show (⟨292⟩ : UInt256) + ⟨4⟩ = ⟨296⟩ by decide +native]
       rfl)
-    (by native_decide)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
   have rd5356 := evm_run rd5354 with [
     swap1,
-    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by native_decide)
+    raw mload 0 ⟨292⟩ (UInt256.ofNat 13) (by decide +native)
       mem_cost
       (skimSecondBalanceCalldataMem_mload64 (UInt256.ofNat ee.codeOwner.val) toWord value
         ho32 hoSize)
-      (by native_decide) (by evm_ov),
+      (by decide +native) (by evm_ov),
     push2 ⟨5433⟩, swap3, dup5, swap3, dup8, swap3, push2 ⟨5325⟩, swap3]
   have rd5384₀ := evm_run rd5356 with [
     push1 ⟨1⟩, push1 ⟨112⟩, shl, swap1, div, push1 ⟨1⟩, push1 ⟨1⟩,
@@ -766,9 +766,9 @@ theorem RD.uniswapSkimSecondBalanceOfNoCodeReverts {g : Sat256} {s0 : State}
     show UInt256.sub (⟨292⟩ : UInt256) ⟨292⟩ = ⟨0⟩ from by decide,
     show (⟨0⟩ : UInt256) + ⟨36⟩ = ⟨36⟩ from by decide] at rd5421
   exact RD.solcExtcodesizeGuardMissing (okPc := ⟨5269⟩) rd5421 htoken1NoCode
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native)
     (by simp only [List.length_cons, List.length_nil]; omega)
 
 end UniswapV2Pair

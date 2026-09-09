@@ -38,22 +38,22 @@ theorem jugReachDripBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : jugSelWord I = ⟨0x44e2a5a8⟩ :=
     jugSelWord_eq_of_beq I hsz 0x44 0xe2 0xa5 0xa8 ⟨0x44e2a5a8⟩
-      (by native_decide) (by simpa [jugSelBytes] using hsel)
+      (by decide +native) (by simpa [jugSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat jugBytecode jugRootSplitPc) (jugSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat jugBytecode (nthArmPc jugBytecode jugLowFirstArmPc j))
         (jugSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> native_decide
+    interval_cases j <;> rw [hword] <;> decide +native
   have htake :
       UInt256.eq (armSelNat jugBytecode (nthArmPc jugBytecode jugLowFirstArmPc 4))
         (jugSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact jugReachLowBody 4 (by omega) ⟨328⟩ hcode hwv hsz hsize hroot heq0 htake
-    (by jump_dest) (by native_decide)
+    (by jump_dest) (by decide +native)
 
 theorem RD.jugDripDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
     {ee : ExecutionEnv} {k C : ℕ} {ret de sel : UInt256} {R : List UInt256}
@@ -67,13 +67,13 @@ theorem RD.jugDripDecodeToRoutine {code : ByteArray} {g : Sat256} {s0 : State}
       (calldataWord ee.calldata 4 :: ret :: sel :: R)
       mem aw rdata acc k' C' := by
   subst hwf
-  have rd351 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd352 := rd351.pop (by native_decide) (by evm_ov)
-  have rd353 := rd352.calldataload (by native_decide) (by evm_ov)
-  have rd356 := rd353.push2 ⟨1235⟩ (by native_decide) (by evm_ov)
+  have rd351 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd352 := rd351.pop (by decide +native) (by evm_ov)
+  have rd353 := rd352.calldataload (by decide +native) (by evm_ov)
+  have rd356 := rd353.push2 ⟨1235⟩ (by decide +native) (by evm_ov)
   exact ⟨_, _, by
     simpa [calldataWord, show (⟨4⟩ : UInt256).toNat = 4 from by decide]
-      using rd356.jump (by native_decide) hroutine (by evm_ov)⟩
+      using rd356.jump (by decide +native) hroutine (by evm_ov)⟩
 
 theorem jugDripX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
     (hsz36 : 36 ≤ I.calldata.size) (hsize : I.calldata.size < UInt256.size)
@@ -86,9 +86,9 @@ theorem jugDripX_decoded {cA gh bl σ σ₀ A I} {g : Sat256} {sel : UInt256}
   obtain ⟨_, _, hdecoded⟩ := RD.solcExternalStaticArgsLenOk
     (code := jugBytecode) (sel := sel) (entry := ⟨328⟩) (ret := ⟨357⟩)
     (decoded := ⟨350⟩) (need := ⟨32⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest)
     (by
       exact solcDecodeLenCheckOkUnsigned (by simpa using hsz36) hsize)
@@ -113,26 +113,26 @@ theorem jugDripX_loadRho {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     simpa [dripIlkHashMem] using
       twoWordHashMem_solcMappingSlot (⟨1⟩ : UInt256) (fileDutyIlkWord I)
         solcFreePtrMem_size
-  have rd1236 := h.jumpdest (by native_decide) (by evm_ov)
-  have rd1238 := rd1236.push1 ⟨0⟩ (by native_decide) (by evm_ov)
-  have rd1239 := rd1238.dup2 (by native_decide) (by evm_ov)
-  have rd1240pre := rd1239.dup2 (by native_decide) (by evm_ov)
+  have rd1236 := h.jumpdest (by decide +native) (by evm_ov)
+  have rd1238 := rd1236.push1 ⟨0⟩ (by decide +native) (by evm_ov)
+  have rd1239 := rd1238.dup2 (by decide +native) (by evm_ov)
+  have rd1240pre := rd1239.dup2 (by decide +native) (by evm_ov)
   have rd1241 := rd1240pre.mstore 0 (wordAt0Mem (fileDutyIlkWord I) solcFreePtrMem)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1248pre := evm_run rd1241 with [
-    raw push1 ⟨1⟩ (by native_decide) (by evm_ov),
-    raw push1 ⟨32⟩ (by native_decide) (by evm_ov),
-    raw dup2 (by native_decide) (by evm_ov),
-    raw swap1 (by native_decide) (by evm_ov)]
+    raw push1 ⟨1⟩ (by decide +native) (by evm_ov),
+    raw push1 ⟨32⟩ (by decide +native) (by evm_ov),
+    raw dup2 (by decide +native) (by evm_ov),
+    raw swap1 (by decide +native) (by evm_ov)]
   have rd1248 := rd1248pre.mstore 0 (dripIlkHashMem I)
-    (UInt256.ofNat 3) (by native_decide) mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd1251pre := evm_run rd1248 with [
-    raw push1 ⟨64⟩ (by native_decide) (by evm_ov),
-    raw dup3 (by native_decide) (by evm_ov)]
+    raw push1 ⟨64⟩ (by decide +native) (by evm_ov),
+    raw dup3 (by decide +native) (by evm_ov)]
   have rd1252 := rd1251pre.keccak256 0 (solcMappingSlot ⟨1⟩ (fileDutyIlkWord I))
-    (UInt256.ofNat 3) (by native_decide) mem_cost hslot (by native_decide) (by evm_ov)
-  have rd1253 := rd1252.add (by native_decide) (by evm_ov)
-  obtain ⟨k1254, C1254, rd1254raw⟩ := rd1253.sload (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) (by decide +native) mem_cost hslot (by decide +native) (by evm_ov)
+  have rd1253 := rd1252.add (by decide +native) (by evm_ov)
+  obtain ⟨k1254, C1254, rd1254raw⟩ := rd1253.sload (by decide +native) (by evm_ov)
   exact ⟨k1254, C1254, by
     simpa [jugSlotWord, fileDutyRhoSlotFor_eq hsz36] using rd1254raw⟩
 
@@ -146,18 +146,18 @@ theorem jugDripX_invalidNow {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C) :
     RDrev jugBytecode g s0 := by
   obtain ⟨_, _, rd1254⟩ := jugDripX_loadRho (I := I) hsz36 h
-  have rd1255 := RD.timestamp rd1254 (by native_decide) (by evm_ov)
-  have rd1256 := rd1255.lt (by native_decide) (by evm_ov)
+  have rd1255 := RD.timestamp rd1254 (by decide +native) (by evm_ov)
+  have rd1256 := rd1255.lt (by decide +native) (by evm_ov)
   have hltWord :
       UInt256.lt (UInt256.ofNat I.header.timestamp)
         (jugSlotWord (fileDutyRhoSlotFor I) σ I) = ⟨1⟩ := by
     exact ult_one hlt
   rw [hltWord] at rd1256
-  have rd1257 := rd1256.iszero (by native_decide) (by evm_ov)
+  have rd1257 := rd1256.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd1257
   have rd1260 := rd1257.pushConst (⟨1323⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  have rd1261 := rd1260.jumpiNT (by native_decide) rfl (by evm_ov)
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  have rd1261 := rd1260.jumpiNT (by decide +native) rfl (by evm_ov)
   exact RD.solcErrorStringRevertTail
     (pc := ⟨1261⟩)
     (len := ⟨15⟩)
@@ -169,9 +169,9 @@ theorem jugDripX_invalidNow {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
     rd1261
     (by
       unfold solcErrorStringRevertTailWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by decide)
-    (by native_decide)
+    (by decide +native)
     (dripIlkHashMem_size I)
     (dripIlkHashMem_read64 I)
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -188,18 +188,18 @@ theorem jugDripX_nowOk {cA σ I} {g : Sat256} {s0 : State} {k C : ℕ}
       [⟨0⟩, fileDutyIlkWord I, ⟨357⟩, sel]
       (dripIlkHashMem I) (UInt256.ofNat 3) ByteArray.empty (cA, σ) k' C' := by
   obtain ⟨_, _, rd1254⟩ := jugDripX_loadRho (I := I) hsz36 h
-  have rd1255 := RD.timestamp rd1254 (by native_decide) (by evm_ov)
-  have rd1256 := rd1255.lt (by native_decide) (by evm_ov)
+  have rd1255 := RD.timestamp rd1254 (by decide +native) (by evm_ov)
+  have rd1256 := rd1255.lt (by decide +native) (by evm_ov)
   have hltWord :
       UInt256.lt (UInt256.ofNat I.header.timestamp)
         (jugSlotWord (fileDutyRhoSlotFor I) σ I) = ⟨0⟩ := by
     exact ult_zero hle
   rw [hltWord] at rd1256
-  have rd1257 := rd1256.iszero (by native_decide) (by evm_ov)
+  have rd1257 := rd1256.iszero (by decide +native) (by evm_ov)
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd1257
   have rd1260 := rd1257.pushConst (⟨1323⟩ : UInt256)
-    (width := 2) (op := .PUSH2) (by decide) (by native_decide) (by evm_ov)
-  exact ⟨_, _, rd1260.jumpiT (by native_decide) one_ne_zero_uint
+    (width := 2) (op := .PUSH2) (by decide) (by decide +native) (by evm_ov)
+  exact ⟨_, _, rd1260.jumpiT (by decide +native) one_ne_zero_uint
     (by jump_dest) (by evm_ov)⟩
 
 theorem jugDripSourceBodyVatIlksNoCode {cA gh bl σ σ₀ A I} {g : UInt256}

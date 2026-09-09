@@ -73,13 +73,13 @@ def tinyImmutableCreationBytecode : ByteArray :=
 @[valid_jumps] theorem tinyImmutableValidJumps :
     Ethereum.EVM.D_J tinyImmutableBytecode 0
       = #[      ⟨15⟩, ⟨63⟩, ⟨67⟩, ⟨106⟩, ⟨139⟩, ⟨148⟩, ⟨162⟩, ⟨167⟩, ⟨181⟩, ⟨220⟩, ⟨358⟩, ⟨396⟩, ⟨412⟩]
-  := by native_decide
+  := by decide +native
 
 /-- The `JUMPDEST` set of `tinyImmutableCreationBytecode`. -/
 @[valid_jumps] theorem tinyImmutableCreationValidJumps :
     Ethereum.EVM.D_J tinyImmutableCreationBytecode 0
       = #[      ⟨15⟩, ⟨46⟩, ⟨71⟩, ⟨79⟩, ⟨97⟩, ⟨119⟩, ⟨147⟩, ⟨158⟩, ⟨217⟩, ⟨265⟩, ⟨269⟩, ⟨308⟩, ⟨341⟩, ⟨350⟩,
       ⟨364⟩, ⟨369⟩, ⟨383⟩, ⟨422⟩, ⟨560⟩, ⟨598⟩, ⟨614⟩]
-  := by native_decide
+  := by decide +native
 
 end TinyImmutable

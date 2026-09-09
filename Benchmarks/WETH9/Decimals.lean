@@ -39,7 +39,7 @@ theorem weth9SelectorDispatchDecimals {I : ExecutionEnv} (hsel : selIs I (weth9S
   simp only [contract, dispatchList, selectorOf, hcd,
     weth9NameSelectorBytes, weth9ApproveSelectorBytes, weth9TotalSupplySelectorBytes,
     weth9TransferFromSelectorBytes, weth9WithdrawSelectorBytes, weth9DecimalsSelectorBytes]
-  native_decide
+  decide +native
 
 theorem weth9Decode_decimals_ok {I : ExecutionEnv} (hsz4 : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (decimalsTransition.params.map Param.name)
@@ -78,7 +78,7 @@ theorem weth9DecimalsBodyReturns (evm : EVM.State)
 /-! ## EVM trace -/
 
 theorem weth9DecimalsReturnWf : solcReturnUint8FromMemWf weth9Bytecode ⟨550⟩ := by
-  dsimp [solcReturnUint8FromMemWf]; repeat' first | apply And.intro | native_decide
+  dsimp [solcReturnUint8FromMemWf]; repeat' first | apply And.intro | decide +native
 
 /-- The uint8 return-encoder tail at pc 550, parameterised over the raw slot word `w` (kept a
     variable so the `land` reconciliation stays symbolic and cheap). -/
@@ -104,18 +104,18 @@ theorem weth9DecimalsX_ok {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, h529⟩ := weth9ReachDecimals (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz4 hsize hsel
   obtain ⟨_, _, h543⟩ := weth9GuardPeelOk (gt := ⟨541⟩) h529 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
-  have h1544 := h543.push2 ⟨550⟩ (by native_decide) (by simp)
-    |>.push2 ⟨1544⟩ (by native_decide) (by simp)
-    |>.jump (by native_decide) (by jump_dest) (by simp)
-  have h1545 := h1544.jumpdest (by native_decide) (by simp)
-    |>.push1 ⟨2⟩ (by native_decide) (by simp)
-  obtain ⟨_, _, h1548⟩ := h1545.sload (by native_decide) (by simp)
-  have h550 := h1548.push1 ⟨255⟩ (by native_decide) (by simp)
-    |>.and (by native_decide) (by simp)
-    |>.dup2 (by native_decide) (by simp)
-    |>.jump (by native_decide) (by jump_dest) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
+  have h1544 := h543.push2 ⟨550⟩ (by decide +native) (by simp)
+    |>.push2 ⟨1544⟩ (by decide +native) (by simp)
+    |>.jump (by decide +native) (by jump_dest) (by simp)
+  have h1545 := h1544.jumpdest (by decide +native) (by simp)
+    |>.push1 ⟨2⟩ (by decide +native) (by simp)
+  obtain ⟨_, _, h1548⟩ := h1545.sload (by decide +native) (by simp)
+  have h550 := h1548.push1 ⟨255⟩ (by decide +native) (by simp)
+    |>.and (by decide +native) (by simp)
+    |>.dup2 (by decide +native) (by simp)
+    |>.jump (by decide +native) (by jump_dest) (by simp)
   unfold decimalsWord
   exact weth9DecimalsReturn h550
 
@@ -128,7 +128,7 @@ theorem weth9DecimalsBodyCoreOk {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256
     (hAccounts : accountMapEquiv σ_evm σ_solm) :
     runtimeEquivalenceFor config contract cA gh bl σ_evm σ_solm σ₀ g A I := by
   have hsz4 : 4 ≤ I.calldata.size :=
-    calldata_size_ge_of_selIs I (weth9SelBytes 5) (by native_decide) hsel
+    calldata_size_ge_of_selIs I (weth9SelBytes 5) (by decide +native) hsel
   have hword : decimalsWord σ_evm I = decimalsWord σ_solm I := by
     unfold decimalsWord
     rw [accountMapEquiv_storage_findD hAccounts I.codeOwner ⟨2⟩ ⟨0⟩]
@@ -157,12 +157,12 @@ theorem weth9DecimalsBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
   by_cases hwv : I.weiValue = ⟨0⟩
   · exact weth9DecimalsBodyCoreOk hcode hsize hwv hsel hAccounts
   · have hsz4 : 4 ≤ I.calldata.size :=
-      calldata_size_ge_of_selIs I (weth9SelBytes 5) (by native_decide) hsel
+      calldata_size_ge_of_selIs I (weth9SelBytes 5) (by decide +native) hsel
     obtain ⟨_, _, h529⟩ := weth9ReachDecimals (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
       (σ₀ := σ₀) (A := A) (I := I) (g := Sat256.ofUInt256 g) hcode hsz4 hsize hsel
     have hrev := weth9GuardPeelRev (gt := ⟨541⟩) h529 hwv
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     exact weth9NonpayableRevert hcode hrev (weth9SelectorDispatchDecimals hsel)
       (fun callargs _ => bodyReverts_nonPayable (by simp only [initState]; exact hwv))
 

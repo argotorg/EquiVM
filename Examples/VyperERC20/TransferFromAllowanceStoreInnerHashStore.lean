@@ -28,13 +28,13 @@ theorem erc20X_transferFromAllowanceStoreAfterInnerHashStore {cA gh bl σ σ₀ 
       (UInt256.ofNat 5) ByteArray.empty
       (cA, σ) k C := by
   obtain ⟨k, C, rd473⟩ := hreach
-  have rd474 := rd473.push0 (by native_decide) (by evm_ov)
+  have rd474 := rd473.push0 (by decide +native) (by evm_ov)
   have rd475 := rd474.mstore 0
     (transferFromAllowanceInnerScratchMem
       (transferFromFromWord I) (transferFromToWord I) (approveOwnerWord I)
       (transferFromCurrentAllowanceRaw σ I))
     (UInt256.ofNat 5)
-    (by native_decide) mem_cost
+    (by decide +native) mem_cost
     rfl
     (by decide) (by evm_ov)
   exact ⟨_, _, rd475⟩

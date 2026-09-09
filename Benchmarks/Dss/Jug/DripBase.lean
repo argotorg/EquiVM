@@ -128,14 +128,14 @@ theorem dripVatIlksSelectorMem_size {mem : ByteArray} (hmem : mem.size = 96) :
     (dripVatIlksSelectorMem mem).size = 160 := by
   unfold dripVatIlksSelectorMem
   exact toByteArray_write32_size_of_ge mem dripVatIlksSelectorShifted 128 96 160 hmem
-    (by omega) (by native_decide) (by omega)
+    (by omega) (by decide +native) (by omega)
 
 theorem dripVatIlksSelectorMem_read64 {mem : ByteArray} (hmem : mem.size = 96)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (dripVatIlksSelectorMem mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold dripVatIlksSelectorMem
   rw [toByteArray_write_read_below_of_gap dripVatIlksSelectorShifted mem 128 64
-    (by rw [hmem]) (by omega) (by rw [hmem]; native_decide), hread64]
+    (by rw [hmem]) (by omega) (by rw [hmem]; decide +native), hread64]
 
 theorem dripVatIlksCalldataMem_size (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -315,7 +315,7 @@ theorem dripVatIlksPostCallMem_mload160_long (I : ExecutionEnv) (out : ByteArray
         UInt256.ofNat (fromByteArrayBigEndian (out.extract 32 64))
     rw [dripVatIlksPostCallMem_read160_long I out hlo hout]
   · exact not_or.mpr
-      ⟨by rw [dripVatIlksPostCallMem_size_long I out hlo hout]; decide, by native_decide⟩
+      ⟨by rw [dripVatIlksPostCallMem_size_long I out hlo hout]; decide, by decide +native⟩
 
 theorem dripVatFoldSelectorMem_size {mem : ByteArray} (hmem : mem.size = 192) :
     (dripVatFoldSelectorMem mem).size = 192 := by
@@ -326,7 +326,7 @@ theorem dripVatFoldSelectorMem_size {mem : ByteArray} (hmem : mem.size = 192) :
 theorem dripVatFoldIlkMem_size (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 192) :
     (dripVatFoldIlkMem I mem).size = 192 := by
-  have hoff : (dripVatFoldOutPtr + ⟨4⟩).toNat = 132 := by native_decide
+  have hoff : (dripVatFoldOutPtr + ⟨4⟩).toNat = 132 := by decide +native
   unfold dripVatFoldIlkMem
   rw [hoff]
   exact toByteArray_write32_size_of_le (dripVatFoldSelectorMem mem) (fileDutyIlkWord I)
@@ -336,7 +336,7 @@ theorem dripVatFoldIlkMem_size (I : ExecutionEnv) {mem : ByteArray}
 theorem dripVatFoldVowMem_size (σ : AccountMap) (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 192) :
     (dripVatFoldVowMem σ I mem).size = 196 := by
-  have hoff : (dripVatFoldOutPtr + ⟨36⟩).toNat = 164 := by native_decide
+  have hoff : (dripVatFoldOutPtr + ⟨36⟩).toNat = 164 := by decide +native
   unfold dripVatFoldVowMem
   rw [hoff]
   exact toByteArray_write32_size_of_le (dripVatFoldIlkMem I mem) (dripVowTargetWord σ I)
@@ -346,7 +346,7 @@ theorem dripVatFoldVowMem_size (σ : AccountMap) (I : ExecutionEnv) {mem : ByteA
 theorem dripVatFoldCalldataMem_size (σ : AccountMap) (I : ExecutionEnv) (delta : UInt256)
     {mem : ByteArray} (hmem : mem.size = 192) :
     (dripVatFoldCalldataMem σ I delta mem).size = 228 := by
-  have hoff : (dripVatFoldOutPtr + ⟨68⟩).toNat = 196 := by native_decide
+  have hoff : (dripVatFoldOutPtr + ⟨68⟩).toNat = 196 := by decide +native
   unfold dripVatFoldCalldataMem
   rw [hoff]
   exact toByteArray_write32_size_of_le (dripVatFoldVowMem σ I mem) delta 196 196 228
@@ -368,7 +368,7 @@ theorem dripVatFoldIlkMem_read64 (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (dripVatFoldIlkMem I mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  have hoff : (dripVatFoldOutPtr + ⟨4⟩).toNat = 132 := by native_decide
+  have hoff : (dripVatFoldOutPtr + ⟨4⟩).toNat = 132 := by decide +native
   unfold dripVatFoldIlkMem
   rw [hoff, write32_read_below _ _ 132 64 (by rw [toByteArray_size])
     (by rw [dripVatFoldSelectorMem_size hmem]; omega) (by omega)]
@@ -378,7 +378,7 @@ theorem dripVatFoldVowMem_read64 (σ : AccountMap) (I : ExecutionEnv) {mem : Byt
     (hmem : mem.size = 192)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (dripVatFoldVowMem σ I mem).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
-  have hoff : (dripVatFoldOutPtr + ⟨36⟩).toNat = 164 := by native_decide
+  have hoff : (dripVatFoldOutPtr + ⟨36⟩).toNat = 164 := by decide +native
   unfold dripVatFoldVowMem
   rw [hoff, write32_read_below _ _ 164 64 (by rw [toByteArray_size])
     (by rw [dripVatFoldIlkMem_size I hmem]; omega) (by omega)]
@@ -390,7 +390,7 @@ theorem dripVatFoldCalldataMem_read64 (σ : AccountMap) (I : ExecutionEnv)
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     (dripVatFoldCalldataMem σ I delta mem).readWithPadding 64 32 =
       UInt256.toByteArray ⟨128⟩ := by
-  have hoff : (dripVatFoldOutPtr + ⟨68⟩).toNat = 196 := by native_decide
+  have hoff : (dripVatFoldOutPtr + ⟨68⟩).toNat = 196 := by decide +native
   unfold dripVatFoldCalldataMem
   rw [hoff, write32_read_below _ _ 196 64 (by rw [toByteArray_size])
     (by rw [dripVatFoldVowMem_size σ I hmem]) (by omega)]
@@ -426,14 +426,14 @@ theorem dripVatFoldReturnMem_read64 {mem : ByteArray} (rate : UInt256)
     (dripVatFoldReturnMem mem rate).readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩ := by
   unfold dripVatFoldReturnMem
   rw [toByteArray_write_read_below_of_gap rate mem 128 64
-      (by rw [hmem]; omega) (by omega) (by rw [hmem]; native_decide)]
+      (by rw [hmem]; omega) (by omega) (by rw [hmem]; decide +native)]
   exact hread64
 
 theorem dripVatFoldReturnMem_read128 {mem : ByteArray} (rate : UInt256)
     (hmem : mem.size = 228) :
     (dripVatFoldReturnMem mem rate).readWithPadding 128 32 = UInt256.toByteArray rate := by
   unfold dripVatFoldReturnMem
-  exact toByteArray_write_read_back_of_gap rate mem 128 (by rw [hmem]; native_decide)
+  exact toByteArray_write_read_back_of_gap rate mem 128 (by rw [hmem]; decide +native)
 
 theorem drip_wordAt0Mem_size_of_ge32 {mem : ByteArray} (word : UInt256)
     (hmem : 32 ≤ mem.size) :
@@ -534,7 +534,7 @@ theorem dripVatIlksSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 96)
   unfold dripVatIlksSelectorMem
   have hgap : 128 - mem.size < USize.size := by
     rw [hmem]
-    native_decide
+    decide +native
   rw [toByteArray_write_eq dripVatIlksSelectorShifted mem 128 (by omega) hgap]
   have hprefix :
       (mem ++ ffi.ByteArray.zeroes (128 - mem.size)).size = 128 := by
@@ -543,7 +543,7 @@ theorem dripVatIlksSelectorMem_selector {mem : ByteArray} (hmem : mem.size = 96)
   rw [extract_append_right_window _ _ 128 132 (by rw [hprefix]), hprefix,
     show 128 - 128 = 0 from rfl, show 132 - 128 = 4 from rfl,
     toByteArray_eq_toBytesBE]
-  native_decide
+  decide +native
 
 theorem dripVatIlksCalldataMem_read128_36 (I : ExecutionEnv) {mem : ByteArray}
     (hmem : mem.size = 96) :
@@ -608,9 +608,9 @@ theorem dripVatFoldCalldataMem_read128_100
   have hfinalSize : final.size = 228 := by
     dsimp [final]
     exact dripVatFoldCalldataMem_size σ I delta hmem
-  have h132 : (dripVatFoldOutPtr + ⟨4⟩).toNat = 132 := by native_decide
-  have h164 : (dripVatFoldOutPtr + ⟨36⟩).toNat = 164 := by native_decide
-  have h196 : (dripVatFoldOutPtr + ⟨68⟩).toNat = 196 := by native_decide
+  have h132 : (dripVatFoldOutPtr + ⟨4⟩).toNat = 132 := by decide +native
+  have h164 : (dripVatFoldOutPtr + ⟨36⟩).toNat = 164 := by decide +native
+  have h196 : (dripVatFoldOutPtr + ⟨68⟩).toNat = 196 := by decide +native
   have hselectorRead : final.readWithPadding 128 4 = vatFoldSelector := by
     dsimp [final]
     unfold dripVatFoldCalldataMem
@@ -635,7 +635,7 @@ theorem dripVatFoldCalldataMem_read128_100
     rw [write32_read_prefix_len _ _ 128 4 (by rw [toByteArray_size])
       (by rw [hmem]; omega) (by omega) (by omega) (by norm_num)]
     unfold dripVatFoldSelectorShifted dripVatFoldSelectorWord vatFoldSelector selectorBytes
-    native_decide
+    decide +native
   have hilkRead : final.readWithPadding 132 32 = (fileDutyIlkWord I).toByteArray := by
     dsimp [final]
     unfold dripVatFoldCalldataMem
@@ -767,7 +767,7 @@ theorem wordOfInt_sub_toUInt256 (x y : UInt256) :
     exact Nat.mod_eq_of_lt (by exact Nat.lt_of_le_of_lt (Nat.sub_le _ _) x.val.isLt)
   · have hlt : x.toNat < y.toNat := Nat.lt_of_not_ge hle
     rw [EVM.wordOfInt]
-    have hwordMod : EVM.wordModulus = UInt256.size := by native_decide
+    have hwordMod : EVM.wordModulus = UInt256.size := by decide +native
     have hneg : (x.toNat : Int) - (y.toNat : Int) < 0 := by omega
     rw [if_pos hneg]
     have hnatAbs :
@@ -788,7 +788,7 @@ theorem wordOfInt_sub_toUInt256 (x y : UInt256) :
           UInt256.size + x.toNat - y.toNat := by
       rw [hwordMod]
       omega
-    simp [EVM.word, EVM.uintN, hword, show EVM.twoPow 256 = UInt256.size from by native_decide]
+    simp [EVM.word, EVM.uintN, hword, show EVM.twoPow 256 = UInt256.size from by decide +native]
     exact Nat.mod_eq_of_lt (by
       have hy : y.toNat < UInt256.size := y.val.isLt
       omega)
@@ -1024,7 +1024,7 @@ theorem drip_extCodeSizeWord_zero_lookup_code_zero {σ : AccountMap} {target : U
   cases hacc : σ.find? (AccountAddress.ofUInt256 target) with
   | none =>
       simpa [hacc, Option.option] using
-        (show (UInt256.ofNat 0).toNat = 0 from by native_decide)
+        (show (UInt256.ofNat 0).toNat = 0 from by decide +native)
   | some acc =>
       have hword := congrArg UInt256.toNat hzero
       simpa [hacc] using hword
@@ -1066,7 +1066,7 @@ theorem dripVatCode_pos_of_codeSize_ne_zero {cA gh bl σ σ₀ A I} {g : UInt256
     cases hacc : σ.find? (AccountAddress.ofUInt256 (dripVatTargetWord σ I)) <;>
       simp [initState, State.lookupAccount, Reasoning.Theory.extCodeSizeWord,
         dripVatAddress_eq_target σ I, hacc, Option.option] <;>
-      native_decide
+      decide +native
   exact hne (by rw [← hword, hwordZero])
 
 theorem evalExpr_dripStorageVat (evm : EVM.State) (I : ExecutionEnv) :

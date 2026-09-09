@@ -151,12 +151,12 @@ theorem evalExpr_pokeHas_true {evm : EVM.State} {I : ExecutionEnv} {out : ByteAr
 
 theorem pokeBillion_toNat : pokeBillion.toNat = 1000000000 := by
   change (UInt256.ofNat 1000000000).toNat = 1000000000
-  exact ulit_toNat' _ (by native_decide)
+  exact ulit_toNat' _ (by decide +native)
 
 theorem pokeRay_toNat : pokeRay.toNat = 1000000000000000000000000000 := by
   change (UInt256.ofNat 1000000000000000000000000000).toNat =
     1000000000000000000000000000
-  exact ulit_toNat' _ (by native_decide)
+  exact ulit_toNat' _ (by decide +native)
 
 theorem billion_eq_pokeBillion_toNat : billion = Int.ofNat pokeBillion.toNat := by
   simp [billion, pokeBillion_toNat]

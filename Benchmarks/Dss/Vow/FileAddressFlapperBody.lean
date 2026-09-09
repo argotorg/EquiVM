@@ -237,7 +237,7 @@ theorem vowFileAddressFlapperNopeCallDepthLimitBodyCore
         (fileAddressNopeEncode_initState_flapper cA gh bl σ_solm σ₀ A I g hmemAuth)
         (by simpa [evm0Solm, initState] using hdepth))
   exact vowFileAddressFlapperNopeCallFailureBodyCore (sel := sel) hcode hwv hdispatch hdecode
-    rd4300 hcallNope (by native_decide) (by simpa [callerSlot] using hauthSolm) hwhat
+    rd4300 hcallNope (by decide +native) (by simpa [callerSlot] using hauthSolm) hwhat
     hvatCodeNope
 
 theorem vowFileAddressFlapperHopeNoCodeAfterNopeSuccessBodyCore

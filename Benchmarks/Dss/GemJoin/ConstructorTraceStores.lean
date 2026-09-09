@@ -30,7 +30,7 @@ theorem gemJoinCtorLiveStoreReach
   have rd89 := gem_ctor_run rd85 with [push1 ⟨5⟩, dup2, swap1]
   obtain ⟨k', C', rd90⟩ := rd89.sstore hperm (by gem_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [show (⟨89⟩ : UInt256) + ⟨1⟩ = ⟨90⟩ from by native_decide] using rd90⟩
+    simpa [show (⟨89⟩ : UInt256) + ⟨1⟩ = ⟨90⟩ from by decide +native] using rd90⟩
 
 theorem gemJoinCtorVatSloadReach
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -57,7 +57,7 @@ theorem gemJoinCtorVatSloadReach
     rfl
   rw [hload] at rd92
   exact ⟨_, _, by
-    simpa [show (⟨90⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ = ⟨92⟩ from by native_decide] using rd92⟩
+    simpa [show (⟨90⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ = ⟨92⟩ from by decide +native] using rd92⟩
 
 theorem gemJoinCtorVatMaskLowReach
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -86,7 +86,7 @@ theorem gemJoinCtorVatMaskLowReach
         solcAddrMask from by decide,
         show (⟨92⟩ : UInt256) + UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 +
             ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨103⟩
-          from by native_decide] using rd103⟩
+          from by decide +native] using rd103⟩
 
 theorem gemJoinCtorVatMaskHighReach
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -118,7 +118,7 @@ theorem gemJoinCtorVatMaskHighReach
       solcAddrMask from by decide,
       show (⟨103⟩ : UInt256) + UInt256.ofNat 2 + UInt256.ofNat 2 + UInt256.ofNat 2 +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨116⟩
-        from by native_decide] using rd116⟩
+        from by decide +native] using rd116⟩
 
 theorem gemJoinCtorVatStoreReach
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -146,7 +146,7 @@ theorem gemJoinCtorVatStoreReach
     obtain ⟨k', C', rd119⟩ := rd118.sstore hperm (by gem_ctor_decode) (by evm_ov)
     exact ⟨k', C', by
       simpa [gemJoinCtorVatStored, setAddressOffset0Word, u256_land_comm,
-        show (⟨116⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨119⟩ from by native_decide]
+        show (⟨116⟩ : UInt256) + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨119⟩ from by decide +native]
         using rd119⟩
 
 theorem gemJoinCtorIlkStoreReach
@@ -172,7 +172,7 @@ theorem gemJoinCtorIlkStoreReach
   obtain ⟨k', C', rd124⟩ := rd123.sstore hperm (by gem_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
     simpa [show (⟨119⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨124⟩
-      from by native_decide] using rd124⟩
+      from by decide +native] using rd124⟩
 
 theorem gemJoinCtorGemStoreReach
     {createdAccounts : Batteries.RBSet AccountAddress compare}
@@ -210,7 +210,7 @@ theorem gemJoinCtorGemStoreReach
     simpa [gemJoinCtorGemStored, setAddressOffset0Word, u256_land_comm,
       show (⟨124⟩ : UInt256) + UInt256.ofNat 2 + ⟨1⟩ + ⟨1⟩ +
           ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ + ⟨1⟩ +
-          ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨141⟩ from by native_decide]
+          ⟨1⟩ + ⟨1⟩ + ⟨1⟩ = ⟨141⟩ from by decide +native]
       using rd141⟩
 
 end Benchmarks.Dss.GemJoin

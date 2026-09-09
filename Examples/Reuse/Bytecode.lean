@@ -49,4 +49,4 @@ axiom cGSelectorBytes :
     Ethereum.EVM.D_J cBytecode 0
       = #[⟨14⟩, ⟨48⟩, ⟨52⟩, ⟨63⟩, ⟨67⟩, ⟨85⟩, ⟨96⟩, ⟨100⟩, ⟨102⟩, ⟨112⟩,
           ⟨121⟩, ⟨127⟩, ⟨134⟩, ⟨139⟩, ⟨154⟩, ⟨161⟩, ⟨181⟩, ⟨201⟩]
-  := by native_decide
+  := by decide +native

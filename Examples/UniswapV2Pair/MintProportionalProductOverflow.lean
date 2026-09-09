@@ -164,7 +164,7 @@ theorem uniswapMintRuntimeProportionalLiquidity0ProductOverflowReverts
     hclean0,
     show UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ from by decide]
     at rd6780pre
-  have rd6780 := rd6780pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd6780 := rd6780pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.uniswapSafeMathMulOverflow_feeToStaticcall_size164
     (a := amount0) (b := totalSupply) rd6780 hover hmem hmem64
     (by simp only [List.length_cons, List.length_nil]; omega)
@@ -200,7 +200,7 @@ theorem uniswapMintRuntimeProportionalLiquidity1ProductOverflowReverts
     hclean1,
     show UInt256.land (⟨6780⟩ : UInt256) ⟨0xffffffff⟩ = ⟨6780⟩ from by decide]
     at rd6780pre
-  have rd6780 := rd6780pre.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd6780 := rd6780pre.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.uniswapSafeMathMulOverflow_feeToStaticcall_size164
     (a := amount1) (b := totalSupply) rd6780 hover hmem hmem64
     (by simp only [List.length_cons, List.length_nil]; omega)

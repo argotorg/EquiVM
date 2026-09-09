@@ -46,7 +46,7 @@ theorem weth9DecodeBytesLengthHeader_stringLen (H : UInt256) :
 /-- Empty string: any size-0 `.bytes` ABI-encodes to `weth9EmptyStringAbi`. -/
 theorem weth9EncodeEmpty (b : ByteArray) (hb : b.size = 0) :
     encodeReturnValue? stringTy (.bytes b) = some weth9EmptyStringAbi := by
-  rw [byteArray_eq_empty_of_size_eq_zero b hb]; native_decide
+  rw [byteArray_eq_empty_of_size_eq_zero b hb]; decide +native
 
 /-! ## Byte-level encode reconciliation helpers -/
 
@@ -70,7 +70,7 @@ theorem lnot_toNat_gen (x : UInt256) : (UInt256.lnot x).toNat = 2 ^ 256 - 1 - x.
 /-- `256^e` fits in a word for `e ≤ 31`, and `EXP 256 e = 256^e`. -/
 theorem exp256_toNat (e : ℕ) (he : e ≤ 31) :
     (UInt256.exp ⟨256⟩ (UInt256.ofNat e)).toNat = 256 ^ e := by
-  interval_cases e <;> native_decide
+  interval_cases e <;> decide +native
 
 theorem byteArray_extract0_toList (b : ByteArray) (r : ℕ) :
     (b.extract 0 r).toList = b.toList.take r := by

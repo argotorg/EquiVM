@@ -24,7 +24,7 @@ theorem cureDispatchWhen {I : ExecutionEnv}
     cureRelySelectorBytes, cureSaySelectorBytes, cureSrcsSelectorBytes,
     cureTCountSelectorBytes, cureTellSelectorBytes, cureWaitSelectorBytes,
     cureWardsSelectorBytes, cureWhenSelectorBytes]
-  native_decide
+  decide +native
 
 theorem cureDecode_when {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
     decodeCalldataWithMode config.abiDecodeMode (whenTransition.params.map Param.name)
@@ -63,15 +63,15 @@ theorem cureWhenBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (cureReachWhenBody (g := Sat256.ofUInt256 g) hcode hwv hsz hsize hsel) hAccounts
     (by
       unfold solcGetterEntryWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by
       unfold solcWordSlotGetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest)
     (by jump_dest)
     (by
       unfold solcReturnWordFromMemWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by rfl) (by simpa [whenWord] using hbody)
 
 end Benchmarks.Dss.Cure

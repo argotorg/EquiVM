@@ -35,7 +35,7 @@ theorem gemJoinDispatchCage {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some cageTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem gemJoinDispatchDec {I : ExecutionEnv}
     (hsel : selIs I (gemJoinSelBytes 1)) :
@@ -45,7 +45,7 @@ theorem gemJoinDispatchDec {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some decTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem gemJoinDispatchDeny {I : ExecutionEnv}
     (hsel : selIs I (gemJoinSelBytes 2)) :
@@ -55,7 +55,7 @@ theorem gemJoinDispatchDeny {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some denyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem gemJoinDispatchExit {I : ExecutionEnv}
     (hsel : selIs I (gemJoinSelBytes 3)) :
@@ -65,7 +65,7 @@ theorem gemJoinDispatchExit {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some exitTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem gemJoinDispatchGem {I : ExecutionEnv}
     (hsel : selIs I (gemJoinSelBytes 4)) :
@@ -75,7 +75,7 @@ theorem gemJoinDispatchGem {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some gemTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem gemJoinDispatchIlk {I : ExecutionEnv}
     (hsel : selIs I (gemJoinSelBytes 5)) :
@@ -85,7 +85,7 @@ theorem gemJoinDispatchIlk {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some ilkTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem gemJoinDispatchJoin {I : ExecutionEnv}
     (hsel : selIs I (gemJoinSelBytes 6)) :
@@ -95,7 +95,7 @@ theorem gemJoinDispatchJoin {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some joinTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem gemJoinDispatchLive {I : ExecutionEnv}
     (hsel : selIs I (gemJoinSelBytes 7)) :
@@ -105,7 +105,7 @@ theorem gemJoinDispatchLive {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some liveTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem gemJoinDispatchRely {I : ExecutionEnv}
     (hsel : selIs I (gemJoinSelBytes 8)) :
@@ -115,7 +115,7 @@ theorem gemJoinDispatchRely {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some relyTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem gemJoinDispatchVat {I : ExecutionEnv}
     (hsel : selIs I (gemJoinSelBytes 9)) :
@@ -125,7 +125,7 @@ theorem gemJoinDispatchVat {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some vatTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem gemJoinDispatchWards {I : ExecutionEnv}
     (hsel : selIs I (gemJoinSelBytes 10)) :
@@ -135,7 +135,7 @@ theorem gemJoinDispatchWards {I : ExecutionEnv}
   change dispatchList transitions I.calldata = some wardsTransition
   unfold transitions
   simp [dispatchList, selectorOf, hcd]
-  native_decide
+  decide +native
 
 theorem gemJoinNoSelectorMatches {I : ExecutionEnv}
     (hcage : ¬ selIs I (gemJoinSelBytes 0))
@@ -180,7 +180,7 @@ theorem gemJoinDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
         gemJoinIlkSelectorBytes, gemJoinJoinSelectorBytes, gemJoinLiveSelectorBytes,
         gemJoinRelySelectorBytes, gemJoinVatSelectorBytes, gemJoinWardsSelectorBytes,
         gemJoinSelBytes]
-      native_decide) h
+      decide +native) h
 
 theorem gemJoinDispatch_none_nomatch {cd : ByteArray}
     (hnm : ∀ i, i < 11 → (gemJoinSelBytes i == cd.extract 0 4) = false) :
@@ -255,7 +255,7 @@ theorem gemJoinBodyReverts_nonPayable (t : TransitionDecl) (ht : t ∈ contract.
 theorem gemJoinRootSplitWellFormed :
     selectorSplitWellFormed gemJoinBytecode gemJoinRootSplitPc := by
   dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
+  repeat' first | apply And.intro | decide +native
 
 set_option maxHeartbeats 1000000 in
 theorem gemJoinLowArmsWellFormed :
@@ -264,7 +264,7 @@ theorem gemJoinLowArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 set_option maxHeartbeats 1000000 in
 theorem gemJoinHighArmsWellFormed :
@@ -273,7 +273,7 @@ theorem gemJoinHighArmsWellFormed :
   intro j hj
   interval_cases j <;>
     (dsimp [armWellFormed]
-     repeat' first | apply And.intro | native_decide)
+     repeat' first | apply And.intro | decide +native)
 
 theorem gemJoinLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 5) :
@@ -281,7 +281,7 @@ theorem gemJoinLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat gemJoinBytecode (nthArmPc gemJoinBytecode gemJoinLowFirstArmPc j))
         (gemJoinSelWord I) =
       if (gemJoinLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem gemJoinHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : ℕ) (hj : j < 6) :
@@ -289,7 +289,7 @@ theorem gemJoinHighArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat gemJoinBytecode (nthArmPc gemJoinBytecode gemJoinHighFirstArmPc j))
         (gemJoinSelWord I) =
       if (gemJoinHighSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide +native)
 
 theorem gemJoinReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -305,13 +305,13 @@ theorem gemJoinReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
       (revertTgt := gemJoinDispatchRevertPc) (guardWidth := 2) (revertWidth := 2)
       (guardOp := .PUSH2) (revertOp := .PUSH2)
       hcode hwv hsz hsize
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by jump_dest) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-      (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by jump_dest) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+      (by decide +native) (by decide +native) (by decide +native) (by decide +native)
 
 theorem gemJoinReachLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -332,7 +332,7 @@ theorem gemJoinReachLowFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
   have h114 : RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I)
       gemJoinLowFirstArmPc [gemJoinSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) (k32 + 5 + 1) (C32 + 22 + 1) := by
-    simpa [gemJoinLowFirstArmPc] using h113.jumpdest (by native_decide) (by simp)
+    simpa [gemJoinLowFirstArmPc] using h113.jumpdest (by decide +native) (by simp)
   exact ⟨_, _, h114⟩
 
 theorem gemJoinReachHighFirstArm {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -412,9 +412,9 @@ theorem gemJoinJumpToNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {pc : UI
   have h169 := h.push2 gemJoinDispatchRevertPc hpush
       (by simp only [List.length_singleton]; omega)
     |>.jump hjump (by jump_dest) (by simp only [List.length_singleton]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h169 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h169 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem gemJoinLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I) gemJoinLowFirstArmPc
@@ -434,9 +434,9 @@ theorem gemJoinLowNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
         (heq0 3 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (gemJoinLowArmsWellFormed 4 (by omega))
         (heq0 4 (by omega)) (by simp)
-    |>.jumpdest (by native_decide) (by simp only [List.length_singleton]; omega)
-  exact RD.solcPush1Dup1Revert0 h169 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length_singleton]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length_singleton]; omega)
+  exact RD.solcPush1Dup1Revert0 h169 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length_singleton]; omega)
 
 theorem gemJoinHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ}
     (h : RD gemJoinBytecode I g (initState cA gh bl σ σ₀ g A I) gemJoinHighFirstArmPc
@@ -458,42 +458,42 @@ theorem gemJoinHighNoMatchRevert {cA gh bl σ σ₀ A I} {g : Sat256} {k C : ℕ
         (heq0 4 (by omega)) (by simp)
     |>.selectorArmNotTakenAuto (gemJoinHighArmsWellFormed 5 (by omega))
         (heq0 5 (by omega)) (by simp)
-  exact gemJoinJumpToNoMatchRevert h109 (by native_decide) (by native_decide)
+  exact gemJoinJumpToNoMatchRevert h109 (by decide +native) (by decide +native)
 
 theorem gemJoinX_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue ≠ ⟨0⟩) :
     RDrev gemJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
-  have h12 := h0.push2 ⟨16⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiNT (by native_decide) (isZero_eq_zero_of_ne hwv)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
+  have h12 := h0.push2 ⟨16⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiNT (by decide +native) (isZero_eq_zero_of_ne hwv)
       (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h12 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h12 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem gemJoinX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)
     (hsz : I.calldata.size < 4) :
     RDrev gemJoinBytecode g (initState cA gh bl σ σ₀ g A I) := by
   have h0 := solcGuardPrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
-    (A := A) (g := g) hcode (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide)
+    (A := A) (g := g) hcode (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native)
   obtain ⟨_, _, h1⟩ := solcGuardCallvalueZero
     (ctgt := solcGuardTgt gemJoinBytecode)
     (opC := solcGuardTgtOp gemJoinBytecode)
     (wC := solcGuardTgtWidth gemJoinBytecode) h0 hwv
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest)
-  have h169 := h1.push1 ⟨4⟩ (by native_decide) (by simp only [List.length]; omega)
-    |>.calldatasize (by native_decide) (by simp only [List.length]; omega)
-    |>.lt (by native_decide) (by simp only [List.length]; omega)
-    |>.push2 gemJoinDispatchRevertPc (by native_decide) (by simp only [List.length]; omega)
-    |>.jumpiT (by native_decide) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest)
+  have h169 := h1.push1 ⟨4⟩ (by decide +native) (by simp only [List.length]; omega)
+    |>.calldatasize (by decide +native) (by simp only [List.length]; omega)
+    |>.lt (by decide +native) (by simp only [List.length]; omega)
+    |>.push2 gemJoinDispatchRevertPc (by decide +native) (by simp only [List.length]; omega)
+    |>.jumpiT (by decide +native) (lt_four_ne_zero_of_lt hsz) (by jump_dest)
       (by simp only [List.length]; omega)
-    |>.jumpdest (by native_decide) (by simp only [List.length]; omega)
-  exact RD.solcPush1Dup1Revert0 h169 (by native_decide) (by native_decide)
-    (by native_decide) (by simp only [List.length]; omega)
+    |>.jumpdest (by decide +native) (by simp only [List.length]; omega)
+  exact RD.solcPush1Dup1Revert0 h169 (by decide +native) (by decide +native)
+    (by decide +native) (by simp only [List.length]; omega)
 
 theorem gemJoinX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = gemJoinBytecode) (hwv : I.weiValue = ⟨0⟩)

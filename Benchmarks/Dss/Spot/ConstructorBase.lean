@@ -49,11 +49,11 @@ macro "spot_ctor_decode" : tactic =>
   `(tactic|
     (first
       | rw [Reasoning.Theory.decode_append_left_window
-          spotCreationBytecode _ _ (by native_decide) (by native_decide)]
+          spotCreationBytecode _ _ (by decide +native) (by decide +native)]
       | (unfold spotCtorCode
          rw [Reasoning.Theory.decode_append_left_window
-          spotCreationBytecode _ _ (by native_decide) (by native_decide)]);
-     native_decide))
+          spotCreationBytecode _ _ (by decide +native) (by decide +native)]);
+     decide +native))
 
 macro "spot_ctor_jd" : tactic =>
   `(tactic|
@@ -80,10 +80,10 @@ macro "spot_ctor_run " base:term " with " "[" steps:evmStep,* "]" : term => do
   return acc
 
 theorem spotCreationBytecode_size : spotCreationBytecode.size = 2320 := by
-  native_decide
+  decide +native
 
 theorem spotBytecode_size : spotBytecode.size = 2178 := by
-  native_decide
+  decide +native
 
 theorem spotCtorArgsTail_size (vat : AccountAddress) : (spotCtorArgsTail vat).size = 32 := by
   simpa [spotCtorArgsTail] using word_toBytesBE_toByteArray_size (EVM.word vat.val)
@@ -95,11 +95,11 @@ theorem spotCtorCode_size (vat : AccountAddress) : (spotCtorCode vat).size = 235
 theorem spotCtorArgLen_eq (vat : AccountAddress) :
     (UInt256.ofNat (spotCtorCode vat).size).sub ⟨2320⟩ = (⟨32⟩ : UInt256) := by
   rw [spotCtorCode_size]
-  native_decide
+  decide +native
 
 theorem spotCreationBytecode_runtime_window :
     spotCreationBytecode.extract 142 (142 + 2178) = spotBytecode := by
-  native_decide
+  decide +native
 
 -- LIBRARY CANDIDATE: a generic `ByteArray.write` normalization when a copy extends a base.
 private theorem byteArray_write_from_ge_eq (src base : ByteArray) (srcAddr destAddr len : ℕ)
@@ -193,7 +193,7 @@ theorem spotCtorArgMem_eq (vat : AccountAddress) :
     · rw [solcFreePtrMem_size]
     · exact spotCreationBytecode_size.symm
     · rw [spotCtorArgsTail_size]
-      native_decide
+      decide +native
   · decide
   · rw [ByteArray.size_append, spotCreationBytecode_size, spotCtorArgsTail_size]
   · rw [solcFreePtrMem_size]
@@ -369,6 +369,6 @@ abbrev spotCtorOneWord : UInt256 :=
   ⟨1000000000000000000000000000⟩
 
 theorem spotCtorOneWord_toInt : Int.ofNat spotCtorOneWord.toNat = one := by
-  native_decide
+  decide +native
 
 end Benchmarks.Dss.Spot

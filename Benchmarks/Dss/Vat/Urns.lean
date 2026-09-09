@@ -110,7 +110,7 @@ theorem vatDispatchUrns {I : ExecutionEnv}
     healSelectorBytes, hopeSelectorBytes, ilksSelectorBytes, initSelectorBytes,
     liveSelectorBytes, moveSelectorBytes, nopeSelectorBytes, relySelectorBytes,
     sinSelectorBytes, slipSelectorBytes, suckSelectorBytes, urnsSelectorBytes]
-  native_decide
+  decide +native
 
 theorem vatReachUrnsBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = vatBytecode) (hwv : I.weiValue = ⟨0⟩)
@@ -121,17 +121,17 @@ theorem vatReachUrnsBody {cA gh bl σ σ₀ A I} {g : Sat256}
         (cA, σ) k C := by
   have hword : vatSelWord I = ⟨0x2424be5c⟩ :=
     vatSelWord_eq_of_beq I hsz 0x24 0x24 0xbe 0x5c ⟨0x2424be5c⟩
-      (by native_decide) (by simpa [vatSelBytes] using hsel)
+      (by decide +native) (by simpa [vatSelBytes] using hsel)
   have hroot : UInt256.gt (armSelNat vatBytecode vatRootSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlow : UInt256.gt (armSelNat vatBytecode vatLowSplitPc) (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have hlowlow :
       UInt256.gt (armSelNat vatBytecode vatLowLowSplitPc) (vatSelWord I) = ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   have heq0 : ∀ j, j < 0 →
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms370FirstPc j))
         (vatSelWord I) = ⟨0⟩ := by
@@ -141,9 +141,9 @@ theorem vatReachUrnsBody {cA gh bl σ σ₀ A I} {g : Sat256}
       UInt256.eq (armSelNat vatBytecode (nthArmPc vatBytecode vatArms370FirstPc 0))
         (vatSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    native_decide
+    decide +native
   exact vatReachArms370Body 0 (by omega) ⟨570⟩ hcode hwv hsz hsize
-    hroot hlow hlowlow heq0 htake (by jump_dest) (by native_decide)
+    hroot hlow hlowlow heq0 htake (by jump_dest) (by decide +native)
 
 @[reducible] def solcNestedStruct2GetterWf
     (code : ByteArray) (pc baseSlot : UInt256) : Prop :=
@@ -235,12 +235,12 @@ theorem RD.solcNestedStruct2Getter {code : ByteArray} {g : Sat256} {s0 : State}
   have rd6 := rd5.swap1 hd5 (by evm_ov)
   have rd7 := rd6.dup2 hd6 (by evm_ov)
   have rd9 := rd7.mstore 0 (solcMappingBaseSlotMem baseSlot)
-    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd7 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd10 := rd9.push1 ⟨0⟩ hd8 (by evm_ov)
   have rd11 := rd10.swap3 hd10 (by evm_ov)
   have rd12 := rd11.dup4 hd11 (by evm_ov)
   have rd14 := rd12.mstore 0 (solcMappingHashMem baseSlot owner)
-    (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd12 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd15 := rd14.push1 ⟨64⟩ hd13 (by evm_ov)
   have rd16 := rd15.dup1 hd15 (by evm_ov)
   have rd17 := rd16.dup5 hd16 (by evm_ov)
@@ -249,15 +249,15 @@ theorem RD.solcNestedStruct2Getter {code : ByteArray} {g : Sat256} {s0 : State}
     (UInt256.ofNat 3) hd17 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hinner)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd19 := rd18.swap1 hd18 (by evm_ov)
   have rd20 := rd19.swap2 hd19 (by evm_ov)
   have rd21 := rd20.mstore 0 (solcNestedMappingOuterBaseMem baseSlot owner)
-    (UInt256.ofNat 3) hd20 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd20 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd22 := rd21.swap1 hd21 (by evm_ov)
   have rd23 := rd22.dup3 hd22 (by evm_ov)
   have rd24 := rd23.mstore 0 (solcNestedMappingHashMem baseSlot owner spender)
-    (UInt256.ofNat 3) hd23 mem_cost (by rfl) (by native_decide) (by evm_ov)
+    (UInt256.ofNat 3) hd23 mem_cost (by rfl) (by decide +native) (by evm_ov)
   have rd25 := rd24.swap1 hd24 (by evm_ov)
   have hslot := solcNestedMappingKeccakSlot baseSlot owner spender
   have rd26 := rd25.keccak256 0
@@ -265,7 +265,7 @@ theorem RD.solcNestedStruct2Getter {code : ByteArray} {g : Sat256} {s0 : State}
     (UInt256.ofNat 3) hd25 mem_cost
     (by simpa [show (⟨0⟩ : UInt256).toNat = 0 from by decide,
       show (⟨64⟩ : UInt256).toNat = 64 from by decide] using hslot)
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd27 := rd26.dup1 hd26 (by evm_ov)
   obtain ⟨_, _, rd28⟩ := rd27.sload hd27 (by evm_ov)
   have rd30 := rd28.push1 ⟨1⟩ hd28 (by evm_ov)
@@ -386,17 +386,17 @@ theorem vatUrnsBodyCoreOk
   obtain ⟨_, _, hdecoded⟩ := RD.solcTwoAddressExternalLenOk
     (code := vatBytecode) (sel := sel) (entry := ⟨570⟩) (ret := ⟨614⟩)
     (decoded := ⟨592⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) hsz68 hsize
   obtain ⟨_, _, hroutine⟩ := RD.solcBytes32AddressExternalMaskAndJump
     (code := vatBytecode) (decoded := ⟨592⟩) (ret := ⟨614⟩) (routine := ⟨2016⟩)
     (R := [sel]) hdecoded
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
     (by jump_dest) (by simp)
   obtain ⟨_, _, hretPc⟩ := RD.solcNestedStruct2Getter
     (code := vatBytecode) (pc := ⟨2016⟩) (baseSlot := ⟨3⟩)
@@ -405,7 +405,7 @@ theorem vatUrnsBodyCoreOk
     (by simpa [urnsIlkWord, urnsUsrMaskedWord, urnsUsrWord] using hroutine)
     (by
       unfold solcNestedStruct2GetterWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by jump_dest) (by simp)
   have hret :
       RDret vatBytecode (Sat256.ofUInt256 g)
@@ -418,7 +418,7 @@ theorem vatUrnsBodyCoreOk
         simpa [inkWord, artWord, inkSlot, artSlot, vatSlotWord] using hretPc)
       (by
         unfold solcTwoWordReturnFromMemWf
-        repeat' first | apply And.intro | native_decide)
+        repeat' first | apply And.intro | decide +native)
       (solcNestedMappingHashMem_mload64 ⟨3⟩ (urnsIlkWord I) (urnsUsrMaskedWord I))
       (solcNestedMappingHashMem_size ⟨3⟩ (urnsIlkWord I) (urnsUsrMaskedWord I))
       (solcNestedMappingHashMem_read64 ⟨3⟩ (urnsIlkWord I) (urnsUsrMaskedWord I))
@@ -462,10 +462,10 @@ theorem vatUrnsBodyCoreDecodeFailed_short
   have hrev := RD.solcExternalStaticArgsShortReverts
     (code := vatBytecode) (sel := sel) (entry := ⟨570⟩) (ret := ⟨614⟩)
     (decoded := ⟨592⟩) (need := ⟨64⟩) hreach
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) hlt
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) hlt
   exact hrev.reEquivDecodingFailed hcode hdispatch hdec
 
 theorem vatUrnsBodyCore : VatBodyTheorem 25 := by

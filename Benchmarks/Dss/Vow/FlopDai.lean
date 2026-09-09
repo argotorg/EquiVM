@@ -849,7 +849,7 @@ theorem RD.vowFlopDai1PostCall
   obtain ⟨gasWord, _, _, rd3831⟩ :=
     RD.vowFlopToDai1Staticcall rd henough hmem hread64 hcodeSize
   obtain ⟨cA', σ', z, outDai, A_in, callGas, k3832, C3832, hΘpack, rd3832raw, hosz⟩ :=
-    RD.solcStaticcall rd3831 (by native_decide) hdepth (by evm_ov)
+    RD.solcStaticcall rd3831 (by decide +native) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘpack
   let evmDaiIn := { initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I with
     accountMap := acc.2
@@ -859,7 +859,7 @@ theorem RD.vowFlopDai1PostCall
         UInt256.ofNat (MachineState.M (MachineState.M (UInt256.ofNat 6).toNat
           (⟨128⟩ : UInt256).toNat (⟨36⟩ : UInt256).toNat)
           (⟨128⟩ : UInt256).toNat (⟨32⟩ : UInt256).toNat) = UInt256.ofNat 6 := by
-      native_decide
+      decide +native
     exact haw ▸ rd3832raw
   · refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
       (callPerm := false) (targetWord := kissDaiTargetWord acc.2 I)
@@ -884,9 +884,9 @@ theorem RD.vowFlopDai1CallFailure
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   exact RD.solcCallSuccessGuardMissing (pc := ⟨3832⟩) (okPc := ⟨3848⟩) rd
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide) hosz hov
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native) hosz hov
 
 theorem RD.vowFlopDai1CallSuccessToDecode
     {cA gh bl σ σ₀ A I} {g : UInt256}
@@ -902,8 +902,8 @@ theorem RD.vowFlopDai1CallSuccessToDecode
       (d0 :: d1 :: d2 :: R) mem aw o acc k' C' := by
   exact RD.solcCallSuccessGuardOk (pc := ⟨3832⟩) (okPc := ⟨3848⟩) rd
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by jump_dest) (by native_decide) (by native_decide)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by jump_dest) (by decide +native) (by decide +native)
     (by simpa only [List.length_cons] using hov)
 
 theorem RD.vowFlopDai1ReturnDecodeShortReverts
@@ -927,10 +927,10 @@ theorem RD.vowFlopDai1ReturnDecodeShortReverts
   exact RD.solcUint256ReturnWordDecodeShortReverts (pc := ⟨3850⟩) (okPc := ⟨3870⟩) rd
     hshort hhi
     mem_cost (by decide) hMload64Value
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by simp)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by simp)
 
 theorem RD.vowFlopDai1ReturnDecodeOk
     {cA gh bl σ σ₀ A I} {g : UInt256} {sel retWord : UInt256}
@@ -961,10 +961,10 @@ theorem RD.vowFlopDai1ReturnDecodeOk
   exact RD.solcUint256ReturnWordDecodeOk (pc := ⟨3850⟩) (okPc := ⟨3870⟩) rd
     hlo hhi
     mem_cost (by decide) hMload64Value hMload128Value mem_cost (by decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by native_decide) (by native_decide) (by native_decide) (by native_decide)
-    (by jump_dest) (by native_decide) (by native_decide) (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by decide +native) (by decide +native) (by decide +native) (by decide +native)
+    (by jump_dest) (by decide +native) (by decide +native) (by decide +native) (by evm_ov)
 
 abbrev vowSurplusNotZeroRawWord : UInt256 :=
   ⟨493458971516655262355748856637854565356164969071⟩
@@ -986,41 +986,41 @@ theorem RD.vowFlopDai1SurplusNotZero
     (hread64 : mem.readWithPadding 64 32 = UInt256.toByteArray ⟨128⟩) :
     RDrev vowBytecode (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
-  have rd3874₀ := rd.iszero (by native_decide) (by evm_ov)
+  have rd3874₀ := rd.iszero (by decide +native) (by evm_ov)
   have rd3874 := rd3874₀
   rw [isZero_eq_zero_of_ne hvatDaiNonzero] at rd3874
-  have rd3877 := rd3874.push2 ⟨3945⟩ (by native_decide) (by evm_ov)
-  have rd3878 := rd3877.jumpiNT (by native_decide)
+  have rd3877 := rd3874.push2 ⟨3945⟩ (by decide +native) (by evm_ov)
+  have rd3878 := rd3877.jumpiNT (by decide +native)
     (by decide : (⟨0⟩ : UInt256) = ⟨0⟩) (by evm_ov)
   have rd3882 := evm_run rd3878 with [
     push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 6) (by decide +native)
       mem_cost
       (mloadFreePtrValue (by rw [hmem]; decide) (by decide) hread64)
       (by decide) (by evm_ov)]
   have rd3886 := rd3882.pushConst (⟨4594637⟩ : UInt256)
-    (width := 3) (op := .PUSH3) (by decide) (by native_decide) (by evm_ov)
+    (width := 3) (op := .PUSH3) (by decide) (by decide +native) (by evm_ov)
   have rd3905 := evm_run rd3886 with [
     push1 ⟨229⟩,
     shl,
     dup2,
-    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (solcErrorStringMem0 mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩,
     push1 ⟨4⟩,
     dup3,
     add,
-    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 (solcErrorStringMem1 mem) (UInt256.ofNat 6) (by decide +native)
       mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨20⟩,
     push1 ⟨36⟩,
     dup3,
     add,
     raw mstore 3 (solcErrorStringMem2 (⟨20⟩ : UInt256) mem)
-      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd3926 := rd3905.pushConst vowSurplusNotZeroRawWord
-    (width := 20) (op := .PUSH20) (by decide) (by native_decide) (by evm_ov)
+    (width := 20) (op := .PUSH20) (by decide) (by decide +native) (by evm_ov)
   have rd3929₀ := evm_run rd3926 with [
     push1 ⟨96⟩,
     shl]
@@ -1033,9 +1033,9 @@ theorem RD.vowFlopDai1SurplusNotZero
     add,
     raw mstore 3
       (solcErrorStringMem3 (⟨20⟩ : UInt256) vowSurplusNotZeroStringWord mem)
-      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 8) (by decide +native) mem_cost (by rfl) (by decide) (by evm_ov),
     swap1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide +native)
       mem_cost
       (solcErrorStringMem3_mload64_of_size164 (⟨20⟩ : UInt256)
         vowSurplusNotZeroStringWord hmem hread64)
@@ -1047,7 +1047,7 @@ theorem RD.vowFlopDai1SurplusNotZero
     push1 ⟨100⟩,
     add,
     swap1,
-    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    raw rev 0 (by decide +native) mem_cost (by evm_ov)]
 
 theorem RD.vowFlopAshAddOverflow
     {cA gh bl σ σ₀ A I} {g sel vatDai : UInt256}
@@ -1065,37 +1065,37 @@ theorem RD.vowFlopAshAddOverflow
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) := by
   let AshVal := vowSlotWord ⟨6⟩ acc.2 I
   let SumpVal := vowSlotWord ⟨9⟩ acc.2 I
-  have rd3874₀ := rd.iszero (by native_decide) (by evm_ov)
+  have rd3874₀ := rd.iszero (by decide +native) (by evm_ov)
   have rd3874 := rd3874₀
   rw [hvatDaiZero, show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd3874
-  have rd3877 := rd3874.push2 ⟨3945⟩ (by native_decide) (by evm_ov)
-  have rd3945 := rd3877.jumpiT (by native_decide)
+  have rd3877 := rd3874.push2 ⟨3945⟩ (by decide +native) (by evm_ov)
+  have rd3945 := rd3877.jumpiT (by decide +native)
     (by decide : (⟨1⟩ : UInt256) ≠ ⟨0⟩) (by jump_dest) (by evm_ov)
-  have rd3946 := rd3945.jumpdest (by native_decide) (by evm_ov)
-  have rd3949 := rd3946.push2 ⟨3959⟩ (by native_decide) (by evm_ov)
-  have rd3951 := rd3949.push1 ⟨6⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k3952, C3952, rd3952Raw⟩ := rd3951.sload (by native_decide) (by evm_ov)
+  have rd3946 := rd3945.jumpdest (by decide +native) (by evm_ov)
+  have rd3949 := rd3946.push2 ⟨3959⟩ (by decide +native) (by evm_ov)
+  have rd3951 := rd3949.push1 ⟨6⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k3952, C3952, rd3952Raw⟩ := rd3951.sload (by decide +native) (by evm_ov)
   have rd3952 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3952⟩
       (AshVal :: ⟨3959⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k3952 C3952 := by
     simpa [AshVal, vowSlotWord, solcSlotWord] using rd3952Raw
-  have rd3954 := rd3952.push1 ⟨9⟩ (by native_decide) (by evm_ov)
-  obtain ⟨k3955, C3955, rd3955Raw⟩ := rd3954.sload (by native_decide) (by evm_ov)
+  have rd3954 := rd3952.push1 ⟨9⟩ (by decide +native) (by evm_ov)
+  obtain ⟨k3955, C3955, rd3955Raw⟩ := rd3954.sload (by decide +native) (by evm_ov)
   have rd3955 : RD vowBytecode I (Sat256.ofUInt256 g)
       (initState cA gh bl σ σ₀ (Sat256.ofUInt256 g) A I) ⟨3955⟩
       (SumpVal :: AshVal :: ⟨3959⟩ :: ⟨0⟩ :: ⟨357⟩ :: sel :: [])
       mem (UInt256.ofNat 6) o acc k3955 C3955 := by
     simpa [SumpVal, vowSlotWord, solcSlotWord] using rd3955Raw
-  have rd3958 := rd3955.push2 ⟨5074⟩ (by native_decide) (by evm_ov)
-  have rd5074 := rd3958.jump (by native_decide) (by jump_dest) (by evm_ov)
+  have rd3958 := rd3955.push2 ⟨5074⟩ (by decide +native) (by evm_ov)
+  have rd5074 := rd3958.jump (by decide +native) (by jump_dest) (by evm_ov)
   exact RD.solcCheckedAddEmptyRevertAnyWords
     (pc := ⟨5074⟩) (okPc := ⟨5090⟩) (a := AshVal) (b := SumpVal)
     (ret := ⟨3959⟩) (R := [⟨0⟩, ⟨357⟩, sel])
     (by simpa [AshVal, SumpVal] using rd5074)
     (by
       unfold solcCheckedAddEmptyRevertWf solcCheckedAddSuccessWf
-      repeat' first | apply And.intro | native_decide)
+      repeat' first | apply And.intro | decide +native)
     (by simpa [AshVal, SumpVal] using hover)
     (by simp)
 
@@ -1400,7 +1400,7 @@ theorem vowFlopDai1SurplusNotZeroBodyCore
               (outDai.write 0 (vatDaiCalldataMem I mem) 128 32).size
             ∨ (⟨128⟩ : UInt256) ≥ UInt256.ofNat 6 * ⟨32⟩) := by
       rw [hmemWrite]
-      native_decide
+      decide +native
     rw [if_neg hnot, show (⟨128⟩ : UInt256).toNat = 128 from by decide,
       vatDaiWrite_read128_32 I outDai hmem ho32]
   obtain ⟨_, _, rd3873⟩ :=

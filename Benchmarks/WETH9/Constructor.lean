@@ -28,14 +28,14 @@ set_option maxRecDepth 4000000
 
 /-! ## Size and runtime-window facts -/
 
-theorem weth9CreationBytecode_size : weth9CreationBytecode.size = 2055 := by native_decide
+theorem weth9CreationBytecode_size : weth9CreationBytecode.size = 2055 := by decide +native
 
-theorem weth9Bytecode_size : weth9Bytecode.size = 1763 := by native_decide
+theorem weth9Bytecode_size : weth9Bytecode.size = 1763 := by decide +native
 
 /-- The runtime window CODECOPY'd + RETURN'd by the creation code (`PUSH2 0x6e3 DUP1 PUSH2 0x124`:
     offset `292`, length `1763`) is exactly the deployed runtime. -/
 theorem weth9CreationBytecode_runtime_window :
-    weth9CreationBytecode.extract 292 (292 + 1763) = weth9Bytecode := by native_decide
+    weth9CreationBytecode.extract 292 (292 + 1763) = weth9Bytecode := by decide +native
 
 /-! ## Deployment shape (empty constructor) -/
 
@@ -92,22 +92,22 @@ theorem weth9CtorReachName {cA gh bl σ σ₀ A I} {g : Sat256}
       ByteArray.empty (UInt256.ofNat 0) ByteArray.empty (cA, σ) 0 0 := RD.initState hcode
   have rd4 := evm_run rd0 with [
     push1 ⟨192⟩, push1 ⟨64⟩,
-    raw mstore 9 weth9CtorMemPrologue (UInt256.ofNat 3) (by native_decide) mem_cost rfl
-      (by native_decide) (by evm_ov)]
+    raw mstore 9 weth9CtorMemPrologue (UInt256.ofNat 3) (by decide +native) mem_cost rfl
+      (by decide +native) (by evm_ov)]
   have rd11 := evm_run rd4 with [
     push1 ⟨13⟩, push1 ⟨128⟩, dup2, swap1,
-    raw mstore 6 weth9CtorMemNameLen (UInt256.ofNat 5) (by native_decide) mem_cost rfl
-      (by native_decide) (by evm_ov)]
+    raw mstore 6 weth9CtorMemNameLen (UInt256.ofNat 5) (by decide +native) mem_cost rfl
+      (by decide +native) (by evm_ov)]
   have rd28 := rd11.pushConst (⟨3464124613321760372568404275897⟩ : UInt256)
-    (width := 13) (op := .PUSH13) (by native_decide) (by native_decide) (by evm_ov)
-    |>.push1 ⟨153⟩ (by native_decide) (by evm_ov)
-    |>.shl (by native_decide) (by evm_ov)
+    (width := 13) (op := .PUSH13) (by decide +native) (by decide +native) (by evm_ov)
+    |>.push1 ⟨153⟩ (by decide +native) (by evm_ov)
+    |>.shl (by decide +native) (by evm_ov)
   have rd33 := evm_run rd28 with [
     push1 ⟨160⟩, swap1, dup2,
-    raw mstore 3 weth9CtorMemName (UInt256.ofNat 6) (by native_decide) mem_cost rfl
-      (by native_decide) (by evm_ov)]
+    raw mstore 3 weth9CtorMemName (UInt256.ofNat 6) (by decide +native) mem_cost rfl
+      (by decide +native) (by evm_ov)]
   exact ⟨_, _, evm_run rd33 with [
-    push2 ⟨46⟩, swap2, push1 ⟨0⟩, swap2, swap1, push2 ⟨122⟩, jump (by native_decide)]⟩
+    push2 ⟨46⟩, swap2, push1 ⟨0⟩, swap2, swap1, push2 ⟨122⟩, jump (by decide +native)]⟩
 
 /-! ## Memory states for the `symbol` setup -/
 
@@ -203,54 +203,54 @@ theorem weth9CtorReachGuard {cA gh bl σ σ₀ A I} {g : Sat256}
   obtain ⟨_, _, rdName⟩ := weth9CtorReachName (cA := cA) (gh := gh) (bl := bl) (σ := σ)
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode
   obtain ⟨_, _, rd46⟩ := weth9StringStoreSubroutine ⟨13⟩ ⟨160⟩ ⟨0⟩ ⟨46⟩ weth9NameWord
-    (Or.inl rfl) (by decide) hperm (by native_decide) (by decide)
+    (Or.inl rfl) (by decide) hperm (by decide +native) (by decide)
     (by rw [weth9CtorMemName_size]; decide) (by decide) (by decide) (by decide)
     (by rw [show (⟨160⟩ : UInt256).toNat = 160 from rfl]; exact weth9CtorMemName_read160) rdName
   -- Segment 2: POP; symbol setup; reach pc 122.
   have rd51 := evm_run rd46 with [
     jumpdest, pop, push1 ⟨64⟩, dup1]
-  have rd52 := rd51.mload 0 ⟨192⟩ (UInt256.ofNat 6) (by native_decide)
+  have rd52 := rd51.mload 0 ⟨192⟩ (UInt256.ofNat 6) (by decide +native)
     (fun s h1 h2 => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', h1, h2,
-      List.getElem!_cons_zero]; native_decide)
+      List.getElem!_cons_zero]; decide +native)
     (mloadWordValue_of_readWithPadding (mem := weth9CtorMemNameSub) (aw := UInt256.ofNat 6)
       (off := ⟨64⟩) (v := ⟨192⟩)
       (by rw [weth9CtorMemNameSub_size]; decide) (by decide)
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from rfl]; exact weth9CtorMemNameSub_read64))
-    (by native_decide) (by evm_ov)
+    (by decide +native) (by evm_ov)
   have rd57 := evm_run rd52 with [
     dup1, dup3, add, swap1, swap2,
-    raw mstore 0 weth9CtorMemFreeBump (UInt256.ofNat 6) (by native_decide)
+    raw mstore 0 weth9CtorMemFreeBump (UInt256.ofNat 6) (by decide +native)
       (fun s h1 h2 => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', h1, h2,
-        List.getElem!_cons_zero]; native_decide)
-      rfl (by native_decide) (by evm_ov)]
+        List.getElem!_cons_zero]; decide +native)
+      rfl (by decide +native) (by evm_ov)]
   have rd62 := evm_run rd57 with [
     push1 ⟨4⟩, dup1, dup3,
-    raw mstore 3 weth9CtorMemSymLen (UInt256.ofNat 7) (by native_decide)
+    raw mstore 3 weth9CtorMemSymLen (UInt256.ofNat 7) (by decide +native)
       (fun s h1 h2 => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', h1, h2,
-        List.getElem!_cons_zero]; native_decide)
-      rfl (by native_decide) (by evm_ov)]
+        List.getElem!_cons_zero]; decide +native)
+      rfl (by decide +native) (by evm_ov)]
   have rd70 := rd62.pushConst (⟨183020169⟩ : UInt256) (width := 4) (op := .PUSH4)
-    (by native_decide) (by native_decide) (by evm_ov)
-    |>.push1 ⟨227⟩ (by native_decide) (by evm_ov)
-    |>.shl (by native_decide) (by evm_ov)
+    (by decide +native) (by decide +native) (by evm_ov)
+    |>.push1 ⟨227⟩ (by decide +native) (by evm_ov)
+    |>.shl (by decide +native) (by evm_ov)
   have rd78 := evm_run rd70 with [
     push1 ⟨32⟩, swap1, swap3, add, swap2, dup3,
-    raw mstore 3 weth9CtorMemSym (UInt256.ofNat 8) (by native_decide)
+    raw mstore 3 weth9CtorMemSym (UInt256.ofNat 8) (by decide +native)
       (fun s h1 h2 => by simp only [memoryExpansionCost, memoryExpansionCost.μᵢ', h1, h2,
-        List.getElem!_cons_zero]; native_decide)
-      rfl (by native_decide) (by evm_ov)]
+        List.getElem!_cons_zero]; decide +native)
+      rfl (by decide +native) (by evm_ov)]
   have rd122 := evm_run rd78 with [
-    push2 ⟨90⟩, swap2, push1 ⟨1⟩, swap2, push2 ⟨122⟩, jump (by native_decide)]
+    push2 ⟨90⟩, swap2, push1 ⟨1⟩, swap2, push2 ⟨122⟩, jump (by decide +native)]
   -- Run the symbol subroutine, reach pc 90.
   obtain ⟨_, _, rd90⟩ := weth9StringStoreSubroutine ⟨4⟩ ⟨224⟩ ⟨1⟩ ⟨90⟩ weth9SymWord
-    (Or.inr rfl) (by decide) hperm (by native_decide) (by decide)
+    (Or.inr rfl) (by decide) hperm (by decide +native) (by decide)
     (by rw [weth9CtorMemSym_size]; decide) (by decide) (by decide) (by decide)
     (by rw [show (⟨224⟩ : UInt256).toNat = 224 from rfl]; exact weth9CtorMemSym_read224) rd122
   -- Segment 3a: POP; decimals RMW; reach pc 105.
   have rd91 := evm_run rd90 with [jumpdest, pop, push1 ⟨2⟩, dup1]
-  obtain ⟨_, _, rd96⟩ := rd91.sload (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd96⟩ := rd91.sload (by decide +native) (by evm_ov)
   have rd104 := evm_run rd96 with [push1 ⟨255⟩, not, and, push1 ⟨18⟩, or, swap1]
-  obtain ⟨_, _, rd105⟩ := rd104.sstore hperm (by native_decide) (by evm_ov)
+  obtain ⟨_, _, rd105⟩ := rd104.sstore hperm (by decide +native) (by evm_ov)
   exact ⟨_, _, rd105⟩
 
 /-! ## Codecopy/return and the two terminal traces -/
@@ -273,13 +273,13 @@ theorem weth9CtorInitcodeSuccess {cA gh bl σ σ₀ A I} {g : Sat256}
     (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hperm
   have rd287 := evm_run rd105 with [
     callvalue, dup1, iszero, push2 ⟨116⟩,
-    jumpiT (by rw [hwv]; decide) (by native_decide),
-    jumpdest, pop, push2 ⟨277⟩, jump (by native_decide),
+    jumpiT (by rw [hwv]; decide) (by decide +native),
+    jumpdest, pop, push2 ⟨277⟩, jump (by decide +native),
     jumpdest, push2 ⟨1763⟩, dup1, push2 ⟨292⟩, push1 ⟨0⟩,
-    raw codecopy 150 weth9CtorReturnMem (UInt256.ofNat 56) (by native_decide) mem_cost rfl
-      (by native_decide) (by evm_ov),
+    raw codecopy 150 weth9CtorReturnMem (UInt256.ofNat 56) (by decide +native) mem_cost rfl
+      (by decide +native) (by evm_ov),
     push1 ⟨0⟩]
-  exact rd287.ret 0 weth9Bytecode (by native_decide) mem_cost weth9CtorReturnMem_read (by evm_ov)
+  exact rd287.ret 0 weth9Bytecode (by decide +native) mem_cost weth9CtorReturnMem_read (by evm_ov)
 
 set_option maxHeartbeats 4000000 in
 theorem weth9CtorInitcodeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -291,7 +291,7 @@ theorem weth9CtorInitcodeRevert {cA gh bl σ σ₀ A I} {g : Sat256}
     callvalue, dup1, iszero, push2 ⟨116⟩,
     jumpiNT (isZero_eq_zero_of_ne hwv),
     push1 ⟨0⟩, dup1]
-  exact rd114.rev 0 (by native_decide) mem_cost (by evm_ov)
+  exact rd114.rev 0 (by decide +native) mem_cost (by evm_ov)
 
 /-! ## Reconciling the EVM store-then-clear with the Solm clear-then-store, per write -/
 
@@ -372,13 +372,13 @@ theorem weth9FinalReconcile (cO : AccountAddress) (evm0 : EVM.State) (σ_evm : A
     rw [weth9SolmNameState_map, hcO]
     exact weth9WriteReconcile cO σ_evm evm0.accountMap ⟨0⟩ ⟨13⟩ weth9NameWord
       (solidityShortBytesWord (String.toByteArray "Wrapped Ether")) (Or.inl rfl)
-      (by native_decide) hmap
+      (by decide +native) hmap
   have hSym : accountMapEquiv (weth9EvmSymMap σ_evm cO)
       (weth9SolmSymbolState evm0).accountMap := by
     rw [weth9SolmSymbolState_map, hcO]
     exact weth9WriteReconcile cO (weth9EvmNameMap σ_evm cO) (weth9SolmNameState evm0).accountMap
       ⟨1⟩ ⟨4⟩ weth9SymWord (solidityShortBytesWord (String.toByteArray "WETH")) (Or.inr rfl)
-      (by native_decide) hName
+      (by decide +native) hName
   have hload2 :
       ((weth9EvmSymMap σ_evm cO).find? cO |>.option ⟨0⟩ (fun ac => ac.storage.findD ⟨2⟩ ⟨0⟩)) =
         ((weth9SolmSymbolState evm0).accountMap.find? cO |>.option ⟨0⟩

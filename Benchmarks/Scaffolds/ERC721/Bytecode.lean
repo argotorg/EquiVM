@@ -211,7 +211,7 @@ axiom erc721TransferFromSelectorBytes :
       ⟨1250⟩, ⟨1259⟩, ⟨1273⟩, ⟨1291⟩, ⟨1300⟩, ⟨1314⟩, ⟨1331⟩, ⟨1347⟩, ⟨1356⟩, ⟨1363⟩,
       ⟨1380⟩, ⟨1389⟩, ⟨1409⟩, ⟨1420⟩, ⟨1437⟩, ⟨1446⟩, ⟨1460⟩
       ]
-  := by native_decide
+  := by decide +native
 
 /-- The `JUMPDEST` set of `erc721CreationBytecode`, computed from the optimized creation bytecode. -/
 @[valid_jumps] theorem erc721ValidCreationJumps :
@@ -224,4 +224,4 @@ axiom erc721TransferFromSelectorBytes :
       ⟨1261⟩, ⟨1278⟩, ⟨1287⟩, ⟨1301⟩, ⟨1319⟩, ⟨1328⟩, ⟨1342⟩, ⟨1359⟩, ⟨1375⟩, ⟨1384⟩,
       ⟨1391⟩, ⟨1408⟩, ⟨1417⟩, ⟨1437⟩, ⟨1448⟩, ⟨1465⟩, ⟨1474⟩, ⟨1488⟩
       ]
-  := by native_decide
+  := by decide +native

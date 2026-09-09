@@ -43,7 +43,7 @@ theorem uniswapReachNameBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals native_decide)
+      all_goals decide +native)
     (by
       rw [hword]
       decide)
@@ -66,7 +66,7 @@ theorem uniswapReachSymbolBody {cA gh bl σ σ₀ A I} {g : Sat256}
     (fun j hj => by
       rw [hword]
       interval_cases j
-      all_goals native_decide)
+      all_goals decide +native)
     (by
       rw [hword]
       decide)

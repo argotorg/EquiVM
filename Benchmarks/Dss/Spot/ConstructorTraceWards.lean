@@ -40,6 +40,6 @@ theorem spotCtorWardsStoreReach
   have rdBeforeStore := spot_ctor_run rdSlot with [push1 ⟨1⟩, swap1, dup2, swap1]
   obtain ⟨k', C', rd75⟩ := rdBeforeStore.sstore hperm (by spot_ctor_decode) (by evm_ov)
   exact ⟨k', C', by
-    simpa [show (⟨74⟩ : UInt256) + ⟨1⟩ = ⟨75⟩ from by native_decide] using rd75⟩
+    simpa [show (⟨74⟩ : UInt256) + ⟨1⟩ = ⟨75⟩ from by decide +native] using rd75⟩
 
 end Benchmarks.Dss.Spot

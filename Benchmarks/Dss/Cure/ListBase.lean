@@ -57,7 +57,7 @@ def listRoutineMem (len : UInt256) : ByteArray :=
 
 theorem listRoutineNewFp_zero :
     listRoutineNewFp (⟨0⟩ : UInt256) = ⟨160⟩ := by
-  native_decide
+  decide +native
 
 theorem listRoutineNewFp_eq_listArrayFreePtr (len : UInt256) :
     listRoutineNewFp len = listArrayFreePtr len := by
@@ -79,7 +79,7 @@ theorem listRoutineMem_size (len : UInt256) :
     (listRoutineMem len).size = 160 := by
   unfold listRoutineMem
   rw [toByteArray_write32_size_of_ge _ len (⟨128⟩ : UInt256).toNat 96 160
-    (listArrayAllocMem_size len) (by native_decide) (by native_decide) (by native_decide)]
+    (listArrayAllocMem_size len) (by decide +native) (by decide +native) (by decide +native)]
 
 theorem listRoutineMem_read64 (len : UInt256) :
     (listRoutineMem len).readWithPadding 64 32 =
@@ -87,8 +87,8 @@ theorem listRoutineMem_read64 (len : UInt256) :
   unfold listRoutineMem
   rw [toByteArray_write_read_below_of_gap len (listArrayAllocMem len)
     (⟨128⟩ : UInt256).toNat 64
-    (by rw [listArrayAllocMem_size]) (by native_decide)
-    (by rw [listArrayAllocMem_size]; native_decide)]
+    (by rw [listArrayAllocMem_size]) (by decide +native)
+    (by rw [listArrayAllocMem_size]; decide +native)]
   exact listArrayAllocMem_read64 len
 
 theorem listRoutineMem_read128 (len : UInt256) :
@@ -97,7 +97,7 @@ theorem listRoutineMem_read128 (len : UInt256) :
   unfold listRoutineMem
   rw [toByteArray_write_read_back_of_gap len (listArrayAllocMem len)
     (⟨128⟩ : UInt256).toNat
-    (by rw [listArrayAllocMem_size]; native_decide)]
+    (by rw [listArrayAllocMem_size]; decide +native)]
 
 theorem listRoutineMem_mload64 (len : UInt256) :
     (if (⟨64⟩ : UInt256).toNat ≥ (listRoutineMem len).size
@@ -108,7 +108,7 @@ theorem listRoutineMem_mload64 (len : UInt256) :
       = listArrayFreePtr len := by
   exact mloadWordValue_of_readWithPadding
     (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide, listRoutineMem_size]; omega)
-    (by native_decide)
+    (by decide +native)
     (by simpa [show (⟨64⟩ : UInt256).toNat = 64 from by decide] using
       listRoutineMem_read64 len)
 
@@ -121,7 +121,7 @@ theorem listRoutineMem_mload128 (len : UInt256) :
       = len := by
   exact mloadWordValue_of_readWithPadding
     (by rw [show listArrayBasePtr.toNat = 128 from by decide, listRoutineMem_size]; omega)
-    (by native_decide)
+    (by decide +native)
     (by simpa [show listArrayBasePtr.toNat = 128 from by decide] using
       listRoutineMem_read128 len)
 
@@ -130,7 +130,7 @@ abbrev listArrayEndPtr (len : UInt256) : UInt256 :=
 
 theorem listArrayDataPtr_toNat :
     listArrayDataPtr.toNat = 160 := by
-  native_decide
+  decide +native
 
 theorem cureStorageWF_mul32_lt {σ : AccountMap} {I : ExecutionEnv}
     (hwf : cureStorageWF σ I) :
@@ -274,7 +274,7 @@ theorem listArrayHashMem_read64 (len : UInt256) :
   unfold listArrayHashMem wordAt0Mem
   rw [write32_read_above _ _ 0 64 (by rw [toByteArray_size])
     (by rw [listRoutineMem_size]; omega)
-    (by omega) (by rw [listRoutineMem_size]; native_decide)]
+    (by omega) (by rw [listRoutineMem_size]; decide +native)]
   exact listRoutineMem_read64 len
 
 theorem listArrayHashMem_read128 (len : UInt256) :
@@ -283,7 +283,7 @@ theorem listArrayHashMem_read128 (len : UInt256) :
   unfold listArrayHashMem wordAt0Mem
   rw [write32_read_above _ _ 0 listArrayBasePtr.toNat (by rw [toByteArray_size])
     (by rw [listRoutineMem_size]; omega)
-    (by native_decide) (by rw [listRoutineMem_size]; native_decide)]
+    (by decide +native) (by rw [listRoutineMem_size]; decide +native)]
   exact listRoutineMem_read128 len
 
 def listArraySlot : Nat → UInt256
@@ -303,7 +303,7 @@ theorem listArrayDest_toNat_of_wf {σ : AccountMap} {I : ExecutionEnv}
     ∀ {n}, n ≤ (cureSlotWord ⟨2⟩ σ I).toNat →
       (listArrayDest n).toNat = 160 + 32 * n
   | 0, _ => by
-      native_decide
+      decide +native
   | n + 1, hn => by
       rw [listArrayDest, uadd_toNat, listArrayDest_toNat_of_wf hwf (n := n) (by omega),
         show (⟨32⟩ : UInt256).toNat = 32 from by decide]
@@ -394,7 +394,7 @@ theorem listArrayCopiedMem_size
         (160 + 32 * n) (160 + 32 * n) (160 + 32 * (n + 1))
         (listArrayCopiedMem_size σ ee len n) (by omega)
         (by
-          have hU : 0 < USize.size := by native_decide
+          have hU : 0 < USize.size := by decide +native
           omega)
         (by omega)
 
@@ -414,7 +414,7 @@ theorem listArrayCopiedMem_read64
         (by omega)
         (by
           rw [listArrayCopiedMem_size]
-          have hU : 0 < USize.size := by native_decide
+          have hU : 0 < USize.size := by decide +native
           omega)]
       exact listArrayCopiedMem_read64 σ ee len n
 
@@ -432,14 +432,14 @@ theorem listArrayCopiedMem_read128
         (listArrayCopiedMem σ ee len n) (160 + 32 * n) listArrayBasePtr.toNat
         (by
           rw [listArrayCopiedMem_size]
-          have hbase : listArrayBasePtr.toNat = 128 := by native_decide
+          have hbase : listArrayBasePtr.toNat = 128 := by decide +native
           omega)
         (by
-          have hbase : listArrayBasePtr.toNat = 128 := by native_decide
+          have hbase : listArrayBasePtr.toNat = 128 := by decide +native
           omega)
         (by
           rw [listArrayCopiedMem_size]
-          have hU : 0 < USize.size := by native_decide
+          have hU : 0 < USize.size := by decide +native
           omega)]
       exact listArrayCopiedMem_read128 σ ee len n
 
@@ -459,7 +459,7 @@ theorem listArrayCopiedMem_read_elem
           (listArrayCopiedMem σ ee len n) (160 + 32 * n)
           (by
             rw [listArrayCopiedMem_size]
-            have hU : 0 < USize.size := by native_decide
+            have hU : 0 < USize.size := by decide +native
             omega)]
       · have hi' : i < n := by omega
         rw [toByteArray_write_read_below_of_gap
@@ -469,7 +469,7 @@ theorem listArrayCopiedMem_read_elem
           (by omega)
           (by
             rw [listArrayCopiedMem_size]
-            have hU : 0 < USize.size := by native_decide
+            have hU : 0 < USize.size := by decide +native
             omega)]
         exact listArrayCopiedMem_read_elem σ ee len n i hi'
 
@@ -577,7 +577,7 @@ theorem listRoutineMem_zero :
         (⟨128⟩ : UInt256).toNat 32 := by
   unfold listRoutineMem
   unfold listArrayAllocMem
-  native_decide
+  decide +native
 
 theorem listSrcsValues_nil_of_len_zero {σ : AccountMap} {I : ExecutionEnv}
     (hlen : cureSlotWord ⟨2⟩ σ I = ⟨0⟩) :
@@ -724,7 +724,7 @@ theorem readWithPadding_wordConcat (mem : ByteArray) (f : Nat → UInt256) (base
 
 theorem listEmptyArrayReturnEncoding :
     encodeReturnValues? [addrArray] [.array []] = some listEmptyArrayAbi := by
-  native_decide
+  decide +native
 
 
 end Benchmarks.Dss.Cure

@@ -107,7 +107,7 @@ theorem cureLoadSourceBodyNoCodeRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     have hsrc : localsOld.get? "src" = some (.address (loadSrc I)) := by
       change ((loadLocals I).insert "oldAmt_" oldAmtVal).get? "src" =
         some (.address (loadSrc I))
-      rw [store_get_ne (loadLocals I) (k := "oldAmt_") (a := "src") oldAmtVal (by native_decide)]
+      rw [store_get_ne (loadLocals I) (k := "oldAmt_") (a := "src") oldAmtVal (by decide +native)]
       simp [loadLocals]
     simpa [evm0, localsOld] using
       evalExpr_loadExtCodeSizeGtZero_false_of_src
@@ -197,7 +197,7 @@ theorem cureLoadSourceBodyCallFailureRevert {cA gh bl σ σ₀ A I} {g : UInt256
     change ((loadLocals I).insert "oldAmt_" oldAmtVal).get? "src" =
       some (.address (loadSrc I))
     rw [store_get_ne (loadLocals I) (k := "oldAmt_") (a := "src") oldAmtVal
-      (by native_decide)]
+      (by decide +native)]
     simp [loadLocals]
   have hguardCall :
       evalExpr? config { contract := contract, locals := localsOld } evm0
@@ -293,7 +293,7 @@ theorem cureLoadSourceBodyReturnDecodeRevert {cA gh bl σ σ₀ A I} {g : UInt25
     change ((loadLocals I).insert "oldAmt_" oldAmtVal).get? "src" =
       some (.address (loadSrc I))
     rw [store_get_ne (loadLocals I) (k := "oldAmt_") (a := "src") oldAmtVal
-      (by native_decide)]
+      (by decide +native)]
     simp [loadLocals]
   have hguardCall :
       evalExpr? config { contract := contract, locals := localsOld } evm0
@@ -404,7 +404,7 @@ theorem cureLoadSourceBodySubRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     change ((loadLocals I).insert "oldAmt_" oldAmtVal).get? "src" =
       some (.address (loadSrc I))
     rw [store_get_ne (loadLocals I) (k := "oldAmt_") (a := "src") oldAmtVal
-      (by native_decide)]
+      (by decide +native)]
     simp [loadLocals]
   have hguardCall :
       evalExpr? config { contract := contract, locals := localsOld } evm0
@@ -445,14 +445,14 @@ theorem cureLoadSourceBodySubRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     have hbase : localsNew.get? "amt" = none := by
       change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).get? "amt" = none
-      rw [store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     have hsrcNew : localsNew.get? "src" = some (.address (loadSrc I)) := by
       change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).get? "src" = some (.address (loadSrc I))
-      rw [store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     simpa [evmAmt] using assign_loadAmtStorage (evm := evmCall) (locals := localsNew)
       I newAmt hbase hsrcNew
@@ -465,7 +465,7 @@ theorem cureLoadSourceBodySubRevert {cA gh bl σ σ₀ A I} {g : UInt256}
         change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
           (.int (Int.ofNat newAmt.toNat))).get? "oldAmt_" =
             some (.int (Int.ofNat oldAmt.toNat))
-        rw [store_get_ne _ _ (by native_decide), store_get_self])
+        rw [store_get_ne _ _ (by decide +native), store_get_self])
   have hsay :
       evalExpr? config { contract := contract, locals := localsNew } evmAmt (.storage sayRef) =
         .ok (.int (Int.ofNat
@@ -473,8 +473,8 @@ theorem cureLoadSourceBodySubRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     have hbase : localsNew.get? "say" = none := by
       change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).get? "say" = none
-      rw [store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     simpa [evmAmt] using evalExpr_loadSayStorage (evm := evmAmt)
       (locals := localsNew) hbase
@@ -638,7 +638,7 @@ theorem cureLoadSourceBodyAddRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     change ((loadLocals I).insert "oldAmt_" oldAmtVal).get? "src" =
       some (.address (loadSrc I))
     rw [store_get_ne (loadLocals I) (k := "oldAmt_") (a := "src") oldAmtVal
-      (by native_decide)]
+      (by decide +native)]
     simp [loadLocals]
   have hguardCall :
       evalExpr? config { contract := contract, locals := localsOld } evm0
@@ -679,14 +679,14 @@ theorem cureLoadSourceBodyAddRevert {cA gh bl σ σ₀ A I} {g : UInt256}
     have hbase : localsNew.get? "amt" = none := by
       change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).get? "amt" = none
-      rw [store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     have hsrcNew : localsNew.get? "src" = some (.address (loadSrc I)) := by
       change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).get? "src" = some (.address (loadSrc I))
-      rw [store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     simpa [evmAmt] using assign_loadAmtStorage (evm := evmCall) (locals := localsNew)
       I newAmt hbase hsrcNew
@@ -699,15 +699,15 @@ theorem cureLoadSourceBodyAddRevert {cA gh bl σ σ₀ A I} {g : UInt256}
         change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
           (.int (Int.ofNat newAmt.toNat))).get? "oldAmt_" =
             some (.int (Int.ofNat oldAmt.toNat))
-        rw [store_get_ne _ _ (by native_decide), store_get_self])
+        rw [store_get_ne _ _ (by decide +native), store_get_self])
   have hsay :
       evalExpr? config { contract := contract, locals := localsNew } evmAmt (.storage sayRef) =
         .ok (.int (Int.ofNat sayAfter.toNat)) := by
     have hbase : localsNew.get? "say" = none := by
       change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).get? "say" = none
-      rw [store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     simpa [evmAmt, sayAfter] using evalExpr_loadSayStorage (evm := evmAmt)
       (locals := localsNew) hbase
@@ -765,7 +765,7 @@ theorem cureLoadSourceBodyAddRevert {cA gh bl σ σ₀ A I} {g : UInt256}
       (by
         change (localsNew.insert "withoutOld" (.int (Int.ofNat withoutOld.toNat))).get?
             "newAmt_" = some (.int (Int.ofNat newAmt.toNat))
-        rw [store_get_ne _ _ (by native_decide)]
+        rw [store_get_ne _ _ (by decide +native)]
         change localsNew.get? "newAmt_" = some (.int (Int.ofNat newAmt.toNat))
         rw [store_get_self])
   have hargsAdd :
@@ -920,7 +920,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
     change ((loadLocals I).insert "oldAmt_" oldAmtVal).get? "src" =
       some (.address (loadSrc I))
     rw [store_get_ne (loadLocals I) (k := "oldAmt_") (a := "src") oldAmtVal
-      (by native_decide)]
+      (by decide +native)]
     simp [loadLocals]
   have hguardCall :
       evalExpr? config { contract := contract, locals := localsOld } evm0
@@ -961,14 +961,14 @@ theorem cureLoadSourceBodyOkLoadedNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
     have hbase : localsNew.get? "amt" = none := by
       change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).get? "amt" = none
-      rw [store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     have hsrcNew : localsNew.get? "src" = some (.address (loadSrc I)) := by
       change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).get? "src" = some (.address (loadSrc I))
-      rw [store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     simpa [evmAmt] using assign_loadAmtStorage (evm := evmCall) (locals := localsNew)
       I newAmt hbase hsrcNew
@@ -981,15 +981,15 @@ theorem cureLoadSourceBodyOkLoadedNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
         change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
           (.int (Int.ofNat newAmt.toNat))).get? "oldAmt_" =
             some (.int (Int.ofNat oldAmt.toNat))
-        rw [store_get_ne _ _ (by native_decide), store_get_self])
+        rw [store_get_ne _ _ (by decide +native), store_get_self])
   have hsay :
       evalExpr? config { contract := contract, locals := localsNew } evmAmt (.storage sayRef) =
         .ok (.int (Int.ofNat sayAfter.toNat)) := by
     have hbase : localsNew.get? "say" = none := by
       change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).get? "say" = none
-      rw [store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     simpa [evmAmt, sayAfter] using evalExpr_loadSayStorage (evm := evmAmt)
       (locals := localsNew) hbase
@@ -1047,7 +1047,7 @@ theorem cureLoadSourceBodyOkLoadedNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
       (by
         change (localsNew.insert "withoutOld" (.int (Int.ofNat withoutOld.toNat))).get?
             "newAmt_" = some (.int (Int.ofNat newAmt.toNat))
-        rw [store_get_ne _ _ (by native_decide)]
+        rw [store_get_ne _ _ (by decide +native)]
         rw [store_get_self])
   have hargsAdd :
       evalExprs? config { contract := contract, locals := localsWithout } evmAmt
@@ -1103,8 +1103,8 @@ theorem cureLoadSourceBodyOkLoadedNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
         (.int (Int.ofNat newAmt.toNat))).insert "withoutOld"
           (.int (Int.ofNat withoutOld.toNat))).insert "sayNew"
           (.int (Int.ofNat sayNew.toNat))).get? "say" = none
-      rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     simpa [evmSay] using assign_loadSayStorage (evm := evmAmt) (locals := localsSay)
       sayNew hbase
@@ -1117,16 +1117,16 @@ theorem cureLoadSourceBodyOkLoadedNonzero {cA gh bl σ σ₀ A I} {g : UInt256}
         (.int (Int.ofNat newAmt.toNat))).insert "withoutOld"
           (.int (Int.ofNat withoutOld.toNat))).insert "sayNew"
           (.int (Int.ofNat sayNew.toNat))).get? "loaded" = none
-      rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     have hsrcSay : localsSay.get? "src" = some (.address (loadSrc I)) := by
       change (((((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).insert "withoutOld"
           (.int (Int.ofNat withoutOld.toNat))).insert "sayNew"
           (.int (Int.ofNat sayNew.toNat))).get? "src" = some (.address (loadSrc I))
-      rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     exact evalExpr_loadLoadedEqZero_false (evm := evmSay) (locals := localsSay) I
       hbase hsrcSay hloaded
@@ -1257,7 +1257,7 @@ theorem cureLoadSourceBodyOkLoadedZero {cA gh bl σ σ₀ A I} {g : UInt256}
     change ((loadLocals I).insert "oldAmt_" oldAmtVal).get? "src" =
       some (.address (loadSrc I))
     rw [store_get_ne (loadLocals I) (k := "oldAmt_") (a := "src") oldAmtVal
-      (by native_decide)]
+      (by decide +native)]
     simp [loadLocals]
   have hguardCall :
       evalExpr? config { contract := contract, locals := localsOld } evm0
@@ -1298,14 +1298,14 @@ theorem cureLoadSourceBodyOkLoadedZero {cA gh bl σ σ₀ A I} {g : UInt256}
     have hbase : localsNew.get? "amt" = none := by
       change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).get? "amt" = none
-      rw [store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     have hsrcNew : localsNew.get? "src" = some (.address (loadSrc I)) := by
       change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).get? "src" = some (.address (loadSrc I))
-      rw [store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     simpa [evmAmt] using assign_loadAmtStorage (evm := evmCall) (locals := localsNew)
       I newAmt hbase hsrcNew
@@ -1318,15 +1318,15 @@ theorem cureLoadSourceBodyOkLoadedZero {cA gh bl σ σ₀ A I} {g : UInt256}
         change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
           (.int (Int.ofNat newAmt.toNat))).get? "oldAmt_" =
             some (.int (Int.ofNat oldAmt.toNat))
-        rw [store_get_ne _ _ (by native_decide), store_get_self])
+        rw [store_get_ne _ _ (by decide +native), store_get_self])
   have hsay :
       evalExpr? config { contract := contract, locals := localsNew } evmAmt (.storage sayRef) =
         .ok (.int (Int.ofNat sayAfter.toNat)) := by
     have hbase : localsNew.get? "say" = none := by
       change (((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).get? "say" = none
-      rw [store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     simpa [evmAmt, sayAfter] using evalExpr_loadSayStorage (evm := evmAmt)
       (locals := localsNew) hbase
@@ -1384,7 +1384,7 @@ theorem cureLoadSourceBodyOkLoadedZero {cA gh bl σ σ₀ A I} {g : UInt256}
       (by
         change (localsNew.insert "withoutOld" (.int (Int.ofNat withoutOld.toNat))).get?
             "newAmt_" = some (.int (Int.ofNat newAmt.toNat))
-        rw [store_get_ne _ _ (by native_decide)]
+        rw [store_get_ne _ _ (by decide +native)]
         rw [store_get_self])
   have hargsAdd :
       evalExprs? config { contract := contract, locals := localsWithout } evmAmt
@@ -1440,8 +1440,8 @@ theorem cureLoadSourceBodyOkLoadedZero {cA gh bl σ σ₀ A I} {g : UInt256}
         (.int (Int.ofNat newAmt.toNat))).insert "withoutOld"
           (.int (Int.ofNat withoutOld.toNat))).insert "sayNew"
           (.int (Int.ofNat sayNew.toNat))).get? "say" = none
-      rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     simpa [evmSay] using assign_loadSayStorage (evm := evmAmt) (locals := localsSay)
       sayNew hbase
@@ -1458,24 +1458,24 @@ theorem cureLoadSourceBodyOkLoadedZero {cA gh bl σ σ₀ A I} {g : UInt256}
         (.int (Int.ofNat newAmt.toNat))).insert "withoutOld"
           (.int (Int.ofNat withoutOld.toNat))).insert "sayNew"
           (.int (Int.ofNat sayNew.toNat))).get? "loaded" = none
-      rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     have hbaseLCount : localsSay.get? "lCount" = none := by
       change (((((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).insert "withoutOld"
           (.int (Int.ofNat withoutOld.toNat))).insert "sayNew"
           (.int (Int.ofNat sayNew.toNat))).get? "lCount" = none
-      rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     have hsrcSay : localsSay.get? "src" = some (.address (loadSrc I)) := by
       change (((((loadLocals I).insert "oldAmt_" oldAmtVal).insert "newAmt_"
         (.int (Int.ofNat newAmt.toNat))).insert "withoutOld"
           (.int (Int.ofNat withoutOld.toNat))).insert "sayNew"
           (.int (Int.ofNat sayNew.toNat))).get? "src" = some (.address (loadSrc I))
-      rw [store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide),
-        store_get_ne _ _ (by native_decide), store_get_ne _ _ (by native_decide)]
+      rw [store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native),
+        store_get_ne _ _ (by decide +native), store_get_ne _ _ (by decide +native)]
       simp [loadLocals]
     simpa [evmLoaded, count, evmCount] using
       execLoadLoadedZeroTail (evm := evmSay) (locals := localsSay) I

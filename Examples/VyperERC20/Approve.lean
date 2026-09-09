@@ -157,7 +157,7 @@ def approveDispatchMem : ByteArray :=
   vyperERC20Bytecode.write 807 ByteArray.empty 30 2
 
 theorem approveDispatchMem_size : approveDispatchMem.size = 32 := by
-  native_decide
+  decide +native
 
 def approveSpenderArgMem (spender : UInt256) : ByteArray :=
   (UInt256.toByteArray spender).write 0 approveDispatchMem 64 32
@@ -402,10 +402,10 @@ theorem approveDispatchMem_mload0 :
       else UInt256.ofNat
         (fromByteArrayBigEndian (approveDispatchMem.readWithPadding (⟨0⟩ : UInt256).toNat 32)))
       = (⟨206⟩ : UInt256) := by
-  native_decide
+  decide +native
 
 macro "vyper_erc20_approve_decode" : tactic =>
-  `(tactic| native_decide)
+  `(tactic| decide +native)
 
 theorem erc20X_approveFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -426,7 +426,7 @@ theorem erc20X_approveFromEntry {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeStore := evm_run rd206 with [
     jumpdest,
     raw push4 approveSelectorWord (by vyper_erc20_approve_decode) (by evm_ov),
-    dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
+    dup2, xor, push2 ⟨797⟩, jumpiNT (by decide +native),
     push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiNT (by rw [hsizeGuard, hwv]; decide),
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
@@ -522,7 +522,7 @@ theorem erc20ApproveX_shortarg {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd801 := evm_run rd206 with [
     jumpdest,
     raw push4 approveSelectorWord (by vyper_erc20_approve_decode) (by evm_ov),
-    dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
+    dup2, xor, push2 ⟨797⟩, jumpiNT (by decide +native),
     push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiT (by rw [hwv, hsizeGuard68]; decide) (by vyper_erc20_approve_decode)]
   exact vyperRuntimeRevert801 (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
@@ -544,7 +544,7 @@ theorem erc20ApproveX_noncanon_spender {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd801 := evm_run rd206 with [
     jumpdest,
     raw push4 approveSelectorWord (by vyper_erc20_approve_decode) (by evm_ov),
-    dup2, xor, push2 ⟨797⟩, jumpiNT (by native_decide),
+    dup2, xor, push2 ⟨797⟩, jumpiNT (by decide +native),
     push1 ⟨68⟩, calldatasize, lt, callvalue, or, push2 ⟨801⟩,
     jumpiNT (by rw [hwv, hsizeGuard]; decide),
     push1 ⟨4⟩, calldataload, dup1, push1 ⟨160⟩, shr, push2 ⟨801⟩,
@@ -567,7 +567,7 @@ theorem approveSelectorWord_of_calldata {I : ExecutionEnv}
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == I.calldata.extract 0 4) = true) :
     UInt256.shiftRight (uInt256OfByteArray (I.calldata.readBytes 0 32)) ⟨224⟩ =
       approveSelectorWord := by
-  have h := evmSelectorDecode hsz 0x09 0x5e 0xa7 0xb3 approveSelectorWord (by native_decide)
+  have h := evmSelectorDecode hsz 0x09 0x5e 0xa7 0xb3 approveSelectorWord (by decide +native)
   rw [hsel] at h
   unfold UInt256.eq at h
   by_cases heq :
@@ -594,7 +594,7 @@ theorem erc20X_approveReach {cA gh bl σ σ₀ A I} {g : Sat256}
   have rdBeforeCopy := by
     simpa [hword, approveSelectorWord] using rdBeforeCopy0
   have rdAfterCopy := rdBeforeCopy.codecopy 3 approveDispatchMem (UInt256.ofNat 1)
-    (by vyper_erc20_approve_decode) mem_cost (by native_decide) (by decide) (by evm_ov)
+    (by vyper_erc20_approve_decode) mem_cost (by decide +native) (by decide) (by evm_ov)
   have rdBeforeJump := evm_run rdAfterCopy with [
     push0,
     raw mload 0 ⟨206⟩ (UInt256.ofNat 1)
@@ -602,7 +602,7 @@ theorem erc20X_approveReach {cA gh bl σ σ₀ A I} {g : Sat256}
       mem_cost
       approveDispatchMem_mload0
       (by decide) (by evm_ov)]
-  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_approve_decode) (by native_decide) (by evm_ov)⟩
+  exact ⟨_, _, rdBeforeJump.jump (by vyper_erc20_approve_decode) (by decide +native) (by evm_ov)⟩
 
 theorem erc20Dispatch_approve {cd : ByteArray}
     (hsel : ((⟨#[0x09, 0x5e, 0xa7, 0xb3]⟩ : ByteArray) == cd.extract 0 4) = true) :
