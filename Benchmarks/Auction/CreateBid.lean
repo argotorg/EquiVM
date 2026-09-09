@@ -1,13 +1,13 @@
-import Benchmarks.Auction.CreateBidRefundFailure
-import Benchmarks.Auction.CreateBidRefundSuccess
+import Benchmarks.Auction.CreateBidRefundNotMade
+import Benchmarks.Auction.CreateBidWethRuntime
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach Reasoning.Refinement
 
 set_option maxRecDepth 50000000
-set_option maxHeartbeats 0
 
 namespace Auction
 
+set_option maxHeartbeats 1000000 in
 theorem auctionCreateBidBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (_hcode : I.code = auctionBytecode)
     (_hsize : I.calldata.size < UInt256.size)
@@ -1019,12 +1019,7 @@ theorem auctionCreateBidBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
                               hreserveOk hmulFit haddFit hbidOk hbidderZero hextended hover
                               hbodyReach)
                               |>.reEquivExecutionRevert _hcode hdispatch hdecode hbody
-                      · have hremaining :
-                            RuntimeCase (cA := cA) (gh := gh) (bl := bl)
-                              (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀)
-                              (A := A) (I := I) g := by
-                          sorry
-                        let evmSE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
+                      · let evmSE := initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I
                         let evmEnterE := auctionCreateBidEnterState evmSE
                         let σEnterEvm := auctionCreateBidEnterMap σ_evm I
                         let nounWord := auctionAuctionNounWord σEnterEvm I
@@ -1097,94 +1092,76 @@ theorem auctionCreateBidBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
                               (g := Sat256.ofUInt256 g) (owner := ownerWord)
                               (marker := ownerWord) (amount := amountWord)
                               rfl hrdAfterRefundRaw
-                          by_cases hwethCode :
-                              Reasoning.Theory.uniswapExtCodeSizeWord σEnterEvm
+                          have hnotMadeEvm : ¬ (amountWord ≤
+                              (σEnterEvm.find? I.codeOwner |>.elim ⟨0⟩ (·.balance)) ∧
+                              I.depth ≠ 1024) := by
+                            have hbalance := accountMapEquiv_balance_word henterAccounts I.codeOwner
+                            have hamount : EVM.wordOfInt (Int.ofNat
+                                (Solm.EVM.storageLoad evmEnterS
+                                  evmEnterS.executionEnv.codeOwner ⟨208⟩).toNat) = amountWord := by
+                              rw [wordOfInt_ofNat_toNat, hamountSolmWord, ← hamountWord]
+                            rw [hamount] at hnotMadeSolm
+                            simp only [evmEnterS, auctionCreateBidEnterState,
+                              storageStore_accountMap, storageStore_executionEnv,
+                              evmS, initState] at hnotMadeSolm
+                            change ¬ (amountWord ≤
+                              ((auctionCreateBidEnterMap σ_solm I).find? I.codeOwner
+                                |>.elim ⟨0⟩ (·.balance)) ∧ I.depth ≠ 1024) at hnotMadeSolm
+                            rwa [← hbalance] at hnotMadeSolm
+                          have hrdRev : RDrev auctionBytecode (Sat256.ofUInt256 g)
+                              (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) := by
+                            by_cases hwethCode :
+                                Reasoning.Theory.uniswapExtCodeSizeWord σEnterEvm
                                   (UInt256.land (auctionSlotWord ⟨202⟩ σEnterEvm I)
-                                    solcAddrMask) =
-                                ⟨0⟩
-                          · have hrdRev :=
-                              auctionCreateBidRefundFallbackWethNoCodeRevertAnyMem
-                                (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
-                                (σ₀ := σ₀) (A := A) (I := I)
-                                (g := Sat256.ofUInt256 g) (cA' := cA)
-                                (σ' := σEnterEvm) (amount := amountWord)
-                                (owner := ownerWord) (marker := ownerWord)
+                                    solcAddrMask) = ⟨0⟩
+                            · exact auctionCreateBidRefundFallbackWethNoCodeRevertAnyMem
                                 hwethCode hrdRefundFallback
-                            have hwethCodeSolm :
-                                Reasoning.Theory.uniswapExtCodeSizeWord evmEnterS.accountMap
-                                    (UInt256.land
-                                      (Solm.EVM.storageLoad evmEnterS
-                                        evmEnterS.executionEnv.codeOwner ⟨202⟩)
-                                      solcAddrMask) =
-                                  ⟨0⟩ := by
-                              have hslotEq :
-                                  auctionSlotWord ⟨202⟩ σEnterEvm I =
-                                    auctionSlotWord ⟨202⟩
-                                      (auctionCreateBidEnterMap σ_solm I) I :=
-                                accountMapEquiv_storage_findD henterAccounts
-                                  I.codeOwner ⟨202⟩ ⟨0⟩
-                              have hwethRaw :
-                                  Reasoning.Theory.uniswapExtCodeSizeWord
-                                      (auctionCreateBidEnterMap σ_solm I)
-                                      (UInt256.land
-                                        (auctionSlotWord ⟨202⟩
-                                          (auctionCreateBidEnterMap σ_solm I) I)
-                                        solcAddrMask) =
-                                    ⟨0⟩ := by
-                                rw [← uniswapExtCodeSizeWord_accountMapEquiv henterAccounts]
-                                simpa [hslotEq] using hwethCode
-                              simpa [evmEnterS, evmS, initState,
-                                auctionCreateBidEnterState, auctionCreateBidEnterMap,
-                                auctionSlotWord, storageStore_accountMap,
-                                storageStore_executionEnv, Solm.EVM.storageLoad,
-                                State.lookupAccount, Account.lookupStorage] using hwethRaw
-                            have hpackedWord :
-                                packedWord =
-                                  auctionAuctionPackedWord
-                                    (auctionCreateBidEnterMap σ_solm I) I :=
-                              accountMapEquiv_storage_findD henterAccounts
-                                I.codeOwner ⟨211⟩ ⟨0⟩
-                            have hownerSolmWord :
+                            · exact auctionSafeTransferNotMadeWethCodeReverts
+                                (by evm_ov) _hperm hnotMadeEvm hwethCode hrdRefundFallback
+                          have hpackedWord :
+                              packedWord =
+                                auctionAuctionPackedWord
+                                  (auctionCreateBidEnterMap σ_solm I) I :=
+                            accountMapEquiv_storage_findD henterAccounts
+                              I.codeOwner ⟨211⟩ ⟨0⟩
+                          have hownerSolmWord :
+                              auctionPackedBidderWord
+                                  (Solm.EVM.storageLoad evmEnterS
+                                    evmEnterS.executionEnv.codeOwner ⟨211⟩) =
+                                ownerWord := by
+                            calc
+                              auctionPackedBidderWord
+                                  (Solm.EVM.storageLoad evmEnterS
+                                    evmEnterS.executionEnv.codeOwner ⟨211⟩) =
                                 auctionPackedBidderWord
+                                  (auctionAuctionPackedWord
+                                    (auctionCreateBidEnterMap σ_solm I) I) := by
+                                  simp [evmEnterS, evmS, auctionCreateBidEnterState, initState,
+                                    auctionCreateBidEnterMap, auctionAuctionPackedWord,
+                                    auctionSlotWord, storageStore_executionEnv,
+                                    storageStore_accountMap, Solm.EVM.storageLoad,
+                                    State.lookupAccount, Account.lookupStorage]
+                              _ = auctionPackedBidderWord packedWord := by rw [← hpackedWord]
+                              _ = ownerWord := rfl
+                          have hbidderSolm :
+                              AccountAddress.ofNat
+                                  (auctionPackedBidderWord
                                     (Solm.EVM.storageLoad evmEnterS
-                                      evmEnterS.executionEnv.codeOwner ⟨211⟩) =
-                                  ownerWord := by
-                              calc
-                                auctionPackedBidderWord
-                                    (Solm.EVM.storageLoad evmEnterS
-                                      evmEnterS.executionEnv.codeOwner ⟨211⟩) =
-                                  auctionPackedBidderWord
-                                    (auctionAuctionPackedWord
-                                      (auctionCreateBidEnterMap σ_solm I) I) := by
-                                    simp [evmEnterS, evmS, auctionCreateBidEnterState, initState,
-                                      auctionCreateBidEnterMap, auctionAuctionPackedWord,
-                                      auctionSlotWord, storageStore_executionEnv,
-                                      storageStore_accountMap, Solm.EVM.storageLoad,
-                                      State.lookupAccount, Account.lookupStorage]
-                                _ = auctionPackedBidderWord packedWord := by rw [← hpackedWord]
-                                _ = ownerWord := rfl
-                            have hbidderSolm :
-                                AccountAddress.ofNat
-                                    (auctionPackedBidderWord
-                                      (Solm.EVM.storageLoad evmEnterS
-                                        evmEnterS.executionEnv.codeOwner ⟨211⟩)).toNat ≠
-                                  AccountAddress.ofNat 0 := by
-                              apply auctionCreateBidPackedBidderAddress_ne_zero
-                              intro hzero
-                              exact hownerNZ (by simpa [hownerSolmWord] using hzero)
-                            have hbody :=
-                              auctionCreateBidTransitionReverts_refundLowLevelNotMadeWethNoCode
-                                evmS I hstatusSolm (by simpa [evmEnterS] using hnounSolm)
-                                (by simpa [evmEnterS] using htimeSolm)
-                                (by simpa [evmEnterS] using hreserveSolmOk)
-                                (by simpa [evmEnterS] using hmulFitSolm)
-                                (by simpa [evmEnterS] using haddFitSolm)
-                                (by simpa [evmEnterS] using hbidOkSolm)
-                                (by simpa [evmEnterS] using hbidderSolm)
-                                (by simpa [evmEnterS] using hnotMadeSolm)
-                                (by simpa [evmEnterS] using hwethCodeSolm)
-                            exact hrdRev.reEquivExecutionRevert _hcode hdispatch hdecode hbody
-                          · exact hremaining
+                                      evmEnterS.executionEnv.codeOwner ⟨211⟩)).toNat ≠
+                                AccountAddress.ofNat 0 := by
+                            apply auctionCreateBidPackedBidderAddress_ne_zero
+                            intro hzero
+                            exact hownerNZ (by simpa [hownerSolmWord] using hzero)
+                          have hbody := auctionCreateBidTransitionReverts_refundNotMade
+                            evmS I hstatusSolm (by simpa [evmEnterS] using hnounSolm)
+                            (by simpa [evmEnterS] using htimeSolm)
+                            (by simpa [evmEnterS] using hreserveSolmOk)
+                            (by simpa [evmEnterS] using hmulFitSolm)
+                            (by simpa [evmEnterS] using haddFitSolm)
+                            (by simpa [evmEnterS] using hbidOkSolm)
+                            (by simpa [evmEnterS] using hbidderSolm)
+                            (by simpa [evmEnterS] using hnotMadeSolm)
+                          exact hrdRev.reEquivExecutionRevert _hcode hdispatch hdecode hbody
                         by_cases hdepth : I.depth.val < 1024
                         · by_cases hrefundBalance :
                               amountWord ≤
@@ -1371,6 +1348,7 @@ theorem auctionCreateBidBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
                                 simpa [evmRefundS] using hrefundSolmRaw
                               have hrefundFailureFallbackCase :
                                   ∀ {mem aw k C},
+                                    AuctionWethMemory mem aw amountWord ownerWord finishWord →
                                     RD auctionBytecode I (Sat256.ofUInt256 g)
                                       (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
                                       ⟨3347⟩
@@ -1380,7 +1358,7 @@ theorem auctionCreateBidBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
                                     RuntimeCase (cA := cA) (gh := gh) (bl := bl)
                                       (σ_evm := σ_evm) (σ_solm := σ_solm) (σ₀ := σ₀)
                                       (A := A) (I := I) g := by
-                                intro mem aw k C hrdRefundFallback
+                                intro mem aw k C hm hrdRefundFallback
                                 let wethRefund :=
                                   UInt256.land (auctionSlotWord ⟨202⟩ σRefund I) solcAddrMask
                                 by_cases hwethCode :
@@ -1456,7 +1434,32 @@ theorem auctionCreateBidBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
                                       (by simpa [evmEnterS] using hbidOkSolm)
                                       hbidderSolm hrefundSolm hwethLookupZero
                                   exact hrdRev.reEquivExecutionRevert _hcode hdispatch hdecode hbody
-                                · exact hremaining
+                                · have hamountEq' := hamountEq
+                                  have hfinishEq' := hfinishSolmWord
+                                  dsimp only [evmEnterS] at hamountEq' hfinishEq'
+                                  exact auctionCreateBidWethRuntime evmS evmRefundS rfl
+                                    (by simp only [evmRefundS, evmEnterS, evmS,
+                                      auctionCreateBidEnterState, storageStore_executionEnv]; rfl)
+                                    rfl hpostRefund
+                                    (by simp only [evmRefundS, evmEnterS, evmS,
+                                      auctionCreateBidEnterState, auctionStorageStore_σ₀]; rfl)
+                                    (by simp only [evmRefundS, evmEnterS, evmS,
+                                      auctionCreateBidEnterState, auctionStorageStore_genesisBlockHeader]; rfl)
+                                    (by simp only [evmRefundS, evmEnterS, evmS,
+                                      auctionCreateBidEnterState, auctionStorageStore_blocks]; rfl)
+                                    hdepth _hcode _hperm _hsel hsz36 hbig hstatusSolm
+                                    hnounSolm htimeSolm hreserveSolmOk hmulFitSolm haddFitSolm
+                                    hbidOkSolm hbidderSolm
+                                    (by
+                                      change AccountAddress.ofNat
+                                        (auctionPackedBidderWord (Solm.EVM.storageLoad evmEnterS
+                                          evmEnterS.executionEnv.codeOwner ⟨211⟩)).toNat = _
+                                      rw [hownerSolmWord, accountAddress_ofUInt256_eq_ofNat_toNat])
+                                    hrefundSolm
+                                    (by
+                                      simpa only [hamountEq', hfinishEq', ← hfinishWord] using hm)
+                                    hwethCode
+                                    (by simpa only [hamountEq'] using ⟨k, C, hrdRefundFallback⟩)
                               by_cases houtZeroFailure : outRefund.size = 0
                               · obtain ⟨_, _, hrdRefundFallback⟩ :=
                                   auctionCreateBidRefundCallFailureEmptyReturnToFallback
@@ -1469,19 +1472,32 @@ theorem auctionCreateBidBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
                                       simpa [σEnterEvm, nounWord, amountWord, startWord,
                                         finishWord, packedWord, ownerWord, settledWord]
                                         using hrdAfterRefundRaw)
-                                exact hrefundFailureFallbackCase hrdRefundFallback
-                              · obtain ⟨_, _, _, _, hrdRefundFallback⟩ :=
-                                  auctionCreateBidRefundCallFailureNonemptyReturnToFallback
-                                    (cA := cA) (gh := gh) (bl := bl) (σ := σ_evm)
-                                    (σ₀ := σ₀) (A := A) (I := I)
-                                    (g := Sat256.ofUInt256 g) (owner := ownerWord)
-                                    (marker := ownerWord) (amount := amountWord)
+                                exact hrefundFailureFallbackCase
+                                  (by
+                                    rw [auctionCreateBidRefundLoopMem_eq_payout]
+                                    exact auctionCreateBidWethMemory_empty nounWord amountWord startWord
+                                      finishWord ownerWord settledWord ownerWord
+                                      (by rw [u256_land_comm]; exact hownerClean)) hrdRefundFallback
+                              · obtain ⟨_, _, hrdRefundFallback⟩ :=
+                                  auctionCreateBidRefundNonemptyToFallbackExact
+                                    (auctionCreateBidRefundLoopMem_mload64 nounWord amountWord startWord
+                                      finishWord ownerWord settledWord)
                                     houtRefundSize houtZeroFailure
-                                    (by
-                                      simpa [σEnterEvm, nounWord, amountWord, startWord,
-                                        finishWord, packedWord, ownerWord, settledWord]
-                                        using hrdAfterRefundRaw)
-                                exact hrefundFailureFallbackCase hrdRefundFallback
+                                    (by simpa only [amountWord, ownerWord] using hrdAfterRefundRaw)
+                                have hsize138 : outRefund.size < 2 ^ 138 :=
+                                  Theta_returnData_size_lt_2pow138_of_eq (hΘ := hThetaRefund) (hd := by simp)
+                                have hm := auctionCreateBidWethMemory_nonempty nounWord amountWord startWord
+                                  finishWord ownerWord settledWord ownerWord hsize138 houtZeroFailure
+                                  (by rw [u256_land_comm]; exact hownerClean)
+                                exact hrefundFailureFallbackCase
+                                  (by
+                                    rw [auctionRefundReturnedMem_eq_payout nounWord amountWord startWord
+                                      finishWord ownerWord settledWord houtRefundSize]
+                                    simpa only [auctionRefundReturnedAw,
+                                      auctionSettleAuctionPayoutNonemptyAwCopy,
+                                      auctionSettleAuctionPayoutNonemptyOszWord,
+                                      UInt256.toNat_ofNat_of_lt houtRefundSize] using hm)
+                                  hrdRefundFallback
                             · have hrefundEvmTrue :
                                   callViaEVM evmEnterE (AccountAddress.ofUInt256 ownerWord)
                                     (Int.ofNat amountWord.toNat) ByteArray.empty
@@ -1597,468 +1613,47 @@ theorem auctionCreateBidBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
                                     ByteArray.empty (true, evmRefundS, outRefund) true := by
                                 rw [hownerTargetEq, hamountEq]
                                 simpa [evmRefundS, evmRefundE] using hrefundSolmRaw
-                              by_cases houtZero : outRefund.size = 0
-                              · obtain ⟨_, _, rd1715Raw⟩ :=
-                                  auctionCreateBidRefundCallSuccessEmptyReturnToJoin
-                                    houtZero
-                                    (by
-                                      simpa [amountWord, ownerWord] using hrdAfterRefundRaw)
-                                have rd1715 :
-                                    ∃ k C, RD auctionBytecode I (Sat256.ofUInt256 g)
-                                      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I)
-                                      ⟨1715⟩
-                                      [ownerWord, ⟨128⟩, auctionCreateBidArgWord I, ⟨413⟩,
-                                        auctionSelWord I]
-                                      (auctionCreateBidRefundLoopMem nounWord amountWord startWord
-                                        finishWord ownerWord settledWord)
-                                      (UInt256.ofNat 12) outRefund (cARefund, σRefund) k C :=
-                                  ⟨_, _, by
-                                    simpa [nounWord, amountWord, startWord, finishWord, ownerWord,
-                                      settledWord] using rd1715Raw⟩
-                                have hbidderAccountsAfterRefund :
-                                    accountMapEquiv
-                                      (auctionCreateBidBidderMap
-                                        (auctionCreateBidAmountMap σRefund I) I)
-                                      (auctionCreateBidBidderState
-                                        (auctionCreateBidAmountState evmRefundS)).accountMap := by
-                                  simpa [evmRefundS] using
-                                    auctionCreateBid_afterRefund_bidderAccounts_state
-                                      (σEvm := σRefund) (σSolm := σRefundSolm)
-                                      (evmSolm := evmRefundS) (I := I)
-                                      hpostRefund
-                                      (by simp [evmRefundS])
-                                      (by
-                                        simp [evmRefundS, evmEnterS, evmS,
-                                          auctionCreateBidEnterState, initState,
-                                          storageStore_executionEnv])
-                                      (by
-                                        simp [evmRefundS, evmEnterS, evmS,
-                                          auctionCreateBidEnterState, initState,
-                                          storageStore_executionEnv])
-                                      (by
-                                        simp [evmRefundS, evmEnterS, evmS,
-                                          auctionCreateBidEnterState, initState,
-                                          storageStore_executionEnv])
-                                have htimeBufferWordAfterRefund :
-                                    auctionSlotWord ⟨203⟩
-                                        (auctionCreateBidBidderMap
-                                          (auctionCreateBidAmountMap σRefund I) I) I =
-                                      Solm.EVM.storageLoad
-                                        (auctionCreateBidBidderState
-                                          (auctionCreateBidAmountState evmRefundS))
-                                        (auctionCreateBidBidderState
-                                          (auctionCreateBidAmountState evmRefundS)).executionEnv.codeOwner
-                                        ⟨203⟩ := by
-                                  have h :=
-                                    accountMapEquiv_storage_findD hbidderAccountsAfterRefund
-                                      I.codeOwner ⟨203⟩ ⟨0⟩
-                                  simpa [auctionCreateBidBidderState, auctionCreateBidAmountState,
-                                    evmRefundS, evmEnterS, evmS, auctionCreateBidEnterState,
-                                    initState, auctionSlotWord, Solm.EVM.storageLoad,
-                                    State.lookupAccount, Account.lookupStorage,
-                                    storageStore_executionEnv] using h
-                                have hfinishEqAfterRefund :
-                                    finishWord =
-                                      Solm.EVM.storageLoad evmEnterS
-                                        evmEnterS.executionEnv.codeOwner ⟨210⟩ := by
-                                  calc
-                                    finishWord =
-                                        auctionAuctionEndWord
-                                          (auctionCreateBidEnterMap σ_solm I) I := hfinishWord
-                                    _ = Solm.EVM.storageLoad evmEnterS
-                                        evmEnterS.executionEnv.codeOwner ⟨210⟩ := by
-                                      rw [← hfinishSolmWord]
-                                have hleSolmAfterRefund :
-                                    (UInt256.ofNat
-                                      (auctionCreateBidBidderState
-                                        (auctionCreateBidAmountState evmRefundS)).executionEnv.header.timestamp).toNat ≤
-                                    (Solm.EVM.storageLoad evmEnterS
-                                      evmEnterS.executionEnv.codeOwner ⟨210⟩).toNat := by
-                                  apply Nat.le_of_lt
-                                  simpa [evmRefundS, auctionCreateBidBidderState,
-                                    auctionCreateBidAmountState, storageStore_executionEnv]
-                                    using htimeSolm
-                                by_cases hnotExtended :
-                                    (auctionSlotWord ⟨203⟩
-                                        (auctionCreateBidBidderMap
-                                          (auctionCreateBidAmountMap σRefund I) I) I).toNat ≤
-                                      (UInt256.sub finishWord
-                                        (UInt256.ofNat I.header.timestamp)).toNat
-                                · have hbidderAccounts :
-                                      accountMapEquiv
-                                        (auctionCreateBidBidderMap
-                                          (auctionCreateBidAmountMap σRefund I) I)
-                                        (auctionCreateBidBidderState
-                                          (auctionCreateBidAmountState evmRefundS)).accountMap := by
-                                    simpa [evmRefundS] using
-                                      auctionCreateBid_afterRefund_bidderAccounts_state
-                                        (σEvm := σRefund) (σSolm := σRefundSolm)
-                                        (evmSolm := evmRefundS) (I := I)
-                                        hpostRefund
-                                        (by simp [evmRefundS])
-                                        (by
-                                          simp [evmRefundS, evmEnterS, evmS,
-                                            auctionCreateBidEnterState, initState,
-                                            storageStore_executionEnv])
-                                        (by
-                                          simp [evmRefundS, evmEnterS, evmS,
-                                            auctionCreateBidEnterState, initState,
-                                            storageStore_executionEnv])
-                                        (by
-                                          simp [evmRefundS, evmEnterS, evmS,
-                                            auctionCreateBidEnterState, initState,
-                                            storageStore_executionEnv])
-                                  have htimeBufferWord :
-                                      auctionSlotWord ⟨203⟩
-                                          (auctionCreateBidBidderMap
-                                            (auctionCreateBidAmountMap σRefund I) I) I =
-                                        Solm.EVM.storageLoad
-                                          (auctionCreateBidBidderState
-                                            (auctionCreateBidAmountState evmRefundS))
-                                          (auctionCreateBidBidderState
-                                            (auctionCreateBidAmountState evmRefundS)).executionEnv.codeOwner
-                                          ⟨203⟩ := by
-                                    have h :=
-                                      accountMapEquiv_storage_findD hbidderAccounts I.codeOwner
-                                        ⟨203⟩ ⟨0⟩
-                                    simpa [auctionCreateBidBidderState, auctionCreateBidAmountState,
-                                      evmRefundS, evmEnterS, evmS, auctionCreateBidEnterState,
-                                      initState, auctionSlotWord, Solm.EVM.storageLoad,
-                                      State.lookupAccount, Account.lookupStorage,
-                                      storageStore_executionEnv] using h
-                                  have hfinishEq :
-                                      finishWord =
-                                        Solm.EVM.storageLoad evmEnterS
-                                          evmEnterS.executionEnv.codeOwner ⟨210⟩ := by
-                                    calc
-                                      finishWord =
-                                          auctionAuctionEndWord
-                                            (auctionCreateBidEnterMap σ_solm I) I := hfinishWord
-                                      _ = Solm.EVM.storageLoad evmEnterS
-                                          evmEnterS.executionEnv.codeOwner ⟨210⟩ := by
-                                        rw [← hfinishSolmWord]
-                                  have hleSolm :
-                                      (UInt256.ofNat
-                                        (auctionCreateBidBidderState
-                                          (auctionCreateBidAmountState evmRefundS)).executionEnv.header.timestamp).toNat ≤
-                                      (Solm.EVM.storageLoad evmEnterS
-                                        evmEnterS.executionEnv.codeOwner ⟨210⟩).toNat := by
-                                    apply Nat.le_of_lt
-                                    simpa [evmRefundS, auctionCreateBidBidderState,
-                                      auctionCreateBidAmountState, storageStore_executionEnv]
-                                      using htimeSolm
-                                  have hnotExtendedSolm :
-                                      (Solm.EVM.storageLoad
-                                          (auctionCreateBidBidderState
-                                            (auctionCreateBidAmountState evmRefundS))
-                                          (auctionCreateBidBidderState
-                                            (auctionCreateBidAmountState evmRefundS)).executionEnv.codeOwner
-                                          ⟨203⟩).toNat ≤
-                                        (UInt256.sub
-                                          (Solm.EVM.storageLoad evmEnterS
-                                            evmEnterS.executionEnv.codeOwner ⟨210⟩)
-                                          (UInt256.ofNat
-                                            (auctionCreateBidBidderState
-                                              (auctionCreateBidAmountState evmRefundS)).executionEnv.header.timestamp)).toNat := by
-                                    calc
-                                      (Solm.EVM.storageLoad
-                                          (auctionCreateBidBidderState
-                                            (auctionCreateBidAmountState evmRefundS))
-                                          (auctionCreateBidBidderState
-                                            (auctionCreateBidAmountState evmRefundS)).executionEnv.codeOwner
-                                          ⟨203⟩).toNat =
-                                        (auctionSlotWord ⟨203⟩
-                                          (auctionCreateBidBidderMap
-                                            (auctionCreateBidAmountMap σRefund I) I) I).toNat := by
-                                          rw [htimeBufferWord]
-                                      _ ≤ (UInt256.sub finishWord
-                                          (UInt256.ofNat I.header.timestamp)).toNat :=
-                                        hnotExtended
-                                      _ =
-                                        (UInt256.sub
-                                          (Solm.EVM.storageLoad evmEnterS
-                                            evmEnterS.executionEnv.codeOwner ⟨210⟩)
-                                          (UInt256.ofNat
-                                            (auctionCreateBidBidderState
-                                              (auctionCreateBidAmountState evmRefundS)).executionEnv.header.timestamp)).toNat := by
-                                          rw [hfinishEq]
-                                          simp [evmRefundS, evmEnterS, evmS,
-                                            auctionCreateBidEnterState,
-                                            auctionCreateBidBidderState,
-                                            auctionCreateBidAmountState, initState,
-                                            storageStore_executionEnv]
-                                  have hbody :=
-                                    auctionCreateBidTransitionReturns_noExtension_refundLowLevelSuccess
-                                      evmS evmRefundS I
-                                      hstatusSolm (by simpa [evmEnterS] using hnounSolm)
-                                      (by simpa [evmEnterS] using htimeSolm)
-                                      (by simpa [evmEnterS] using hreserveSolmOk)
-                                      (by simpa [evmEnterS] using hmulFitSolm)
-                                      (by simpa [evmEnterS] using haddFitSolm)
-                                      (by simpa [evmEnterS] using hbidOkSolm)
-                                      hbidderSolm
-                                      (by simpa [evmRefundS] using hrefundSolm)
-                                      (by simpa [evmEnterS] using hleSolm)
-                                      (by simpa [evmEnterS] using hnotExtendedSolm)
-                                  have hpostAccounts :
-                                      accountMapEquiv
-                                        (auctionCreateBidUnlockedMap
-                                          (auctionCreateBidBidderMap
-                                            (auctionCreateBidAmountMap σRefund I) I) I)
-                                        (auctionCreateBidUnlockedState
-                                          (auctionCreateBidBidderState
-                                            (auctionCreateBidAmountState evmRefundS))).accountMap := by
-                                    simpa [evmRefundS] using
-                                      auctionCreateBid_noExtension_afterRefund_postAccounts_state
-                                        (σEvm := σRefund) (σSolm := σRefundSolm)
-                                        (evmSolm := evmRefundS) (I := I)
-                                        hpostRefund
-                                        (by simp [evmRefundS])
-                                        (by
-                                          simp [evmRefundS, evmEnterS, evmS,
-                                            auctionCreateBidEnterState, initState,
-                                            storageStore_executionEnv])
-                                        (by
-                                          simp [evmRefundS, evmEnterS, evmS,
-                                            auctionCreateBidEnterState, initState,
-                                            storageStore_executionEnv])
-                                        (by
-                                          simp [evmRefundS, evmEnterS, evmS,
-                                            auctionCreateBidEnterState, initState,
-                                            storageStore_executionEnv])
-                                  exact (auctionCreateBidX_success_noExtension_afterRefundLoopJoin_state
-                                      (cA := cA) (cA' := cARefund) (gh := gh) (bl := bl)
-                                      (σ := σ_evm) (σCall := σRefund) (σ₀ := σ₀) (A := A)
-                                      (I := I) (g := Sat256.ofUInt256 g) (marker := ownerWord)
-                                      (noun := nounWord) (amount := amountWord) (start := startWord)
-                                      (finish := finishWord) (bidder := ownerWord)
-                                      (settled := settledWord) _hperm htime hnotExtended rd1715)
-                                      |>.reEquivExecutionGenAccountMapEquiv _hcode hdispatch
-                                        hdecode hbody
-                                        (by
-                                          simp [auctionCreateBidUnlockedState,
-                                            auctionCreateBidBidderState,
-                                            auctionCreateBidAmountState, evmRefundS, evmRefundE,
-                                            storageStore_createdAccounts])
-                                        hpostAccounts
-                                        (returnEquiv.fallthrough rfl rfl (by native_decide))
-                                · have hextendedRefund :
-                                      (UInt256.sub finishWord
-                                          (UInt256.ofNat I.header.timestamp)).toNat <
-                                        (auctionSlotWord ⟨203⟩
-                                          (auctionCreateBidBidderMap
-                                            (auctionCreateBidAmountMap σRefund I) I) I).toNat := by
-                                    omega
-                                  have hextendedSolm :
-                                      (UInt256.sub
-                                          (Solm.EVM.storageLoad evmEnterS
-                                            evmEnterS.executionEnv.codeOwner ⟨210⟩)
-                                          (UInt256.ofNat
-                                            (auctionCreateBidBidderState
-                                              (auctionCreateBidAmountState evmRefundS)).executionEnv.header.timestamp)).toNat <
-                                        (Solm.EVM.storageLoad
-                                          (auctionCreateBidBidderState
-                                            (auctionCreateBidAmountState evmRefundS))
-                                          (auctionCreateBidBidderState
-                                            (auctionCreateBidAmountState evmRefundS)).executionEnv.codeOwner
-                                          ⟨203⟩).toNat := by
-                                    calc
-                                      (UInt256.sub
-                                          (Solm.EVM.storageLoad evmEnterS
-                                            evmEnterS.executionEnv.codeOwner ⟨210⟩)
-                                          (UInt256.ofNat
-                                            (auctionCreateBidBidderState
-                                              (auctionCreateBidAmountState evmRefundS)).executionEnv.header.timestamp)).toNat =
-                                        (UInt256.sub finishWord
-                                          (UInt256.ofNat I.header.timestamp)).toNat := by
-                                          rw [← hfinishEqAfterRefund]
-                                          simp [evmRefundS, evmEnterS, evmS,
-                                            auctionCreateBidEnterState,
-                                            auctionCreateBidBidderState,
-                                            auctionCreateBidAmountState, initState,
-                                            storageStore_executionEnv]
-                                      _ <
-                                        (auctionSlotWord ⟨203⟩
-                                          (auctionCreateBidBidderMap
-                                            (auctionCreateBidAmountMap σRefund I) I) I).toNat :=
-                                          hextendedRefund
-                                      _ =
-                                        (Solm.EVM.storageLoad
-                                          (auctionCreateBidBidderState
-                                            (auctionCreateBidAmountState evmRefundS))
-                                          (auctionCreateBidBidderState
-                                            (auctionCreateBidAmountState evmRefundS)).executionEnv.codeOwner
-                                          ⟨203⟩).toNat := by
-                                          rw [htimeBufferWordAfterRefund]
-                                  by_cases haddExtFit :
-                                      (UInt256.ofNat I.header.timestamp).toNat +
-                                        (auctionSlotWord ⟨203⟩
-                                          (auctionCreateBidBidderMap
-                                            (auctionCreateBidAmountMap σRefund I) I) I).toNat <
-                                      UInt256.size
-                                  · have haddExtFitSolm :
-                                        (UInt256.ofNat
-                                          (auctionCreateBidBidderState
-                                            (auctionCreateBidAmountState evmRefundS)).executionEnv.header.timestamp).toNat +
-                                          (Solm.EVM.storageLoad
-                                            (auctionCreateBidBidderState
-                                              (auctionCreateBidAmountState evmRefundS))
-                                            (auctionCreateBidBidderState
-                                              (auctionCreateBidAmountState evmRefundS)).executionEnv.codeOwner
-                                            ⟨203⟩).toNat <
-                                        UInt256.size := by
-                                      calc
-                                        (UInt256.ofNat
-                                          (auctionCreateBidBidderState
-                                            (auctionCreateBidAmountState evmRefundS)).executionEnv.header.timestamp).toNat +
-                                          (Solm.EVM.storageLoad
-                                            (auctionCreateBidBidderState
-                                              (auctionCreateBidAmountState evmRefundS))
-                                            (auctionCreateBidBidderState
-                                              (auctionCreateBidAmountState evmRefundS)).executionEnv.codeOwner
-                                            ⟨203⟩).toNat =
-                                          (UInt256.ofNat I.header.timestamp).toNat +
-                                            (auctionSlotWord ⟨203⟩
-                                              (auctionCreateBidBidderMap
-                                                (auctionCreateBidAmountMap σRefund I) I) I).toNat := by
-                                            rw [← htimeBufferWordAfterRefund]
-                                            simp [evmRefundS, evmEnterS, evmS,
-                                              auctionCreateBidEnterState,
-                                              auctionCreateBidBidderState,
-                                              auctionCreateBidAmountState, initState,
-                                              storageStore_executionEnv]
-                                        _ < UInt256.size := haddExtFit
-                                    have hbody :=
-                                      auctionCreateBidTransitionReturns_extension_refundLowLevelSuccess
-                                        evmS evmRefundS I
-                                        hstatusSolm (by simpa [evmEnterS] using hnounSolm)
-                                        (by simpa [evmEnterS] using htimeSolm)
-                                        (by simpa [evmEnterS] using hreserveSolmOk)
-                                        (by simpa [evmEnterS] using hmulFitSolm)
-                                        (by simpa [evmEnterS] using haddFitSolm)
-                                        (by simpa [evmEnterS] using hbidOkSolm)
-                                        hbidderSolm
-                                        (by simpa [evmRefundS] using hrefundSolm)
-                                        (by simpa [evmEnterS] using hleSolmAfterRefund)
-                                        (by simpa [evmEnterS] using hextendedSolm)
-                                        (by simpa [evmEnterS] using haddExtFitSolm)
-                                    have hpostAccounts :
-                                        accountMapEquiv
-                                          (auctionCreateBidUnlockedMap
-                                            (auctionCreateBidExtendedMap
-                                              (auctionCreateBidBidderMap
-                                                (auctionCreateBidAmountMap σRefund I) I) I) I)
-                                          (auctionCreateBidUnlockedState
-                                            (auctionCreateBidExtendedState
-                                              (auctionCreateBidBidderState
-                                                (auctionCreateBidAmountState evmRefundS)))).accountMap := by
-                                      simpa [evmRefundS] using
-                                        auctionCreateBid_extension_afterRefund_postAccounts_state
-                                          (σEvm := σRefund) (σSolm := σRefundSolm)
-                                          (evmSolm := evmRefundS) (I := I)
-                                          hpostRefund
-                                          (by simp [evmRefundS])
-                                          (by
-                                            simp [evmRefundS, evmEnterS, evmS,
-                                              auctionCreateBidEnterState, initState,
-                                              storageStore_executionEnv])
-                                          (by
-                                            simp [evmRefundS, evmEnterS, evmS,
-                                              auctionCreateBidEnterState, initState,
-                                              storageStore_executionEnv])
-                                          (by
-                                            simp [evmRefundS, evmEnterS, evmS,
-                                              auctionCreateBidEnterState, initState,
-                                              storageStore_executionEnv])
-                                          (by
-                                            simp [evmRefundS, evmEnterS, evmS,
-                                              auctionCreateBidEnterState, initState,
-                                              storageStore_executionEnv])
-                                    exact (auctionCreateBidX_success_extension_afterRefundLoopJoin_state
-                                        (cA := cA) (cA' := cARefund) (gh := gh) (bl := bl)
-                                        (σ := σ_evm) (σCall := σRefund) (σ₀ := σ₀)
-                                        (A := A) (I := I) (g := Sat256.ofUInt256 g)
-                                        (marker := ownerWord) (noun := nounWord)
-                                        (amount := amountWord) (start := startWord)
-                                        (finish := finishWord) (bidder := ownerWord)
-                                        (settled := settledWord) _hperm htime hextendedRefund
-                                        haddExtFit rd1715)
-                                        |>.reEquivExecutionGenAccountMapEquiv _hcode
-                                          hdispatch hdecode hbody
-                                          (by
-                                            simp [auctionCreateBidUnlockedState,
-                                              auctionCreateBidExtendedState,
-                                              auctionCreateBidBidderState,
-                                              auctionCreateBidAmountState, evmRefundS,
-                                              evmRefundE, storageStore_createdAccounts])
-                                          hpostAccounts
-                                          (returnEquiv.fallthrough rfl rfl (by native_decide))
-                                  · have hoverRefund :
-                                        UInt256.size ≤
-                                          (UInt256.ofNat I.header.timestamp).toNat +
-                                            (auctionSlotWord ⟨203⟩
-                                              (auctionCreateBidBidderMap
-                                                (auctionCreateBidAmountMap σRefund I) I) I).toNat := by
-                                      omega
-                                    have hoverSolm :
-                                        UInt256.size ≤
-                                          (UInt256.ofNat
-                                            (auctionCreateBidBidderState
-                                              (auctionCreateBidAmountState evmRefundS)).executionEnv.header.timestamp).toNat +
-                                            (Solm.EVM.storageLoad
-                                              (auctionCreateBidBidderState
-                                                (auctionCreateBidAmountState evmRefundS))
-                                              (auctionCreateBidBidderState
-                                                (auctionCreateBidAmountState evmRefundS)).executionEnv.codeOwner
-                                              ⟨203⟩).toNat := by
-                                      calc
-                                        UInt256.size ≤
-                                            (UInt256.ofNat I.header.timestamp).toNat +
-                                              (auctionSlotWord ⟨203⟩
-                                                (auctionCreateBidBidderMap
-                                                  (auctionCreateBidAmountMap σRefund I) I) I).toNat :=
-                                          hoverRefund
-                                        _ =
-                                            (UInt256.ofNat
-                                              (auctionCreateBidBidderState
-                                                (auctionCreateBidAmountState evmRefundS)).executionEnv.header.timestamp).toNat +
-                                              (Solm.EVM.storageLoad
-                                                (auctionCreateBidBidderState
-                                                  (auctionCreateBidAmountState evmRefundS))
-                                                (auctionCreateBidBidderState
-                                                  (auctionCreateBidAmountState evmRefundS)).executionEnv.codeOwner
-                                                ⟨203⟩).toNat := by
-                                          rw [← htimeBufferWordAfterRefund]
-                                          simp [evmRefundS, evmEnterS, evmS,
-                                            auctionCreateBidEnterState,
-                                            auctionCreateBidBidderState,
-                                            auctionCreateBidAmountState, initState,
-                                            storageStore_executionEnv]
-                                    have hbody :=
-                                      auctionCreateBidTransitionReverts_extensionOverflow_refundLowLevelSuccess
-                                        evmS evmRefundS I
-                                        hstatusSolm (by simpa [evmEnterS] using hnounSolm)
-                                        (by simpa [evmEnterS] using htimeSolm)
-                                        (by simpa [evmEnterS] using hreserveSolmOk)
-                                        (by simpa [evmEnterS] using hmulFitSolm)
-                                        (by simpa [evmEnterS] using haddFitSolm)
-                                        (by simpa [evmEnterS] using hbidOkSolm)
-                                        hbidderSolm
-                                        (by simpa [evmRefundS] using hrefundSolm)
-                                        (by simpa [evmEnterS] using hleSolmAfterRefund)
-                                        (by simpa [evmEnterS] using hextendedSolm)
-                                        (by simpa [evmEnterS] using hoverSolm)
-                                    exact (auctionCreateBidX_revert_extensionOverflow_afterRefundLoopJoin_state
-                                        (cA := cA) (cA' := cARefund) (gh := gh) (bl := bl)
-                                        (σ := σ_evm) (σCall := σRefund) (σ₀ := σ₀)
-                                        (A := A) (I := I) (g := Sat256.ofUInt256 g)
-                                        (marker := ownerWord) (noun := nounWord)
-                                        (amount := amountWord) (start := startWord)
-                                        (finish := finishWord) (bidder := ownerWord)
-                                        (settled := settledWord) _hperm htime hextendedRefund
-                                        hoverRefund rd1715)
-                                        |>.reEquivExecutionRevert _hcode hdispatch hdecode hbody
-                              · exact hremaining
+                              have hreturned : ∃ mem aw k C,
+                                  auctionLoadWord mem aw ⟨224⟩ = finishWord ∧
+                                    RD auctionBytecode I (Sat256.ofUInt256 g)
+                                      (initState cA gh bl σ_evm σ₀ (Sat256.ofUInt256 g) A I) ⟨1715⟩
+                                      [ownerWord, ⟨128⟩, auctionCreateBidArgWord I, ⟨413⟩, auctionSelWord I]
+                                      mem aw outRefund (cARefund, σRefund) k C := by
+                                by_cases houtZero : outRefund.size = 0
+                                · obtain ⟨_, _, hjoin⟩ := auctionCreateBidRefundCallSuccessEmptyReturnToJoin
+                                    houtZero (by simpa only [amountWord, ownerWord] using hrdAfterRefundRaw)
+                                  exact ⟨_, _, _, _,
+                                    auctionCreateBidRefundLoopMem_mload224 nounWord amountWord startWord
+                                      finishWord ownerWord settledWord, hjoin⟩
+                                · obtain ⟨_, _, hjoin⟩ := auctionCreateBidRefundNonemptyReturnExact
+                                    (auctionCreateBidRefundLoopMem_mload64 nounWord amountWord startWord
+                                      finishWord ownerWord settledWord) houtRefundSize houtZero
+                                    (by simpa only [amountWord, ownerWord] using hrdAfterRefundRaw)
+                                  have hsize138 : outRefund.size < 2 ^ 138 :=
+                                    Theta_returnData_size_lt_2pow138_of_eq (hΘ := hThetaRefund) (hd := by simp)
+                                  have hload := auctionRefundReturnedMem_load224
+                                    (auctionCreateBidRefundLoopMem_size nounWord amountWord startWord
+                                      finishWord ownerWord settledWord)
+                                    (auctionCreateBidRefundLoopMem_read224_word nounWord amountWord startWord
+                                      finishWord ownerWord settledWord) houtZero hsize138
+                                  exact ⟨_, _, _, _, hload, hjoin⟩
+                              obtain ⟨memJoined, awJoined, kJoined, CJoined, hloadJoined, hjoin⟩ := hreturned
+                              have hsafe := auctionSafeTransferBodyReturns_lowLevelSuccess evmEnterS evmRefundS
+                                (AccountAddress.ofNat (auctionPackedBidderWord
+                                  (Solm.EVM.storageLoad evmEnterS evmEnterS.executionEnv.codeOwner ⟨211⟩)).toNat)
+                                (Solm.EVM.storageLoad evmEnterS evmEnterS.executionEnv.codeOwner ⟨208⟩) hrefundSolm
+                              exact auctionCreateBidRefundReturnedRuntime evmS evmRefundS rfl
+                                (by simp only [evmRefundS, evmEnterS, evmS, auctionCreateBidEnterState,
+                                  storageStore_executionEnv]; rfl)
+                                rfl hpostRefund _hcode _hperm _hsel hsz36 hbig
+                                hstatusSolm hnounSolm htimeSolm hreserveSolmOk hmulFitSolm haddFitSolm
+                                hbidOkSolm hbidderSolm hsafe
+                                (by
+                                  change auctionLoadWord memJoined awJoined ⟨224⟩ =
+                                    Solm.EVM.storageLoad evmEnterS evmEnterS.executionEnv.codeOwner ⟨210⟩
+                                  rw [hfinishSolmWord, ← hfinishWord]
+                                  exact hloadJoined)
+                                ⟨kJoined, CJoined, hjoin⟩
                           · obtain ⟨_, _, hrdAfterRefundRaw⟩ :=
                               RD.callValueInsufficientBalanceEmptyInOut hrdRefundCall _hperm
                                 (by native_decide)

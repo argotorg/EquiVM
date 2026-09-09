@@ -1510,7 +1510,7 @@ theorem transferBranchPayoutInsufficientBalanceCase {cA gh bl σ_evm σ_solm σ�
           settleAuctionTransition.body .reverted :=
       auctionSettleAuctionTransitionReverts_transferFromPayoutLowLevelFailureWethDepositFailure
         evmS evmTf evmPay evmDeposit
-        (by simpa [evmS, initState] using hwv) hpausedSolm
+        (by simpa only [evmS, initState] using hwv) hpausedSolm
         hstatusSolm hstartSolm hsettledSolm htimeSolmLe
         hbidderSolm hnounsCodeSolmEval
         (by simpa [evmTf, evmMark, evmEnter] using hcallSolm)
@@ -1555,7 +1555,7 @@ theorem transferBranchPayoutInsufficientBalanceCase {cA gh bl σ_evm σ_solm σ�
           settleAuctionTransition.body .reverted :=
       auctionSettleAuctionTransitionReverts_transferFromPayoutLowLevelFailureWethNoCode
         evmS evmTf evmPay
-        (by simpa [evmS, initState] using hwv) hpausedSolm
+        (by simpa only [evmS, initState] using hwv) hpausedSolm
         hstatusSolm hstartSolm hsettledSolm htimeSolmLe
         hbidderSolm hnounsCodeSolmEval
         (by simpa [evmTf, evmMark, evmEnter] using hcallSolm)

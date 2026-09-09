@@ -50,18 +50,20 @@ theorem auctionReachTimeBufferBody {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [selIs, auctionSelBytes] using hsel
   have hword : auctionSelWord I = ⟨0xec91f2a4⟩ :=
     auctionSelWord_eq_of_beq I hsz 0xec 0x91 0xf2 0xa4 ⟨0xec91f2a4⟩
-      (by decide) hsel'
+      (by native_decide) hsel'
   obtain ⟨kS, CS, hsplit⟩ := auctionReachRootSplit (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   have hroot : UInt256.gt (armSelNat auctionBytecode auctionSplitPc) (auctionSelWord I) = ⟨0⟩ := by
     rw [hword]
-    decide
-  have h29 := RD.selectorSplitNotTakenAuto hsplit auctionSplitWellFormed hroot (by simp)
+    native_decide
+  have h29 := auctionSelectorSplitNotTakenTo hsplit auctionSplitWellFormed hroot
+      auctionRootSplitNextPc (by simp)
   have hupper : UInt256.gt (armSelNat auctionBytecode auctionUpperSplitPc) (auctionSelWord I) =
       ⟨0⟩ := by
     rw [hword]
-    decide
-  have h40 := RD.selectorSplitNotTakenAuto h29 auctionUpperSplitWellFormed hupper (by simp)
+    native_decide
+  have h40 := auctionSelectorSplitNotTakenTo h29 auctionUpperSplitWellFormed hupper
+      auctionUpperSplitNextPc (by simp)
   have h40' : ∃ k C, RD auctionBytecode I g (initState cA gh bl σ σ₀ g A I)
       auctionUpperMidFirstArmPc [auctionSelWord I] solcFreePtrMem (UInt256.ofNat 3)
       ByteArray.empty (cA, σ) k C := by
@@ -76,15 +78,15 @@ theorem auctionReachTimeBufferBody {cA gh bl σ σ₀ A I} {g : Sat256}
     intro j hj
     interval_cases j
     · rw [hword]
-      decide
+      native_decide
     · rw [hword]
-      decide
+      native_decide
   have htake :
       UInt256.eq
         (armSelNat auctionBytecode (nthArmPc auctionBytecode auctionUpperMidFirstArmPc 2))
         (auctionSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    decide
+    native_decide
   exact RD.dispatchTo (code := auctionBytecode) (ee := I) (g := g)
     (s0 := initState cA gh bl σ σ₀ g A I) (selWord := auctionSelWord I)
     (mem := solcFreePtrMem) (aw := UInt256.ofNat 3) (rdata := ByteArray.empty)
@@ -103,7 +105,7 @@ theorem auctionX_timeBuffer_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   exact evm_run rd880 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨891⟩,
     jumpiNT (isZero_eq_zero_of_ne hwv),
-    push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov)]
+    push0, dup1, raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionX_timeBuffer {cA gh bl σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD auctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨880⟩
@@ -116,25 +118,25 @@ theorem auctionX_timeBuffer {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, callvalue, dup1, iszero, push2 ⟨891⟩,
     jumpiT (by rw [hwv]; decide) (by jump_dest),
     jumpdest, pop, push2 ⟨308⟩, push1 ⟨203⟩]
-  obtain ⟨_, _, rd899⟩ := rd898.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd899⟩ := rd898.sload (by native_decide) (by evm_ov)
   have rd308 := evm_run rd899 with [dup2, jump (by jump_dest)]
   have rd318 := evm_run rd308 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     swap1, dup2,
-    raw mstore 6 (solcReturnMem (auctionSlotWord ⟨203⟩ σ I)) (UInt256.ofNat 5) (by decide)
+    raw mstore 6 (solcReturnMem (auctionSlotWord ⟨203⟩ σ I)) (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, add]
   exact evm_run rd318 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost (solcReturnMem_mload64 (auctionSlotWord ⟨203⟩ σ I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1,
-    raw ret 0 (UInt256.toByteArray (auctionSlotWord ⟨203⟩ σ I)) (by decide)
+    raw ret 0 (UInt256.toByteArray (auctionSlotWord ⟨203⟩ σ I)) (by native_decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -195,7 +197,7 @@ theorem auctionTimeBufferBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
       simpa [timeBufferGetter, nonpayable] using
         bodyReverts_nonPayable (cfg := auctionConfig) (contract := auctionContract)
           (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (locals := ∅)
-          (rest := [.return [(.storage timeBufferRef)]]) (by simpa [initState] using hwv)
+          (rest := [.return [(.storage timeBufferRef)]]) (by simpa only [initState] using hwv)
     exact (auctionX_timeBuffer_callvalue_ne hreach hwv).reEquivExecutionRevert _hcode
       hdispatch hdecode hbody
 

@@ -50,33 +50,35 @@ theorem auctionReachSettleCurrentAndCreateNewAuctionBody {cA gh bl σ σ₀ A I}
     simpa [selIs, auctionSelBytes] using hsel
   have hword : auctionSelWord I = ⟨0xf25efffc⟩ :=
     auctionSelWord_eq_of_beq I hsz 0xf2 0x5e 0xff 0xfc ⟨0xf25efffc⟩
-      (by decide) hsel'
+      (by native_decide) hsel'
   obtain ⟨_, _, hsplit⟩ := auctionReachRootSplit (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   have hroot :
       UInt256.gt (armSelNat auctionBytecode auctionSplitPc) (auctionSelWord I) =
         ⟨0⟩ := by
     rw [hword]
-    decide
-  have h29 := RD.selectorSplitNotTakenAuto hsplit auctionSplitWellFormed hroot (by simp)
+    native_decide
+  have h29 := auctionSelectorSplitNotTakenTo hsplit auctionSplitWellFormed hroot
+      auctionRootSplitNextPc (by simp)
   have hupper :
       UInt256.gt (armSelNat auctionBytecode auctionUpperSplitPc) (auctionSelWord I) =
         ⟨0⟩ := by
     rw [hword]
-    decide
-  have h40 := RD.selectorSplitNotTakenAuto h29 auctionUpperSplitWellFormed hupper (by simp)
+    native_decide
+  have h40 := auctionSelectorSplitNotTakenTo h29 auctionUpperSplitWellFormed hupper
+      auctionUpperSplitNextPc (by simp)
   have heq0 : ∀ j, j < 3 →
       UInt256.eq (armSelNat auctionBytecode
         (nthArmPc auctionBytecode auctionUpperMidFirstArmPc j)) (auctionSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> decide
+    interval_cases j <;> rw [hword] <;> native_decide
   have htake :
       UInt256.eq
           (armSelNat auctionBytecode (nthArmPc auctionBytecode auctionUpperMidFirstArmPc 3))
           (auctionSelWord I) ≠
         ⟨0⟩ := by
     rw [hword]
-    decide
+    native_decide
   exact RD.dispatchTo (code := auctionBytecode) (ee := I) (g := g)
     (s0 := initState cA gh bl σ σ₀ g A I) (selWord := auctionSelWord I)
     (mem := solcFreePtrMem) (aw := UInt256.ofNat 3) (rdata := ByteArray.empty)
@@ -96,7 +98,7 @@ theorem auctionX_settleCurrentAndCreateNewAuction_callvalue_ne {cA gh bl σ σ�
   exact evm_run rd901 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨912⟩,
     jumpiNT (isZero_eq_zero_of_ne hwv),
-    push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov)]
+    push0, dup1, raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionSettleCurrentAndCreateNewAuctionX_toBody {cA gh bl σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
@@ -135,7 +137,7 @@ theorem auctionX_settleCurrentAndCreateNewAuction_revert_statusEntered
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     (sel := auctionSelWord I) hreach hwv
   have rd2578₀ := evm_run rd2573 with [jumpdest, push1 ⟨2⟩, push1 ⟨101⟩]
-  obtain ⟨_, _, rd2578₁⟩ := rd2578₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd2578₁⟩ := rd2578₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2579⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨2579⟩
       (auctionSlotWord ⟨101⟩ σ I :: ⟨2⟩ :: ⟨413⟩ :: auctionSelWord I :: [])
@@ -148,14 +150,14 @@ theorem auctionX_settleCurrentAndCreateNewAuction_revert_statusEntered
   have rd2587 := evm_run rd2580 with [
     push2 ⟨2607⟩, jumpiNT hcond,
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
   have rd2591 := rd2587.pushConst (⟨0x461bcd⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by native_decide) (by evm_ov)
   have rd2599 := evm_run rd2591 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (solcErrorStringMem0 solcFreePtrMem) (UInt256.ofNat 5)
-      (by decide) mem_cost
+      (by native_decide) mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨4⟩, add]
@@ -170,17 +172,17 @@ theorem auctionX_settleCurrentAndCreateNewAuction_revert_statusEntered
   have rd5587 := evm_run rd5575 with [
     jumpdest, push1 ⟨32⟩, dup1, dup3,
     raw mstore 3 (solcErrorStringMem1 solcFreePtrMem) (UInt256.ofNat 6)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨31⟩, swap1, dup3, add,
     raw mstore 3 (solcErrorStringMem2 ⟨31⟩ solcFreePtrMem) (UInt256.ofNat 7)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd5620 := rd5587.pushConst auctionReentrancyGuardReentrantStringWord
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
   have rd5629₀ := evm_run rd5620 with [
     push1 ⟨64⟩, dup3, add,
     raw mstore 3
       (solcErrorStringMem3 ⟨31⟩ auctionReentrancyGuardReentrantStringWord solcFreePtrMem)
-      (UInt256.ofNat 8) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨96⟩, add, swap1]
   have rd5629 := rd5629₀
   rw [show (⟨96⟩ : UInt256) + ((⟨4⟩ : UInt256) + ⟨128⟩) = ⟨228⟩ by decide]
@@ -188,7 +190,7 @@ theorem auctionX_settleCurrentAndCreateNewAuction_revert_statusEntered
   have rd994 := evm_run rd5629 with [jump (by jump_dest)]
   have rd1001₀ := evm_run rd994 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨31⟩ auctionReentrancyGuardReentrantStringWord
         solcFreePtrMem_size solcFreePtrMem_read64)
@@ -196,7 +198,7 @@ theorem auctionX_settleCurrentAndCreateNewAuction_revert_statusEntered
     dup1, swap2, sub, swap1]
   have rd1001 := rd1001₀
   rw [show UInt256.sub (⟨228⟩ : UInt256) ⟨128⟩ = ⟨100⟩ by decide] at rd1001
-  exact evm_run rd1001 with [raw rev 0 (by decide) mem_cost (by evm_ov)]
+  exact evm_run rd1001 with [raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionSettleCurrentAndCreateNewAuctionX_toStatusOpen {cA gh bl σ σ₀ A I}
     {g : Sat256}
@@ -212,7 +214,7 @@ theorem auctionSettleCurrentAndCreateNewAuctionX_toStatusOpen {cA gh bl σ σ₀
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     (sel := auctionSelWord I) hreach hwv
   have rd2578₀ := evm_run rd2573 with [jumpdest, push1 ⟨2⟩, push1 ⟨101⟩]
-  obtain ⟨_, _, rd2578₁⟩ := rd2578₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd2578₁⟩ := rd2578₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2579⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨2579⟩
       (auctionSlotWord ⟨101⟩ σ I :: ⟨2⟩ :: ⟨413⟩ :: auctionSelWord I :: [])
@@ -299,10 +301,11 @@ theorem auctionSettleAndCreateTransitionReverts_settleNotStarted (evm : EVM.Stat
       (evalExpr_pause_notPaused_true (auctionSettleAuctionEnterState evm) hpausedEnter)) ?_
   exact ExecBlock.consRevert (internalCallFunctionRevert
     (cfg := auctionConfig) (caller := { contract := auctionContract, locals := ∅ })
-    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuction") (args := [])
-    (retVar := "_s") (argVals := []) (callee := settleAuctionFn) (locals := ∅)
+    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuctionWithMemory") (args := [])
+    (retVar := "_s") (argVals := []) (callee := settleAuctionWithMemoryFn) (locals := ∅)
     (by rfl) (by rfl) (by rfl)
-    (auctionSettleAuctionBodyReverts_notStarted (auctionSettleAuctionEnterState evm) (by
+    (auctionSettleAuctionBodyReverts_notStarted
+      (payout := auctionSettleAuctionMemoryPayout) (tail := [.return [.intLit 320]]) (auctionSettleAuctionEnterState evm) (by
       have hload : Solm.EVM.storageLoad (auctionSettleAuctionEnterState evm)
           evm.executionEnv.codeOwner ⟨209⟩ =
             Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨209⟩ := by
@@ -357,10 +360,11 @@ theorem auctionSettleAndCreateTransitionReverts_settleAlreadySettled (evm : EVM.
       (evalExpr_pause_notPaused_true (auctionSettleAuctionEnterState evm) hpausedEnter)) ?_
   exact ExecBlock.consRevert (internalCallFunctionRevert
     (cfg := auctionConfig) (caller := { contract := auctionContract, locals := ∅ })
-    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuction") (args := [])
-    (retVar := "_s") (argVals := []) (callee := settleAuctionFn) (locals := ∅)
+    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuctionWithMemory") (args := [])
+    (retVar := "_s") (argVals := []) (callee := settleAuctionWithMemoryFn) (locals := ∅)
     (by rfl) (by rfl) (by rfl)
-    (auctionSettleAuctionBodyReverts_alreadySettled (auctionSettleAuctionEnterState evm)
+    (auctionSettleAuctionBodyReverts_alreadySettled
+      (payout := auctionSettleAuctionMemoryPayout) (tail := [.return [.intLit 320]]) (auctionSettleAuctionEnterState evm)
       (by
         have hload : Solm.EVM.storageLoad (auctionSettleAuctionEnterState evm)
             evm.executionEnv.codeOwner ⟨209⟩ =
@@ -429,10 +433,11 @@ theorem auctionSettleAndCreateTransitionReverts_settleTimeNotReached (evm : EVM.
       (evalExpr_pause_notPaused_true (auctionSettleAuctionEnterState evm) hpausedEnter)) ?_
   exact ExecBlock.consRevert (internalCallFunctionRevert
     (cfg := auctionConfig) (caller := { contract := auctionContract, locals := ∅ })
-    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuction") (args := [])
-    (retVar := "_s") (argVals := []) (callee := settleAuctionFn) (locals := ∅)
+    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuctionWithMemory") (args := [])
+    (retVar := "_s") (argVals := []) (callee := settleAuctionWithMemoryFn) (locals := ∅)
     (by rfl) (by rfl) (by rfl)
-    (auctionSettleAuctionBodyReverts_timeNotReached (auctionSettleAuctionEnterState evm)
+    (auctionSettleAuctionBodyReverts_timeNotReached
+      (payout := auctionSettleAuctionMemoryPayout) (tail := [.return [.intLit 320]]) (auctionSettleAuctionEnterState evm)
       (by
         have hload : Solm.EVM.storageLoad (auctionSettleAuctionEnterState evm)
             evm.executionEnv.codeOwner ⟨209⟩ =
@@ -523,10 +528,11 @@ theorem auctionSettleAndCreateTransitionReverts_settleBurnNoCode (evm : EVM.Stat
       (evalExpr_pause_notPaused_true (auctionSettleAuctionEnterState evm) hpausedEnter)) ?_
   exact ExecBlock.consRevert (internalCallFunctionRevert
     (cfg := auctionConfig) (caller := { contract := auctionContract, locals := ∅ })
-    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuction") (args := [])
-    (retVar := "_s") (argVals := []) (callee := settleAuctionFn) (locals := ∅)
+    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuctionWithMemory") (args := [])
+    (retVar := "_s") (argVals := []) (callee := settleAuctionWithMemoryFn) (locals := ∅)
     (by rfl) (by rfl) (by rfl)
-    (auctionSettleAuctionBodyReverts_burnNoCode (auctionSettleAuctionEnterState evm)
+    (auctionSettleAuctionBodyReverts_burnNoCode
+      (payout := auctionSettleAuctionMemoryPayout) (tail := [.return [.intLit 320]]) (auctionSettleAuctionEnterState evm)
       (by
         have hload : Solm.EVM.storageLoad (auctionSettleAuctionEnterState evm)
             evm.executionEnv.codeOwner ⟨209⟩ =
@@ -630,10 +636,11 @@ theorem auctionSettleAndCreateTransitionReverts_settleTransferFromNoCode
       (evalExpr_pause_notPaused_true (auctionSettleAuctionEnterState evm) hpausedEnter)) ?_
   exact ExecBlock.consRevert (internalCallFunctionRevert
     (cfg := auctionConfig) (caller := { contract := auctionContract, locals := ∅ })
-    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuction") (args := [])
-    (retVar := "_s") (argVals := []) (callee := settleAuctionFn) (locals := ∅)
+    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuctionWithMemory") (args := [])
+    (retVar := "_s") (argVals := []) (callee := settleAuctionWithMemoryFn) (locals := ∅)
     (by rfl) (by rfl) (by rfl)
-    (auctionSettleAuctionBodyReverts_transferFromNoCode (auctionSettleAuctionEnterState evm)
+    (auctionSettleAuctionBodyReverts_transferFromNoCode
+      (payout := auctionSettleAuctionMemoryPayout) (tail := [.return [.intLit 320]]) (auctionSettleAuctionEnterState evm)
       (by
         have hload :
             Solm.EVM.storageLoad (auctionSettleAuctionEnterState evm) evm.executionEnv.codeOwner
@@ -698,7 +705,7 @@ theorem auctionX_settleCurrentAndCreateNewAuction_revert_paused {cA gh bl σ σ�
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hwv hstatus hreach
   have rd2612 := evm_run rd2607 with [jumpdest, push1 ⟨2⟩, push1 ⟨101⟩]
-  obtain ⟨_, _, rd2613₀⟩ := rd2612.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd2613₀⟩ := rd2612.sstore hperm (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2613⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨2613⟩
       [⟨413⟩, auctionSelWord I]
@@ -706,7 +713,7 @@ theorem auctionX_settleCurrentAndCreateNewAuction_revert_paused {cA gh bl σ σ�
       (cA, auctionSettleAuctionEnterMap σ I) k C := by
     exact ⟨_, _, by simpa [auctionSettleAuctionEnterMap] using rd2613₀⟩
   have rd2615₀ := evm_run rd2613 with [push1 ⟨51⟩]
-  obtain ⟨_, _, rd2615₁⟩ := rd2615₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd2615₁⟩ := rd2615₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2616⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨2616⟩
       (auctionSlotWord ⟨51⟩ (auctionSettleAuctionEnterMap σ I) I :: ⟨413⟩ ::
@@ -733,22 +740,22 @@ theorem auctionX_settleCurrentAndCreateNewAuction_revert_paused {cA gh bl σ σ�
   have rd2624 := evm_run rd2619 with [push2 ⟨2682⟩, jumpiNT hcond]
   have rd2627 := evm_run rd2624 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
   have rd2631 := rd2627.pushConst (⟨0x461bcd⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by native_decide) (by evm_ov)
   have rd2650 := evm_run rd2631 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (solcErrorStringMem0 solcFreePtrMem) (UInt256.ofNat 5)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
     raw mstore 3 (solcErrorStringMem1 solcFreePtrMem) (UInt256.ofNat 6)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨16⟩, push1 ⟨36⟩, dup3, add,
     raw mstore 3 (solcErrorStringMem2 ⟨16⟩ solcFreePtrMem) (UInt256.ofNat 7)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd2667 := rd2650.pushConst auctionPausablePausedRawStringWord
-    (width := 16) (op := .PUSH16) (by decide) (by decide) (by evm_ov)
+    (width := 16) (op := .PUSH16) (by decide) (by native_decide) (by evm_ov)
   have rd2670₀ := evm_run rd2667 with [push1 ⟨130⟩, shl]
   have hword :
       UInt256.shiftLeft auctionPausablePausedRawStringWord ⟨130⟩ =
@@ -760,14 +767,14 @@ theorem auctionX_settleCurrentAndCreateNewAuction_revert_paused {cA gh bl σ σ�
     push1 ⟨68⟩, dup3, add,
     raw mstore 3
       (solcErrorStringMem3 ⟨16⟩ auctionPausablePausedStringWord solcFreePtrMem)
-      (UInt256.ofNat 8) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨100⟩, add]
   have rd2678 := rd2678₀
   rw [show (⟨100⟩ : UInt256) + ⟨128⟩ = ⟨228⟩ by decide] at rd2678
   have rd994 := evm_run rd2678 with [push2 ⟨994⟩, jump (by jump_dest)]
   have rd1001₀ := evm_run rd994 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨16⟩ auctionPausablePausedStringWord
         solcFreePtrMem_size solcFreePtrMem_read64)
@@ -775,7 +782,7 @@ theorem auctionX_settleCurrentAndCreateNewAuction_revert_paused {cA gh bl σ σ�
     dup1, swap2, sub, swap1]
   have rd1001 := rd1001₀
   rw [show UInt256.sub (⟨228⟩ : UInt256) ⟨128⟩ = ⟨100⟩ by decide] at rd1001
-  exact evm_run rd1001 with [raw rev 0 (by decide) mem_cost (by evm_ov)]
+  exact evm_run rd1001 with [raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionSettleCurrentAndCreateNewAuctionX_toInternalSettleAuction
     {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -794,7 +801,7 @@ theorem auctionSettleCurrentAndCreateNewAuctionX_toInternalSettleAuction
     (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     hwv hstatus hreach
   have rd2612 := evm_run rd2607 with [jumpdest, push1 ⟨2⟩, push1 ⟨101⟩]
-  obtain ⟨_, _, rd2613₀⟩ := rd2612.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd2613₀⟩ := rd2612.sstore hperm (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2613⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨2613⟩
       [⟨413⟩, auctionSelWord I]
@@ -802,7 +809,7 @@ theorem auctionSettleCurrentAndCreateNewAuctionX_toInternalSettleAuction
       (cA, auctionSettleAuctionEnterMap σ I) k C := by
     exact ⟨_, _, by simpa [auctionSettleAuctionEnterMap] using rd2613₀⟩
   have rd2615₀ := evm_run rd2613 with [push1 ⟨51⟩]
-  obtain ⟨_, _, rd2615₁⟩ := rd2615₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd2615₁⟩ := rd2615₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2616⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨2616⟩
       (auctionSlotWord ⟨51⟩ (auctionSettleAuctionEnterMap σ I) I :: ⟨413⟩ ::
@@ -860,13 +867,13 @@ theorem auctionInternalSettleAuction_toSnapshotCheck {cA gh bl σ σ₀ A I} {g 
   obtain ⟨_, _, rd4086⟩ := hreach
   have rd4096 := evm_run rd4086 with [
     jumpdest, push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push1 ⟨192⟩, dup2, add, dup3,
     raw mstore 0 auctionSettleAuctionSnapshotFreeMem (UInt256.ofNat 3)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   obtain ⟨_, _, rd4100₀⟩ := (evm_run rd4096 with [push1 ⟨207⟩]).sload
-    (by decide) (by evm_ov)
+    (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4100⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4100⟩
       (noun :: ⟨128⟩ :: ⟨64⟩ :: ret :: ⟨413⟩ :: auctionSelWord I :: [])
@@ -876,9 +883,9 @@ theorem auctionInternalSettleAuction_toSnapshotCheck {cA gh bl σ σ₀ A I} {g 
   have rd4102 := evm_run rd4100 with [
     dup2,
     raw mstore 6 (auctionSettleAuctionSnapshotNounMem noun) (UInt256.ofNat 5)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   obtain ⟨_, _, rd4105₀⟩ := (evm_run rd4102 with [push1 ⟨208⟩]).sload
-    (by decide) (by evm_ov)
+    (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4105⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4105⟩
       (amount :: ⟨128⟩ :: ⟨64⟩ :: ret :: ⟨413⟩ :: auctionSelWord I :: [])
@@ -888,9 +895,9 @@ theorem auctionInternalSettleAuction_toSnapshotCheck {cA gh bl σ σ₀ A I} {g 
   have rd4109 := evm_run rd4105 with [
     push1 ⟨32⟩, dup3, add,
     raw mstore 3 (auctionSettleAuctionSnapshotAmountMem noun amount) (UInt256.ofNat 6)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   obtain ⟨_, _, rd4113₀⟩ := (evm_run rd4109 with [push1 ⟨209⟩]).sload
-    (by decide) (by evm_ov)
+    (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4113⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4113⟩
       (start :: ⟨128⟩ :: ⟨64⟩ :: ret :: ⟨413⟩ :: auctionSelWord I :: [])
@@ -900,9 +907,9 @@ theorem auctionInternalSettleAuction_toSnapshotCheck {cA gh bl σ σ₀ A I} {g 
   have rd4119 := evm_run rd4113 with [
     swap2, dup2, add, dup3, swap1,
     raw mstore 3 (auctionSettleAuctionSnapshotStartMem noun amount start)
-      (UInt256.ofNat 7) (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 7) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   obtain ⟨_, _, rd4122₀⟩ := (evm_run rd4119 with [push1 ⟨210⟩]).sload
-    (by decide) (by evm_ov)
+    (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4122⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4122⟩
       (finish :: ⟨128⟩ :: start :: ret :: ⟨413⟩ :: auctionSelWord I :: [])
@@ -912,9 +919,9 @@ theorem auctionInternalSettleAuction_toSnapshotCheck {cA gh bl σ σ₀ A I} {g 
   have rd4126 := evm_run rd4122 with [
     push1 ⟨96⟩, dup3, add,
     raw mstore 3 (auctionSettleAuctionSnapshotEndMem noun amount start finish)
-      (UInt256.ofNat 8) (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   obtain ⟨_, _, rd4130₀⟩ := (evm_run rd4126 with [push1 ⟨211⟩]).sload
-    (by decide) (by evm_ov)
+    (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4130⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4130⟩
       (packed :: ⟨128⟩ :: start :: ret :: ⟨413⟩ :: auctionSelWord I :: [])
@@ -926,7 +933,7 @@ theorem auctionInternalSettleAuction_toSnapshotCheck {cA gh bl σ σ₀ A I} {g 
     push1 ⟨128⟩, dup4, add]
   have rd4145 := evm_run rd4144 with [
     raw mstore 3 (auctionSettleAuctionSnapshotBidderMem noun amount start finish bidder)
-      (UInt256.ofNat 9) (by decide) mem_cost
+      (UInt256.ofNat 9) (by native_decide) mem_cost
       (by
         dsimp [bidder, auctionPackedBidderWord]
         rw [show UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ =
@@ -938,7 +945,7 @@ theorem auctionInternalSettleAuction_toSnapshotCheck {cA gh bl σ σ₀ A I} {g 
     push1 ⟨1⟩, push1 ⟨160⟩, shl, swap1, div, push1 ⟨255⟩, and,
     iszero, iszero, push1 ⟨160⟩, dup3, add,
     raw mstore 3 (auctionSettleAuctionSnapshotMem noun amount start finish bidder settled)
-      (UInt256.ofNat 10) (by decide) mem_cost
+      (UInt256.ofNat 10) (by native_decide) mem_cost
       (by
         dsimp [settled, auctionPackedSettledEVMReturnWord, auctionPackedSettledEVMWord,
           auctionPackedSettledBaseWord]
@@ -988,24 +995,24 @@ theorem auctionInternalSettleAuction_revert_notStarted {cA gh bl σ σ₀ A I} {
     swap1, push0, sub, push2 ⟨4231⟩, jumpiNT hcond]
   have rd4171 := evm_run rd4169 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨320⟩ (UInt256.ofNat 10) (by decide)
+    raw mload 0 ⟨320⟩ (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (auctionSettleAuctionSnapshotMem_mload64 noun amount start finish bidder settled)
       (by decide) (by evm_ov)]
   have rd4179 := rd4171.pushConst (⟨0x461bcd⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by native_decide) (by evm_ov)
   have rd4194 := evm_run rd4179 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 3 (auctionAuctionHasntStartedMem0 noun amount start finish bidder settled)
-      (UInt256.ofNat 11) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 11) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
     raw mstore 3 (auctionAuctionHasntStartedMem1 noun amount start finish bidder settled)
-      (UInt256.ofNat 12) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 12) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨20⟩, push1 ⟨36⟩, dup3, add,
     raw mstore 3 (auctionAuctionHasntStartedMem2 noun amount start finish bidder settled)
-      (UInt256.ofNat 13) (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd4219 := rd4194.pushConst auctionAuctionHasntBegunRawStringWord
-    (width := 20) (op := .PUSH20) (by decide) (by decide) (by evm_ov)
+    (width := 20) (op := .PUSH20) (by decide) (by native_decide) (by evm_ov)
   have rd4219₀ := evm_run rd4219 with [push1 ⟨97⟩, shl]
   have hword :
       UInt256.shiftLeft auctionAuctionHasntBegunRawStringWord ⟨97⟩ =
@@ -1016,21 +1023,21 @@ theorem auctionInternalSettleAuction_revert_notStarted {cA gh bl σ σ₀ A I} {
   have rd4227₀ := evm_run rd4219' with [
     push1 ⟨68⟩, dup3, add,
     raw mstore 3 (auctionAuctionHasntStartedMem3 noun amount start finish bidder settled)
-      (UInt256.ofNat 14) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 14) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨100⟩, add]
   have rd4227 := rd4227₀
   rw [show (⟨100⟩ : UInt256) + ⟨320⟩ = ⟨420⟩ by decide] at rd4227
   have rd994 := evm_run rd4227 with [push2 ⟨994⟩, jump (by jump_dest)]
   have rd1001₀ := evm_run rd994 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨320⟩ (UInt256.ofNat 14) (by decide)
+    raw mload 0 ⟨320⟩ (UInt256.ofNat 14) (by native_decide)
       mem_cost
       (auctionAuctionHasntStartedMem3_mload64 noun amount start finish bidder settled)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have rd1001 := rd1001₀
   rw [show UInt256.sub (⟨420⟩ : UInt256) ⟨320⟩ = ⟨100⟩ by decide] at rd1001
-  exact evm_run rd1001 with [raw rev 0 (by decide) mem_cost (by evm_ov)]
+  exact evm_run rd1001 with [raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionInternalSettleAuction_revert_alreadySettled {cA gh bl σ σ₀ A I}
     {g : Sat256} {ret : UInt256}
@@ -1092,7 +1099,7 @@ theorem auctionInternalSettleAuction_revert_alreadySettled {cA gh bl σ σ₀ A 
     swap1, push0, sub, push2 ⟨4231⟩, jumpiT hstartCond (by jump_dest)]
   have rd4237 := evm_run rd4231 with [
     jumpdest, dup1, push1 ⟨160⟩, add,
-    raw mload 0 settled (UInt256.ofNat 10) (by decide)
+    raw mload 0 settled (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (auctionSettleAuctionSnapshotMem_mload288 noun amount start finish bidder settled)
       (by decide) (by evm_ov),
@@ -1107,42 +1114,42 @@ theorem auctionInternalSettleAuction_revert_alreadySettled {cA gh bl σ σ₀ A 
   have rd4242 := evm_run rd4237 with [push2 ⟨4313⟩, jumpiNT hsettledCond]
   have rd4244 := evm_run rd4242 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨320⟩ (UInt256.ofNat 10) (by decide)
+    raw mload 0 ⟨320⟩ (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (auctionSettleAuctionSnapshotMem_mload64 noun amount start finish bidder settled)
       (by decide) (by evm_ov)]
   have rd4252 := rd4244.pushConst (⟨0x461bcd⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by native_decide) (by evm_ov)
   have rd4267 := evm_run rd4252 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 3 (auctionAuctionHasntStartedMem0 noun amount start finish bidder settled)
-      (UInt256.ofNat 11) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 11) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add, dup2, swap1,
     raw mstore 3 (auctionAuctionHasntStartedMem1 noun amount start finish bidder settled)
-      (UInt256.ofNat 12) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 12) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨36⟩, dup3, add,
     raw mstore 3 (auctionAuctionAlreadySettledMem2 noun amount start finish bidder settled)
-      (UInt256.ofNat 13) (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd4301 := rd4267.pushConst auctionAuctionAlreadySettledStringWord
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
   have rd4309₀ := evm_run rd4301 with [
     push1 ⟨68⟩, dup3, add,
     raw mstore 3 (auctionAuctionAlreadySettledMem3 noun amount start finish bidder settled)
-      (UInt256.ofNat 14) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 14) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨100⟩, add]
   have rd4309 := rd4309₀
   rw [show (⟨100⟩ : UInt256) + ⟨320⟩ = ⟨420⟩ by decide] at rd4309
   have rd994 := evm_run rd4309 with [push2 ⟨994⟩, jump (by jump_dest)]
   have rd1001₀ := evm_run rd994 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨320⟩ (UInt256.ofNat 14) (by decide)
+    raw mload 0 ⟨320⟩ (UInt256.ofNat 14) (by native_decide)
       mem_cost
       (auctionAuctionAlreadySettledMem3_mload64 noun amount start finish bidder settled)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have rd1001 := rd1001₀
   rw [show UInt256.sub (⟨420⟩ : UInt256) ⟨320⟩ = ⟨100⟩ by decide] at rd1001
-  exact evm_run rd1001 with [raw rev 0 (by decide) mem_cost (by evm_ov)]
+  exact evm_run rd1001 with [raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionInternalSettleAuction_revert_timeNotReached {cA gh bl σ σ₀ A I}
     {g : Sat256} {ret : UInt256}
@@ -1210,7 +1217,7 @@ theorem auctionInternalSettleAuction_revert_timeNotReached {cA gh bl σ σ₀ A 
     swap1, push0, sub, push2 ⟨4231⟩, jumpiT hstartCond (by jump_dest)]
   have rd4237 := evm_run rd4231 with [
     jumpdest, dup1, push1 ⟨160⟩, add,
-    raw mload 0 settled (UInt256.ofNat 10) (by decide)
+    raw mload 0 settled (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (auctionSettleAuctionSnapshotMem_mload288 noun amount start finish bidder settled)
       (by decide) (by evm_ov),
@@ -1225,7 +1232,7 @@ theorem auctionInternalSettleAuction_revert_timeNotReached {cA gh bl σ σ₀ A 
   have rd4313 := evm_run rd4237 with [push2 ⟨4313⟩, jumpiT hsettledCond (by jump_dest)]
   have rd4321 := evm_run rd4313 with [
     jumpdest, dup1, push1 ⟨96⟩, add,
-    raw mload 0 finish (UInt256.ofNat 10) (by decide)
+    raw mload 0 finish (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (auctionSettleAuctionSnapshotMem_mload224 noun amount start finish bidder settled)
       (by decide) (by evm_ov),
@@ -1240,42 +1247,42 @@ theorem auctionInternalSettleAuction_revert_timeNotReached {cA gh bl σ σ₀ A 
   have rd4328 := evm_run rd4321 with [
     push2 ⟨4397⟩, jumpiNT htimeCond,
     push1 ⟨64⟩,
-    raw mload 0 ⟨320⟩ (UInt256.ofNat 10) (by decide)
+    raw mload 0 ⟨320⟩ (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (auctionSettleAuctionSnapshotMem_mload64 noun amount start finish bidder settled)
       (by decide) (by evm_ov)]
   have rd4335 := rd4328.pushConst (⟨0x461bcd⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by native_decide) (by evm_ov)
   have rd4351 := evm_run rd4335 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 3 (auctionAuctionHasntStartedMem0 noun amount start finish bidder settled)
-      (UInt256.ofNat 11) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 11) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
     raw mstore 3 (auctionAuctionHasntStartedMem1 noun amount start finish bidder settled)
-      (UInt256.ofNat 12) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 12) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨24⟩, push1 ⟨36⟩, dup3, add,
     raw mstore 3 (auctionAuctionHasntCompletedMem2 noun amount start finish bidder settled)
-      (UInt256.ofNat 13) (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd4385 := rd4351.pushConst auctionAuctionHasntCompletedStringWord
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
   have rd4393₀ := evm_run rd4385 with [
     push1 ⟨68⟩, dup3, add,
     raw mstore 3 (auctionAuctionHasntCompletedMem3 noun amount start finish bidder settled)
-      (UInt256.ofNat 14) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 14) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨100⟩, add]
   have rd4393 := rd4393₀
   rw [show (⟨100⟩ : UInt256) + ⟨320⟩ = ⟨420⟩ by decide] at rd4393
   have rd994 := evm_run rd4393 with [push2 ⟨994⟩, jump (by jump_dest)]
   have rd1001₀ := evm_run rd994 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨320⟩ (UInt256.ofNat 14) (by decide)
+    raw mload 0 ⟨320⟩ (UInt256.ofNat 14) (by native_decide)
       mem_cost
       (auctionAuctionHasntCompletedMem3_mload64 noun amount start finish bidder settled)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have rd1001 := rd1001₀
   rw [show UInt256.sub (⟨420⟩ : UInt256) ⟨320⟩ = ⟨100⟩ by decide] at rd1001
-  exact evm_run rd1001 with [raw rev 0 (by decide) mem_cost (by evm_ov)]
+  exact evm_run rd1001 with [raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionInternalSettleAuction_toMarkSettled {cA gh bl σ σ₀ A I} {g : Sat256}
     {ret : UInt256}
@@ -1355,7 +1362,7 @@ theorem auctionInternalSettleAuction_toMarkSettled {cA gh bl σ σ₀ A I} {g : 
     swap1, push0, sub, push2 ⟨4231⟩, jumpiT hstartCond (by jump_dest)]
   have rd4237 := evm_run rd4231 with [
     jumpdest, dup1, push1 ⟨160⟩, add,
-    raw mload 0 settled (UInt256.ofNat 10) (by decide)
+    raw mload 0 settled (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (auctionSettleAuctionSnapshotMem_mload288 noun amount start finish bidder settled)
       (by decide) (by evm_ov),
@@ -1370,7 +1377,7 @@ theorem auctionInternalSettleAuction_toMarkSettled {cA gh bl σ σ₀ A I} {g : 
   have rd4313 := evm_run rd4237 with [push2 ⟨4313⟩, jumpiT hsettledCond (by jump_dest)]
   have rd4321 := evm_run rd4313 with [
     jumpdest, dup1, push1 ⟨96⟩, add,
-    raw mload 0 finish (UInt256.ofNat 10) (by decide)
+    raw mload 0 finish (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (auctionSettleAuctionSnapshotMem_mload224 noun amount start finish bidder settled)
       (by decide) (by evm_ov),
@@ -1386,7 +1393,7 @@ theorem auctionInternalSettleAuction_toMarkSettled {cA gh bl σ σ₀ A I} {g : 
     decide
   have rd4397 := evm_run rd4321 with [push2 ⟨4397⟩, jumpiT htimeCond (by jump_dest)]
   have rd4401₀ := evm_run rd4397 with [jumpdest, push1 ⟨211⟩, dup1]
-  obtain ⟨_, _, rd4402₀⟩ := rd4401₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd4402₀⟩ := rd4401₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4402⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4402⟩
       (packed :: ⟨211⟩ :: ⟨128⟩ :: ret :: ⟨413⟩ :: auctionSelWord I :: [])
@@ -1405,7 +1412,7 @@ theorem auctionInternalSettleAuction_toMarkSettled {cA gh bl σ σ₀ A I} {g : 
     auctionSetBoolOffset20TrueWord_eq_evm packed
   have rd4416 := rd4416₀
   rw [hpost] at rd4416
-  obtain ⟨_, _, rd4417₀⟩ := rd4416.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd4417₀⟩ := rd4416.sstore hperm (by native_decide) (by evm_ov)
   exact ⟨_, _, by
     simpa [auctionSettleAuctionMarkSettledMap, packed, auctionAuctionPackedWord, auctionSlotWord,
       σ1, noun, amount, start, finish, bidder, settled] using rd4417₀⟩
@@ -1458,7 +1465,7 @@ theorem auctionInternalSettleAuction_markSettledToBurnPath {cA gh bl σ σ₀ A 
       simpa [σ1, noun, amount, start, finish, packed, bidder, settled, mem, σ2] using rd4417⟩
   have rd4434 := evm_run rd4417' with [
     push1 ⟨128⟩, dup2, add,
-    raw mload 0 bidder (UInt256.ofNat 10) (by decide)
+    raw mload 0 bidder (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (by simpa [mem] using
         auctionSettleAuctionSnapshotMem_mload256 noun amount start finish bidder settled)
@@ -1524,7 +1531,7 @@ theorem auctionInternalSettleAuction_revert_burnNoCode {cA gh bl σ σ₀ A I}
     exact ⟨_, _, by
       simpa [σ1, noun, amount, start, finish, packed, bidder, settled, mem, σ2] using rd4435⟩
   have rd4437 := evm_run rd4435' with [push1 ⟨201⟩]
-  obtain ⟨_, _, rd4438₀⟩ := rd4437.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd4438₀⟩ := rd4437.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4438⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4438⟩
       (nounsWord :: [⟨128⟩, ret, ⟨413⟩, auctionSelWord I])
@@ -1614,7 +1621,7 @@ theorem auctionInternalSettleAuction_markSettledToTransferFromPath
       simpa [σ1, noun, amount, start, finish, packed, bidder, settled, mem, σ2] using rd4417⟩
   have rd4434 := evm_run rd4417' with [
     push1 ⟨128⟩, dup2, add,
-    raw mload 0 bidder (UInt256.ofNat 10) (by decide)
+    raw mload 0 bidder (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (by simpa [mem] using
         auctionSettleAuctionSnapshotMem_mload256 noun amount start finish bidder settled)
@@ -1692,7 +1699,7 @@ theorem auctionInternalSettleAuction_revert_transferFromNoCode {cA gh bl σ σ�
     exact ⟨_, _, by
       simpa [σ1, noun, amount, start, finish, packed, bidder, settled, mem, σ2] using rd4536⟩
   have rd4539 := evm_run rd4536' with [jumpdest, push1 ⟨201⟩]
-  obtain ⟨_, _, rd4540₀⟩ := rd4539.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd4540₀⟩ := rd4539.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4540⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4540⟩
       (nounsWord :: [⟨128⟩, ret, ⟨413⟩, auctionSelWord I])

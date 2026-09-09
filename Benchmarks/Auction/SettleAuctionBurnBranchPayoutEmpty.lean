@@ -443,7 +443,7 @@ theorem auctionSettleAuctionBodyBurnPayoutFailureEmptyCase
               settleAuctionTransition.body .reverted :=
           auctionSettleAuctionTransitionReverts_burnPayoutLowLevelFailureWethDepositFailure
             evmS evmBurn evmPay evmDeposit
-            (by simpa [evmS, initState] using hwv) hpausedSolm
+            (by simpa only [evmS, initState] using hwv) hpausedSolm
             hstatusSolm hstartSolm hsettledSolm htimeSolmLe
             hbidderSolm hnounsCodeSolmEval
             (by simpa [evmBurn, evmMark, evmEnter] using hcallSolm)
@@ -931,7 +931,7 @@ theorem auctionSettleAuctionBodyBurnPayoutFailureEmptyCase
                 settleAuctionTransition.body .reverted :=
             auctionSettleAuctionTransitionReverts_burnPayoutLowLevelFailureWethTransferFailure
               evmS evmBurn evmPay evmDeposit evmTransfer
-              (by simpa [evmS, initState] using hwv) hpausedSolm
+              (by simpa only [evmS, initState] using hwv) hpausedSolm
               hstatusSolm hstartSolm hsettledSolm htimeSolmLe
               hbidderSolm hnounsCodeSolmEval
               (by simpa [evmBurn, evmMark, evmEnter] using hcallSolm)
@@ -992,7 +992,7 @@ theorem auctionSettleAuctionBodyBurnPayoutFailureEmptyCase
                   evmS ∅ settleAuctionTransition.body .reverted :=
               auctionSettleAuctionTransitionReverts_burnPayoutLowLevelFailureWethTransferDecodeFailure
                 evmS evmBurn evmPay evmDeposit evmTransfer
-                (by simpa [evmS, initState] using hwv)
+                (by simpa only [evmS, initState] using hwv)
                 hpausedSolm hstatusSolm hstartSolm hsettledSolm
                 htimeSolmLe hbidderSolm hnounsCodeSolmEval
                 (by
@@ -1044,7 +1044,7 @@ theorem auctionSettleAuctionBodyBurnPayoutFailureEmptyCase
                     evmS ∅ settleAuctionTransition.body .reverted :=
                 auctionSettleAuctionTransitionReverts_burnPayoutLowLevelFailureWethTransferDecodeFailure
                   evmS evmBurn evmPay evmDeposit evmTransfer
-                  (by simpa [evmS, initState] using hwv)
+                  (by simpa only [evmS, initState] using hwv)
                   hpausedSolm hstatusSolm hstartSolm hsettledSolm
                   htimeSolmLe hbidderSolm hnounsCodeSolmEval
                   (by
@@ -1075,7 +1075,7 @@ theorem auctionSettleAuctionBodyBurnPayoutFailureEmptyCase
                     (evmTransfer := evmTransfer)
                     (transferOk := transferOk)
                     _hcode hdispatch hdecode rfl hret
-                    (by simpa [evmS, initState] using hwv)
+                    (by simpa only [evmS, initState] using hwv)
                     hpausedSolm hstatusSolm hstartSolm hsettledSolm
                     htimeSolmLe hbidderSolm hnounsCodeSolmEval
                     (by
@@ -1272,7 +1272,7 @@ theorem auctionSettleAuctionBodyBurnPayoutFailureEmptyCase
                         .reverted :=
                     auctionSettleAuctionTransitionReverts_burnPayoutLowLevelFailureWethTransferDecodeFailure
                       evmS evmBurn evmPay evmDeposit evmTransfer
-                      (by simpa [evmS, initState] using hwv)
+                      (by simpa only [evmS, initState] using hwv)
                       hpausedSolm hstatusSolm hstartSolm
                       hsettledSolm htimeSolmLe hbidderSolm
                       hnounsCodeSolmEval
@@ -1515,7 +1515,7 @@ theorem auctionSettleAuctionBodyBurnPayoutFailureEmptyCase
             settleAuctionTransition.body .reverted :=
         auctionSettleAuctionTransitionReverts_burnPayoutLowLevelFailureWethDepositFailure
           evmS evmBurn evmPay evmDeposit
-          (by simpa [evmS, initState] using hwv) hpausedSolm
+          (by simpa only [evmS, initState] using hwv) hpausedSolm
           hstatusSolm hstartSolm hsettledSolm htimeSolmLe
           hbidderSolm hnounsCodeSolmEval
           (by simpa [evmBurn, evmMark, evmEnter] using hcallSolm)
@@ -1616,7 +1616,7 @@ theorem auctionSettleAuctionBodyBurnPayoutFailureEmptyCase
           settleAuctionTransition.body .reverted :=
       auctionSettleAuctionTransitionReverts_burnPayoutLowLevelFailureWethNoCode
         evmS evmBurn evmPay
-        (by simpa [evmS, initState] using hwv) hpausedSolm
+        (by simpa only [evmS, initState] using hwv) hpausedSolm
         hstatusSolm hstartSolm hsettledSolm htimeSolmLe
         hbidderSolm hnounsCodeSolmEval
         (by simpa [evmBurn, evmMark, evmEnter] using hcallSolm)

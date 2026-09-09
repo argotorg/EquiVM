@@ -49,12 +49,12 @@ private theorem auctionAccountMapEquiv_of_accountMapExtensionalEq {σ τ : Accou
     simp [hσ, hτ] at hστ ⊢
   exact ⟨hστ.1, hστ.2.1, hστ.2.2.1, hστ.2.2.2.1, hστ.2.2.2.2⟩
 
-private theorem auctionSettleAuctionEnterState_executionEnv (evm : EVM.State) :
+theorem auctionSettleAuctionEnterState_executionEnv (evm : EVM.State) :
     (auctionSettleAuctionEnterState evm).executionEnv = evm.executionEnv := by
   simpa [auctionSettleAuctionEnterState] using
     storageStore_executionEnv evm evm.executionEnv.codeOwner ⟨101⟩ ⟨2⟩
 
-private theorem auctionSettleAuctionEnterState_storageLoad_ne
+theorem auctionSettleAuctionEnterState_storageLoad_ne
     (evm : EVM.State) {slot : UInt256} (hne : slot ≠ ⟨101⟩) :
     Solm.EVM.storageLoad (auctionSettleAuctionEnterState evm) evm.executionEnv.codeOwner slot =
       Solm.EVM.storageLoad evm evm.executionEnv.codeOwner slot := by

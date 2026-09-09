@@ -70,31 +70,33 @@ theorem auctionReachMinBidIncrementPercentageBody {cA gh bl σ σ₀ A I} {g : S
     simpa [selIs, auctionSelBytes] using hsel
   have hword : auctionSelWord I = ⟨0xb296024d⟩ :=
     auctionSelWord_eq_of_beq I hsz 0xb2 0x96 0x02 0x4d ⟨0xb296024d⟩
-      (by decide) hsel'
+      (by native_decide) hsel'
   obtain ⟨_, _, hsplit⟩ := auctionReachRootSplit (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   have hroot : UInt256.gt (armSelNat auctionBytecode auctionSplitPc) (auctionSelWord I) = ⟨0⟩ := by
     rw [hword]
-    decide
-  have h29 := RD.selectorSplitNotTakenAuto hsplit auctionSplitWellFormed hroot (by simp)
+    native_decide
+  have h29 := auctionSelectorSplitNotTakenTo hsplit auctionSplitWellFormed hroot
+      auctionRootSplitNextPc (by simp)
   have hupper : UInt256.gt (armSelNat auctionBytecode auctionUpperSplitPc) (auctionSelWord I) ≠
       ⟨0⟩ := by
     rw [hword]
-    decide
-  have h98 := RD.selectorSplitTakenAuto h29 auctionUpperSplitWellFormed hupper
+    native_decide
+  have h98 := auctionSelectorSplitTakenTo h29 auctionUpperSplitWellFormed hupper
+      auctionUpperSplitTargetPc
     (by jump_dest) (by simp)
-  have h99 := h98.jumpdest (by decide) (by simp)
+  have h99 := h98.jumpdest (by native_decide) (by simp)
   have heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat auctionBytecode
         (nthArmPc auctionBytecode auctionUpperLowFirstArmPc j)) (auctionSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> decide
+    interval_cases j <;> rw [hword] <;> native_decide
   have htake :
       UInt256.eq
         (armSelNat auctionBytecode (nthArmPc auctionBytecode auctionUpperLowFirstArmPc 4))
         (auctionSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    decide
+    native_decide
   exact RD.dispatchTo (code := auctionBytecode) (ee := I) (g := g)
     (s0 := initState cA gh bl σ σ₀ g A I) (selWord := auctionSelWord I)
     (mem := solcFreePtrMem) (aw := UInt256.ofNat 3) (rdata := ByteArray.empty)
@@ -113,7 +115,7 @@ theorem auctionX_minBidIncrementPercentage_callvalue_ne {cA gh bl σ σ₀ A I} 
   exact evm_run rd785 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨796⟩,
     jumpiNT (isZero_eq_zero_of_ne hwv),
-    push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov)]
+    push0, dup1, raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionX_minBidIncrementPercentage {cA gh bl σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD auctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨785⟩
@@ -126,25 +128,25 @@ theorem auctionX_minBidIncrementPercentage {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, callvalue, dup1, iszero, push2 ⟨796⟩,
     jumpiT (by rw [hwv]; decide) (by jump_dest),
     jumpdest, pop, push1 ⟨205⟩]
-  obtain ⟨_, _, rd801⟩ := rd800.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd801⟩ := rd800.sload (by native_decide) (by evm_ov)
   have rd810 := evm_run rd801 with [
     push2 ⟨810⟩, swap1, push1 ⟨255⟩, and, dup2, jump (by jump_dest)]
   have rd824 := evm_run rd810 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     push1 ⟨255⟩, swap1, swap2, and, dup2,
     raw mstore 6
       (solcReturnMem
         (UInt256.land (UInt256.land ⟨255⟩ (auctionSlotWord ⟨205⟩ σ I)) ⟨255⟩))
-      (UInt256.ofNat 5) (by decide)
+      (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨318⟩, jump (by jump_dest)]
   have hret := evm_run rd824 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost (solcReturnMem_mload64
         (UInt256.land (UInt256.land ⟨255⟩ (auctionSlotWord ⟨205⟩ σ I)) ⟨255⟩))
       (by decide) (by evm_ov),
@@ -152,7 +154,7 @@ theorem auctionX_minBidIncrementPercentage {cA gh bl σ σ₀ A I} {g : Sat256}
     raw ret 0
       (UInt256.toByteArray
         (UInt256.land (UInt256.land ⟨255⟩ (auctionSlotWord ⟨205⟩ σ I)) ⟨255⟩))
-      (by decide)
+      (by native_decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -219,7 +221,7 @@ theorem auctionMinBidIncrementPercentageBodyCore {cA gh bl σ_evm σ_solm σ₀ 
       simpa [minBidIncGetter, nonpayable] using
         bodyReverts_nonPayable (cfg := auctionConfig) (contract := auctionContract)
           (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (locals := ∅)
-          (rest := [.return [(.storage minBidIncRef)]]) (by simpa [initState] using hwv)
+          (rest := [.return [(.storage minBidIncRef)]]) (by simpa only [initState] using hwv)
     exact (auctionX_minBidIncrementPercentage_callvalue_ne hreach hwv).reEquivExecutionRevert
       _hcode hdispatch hdecode hbody
 

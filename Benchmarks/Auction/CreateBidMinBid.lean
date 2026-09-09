@@ -299,7 +299,7 @@ theorem auctionCreateBidX_revert_minBidAddOverflow {cA gh bl σ σ₀ A I} {g : 
         minBidStep] using rd1547⟩
   have rd5704 := evm_run rd1547' with [
     jumpdest, dup2, push1 ⟨32⟩, add,
-    raw mload 0 amount (UInt256.ofNat 10) (by decide)
+    raw mload 0 amount (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (auctionSettleAuctionSnapshotMem_mload160 noun amount start finish bidder settled)
       (by decide) (by evm_ov),
@@ -375,7 +375,7 @@ theorem auctionCreateBidX_toMinBidCompare {cA gh bl σ σ₀ A I} {g : Sat256}
         minBidStep] using rd1547⟩
   have rd5704 := evm_run rd1547' with [
     jumpdest, dup2, push1 ⟨32⟩, add,
-    raw mload 0 amount (UInt256.ofNat 10) (by decide)
+    raw mload 0 amount (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (auctionSettleAuctionSnapshotMem_mload160 noun amount start finish bidder settled)
       (by decide) (by evm_ov),
@@ -557,47 +557,47 @@ theorem auctionCreateBidX_revert_minBidTooLow {cA gh bl σ σ₀ A I} {g : Sat25
   have rd1570 := evm_run rd1566 with [push2 ⟨1681⟩, jumpiNT hcond]
   have rd1574 := evm_run rd1570 with [
     push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨320⟩ (UInt256.ofNat 10) (by decide)
+    raw mload 0 ⟨320⟩ (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (auctionSettleAuctionSnapshotMem_mload64 noun amount start finish bidder settled)
       (by decide) (by evm_ov)]
   have rd1581 := rd1574.pushConst (⟨0x461bcd⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by native_decide) (by evm_ov)
   have rd1598 := evm_run rd1581 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 3 (auctionAuctionHasntStartedMem0 noun amount start finish bidder settled)
-      (UInt256.ofNat 11) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 11) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
     raw mstore 3 (auctionAuctionHasntStartedMem1 noun amount start finish bidder settled)
-      (UInt256.ofNat 12) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 12) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨36⟩, dup2, add, swap2, swap1, swap2,
     raw mstore 3 (auctionCreateBidMinBidAmountMem2 noun amount start finish bidder settled)
-      (UInt256.ofNat 13) (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 13) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd1635 := rd1598.pushConst auctionCreateBidMinBidAmountStringWord0
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
   have rd1636 := evm_run rd1635 with [
     push1 ⟨68⟩, dup3, add,
     raw mstore 3 (auctionCreateBidMinBidAmountMem3 noun amount start finish bidder settled)
-      (UInt256.ofNat 14) (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 14) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd1669 := rd1636.pushConst auctionCreateBidMinBidAmountStringWord1
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
   have rd1677₀ := evm_run rd1669 with [
     push1 ⟨100⟩, dup3, add,
     raw mstore 3 (auctionCreateBidMinBidAmountMem4 noun amount start finish bidder settled)
-      (UInt256.ofNat 15) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 15) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨132⟩, add]
   have rd1677 := rd1677₀
   rw [show (⟨132⟩ : UInt256) + ⟨320⟩ = ⟨452⟩ by decide] at rd1677
   have rd994 := evm_run rd1677 with [push2 ⟨994⟩, jump (by jump_dest)]
   have rd1001₀ := evm_run rd994 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨320⟩ (UInt256.ofNat 15) (by decide)
+    raw mload 0 ⟨320⟩ (UInt256.ofNat 15) (by native_decide)
       mem_cost
       (auctionCreateBidMinBidAmountMem4_mload64 noun amount start finish bidder settled)
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have rd1001 := rd1001₀
   rw [show UInt256.sub (⟨452⟩ : UInt256) ⟨320⟩ = ⟨132⟩ by decide] at rd1001
-  exact evm_run rd1001 with [raw rev 0 (by decide) mem_cost (by evm_ov)]
+  exact evm_run rd1001 with [raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 end Auction

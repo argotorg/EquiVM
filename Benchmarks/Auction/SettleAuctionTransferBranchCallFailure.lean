@@ -115,7 +115,7 @@ theorem transferBranchCallFailureCase {cA gh bl σ_evm σ_solm σ₀ A I}
       ExecTransitionBody auctionConfig auctionContract evmS ∅
         settleAuctionTransition.body .reverted :=
     auctionSettleAuctionTransitionReverts_transferFromCallFailure evmS evmTf
-      (by simpa [evmS, initState] using hwv) hpausedSolm hstatusSolm
+      (by simpa only [evmS, initState] using hwv) hpausedSolm hstatusSolm
       hstartSolm hsettledSolm htimeSolmLe hbidderSolm
       hnounsCodeSolmEval (by simpa [evmTf, evmMark, evmEnter] using hcallSolm)
   exact hrdFail.reEquivExecutionRevert _hcode hdispatch hdecode hbody

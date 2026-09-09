@@ -564,33 +564,35 @@ theorem auctionReachAuctionBody {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [selIs, auctionSelBytes] using hsel
   have hword : auctionSelWord I = ⟨0x7d9f6db5⟩ :=
     auctionSelWord_eq_of_beq I hsz 0x7d 0x9f 0x6d 0xb5 ⟨0x7d9f6db5⟩
-      (by decide) hsel'
+      (by native_decide) hsel'
   obtain ⟨_, _, hsplit⟩ := auctionReachRootSplit (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   have hroot : UInt256.gt (armSelNat auctionBytecode auctionSplitPc) (auctionSelWord I) ≠
       ⟨0⟩ := by
     rw [hword]
-    decide
-  have h157 := RD.selectorSplitTakenAuto hsplit auctionSplitWellFormed hroot
+    native_decide
+  have h157 := auctionSelectorSplitTakenTo hsplit auctionSplitWellFormed hroot
+      auctionRootSplitTargetPc
     (by jump_dest) (by simp)
-  have h158 := h157.jumpdest (by decide) (by simp)
+  have h158 := h157.jumpdest (by native_decide) (by simp)
   have hlower : UInt256.gt (armSelNat auctionBytecode auctionLowerSplitPc) (auctionSelWord I) =
       ⟨0⟩ := by
     rw [hword]
-    decide
-  have h169 := RD.selectorSplitNotTakenAuto h158 auctionLowerSplitWellFormed hlower (by simp)
+    native_decide
+  have h169 := auctionSelectorSplitNotTakenTo h158 auctionLowerSplitWellFormed hlower
+      auctionLowerSplitNextPc (by simp)
   have heq0 : ∀ j, j < 4 →
       UInt256.eq
         (armSelNat auctionBytecode (nthArmPc auctionBytecode auctionLowerMidFirstArmPc j))
         (auctionSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> decide
+    interval_cases j <;> rw [hword] <;> native_decide
   have htake :
       UInt256.eq
         (armSelNat auctionBytecode (nthArmPc auctionBytecode auctionLowerMidFirstArmPc 4))
         (auctionSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    decide
+    native_decide
   exact RD.dispatchTo (code := auctionBytecode) (ee := I) (g := g)
     (s0 := initState cA gh bl σ σ₀ g A I) (selWord := auctionSelWord I)
     (mem := solcFreePtrMem) (aw := UInt256.ofNat 3) (rdata := ByteArray.empty)
@@ -609,7 +611,7 @@ theorem auctionX_auction_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   exact evm_run rd570 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨581⟩,
     jumpiNT (isZero_eq_zero_of_ne hwv),
-    push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov)]
+    push0, dup1, raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionX_auction {cA gh bl σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD auctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨570⟩
@@ -622,15 +624,15 @@ theorem auctionX_auction {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, callvalue, dup1, iszero, push2 ⟨581⟩,
     jumpiT (by rw [hwv]; decide) (by jump_dest),
     jumpdest, pop, push1 ⟨207⟩]
-  obtain ⟨_, _, rd586⟩ := rd583.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd586⟩ := rd583.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd588⟩ := (evm_run rd586 with [push1 ⟨208⟩]).sload
-    (by decide) (by evm_ov)
+    (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd591⟩ := (evm_run rd588 with [push1 ⟨209⟩]).sload
-    (by decide) (by evm_ov)
+    (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd594⟩ := (evm_run rd591 with [push1 ⟨210⟩]).sload
-    (by decide) (by evm_ov)
+    (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd597⟩ := (evm_run rd594 with [push1 ⟨211⟩]).sload
-    (by decide) (by evm_ov)
+    (by native_decide) (by evm_ov)
   have rd629 := evm_run rd597 with [
     push2 ⟨629⟩, swap5, swap4, swap3, swap2, swap1,
     push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, dup2, and,
@@ -639,13 +641,13 @@ theorem auctionX_auction {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd637 := evm_run rd629 with [
     jumpdest, push1 ⟨64⟩,
     dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     swap7, dup8]
   have rd637' := evm_run rd637 with [
     raw mstore 6
       (auctionAuctionReturnNounMem (auctionAuctionNounWord σ I))
-      (UInt256.ofNat 5) (by decide)
+      (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (by rfl) (by decide) (by evm_ov)]
   have rd645 := evm_run rd637' with [
@@ -654,7 +656,7 @@ theorem auctionX_auction {cA gh bl σ σ₀ A I} {g : Sat256}
     raw mstore 3
       (auctionAuctionReturnAmountMem (auctionAuctionNounWord σ I)
         (auctionAuctionAmountWord σ I))
-      (UInt256.ofNat 6) (by decide)
+      (UInt256.ofNat 6) (by native_decide)
       mem_cost
       (by rfl) (by decide) (by evm_ov)]
   have rd652 := evm_run rd645' with [
@@ -663,7 +665,7 @@ theorem auctionX_auction {cA gh bl σ σ₀ A I} {g : Sat256}
     raw mstore 3
       (auctionAuctionReturnStartMem (auctionAuctionNounWord σ I)
         (auctionAuctionAmountWord σ I) (auctionAuctionStartWord σ I))
-      (UInt256.ofNat 7) (by decide)
+      (UInt256.ofNat 7) (by native_decide)
       mem_cost
       (by rfl) (by decide) (by evm_ov)]
   have rd657 := evm_run rd652' with [
@@ -673,7 +675,7 @@ theorem auctionX_auction {cA gh bl σ σ₀ A I} {g : Sat256}
       (auctionAuctionReturnEndMem (auctionAuctionNounWord σ I)
         (auctionAuctionAmountWord σ I) (auctionAuctionStartWord σ I)
         (auctionAuctionEndWord σ I))
-      (UInt256.ofNat 8) (by decide)
+      (UInt256.ofNat 8) (by native_decide)
       mem_cost
       (by rfl) (by decide) (by evm_ov)]
   have rd671 := evm_run rd657' with [
@@ -691,7 +693,7 @@ theorem auctionX_auction {cA gh bl σ σ₀ A I} {g : Sat256}
       (auctionAuctionReturnBidderMem (auctionAuctionNounWord σ I)
         (auctionAuctionAmountWord σ I) (auctionAuctionStartWord σ I)
         (auctionAuctionEndWord σ I) (auctionPackedBidderWord (auctionAuctionPackedWord σ I)))
-      (UInt256.ofNat 9) (by decide)
+      (UInt256.ofNat 9) (by native_decide)
       mem_cost
       (by
         change (UInt256.toByteArray
@@ -715,14 +717,14 @@ theorem auctionX_auction {cA gh bl σ σ₀ A I} {g : Sat256}
         (auctionAuctionAmountWord σ I) (auctionAuctionStartWord σ I)
         (auctionAuctionEndWord σ I) (auctionPackedBidderWord (auctionAuctionPackedWord σ I))
         (auctionPackedSettledEVMReturnWord (auctionAuctionPackedWord σ I)))
-      (UInt256.ofNat 10) (by decide)
+      (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (by rfl) (by decide) (by evm_ov)]
   have rd318 := evm_run rd678' with [
     push1 ⟨192⟩, add, push2 ⟨318⟩, jump (by jump_dest)]
   have hret := evm_run rd318 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 10) (by native_decide)
       mem_cost
       (auctionAuctionReturnMem_mload64 (auctionAuctionNounWord σ I)
         (auctionAuctionAmountWord σ I) (auctionAuctionStartWord σ I)
@@ -737,7 +739,7 @@ theorem auctionX_auction {cA gh bl σ σ₀ A I} {g : Sat256}
         UInt256.toByteArray (auctionAuctionEndWord σ I) ++
         UInt256.toByteArray (auctionPackedBidderWord (auctionAuctionPackedWord σ I)) ++
         UInt256.toByteArray (auctionPackedSettledEVMReturnWord (auctionAuctionPackedWord σ I)))
-      (by decide) mem_cost
+      (by native_decide) mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
           auctionAuctionSubRet192_toNat]
@@ -824,7 +826,7 @@ theorem auctionAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
             [.storage (aField "nounId"), .storage (aField "amount"),
               .storage (aField "startTime"), .storage (aField "endTime"),
               .storage (aField "bidder"), .storage (aField "settled")]])
-          (by simpa [initState] using hwv)
+          (by simpa only [initState] using hwv)
     exact (auctionX_auction_callvalue_ne hreach hwv).reEquivExecutionRevert _hcode
       hdispatch hdecode hbody
 

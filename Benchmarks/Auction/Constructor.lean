@@ -146,7 +146,7 @@ theorem auctionSolmCtorExecReturn
   · exact emptyCtorDeployment_args_length (cfg := auctionConfig) (contract := Auction.auctionContract)
       (initcode := auctionCreationBytecode) (deployedInitcode := deployedInitcode)
       (args := args) rfl rfl hdeploy
-  · exact auctionCtorBodyReturns _ _ (by simpa [initState] using hwv)
+  · exact auctionCtorBodyReturns _ _ (by simpa only [initState] using hwv)
 
 theorem auctionSolmCtorExecRevert
     {createdAccounts : Batteries.RBSet Ethereum.AccountAddress compare}
@@ -175,7 +175,7 @@ theorem auctionSolmCtorExecRevert
       (initState createdAccounts genesisBlockHeader blocks σ σ₀ (Sat256.ofUInt256 g) A I)
       (Std.HashMap.ofList (List.zip (Auction.auctionContract.ctor.params.map Param.name) args))
       [nonpayable] .reverted
-    exact bodyReverts_nonPayable (by simpa [initState] using hwv)
+    exact bodyReverts_nonPayable (by simpa only [initState] using hwv)
 
 theorem auctionConstructorCorrect :
     constructorEquivalence auctionConfig auctionCreationBytecode Auction.auctionContract auctionBytecode := by

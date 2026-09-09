@@ -281,7 +281,7 @@ theorem transferBranchPayoutFailureEmptyCase
             settleAuctionTransition.body .reverted :=
         auctionSettleAuctionTransitionReverts_transferFromPayoutLowLevelFailureWethNoCode
           evmS evmTf evmPay
-          (by simpa [evmS, initState] using hwv) hpausedSolm
+          (by simpa only [evmS, initState] using hwv) hpausedSolm
           hstatusSolm hstartSolm hsettledSolm htimeSolmLe
           hbidderSolm hnounsCodeSolmEval
           (by simpa [evmTf, evmMark, evmEnter] using hcallSolm)
@@ -509,7 +509,7 @@ theorem transferBranchPayoutFailureEmptyWethNoCodeAnyMemCase
         settleAuctionTransition.body .reverted :=
     auctionSettleAuctionTransitionReverts_transferFromPayoutLowLevelFailureWethNoCode
       evmS evmTf evmPay
-      (by simpa [evmS, initState] using hwv) hpausedSolm hstatusSolm hstartSolm
+      (by simpa only [evmS, initState] using hwv) hpausedSolm hstatusSolm hstartSolm
       hsettledSolm htimeSolmLe hbidderSolm hnounsCodeSolmEval
       (by simpa [evmTf, evmMark, evmEnter] using hcallSolm)
       hamountSolm hpaySolm hwethCodeSolm

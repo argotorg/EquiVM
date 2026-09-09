@@ -154,7 +154,7 @@ theorem transferBranchNoPayoutCase {cA gh bl σ_evm σ_solm σ₀ A I}
             { contract := auctionContract, locals := ∅ } "_s" none)
           (auctionSettleAuctionExitState evmTf) none) :=
     auctionSettleAuctionTransitionReturns_transferFromNoPayout evmS evmTf
-      (by simpa [evmS, initState] using hwv) hpausedSolm hstatusSolm
+      (by simpa only [evmS, initState] using hwv) hpausedSolm hstatusSolm
       hstartSolm hsettledSolm htimeSolmLe hbidderSolm
       hnounsCodeSolmEval
       (by simpa [evmTf, evmMark, evmEnter] using hcallSolm)

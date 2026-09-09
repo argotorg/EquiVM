@@ -197,21 +197,30 @@ theorem auctionCreateAuctionSuccessPostState_equiv {evm₁ evm₂ : EVM.State}
       exact congrArg auctionCreateAuctionClearBidderSettledWord
         (h4.storageLoad_codeOwner ⟨211⟩))
 
-theorem evalExpr_createAuction_nouns (evm : EVM.State) :
-    evalExpr? auctionConfig { contract := auctionContract, locals := ∅ } evm (.storage nounsRef) =
+theorem evalExpr_createAuction_nouns_frame (evm : EVM.State) (locals : Store)
+    (hbase : locals.get? "nouns" = none) :
+    evalExpr? auctionConfig { contract := auctionContract, locals := locals } evm (.storage nounsRef) =
       .ok (.address (AccountAddress.ofNat
         (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨201⟩)
           solcAddrMask).toNat)) := by
-  have her : evalStorageRef auctionConfig { contract := auctionContract, locals := ∅ } evm
+  have her : evalStorageRef auctionConfig { contract := auctionContract, locals := locals } evm
       nounsRef = .ok { base := "nouns", steps := [] } := by
     simp [evalStorageRef, evalStorageRefSteps, nounsRef, EvalResult.bind, pure, bind]
   have hty : storageTypeAt? auctionContract.storage
       ({ base := "nouns", steps := [] } : EvaledStorageRef) = some (.elem .address) := by
     decide
-  rw [evalExpr_storage_scalar (t := .address) (hbase := by simp)
+  rw [evalExpr_storage_scalar (t := .address) (hbase := hbase)
     (her := her) (hty := hty) (hloc := by rfl)]
   exact congrArg EvalResult.ok (by
     simpa [auctionAddrLoc] using auctionStorageLocLoad_address_offset0 evm ⟨201⟩)
+
+
+theorem evalExpr_createAuction_nouns (evm : EVM.State) :
+    evalExpr? auctionConfig { contract := auctionContract, locals := ∅ } evm (.storage nounsRef) =
+      .ok (.address (AccountAddress.ofNat
+        (UInt256.land (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨201⟩)
+          solcAddrMask).toNat)) :=
+  evalExpr_createAuction_nouns_frame evm ∅ (by simp)
 
 theorem evalExpr_createAuction_zero (evm : EVM.State) :
     evalExpr? auctionConfig { contract := auctionContract, locals := ∅ } evm (.intLit 0) =
@@ -543,22 +552,21 @@ theorem evalExpr_createAuction_now (evm : EVM.State) (locals : Store) :
   rw [now, evalExpr?]
   rfl
 
-theorem evalExpr_createAuction_endTime_expr (evm : EVM.State) (nounId : UInt256)
+theorem evalExpr_createAuction_endTime_expr_frame (evm : EVM.State) (locals : Store)
+    (hstart : locals.get? "startTime" =
+      some (.int (Int.ofNat (auctionCreateAuctionStartWord evm).toNat)))
+    (hdurationBase : locals.get? "duration" = none)
     (hadd : (auctionCreateAuctionStartWord evm).toNat +
         (auctionCreateAuctionDurationWord evm).toNat < UInt256.size) :
     evalExpr? auctionConfig
-        { contract := auctionContract, locals := auctionCreateAuctionAfterStartStore nounId evm }
+        { contract := auctionContract, locals := locals }
         evm (u256 (.binary .add (.var "startTime") (.storage durationRef))) =
       .ok (.int (Int.ofNat (auctionCreateAuctionEndWord evm).toNat)) := by
-  have hdurationBase : (auctionCreateAuctionAfterStartStore nounId evm).get? "duration" = none := by
-    rw [auctionCreateAuctionAfterStartStore, auctionCreateAuctionAfterMintStore]
-    repeat rw [store_get_ne _ _ (by decide)]
-    simp
   have haddPow : (auctionCreateAuctionStartWord evm).toNat +
       (auctionCreateAuctionDurationWord evm).toNat < 2 ^ 256 := by
     simpa [UInt256.size] using hadd
-  simp only [u256, evalExpr?, auctionCreateAuctionAfterStartStore_startTime,
-    evalExpr_createAuction_duration evm (auctionCreateAuctionAfterStartStore nounId evm)
+  simp only [u256, evalExpr?, hstart,
+    evalExpr_createAuction_duration evm (locals)
       hdurationBase,
     EvalResult.bind, bind, pure, evalBinaryOp?]
   simp [EvalResult.ofOption, uint256Int, auctionCreateAuctionEndWord,
@@ -566,6 +574,20 @@ theorem evalExpr_createAuction_endTime_expr (evm : EVM.State) (nounId : UInt256)
   constructor
   · exact add_nonneg (Int.natCast_nonneg _) (Int.natCast_nonneg _)
   · simpa using Int.ofNat_lt.mpr haddPow
+
+
+theorem evalExpr_createAuction_endTime_expr (evm : EVM.State) (nounId : UInt256)
+    (hadd : (auctionCreateAuctionStartWord evm).toNat +
+        (auctionCreateAuctionDurationWord evm).toNat < UInt256.size) :
+    evalExpr? auctionConfig
+        { contract := auctionContract, locals := auctionCreateAuctionAfterStartStore nounId evm }
+        evm (u256 (.binary .add (.var "startTime") (.storage durationRef))) =
+      .ok (.int (Int.ofNat (auctionCreateAuctionEndWord evm).toNat)) := by
+  apply evalExpr_createAuction_endTime_expr_frame evm _
+    (auctionCreateAuctionAfterStartStore_startTime nounId evm) _ hadd
+  rw [auctionCreateAuctionAfterStartStore, auctionCreateAuctionAfterMintStore]
+  repeat rw [store_get_ne _ _ (by decide)]
+  simp
 
 theorem auctionExternalABI_encode_mint :
     auctionConfig.externalABI.encode? "mint" [] = some mintSelector := by
@@ -576,6 +598,115 @@ theorem auctionExternalABI_decode_mint {out : ByteArray} {nounId : UInt256}
     auctionConfig.externalABI.decode? "mint" out =
       some [(.int (Int.ofNat nounId.toNat))] := by
   simpa [auctionConfig, auctionExternalABI, decodeReturn?] using hdec
+
+theorem auctionCreateAuctionSuccessBlock_frame (evm : EVM.State) (nounId : UInt256)
+    (locals : Store)
+    (hnoun : locals.get? "nounId" = some (.int (Int.ofNat nounId.toNat)))
+    (hauction : locals.get? "auction" = none)
+    (hduration : locals.get? "duration" = none)
+    (hadd : (auctionCreateAuctionStartWord evm).toNat +
+        (auctionCreateAuctionDurationWord evm).toNat < UInt256.size) :
+    ExecBlock auctionConfig
+      { contract := auctionContract, locals := locals } evm
+      [ .letDecl "startTime" (some uint256) now,
+        .letDecl "endTime" (some uint256)
+          (u256 (.binary .add (.var "startTime") (.storage durationRef))),
+        .assign .storage (aField "nounId") (.var "nounId"),
+        .assign .storage (aField "amount") (.intLit 0),
+        .assign .storage (aField "startTime") (.var "startTime"),
+        .assign .storage (aField "endTime") (.var "endTime"),
+        .assign .storage (aField "bidder") zeroAddr,
+        .assign .storage (aField "settled") (.boolLit false) ]
+      (.ok { contract := auctionContract, locals := ((locals.insert "startTime"
+          (.int (Int.ofNat (auctionCreateAuctionStartWord evm).toNat))).insert "endTime"
+          (.int (Int.ofNat (auctionCreateAuctionEndWord evm).toNat))) }
+        (auctionCreateAuctionSourceSuccessPostState evm nounId)) := by
+  let localsEnd := (locals.insert "startTime"
+          (.int (Int.ofNat (auctionCreateAuctionStartWord evm).toNat))).insert "endTime"
+          (.int (Int.ofNat (auctionCreateAuctionEndWord evm).toNat))
+  let s1 := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨207⟩ nounId
+  let s2 := Solm.EVM.storageStore s1 s1.executionEnv.codeOwner ⟨208⟩ ⟨0⟩
+  let s3 := Solm.EVM.storageStore s2 s2.executionEnv.codeOwner ⟨209⟩
+    (auctionCreateAuctionStartWord evm)
+  let s4 := Solm.EVM.storageStore s3 s3.executionEnv.codeOwner ⟨210⟩
+    (auctionCreateAuctionEndWord evm)
+  let s5 := Solm.EVM.storageStore s4 s4.executionEnv.codeOwner ⟨211⟩
+    (setAddressOffset0Word (Solm.EVM.storageLoad s4 s4.executionEnv.codeOwner ⟨211⟩) ⟨0⟩)
+  have hbaseAuction : localsEnd.get? "auction" = none := by
+    dsimp only [localsEnd]
+    repeat rw [store_get_ne _ _ (by decide)]
+    exact hauction
+  have hnounEnd : localsEnd.get? "nounId" = some (.int (Int.ofNat nounId.toNat)) := by
+    dsimp only [localsEnd]
+    repeat rw [store_get_ne _ _ (by decide)]
+    exact hnoun
+  have hstartEnd : localsEnd.get? "startTime" =
+      some (.int (Int.ofNat (auctionCreateAuctionStartWord evm).toNat)) := by
+    dsimp only [localsEnd]
+    rw [store_get_ne _ _ (by decide), store_get_self]
+  have hendEnd : localsEnd.get? "endTime" =
+      some (.int (Int.ofNat (auctionCreateAuctionEndWord evm).toNat)) := by
+    exact store_get_self _ _ _
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_createAuction_now evm (locals)))
+    ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.letDecl (evalExpr_createAuction_endTime_expr_frame evm _
+      (store_get_self _ _ _) (by rw [store_get_ne _ _ (by decide)]; exact hduration) hadd)) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.assign (by
+      rw [evalExpr?]
+      change EvalResult.ofOption EvalError.unboundVariable
+          (((locals.insert "startTime"
+          (.int (Int.ofNat (auctionCreateAuctionStartWord evm).toNat))).insert "endTime"
+          (.int (Int.ofNat (auctionCreateAuctionEndWord evm).toNat))).get? "nounId") =
+        .ok (.int (Int.ofNat nounId.toNat))
+      rw [show _ = _ from hnounEnd]
+      rfl)
+      (auctionCreateAuctionAssignUint256Field evm localsEnd "nounId" ⟨207⟩ nounId
+        hbaseAuction (by decide) (by rfl))) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.assign (by simp [evalExpr?, pure])
+      (auctionCreateAuctionAssignUint256Field s1 localsEnd "amount" ⟨208⟩ ⟨0⟩
+        hbaseAuction (by decide) (by rfl))) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.assign (by
+      rw [evalExpr?]
+      change EvalResult.ofOption EvalError.unboundVariable
+          (((locals.insert "startTime"
+          (.int (Int.ofNat (auctionCreateAuctionStartWord evm).toNat))).insert "endTime"
+          (.int (Int.ofNat (auctionCreateAuctionEndWord evm).toNat))).get? "startTime") =
+        .ok (.int (Int.ofNat (auctionCreateAuctionStartWord evm).toNat))
+      rw [show _ = _ from hstartEnd]
+      rfl)
+      (auctionCreateAuctionAssignUint256Field s2 localsEnd "startTime" ⟨209⟩
+        (auctionCreateAuctionStartWord evm) hbaseAuction (by decide) (by rfl))) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.assign (by
+      rw [evalExpr?]
+      change EvalResult.ofOption EvalError.unboundVariable
+          (((locals.insert "startTime"
+          (.int (Int.ofNat (auctionCreateAuctionStartWord evm).toNat))).insert "endTime"
+          (.int (Int.ofNat (auctionCreateAuctionEndWord evm).toNat))).get? "endTime") =
+        .ok (.int (Int.ofNat (auctionCreateAuctionEndWord evm).toNat))
+      rw [show _ = _ from hendEnd]
+      rfl)
+      (auctionCreateAuctionAssignUint256Field s3 localsEnd "endTime" ⟨210⟩
+        (auctionCreateAuctionEndWord evm) hbaseAuction (by decide) (by rfl))) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.assign (evalExpr_createAuction_zeroAddr s4 localsEnd)
+      (auctionCreateAuctionAssignAddressField s4 localsEnd "bidder" ⟨211⟩ ⟨0⟩
+        hbaseAuction (by decide) (by decide) (by rfl))) ?_
+  refine ExecBlock.consNormal
+    (ExecStmt.assign (by simp [evalExpr?, pure])
+      (auctionCreateAuctionAssignSettledFalse s5 localsEnd hbaseAuction)) ?_
+  simpa [auctionCreateAuctionSourceSuccessPostState, localsEnd, s1, s2, s3, s4, s5,
+    storageStore_executionEnv] using (ExecBlock.nil : ExecBlock auctionConfig
+      { contract := auctionContract, locals := localsEnd }
+      (auctionCreateAuctionSourceSuccessPostState evm nounId) []
+      (.ok { contract := auctionContract, locals := localsEnd }
+        (auctionCreateAuctionSourceSuccessPostState evm nounId)))
+
 
 theorem auctionCreateAuctionSuccessBlock (evm : EVM.State) (nounId : UInt256)
     (hadd : (auctionCreateAuctionStartWord evm).toNat +
@@ -593,69 +724,10 @@ theorem auctionCreateAuctionSuccessBlock (evm : EVM.State) (nounId : UInt256)
         .assign .storage (aField "settled") (.boolLit false) ]
       (.ok { contract := auctionContract, locals := auctionCreateAuctionAfterEndStore nounId evm }
         (auctionCreateAuctionSourceSuccessPostState evm nounId)) := by
-  let localsEnd := auctionCreateAuctionAfterEndStore nounId evm
-  let s1 := Solm.EVM.storageStore evm evm.executionEnv.codeOwner ⟨207⟩ nounId
-  let s2 := Solm.EVM.storageStore s1 s1.executionEnv.codeOwner ⟨208⟩ ⟨0⟩
-  let s3 := Solm.EVM.storageStore s2 s2.executionEnv.codeOwner ⟨209⟩
-    (auctionCreateAuctionStartWord evm)
-  let s4 := Solm.EVM.storageStore s3 s3.executionEnv.codeOwner ⟨210⟩
-    (auctionCreateAuctionEndWord evm)
-  let s5 := Solm.EVM.storageStore s4 s4.executionEnv.codeOwner ⟨211⟩
-    (setAddressOffset0Word (Solm.EVM.storageLoad s4 s4.executionEnv.codeOwner ⟨211⟩) ⟨0⟩)
-  have hbaseAuction : localsEnd.get? "auction" = none := by
-    simpa [localsEnd] using auctionCreateAuctionAfterEndStore_auction nounId evm
-  refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_createAuction_now evm (auctionCreateAuctionAfterMintStore nounId)))
-    ?_
-  refine ExecBlock.consNormal
-    (ExecStmt.letDecl (evalExpr_createAuction_endTime_expr evm nounId hadd)) ?_
-  refine ExecBlock.consNormal
-    (ExecStmt.assign (by
-      rw [evalExpr?]
-      change EvalResult.ofOption EvalError.unboundVariable
-          ((auctionCreateAuctionAfterEndStore nounId evm).get? "nounId") =
-        .ok (.int (Int.ofNat nounId.toNat))
-      rw [auctionCreateAuctionAfterEndStore_nounId]
-      rfl)
-      (auctionCreateAuctionAssignUint256Field evm localsEnd "nounId" ⟨207⟩ nounId
-        hbaseAuction (by decide) (by rfl))) ?_
-  refine ExecBlock.consNormal
-    (ExecStmt.assign (by simp [evalExpr?, pure])
-      (auctionCreateAuctionAssignUint256Field s1 localsEnd "amount" ⟨208⟩ ⟨0⟩
-        hbaseAuction (by decide) (by rfl))) ?_
-  refine ExecBlock.consNormal
-    (ExecStmt.assign (by
-      rw [evalExpr?]
-      change EvalResult.ofOption EvalError.unboundVariable
-          ((auctionCreateAuctionAfterEndStore nounId evm).get? "startTime") =
-        .ok (.int (Int.ofNat (auctionCreateAuctionStartWord evm).toNat))
-      rw [auctionCreateAuctionAfterEndStore_startTime]
-      rfl)
-      (auctionCreateAuctionAssignUint256Field s2 localsEnd "startTime" ⟨209⟩
-        (auctionCreateAuctionStartWord evm) hbaseAuction (by decide) (by rfl))) ?_
-  refine ExecBlock.consNormal
-    (ExecStmt.assign (by
-      rw [evalExpr?]
-      change EvalResult.ofOption EvalError.unboundVariable
-          ((auctionCreateAuctionAfterEndStore nounId evm).get? "endTime") =
-        .ok (.int (Int.ofNat (auctionCreateAuctionEndWord evm).toNat))
-      rw [auctionCreateAuctionAfterEndStore_endTime]
-      rfl)
-      (auctionCreateAuctionAssignUint256Field s3 localsEnd "endTime" ⟨210⟩
-        (auctionCreateAuctionEndWord evm) hbaseAuction (by decide) (by rfl))) ?_
-  refine ExecBlock.consNormal
-    (ExecStmt.assign (evalExpr_createAuction_zeroAddr s4 localsEnd)
-      (auctionCreateAuctionAssignAddressField s4 localsEnd "bidder" ⟨211⟩ ⟨0⟩
-        hbaseAuction (by decide) (by decide) (by rfl))) ?_
-  refine ExecBlock.consNormal
-    (ExecStmt.assign (by simp [evalExpr?, pure])
-      (auctionCreateAuctionAssignSettledFalse s5 localsEnd hbaseAuction)) ?_
-  simpa [auctionCreateAuctionSourceSuccessPostState, localsEnd, s1, s2, s3, s4, s5,
-    storageStore_executionEnv] using (ExecBlock.nil : ExecBlock auctionConfig
-      { contract := auctionContract, locals := localsEnd }
-      (auctionCreateAuctionSourceSuccessPostState evm nounId) []
-      (.ok { contract := auctionContract, locals := localsEnd }
-        (auctionCreateAuctionSourceSuccessPostState evm nounId)))
+  exact auctionCreateAuctionSuccessBlock_frame evm nounId _
+    (auctionCreateAuctionAfterMintStore_nounId nounId)
+    (by simp [auctionCreateAuctionAfterMintStore])
+    (by simp [auctionCreateAuctionAfterMintStore]) hadd
 
 theorem auctionCreateAuctionBodyReturns_success {evm evmCall : EVM.State} {out : ByteArray}
     {nounId : UInt256}

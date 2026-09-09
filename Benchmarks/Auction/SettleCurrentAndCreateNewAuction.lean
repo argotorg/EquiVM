@@ -1,4 +1,4 @@
-import Benchmarks.Auction.SettleCurrentAndCreateNewAuctionCallFailure
+import Benchmarks.Auction.SettleAndCreateAfterSettlement
 import Benchmarks.Auction.SettleAuctionTransferBranchHelpers
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -492,7 +492,53 @@ theorem auctionSettleCurrentAndCreateNewAuctionBodyCore {cA gh bl σ_evm σ_solm
                           hbidderSolm hnounsCodeSolmEval
                           (by simpa [evmBurn] using hcallSolm)
                       exact hrdFail.reEquivExecutionRevert _hcode hdispatch hdecode hbody
-                    · sorry
+                    · by_cases hamountZero : auctionAuctionAmountWord
+                          (auctionSettleAuctionEnterMap σ_evm I) I = ⟨0⟩
+                      · have henterMap : accountMapEquiv
+                            (auctionSettleAuctionEnterMap σ_evm I)
+                            (auctionSettleAuctionEnterState evmS).accountMap :=
+                          (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨101⟩ ⟨2⟩ _hAccounts).trans
+                            auctionSettleAuctionEnterMap_accountMap
+                        have hamountSolm : Solm.EVM.storageLoad
+                            (auctionSettleAuctionEnterState evmS)
+                            (auctionSettleAuctionEnterState evmS).executionEnv.codeOwner ⟨208⟩ = ⟨0⟩ := by
+                          have hh := accountMapEquiv_storage_findD henterMap I.codeOwner ⟨208⟩ ⟨0⟩
+                          simpa only [auctionSettleAuctionEnterState_executionEnv, evmS, initState,
+                            Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+                            auctionAuctionAmountWord, auctionSlotWord] using hh.symm.trans hamountZero
+                        have hsettle := auctionSettleAuctionWithMemoryReturns_burnNoPayout
+                          (auctionSettleAuctionEnterState evmS) evmBurn
+                          (by simpa only [auctionSettleAuctionEnterState_executionEnv,
+                            auctionSettleAuctionEnterState_storageLoad_ne evmS (slot := ⟨209⟩) (by decide)]
+                            using hstartSolm)
+                          (by simpa only [auctionSettleAuctionEnterState_executionEnv,
+                            auctionSettleAuctionEnterState_storageLoad_ne evmS (slot := ⟨211⟩) (by decide)]
+                            using hsettledSolm)
+                          (by simpa only [auctionSettleAuctionEnterState_executionEnv,
+                            auctionSettleAuctionEnterState_storageLoad_ne evmS (slot := ⟨210⟩) (by decide)]
+                            using htimeSolmLe)
+                          (by simpa only [auctionSettleAuctionEnterState_executionEnv,
+                            auctionSettleAuctionEnterState_storageLoad_ne evmS (slot := ⟨211⟩) (by decide)]
+                            using hbidderSolm)
+                          hnounsCodeSolmEval (by simpa only [evmBurn] using hcallSolm) hamountSolm
+                        obtain ⟨_, _, rdEvent⟩ := auctionSettleAuctionBurnSuccessToNoPayoutEventAt hamountZero hrdPost
+                        obtain ⟨memRet, awRet, kr, Cr, hm, rdRet⟩ := auctionSettleAndCreateEventReturn _hperm
+                          (by rw [auctionSettleAuctionBurnCallMem_size]; decide)
+                          (auctionSettleAuctionBurnCallMem_read64 ..) (by decide) (by decide) (by decide) (by decide)
+                          (by rw [auctionSettleAuctionBurnCallMem_size]; native_decide) rdEvent
+                        exact auctionSettleAndCreateFromSettleReturn _hcode _hperm hdispatch hdecode
+                          hwv hstatusSolm hpausedSolm hdepth hsettle
+                          (by simp only [evmBurn, auctionSettleAuctionMarkSettledState,
+                            auctionSettleAuctionEnterState, storageStore_executionEnv, evmS, initState])
+                          _hpostBurn
+                          (by simp only [evmBurn, auctionSettleAuctionMarkSettledState,
+                            auctionSettleAuctionEnterState, auctionStorageStore_σ₀, evmS, initState])
+                          (by simp only [evmBurn, auctionSettleAuctionMarkSettledState,
+                            auctionSettleAuctionEnterState, auctionStorageStore_genesisBlockHeader, evmS, initState])
+                          (by simp only [evmBurn, auctionSettleAuctionMarkSettledState,
+                            auctionSettleAuctionEnterState, auctionStorageStore_blocks, evmS, initState])
+                          hm (by native_decide) rdRet
+                      · sorry
                   · have hdepthEq : I.depth = 1024 := by
                       apply Fin.ext
                       have hle : I.depth.val ≤ 1024 := Nat.le_of_lt_succ I.depth.isLt
@@ -828,7 +874,53 @@ theorem auctionSettleCurrentAndCreateNewAuctionBodyCore {cA gh bl σ_evm σ_solm
                           hbidderSolm hnounsCodeSolmEval
                           (by simpa [evmTf] using hcallSolm)
                       exact hrdFail.reEquivExecutionRevert _hcode hdispatch hdecode hbody
-                    · sorry
+                    · by_cases hamountZero : auctionAuctionAmountWord
+                          (auctionSettleAuctionEnterMap σ_evm I) I = ⟨0⟩
+                      · have henterMap : accountMapEquiv
+                            (auctionSettleAuctionEnterMap σ_evm I)
+                            (auctionSettleAuctionEnterState evmS).accountMap :=
+                          (accountMapEquiv_sstoreAccountMap I.codeOwner ⟨101⟩ ⟨2⟩ _hAccounts).trans
+                            auctionSettleAuctionEnterMap_accountMap
+                        have hamountSolm : Solm.EVM.storageLoad
+                            (auctionSettleAuctionEnterState evmS)
+                            (auctionSettleAuctionEnterState evmS).executionEnv.codeOwner ⟨208⟩ = ⟨0⟩ := by
+                          have hh := accountMapEquiv_storage_findD henterMap I.codeOwner ⟨208⟩ ⟨0⟩
+                          simpa only [auctionSettleAuctionEnterState_executionEnv, evmS, initState,
+                            Solm.EVM.storageLoad, State.lookupAccount, Account.lookupStorage,
+                            auctionAuctionAmountWord, auctionSlotWord] using hh.symm.trans hamountZero
+                        have hsettle := auctionSettleAuctionWithMemoryReturns_transferFromNoPayout
+                          (auctionSettleAuctionEnterState evmS) evmTf
+                          (by simpa only [auctionSettleAuctionEnterState_executionEnv,
+                            auctionSettleAuctionEnterState_storageLoad_ne evmS (slot := ⟨209⟩) (by decide)]
+                            using hstartSolm)
+                          (by simpa only [auctionSettleAuctionEnterState_executionEnv,
+                            auctionSettleAuctionEnterState_storageLoad_ne evmS (slot := ⟨211⟩) (by decide)]
+                            using hsettledSolm)
+                          (by simpa only [auctionSettleAuctionEnterState_executionEnv,
+                            auctionSettleAuctionEnterState_storageLoad_ne evmS (slot := ⟨210⟩) (by decide)]
+                            using htimeSolmLe)
+                          (by simpa only [auctionSettleAuctionEnterState_executionEnv,
+                            auctionSettleAuctionEnterState_storageLoad_ne evmS (slot := ⟨211⟩) (by decide)]
+                            using hbidderSolm)
+                          hnounsCodeSolmEval (by simpa only [evmTf] using hcallSolm) hamountSolm
+                        obtain ⟨_, _, rdEvent⟩ := auctionSettleAuctionTransferFromSuccessToNoPayoutEventAt hamountZero hrdPost
+                        obtain ⟨memRet, awRet, kr, Cr, hm, rdRet⟩ := auctionSettleAndCreateEventReturn _hperm
+                          (by rw [auctionSettleAuctionTransferFromMem_size]; decide)
+                          (auctionSettleAuctionTransferFromMem_read64 ..) (by decide) (by decide) (by decide) (by decide)
+                          (by rw [auctionSettleAuctionTransferFromMem_size]; native_decide) rdEvent
+                        exact auctionSettleAndCreateFromSettleReturn _hcode _hperm hdispatch hdecode
+                          hwv hstatusSolm hpausedSolm hdepth hsettle
+                          (by simp only [evmTf, auctionSettleAuctionMarkSettledState,
+                            auctionSettleAuctionEnterState, storageStore_executionEnv, evmS, initState])
+                          _hpostTf
+                          (by simp only [evmTf, auctionSettleAuctionMarkSettledState,
+                            auctionSettleAuctionEnterState, auctionStorageStore_σ₀, evmS, initState])
+                          (by simp only [evmTf, auctionSettleAuctionMarkSettledState,
+                            auctionSettleAuctionEnterState, auctionStorageStore_genesisBlockHeader, evmS, initState])
+                          (by simp only [evmTf, auctionSettleAuctionMarkSettledState,
+                            auctionSettleAuctionEnterState, auctionStorageStore_blocks, evmS, initState])
+                          hm (by native_decide) rdRet
+                      · sorry
                   · have hdepthEq : I.depth = 1024 := by
                       apply Fin.ext
                       have hle : I.depth.val ≤ 1024 := Nat.le_of_lt_succ I.depth.isLt
@@ -868,7 +960,7 @@ theorem auctionSettleCurrentAndCreateNewAuctionBodyCore {cA gh bl σ_evm σ_solm
       dsimp [settleAndCreateTransition, nonpayable]
       refine ExecFuncBody.execBlockRevert ?_
       exact ExecBlock.consRevert (ExecStmt.requireFalse (evalCallvalueEq_false (by
-        simpa [initState] using hwv)))
+        simpa only [initState] using hwv)))
     exact (auctionX_settleCurrentAndCreateNewAuction_callvalue_ne hreach hwv)
       |>.reEquivExecutionRevert _hcode hdispatch hdecode hbody
 

@@ -217,7 +217,7 @@ theorem transferBranchNoCodeCase {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt25
       ExecTransitionBody auctionConfig auctionContract evmS ∅
         settleAuctionTransition.body .reverted :=
     auctionSettleAuctionTransitionReverts_transferFromNoCode evmS
-      (by simpa [evmS, initState] using hwv) hpausedSolm hstatusSolm
+      (by simpa only [evmS, initState] using hwv) hpausedSolm hstatusSolm
       hstartSolm hsettledSolm htimeSolmLe hbidderSolm hnounsNoCodeSolmEval
   exact (auctionSettleAuctionX_revert_transferFromNoCode
       (g := Sat256.ofUInt256 g) _hperm hwv hpausedZero hstatusEntered

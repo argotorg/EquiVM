@@ -150,7 +150,7 @@ theorem transferBranchPayoutSuccessCase {cA gh bl σ_evm σ_solm σ₀ A I}
             (auctionSettleAuctionExitState evmPay) none) :=
       auctionSettleAuctionTransitionReturns_transferFromPayoutLowLevelSuccess
         evmS evmTf evmPay
-        (by simpa [evmS, initState] using hwv) hpausedSolm
+        (by simpa only [evmS, initState] using hwv) hpausedSolm
         hstatusSolm hstartSolm hsettledSolm htimeSolmLe
         hbidderSolm hnounsCodeSolmEval
         (by simpa [evmTf, evmMark, evmEnter] using hcallSolm)
@@ -194,7 +194,7 @@ theorem transferBranchPayoutSuccessCase {cA gh bl σ_evm σ_solm σ₀ A I}
             (auctionSettleAuctionExitState evmPay) none) :=
       auctionSettleAuctionTransitionReturns_transferFromPayoutLowLevelSuccess
         evmS evmTf evmPay
-        (by simpa [evmS, initState] using hwv) hpausedSolm
+        (by simpa only [evmS, initState] using hwv) hpausedSolm
         hstatusSolm hstartSolm hsettledSolm htimeSolmLe
         hbidderSolm hnounsCodeSolmEval
         (by simpa [evmTf, evmMark, evmEnter] using hcallSolm)

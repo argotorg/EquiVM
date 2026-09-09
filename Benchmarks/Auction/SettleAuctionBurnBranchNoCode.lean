@@ -253,7 +253,7 @@ theorem auctionSettleAuctionBodyBurnNoCodeBranch {cA gh bl σ_evm σ_solm σ₀ 
       ExecTransitionBody auctionConfig auctionContract evmS ∅
         settleAuctionTransition.body .reverted :=
     auctionSettleAuctionTransitionReverts_burnNoCode evmS
-      (by simpa [evmS, initState] using hwv) hpausedSolm hstatusSolm
+      (by simpa only [evmS, initState] using hwv) hpausedSolm hstatusSolm
       hstartSolm hsettledSolm htimeSolmLe hbidderSolm hnounsNoCodeSolmEval
   exact (auctionSettleAuctionX_revert_burnNoCode
       (g := Sat256.ofUInt256 g) _hperm hwv hpausedZero hstatusEntered

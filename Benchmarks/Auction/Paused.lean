@@ -50,27 +50,29 @@ theorem auctionReachPausedBody {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [selIs, auctionSelBytes] using hsel
   have hword : auctionSelWord I = ⟨0x5c975abb⟩ :=
     auctionSelWord_eq_of_beq I hsz 0x5c 0x97 0x5a 0xbb ⟨0x5c975abb⟩
-      (by decide) hsel'
+      (by native_decide) hsel'
   obtain ⟨_, _, hsplit⟩ := auctionReachRootSplit (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   have hroot : UInt256.gt (armSelNat auctionBytecode auctionSplitPc) (auctionSelWord I) ≠
       ⟨0⟩ := by
     rw [hword]
-    decide
-  have h157 := RD.selectorSplitTakenAuto hsplit auctionSplitWellFormed hroot
+    native_decide
+  have h157 := auctionSelectorSplitTakenTo hsplit auctionSplitWellFormed hroot
+      auctionRootSplitTargetPc
     (by jump_dest) (by simp)
-  have h158 := h157.jumpdest (by decide) (by simp)
+  have h158 := h157.jumpdest (by native_decide) (by simp)
   have hlower : UInt256.gt (armSelNat auctionBytecode auctionLowerSplitPc) (auctionSelWord I) =
       ⟨0⟩ := by
     rw [hword]
-    decide
-  have h169 := RD.selectorSplitNotTakenAuto h158 auctionLowerSplitWellFormed hlower (by simp)
+    native_decide
+  have h169 := auctionSelectorSplitNotTakenTo h158 auctionLowerSplitWellFormed hlower
+      auctionLowerSplitNextPc (by simp)
   have htake :
       UInt256.eq
         (armSelNat auctionBytecode (nthArmPc auctionBytecode auctionLowerMidFirstArmPc 0))
         (auctionSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    decide
+    native_decide
   have hrd := h169.selectorArmTakenAuto (auctionLowerMidArmsWellFormed 0 (by omega)) htake
     (by jump_dest) (by simp)
   exact ⟨_, _, by
@@ -85,7 +87,7 @@ theorem auctionX_paused_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   exact evm_run rd466 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨477⟩,
     jumpiNT (isZero_eq_zero_of_ne hwv),
-    push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov)]
+    push0, dup1, raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionX_paused {cA gh bl σ σ₀ A I} {g : Sat256}
     (hreach : ∃ k C, RD auctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨466⟩
@@ -98,23 +100,23 @@ theorem auctionX_paused {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest, callvalue, dup1, iszero, push2 ⟨477⟩,
     jumpiT (by rw [hwv]; decide) (by jump_dest),
     jumpdest, pop, push1 ⟨51⟩]
-  obtain ⟨_, _, rd482⟩ := rd481.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd482⟩ := rd481.sload (by native_decide) (by evm_ov)
   have rd496 := evm_run rd482 with [
     push1 ⟨255⟩, and, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     swap1, iszero, iszero, dup2,
     raw mstore 6
       (solcReturnMem
         (UInt256.isZero (UInt256.isZero (UInt256.land ⟨255⟩ (auctionSlotWord ⟨51⟩ σ I)))))
-      (UInt256.ofNat 5) (by decide)
+      (UInt256.ofNat 5) (by native_decide)
       mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, add, push2 ⟨318⟩, jump (by jump_dest)]
   have hret := evm_run rd496 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost (solcReturnMem_mload64
         (UInt256.isZero (UInt256.isZero (UInt256.land ⟨255⟩ (auctionSlotWord ⟨51⟩ σ I)))))
       (by decide) (by evm_ov),
@@ -122,7 +124,7 @@ theorem auctionX_paused {cA gh bl σ σ₀ A I} {g : Sat256}
     raw ret 0
       (UInt256.toByteArray
         (UInt256.isZero (UInt256.isZero (UInt256.land ⟨255⟩ (auctionSlotWord ⟨51⟩ σ I)))))
-      (by decide)
+      (by native_decide)
       mem_cost
       (by
         rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide,
@@ -188,7 +190,7 @@ theorem auctionPausedBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
       simpa [pausedGetter, nonpayable] using
         bodyReverts_nonPayable (cfg := auctionConfig) (contract := auctionContract)
           (evm := initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) (locals := ∅)
-          (rest := [.return [(.storage pausedRef)]]) (by simpa [initState] using hwv)
+          (rest := [.return [(.storage pausedRef)]]) (by simpa only [initState] using hwv)
     exact (auctionX_paused_callvalue_ne hreach hwv).reEquivExecutionRevert _hcode
       hdispatch hdecode hbody
 

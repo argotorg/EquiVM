@@ -85,15 +85,18 @@ def errorStringRoundedAllocSize (offset length : Expr) : Expr :=
   .binary .bitAnd solcWordAlignMaskExpr
     (.binary .add (.binary .add (.binary .add offset length) (.intLit 32)) (.intLit 31))
 
-def errorStringNewFreePtr (offsetName lengthName : Ident) : Expr :=
-  .binary .add (.intLit 128)
+def errorStringNewFreePtr (offsetName lengthName : Ident)
+    (freePtr : Expr := .intLit 128) : Expr :=
+  .binary .add freePtr
     (errorStringRoundedAllocSize (.var offsetName) (.var lengthName))
 
-def errorStringAllocationWithinU64 (offsetName lengthName : Ident) : Expr :=
-  .binary .le (errorStringNewFreePtr offsetName lengthName) solcMaxU64Expr
+def errorStringAllocationWithinU64 (offsetName lengthName : Ident)
+    (freePtr : Expr := .intLit 128) : Expr :=
+  .binary .le (errorStringNewFreePtr offsetName lengthName freePtr) solcMaxU64Expr
 
-def errorStringAllocationNoWrap (offsetName lengthName : Ident) : Expr :=
-  .binary .ge (errorStringNewFreePtr offsetName lengthName) (.intLit 128)
+def errorStringAllocationNoWrap (offsetName lengthName : Ident)
+    (freePtr : Expr := .intLit 128) : Expr :=
+  .binary .ge (errorStringNewFreePtr offsetName lengthName freePtr) freePtr
 
 def initializedRef : StorageRef := { base := "_initialized" }
 def initializingRef : StorageRef := { base := "_initializing" }
@@ -161,25 +164,23 @@ def storageDecls : List StorageDecl :=
 
 /-! ## Internal helpers -/
 
+def safeTransferETHWithFallbackBody (onETHSuccess transfer : List Stmt) : List Stmt :=
+      [ .lowLevelCall (.var "to") (.var "amount") (.newBytes (.intLit 0)) "success" "_data",
+        .ite (.unary .not (.var "success"))
+          (checkedExternalCallStmts (.storage wethRef) "deposit" (.var "amount") [] "_dep" ++
+            transfer)
+          onETHSuccess ]
+
 /-- `_safeTransferETHWithFallback(to, amount)`: raw value send; on failure wrap to WETH and transfer. -/
 def safeTransferETHWithFallback : FunctionDecl :=
   { name := "_safeTransferETHWithFallback"
     params := [{ name := "to", ty := addr }, { name := "amount", ty := uint256 }]
     returnType := []
-    body :=
-      [ .lowLevelCall (.var "to") (.var "amount") (.newBytes (.intLit 0)) "success" "_data",
-        .ite (.unary .not (.var "success"))
-          (checkedExternalCallStmts (.storage wethRef) "deposit" (.var "amount") [] "_dep" ++
-          [ .externalCall (.storage wethRef) "transfer" (.intLit 0)
-              [.var "to", .var "amount"] "_xfer" ])
-          [] ] }
+    body := safeTransferETHWithFallbackBody []
+      [ .externalCall (.storage wethRef) "transfer" (.intLit 0)
+          [.var "to", .var "amount"] "_xfer" ] }
 
-/-- `_settleAuction()`: snapshot the auction, settle it, burn/transfer the noun, and pay the owner. -/
-def settleAuctionFn : FunctionDecl :=
-  { name := "_settleAuction"
-    params := []
-    returnType := []
-    body :=
+def settleAuctionBody (payout : List Stmt) : List Stmt :=
       [ .letDecl "_auction" none (.storage auctionRef),
         .require (.binary .ne (auctionMemField "startTime") (.intLit 0)),
         .require (.unary .not (auctionMemField "settled")),
@@ -191,16 +192,18 @@ def settleAuctionFn : FunctionDecl :=
           (checkedExternalCallStmts (.storage nounsRef) "transferFrom" (.intLit 0)
             [.env .this, auctionMemField "bidder", auctionMemField "nounId"] "_tf"),
         .ite (.binary .gt (auctionMemField "amount") (.intLit 0))
-          [ .internalCall "_safeTransferETHWithFallback"
-              [.storage ownerRef, auctionMemField "amount"] "_pay" ]
-          [] ] }
+          payout [] ]
 
-/-- `_createAuction()`: `try nouns.mint()`; on `Error(string)` pause, on any other revert re-revert. -/
-def createAuctionFn : FunctionDecl :=
-  { name := "_createAuction"
+/-- `_settleAuction()`: snapshot the auction, settle it, burn/transfer the noun, and pay the owner. -/
+def settleAuctionFn : FunctionDecl :=
+  { name := "_settleAuction"
     params := []
     returnType := []
-    body :=
+    body := settleAuctionBody
+      [ .internalCall "_safeTransferETHWithFallback"
+          [.storage ownerRef, auctionMemField "amount"] "_pay" ] }
+
+def createAuctionBody (freePtr : Expr) : List Stmt :=
       [ .checkedCall (.storage nounsRef) "mint" (.intLit 0) [] "nounId"
           [ .letDecl "startTime" (some uint256) now,
             .letDecl "endTime" (some uint256)
@@ -221,12 +224,63 @@ def createAuctionFn : FunctionDecl :=
                 .letDecl "_errLength" (some uint256) (errorStringLengthDecode "err" "_errOffset"),
                 .require (.binary .le (.var "_errLength") solcMaxU64Expr),
                 .require (errorStringPayloadInBounds "err" "_errOffset" "_errLength"),
-                .require (errorStringAllocationWithinU64 "_errOffset" "_errLength"),
-                .require (errorStringAllocationNoWrap "_errOffset" "_errLength"),
+                .require (errorStringAllocationWithinU64 "_errOffset" "_errLength" freePtr),
+                .require (errorStringAllocationNoWrap "_errOffset" "_errLength" freePtr),
                 .letDecl "_errString" (some .string) (.abiDecode .string (errorStringPayload "err")),
                 .require (.unary .not (.storage pausedRef)),
                 .assign .storage pausedRef (.boolLit true) ]
-              [ .require (.boolLit false) ] ] ] }
+              [ .require (.boolLit false) ] ] ]
+
+/-- `_createAuction()`: `try nouns.mint()`; on `Error(string)` pause, on any other revert re-revert. -/
+def createAuctionFn : FunctionDecl :=
+  { name := "_createAuction"
+    params := []
+    returnType := []
+    body := createAuctionBody (.intLit 128) }
+
+-- The settlement-and-creation path must carry the compiler's free-memory pointer:
+-- its auction snapshot reserves 192 bytes beyond the initial pointer of 128.
+-- The empty payout buffer reserves another word, and returned bytes can advance
+-- the pointer further. These internal results are bookkeeping only; the public
+-- entry point still takes no arguments and returns no values.
+def roundedMemoryAllocation (size : Expr) : Expr :=
+  .binary .bitAnd solcWordAlignMaskExpr (.binary .add size (.intLit 31))
+
+def payoutFreePtrAfterETH : Expr :=
+  .ite (.binary .eq (localBytesLength "_data") (.intLit 0))
+    (.intLit 352)
+    (.binary .add (.intLit 352)
+      (roundedMemoryAllocation (.binary .add (localBytesLength "_data") (.intLit 32))))
+
+def safeTransferETHWithMemory : FunctionDecl :=
+  { name := "_safeTransferETHWithMemory"
+    params := safeTransferETHWithFallback.params
+    returnType := [uint256]
+    body := safeTransferETHWithFallbackBody
+      [ .return [payoutFreePtrAfterETH] ]
+      [ .lowLevelCall (.storage wethRef) (.intLit 0)
+          (.abiEncodeCall "transfer" [.var "to", .var "amount"])
+          "_xferSuccess" "_xferData",
+        .require (.var "_xferSuccess"),
+        .letDecl "_xfer" (some boolTy) (.abiDecode boolTy (.var "_xferData")),
+        .return [.binary .add payoutFreePtrAfterETH
+          (roundedMemoryAllocation (localBytesLength "_xferData"))] ] }
+
+def settleAuctionWithMemoryFn : FunctionDecl :=
+  { name := "_settleAuctionWithMemory"
+    params := []
+    returnType := [uint256]
+    body := settleAuctionBody
+      [ .internalCall "_safeTransferETHWithMemory"
+          [.storage ownerRef, auctionMemField "amount"] "_pay",
+        .return [.var "_pay"] ] ++
+      [ .return [.intLit 320] ] }
+
+def createAuctionWithMemoryFn : FunctionDecl :=
+  { name := "_createAuctionWithMemory"
+    params := [{ name := "_freePtr", ty := uint256 }]
+    returnType := []
+    body := createAuctionBody (.var "_freePtr") }
 
 /-! ## Transitions -/
 
@@ -302,8 +356,8 @@ def settleAndCreateTransition : TransitionDecl :=
         .require (.binary .ne (.storage statusRef) entered),
         .assign .storage statusRef entered,
         .require (.unary .not (.storage pausedRef)),
-        .internalCall "_settleAuction" [] "_s",
-        .internalCall "_createAuction" [] "_c",
+        .internalCall "_settleAuctionWithMemory" [] "_s",
+        .internalCall "_createAuctionWithMemory" [.var "_s"] "_c",
         .assign .storage statusRef notEntered ] }
 
 /-- `settleAuction()` — whenPaused, nonReentrant. -/
@@ -471,7 +525,8 @@ def auctionContract : ContractDecl :=
     storage := storageDecls
     ctor := constructorDecl
     structs := [auctionStructDecl]
-    functions := [safeTransferETHWithFallback, settleAuctionFn, createAuctionFn]
+    functions := [safeTransferETHWithFallback, settleAuctionFn, createAuctionFn,
+      safeTransferETHWithMemory, settleAuctionWithMemoryFn, createAuctionWithMemoryFn]
     transitions :=
       [ initializeTransition,
         createBidTransition, settleAndCreateTransition, settleAuctionTransition,

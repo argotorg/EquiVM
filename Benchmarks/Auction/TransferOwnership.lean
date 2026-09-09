@@ -312,30 +312,32 @@ theorem auctionReachTransferOwnershipBody {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [selIs, auctionSelBytes] using hsel
   have hword : auctionSelWord I = ⟨0xf2fde38b⟩ :=
     auctionSelWord_eq_of_beq I hsz 0xf2 0xfd 0xe3 0x8b ⟨0xf2fde38b⟩
-      (by decide) hsel'
+      (by native_decide) hsel'
   obtain ⟨_, _, hsplit⟩ := auctionReachRootSplit (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   have hroot : UInt256.gt (armSelNat auctionBytecode auctionSplitPc) (auctionSelWord I) =
       ⟨0⟩ := by
     rw [hword]
-    decide
-  have h29 := RD.selectorSplitNotTakenAuto hsplit auctionSplitWellFormed hroot (by simp)
+    native_decide
+  have h29 := auctionSelectorSplitNotTakenTo hsplit auctionSplitWellFormed hroot
+      auctionRootSplitNextPc (by simp)
   have hupper : UInt256.gt (armSelNat auctionBytecode auctionUpperSplitPc) (auctionSelWord I) =
       ⟨0⟩ := by
     rw [hword]
-    decide
-  have h40 := RD.selectorSplitNotTakenAuto h29 auctionUpperSplitWellFormed hupper (by simp)
+    native_decide
+  have h40 := auctionSelectorSplitNotTakenTo h29 auctionUpperSplitWellFormed hupper
+      auctionUpperSplitNextPc (by simp)
   have heq0 : ∀ j, j < 4 →
       UInt256.eq (armSelNat auctionBytecode
         (nthArmPc auctionBytecode auctionUpperMidFirstArmPc j)) (auctionSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> decide
+    interval_cases j <;> rw [hword] <;> native_decide
   have htake :
       UInt256.eq
         (armSelNat auctionBytecode (nthArmPc auctionBytecode auctionUpperMidFirstArmPc 4))
         (auctionSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    decide
+    native_decide
   exact RD.dispatchTo (code := auctionBytecode) (ee := I) (g := g)
     (s0 := initState cA gh bl σ σ₀ g A I) (selWord := auctionSelWord I)
     (mem := solcFreePtrMem) (aw := UInt256.ofNat 3) (rdata := ByteArray.empty)
@@ -354,7 +356,7 @@ theorem auctionX_transferOwnership_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat
   exact evm_run rd921 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨932⟩,
     jumpiNT (isZero_eq_zero_of_ne hwv),
-    push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov)]
+    push0, dup1, raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionTransferOwnershipX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -421,7 +423,7 @@ theorem auctionDecodeAddressLenRevert5495 {g : Sat256} {s0 : State}
   exact evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨5511⟩,
     jumpiNT (by rw [hsltval]; decide),
-    push0, dup1, raw rev 0 (by decide) (fun s _ hstk => memExpRevert0 s hstk) (by
+    push0, dup1, raw rev 0 (by native_decide) (fun s _ hstk => memExpRevert0 s hstk) (by
       have hR : R.length ≤ 1024 - 20 := Nat.le_sub_of_add_le hov
       simp only [List.length_cons]
       omega)]
@@ -463,7 +465,7 @@ theorem auctionDecodeAddressNoncanonRevert5495 {g : Sat256} {s0 : State} {ee : E
   rw [heq0] at rd5392
   exact evm_run rd5392 with [
     push2 ⟨2850⟩, jumpiNT (by decide),
-    push0, dup1, raw rev 0 (by decide) (fun s _ hstk => memExpRevert0 s hstk) (by
+    push0, dup1, raw rev 0 (by native_decide) (fun s _ hstk => memExpRevert0 s hstk) (by
       have hR : R.length ≤ 1024 - 20 := Nat.le_sub_of_add_le hov
       simp only [List.length_cons]
       omega)]
@@ -607,7 +609,7 @@ theorem auctionX_transferOwnership_success {cA gh bl σ σ₀ A I} {g : Sat256}
     (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     (sel := auctionSelWord I) hwv hsz36 hsize hszhi hcanon hreach
   have rd2701₀ := evm_run rd2698 with [jumpdest, push1 ⟨151⟩]
-  obtain ⟨_, _, rd2702₀⟩ := rd2701₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd2702₀⟩ := rd2701₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2702⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨2702⟩
       [auctionSlotWord ⟨151⟩ σ I, auctionTransferOwnershipArgWord I, ⟨413⟩,
@@ -648,7 +650,7 @@ theorem auctionX_transferOwnership_success {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd3574 := evm_run rd2841 with [push2 ⟨2850⟩, dup2, push2 ⟨3574⟩,
     jump (by jump_dest)]
   have rd3578₀ := evm_run rd3574 with [jumpdest, push1 ⟨151⟩, dup1]
-  obtain ⟨_, _, rd3579₀⟩ := rd3578₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd3579₀⟩ := rd3578₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3579⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨3579⟩
       [auctionSlotWord ⟨151⟩ σ I, ⟨151⟩, auctionTransferOwnershipArgWord I,
@@ -670,7 +672,7 @@ theorem auctionX_transferOwnership_success {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd3605 := rd3605₀
   rw [hsolcMask] at rd3605
   rw [hpostComm] at rd3605
-  obtain ⟨_, _, rd3606₀⟩ := rd3605.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd3606₀⟩ := rd3605.sstore hperm (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3606⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨3606⟩
       [solcAddrMask, auctionSlotWord ⟨151⟩ σ I,
@@ -683,11 +685,11 @@ theorem auctionX_transferOwnership_success {cA gh bl σ σ₀ A I} {g : Sat256}
       rd3606₀⟩
   have rd3615 := evm_run rd3606 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     swap2, and, swap2, swap1, dup3, swap1]
   have rd3648 := rd3615.pushConst auctionOwnershipTransferredTopic
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
   have rd3652 := evm_run rd3648 with [swap1, push0, swap1]
   have rd3653 := RD.log3 0 (UInt256.ofNat 3) rd3652 (by decide) hperm
     (by
@@ -697,7 +699,7 @@ theorem auctionX_transferOwnership_success {cA gh bl σ σ₀ A I} {g : Sat256}
     (by decide) (by evm_ov)
   have rd2850 := evm_run rd3653 with [
     pop, pop, jump (by jump_dest), jumpdest, pop, jump (by jump_dest), jumpdest]
-  exact rd2850.stop (by decide) (by evm_ov)
+  exact rd2850.stop (by native_decide) (by evm_ov)
 
 theorem auctionX_transferOwnership_revert_owner {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -714,7 +716,7 @@ theorem auctionX_transferOwnership_revert_owner {cA gh bl σ σ₀ A I} {g : Sat
     (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     (sel := auctionSelWord I) hwv hsz36 hsize hszhi hcanon hreach
   have rd2701₀ := evm_run rd2698 with [jumpdest, push1 ⟨151⟩]
-  obtain ⟨_, _, rd2702₀⟩ := rd2701₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd2702₀⟩ := rd2701₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2702⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨2702⟩
       [auctionSlotWord ⟨151⟩ σ I, auctionTransferOwnershipArgWord I, ⟨413⟩,
@@ -747,37 +749,37 @@ theorem auctionX_transferOwnership_revert_owner {cA gh bl σ σ₀ A I} {g : Sat
   have rd2720 := evm_run rd2712 with [
     push2 ⟨2740⟩, jumpiNT (by decide),
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
   have rd2724 := rd2720.pushConst (⟨0x461bcd⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by native_decide) (by evm_ov)
   have rd5522 := evm_run rd2724 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (solcReturnMem ⟨0x08c379a000000000000000000000000000000000000000000000000000000000⟩)
-      (UInt256.ofNat 5) (by decide) mem_cost
+      (UInt256.ofNat 5) (by native_decide) mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨4⟩, add, push2 ⟨994⟩, swap1, push2 ⟨5522⟩, jump (by jump_dest)]
   have rd5532 := evm_run rd5522 with [
     jumpdest, push1 ⟨32⟩, dup1, dup3,
     raw mstore 3 (solcErrorStringMem1 solcFreePtrMem) (UInt256.ofNat 6)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup2, dup2, add,
     raw mstore 3 (solcErrorStringMem2 ⟨32⟩ solcFreePtrMem) (UInt256.ofNat 7)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd5565 := rd5532.pushConst auctionOnlyOwnerStringWord
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
   have rd5574₀ := evm_run rd5565 with [
     push1 ⟨64⟩, dup3, add,
     raw mstore 3 (solcErrorStringMem3 ⟨32⟩ auctionOnlyOwnerStringWord solcFreePtrMem)
-      (UInt256.ofNat 8) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨96⟩, add, swap1]
   have rd5574 := rd5574₀
   rw [show (⟨96⟩ : UInt256) + (⟨4⟩ + ⟨128⟩) = ⟨228⟩ by decide] at rd5574
   have rd994 := evm_run rd5574 with [jump (by jump_dest)]
   have rd1001₀ := evm_run rd994 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨32⟩ auctionOnlyOwnerStringWord
         solcFreePtrMem_size solcFreePtrMem_read64)
@@ -785,7 +787,7 @@ theorem auctionX_transferOwnership_revert_owner {cA gh bl σ σ₀ A I} {g : Sat
     dup1, swap2, sub, swap1]
   have rd1001 := rd1001₀
   rw [show UInt256.sub (⟨228⟩ : UInt256) ⟨128⟩ = ⟨100⟩ by decide] at rd1001
-  exact evm_run rd1001 with [raw rev 0 (by decide) mem_cost (by evm_ov)]
+  exact evm_run rd1001 with [raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionX_transferOwnership_revert_zero {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -803,7 +805,7 @@ theorem auctionX_transferOwnership_revert_zero {cA gh bl σ σ₀ A I} {g : Sat2
     (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀) (A := A) (g := g)
     (sel := auctionSelWord I) hwv hsz36 hsize hszhi hcanon hreach
   have rd2701₀ := evm_run rd2698 with [jumpdest, push1 ⟨151⟩]
-  obtain ⟨_, _, rd2702₀⟩ := rd2701₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd2702₀⟩ := rd2701₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd2702⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨2702⟩
       [auctionSlotWord ⟨151⟩ σ I, auctionTransferOwnershipArgWord I, ⟨413⟩,
@@ -840,30 +842,30 @@ theorem auctionX_transferOwnership_revert_zero {cA gh bl σ σ₀ A I} {g : Sat2
   have rd2758 := evm_run rd2750 with [
     push2 ⟨2841⟩, jumpiNT (by decide),
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
   have rd2762 := rd2758.pushConst (⟨0x461bcd⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by native_decide) (by evm_ov)
   have rd2781 := evm_run rd2762 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (solcErrorStringMem0 solcFreePtrMem) (UInt256.ofNat 5)
-      (by decide) mem_cost
+      (by native_decide) mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨32⟩, push1 ⟨4⟩, dup3, add,
     raw mstore 3 (solcErrorStringMem1 solcFreePtrMem) (UInt256.ofNat 6)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨38⟩, push1 ⟨36⟩, dup3, add,
     raw mstore 3 (solcErrorStringMem2 ⟨38⟩ solcFreePtrMem) (UInt256.ofNat 7)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd2814 := rd2781.pushConst auctionNewOwnerZeroStringWord1
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
   have rd2819 := evm_run rd2814 with [
     push1 ⟨68⟩, dup3, add,
     raw mstore 3 (solcErrorStringMem3 ⟨38⟩ auctionNewOwnerZeroStringWord1 solcFreePtrMem)
-      (UInt256.ofNat 8) (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd2826 := rd2819.pushConst (⟨0x646472657373⟩ : UInt256)
-    (width := 6) (op := .PUSH6) (by decide) (by decide) (by evm_ov)
+    (width := 6) (op := .PUSH6) (by decide) (by native_decide) (by evm_ov)
   have rd2829₀ := evm_run rd2826 with [push1 ⟨208⟩, shl]
   have rd2829 := rd2829₀
   rw [show UInt256.shiftLeft (⟨0x646472657373⟩ : UInt256) ⟨208⟩ =
@@ -871,19 +873,19 @@ theorem auctionX_transferOwnership_revert_zero {cA gh bl σ σ₀ A I} {g : Sat2
   have rd2837₀ := evm_run rd2829 with [
     push1 ⟨100⟩, dup3, add,
     raw mstore 3 (auctionNewOwnerZeroStringMem4 solcFreePtrMem)
-      (UInt256.ofNat 9) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 9) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨132⟩, add]
   have rd2837 := rd2837₀
   rw [show (⟨132⟩ : UInt256) + ⟨128⟩ = ⟨260⟩ by decide] at rd2837
   have rd994 := evm_run rd2837 with [push2 ⟨994⟩, jump (by jump_dest)]
   have rd1001₀ := evm_run rd994 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 9) (by native_decide)
       mem_cost auctionNewOwnerZeroStringMem4_mload64 (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
   have rd1001 := rd1001₀
   rw [show UInt256.sub (⟨260⟩ : UInt256) ⟨128⟩ = ⟨132⟩ by decide] at rd1001
-  exact evm_run rd1001 with [raw rev 0 (by decide) mem_cost (by evm_ov)]
+  exact evm_run rd1001 with [raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionTransferOwnershipBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (_hcode : I.code = auctionBytecode)
@@ -995,7 +997,7 @@ theorem auctionTransferOwnershipBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g 
         · have hdecode := auctionDecode_transferOwnership (I := I) hsz36 hbig hcanon
           have hbody := auctionTransferOwnershipBodyReverts_callvalue
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
-            (by simpa [initState] using hwv)
+            (by simpa only [initState] using hwv)
           exact (auctionX_transferOwnership_callvalue_ne hreach hwv)
             |>.reEquivExecutionRevert _hcode hdispatch hdecode hbody
         · exact (auctionX_transferOwnership_callvalue_ne hreach hwv)

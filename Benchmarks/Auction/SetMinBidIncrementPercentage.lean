@@ -258,34 +258,36 @@ theorem auctionReachSetMinBidIncrementPercentageBody {cA gh bl σ σ₀ A I} {g 
     simpa [selIs, auctionSelBytes] using hsel
   have hword : auctionSelWord I = ⟨0x36ebdb38⟩ :=
     auctionSelWord_eq_of_beq I hsz 0x36 0xeb 0xdb 0x38 ⟨0x36ebdb38⟩
-      (by decide) hsel'
+      (by native_decide) hsel'
   obtain ⟨_, _, hsplit⟩ := auctionReachRootSplit (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   have hroot : UInt256.gt (armSelNat auctionBytecode auctionSplitPc) (auctionSelWord I) ≠
       ⟨0⟩ := by
     rw [hword]
-    decide
-  have h157 := RD.selectorSplitTakenAuto hsplit auctionSplitWellFormed hroot
+    native_decide
+  have h157 := auctionSelectorSplitTakenTo hsplit auctionSplitWellFormed hroot
+      auctionRootSplitTargetPc
     (by jump_dest) (by simp)
-  have h158 := h157.jumpdest (by decide) (by simp)
+  have h158 := h157.jumpdest (by native_decide) (by simp)
   have hlower : UInt256.gt (armSelNat auctionBytecode auctionLowerSplitPc) (auctionSelWord I) ≠
       ⟨0⟩ := by
     rw [hword]
-    decide
-  have h227 := RD.selectorSplitTakenAuto h158 auctionLowerSplitWellFormed hlower
+    native_decide
+  have h227 := auctionSelectorSplitTakenTo h158 auctionLowerSplitWellFormed hlower
+      auctionLowerSplitTargetPc
     (by jump_dest) (by simp)
-  have h228 := h227.jumpdest (by decide) (by simp)
+  have h228 := h227.jumpdest (by native_decide) (by simp)
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat auctionBytecode
         (nthArmPc auctionBytecode auctionLowerLowFirstArmPc j)) (auctionSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> decide
+    interval_cases j <;> rw [hword] <;> native_decide
   have htake :
       UInt256.eq
         (armSelNat auctionBytecode (nthArmPc auctionBytecode auctionLowerLowFirstArmPc 2))
         (auctionSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    decide
+    native_decide
   exact RD.dispatchTo (code := auctionBytecode) (ee := I) (g := g)
     (s0 := initState cA gh bl σ σ₀ g A I) (selWord := auctionSelWord I)
     (mem := solcFreePtrMem) (aw := UInt256.ofNat 3) (rdata := ByteArray.empty)
@@ -305,7 +307,7 @@ theorem auctionX_setMinBidIncrementPercentage_callvalue_ne {cA gh bl σ σ₀ A 
   exact evm_run rd382 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨393⟩,
     jumpiNT (isZero_eq_zero_of_ne hwv),
-    push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov)]
+    push0, dup1, raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionSetMinBidIncrementPercentageX_toDecoder {cA gh bl σ σ₀ A I}
     {g : Sat256} {sel : UInt256}
@@ -368,7 +370,7 @@ theorem auctionDecodeUint8LenRevert5325 {g : Sat256} {s0 : State}
   evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨5341⟩,
     jumpiNT (by rw [hsltval]; decide),
-    push0, dup1, raw rev 0 (by decide) (fun s _ hstk => memExpRevert0 s hstk) (by
+    push0, dup1, raw rev 0 (by native_decide) (fun s _ hstk => memExpRevert0 s hstk) (by
       have hR : R.length ≤ 1024 - 10 := Nat.le_sub_of_add_le hov
       simp only [List.length_cons]
       omega)]
@@ -400,7 +402,7 @@ theorem auctionDecodeUint8NoncanonRevert5325 {g : Sat256} {s0 : State}
       change UInt256.eq (calldataWord ee.calldata 4)
         (UInt256.land (calldataWord ee.calldata 4) ⟨255⟩) = ⟨0⟩
       exact heq),
-    push0, dup1, raw rev 0 (by decide) (fun s _ hstk => memExpRevert0 s hstk) (by
+    push0, dup1, raw rev 0 (by native_decide) (fun s _ hstk => memExpRevert0 s hstk) (by
       have hR : R.length ≤ 1024 - 10 := Nat.le_sub_of_add_le hov
       simp only [List.length_cons]
       omega)]
@@ -507,7 +509,7 @@ theorem auctionX_setMinBidIncrementPercentage_success {cA gh bl σ σ₀ A I} {g
     (sel := auctionSelWord I) hwv hsz36 hsize hszhi hcanon hreach
   have rd956₀ := evm_run rd952 with [
     jumpdest, push1 ⟨151⟩]
-  obtain ⟨_, _, rd955₀⟩ := rd956₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd955₀⟩ := rd956₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd956⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨956⟩
       [auctionSlotWord ⟨151⟩ σ I, auctionSetMinBidIncrementPercentageArgWord I, ⟨413⟩,
@@ -532,7 +534,7 @@ theorem auctionX_setMinBidIncrementPercentage_success {cA gh bl σ σ₀ A I} {g
   have rd1003 := evm_run rd967 with [
     push2 ⟨1003⟩, jumpiT (by decide) (by jump_dest), jumpdest]
   have rd1008₀ := evm_run rd1003 with [push1 ⟨205⟩, dup1]
-  obtain ⟨_, _, rd1008₁⟩ := rd1008₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1008₁⟩ := rd1008₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1008⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1008⟩
       [auctionSlotWord ⟨205⟩ σ I, ⟨205⟩, auctionSetMinBidIncrementPercentageArgWord I,
@@ -555,7 +557,7 @@ theorem auctionX_setMinBidIncrementPercentage_success {cA gh bl σ σ₀ A I} {g
   have rd1022₀ := evm_run rd1008 with [
     push1 ⟨255⟩, not, and, push1 ⟨255⟩, dup4, and, swap1, dup2, lor, swap1, swap2]
   rw [hclearComm, hclean, hpostComm] at rd1022₀
-  obtain ⟨_, _, rd1022₁⟩ := rd1022₀.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1022₁⟩ := rd1022₀.sstore hperm (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1022⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1022⟩
       [auctionSetMinBidIncrementPercentageArgWord I, auctionSetMinBidIncrementPercentageArgWord I,
@@ -565,19 +567,19 @@ theorem auctionX_setMinBidIncrementPercentage_success {cA gh bl σ σ₀ A I} {g
     exact ⟨_, _, by simpa [auctionSetMinBidIncrementPercentagePostMap] using rd1022₁⟩
   have rd1028 := evm_run rd1022 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     swap1, dup2,
     raw mstore 6 (solcReturnMem (auctionSetMinBidIncrementPercentageArgWord I))
-      (UInt256.ofNat 5) (by decide) mem_cost
+      (UInt256.ofNat 5) (by native_decide) mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov)]
   have rd1061 := rd1028.pushConst auctionMinBidIncrementPercentageUpdatedTopic
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
   have rd1065 := evm_run rd1061 with [swap1, push1 ⟨32⟩, add]
   have rd1073₀ := evm_run rd1065 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost (solcReturnMem_mload64 (auctionSetMinBidIncrementPercentageArgWord I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
@@ -590,7 +592,7 @@ theorem auctionX_setMinBidIncrementPercentage_success {cA gh bl σ σ₀ A I} {g
       native_decide)
     (by decide) (by evm_ov)
   have rd413 := evm_run rd1074 with [pop, jump (by jump_dest), jumpdest]
-  exact rd413.stop (by decide) (by evm_ov)
+  exact rd413.stop (by native_decide) (by evm_ov)
 
 theorem auctionX_setMinBidIncrementPercentage_revert_owner {cA gh bl σ σ₀ A I}
     {g : Sat256}
@@ -609,7 +611,7 @@ theorem auctionX_setMinBidIncrementPercentage_revert_owner {cA gh bl σ σ₀ A 
     (sel := auctionSelWord I) hwv hsz36 hsize hszhi hcanon hreach
   have rd956₀ := evm_run rd952 with [
     jumpdest, push1 ⟨151⟩]
-  obtain ⟨_, _, rd955₀⟩ := rd956₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd955₀⟩ := rd956₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd956⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨956⟩
       [auctionSlotWord ⟨151⟩ σ I, auctionSetMinBidIncrementPercentageArgWord I, ⟨413⟩,
@@ -642,37 +644,37 @@ theorem auctionX_setMinBidIncrementPercentage_revert_owner {cA gh bl σ σ₀ A 
   have rd971 := evm_run rd967 with [
     push2 ⟨1003⟩, jumpiNT (by decide),
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
   have rd974 := rd971.pushConst (⟨0x461bcd⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by native_decide) (by evm_ov)
   have rd5522 := evm_run rd974 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (solcReturnMem ⟨0x08c379a000000000000000000000000000000000000000000000000000000000⟩)
-      (UInt256.ofNat 5) (by decide) mem_cost
+      (UInt256.ofNat 5) (by native_decide) mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨4⟩, add, push2 ⟨994⟩, swap1, push2 ⟨5522⟩, jump (by jump_dest)]
   have rd5532 := evm_run rd5522 with [
     jumpdest, push1 ⟨32⟩, dup1, dup3,
     raw mstore 3 (solcErrorStringMem1 solcFreePtrMem) (UInt256.ofNat 6)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup2, dup2, add,
     raw mstore 3 (solcErrorStringMem2 ⟨32⟩ solcFreePtrMem) (UInt256.ofNat 7)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd5565 := rd5532.pushConst auctionOnlyOwnerStringWord
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
   have rd5574₀ := evm_run rd5565 with [
     push1 ⟨64⟩, dup3, add,
     raw mstore 3 (solcErrorStringMem3 ⟨32⟩ auctionOnlyOwnerStringWord solcFreePtrMem)
-      (UInt256.ofNat 8) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨96⟩, add, swap1]
   have rd5574 := rd5574₀
   rw [show (⟨96⟩ : UInt256) + (⟨4⟩ + ⟨128⟩) = ⟨228⟩ by decide] at rd5574
   have rd994 := evm_run rd5574 with [jump (by jump_dest)]
   have rd1001₀ := evm_run rd994 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨32⟩ auctionOnlyOwnerStringWord
         solcFreePtrMem_size solcFreePtrMem_read64)
@@ -680,7 +682,7 @@ theorem auctionX_setMinBidIncrementPercentage_revert_owner {cA gh bl σ σ₀ A 
     dup1, swap2, sub, swap1]
   have rd1001 := rd1001₀
   rw [show UInt256.sub (⟨228⟩ : UInt256) ⟨128⟩ = ⟨100⟩ by decide] at rd1001
-  exact evm_run rd1001 with [raw rev 0 (by decide) mem_cost (by evm_ov)]
+  exact evm_run rd1001 with [raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionSetMinBidIncrementPercentageBodyCore {cA gh bl σ_evm σ_solm σ₀ A I}
     {g : UInt256}
@@ -790,7 +792,7 @@ theorem auctionSetMinBidIncrementPercentageBodyCore {cA gh bl σ_evm σ_solm σ�
             hsz36 hbig hcanon
           have hbody := auctionSetMinBidIncrementPercentageBodyReverts_callvalue
             (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
-            (by simpa [initState] using hwv)
+            (by simpa only [initState] using hwv)
           exact (auctionX_setMinBidIncrementPercentage_callvalue_ne hreach hwv)
             |>.reEquivExecutionRevert _hcode hdispatch hdecode hbody
         · exact (auctionX_setMinBidIncrementPercentage_callvalue_ne hreach hwv)

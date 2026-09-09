@@ -247,6 +247,71 @@ abbrev auctionLowerSplitPc : UInt256 := ⟨158⟩
 abbrev auctionLowerMidFirstArmPc : UInt256 := ⟨169⟩
 abbrev auctionLowerLowFirstArmPc : UInt256 := ⟨228⟩
 
+-- GENERALIZES Reasoning.Reach.RD.selectorSplitNotTakenAuto: use an explicitly
+-- proved output PC so callers do not reduce the bytecode during unification.
+theorem auctionSelectorSplitNotTakenTo {code : ByteArray} {I : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc next sel aw : UInt256} {mem out : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat} {R : List UInt256}
+    (rd : RD code I g s0 pc (sel :: R) mem aw out acc k C)
+    (hwf : selectorSplitWellFormed code pc)
+    (hb : UInt256.gt (armSelNat code pc) sel = ⟨0⟩)
+    (hpc : selArmNextPc pc (armTgtWidth code pc) = next)
+    (hov : R.length + 3 ≤ 1024) :
+    RD code I g s0 next (sel :: R) mem aw out acc (k + 5) (C + 22) := by
+  exact hpc ▸ RD.selectorSplitNotTakenAuto rd hwf hb hov
+
+-- GENERALIZES Reasoning.Reach.RD.selectorSplitTakenAuto by the same PC boundary.
+theorem auctionSelectorSplitTakenTo {code : ByteArray} {I : ExecutionEnv} {g : Sat256}
+    {s0 : State} {pc next sel aw : UInt256} {mem out : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {k C : Nat} {R : List UInt256}
+    (rd : RD code I g s0 pc (sel :: R) mem aw out acc k C)
+    (hwf : selectorSplitWellFormed code pc)
+    (hb : UInt256.gt (armSelNat code pc) sel ≠ ⟨0⟩)
+    (hpc : armTgt code pc = next)
+    (hjd : (D_J code 0).contains next = true)
+    (hov : R.length + 3 ≤ 1024) :
+    RD code I g s0 next (sel :: R) mem aw out acc (k + 5) (C + 22) := by
+  exact hpc ▸ RD.selectorSplitTakenAuto rd hwf hb (hpc ▸ hjd) hov
+
+-- LIBRARY CANDIDATE: skip any number of unmatched selector arms, retaining a
+-- symbolic bytecode expression inside the reusable proof only.
+theorem auctionSelectorArmsSkip {code : ByteArray} {I : ExecutionEnv} {g : Sat256}
+    {s0 : State} {sel aw : UInt256} {mem out : ByteArray}
+    {acc : Batteries.RBSet AccountAddress compare × AccountMap} {R : List UInt256}
+    (n : Nat) {pc : UInt256} {k C : Nat}
+    (rd : RD code I g s0 pc (sel :: R) mem aw out acc k C)
+    (hwf : ∀ j, j < n → armWellFormed code (nthArmPc code pc j))
+    (hz : ∀ j, j < n → UInt256.eq (armSelNat code (nthArmPc code pc j)) sel = ⟨0⟩)
+    (hov : R.length + 3 ≤ 1024) :
+    ∃ k C, RD code I g s0 (nthArmPc code pc n) (sel :: R) mem aw out acc k C := by
+  induction n generalizing pc k C with
+  | zero => exact ⟨_, _, rd⟩
+  | succ n ih =>
+      have next := rd.selectorArmNotTakenAuto (hwf 0 (by omega)) (hz 0 (by omega)) hov
+      exact ih next (fun j hj ↦ hwf (j + 1) (by omega))
+        (fun j hj ↦ hz (j + 1) (by omega))
+
+theorem auctionRootSplitNextPc :
+    selArmNextPc auctionSplitPc (armTgtWidth auctionBytecode auctionSplitPc) =
+      auctionUpperSplitPc := by native_decide
+
+theorem auctionRootSplitTargetPc :
+    armTgt auctionBytecode auctionSplitPc = (⟨157⟩ : UInt256) := by native_decide
+
+theorem auctionUpperSplitNextPc :
+    selArmNextPc auctionUpperSplitPc (armTgtWidth auctionBytecode auctionUpperSplitPc) =
+      auctionUpperMidFirstArmPc := by native_decide
+
+theorem auctionUpperSplitTargetPc :
+    armTgt auctionBytecode auctionUpperSplitPc = (⟨98⟩ : UInt256) := by native_decide
+
+theorem auctionLowerSplitNextPc :
+    selArmNextPc auctionLowerSplitPc (armTgtWidth auctionBytecode auctionLowerSplitPc) =
+      auctionLowerMidFirstArmPc := by native_decide
+
+theorem auctionLowerSplitTargetPc :
+    armTgt auctionBytecode auctionLowerSplitPc = (⟨227⟩ : UInt256) := by native_decide
+
 def auctionUpperMidSelBytes : Nat → ByteArray
   | 0 => ⟨#[0xce, 0x9c, 0x7c, 0x0d]⟩ -- setReservePrice(uint256)
   | 1 => ⟨#[0xdb, 0x2e, 0x1e, 0xed]⟩ -- reservePrice()
@@ -277,43 +342,50 @@ def auctionLowerLowSelBytes : Nat → ByteArray
 
 theorem auctionSplitWellFormed :
     selectorSplitWellFormed auctionBytecode auctionSplitPc := by
-  exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+  exact ⟨by native_decide, by native_decide, by native_decide,
+      by native_decide, by native_decide, by native_decide⟩
 
 theorem auctionUpperSplitWellFormed :
     selectorSplitWellFormed auctionBytecode auctionUpperSplitPc := by
-  exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+  exact ⟨by native_decide, by native_decide, by native_decide,
+      by native_decide, by native_decide, by native_decide⟩
 
 theorem auctionLowerSplitWellFormed :
     selectorSplitWellFormed auctionBytecode auctionLowerSplitPc := by
-  exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+  exact ⟨by native_decide, by native_decide, by native_decide,
+      by native_decide, by native_decide, by native_decide⟩
 
 theorem auctionUpperMidArmsWellFormed :
     ∀ j, j ≤ 4 → armWellFormed auctionBytecode
       (nthArmPc auctionBytecode auctionUpperMidFirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide,
+      by native_decide, by native_decide, by native_decide⟩
 
 theorem auctionUpperLowArmsWellFormed :
     ∀ j, j ≤ 4 → armWellFormed auctionBytecode
       (nthArmPc auctionBytecode auctionUpperLowFirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide,
+      by native_decide, by native_decide, by native_decide⟩
 
 theorem auctionLowerMidArmsWellFormed :
     ∀ j, j ≤ 4 → armWellFormed auctionBytecode
       (nthArmPc auctionBytecode auctionLowerMidFirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide,
+      by native_decide, by native_decide, by native_decide⟩
 
 theorem auctionLowerLowArmsWellFormed :
     ∀ j, j ≤ 4 → armWellFormed auctionBytecode
       (nthArmPc auctionBytecode auctionLowerLowFirstArmPc j) := by
   intro j hj
   interval_cases j <;>
-    exact ⟨by decide, by decide, by decide, by decide, by decide, by decide⟩
+    exact ⟨by native_decide, by native_decide, by native_decide,
+      by native_decide, by native_decide, by native_decide⟩
 
 theorem auctionUpperMidArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : Nat) (hj : j < 5) :
@@ -321,7 +393,7 @@ theorem auctionUpperMidArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat auctionBytecode (nthArmPc auctionBytecode auctionUpperMidFirstArmPc j))
         (auctionSelWord I) =
       if (auctionUpperMidSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 theorem auctionUpperLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : Nat) (hj : j < 5) :
@@ -329,7 +401,7 @@ theorem auctionUpperLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat auctionBytecode (nthArmPc auctionBytecode auctionUpperLowFirstArmPc j))
         (auctionSelWord I) =
       if (auctionUpperLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 theorem auctionLowerMidArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : Nat) (hj : j < 5) :
@@ -337,7 +409,7 @@ theorem auctionLowerMidArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat auctionBytecode (nthArmPc auctionBytecode auctionLowerMidFirstArmPc j))
         (auctionSelWord I) =
       if (auctionLowerMidSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 theorem auctionLowerLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
     (j : Nat) (hj : j < 5) :
@@ -345,7 +417,7 @@ theorem auctionLowerLowArmEq (I : ExecutionEnv) (hsz : 4 ≤ I.calldata.size)
         (armSelNat auctionBytecode (nthArmPc auctionBytecode auctionLowerLowFirstArmPc j))
         (auctionSelWord I) =
       if (auctionLowerLowSelBytes j == I.calldata.extract 0 4) then ⟨1⟩ else ⟨0⟩ := by
-  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by decide)
+  interval_cases j <;> exact evmSelectorDecode hsz _ _ _ _ _ (by native_decide)
 
 theorem auctionDispatch_none_short {cd : ByteArray} (h : cd.size < 4) :
     dispatchMsg Auction.auctionContract cd = none := by
@@ -1122,7 +1194,7 @@ theorem auctionPayablePrologueRD {cA gh bl σ σ₀ A I} {g : Sat256}
       solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) 3 18 := by
   exact evm_run (RD.initState hcode) with [
     push1 ⟨128⟩, push1 ⟨64⟩,
-    raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) (by decide)
+    raw mstore 9 solcFreePtrMem (UInt256.ofNat 3) (by native_decide)
       mem_cost
       (by rw [show (⟨64⟩ : UInt256).toNat = 64 from by decide]; rfl)
       (by decide) (by decide) ]
@@ -1137,8 +1209,8 @@ theorem auctionReachRootSplit {cA gh bl σ σ₀ A I} {g : Sat256}
     (opR := .PUSH2) (wR := 2)
     (auctionPayablePrologueRD (cA := cA) (gh := gh) (bl := bl) (σ := σ) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) hcode)
-    hsz hsize (by decide) (by decide) (by decide) (by decide) (by decide) (by decide)
-  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by decide) (by decide) (by decide) (by decide)
+    hsz hsize (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide) (by native_decide)
+  obtain ⟨k3, C3, h3⟩ := solcSelectorLoad h2 (by native_decide) (by native_decide) (by native_decide) (by native_decide)
     (by simp)
   exact ⟨k3, C3, by simpa [auctionSelWord] using h3⟩
 
@@ -1156,7 +1228,7 @@ theorem auctionX_short {cA gh bl σ σ₀ A I} {g : Sat256}
     jumpdest,
     push0,
     dup1,
-    raw rev 0 (by decide) mem_cost (by evm_ov)]
+    raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (hcode : I.code = auctionBytecode)
@@ -1255,103 +1327,49 @@ theorem auctionX_noMatch {cA gh bl σ σ₀ A I} {g : Sat256}
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   by_cases hroot : UInt256.gt (armSelNat auctionBytecode auctionSplitPc)
       (auctionSelWord I) = ⟨0⟩
-  · have h29 := RD.selectorSplitNotTakenAuto hsplit auctionSplitWellFormed hroot (by simp)
+  · have h29 := auctionSelectorSplitNotTakenTo hsplit auctionSplitWellFormed hroot
+      auctionRootSplitNextPc (by simp)
     by_cases hupper : UInt256.gt (armSelNat auctionBytecode auctionUpperSplitPc)
         (auctionSelWord I) = ⟨0⟩
-    · have h40 := RD.selectorSplitNotTakenAuto h29 auctionUpperSplitWellFormed hupper (by simp)
-      have h95 := h40
-        |>.selectorArmNotTakenAuto (auctionUpperMidArmsWellFormed 0 (by omega))
-            (heqUpperMid0 0 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionUpperMidArmsWellFormed 1 (by omega))
-            (heqUpperMid0 1 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionUpperMidArmsWellFormed 2 (by omega))
-            (heqUpperMid0 2 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionUpperMidArmsWellFormed 3 (by omega))
-            (heqUpperMid0 3 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionUpperMidArmsWellFormed 4 (by omega))
-            (heqUpperMid0 4 (by omega)) (by simp)
-      have h95' : ∃ k C, RD auctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨95⟩
-          [auctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-        refine Exists.intro (kS + 5 + 5 + 5 + 5 + 5 + 5 + 5) ?_
-        refine Exists.intro (CS + 22 + 22 + 22 + 22 + 22 + 22 + 22) ?_
-        simpa [auctionUpperMidFirstArmPc, auctionUpperSplitPc, auctionSplitPc, nthArmPc,
-          selArmNextPc, armTgtWidth, selArmJumpiPc, selArmPushTgtPc, selArmEqPc,
-          selArmPush4Pc] using h95
-      obtain ⟨_, _, h95rd⟩ := h95'
-      exact evm_run h95rd with [push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov)]
-    · have h98 := RD.selectorSplitTakenAuto h29 auctionUpperSplitWellFormed hupper
+    · have h40 := auctionSelectorSplitNotTakenTo h29 auctionUpperSplitWellFormed hupper
+        auctionUpperSplitNextPc (by simp)
+      obtain ⟨_, _, h95rd⟩ := auctionSelectorArmsSkip 5 h40
+        (fun j hj ↦ auctionUpperMidArmsWellFormed j (by omega)) heqUpperMid0 (by simp)
+      rw [show nthArmPc auctionBytecode auctionUpperMidFirstArmPc 5 = (⟨95⟩ : UInt256)
+        by native_decide] at h95rd
+      exact evm_run h95rd with [push0, dup1, raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    · have h98 := auctionSelectorSplitTakenTo h29 auctionUpperSplitWellFormed hupper
+        auctionUpperSplitTargetPc
         (by jump_dest) (by simp)
-      have h99 := h98.jumpdest (by decide) (by simp)
-      have h154 := h99
-        |>.selectorArmNotTakenAuto (auctionUpperLowArmsWellFormed 0 (by omega))
-            (heqUpperLow0 0 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionUpperLowArmsWellFormed 1 (by omega))
-            (heqUpperLow0 1 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionUpperLowArmsWellFormed 2 (by omega))
-            (heqUpperLow0 2 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionUpperLowArmsWellFormed 3 (by omega))
-            (heqUpperLow0 3 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionUpperLowArmsWellFormed 4 (by omega))
-            (heqUpperLow0 4 (by omega)) (by simp)
-      have h154' : ∃ k C, RD auctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨154⟩
-          [auctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-        refine Exists.intro (kS + 5 + 5 + 1 + 5 + 5 + 5 + 5 + 5) ?_
-        refine Exists.intro (CS + 22 + 22 + 1 + 22 + 22 + 22 + 22 + 22) ?_
-        simpa [auctionUpperLowFirstArmPc, auctionUpperSplitPc, auctionSplitPc, nthArmPc,
-          selArmNextPc, armTgtWidth, armTgt, pushAt, selArmJumpiPc, selArmPushTgtPc,
-          selArmEqPc, selArmPush4Pc] using h154
-      obtain ⟨_, _, h154rd⟩ := h154'
-      exact evm_run h154rd with [push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov)]
-  · have h157 := RD.selectorSplitTakenAuto hsplit auctionSplitWellFormed hroot
+      have h99 := h98.jumpdest (by native_decide) (by simp)
+      obtain ⟨_, _, h154rd⟩ := auctionSelectorArmsSkip 5 (pc := auctionUpperLowFirstArmPc) h99
+        (fun j hj ↦ auctionUpperLowArmsWellFormed j (by omega)) heqUpperLow0 (by simp)
+      rw [show nthArmPc auctionBytecode auctionUpperLowFirstArmPc 5 = (⟨154⟩ : UInt256)
+        by native_decide] at h154rd
+      exact evm_run h154rd with [push0, dup1, raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+  · have h157 := auctionSelectorSplitTakenTo hsplit auctionSplitWellFormed hroot
+      auctionRootSplitTargetPc
       (by jump_dest) (by simp)
-    have h158 := h157.jumpdest (by decide) (by simp)
+    have h158 := h157.jumpdest (by native_decide) (by simp)
     by_cases hlower : UInt256.gt (armSelNat auctionBytecode auctionLowerSplitPc)
         (auctionSelWord I) = ⟨0⟩
-    · have h169 := RD.selectorSplitNotTakenAuto h158 auctionLowerSplitWellFormed hlower (by simp)
-      have h224 := h169
-        |>.selectorArmNotTakenAuto (auctionLowerMidArmsWellFormed 0 (by omega))
-            (heqLowerMid0 0 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionLowerMidArmsWellFormed 1 (by omega))
-            (heqLowerMid0 1 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionLowerMidArmsWellFormed 2 (by omega))
-            (heqLowerMid0 2 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionLowerMidArmsWellFormed 3 (by omega))
-            (heqLowerMid0 3 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionLowerMidArmsWellFormed 4 (by omega))
-            (heqLowerMid0 4 (by omega)) (by simp)
-      have h224' : ∃ k C, RD auctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨224⟩
-          [auctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-        refine Exists.intro (kS + 5 + 1 + 5 + 5 + 5 + 5 + 5 + 5) ?_
-        refine Exists.intro (CS + 22 + 1 + 22 + 22 + 22 + 22 + 22 + 22) ?_
-        simpa [auctionLowerMidFirstArmPc, auctionLowerSplitPc, auctionSplitPc, nthArmPc,
-          selArmNextPc, armTgtWidth, selArmJumpiPc, selArmPushTgtPc, selArmEqPc,
-          selArmPush4Pc] using h224
-      obtain ⟨_, _, h224rd⟩ := h224'
-      exact evm_run h224rd with [push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov)]
-    · have h227 := RD.selectorSplitTakenAuto h158 auctionLowerSplitWellFormed hlower
+    · have h169 := auctionSelectorSplitNotTakenTo h158 auctionLowerSplitWellFormed hlower
+        auctionLowerSplitNextPc (by simp)
+      obtain ⟨_, _, h224rd⟩ := auctionSelectorArmsSkip 5 h169
+        (fun j hj ↦ auctionLowerMidArmsWellFormed j (by omega)) heqLowerMid0 (by simp)
+      rw [show nthArmPc auctionBytecode auctionLowerMidFirstArmPc 5 = (⟨224⟩ : UInt256)
+        by native_decide] at h224rd
+      exact evm_run h224rd with [push0, dup1, raw rev 0 (by native_decide) mem_cost (by evm_ov)]
+    · have h227 := auctionSelectorSplitTakenTo h158 auctionLowerSplitWellFormed hlower
+        auctionLowerSplitTargetPc
         (by jump_dest) (by simp)
-      have h228 := h227.jumpdest (by decide) (by simp)
-      have h283 := h228
-        |>.selectorArmNotTakenAuto (auctionLowerLowArmsWellFormed 0 (by omega))
-            (heqLowerLow0 0 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionLowerLowArmsWellFormed 1 (by omega))
-            (heqLowerLow0 1 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionLowerLowArmsWellFormed 2 (by omega))
-            (heqLowerLow0 2 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionLowerLowArmsWellFormed 3 (by omega))
-            (heqLowerLow0 3 (by omega)) (by simp)
-        |>.selectorArmNotTakenAuto (auctionLowerLowArmsWellFormed 4 (by omega))
-            (heqLowerLow0 4 (by omega)) (by simp)
-      have h283' : ∃ k C, RD auctionBytecode I g (initState cA gh bl σ σ₀ g A I) ⟨283⟩
-          [auctionSelWord I] solcFreePtrMem (UInt256.ofNat 3) ByteArray.empty (cA, σ) k C := by
-        refine Exists.intro (kS + 5 + 1 + 5 + 1 + 5 + 5 + 5 + 5 + 5) ?_
-        refine Exists.intro (CS + 22 + 1 + 22 + 1 + 22 + 22 + 22 + 22 + 22) ?_
-        simpa [auctionLowerLowFirstArmPc, auctionLowerSplitPc, auctionSplitPc, nthArmPc,
-          selArmNextPc, armTgtWidth, armTgt, pushAt, selArmJumpiPc, selArmPushTgtPc,
-          selArmEqPc, selArmPush4Pc] using h283
-      obtain ⟨_, _, h283rd⟩ := h283'
+      have h228 := h227.jumpdest (by native_decide) (by simp)
+      obtain ⟨_, _, h283rd⟩ := auctionSelectorArmsSkip 5 (pc := auctionLowerLowFirstArmPc) h228
+        (fun j hj ↦ auctionLowerLowArmsWellFormed j (by omega)) heqLowerLow0 (by simp)
+      rw [show nthArmPc auctionBytecode auctionLowerLowFirstArmPc 5 = (⟨283⟩ : UInt256)
+        by native_decide] at h283rd
       exact evm_run h283rd with [
-        jumpdest, push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov)]
+        jumpdest, push0, dup1, raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 -- LIBRARY CANDIDATE: general UInt256 subtraction nonzero from word inequality.
 theorem u256_sub_ne_zero_of_ne {a b : UInt256} (h : a ≠ b) :

@@ -9,41 +9,41 @@ namespace Auction
 
 theorem auctionMintFailureSub_decode :
     decode auctionBytecode auctionMintFailureAfterPushSelectorPc = some (.SUB, .none) := by
-  decide
+  native_decide
 
 theorem auctionMintFailurePush3162_decode :
     decode auctionBytecode auctionMintFailureAfterSubPc =
       some (.Push .PUSH2, some (⟨3162⟩, 2)) := by
-  decide
+  native_decide
 
 theorem auctionMintFailureJumpi_decode :
     decode auctionBytecode (⟨3134⟩ : UInt256) = some (.JUMPI, .none) := by
-  decide
+  native_decide
 
 theorem auctionMintFailureJumpdest3162_decode :
     decode auctionBytecode (⟨3162⟩ : UInt256) = some (.JUMPDEST, .none) := by
-  decide
+  native_decide
 
 theorem auctionMintFailurePop3163_decode :
     decode auctionBytecode (⟨3163⟩ : UInt256) = some (.POP, .none) := by
-  decide
+  native_decide
 
 theorem auctionMintFailureJumpdest3164_decode :
     decode auctionBytecode (⟨3164⟩ : UInt256) = some (.JUMPDEST, .none) := by
-  decide
+  native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem auctionCreateAuction_mintCallFailureSelectorPushedToBubble {cA gh bl σInit σ₀ A I}
     {g : Sat256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    {memSel o : ByteArray} {k C : ℕ} {sel : UInt256} {R : List UInt256}
+    {memSel o : ByteArray} {aw : UInt256} {k C : ℕ} {sel : UInt256} {R : List UInt256}
     (rd : RD auctionBytecode I g (initState cA gh bl σInit σ₀ g A I)
       auctionMintFailureAfterPushSelectorPc
-      (⟨0x08c379a0⟩ :: sel :: sel :: R) memSel (UInt256.ofNat 5) o acc k C)
+      (⟨0x08c379a0⟩ :: sel :: sel :: R) memSel aw o acc k C)
     (hsub : UInt256.sub sel ⟨0x08c379a0⟩ ≠ ⟨0⟩)
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨3165⟩
-      R memSel (UInt256.ofNat 5) o acc k' C' := by
+      R memSel aw o acc k' C' := by
   have hselNe : (⟨0x08c379a0⟩ : UInt256) ≠ sel := by
     intro hEq
     apply hsub
@@ -59,10 +59,10 @@ set_option maxHeartbeats 1000000 in
 theorem auctionCreateAuction_mintCallFailureSelectorSwitchRevert {cA gh bl σInit σ₀ A I}
     {g : Sat256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    {memSel o : ByteArray} {k C : ℕ} {sel : UInt256} {R : List UInt256}
+    {memSel o : ByteArray} {aw : UInt256} {k C : ℕ} {sel : UInt256} {R : List UInt256}
     (rd : RD auctionBytecode I g (initState cA gh bl σInit σ₀ g A I)
       auctionMintFailureSwitchPc
-      (sel :: R) memSel (UInt256.ofNat 5) o acc k C)
+      (sel :: R) memSel aw o acc k C)
     (hosz : o.size < UInt256.size)
     (hsub : UInt256.sub sel ⟨0x08c379a0⟩ ≠ ⟨0⟩)
     (hov : R.length + 8 ≤ 1024) :
@@ -74,7 +74,7 @@ theorem auctionCreateAuction_mintCallFailureSelectorSwitchRevert {cA gh bl σIni
   obtain ⟨_, _, rd3165⟩ :=
     auctionCreateAuction_mintCallFailureSelectorPushedToBubble rd3129 hsub hov
   exact auctionCreateAuction_mintCallFailureBubbleRevertTail
-    (mem := memSel) (aw := UInt256.ofNat 5) rd3165 hosz hov
+    (mem := memSel) (aw := aw) rd3165 hosz hov
 
 set_option maxHeartbeats 1000000 in
 theorem auctionCreateAuction_mintCallFailureSelectorRevert {cA gh bl σInit σ₀ A I}
@@ -117,28 +117,10 @@ theorem auctionCreateAuction_mintCallFailureErrorStringShortRevert {cA gh bl σI
     RDrev auctionBytecode g (initState cA gh bl σInit σ₀ g A I) := by
   obtain ⟨_, _, rd3123⟩ :=
     auctionCreateAuction_mintCallFailureSelectorToSwitch rd hlen hosz hword hshr hov
-  have rd3134₀ := evm_run rd3123 with [dup1, push4 ⟨0x08c379a0⟩, sub]
-  have rd3134 := rd3134₀
-  rw [show UInt256.sub (⟨0x08c379a0⟩ : UInt256) ⟨0x08c379a0⟩ = ⟨0⟩ by decide]
-    at rd3134
-  have rd5925 := evm_run rd3134 with [push2 ⟨3162⟩, jumpiNT (by decide), pop,
-    push2 ⟨3143⟩, push2 ⟨5925⟩, jump (by jump_dest), jumpdest]
-  have hlt : UInt256.lt (UInt256.ofNat o.size) (⟨68⟩ : UInt256) = ⟨1⟩ := by
-    apply ult_one
-    change (UInt256.ofNat o.size).toNat < 68
-    rw [UInt256.toNat_ofNat_of_lt hosz]
-    omega
-  have rd5931₀ := evm_run rd5925 with [push0, push1 ⟨68⟩, returndatasize, lt]
-  have rd5931 := rd5931₀
-  rw [hlt] at rd5931
-  have rd5932₀ := evm_run rd5931 with [iszero]
-  have rd5932 := rd5932₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd5932
-  have rd3143 := evm_run rd5932 with [push2 ⟨5938⟩, jumpiNT (by decide), swap1,
-    jump (by jump_dest), jumpdest]
-  have rd3164 := evm_run rd3143 with [dup1, push2 ⟨3154⟩, jumpiNT (by decide), pop,
-    push2 ⟨3164⟩, jump (by jump_dest), jumpdest]
-  exact auctionCreateAuction_mintCallFailureBubbleRevertTail
-    (mem := o.write 0 mem 0 4) (aw := UInt256.ofNat 5) rd3164 hosz hov
+  obtain ⟨_, _, rd5926⟩ := auctionMintFailureSwitchToDecoder rd3123 (by evm_ov)
+  obtain ⟨_, _, rd3143⟩ := auctionMintFailureDecoderShortToReturn rd5926 hshort hosz (by evm_ov)
+  have rd3164 := evm_run rd3143 with [jumpdest, dup1, push2 ⟨3154⟩,
+    jumpiNT (by decide), pop, push2 ⟨3164⟩, jump (by jump_dest), jumpdest]
+  exact auctionCreateAuction_mintCallFailureBubbleRevertTail rd3164 hosz hov
 
 end Auction

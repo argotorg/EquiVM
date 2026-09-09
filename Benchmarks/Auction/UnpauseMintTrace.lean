@@ -1,4 +1,5 @@
-import Benchmarks.Auction.UnpauseCreateAuction
+import Benchmarks.Auction.CreateAuctionSuccessTrace
+import Benchmarks.Auction.CreateAuctionDecodeTrace
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 
@@ -17,7 +18,7 @@ theorem auctionCreateAuction_toMintCall {cA gh bl σInit σ σ₀ A I} {g : Sat2
         ⟨0x1249c58b⟩, auctionMintTargetWord σ I, ⟨1163⟩, ⟨413⟩, auctionSelWord I]
       (auctionUnpauseMintSelMem I) (UInt256.ofNat 5) ByteArray.empty (cA, σ) k C := by
   have rd3005₀ := evm_run h with [jumpdest, push1 ⟨201⟩, push0, swap1]
-  obtain ⟨_, _, rd3006₀⟩ := rd3005₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd3006₀⟩ := rd3005₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3006⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σInit σ₀ g A I) ⟨3006⟩
       [auctionSlotWord ⟨201⟩ σ I, ⟨0⟩, ⟨1163⟩, ⟨413⟩, auctionSelWord I]
@@ -49,7 +50,7 @@ theorem auctionCreateAuction_toMintCall {cA gh bl σInit σ σ₀ A I} {g : Sat2
   rw [hdiv, hmaskConst, hmaskIdem] at rd3031
   have rd3038 := evm_run rd3031 with [
     push4 ⟨0x1249c58b⟩, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost (auctionEventMem_mload64 I) (by decide) (by evm_ov),
     dup2, push4 ⟨0xffffffff⟩, and, push1 ⟨224⟩, shl, dup2]
   have hselMask :
@@ -58,11 +59,11 @@ theorem auctionCreateAuction_toMintCall {cA gh bl σInit σ σ₀ A I} {g : Sat2
   have rd3038' := rd3038
   rw [hselMask] at rd3038'
   have rd3051 := evm_run rd3038' with [
-    raw mstore 0 (auctionUnpauseMintSelMem I) (UInt256.ofNat 5) (by decide)
+    raw mstore 0 (auctionUnpauseMintSelMem I) (UInt256.ofNat 5) (by native_decide)
       mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd3065₀ := evm_run rd3051 with [
     push1 ⟨4⟩, add, push1 ⟨32⟩, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost (auctionUnpauseMintSelMem_mload64 I) (by decide) (by evm_ov),
     dup1, dup4, sub, dup2, push0, dup8]
   have rd3065 := rd3065₀
@@ -94,9 +95,9 @@ theorem auctionCreateAuction_postMintCall {cA gh bl σInit σ σ₀ A I} {g : Sa
             accountMap := σ', substate := A', createdAccounts := cA' }, o) true
     ∧ o.size < UInt256.size := by
   obtain ⟨_, _, rd3065⟩ := auctionCreateAuction_toMintCall h
-  obtain ⟨_, rd3066⟩ := rd3065.gas (by decide) (by evm_ov)
+  obtain ⟨_, rd3066⟩ := rd3065.gas (by native_decide) (by evm_ov)
   obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd3067, hosz⟩ :=
-    rd3066.call (by decide) hdepth (by evm_ov)
+    rd3066.call (by native_decide) hdepth (by evm_ov)
   obtain ⟨g'', A', hΘ⟩ := hΘ
   refine ⟨cA', σ', z, o, A', k', C', ?_, ?_, hosz⟩
   · have haw : UInt256.ofNat (MachineState.M
@@ -316,15 +317,9 @@ theorem auctionCreateAuction_mintReturnToDecodeRoutine {cA gh bl σInit σ₀ A 
   ∃ k' C', RD auctionBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨5820⟩
       (⟨128⟩ :: UInt256.add ⟨128⟩ (UInt256.ofNat o.size) :: ⟨3108⟩ :: R)
       (auctionMintReturnMem2 o mem) (UInt256.ofNat 5) o acc k' C' := by
-  exact ⟨_, _, evm_run rd with [
-    push1 ⟨64⟩, dup1,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
-      mem_cost hfp (by decide) (by evm_ov),
-    push1 ⟨31⟩, returndatasize, swap1, dup2, add, push1 ⟨31⟩, not, and, dup3, add,
-    swap1, swap3,
-    raw mstore 0 (auctionMintReturnMem2 o mem) (UInt256.ofNat 5) (by decide)
-      mem_cost (by rfl) (by decide) (by evm_ov),
-    push2 ⟨3108⟩, swap2, dup2, add, swap1, push2 ⟨5820⟩, jump (by jump_dest)]⟩
+  change auctionLoadWord mem (UInt256.ofNat 5) ⟨64⟩ = ⟨128⟩ at hfp
+  have hg := auctionCreateAuctionMintReturnToDecode rd hov
+  simpa only [hfp] using hg
 
 theorem auctionCreateAuction_mintReturnDecodeOk {cA gh bl σInit σ₀ A I} {g : Sat256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -342,116 +337,8 @@ theorem auctionCreateAuction_mintReturnDecodeOk {cA gh bl σInit σ₀ A I} {g :
     (hov : R.length + 8 ≤ 1024) :
     ∃ k' C', RD auctionBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨3108⟩
       (retWord :: R) mem (UInt256.ofNat 5) o acc k' C' := by
-  exact ⟨_, _, evm_run rd with [
-    jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨5836⟩,
-    jumpiT (by rw [solcDecodeEndLenCheckOk_128_32 ho32 ho]; decide) (by jump_dest),
-    jumpdest, pop,
-    raw mload 0 retWord (UInt256.ofNat 5) (by decide)
-      mem_cost hword (by decide) (by evm_ov),
-    swap2, swap1, pop, jump (by jump_dest)]⟩
+  exact auctionCreateAuctionMintDecodeOk rd ho32 ho hword hov
 
-theorem auctionCreateAuctionCheckedAddNoOverflowGt (a b : UInt256)
-    (hfit : a.toNat + b.toNat < UInt256.size) :
-    UInt256.gt a (b + a) = ⟨0⟩ := by
-  have hsum : (b + a).toNat = b.toNat + a.toNat := by
-    rw [uadd_toNat, Nat.mod_eq_of_lt (by omega)]
-  exact ugt_zero (by rw [hsum]; omega)
-
-theorem auctionCreateAuctionCheckedAddOverflowGt (a b : UInt256)
-    (hover : UInt256.size ≤ a.toNat + b.toNat) :
-    UInt256.gt a (b + a) = ⟨1⟩ := by
-  have hsum_lt2 : b.toNat + a.toNat < 2 * UInt256.size := by
-    have ha : a.toNat < UInt256.size := a.val.isLt
-    have hb : b.toNat < UInt256.size := b.val.isLt
-    omega
-  have hover' : UInt256.size ≤ b.toNat + a.toNat := by omega
-  have hmod : (b.toNat + a.toNat) % UInt256.size =
-      b.toNat + a.toNat - UInt256.size := by
-    rw [Nat.mod_eq_sub_mod hover']
-    exact Nat.mod_eq_of_lt (by omega)
-  have haddNat : (b + a).toNat = b.toNat + a.toNat - UInt256.size := by
-    rw [uadd_toNat, hmod]
-  apply ugt_one
-  rw [haddNat]
-  have hb : b.toNat < UInt256.size := b.val.isLt
-  omega
-
-theorem auctionCreateAuctionCheckedAddOk {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {a b ret : UInt256} {R : List UInt256} {mem : ByteArray}
-    {aw : UInt256} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD auctionBytecode ee g s0 ⟨5704⟩ (a :: b :: ret :: R) mem aw rdata acc k C)
-    (hfit : a.toNat + b.toNat < UInt256.size)
-    (hret : (D_J auctionBytecode 0).contains ret = true) (hov : R.length + 9 ≤ 1024) :
-    ∃ k' C', RD auctionBytecode ee g s0 ret ((b + a) :: R) mem aw rdata acc k' C' := by
-  have hgt : UInt256.gt a (b + a) = ⟨0⟩ :=
-    auctionCreateAuctionCheckedAddNoOverflowGt a b hfit
-  have rd5711₀ := evm_run h with [
-    jumpdest, dup1, dup3, add, dup1, dup3, gt]
-  have rd5711 := rd5711₀
-  rw [hgt] at rd5711
-  have rd5712₀ := evm_run rd5711 with [iszero]
-  have rd5712 := rd5712₀
-  rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd5712
-  have rd4886 := evm_run rd5712 with [
-    push2 ⟨4886⟩, jumpiT one_ne_zero_uint (by jump_dest)]
-  exact ⟨_, _, evm_run rd4886 with [
-    jumpdest, swap3, swap2, pop, pop, jump hret]⟩
-
-set_option maxHeartbeats 1000000 in
-theorem auctionPanicOverflowRevert {g : Sat256} {s0 : State} {ee : ExecutionEnv} {k C : ℕ}
-    {R : List UInt256} {mem : ByteArray} {rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD auctionBytecode ee g s0 ⟨5630⟩ R mem (UInt256.ofNat 5) rdata acc k C)
-    (hov : R.length + 2 ≤ 1024) :
-    RDrev auctionBytecode g s0 := by
-  have hsel : UInt256.shiftLeft (⟨0x4e487b71⟩ : UInt256) ⟨224⟩ =
-      ⟨35408467139433450592217433187231851964531694900788300625387963629091585785856⟩ := by
-    decide
-  have rd5639₀ := evm_run h with [
-    jumpdest, push4 ⟨0x4e487b71⟩, push1 ⟨224⟩, shl, push0]
-  have rd5639 := rd5639₀
-  rw [hsel] at rd5639
-  have rd5643 := evm_run rd5639 with [
-    raw mstore 0
-      ((UInt256.toByteArray
-        (⟨35408467139433450592217433187231851964531694900788300625387963629091585785856⟩ :
-          UInt256)).write 0 mem 0 32)
-      (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    push1 ⟨17⟩, push1 ⟨4⟩]
-  have rd5648 := evm_run rd5643 with [
-    raw mstore 0
-      ((UInt256.toByteArray (⟨17⟩ : UInt256)).write 0
-        ((UInt256.toByteArray
-          (⟨35408467139433450592217433187231851964531694900788300625387963629091585785856⟩ :
-            UInt256)).write 0 mem 0 32) 4 32)
-      (UInt256.ofNat 5) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
-    push1 ⟨36⟩, push0]
-  exact rd5648.rev 0 (by decide) mem_cost (by evm_ov)
-
-set_option maxHeartbeats 1000000 in
-theorem auctionCreateAuctionCheckedAddOverflow {g : Sat256} {s0 : State} {ee : ExecutionEnv}
-    {k C : ℕ} {a b ret : UInt256} {R : List UInt256} {mem rdata : ByteArray}
-    {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    (h : RD auctionBytecode ee g s0 ⟨5704⟩ (a :: b :: ret :: R) mem (UInt256.ofNat 5)
-      rdata acc k C)
-    (hover : UInt256.size ≤ a.toNat + b.toNat) (hov : R.length + 9 ≤ 1024) :
-    RDrev auctionBytecode g s0 := by
-  have hgt : UInt256.gt a (b + a) = ⟨1⟩ :=
-    auctionCreateAuctionCheckedAddOverflowGt a b hover
-  have rd5711₀ := evm_run h with [
-    jumpdest, dup1, dup3, add, dup1, dup3, gt]
-  have rd5711 := rd5711₀
-  rw [hgt] at rd5711
-  have rd5712₀ := evm_run rd5711 with [iszero]
-  have rd5712 := rd5712₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd5712
-  have rd5630 := evm_run rd5712 with [
-    push2 ⟨4886⟩, jumpiNT (by decide), push2 ⟨4886⟩, push2 ⟨5630⟩,
-    jump (by jump_dest)]
-  exact auctionPanicOverflowRevert rd5630 (by evm_ov)
-
-set_option maxHeartbeats 10000000 in
 theorem auctionCreateAuction_successTail {cAInit cACur gh bl σInit σ σ₀ A I} {g : Sat256}
     {mem o : ByteArray} {k C : ℕ} {nounId : UInt256}
     (hperm : I.perm = true)
@@ -464,225 +351,10 @@ theorem auctionCreateAuction_successTail {cAInit cACur gh bl σInit σ σ₀ A I
       (cACur, auctionCreateAuctionSuccessPostMap σ I nounId
         (UInt256.ofNat I.header.timestamp)
         (UInt256.ofNat I.header.timestamp + auctionSlotWord ⟨206⟩ σ I)) ByteArray.empty := by
-  let start := UInt256.ofNat I.header.timestamp
-  let duration := auctionSlotWord ⟨206⟩ σ I
-  let endTime := start + duration
-  have rd3172 := evm_run h with [
-    jumpdest, push1 ⟨1⟩, jumpdest, push2 ⟨3172⟩,
-    jumpiT (by decide) (by jump_dest), jumpdest, push1 ⟨206⟩]
-  obtain ⟨_, _, rd3176₀⟩ := rd3172.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3176⟩ : ∃ k C, RD auctionBytecode I g
-      (initState cAInit gh bl σInit σ₀ g A I) ⟨3176⟩
-      [duration, nounId, ⟨1163⟩, ⟨413⟩, auctionSelWord I]
-      (auctionMintReturnMem2 o mem) (UInt256.ofNat 5) o (cACur, σ) k C := by
-    exact ⟨_, _, by simpa [duration, auctionSlotWord] using rd3176₀⟩
-  have rd5704 := evm_run rd3176 with [
-    timestamp, swap1, push0, swap1, push2 ⟨3189⟩, swap1, dup4, push2 ⟨5704⟩,
-    jump (by jump_dest)]
-  obtain ⟨_, _, rd3189₀⟩ := auctionCreateAuctionCheckedAddOk rd5704
-    (by simpa [start, duration, Nat.add_comm] using hadd)
-    (by jump_dest) (by simp)
-  have rd3189 := rd3189₀
-  rw [show duration + start = endTime by simp [endTime, u256_add_comm]] at rd3189
-  let fmp : UInt256 := UInt256.add ⟨128⟩
-    (UInt256.land (UInt256.lnot ⟨31⟩) (UInt256.add (UInt256.ofNat o.size) ⟨31⟩))
-  let mem3200 : ByteArray := (fmp + ⟨192⟩).toByteArray.write 0
-    (auctionMintReturnMem2 o mem) (⟨64⟩ : UInt256).toNat 32
-  let aw3200 : UInt256 :=
-    UInt256.ofNat (MachineState.M (UInt256.ofNat 5).toNat (⟨64⟩ : UInt256).toNat 32)
-  let mem3203 : ByteArray := nounId.toByteArray.write 0 mem3200 fmp.toNat 32
-  let aw3203 : UInt256 :=
-    UInt256.ofNat (MachineState.M aw3200.toNat fmp.toNat 32)
-  let mem3212 : ByteArray := (⟨0⟩ : UInt256).toByteArray.write 0 mem3203
-    (fmp + ⟨32⟩).toNat 32
-  let aw3212 : UInt256 :=
-    UInt256.ofNat (MachineState.M aw3203.toNat (fmp + ⟨32⟩).toNat 32)
-  let mem3218 : ByteArray := start.toByteArray.write 0 mem3212
-    ((⟨64⟩ : UInt256) + fmp).toNat 32
-  let aw3218 : UInt256 :=
-    UInt256.ofNat (MachineState.M aw3212.toNat ((⟨64⟩ : UInt256) + fmp).toNat 32)
-  let mem3225 : ByteArray := endTime.toByteArray.write 0 mem3218
-    (fmp + ⟨96⟩).toNat 32
-  let aw3225 : UInt256 :=
-    UInt256.ofNat (MachineState.M aw3218.toNat (fmp + ⟨96⟩).toNat 32)
-  let mem3232 : ByteArray := (⟨0⟩ : UInt256).toByteArray.write 0 mem3225
-    (fmp + ⟨128⟩).toNat 32
-  let aw3232 : UInt256 :=
-    UInt256.ofNat (MachineState.M aw3225.toNat (fmp + ⟨128⟩).toNat 32)
-  let mem3240w : ByteArray := (⟨0⟩ : UInt256).toByteArray.write 0 mem3232
-    (fmp + ⟨160⟩).toNat 32
-  let aw3240w : UInt256 :=
-    UInt256.ofNat (MachineState.M aw3232.toNat (fmp + ⟨160⟩).toNat 32)
-  obtain ⟨_, _, mem3240, aw3240, rd3240⟩ :
-      ∃ k C mem' aw', RD auctionBytecode I g
-        (initState cAInit gh bl σInit σ₀ g A I) ⟨3240⟩
-        [⟨0⟩, ⟨32⟩, ⟨64⟩, endTime, ⟨0⟩, start, nounId, ⟨1163⟩, ⟨413⟩,
-          auctionSelWord I]
-        mem' aw' o (cACur, σ) k C := by
-    exact ⟨_, _, _, _, by
-      simpa [start, endTime] using evm_run rd3189 with [
-      jumpdest, push1 ⟨64⟩, dup1,
-      raw mload 0 fmp
-        (UInt256.ofNat 5) (by decide)
-        mem_cost (by simpa [fmp] using auctionMintReturnMem2_mload64 o mem)
-        (by decide) (by evm_ov),
-      push1 ⟨192⟩, dup2, add, dup3,
-      raw mstore (Cₘ aw3200 - Cₘ (UInt256.ofNat 5)) mem3200 aw3200 (by decide)
-        (fun _ haws hstks => mstoreCost_of_stack haws hstks (by rfl))
-        (by rfl) (by rfl) (by evm_ov),
-      dup6, dup2,
-      raw mstore (Cₘ aw3203 - Cₘ aw3200) mem3203 aw3203 (by decide)
-        (fun _ haws hstks => mstoreCost_of_stack haws hstks (by rfl))
-        (by rfl) (by rfl) (by evm_ov),
-      push0, push1 ⟨32⟩, dup1, dup4, add, dup3, swap1,
-      raw mstore (Cₘ aw3212 - Cₘ aw3203) mem3212 aw3212 (by decide)
-        (fun _ haws hstks => mstoreCost_of_stack haws hstks (by rfl))
-        (by rfl) (by rfl) (by evm_ov),
-      dup3, dup5, add, dup8, swap1,
-      raw mstore (Cₘ aw3218 - Cₘ aw3212) mem3218 aw3218 (by decide)
-        (fun _ haws hstks => mstoreCost_of_stack haws hstks (by rfl))
-        (by rfl) (by rfl) (by evm_ov),
-      push1 ⟨96⟩, dup4, add, dup6, swap1,
-      raw mstore (Cₘ aw3225 - Cₘ aw3218) mem3225 aw3225 (by decide)
-        (fun _ haws hstks => mstoreCost_of_stack haws hstks (by rfl))
-        (by rfl) (by rfl) (by evm_ov),
-      push1 ⟨128⟩, dup4, add, dup3, swap1,
-      raw mstore (Cₘ aw3232 - Cₘ aw3225) mem3232 aw3232 (by decide)
-        (fun _ haws hstks => mstoreCost_of_stack haws hstks (by rfl))
-        (by rfl) (by rfl) (by evm_ov),
-      push1 ⟨160⟩, swap1, swap3, add, dup2, swap1,
-      raw mstore (Cₘ aw3240w - Cₘ aw3232) mem3240w aw3240w (by decide)
-        (fun _ haws hstks => mstoreCost_of_stack haws hstks (by rfl))
-        (by rfl) (by rfl) (by evm_ov)]⟩
-  let σ1 := sstoreAccountMap I.codeOwner σ ⟨207⟩ nounId
-  let σ2 := sstoreAccountMap I.codeOwner σ1 ⟨208⟩ ⟨0⟩
-  let σ3 := sstoreAccountMap I.codeOwner σ2 ⟨209⟩ start
-  let σ4 := sstoreAccountMap I.codeOwner σ3 ⟨210⟩ endTime
-  let σ5 := sstoreAccountMap I.codeOwner σ4 ⟨211⟩
-    (auctionCreateAuctionClearBidderSettledWord (auctionSlotWord ⟨211⟩ σ4 I))
-  obtain ⟨_, _, rd3245₀⟩ := (evm_run rd3240 with [push1 ⟨207⟩, dup8, swap1]).sstore
-    hperm (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3245⟩ : ∃ k C, RD auctionBytecode I g
-      (initState cAInit gh bl σInit σ₀ g A I) ⟨3245⟩
-      [⟨0⟩, ⟨32⟩, ⟨64⟩, endTime, ⟨0⟩, start, nounId, ⟨1163⟩, ⟨413⟩,
-        auctionSelWord I]
-      mem3240 aw3240 o (cACur, σ1) k C := by
-    exact ⟨_, _, by simpa [σ1] using rd3245₀⟩
-  obtain ⟨_, _, rd3248₀⟩ := (evm_run rd3245 with [push1 ⟨208⟩]).sstore
-    hperm (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3248⟩ : ∃ k C, RD auctionBytecode I g
-      (initState cAInit gh bl σInit σ₀ g A I) ⟨3248⟩
-      [⟨32⟩, ⟨64⟩, endTime, ⟨0⟩, start, nounId, ⟨1163⟩, ⟨413⟩,
-        auctionSelWord I]
-      mem3240 aw3240 o (cACur, σ2) k C := by
-    exact ⟨_, _, by simpa [σ2] using rd3248₀⟩
-  obtain ⟨_, _, rd3253₀⟩ := (evm_run rd3248 with [push1 ⟨209⟩, dup6, swap1]).sstore
-    hperm (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3253⟩ : ∃ k C, RD auctionBytecode I g
-      (initState cAInit gh bl σInit σ₀ g A I) ⟨3253⟩
-      [⟨32⟩, ⟨64⟩, endTime, ⟨0⟩, start, nounId, ⟨1163⟩, ⟨413⟩,
-        auctionSelWord I]
-      mem3240 aw3240 o (cACur, σ3) k C := by
-    exact ⟨_, _, by simpa [σ3] using rd3253₀⟩
-  obtain ⟨_, _, rd3258₀⟩ := (evm_run rd3253 with [push1 ⟨210⟩, dup4, swap1]).sstore
-    hperm (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3258⟩ : ∃ k C, RD auctionBytecode I g
-      (initState cAInit gh bl σInit σ₀ g A I) ⟨3258⟩
-      [⟨32⟩, ⟨64⟩, endTime, ⟨0⟩, start, nounId, ⟨1163⟩, ⟨413⟩,
-        auctionSelWord I]
-      mem3240 aw3240 o (cACur, σ4) k C := by
-    exact ⟨_, _, by simpa [σ4] using rd3258₀⟩
-  have rd3261₀ := evm_run rd3258 with [push1 ⟨211⟩, dup1]
-  obtain ⟨_, _, rd3262₀⟩ := rd3261₀.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3262⟩ : ∃ k C, RD auctionBytecode I g
-      (initState cAInit gh bl σInit σ₀ g A I) ⟨3262⟩
-      [auctionSlotWord ⟨211⟩ σ4 I, ⟨211⟩, ⟨32⟩, ⟨64⟩, endTime, ⟨0⟩, start,
-        nounId, ⟨1163⟩, ⟨413⟩, auctionSelWord I]
-      mem3240 aw3240 o (cACur, σ4) k C := by
-    exact ⟨_, _, by simpa [auctionSlotWord] using rd3262₀⟩
-  have rd3272₀ := evm_run rd3262 with [
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨168⟩, shl, sub, not, and]
-  have hclear : UInt256.land (UInt256.lnot
-        (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨168⟩) ⟨1⟩))
-        (auctionSlotWord ⟨211⟩ σ4 I) =
-      auctionCreateAuctionClearBidderSettledWord (auctionSlotWord ⟨211⟩ σ4 I) := by
-    unfold auctionCreateAuctionClearBidderSettledWord
-    exact u256_land_comm _ _
-  have rd3272 := rd3272₀
-  rw [hclear] at rd3272
-  obtain ⟨_, _, rd3274₀⟩ := (evm_run rd3272 with [swap1]).sstore
-    hperm (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3274⟩ : ∃ k C, RD auctionBytecode I g
-      (initState cAInit gh bl σInit σ₀ g A I) ⟨3274⟩
-      [⟨32⟩, ⟨64⟩, endTime, ⟨0⟩, start, nounId, ⟨1163⟩, ⟨413⟩,
-        auctionSelWord I]
-      mem3240 aw3240 o (cACur, σ5) k C := by
-    exact ⟨_, _, by simpa [σ5] using rd3274₀⟩
-  let eventDataPtr : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ mem3240.size ∨ (⟨64⟩ : UInt256) ≥ aw3240 * ⟨32⟩
-    then ⟨0⟩
-    else UInt256.ofNat
-      (fromByteArrayBigEndian (mem3240.readWithPadding (⟨64⟩ : UInt256).toNat 32))
-  let aw3276 : UInt256 :=
-    UInt256.ofNat (MachineState.M aw3240.toNat (⟨64⟩ : UInt256).toNat 32)
-  let eventMem3279 : ByteArray := start.toByteArray.write 0 mem3240 eventDataPtr.toNat 32
-  let eventAw3279 : UInt256 :=
-    UInt256.ofNat (MachineState.M aw3276.toNat eventDataPtr.toNat 32)
-  let eventMem3285 : ByteArray := endTime.toByteArray.write 0 eventMem3279
-    (eventDataPtr + ⟨32⟩).toNat 32
-  let eventAw3285 : UInt256 :=
-    UInt256.ofNat (MachineState.M eventAw3279.toNat (eventDataPtr + ⟨32⟩).toNat 32)
-  have rd3276 := evm_run rd3274 with [
-    dup2,
-    raw mload (Cₘ aw3276 - Cₘ aw3240) eventDataPtr aw3276 (by decide)
-      (fun _ haws hstks => auctionMloadCost_of_stack haws hstks (by rfl))
-      (by rfl) (by rfl) (by evm_ov)]
-  have rd3279 := evm_run rd3276 with [
-    dup6, dup2,
-      raw mstore (Cₘ eventAw3279 - Cₘ aw3276) eventMem3279 eventAw3279 (by decide)
-      (fun _ haws hstks => mstoreCost_of_stack haws hstks (by rfl))
-      (by rfl) (by rfl) (by evm_ov)]
-  obtain ⟨_, _, rd3285⟩ : ∃ k C, RD auctionBytecode I g
-      (initState cAInit gh bl σInit σ₀ g A I) ⟨3285⟩
-      [eventDataPtr, ⟨64⟩, endTime, ⟨0⟩, start, nounId, ⟨1163⟩, ⟨413⟩,
-        auctionSelWord I]
-      eventMem3285 eventAw3285 o (cACur, σ5) k C := by
-    exact ⟨_, _, evm_run rd3279 with [
-      swap1, dup2, add, dup4, swap1,
-      raw mstore (Cₘ eventAw3285 - Cₘ eventAw3279) eventMem3285 eventAw3285 (by decide)
-        (fun _ haws hstks => mstoreCost_of_stack haws hstks (by rfl))
-        (by rfl) (by rfl) (by evm_ov)]⟩
-  have rd3336 := evm_run rd3285 with [swap2, swap3, pop]
-  have rd3332 := evm_run rd3336 with [dup5, swap2]
-  have rdTopic := rd3332.pushConst
-    (⟨0xd6eddd1118d71820909c1197aa966dbc15ed6f508554252169cc3d5ccac756ca⟩ : UInt256)
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
-  let logDataPtr : UInt256 :=
-    if (⟨64⟩ : UInt256).toNat ≥ eventMem3285.size ∨
-        (⟨64⟩ : UInt256) ≥ eventAw3285 * ⟨32⟩ then ⟨0⟩
-    else UInt256.ofNat
-      (fromByteArrayBigEndian (eventMem3285.readWithPadding (⟨64⟩ : UInt256).toNat 32))
-  let aw3328 : UInt256 :=
-    UInt256.ofNat (MachineState.M eventAw3285.toNat (⟨64⟩ : UInt256).toNat 32)
-  have rd3328 := evm_run rdTopic with [
-    swap2, add, push1 ⟨64⟩,
-    raw mload (Cₘ aw3328 - Cₘ eventAw3285) logDataPtr aw3328 (by decide)
-      (fun _ haws hstks => auctionMloadCost_of_stack haws hstks (by rfl))
-      (by rfl) (by rfl) (by evm_ov)]
-  let logSize : UInt256 := ((⟨64⟩ : UInt256) + eventDataPtr).sub logDataPtr
-  let aw3333 : UInt256 :=
-    UInt256.ofNat (MachineState.M aw3328.toNat logDataPtr.toNat logSize.toNat)
-  have rd3332PreLog := evm_run rd3328 with [dup1, swap2, sub, swap1]
-  have rd3332' := Auction.RD.log2 (Cₘ aw3333 - Cₘ aw3328) aw3333 rd3332PreLog
-    (by decide) hperm
-    (fun _ haws hstks => auctionLog2Cost_of_stack haws hstks (by rfl))
-    (by rfl) (by evm_ov)
-  have rd1163 := evm_run rd3332' with [pop, pop, pop, jump (by jump_dest), jumpdest]
-  have rd413 := evm_run rd1163 with [jump (by jump_dest), jumpdest]
-  have hpost : σ5 = auctionCreateAuctionSuccessPostMap σ I nounId start endTime := by
-    simp [σ5, σ4, σ3, σ2, σ1, auctionCreateAuctionSuccessPostMap, endTime]
-  rw [hpost] at rd413
-  simpa [start, duration, endTime] using rd413.stop (by decide) (by evm_ov)
+  obtain ⟨_, _, _, _, rd1163⟩ := auctionCreateAuctionSuccessToRet hperm (by simp)
+    (by jump_dest) hadd h
+  have rd413 := evm_run rd1163 with [jumpdest, jump (by jump_dest), jumpdest]
+  exact rd413.stop (by native_decide) (by evm_ov)
 
 theorem auctionCreateAuction_mintCallSuccessTail
     {cAInit cACur gh bl σInit σTarget σ σ₀ A I}
@@ -742,7 +414,7 @@ theorem auctionCreateAuction_mintCallSuccessAddOverflowRevert
   have rd3172 := evm_run rd3108 with [
     jumpdest, push1 ⟨1⟩, jumpdest, push2 ⟨3172⟩,
     jumpiT (by decide) (by jump_dest), jumpdest, push1 ⟨206⟩]
-  obtain ⟨_, _, rd3176₀⟩ := rd3172.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd3176₀⟩ := rd3172.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3176⟩ : ∃ k C, RD auctionBytecode I g
       (initState cAInit gh bl σInit σ₀ g A I) ⟨3176⟩
       [duration, nounId, ⟨1163⟩, ⟨413⟩, auctionSelWord I]
@@ -768,16 +440,7 @@ theorem auctionCreateAuction_mintReturnDecodeRevert {cA gh bl σInit σ₀ A I} 
         ⟨1⟩)
     (hov : R.length + 8 ≤ 1024) :
     RDrev auctionBytecode g (initState cA gh bl σInit σ₀ g A I) := by
-  have rd5832₀ := evm_run rd with [
-    jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt]
-  have rd5832 := rd5832₀
-  rw [hbad] at rd5832
-  have rd5833₀ := evm_run rd5832 with [iszero]
-  have rd5833 := rd5833₀
-  rw [show UInt256.isZero (⟨1⟩ : UInt256) = ⟨0⟩ from by decide] at rd5833
-  exact evm_run rd5833 with [
-    push2 ⟨5836⟩, jumpiNT (by decide), push0, dup1,
-    raw rev 0 (by decide) mem_cost (by evm_ov)]
+  exact auctionCreateAuctionMintDecodeRevert rd hbad hov
 
 theorem auctionCreateAuction_mintCallSuccessDecodeRevert
     {cAInit cACur gh bl σInit σTarget σ σ₀ A I}
@@ -830,11 +493,11 @@ theorem auctionCreateAuction_mintCallFailureEmptyRevert {cA gh bl σInit σ₀ A
   have rd3165 := evm_run rd3123 with [
     dup1, push4 ⟨0x08c379a0⟩, sub, push2 ⟨3162⟩,
     jumpiT (by decide) (by jump_dest), jumpdest, pop, jumpdest]
-  have rd3166 := RD.returndatasize rd3165 (by decide)
+  have rd3166 := RD.returndatasize rd3165 (by native_decide)
     (by omega)
-  have rd3167 := RD.push0 rd3166 (by decide)
+  have rd3167 := RD.push0 rd3166 (by native_decide)
     (by simp only [List.length_cons]; omega)
-  have rd3168 := RD.dup1 rd3167 (by decide)
+  have rd3168 := RD.dup1 rd3167 (by native_decide)
     (by simp only [List.length_cons]; omega)
   let len := UInt256.ofNat ByteArray.empty.size
   let memout := ByteArray.empty.write 0 mem 0 len.toNat
@@ -849,8 +512,8 @@ theorem auctionCreateAuction_mintCallFailureEmptyRevert {cA gh bl σInit σ₀ A
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, len, awout])
     (by rfl) (by rfl)
     (by omega)
-  have rd3170 := RD.returndatasize rd3169 (by decide) (by omega)
-  have rd3171 := RD.push0 rd3170 (by decide)
+  have rd3170 := RD.returndatasize rd3169 (by native_decide) (by omega)
+  have rd3171 := RD.push0 rd3170 (by native_decide)
     (by simp only [List.length_cons]; omega)
   exact RD.rev (Cₘ (UInt256.ofNat (MachineState.M awout.toNat 0 len.toNat)) - Cₘ awout)
     rd3171 (by decide)
@@ -862,16 +525,16 @@ set_option maxHeartbeats 1000000 in
 theorem auctionCreateAuction_mintCallFailureShortRevert {cA gh bl σInit σ₀ A I}
     {g : Sat256}
     {acc : Batteries.RBSet AccountAddress compare × AccountMap}
-    {mem o : ByteArray} {k C : ℕ} {d0 d1 d2 : UInt256} {R : List UInt256}
+    {mem o : ByteArray} {k C : ℕ} {aw d0 d1 d2 : UInt256} {R : List UInt256}
     (rd : RD auctionBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨3067⟩
-      (⟨0⟩ :: d0 :: d1 :: d2 :: R) mem (UInt256.ofNat 5) o acc k C)
+      (⟨0⟩ :: d0 :: d1 :: d2 :: R) mem aw o acc k C)
     (hshort : o.size < 4) (hosz : o.size < UInt256.size) (hov : R.length + 8 ≤ 1024) :
     RDrev auctionBytecode g (initState cA gh bl σInit σ₀ g A I) := by
   have rd3111 := evm_run rd with [
     swap3, pop, pop, pop, dup1, iszero, push2 ⟨3111⟩,
-    jumpiT (by decide) (by jump_dest), jumpdest]
+    jumpiT (by native_decide) (by jump_dest), jumpdest]
   have rd5843 := evm_run rd3111 with [
-    push2 ⟨3172⟩, jumpiNT (by decide), push2 ⟨3123⟩, push2 ⟨5843⟩,
+    push2 ⟨3172⟩, jumpiNT (by native_decide), push2 ⟨3123⟩, push2 ⟨5843⟩,
     jump (by jump_dest), jumpdest]
   have hgt : UInt256.gt (UInt256.ofNat o.size) (⟨3⟩ : UInt256) = ⟨0⟩ := by
     apply ugt_zero
@@ -885,22 +548,22 @@ theorem auctionCreateAuction_mintCallFailureShortRevert {cA gh bl σInit σ₀ A
   have rd5850 := rd5850₀
   rw [show UInt256.isZero (⟨0⟩ : UInt256) = ⟨1⟩ from by decide] at rd5850
   have rd3123 := evm_run rd5850 with [
-    push2 ⟨5865⟩, jumpiT (by decide) (by jump_dest), jumpdest, swap1,
+    push2 ⟨5865⟩, jumpiT (by native_decide) (by jump_dest), jumpdest, swap1,
     jump (by jump_dest), jumpdest]
   have rd3165 := evm_run rd3123 with [
     dup1, push4 ⟨0x08c379a0⟩, sub, push2 ⟨3162⟩,
-    jumpiT (by decide) (by jump_dest), jumpdest, pop, jumpdest]
-  have rd3166 := RD.returndatasize rd3165 (by decide)
+    jumpiT (by native_decide) (by jump_dest), jumpdest, pop, jumpdest]
+  have rd3166 := RD.returndatasize rd3165 (by native_decide)
     (by omega)
-  have rd3167 := RD.push0 rd3166 (by decide)
+  have rd3167 := RD.push0 rd3166 (by native_decide)
     (by simp only [List.length_cons]; omega)
-  have rd3168 := RD.dup1 rd3167 (by decide)
+  have rd3168 := RD.dup1 rd3167 (by native_decide)
     (by simp only [List.length_cons]; omega)
   let len := UInt256.ofNat o.size
   let memout := o.write 0 mem 0 len.toNat
-  let awout := UInt256.ofNat (MachineState.M (UInt256.ofNat 5).toNat 0 len.toNat)
+  let awout := UInt256.ofNat (MachineState.M aw.toNat 0 len.toNat)
   have rd3169 := RD.returndatacopy
-    (Cₘ awout - Cₘ (UInt256.ofNat 5)) memout awout rd3168 (by decide)
+    (Cₘ awout - Cₘ aw) memout awout rd3168 (by native_decide)
     (by
       change 0 + len.toNat ≤ o.size
       dsimp [len]
@@ -910,11 +573,11 @@ theorem auctionCreateAuction_mintCallFailureShortRevert {cA gh bl σInit σ₀ A
       simp [memoryExpansionCost, memoryExpansionCost.μᵢ', haw, hstk, len, awout])
     (by rfl) (by rfl)
     (by omega)
-  have rd3170 := RD.returndatasize rd3169 (by decide) (by omega)
-  have rd3171 := RD.push0 rd3170 (by decide)
+  have rd3170 := RD.returndatasize rd3169 (by native_decide) (by omega)
+  have rd3171 := RD.push0 rd3170 (by native_decide)
     (by simp only [List.length_cons]; omega)
   exact RD.rev (Cₘ (UInt256.ofNat (MachineState.M awout.toNat 0 len.toNat)) - Cₘ awout)
-    rd3171 (by decide)
+    rd3171 (by native_decide)
     (fun s haws hstks => by
       simpa [awout, len, haws] using memExpRevertZeroOff s hstks)
     (by omega)
@@ -1054,7 +717,7 @@ theorem auctionCreateAuction_callDepthLimitRevert {cA gh bl σInit σ σ₀ A I}
       (auctionEventMem I) (UInt256.ofNat 5) ByteArray.empty (cA, σ) k C) :
     RDrev auctionBytecode g (initState cA gh bl σInit σ₀ g A I) := by
   obtain ⟨_, _, rd3065⟩ := auctionCreateAuction_toMintCall rd
-  obtain ⟨_, rd3066⟩ := rd3065.gas (by decide) (by evm_ov)
+  obtain ⟨_, rd3066⟩ := rd3065.gas (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd3067⟩ := rd3066.callDepthLimit (by decide) hdepth (by evm_ov)
   exact auctionCreateAuction_mintCallFailureEmptyRevert rd3067 (by simp)
 

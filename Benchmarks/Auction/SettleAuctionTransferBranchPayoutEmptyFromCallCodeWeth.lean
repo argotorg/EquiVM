@@ -491,7 +491,7 @@ theorem transferBranchPayoutFailureEmptyFromCallWethCodeCase
           (auctionAuctionPackedWord (auctionSettleAuctionEnterMap σ_evm I) I))
         (caller := callerWord) (owner := ownerWord) (wethBefore := wethWord)
         (kAfterDep := kAfterDep) (CAfterDep := CAfterDep)
-        _hcode _hperm hdispatch hdecode rfl (by simpa [evmS, initState] using hwv)
+        _hcode _hperm hdispatch hdecode rfl (by simpa only [evmS, initState] using hwv)
         hpausedSolm hstatusSolm hstartSolm hsettledSolm htimeSolmLe
         hbidderSolm hnounsCodeSolmEval
         (by simpa [evmTf, evmMark, evmEnter] using hcallSolm)

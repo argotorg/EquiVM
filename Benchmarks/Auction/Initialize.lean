@@ -4,10 +4,25 @@ open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Refinement
 
 set_option maxRecDepth 50000000
-set_option maxHeartbeats 0
 
 namespace Auction
 
+private theorem initializeCore_created (evm : EVM.State) (I : ExecutionEnv) :
+    (auctionInitializeCorePostState evm I).createdAccounts = evm.createdAccounts := by
+  simp only [auctionInitializeCorePostState, auctionInitializeSetUint256State,
+    auctionInitializeSetMinBidState, auctionInitializeSetAddressState, auctionPausePostState,
+    auctionInitializeSetStatusState, auctionUnpausePostState, storageStore_createdAccounts]
+
+private theorem initializeTop_created (evm : EVM.State) (I : ExecutionEnv) :
+    (auctionInitializeTopPostState evm I).createdAccounts = evm.createdAccounts := by
+  simp only [auctionInitializeTopPostState, auctionInitializeSetInitializingFalseState,
+    storageStore_createdAccounts, initializeCore_created,
+    auctionInitializeSetInitializedTrueState, auctionInitializeSetInitializingTrueState]
+
+attribute [local irreducible] auctionInitializeTopPostState auctionInitializeCorePostState
+  auctionInitializeNestedPostState auctionInitializeTopPostMap auctionInitializeCorePostMap
+
+set_option maxHeartbeats 1000000 in
 theorem auctionInitializeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (_hcode : I.code = auctionBytecode)
     (_hsize : I.calldata.size < UInt256.size)
@@ -64,7 +79,7 @@ theorem auctionInitializeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
                   have hpostAccountsEvm :
                       accountMapEquiv (auctionInitializeTopPostMap σ_evm I)
                         (auctionInitializeTopPostState evmE I).accountMap := by
-                    simpa [evmE] using
+                    exact
                       (auctionInitializeTopPostMap_accountMap (cA := cA) (gh := gh)
                         (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
                         (g := Sat256.ofUInt256 g))
@@ -78,15 +93,7 @@ theorem auctionInitializeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
                       _hperm hwv hsz196 _hsize hbig hcanonNouns hcanonWeth hcanonMinBid
                       hinitZero hizedZero hreach)
                     |>.reEquivExecutionGenEVMStateEquiv _hcode hdispatch hdecode hbody
-                      (by
-                        simp [auctionInitializeTopPostState, auctionInitializeCorePostState,
-                          auctionInitializeSetInitializingFalseState,
-                          auctionInitializeSetInitializedTrueState,
-                          auctionInitializeSetInitializingTrueState, auctionUnpausePostState,
-                          auctionInitializeSetStatusState, auctionInitializeSetAddressState,
-                          auctionPausePostState, auctionInitializeSetUint256State,
-                          auctionInitializeSetMinBidState, evmE, initState,
-                          storageStore_createdAccounts])
+                      (initializeTop_created evmE I).symm
                       hpostAccountsEvm hpostState
                       (returnEquiv.fallthrough rfl rfl (by native_decide))
                 · have hizedNzSolm : auctionInitializedByte evmS ≠ ⟨0⟩ := by
@@ -123,7 +130,7 @@ theorem auctionInitializeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
                 have hpostAccountsEvm :
                     accountMapEquiv (auctionInitializeCorePostMap σ_evm I)
                       (auctionInitializeNestedPostState evmE I).accountMap := by
-                  simpa [evmE, auctionInitializeNestedPostState] using
+                  simpa only [auctionInitializeNestedPostState] using
                     (auctionInitializeCorePostMap_accountMap (cA := cA) (gh := gh)
                       (bl := bl) (σ := σ_evm) (σ₀ := σ₀) (A := A) (I := I)
                       (g := Sat256.ofUInt256 g))
@@ -137,12 +144,8 @@ theorem auctionInitializeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
                     _hperm hwv hsz196 _hsize hbig hcanonNouns hcanonWeth hcanonMinBid
                     hinitZero hreach)
                   |>.reEquivExecutionGenEVMStateEquiv _hcode hdispatch hdecode hbody
-                    (by
-                      simp [auctionInitializeNestedPostState, auctionInitializeCorePostState,
-                        auctionUnpausePostState, auctionInitializeSetStatusState,
-                        auctionInitializeSetAddressState, auctionPausePostState,
-                        auctionInitializeSetUint256State, auctionInitializeSetMinBidState,
-                        evmE, initState, storageStore_createdAccounts])
+                    (by simpa only [auctionInitializeNestedPostState] using
+                      (initializeCore_created evmE I).symm)
                     hpostAccountsEvm hpostState
                     (returnEquiv.fallthrough rfl rfl (by native_decide))
             · exact (auctionInitializeX_decodeRevert_noncanon_minBid
@@ -180,7 +183,7 @@ theorem auctionInitializeBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt2
                 hcanonWeth hcanonMinBid
               have hbody := auctionInitializeBodyReverts_callvalue
                 (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
-                (by simpa [initState] using hwv)
+                (by simpa only [initState] using hwv)
               exact (auctionX_initialize_callvalue_ne hreach hwv)
                 |>.reEquivExecutionRevert _hcode hdispatch hdecode hbody
             · exact (auctionX_initialize_callvalue_ne hreach hwv)

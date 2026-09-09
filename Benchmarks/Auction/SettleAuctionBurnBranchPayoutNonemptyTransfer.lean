@@ -752,7 +752,7 @@ theorem auctionSettleAuctionBodyBurnPayoutFailureNonemptyTransferCase
           settleAuctionTransition.body .reverted :=
       auctionSettleAuctionTransitionReverts_burnPayoutLowLevelFailureWethTransferFailure
         evmS evmBurn evmPay evmDeposit evmTransfer
-        (by simpa [evmS, initState] using hwv) hpausedSolm
+        (by simpa only [evmS, initState] using hwv) hpausedSolm
         hstatusSolm hstartSolm hsettledSolm htimeSolmLe
         hbidderSolm hnounsCodeSolmEval
         (by simpa [evmBurn, evmMark, evmEnter] using hcallSolm)

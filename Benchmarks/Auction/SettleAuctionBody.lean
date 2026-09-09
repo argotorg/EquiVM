@@ -51,7 +51,7 @@ theorem auctionSettleAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
         dsimp [settleAuctionTransition, nonpayable]
         refine ExecFuncBody.execBlockRevert ?_
         refine ExecBlock.consNormal
-          (ExecStmt.requireTrue (evalCallvalueEq_true (by simpa [evmS, initState] using hwv))) ?_
+          (ExecStmt.requireTrue (evalCallvalueEq_true (by simpa only [evmS, initState] using hwv))) ?_
         exact ExecBlock.consRevert
           (ExecStmt.requireFalse (evalExpr_pause_paused_false evmS hpausedSolm))
       exact (auctionX_settleAuction_revert_paused
@@ -81,7 +81,7 @@ theorem auctionSettleAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
             ExecTransitionBody auctionConfig auctionContract evmS ∅
               settleAuctionTransition.body .reverted :=
           auctionSettleAuctionTransitionReverts_statusEntered evmS
-            (by simpa [evmS, initState] using hwv) hpausedSolm hstatusSolm
+            (by simpa only [evmS, initState] using hwv) hpausedSolm hstatusSolm
         exact (auctionX_settleAuction_revert_statusEntered
             (g := Sat256.ofUInt256 g) hwv hpausedZero hstatusEntered hreach)
           |>.reEquivExecutionRevert _hcode hdispatch hdecode hbody
@@ -106,7 +106,7 @@ theorem auctionSettleAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
               ExecTransitionBody auctionConfig auctionContract evmS ∅
                 settleAuctionTransition.body .reverted :=
             auctionSettleAuctionTransitionReverts_notStarted evmS
-              (by simpa [evmS, initState] using hwv) hpausedSolm hstatusSolm hstartSolm
+              (by simpa only [evmS, initState] using hwv) hpausedSolm hstatusSolm hstartSolm
           exact (auctionX_settleAuction_revert_notStarted
               (g := Sat256.ofUInt256 g) _hperm hwv hpausedZero hstatusEntered hstart hreach)
             |>.reEquivExecutionRevert _hcode hdispatch hdecode hbody
@@ -154,7 +154,7 @@ theorem auctionSettleAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
                   ExecTransitionBody auctionConfig auctionContract evmS ∅
                     settleAuctionTransition.body .reverted :=
                 auctionSettleAuctionTransitionReverts_timeNotReached evmS
-                  (by simpa [evmS, initState] using hwv) hpausedSolm hstatusSolm hstartSolm
+                  (by simpa only [evmS, initState] using hwv) hpausedSolm hstatusSolm hstartSolm
                   hsettledSolm htimeSolm
               exact (auctionX_settleAuction_revert_timeNotReached
                   (g := Sat256.ofUInt256 g) _hperm hwv hpausedZero hstatusEntered hstart
@@ -281,7 +281,7 @@ theorem auctionSettleAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
                           ExecTransitionBody auctionConfig auctionContract evmS ∅
                             settleAuctionTransition.body .reverted :=
                         auctionSettleAuctionTransitionReverts_burnCallFailure evmS evmBurn
-                          (by simpa [evmS, initState] using hwv) hpausedSolm hstatusSolm
+                          (by simpa only [evmS, initState] using hwv) hpausedSolm hstatusSolm
                           hstartSolm hsettledSolm htimeSolmLe hbidderSolm
                           hnounsCodeSolmEval (by simpa [evmBurn, evmMark, evmEnter] using hcallSolm)
                       exact hrdFail.reEquivExecutionRevert _hcode hdispatch hdecode hbody
@@ -339,7 +339,7 @@ theorem auctionSettleAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
                                   { contract := auctionContract, locals := ∅ } "_s" none)
                                 (auctionSettleAuctionExitState evmBurn) none) :=
                           auctionSettleAuctionTransitionReturns_burnNoPayout evmS evmBurn
-                            (by simpa [evmS, initState] using hwv) hpausedSolm hstatusSolm
+                            (by simpa only [evmS, initState] using hwv) hpausedSolm hstatusSolm
                             hstartSolm hsettledSolm htimeSolmLe hbidderSolm
                             hnounsCodeSolmEval
                             (by simpa [evmBurn, evmMark, evmEnter] using hcallSolm)
@@ -695,7 +695,7 @@ theorem auctionSettleAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
                                       (auctionSettleAuctionExitState evmPay) none) :=
                                 auctionSettleAuctionTransitionReturns_burnPayoutLowLevelSuccess
                                   evmS evmBurn evmPay
-                                  (by simpa [evmS, initState] using hwv) hpausedSolm
+                                  (by simpa only [evmS, initState] using hwv) hpausedSolm
                                   hstatusSolm hstartSolm hsettledSolm htimeSolmLe
                                   hbidderSolm hnounsCodeSolmEval
                                   (by simpa [evmBurn, evmMark, evmEnter] using hcallSolm)
@@ -743,7 +743,7 @@ theorem auctionSettleAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
                                       (auctionSettleAuctionExitState evmPay) none) :=
                                 auctionSettleAuctionTransitionReturns_burnPayoutLowLevelSuccess
                                   evmS evmBurn evmPay
-                                  (by simpa [evmS, initState] using hwv) hpausedSolm
+                                  (by simpa only [evmS, initState] using hwv) hpausedSolm
                                   hstatusSolm hstartSolm hsettledSolm htimeSolmLe
                                   hbidderSolm hnounsCodeSolmEval
                                   (by simpa [evmBurn, evmMark, evmEnter] using hcallSolm)
@@ -1097,7 +1097,7 @@ theorem auctionSettleAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
                                   settleAuctionTransition.body .reverted :=
                               auctionSettleAuctionTransitionReverts_burnPayoutLowLevelFailureWethDepositFailure
                                 evmS evmBurn evmPay evmDeposit
-                                (by simpa [evmS, initState] using hwv) hpausedSolm
+                                (by simpa only [evmS, initState] using hwv) hpausedSolm
                                 hstatusSolm hstartSolm hsettledSolm htimeSolmLe
                                 hbidderSolm hnounsCodeSolmEval
                                 (by simpa [evmBurn, evmMark, evmEnter] using hcallSolm)
@@ -1195,7 +1195,7 @@ theorem auctionSettleAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
                                   settleAuctionTransition.body .reverted :=
                               auctionSettleAuctionTransitionReverts_burnPayoutLowLevelFailureWethNoCode
                                 evmS evmBurn evmPay
-                                (by simpa [evmS, initState] using hwv) hpausedSolm
+                                (by simpa only [evmS, initState] using hwv) hpausedSolm
                                 hstatusSolm hstartSolm hsettledSolm htimeSolmLe
                                 hbidderSolm hnounsCodeSolmEval
                                 (by simpa [evmBurn, evmMark, evmEnter] using hcallSolm)
@@ -1237,7 +1237,7 @@ theorem auctionSettleAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
                         ExecTransitionBody auctionConfig auctionContract evmS ∅
                           settleAuctionTransition.body .reverted :=
                       auctionSettleAuctionTransitionReverts_burnCallFailure evmS evmBurn
-                        (by simpa [evmS, initState] using hwv) hpausedSolm hstatusSolm
+                        (by simpa only [evmS, initState] using hwv) hpausedSolm hstatusSolm
                         hstartSolm hsettledSolm htimeSolmLe hbidderSolm
                         hnounsCodeSolmEval
                         (by simpa [evmBurn, evmMark, evmEnter, burnTargetSolm, nounSolm]
@@ -1269,7 +1269,7 @@ theorem auctionSettleAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
                 ExecTransitionBody auctionConfig auctionContract evmS ∅
                   settleAuctionTransition.body .reverted :=
               auctionSettleAuctionTransitionReverts_alreadySettled evmS
-                (by simpa [evmS, initState] using hwv) hpausedSolm hstatusSolm hstartSolm
+                (by simpa only [evmS, initState] using hwv) hpausedSolm hstatusSolm hstartSolm
                 hsettledSolm
             exact (auctionX_settleAuction_revert_alreadySettled
                 (g := Sat256.ofUInt256 g) _hperm hwv hpausedZero hstatusEntered hstart
@@ -1280,7 +1280,7 @@ theorem auctionSettleAuctionBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) ∅
           settleAuctionTransition.body .reverted := by
       dsimp [settleAuctionTransition, nonpayable]
-      exact bodyReverts_nonPayable (by simpa [initState] using hwv)
+      exact bodyReverts_nonPayable (by simpa only [initState] using hwv)
     exact (auctionX_settleAuction_callvalue_ne hreach hwv)
       |>.reEquivExecutionRevert _hcode hdispatch hdecode hbody
 

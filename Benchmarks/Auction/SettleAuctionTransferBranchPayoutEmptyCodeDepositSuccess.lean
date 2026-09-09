@@ -609,7 +609,7 @@ theorem transferBranchPayoutFailureEmptyWethDepositSuccessTransferCase
           settleAuctionTransition.body .reverted :=
       auctionSettleAuctionTransitionReverts_transferFromPayoutLowLevelFailureWethTransferFailure
         evmS evmTf evmPay evmDeposit evmTransfer
-        (by simpa [evmS, initState] using hwv) hpausedSolm
+        (by simpa only [evmS, initState] using hwv) hpausedSolm
         hstatusSolm hstartSolm hsettledSolm htimeSolmLe
         hbidderSolm hnounsCodeSolmEval
         (by simpa [evmTf, evmMark, evmEnter] using hcallSolm)
@@ -670,7 +670,7 @@ theorem transferBranchPayoutFailureEmptyWethDepositSuccessTransferCase
             evmS ∅ settleAuctionTransition.body .reverted :=
         auctionSettleAuctionTransitionReverts_transferFromPayoutLowLevelFailureWethTransferDecodeFailure
           evmS evmTf evmPay evmDeposit evmTransfer
-          (by simpa [evmS, initState] using hwv)
+          (by simpa only [evmS, initState] using hwv)
           hpausedSolm hstatusSolm hstartSolm hsettledSolm
           htimeSolmLe hbidderSolm hnounsCodeSolmEval
           (by
@@ -722,7 +722,7 @@ theorem transferBranchPayoutFailureEmptyWethDepositSuccessTransferCase
               evmS ∅ settleAuctionTransition.body .reverted :=
           auctionSettleAuctionTransitionReverts_transferFromPayoutLowLevelFailureWethTransferDecodeFailure
             evmS evmTf evmPay evmDeposit evmTransfer
-            (by simpa [evmS, initState] using hwv)
+            (by simpa only [evmS, initState] using hwv)
             hpausedSolm hstatusSolm hstartSolm hsettledSolm
             htimeSolmLe hbidderSolm hnounsCodeSolmEval
             (by
@@ -753,7 +753,7 @@ theorem transferBranchPayoutFailureEmptyWethDepositSuccessTransferCase
               (evmTransfer := evmTransfer)
               (transferOk := transferOk)
               _hcode hdispatch hdecode rfl hret
-              (by simpa [evmS, initState] using hwv)
+              (by simpa only [evmS, initState] using hwv)
               hpausedSolm hstatusSolm hstartSolm hsettledSolm
               htimeSolmLe hbidderSolm hnounsCodeSolmEval
               (by
@@ -950,7 +950,7 @@ theorem transferBranchPayoutFailureEmptyWethDepositSuccessTransferCase
                   .reverted :=
               auctionSettleAuctionTransitionReverts_transferFromPayoutLowLevelFailureWethTransferDecodeFailure
                 evmS evmTf evmPay evmDeposit evmTransfer
-                (by simpa [evmS, initState] using hwv)
+                (by simpa only [evmS, initState] using hwv)
                 hpausedSolm hstatusSolm hstartSolm
                 hsettledSolm htimeSolmLe hbidderSolm
                 hnounsCodeSolmEval

@@ -220,32 +220,34 @@ theorem auctionReachSetTimeBufferBody {cA gh bl σ σ₀ A I} {g : Sat256}
     simpa [selIs, auctionSelBytes] using hsel
   have hword : auctionSelWord I = ⟨0x7120334b⟩ :=
     auctionSelWord_eq_of_beq I hsz 0x71 0x20 0x33 0x4b ⟨0x7120334b⟩
-      (by decide) hsel'
+      (by native_decide) hsel'
   obtain ⟨_, _, hsplit⟩ := auctionReachRootSplit (cA := cA) (gh := gh) (bl := bl)
     (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g) hcode hsz hsize
   have hroot : UInt256.gt (armSelNat auctionBytecode auctionSplitPc) (auctionSelWord I) ≠
       ⟨0⟩ := by
     rw [hword]
-    decide
-  have h157 := RD.selectorSplitTakenAuto hsplit auctionSplitWellFormed hroot
+    native_decide
+  have h157 := auctionSelectorSplitTakenTo hsplit auctionSplitWellFormed hroot
+      auctionRootSplitTargetPc
     (by jump_dest) (by simp)
-  have h158 := h157.jumpdest (by decide) (by simp)
+  have h158 := h157.jumpdest (by native_decide) (by simp)
   have hlower : UInt256.gt (armSelNat auctionBytecode auctionLowerSplitPc) (auctionSelWord I) =
       ⟨0⟩ := by
     rw [hword]
-    decide
-  have h169 := RD.selectorSplitNotTakenAuto h158 auctionLowerSplitWellFormed hlower (by simp)
+    native_decide
+  have h169 := auctionSelectorSplitNotTakenTo h158 auctionLowerSplitWellFormed hlower
+      auctionLowerSplitNextPc (by simp)
   have heq0 : ∀ j, j < 2 →
       UInt256.eq (armSelNat auctionBytecode
         (nthArmPc auctionBytecode auctionLowerMidFirstArmPc j)) (auctionSelWord I) = ⟨0⟩ := by
     intro j hj
-    interval_cases j <;> rw [hword] <;> decide
+    interval_cases j <;> rw [hword] <;> native_decide
   have htake :
       UInt256.eq
         (armSelNat auctionBytecode (nthArmPc auctionBytecode auctionLowerMidFirstArmPc 2))
         (auctionSelWord I) ≠ ⟨0⟩ := by
     rw [hword]
-    decide
+    native_decide
   exact RD.dispatchTo (code := auctionBytecode) (ee := I) (g := g)
     (s0 := initState cA gh bl σ σ₀ g A I) (selWord := auctionSelWord I)
     (mem := solcFreePtrMem) (aw := UInt256.ofNat 3) (rdata := ByteArray.empty)
@@ -264,7 +266,7 @@ theorem auctionX_setTimeBuffer_callvalue_ne {cA gh bl σ σ₀ A I} {g : Sat256}
   exact evm_run rd519 with [
     jumpdest, callvalue, dup1, iszero, push2 ⟨530⟩,
     jumpiNT (isZero_eq_zero_of_ne hwv),
-    push0, dup1, raw rev 0 (by decide) mem_cost (by evm_ov)]
+    push0, dup1, raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionSetTimeBufferX_toDecoder {cA gh bl σ σ₀ A I} {g : Sat256}
     {sel : UInt256}
@@ -312,7 +314,7 @@ theorem auctionDecodeUint256LenRevert5357 {g : Sat256} {s0 : State}
   evm_run h with [
     jumpdest, push0, push1 ⟨32⟩, dup3, dup5, sub, slt, iszero, push2 ⟨5373⟩,
     jumpiNT (by rw [hsltval]; decide),
-    push0, dup1, raw rev 0 (by decide) (fun s _ hstk => memExpRevert0 s hstk) (by
+    push0, dup1, raw rev 0 (by native_decide) (fun s _ hstk => memExpRevert0 s hstk) (by
       have hR : R.length ≤ 1024 - 10 := Nat.le_sub_of_add_le hov
       simp only [List.length_cons]
       omega)]
@@ -397,7 +399,7 @@ theorem auctionX_setTimeBuffer_success {cA gh bl σ σ₀ A I} {g : Sat256}
     (sel := auctionSelWord I) hwv hsz36 hsize hszhi hreach
   have rd1948₀ := evm_run rd1934 with [
     jumpdest, push1 ⟨151⟩]
-  obtain ⟨_, _, rd1937₀⟩ := rd1948₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1937₀⟩ := rd1948₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1938⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1938⟩
       [auctionSlotWord ⟨151⟩ σ I, auctionSetTimeBufferArgWord I, ⟨413⟩, auctionSelWord I]
@@ -421,7 +423,7 @@ theorem auctionX_setTimeBuffer_success {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd1976 := evm_run rd1948 with [
     push2 ⟨1976⟩, jumpiT (by decide) (by jump_dest), jumpdest]
   have rd1980 := evm_run rd1976 with [push1 ⟨203⟩, dup2, swap1]
-  obtain ⟨_, _, rd1982₀⟩ := rd1980.sstore hperm (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1982₀⟩ := rd1980.sstore hperm (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1982⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1982⟩
       [auctionSetTimeBufferArgWord I, ⟨413⟩, auctionSelWord I]
@@ -430,20 +432,20 @@ theorem auctionX_setTimeBuffer_success {cA gh bl σ σ₀ A I} {g : Sat256}
     exact ⟨_, _, by simpa [auctionSetTimeBufferPostMap] using rd1982₀⟩
   have rd1987 := evm_run rd1982 with [
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov),
     dup2, dup2,
     raw mstore 6 (solcReturnMem (auctionSetTimeBufferArgWord I)) (UInt256.ofNat 5)
-      (by decide) mem_cost
+      (by native_decide) mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov)]
   have rd2021 := rd1987.pushConst auctionTimeBufferUpdatedTopic
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
   have rd1065 := evm_run rd2021 with [
     swap1, push1 ⟨32⟩, add, push2 ⟨1065⟩, jump (by jump_dest)]
   have rd1072₀ := evm_run rd1065 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 5) (by native_decide)
       mem_cost (solcReturnMem_mload64 (auctionSetTimeBufferArgWord I))
       (by decide) (by evm_ov),
     dup1, swap2, sub, swap1]
@@ -456,7 +458,7 @@ theorem auctionX_setTimeBuffer_success {cA gh bl σ σ₀ A I} {g : Sat256}
       native_decide)
     (by decide) (by evm_ov)
   have rd413 := evm_run rd1074 with [pop, jump (by jump_dest), jumpdest]
-  exact rd413.stop (by decide) (by evm_ov)
+  exact rd413.stop (by native_decide) (by evm_ov)
 
 theorem auctionX_setTimeBuffer_revert_owner {cA gh bl σ σ₀ A I} {g : Sat256}
     (hwv : I.weiValue = ⟨0⟩)
@@ -473,7 +475,7 @@ theorem auctionX_setTimeBuffer_revert_owner {cA gh bl σ σ₀ A I} {g : Sat256}
     (sel := auctionSelWord I) hwv hsz36 hsize hszhi hreach
   have rd1948₀ := evm_run rd1934 with [
     jumpdest, push1 ⟨151⟩]
-  obtain ⟨_, _, rd1937₀⟩ := rd1948₀.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd1937₀⟩ := rd1948₀.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd1938⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨1938⟩
       [auctionSlotWord ⟨151⟩ σ I, auctionSetTimeBufferArgWord I, ⟨413⟩, auctionSelWord I]
@@ -505,37 +507,37 @@ theorem auctionX_setTimeBuffer_revert_owner {cA gh bl σ σ₀ A I} {g : Sat256}
   have rd1956 := evm_run rd1948 with [
     push2 ⟨1976⟩, jumpiNT (by decide),
     push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 3) (by native_decide)
       mem_cost solcFreePtrMem_mload64 (by decide) (by evm_ov)]
   have rd1960 := rd1956.pushConst (⟨0x461bcd⟩ : UInt256) (width := 3) (op := .PUSH3)
-    (by decide) (by decide) (by evm_ov)
+    (by decide) (by native_decide) (by evm_ov)
   have rd5522 := evm_run rd1960 with [
     push1 ⟨229⟩, shl, dup2,
     raw mstore 6 (solcReturnMem ⟨0x08c379a000000000000000000000000000000000000000000000000000000000⟩)
-      (UInt256.ofNat 5) (by decide) mem_cost
+      (UInt256.ofNat 5) (by native_decide) mem_cost
       (by rw [show (⟨128⟩ : UInt256).toNat = 128 from by decide]; rfl)
       (by decide) (by evm_ov),
     push1 ⟨4⟩, add, push2 ⟨994⟩, swap1, push2 ⟨5522⟩, jump (by jump_dest)]
   have rd5532 := evm_run rd5522 with [
     jumpdest, push1 ⟨32⟩, dup1, dup3,
     raw mstore 3 (solcErrorStringMem1 solcFreePtrMem) (UInt256.ofNat 6)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     dup2, dup2, add,
     raw mstore 3 (solcErrorStringMem2 ⟨32⟩ solcFreePtrMem) (UInt256.ofNat 7)
-      (by decide) mem_cost (by rfl) (by decide) (by evm_ov)]
+      (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov)]
   have rd5565 := rd5532.pushConst auctionOnlyOwnerStringWord
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
+    (width := 32) (op := .PUSH32) (by decide) (by native_decide) (by evm_ov)
   have rd5574₀ := evm_run rd5565 with [
     push1 ⟨64⟩, dup3, add,
     raw mstore 3 (solcErrorStringMem3 ⟨32⟩ auctionOnlyOwnerStringWord solcFreePtrMem)
-      (UInt256.ofNat 8) (by decide) mem_cost (by rfl) (by decide) (by evm_ov),
+      (UInt256.ofNat 8) (by native_decide) mem_cost (by rfl) (by decide) (by evm_ov),
     push1 ⟨96⟩, add, swap1]
   have rd5574 := rd5574₀
   rw [show (⟨96⟩ : UInt256) + (⟨4⟩ + ⟨128⟩) = ⟨228⟩ by decide] at rd5574
   have rd994 := evm_run rd5574 with [jump (by jump_dest)]
   have rd1001₀ := evm_run rd994 with [
     jumpdest, push1 ⟨64⟩,
-    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by decide)
+    raw mload 0 ⟨128⟩ (UInt256.ofNat 8) (by native_decide)
       mem_cost
       (solcErrorStringMem3_mload64 ⟨32⟩ auctionOnlyOwnerStringWord
         solcFreePtrMem_size solcFreePtrMem_read64)
@@ -543,7 +545,7 @@ theorem auctionX_setTimeBuffer_revert_owner {cA gh bl σ σ₀ A I} {g : Sat256}
     dup1, swap2, sub, swap1]
   have rd1001 := rd1001₀
   rw [show UInt256.sub (⟨228⟩ : UInt256) ⟨128⟩ = ⟨100⟩ by decide] at rd1001
-  exact evm_run rd1001 with [raw rev 0 (by decide) mem_cost (by evm_ov)]
+  exact evm_run rd1001 with [raw rev 0 (by native_decide) mem_cost (by evm_ov)]
 
 theorem auctionSetTimeBufferBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UInt256}
     (_hcode : I.code = auctionBytecode)
@@ -628,7 +630,7 @@ theorem auctionSetTimeBufferBodyCore {cA gh bl σ_evm σ_solm σ₀ A I} {g : UI
       · have hdecode := auctionDecode_setTimeBuffer (I := I) hsz36 hbig
         have hbody := auctionSetTimeBufferBodyReverts_callvalue
           (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I) I
-          (by simpa [initState] using hwv)
+          (by simpa only [initState] using hwv)
         exact (auctionX_setTimeBuffer_callvalue_ne hreach hwv)
           |>.reEquivExecutionRevert _hcode hdispatch hdecode hbody
       · have hbigLe : 2 ^ 255 + 4 ≤ I.calldata.size := by omega

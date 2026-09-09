@@ -608,7 +608,7 @@ theorem auctionSettleAuctionBodyBurnPayoutFailureNonemptyTransferReturnCase
           evmS ∅ settleAuctionTransition.body .reverted :=
       auctionSettleAuctionTransitionReverts_burnPayoutLowLevelFailureWethTransferDecodeFailure
         evmS evmBurn evmPay evmDeposit evmTransfer
-        (by simpa [evmS, initState] using hwv)
+        (by simpa only [evmS, initState] using hwv)
         hpausedSolm hstatusSolm hstartSolm hsettledSolm
         htimeSolmLe hbidderSolm hnounsCodeSolmEval
         (by
@@ -654,7 +654,7 @@ theorem auctionSettleAuctionBodyBurnPayoutFailureNonemptyTransferReturnCase
             evmS ∅ settleAuctionTransition.body .reverted :=
         auctionSettleAuctionTransitionReverts_burnPayoutLowLevelFailureWethTransferDecodeFailure
           evmS evmBurn evmPay evmDeposit evmTransfer
-          (by simpa [evmS, initState] using hwv)
+          (by simpa only [evmS, initState] using hwv)
           hpausedSolm hstatusSolm hstartSolm hsettledSolm
           htimeSolmLe hbidderSolm hnounsCodeSolmEval
           (by
@@ -685,7 +685,7 @@ theorem auctionSettleAuctionBodyBurnPayoutFailureNonemptyTransferReturnCase
             (evmTransfer := evmTransfer)
             (transferOk := transferOk)
             _hcode hdispatch hdecode rfl hret
-            (by simpa [evmS, initState] using hwv)
+            (by simpa only [evmS, initState] using hwv)
             hpausedSolm hstatusSolm hstartSolm hsettledSolm
             htimeSolmLe hbidderSolm hnounsCodeSolmEval
             (by
@@ -817,7 +817,7 @@ theorem auctionSettleAuctionBodyBurnPayoutFailureNonemptyTransferReturnCase
                 .reverted :=
             auctionSettleAuctionTransitionReverts_burnPayoutLowLevelFailureWethTransferDecodeFailure
               evmS evmBurn evmPay evmDeposit evmTransfer
-              (by simpa [evmS, initState] using hwv)
+              (by simpa only [evmS, initState] using hwv)
               hpausedSolm hstatusSolm hstartSolm
               hsettledSolm htimeSolmLe hbidderSolm
               hnounsCodeSolmEval

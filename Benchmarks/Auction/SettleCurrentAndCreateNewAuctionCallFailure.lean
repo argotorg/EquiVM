@@ -1,4 +1,7 @@
+import Benchmarks.Auction.SettleAuctionEvent
+import Benchmarks.Auction.CreateAuctionCall
 import Benchmarks.Auction.SettleCurrentAndCreateNewAuctionReverts
+import Benchmarks.Auction.SettleAuctionWithMemorySource
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
 open Reasoning.Refinement
@@ -9,7 +12,7 @@ set_option maxHeartbeats 0
 namespace Auction
 
 theorem auctionSettleAndCreateTransitionReturns_afterSettleCreate
-    (evm evmSettle evmCreate : EVM.State) {settleSolm createSolm : Frame}
+    (evm evmSettle evmCreate : EVM.State) {settleSolm createSolm : Frame} {free : UInt256}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hstatus : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨101⟩ ≠ ⟨2⟩)
     (hpaused :
@@ -17,19 +20,21 @@ theorem auctionSettleAndCreateTransitionReturns_afterSettleCreate
         ⟨0⟩)
     (hsettle :
       ExecFuncBody auctionConfig { contract := auctionContract, locals := ∅ }
-        (auctionSettleAuctionEnterState evm) settleAuctionFn.body
-        (.returned settleSolm evmSettle none))
+        (auctionSettleAuctionEnterState evm) settleAuctionWithMemoryFn.body
+        (.returned settleSolm evmSettle (some [.int (Int.ofNat free.toNat)])))
     (hcreate :
-      ExecFuncBody auctionConfig { contract := auctionContract, locals := ∅ }
-        evmSettle createAuctionFn.body (.returned createSolm evmCreate none)) :
+      ExecFuncBody auctionConfig
+        { contract := auctionContract,
+          locals := (∅ : Store).insert "_freePtr" (.int (Int.ofNat free.toNat)) }
+        evmSettle createAuctionWithMemoryFn.body (.returned createSolm evmCreate none)) :
     ExecTransitionBody auctionConfig auctionContract evm ∅
       settleAndCreateTransition.body
       (.returned
         (resumeAfterInternalCall
-          (resumeAfterInternalCall { contract := auctionContract, locals := ∅ } "_s" none)
+          (resumeAfterInternalCall { contract := auctionContract, locals := ∅ } "_s" (some [.int (Int.ofNat free.toNat)]))
           "_c" none)
         (auctionSettleAuctionExitState evmCreate) none) := by
-  let afterSettle := resumeAfterInternalCall { contract := auctionContract, locals := ∅ } "_s" none
+  let afterSettle := resumeAfterInternalCall { contract := auctionContract, locals := ∅ } "_s" (some [.int (Int.ofNat free.toNat)])
   let afterCreate := resumeAfterInternalCall afterSettle "_c" none
   dsimp [settleAndCreateTransition, nonpayable]
   refine ExecFuncBody.execBlockOK ?_
@@ -63,16 +68,20 @@ theorem auctionSettleAndCreateTransitionReturns_afterSettleCreate
     (internalCallFunctionReturn
       (cfg := auctionConfig) (caller := { contract := auctionContract, locals := ∅ })
       (evm := auctionSettleAuctionEnterState evm) (calleeEvm := evmSettle)
-      (name := "_settleAuction") (args := []) (retVar := "_s") (argVals := [])
-      (callee := settleAuctionFn) (locals := ∅) (calleeSolm := settleSolm)
-      (value := none) (by rfl) (by rfl) (by rfl) hsettle) ?_
+      (name := "_settleAuctionWithMemory") (args := []) (retVar := "_s") (argVals := [])
+      (callee := settleAuctionWithMemoryFn) (locals := ∅) (calleeSolm := settleSolm)
+      (value := (some [.int (Int.ofNat free.toNat)])) (by rfl) (by rfl) (by rfl) hsettle) ?_
   refine ExecBlock.consNormal
     (internalCallFunctionReturn
       (cfg := auctionConfig) (caller := afterSettle)
       (evm := evmSettle) (calleeEvm := evmCreate)
-      (name := "_createAuction") (args := []) (retVar := "_c") (argVals := [])
-      (callee := createAuctionFn) (locals := ∅) (calleeSolm := createSolm)
-      (value := none) (by rfl) (by rfl) (by rfl)
+      (name := "_createAuctionWithMemory") (args := [.var "_s"]) (retVar := "_c") (argVals := [.int (Int.ofNat free.toNat)])
+      (callee := createAuctionWithMemoryFn)
+      (locals := (∅ : Store).insert "_freePtr" (.int (Int.ofNat free.toNat))) (calleeSolm := createSolm)
+      (value := none)
+      (evalExprs?_singleton (by
+        simp [afterSettle, resumeAfterInternalCall, evalExpr?, EvalResult.ofOption,
+          collapseReturns])) (by rfl) (by rfl)
       (by simpa [afterSettle] using hcreate)) ?_
   exact ExecBlock.consNormal
     (ExecStmt.assign
@@ -81,7 +90,7 @@ theorem auctionSettleAndCreateTransitionReturns_afterSettleCreate
         (by simp [afterCreate, afterSettle, resumeAfterInternalCall]))) ExecBlock.nil
 
 theorem auctionSettleAndCreateTransitionReverts_afterSettleCreate
-    (evm evmSettle : EVM.State) {settleSolm : Frame}
+    (evm evmSettle : EVM.State) {settleSolm : Frame} {free : UInt256}
     (hwv : evm.executionEnv.weiValue = ⟨0⟩)
     (hstatus : Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨101⟩ ≠ ⟨2⟩)
     (hpaused :
@@ -89,14 +98,16 @@ theorem auctionSettleAndCreateTransitionReverts_afterSettleCreate
         ⟨0⟩)
     (hsettle :
       ExecFuncBody auctionConfig { contract := auctionContract, locals := ∅ }
-        (auctionSettleAuctionEnterState evm) settleAuctionFn.body
-        (.returned settleSolm evmSettle none))
+        (auctionSettleAuctionEnterState evm) settleAuctionWithMemoryFn.body
+        (.returned settleSolm evmSettle (some [.int (Int.ofNat free.toNat)])))
     (hcreate :
-      ExecFuncBody auctionConfig { contract := auctionContract, locals := ∅ }
-        evmSettle createAuctionFn.body .reverted) :
+      ExecFuncBody auctionConfig
+        { contract := auctionContract,
+          locals := (∅ : Store).insert "_freePtr" (.int (Int.ofNat free.toNat)) }
+        evmSettle createAuctionWithMemoryFn.body .reverted) :
     ExecTransitionBody auctionConfig auctionContract evm ∅
       settleAndCreateTransition.body .reverted := by
-  let afterSettle := resumeAfterInternalCall { contract := auctionContract, locals := ∅ } "_s" none
+  let afterSettle := resumeAfterInternalCall { contract := auctionContract, locals := ∅ } "_s" (some [.int (Int.ofNat free.toNat)])
   dsimp [settleAndCreateTransition, nonpayable]
   refine ExecFuncBody.execBlockRevert ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue (evalCallvalueEq_true hwv)) ?_
@@ -129,14 +140,17 @@ theorem auctionSettleAndCreateTransitionReverts_afterSettleCreate
     (internalCallFunctionReturn
       (cfg := auctionConfig) (caller := { contract := auctionContract, locals := ∅ })
       (evm := auctionSettleAuctionEnterState evm) (calleeEvm := evmSettle)
-      (name := "_settleAuction") (args := []) (retVar := "_s") (argVals := [])
-      (callee := settleAuctionFn) (locals := ∅) (calleeSolm := settleSolm)
-      (value := none) (by rfl) (by rfl) (by rfl) hsettle) ?_
+      (name := "_settleAuctionWithMemory") (args := []) (retVar := "_s") (argVals := [])
+      (callee := settleAuctionWithMemoryFn) (locals := ∅) (calleeSolm := settleSolm)
+      (value := (some [.int (Int.ofNat free.toNat)])) (by rfl) (by rfl) (by rfl) hsettle) ?_
   exact ExecBlock.consRevert (internalCallFunctionRevert
     (cfg := auctionConfig) (caller := afterSettle)
-    (evm := evmSettle) (name := "_createAuction") (args := [])
-    (retVar := "_c") (argVals := []) (callee := createAuctionFn) (locals := ∅)
-    (by rfl) (by rfl) (by rfl) (by simpa [afterSettle] using hcreate))
+    (evm := evmSettle) (name := "_createAuctionWithMemory") (args := [.var "_s"])
+    (retVar := "_c") (argVals := [.int (Int.ofNat free.toNat)]) (callee := createAuctionWithMemoryFn)
+      (locals := (∅ : Store).insert "_freePtr" (.int (Int.ofNat free.toNat)))
+    (evalExprs?_singleton (by
+      simp [afterSettle, resumeAfterInternalCall, evalExpr?, EvalResult.ofOption,
+        collapseReturns])) (by rfl) (by rfl) (by simpa [afterSettle] using hcreate))
 
 theorem auctionSettleAndCreateAfterSettleReturn_toCreateAuction
     {cA gh bl σ σ₀ A I} {g : Sat256}
@@ -167,213 +181,6 @@ theorem auctionSettleAndCreateStatusResetReturn {cA gh bl σ σ₀ A I} {g : Sat
   have rd413 := evm_run rd2477 with [jump (by jump_dest), jumpdest]
   exact rd413.stop (by native_decide) (by evm_ov)
 
-noncomputable def auctionCreateAuctionMintSelMemAt (mem : ByteArray) (free : UInt256) :
-    ByteArray :=
-  (UInt256.toByteArray auctionUnpauseMintSelectorWord).write 0 mem free.toNat 32
-
-theorem auctionCreateAuctionMintSelMemAt_encode (mem : ByteArray) (free : UInt256)
-    (hlo : free.toNat ≤ mem.size) :
-    auctionConfig.externalABI.encode? "mint" [] =
-      some ((auctionCreateAuctionMintSelMemAt mem free).readWithPadding free.toNat 4) := by
-  rw [auctionExternalABI_encode_mint]
-  congr
-  rw [auctionCreateAuctionMintSelMemAt]
-  rw [write32_read_prefix_len _ _ free.toNat 4 (by rw [toByteArray_size]) hlo
-    (by decide) (by decide) (by decide)]
-  exact auctionUnpauseMintSelectorWord_prefix.symm
-
-theorem auctionCreateAuction_toMintCallAt {cA gh bl σInit σ σ₀ A I} {g : Sat256}
-    {mem rdata : ByteArray} {aw ret : UInt256} {R : List UInt256} {k C : ℕ}
-    (hov : R.length + 20 ≤ 1024)
-    (h : RD auctionBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨3000⟩
-      (ret :: R) mem aw rdata (cA, σ) k C) :
-    let free :=
-      if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then
-        ⟨0⟩
-      else
-        UInt256.ofNat
-          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))
-    let awLoad := UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32)
-    let memSel := auctionCreateAuctionMintSelMemAt mem free
-    let awSel := UInt256.ofNat (MachineState.M awLoad.toNat free.toNat 32)
-    let free2 :=
-      if (⟨64⟩ : UInt256).toNat ≥ memSel.size ∨ (⟨64⟩ : UInt256) ≥ awSel * ⟨32⟩ then
-        ⟨0⟩
-      else
-        UInt256.ofNat
-          (fromByteArrayBigEndian (memSel.readWithPadding (⟨64⟩ : UInt256).toNat 32))
-    let awLoad2 := UInt256.ofNat (MachineState.M awSel.toNat (⟨64⟩ : UInt256).toNat 32)
-    let freePlus4 := (⟨4⟩ : UInt256) + free
-    ∃ k' C', RD auctionBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨3065⟩
-      (auctionMintTargetWord σ I :: ⟨0⟩ :: free2 :: UInt256.sub freePlus4 free2 ::
-        free2 :: ⟨32⟩ :: freePlus4 :: ⟨0x1249c58b⟩ :: auctionMintTargetWord σ I ::
-        ret :: R)
-      memSel awLoad2 rdata (cA, σ) k' C' := by
-  intro free awLoad memSel awSel free2 awLoad2 freePlus4
-  have rd3005₀ := evm_run h with [jumpdest, push1 ⟨201⟩, push0, swap1]
-  obtain ⟨_, _, rd3006₀⟩ := rd3005₀.sload (by decide) (by evm_ov)
-  obtain ⟨_, _, rd3006⟩ : ∃ k C, RD auctionBytecode I g
-      (initState cA gh bl σInit σ₀ g A I) ⟨3006⟩
-      (auctionSlotWord ⟨201⟩ σ I :: ⟨0⟩ :: ret :: R) mem aw rdata (cA, σ) k C := by
-    exact ⟨_, _, by simpa [auctionSlotWord] using rd3006₀⟩
-  have rd3031₀ := evm_run rd3006 with [
-    swap1, push2 ⟨256⟩, exp, swap1, div,
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and,
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, and]
-  have hdiv :
-      UInt256.div (auctionSlotWord ⟨201⟩ σ I)
-        (UInt256.exp (⟨256⟩ : UInt256) ⟨0⟩) =
-      auctionSlotWord ⟨201⟩ σ I := by
-    apply u256_inj
-    rw [show UInt256.exp (⟨256⟩ : UInt256) ⟨0⟩ = ⟨1⟩ by native_decide]
-    rw [udiv_toNat]
-    exact Nat.div_one (auctionSlotWord ⟨201⟩ σ I).toNat
-  have hmaskConst :
-      UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩ = solcAddrMask := by
-    decide
-  have hmaskIdem :
-      UInt256.land solcAddrMask (UInt256.land solcAddrMask (auctionSlotWord ⟨201⟩ σ I)) =
-        auctionMintTargetWord σ I := by
-    rw [auctionMintTargetWord]
-    rw [u256_land_comm solcAddrMask (auctionSlotWord ⟨201⟩ σ I)]
-    exact solcAddrMask_clean_left
-      (solcAddrMask_result_canonical (auctionSlotWord ⟨201⟩ σ I))
-  have rd3031 := rd3031₀
-  rw [hdiv, hmaskConst, hmaskIdem] at rd3031
-  have rd3038 := evm_run rd3031 with [
-    push4 ⟨0x1249c58b⟩, push1 ⟨64⟩,
-    raw mload (Cₘ awLoad - Cₘ aw) free awLoad (by native_decide)
-      (fun _ haws hstks => auctionMloadCost_of_stack haws hstks (by rfl))
-      (by rfl) (by rfl) (by evm_ov),
-    dup2, push4 ⟨0xffffffff⟩, and, push1 ⟨224⟩, shl, dup2]
-  have hselMask :
-      UInt256.land (⟨0xffffffff⟩ : UInt256) ⟨0x1249c58b⟩ = ⟨0x1249c58b⟩ := by
-    native_decide
-  have rd3038' := rd3038
-  rw [hselMask] at rd3038'
-  have rd3051 := evm_run rd3038' with [
-    raw mstore (Cₘ awSel - Cₘ awLoad) memSel awSel (by decide)
-      (fun _ haws hstks => mstoreCost_of_stack haws hstks (by rfl))
-      (by rfl) (by rfl) (by evm_ov)]
-  have rd3065₀ := evm_run rd3051 with [
-    push1 ⟨4⟩, add, push1 ⟨32⟩, push1 ⟨64⟩,
-    raw mload (Cₘ awLoad2 - Cₘ awSel) free2 awLoad2 (by native_decide)
-      (fun _ haws hstks => auctionMloadCost_of_stack haws hstks (by rfl))
-      (by rfl) (by rfl) (by evm_ov),
-    dup1, dup4, sub, dup2, push0, dup8]
-  exact ⟨_, _, by simpa [freePlus4] using rd3065₀⟩
-
-theorem auctionCreateAuction_mintCallAt {cA gh bl σInit σ σ₀ A I} {g : Sat256}
-    {mem rdata : ByteArray} {aw inOff inSize outOff outSize next selector ret : UInt256}
-    {R : List UInt256} {k C : ℕ}
-    (hperm : I.perm = true)
-    (hdepth : I.depth.val < 1024)
-    (hov : R.length + 20 ≤ 1024)
-    (hcd : auctionConfig.externalABI.encode? "mint" [] =
-      some (mem.readWithPadding inOff.toNat inSize.toNat))
-    (rd : RD auctionBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨3065⟩
-      (auctionMintTargetWord σ I :: ⟨0⟩ :: inOff :: inSize :: outOff :: outSize ::
-        next :: selector :: auctionMintTargetWord σ I :: ret :: R)
-      mem aw rdata (cA, σ) k C) :
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
-      (o : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD auctionBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨3067⟩
-        ((if z then ⟨1⟩ else ⟨0⟩) :: next :: selector :: auctionMintTargetWord σ I ::
-          ret :: R)
-        (o.write 0 mem outOff.toNat (min outSize (UInt256.ofNat o.size)).toNat)
-        (UInt256.ofNat
-          (MachineState.M (MachineState.M aw.toNat inOff.toNat inSize.toNat)
-            outOff.toNat outSize.toNat))
-        o (cA', σ') k' C'
-    ∧ typedCallViaEVM auctionConfig
-        { initState cA gh bl σInit σ₀ g A I with accountMap := σ }
-        (EVM.address (AccountAddress.ofNat
-          ((UInt256.land (auctionSlotWord ⟨201⟩ σ I) solcAddrMask).toNat))) "mint" 0 []
-        (z,
-          { initState cA gh bl σInit σ₀ g A I with
-            accountMap := σ', substate := A', createdAccounts := cA' }, o) true
-    ∧ o.size < UInt256.size := by
-  obtain ⟨_, rd3066⟩ := rd.gas (by decide) (by evm_ov)
-  obtain ⟨cA', σ', z, o, A_in, callGas, k', C', hΘ, rd3067, hosz⟩ :=
-    rd3066.call (by decide) hdepth (by evm_ov)
-  obtain ⟨g'', A', hΘ⟩ := hΘ
-  refine ⟨cA', σ', z, o, A', k', C', rd3067, ?_, hosz⟩
-  refine callCoincides (A_in := A_in) (g'' := g'') (callGas := callGas)
-    (callPerm := true) (targetWord := auctionMintTargetWord σ I)
-    (mem := mem) (inOff := inOff) (inSize := inSize)
-    (hdepth := ?_) (htgt := auctionMintTarget_eq (auctionSlotWord ⟨201⟩ σ I))
-    (hcd := hcd) (hΘ := ?_)
-  · intro h
-    exact absurd hdepth (by rw [show I.depth = (1024 : Fin 1025) from h]; decide)
-  · simpa [initState, hperm, auctionMintTargetWord] using hΘ
-
-theorem auctionCreateAuction_postMintCallAt {cA gh bl σInit σ σ₀ A I} {g : Sat256}
-    {mem rdata : ByteArray} {aw ret : UInt256} {R : List UInt256} {k C : ℕ}
-    (hperm : I.perm = true)
-    (hdepth : I.depth.val < 1024)
-    (hov : R.length + 20 ≤ 1024)
-    (hcd :
-      let free :=
-        if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then
-          ⟨0⟩
-        else
-          UInt256.ofNat
-            (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))
-      let awLoad := UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32)
-      let memSel := auctionCreateAuctionMintSelMemAt mem free
-      let awSel := UInt256.ofNat (MachineState.M awLoad.toNat free.toNat 32)
-      let free2 :=
-        if (⟨64⟩ : UInt256).toNat ≥ memSel.size ∨ (⟨64⟩ : UInt256) ≥ awSel * ⟨32⟩ then
-          ⟨0⟩
-        else
-          UInt256.ofNat
-            (fromByteArrayBigEndian (memSel.readWithPadding (⟨64⟩ : UInt256).toNat 32))
-      let freePlus4 := (⟨4⟩ : UInt256) + free
-      auctionConfig.externalABI.encode? "mint" [] =
-        some (memSel.readWithPadding free2.toNat (UInt256.sub freePlus4 free2).toNat))
-    (h : RD auctionBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨3000⟩
-      (ret :: R) mem aw rdata (cA, σ) k C) :
-    let free :=
-      if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw * ⟨32⟩ then
-        ⟨0⟩
-      else
-        UInt256.ofNat
-          (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))
-    let awLoad := UInt256.ofNat (MachineState.M aw.toNat (⟨64⟩ : UInt256).toNat 32)
-    let memSel := auctionCreateAuctionMintSelMemAt mem free
-    let awSel := UInt256.ofNat (MachineState.M awLoad.toNat free.toNat 32)
-    let free2 :=
-      if (⟨64⟩ : UInt256).toNat ≥ memSel.size ∨ (⟨64⟩ : UInt256) ≥ awSel * ⟨32⟩ then
-        ⟨0⟩
-      else
-        UInt256.ofNat
-          (fromByteArrayBigEndian (memSel.readWithPadding (⟨64⟩ : UInt256).toNat 32))
-    let awLoad2 := UInt256.ofNat (MachineState.M awSel.toNat (⟨64⟩ : UInt256).toNat 32)
-    let freePlus4 := (⟨4⟩ : UInt256) + free
-    ∃ (cA' : Batteries.RBSet AccountAddress compare) (σ' : AccountMap) (z : Bool)
-      (o : ByteArray) (A' : Substate) (k' C' : ℕ),
-      RD auctionBytecode I g (initState cA gh bl σInit σ₀ g A I) ⟨3067⟩
-        ((if z then ⟨1⟩ else ⟨0⟩) :: freePlus4 :: ⟨0x1249c58b⟩ ::
-          auctionMintTargetWord σ I :: ret :: R)
-        (o.write 0 memSel free2.toNat
-          (min (⟨32⟩ : UInt256) (UInt256.ofNat o.size)).toNat)
-        (UInt256.ofNat
-          (MachineState.M
-            (MachineState.M awLoad2.toNat free2.toNat
-              (UInt256.sub freePlus4 free2).toNat)
-            free2.toNat (⟨32⟩ : UInt256).toNat))
-        o (cA', σ') k' C'
-    ∧ typedCallViaEVM auctionConfig
-        { initState cA gh bl σInit σ₀ g A I with accountMap := σ }
-        (EVM.address (AccountAddress.ofNat
-          ((UInt256.land (auctionSlotWord ⟨201⟩ σ I) solcAddrMask).toNat))) "mint" 0 []
-        (z,
-          { initState cA gh bl σInit σ₀ g A I with
-            accountMap := σ', substate := A', createdAccounts := cA' }, o) true
-    ∧ o.size < UInt256.size := by
-  intro free awLoad memSel awSel free2 awLoad2 freePlus4
-  obtain ⟨_, _, rd3065⟩ := auctionCreateAuction_toMintCallAt hov h
-  exact auctionCreateAuction_mintCallAt hperm hdepth hov hcd rd3065
 
 theorem auctionSettleAuctionBurnSuccessToNoPayoutEventAt {cA gh bl σ σ₀ A I}
     {g : Sat256} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -439,82 +246,8 @@ theorem auctionSettleAuctionEventToRet {cA gh bl σ σ₀ A I} {g : Sat256}
       [ptr, ret, ⟨413⟩, auctionSelWord I] mem aw o (cA', σ') k C) :
     ∃ mem' aw' k' C', RD auctionBytecode I g (initState cA gh bl σ σ₀ g A I) ret
       [⟨413⟩, auctionSelWord I] mem' aw' o (cA', σ') k' C' := by
-  let noun :=
-    if ptr.toNat ≥ mem.size ∨ ptr ≥ aw * ⟨32⟩ then ⟨0⟩
-    else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding ptr.toNat 32))
-  let aw4690 : UInt256 := UInt256.ofNat (MachineState.M aw.toNat ptr.toNat 32)
-  let bidderPtr := ptr + ⟨128⟩
-  let bidder :=
-    if bidderPtr.toNat ≥ mem.size ∨ bidderPtr ≥ aw4690 * ⟨32⟩ then ⟨0⟩
-    else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding bidderPtr.toNat 32))
-  let aw4695 : UInt256 := UInt256.ofNat (MachineState.M aw4690.toNat bidderPtr.toNat 32)
-  let amountPtr := ptr + ⟨32⟩
-  let amount :=
-    if amountPtr.toNat ≥ mem.size ∨ amountPtr ≥ aw4695 * ⟨32⟩ then ⟨0⟩
-    else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding amountPtr.toNat 32))
-  let aw4701 : UInt256 := UInt256.ofNat (MachineState.M aw4695.toNat amountPtr.toNat 32)
-  let eventDataPtr :=
-    if (⟨64⟩ : UInt256).toNat ≥ mem.size ∨ (⟨64⟩ : UInt256) ≥ aw4701 * ⟨32⟩ then ⟨0⟩
-    else UInt256.ofNat (fromByteArrayBigEndian (mem.readWithPadding (⟨64⟩ : UInt256).toNat 32))
-  let aw4705 : UInt256 :=
-    UInt256.ofNat (MachineState.M aw4701.toNat (⟨64⟩ : UInt256).toNat 32)
-  let winner :=
-    UInt256.land bidder
-      (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩) ⟨1⟩)
-  let mem4718 := (UInt256.toByteArray winner).write 0 mem eventDataPtr.toNat 32
-  let aw4718 : UInt256 :=
-    UInt256.ofNat (MachineState.M aw4705.toNat eventDataPtr.toNat 32)
-  let amountDataPtr := eventDataPtr + ⟨32⟩
-  let mem4722 := (UInt256.toByteArray amount).write 0 mem4718 amountDataPtr.toNat 32
-  let aw4722 : UInt256 :=
-    UInt256.ofNat (MachineState.M aw4718.toNat amountDataPtr.toNat 32)
-  have rd4722 := evm_run rd with [
-    jumpdest, dup1,
-    raw mload (Cₘ aw4690 - Cₘ aw) noun aw4690 (by native_decide)
-      (fun _ haws hstks => auctionMloadCost_of_stack haws hstks (by rfl))
-      (by rfl) (by rfl) (by evm_ov),
-    push1 ⟨128⟩, dup3, add,
-    raw mload (Cₘ aw4695 - Cₘ aw4690) bidder aw4695 (by native_decide)
-      (fun _ haws hstks => auctionMloadCost_of_stack haws hstks (by rfl))
-      (by rfl) (by rfl) (by evm_ov),
-    push1 ⟨32⟩, dup1, dup5, add,
-    raw mload (Cₘ aw4701 - Cₘ aw4695) amount aw4701 (by native_decide)
-      (fun _ haws hstks => auctionMloadCost_of_stack haws hstks (by rfl))
-      (by rfl) (by rfl) (by evm_ov),
-    push1 ⟨64⟩, dup1,
-    raw mload (Cₘ aw4705 - Cₘ aw4701) eventDataPtr aw4705 (by native_decide)
-      (fun _ haws hstks => auctionMloadCost_of_stack haws hstks (by rfl))
-      (by rfl) (by rfl) (by evm_ov),
-    push1 ⟨1⟩, push1 ⟨1⟩, push1 ⟨160⟩, shl, sub, swap1, swap5, and, dup5,
-    raw mstore (Cₘ aw4718 - Cₘ aw4705) mem4718 aw4718 (by native_decide)
-      (fun _ haws hstks => mstoreCost_of_stack haws hstks (by rfl))
-      (by rfl) (by rfl) (by evm_ov),
-    swap2, dup4, add,
-    raw mstore (Cₘ aw4722 - Cₘ aw4718) mem4722 aw4722 (by native_decide)
-      (fun _ haws hstks => mstoreCost_of_stack haws hstks (by rfl))
-      (by rfl) (by rfl) (by evm_ov)]
-  have rd4756 := rd4722.pushConst auctionAuctionSettledTopic
-    (width := 32) (op := .PUSH32) (by decide) (by decide) (by evm_ov)
-  let logDataPtr :=
-    if (⟨64⟩ : UInt256).toNat ≥ mem4722.size ∨ (⟨64⟩ : UInt256) ≥ aw4722 * ⟨32⟩ then ⟨0⟩
-    else UInt256.ofNat
-      (fromByteArrayBigEndian (mem4722.readWithPadding (⟨64⟩ : UInt256).toNat 32))
-  let aw4760 : UInt256 :=
-    UInt256.ofNat (MachineState.M aw4722.toNat (⟨64⟩ : UInt256).toNat 32)
-  have rd4765Pre := evm_run rd4756 with [
-    swap2, add, push1 ⟨64⟩,
-    raw mload (Cₘ aw4760 - Cₘ aw4722) logDataPtr aw4760 (by native_decide)
-      (fun _ haws hstks => auctionMloadCost_of_stack haws hstks (by rfl))
-      (by rfl) (by rfl) (by evm_ov),
-    dup1, swap2, sub, swap1]
-  let logSize := (eventDataPtr + (⟨64⟩ : UInt256)).sub logDataPtr
-  let aw4765 : UInt256 :=
-    UInt256.ofNat (MachineState.M aw4760.toNat logDataPtr.toNat logSize.toNat)
-  have rd4766 := Auction.RD.log2 (Cₘ aw4765 - Cₘ aw4760) aw4765 rd4765Pre
-    (by native_decide) hperm
-    (fun _ haws hstks => auctionLog2Cost_of_stack haws hstks (by rfl))
-    (by rfl) (by evm_ov)
-  exact ⟨mem4722, aw4765, _, _, evm_run rd4766 with [pop, jump hret]⟩
+  obtain ⟨k', C', hret⟩ := auctionSettleAuctionEventToRetExact (by simp) hperm hret rd
+  exact ⟨_, _, k', C', hret⟩
 
 theorem auctionSettleAndCreateBurnNoPayoutToCreateAuction {cA gh bl σ σ₀ A I}
     {g : Sat256} {acc : Batteries.RBSet AccountAddress compare × AccountMap}
@@ -627,10 +360,11 @@ theorem auctionSettleAndCreateTransitionReverts_settleBurnCallFailure
       (evalExpr_pause_notPaused_true (auctionSettleAuctionEnterState evm) hpausedEnter)) ?_
   exact ExecBlock.consRevert (internalCallFunctionRevert
     (cfg := auctionConfig) (caller := { contract := auctionContract, locals := ∅ })
-    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuction") (args := [])
-    (retVar := "_s") (argVals := []) (callee := settleAuctionFn) (locals := ∅)
+    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuctionWithMemory") (args := [])
+    (retVar := "_s") (argVals := []) (callee := settleAuctionWithMemoryFn) (locals := ∅)
     (by rfl) (by rfl) (by rfl)
-    (auctionSettleAuctionBodyReverts_burnCallFailure (auctionSettleAuctionEnterState evm)
+    (auctionSettleAuctionBodyReverts_burnCallFailure
+      (payout := auctionSettleAuctionMemoryPayout) (tail := [.return [.intLit 320]]) (auctionSettleAuctionEnterState evm)
       evmBurn
       (by
         have hload :
@@ -824,10 +558,11 @@ theorem auctionSettleAndCreateTransitionReverts_settleTransferFromCallFailure
       (evalExpr_pause_notPaused_true (auctionSettleAuctionEnterState evm) hpausedEnter)) ?_
   exact ExecBlock.consRevert (internalCallFunctionRevert
     (cfg := auctionConfig) (caller := { contract := auctionContract, locals := ∅ })
-    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuction") (args := [])
-    (retVar := "_s") (argVals := []) (callee := settleAuctionFn) (locals := ∅)
+    (evm := auctionSettleAuctionEnterState evm) (name := "_settleAuctionWithMemory") (args := [])
+    (retVar := "_s") (argVals := []) (callee := settleAuctionWithMemoryFn) (locals := ∅)
     (by rfl) (by rfl) (by rfl)
     (auctionSettleAuctionBodyReverts_transferFromCallFailure
+      (payout := auctionSettleAuctionMemoryPayout) (tail := [.return [.intLit 320]])
       (auctionSettleAuctionEnterState evm) evmTransfer
       (by
         have hload :
@@ -1048,7 +783,7 @@ theorem auctionInternalSettleAuction_burnPostCall {cA gh bl σ σ₀ A I} {g : S
     exact ⟨_, _, by
       simpa [σ1, noun, amount, start, finish, packed, bidder, settled, mem, σ2] using rd4435⟩
   have rd4437 := evm_run rd4435' with [push1 ⟨201⟩]
-  obtain ⟨_, _, rd4438₀⟩ := rd4437.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd4438₀⟩ := rd4437.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4438⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4438⟩
       (nounsWord :: [⟨128⟩, ret, ⟨413⟩, auctionSelWord I])
@@ -1174,7 +909,7 @@ theorem auctionInternalSettleAuction_revert_burnDepthLimit {cA gh bl σ σ₀ A 
     exact ⟨_, _, by
       simpa [σ1, noun, amount, start, finish, packed, bidder, settled, mem, σ2] using rd4435⟩
   have rd4437 := evm_run rd4435' with [push1 ⟨201⟩]
-  obtain ⟨_, _, rd4438₀⟩ := rd4437.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd4438₀⟩ := rd4437.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4438⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4438⟩
       (nounsWord :: [⟨128⟩, ret, ⟨413⟩, auctionSelWord I])
@@ -1313,7 +1048,7 @@ theorem auctionInternalSettleAuction_transferFromPostCall {cA gh bl σ σ₀ A I
     exact ⟨_, _, by
       simpa [σ1, noun, amount, start, finish, packed, bidder, settled, mem, σ2] using rd4536⟩
   have rd4539 := evm_run rd4536' with [jumpdest, push1 ⟨201⟩]
-  obtain ⟨_, _, rd4540₀⟩ := rd4539.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd4540₀⟩ := rd4539.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4540⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4540⟩
       (nounsWord :: [⟨128⟩, ret, ⟨413⟩, auctionSelWord I])
@@ -1481,7 +1216,7 @@ theorem auctionInternalSettleAuction_revert_transferFromDepthLimit
     exact ⟨_, _, by
       simpa [σ1, noun, amount, start, finish, packed, bidder, settled, mem, σ2] using rd4536⟩
   have rd4539 := evm_run rd4536' with [jumpdest, push1 ⟨201⟩]
-  obtain ⟨_, _, rd4540₀⟩ := rd4539.sload (by decide) (by evm_ov)
+  obtain ⟨_, _, rd4540₀⟩ := rd4539.sload (by native_decide) (by evm_ov)
   obtain ⟨_, _, rd4540⟩ : ∃ k C, RD auctionBytecode I g
       (initState cA gh bl σ σ₀ g A I) ⟨4540⟩
       (nounsWord :: [⟨128⟩, ret, ⟨413⟩, auctionSelWord I])
