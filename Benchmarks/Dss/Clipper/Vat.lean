@@ -317,10 +317,23 @@ theorem clipperVatPatchPayload (v : ClipperImmutables) {code : ByteArray}
   have hpost :
       PatchesWindowDisjoint32 3145 3177
         [(4318, vatBytes), (4441, vatBytes), (4751, vatBytes), (5115, vatBytes),
-          (6295, vatBytes), (7936, vatBytes)] := by
+          (6295, vatBytes), (7936, vatBytes),
+          (1510, ilkBytes), (1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes),
+          (4239, ilkBytes), (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes),
+          (8747, ilkBytes)] := by
     intro p hp
     simp only [List.mem_cons, List.mem_nil_iff] at hp
-    rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | hfalse
+    rcases hp with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
+      rfl | rfl | rfl | rfl | rfl | hfalse
+    · unfold PatchWindowDisjoint32; omega
+    · unfold PatchWindowDisjoint32; omega
+    · unfold PatchWindowDisjoint32; omega
+    · unfold PatchWindowDisjoint32; omega
+    · unfold PatchWindowDisjoint32; omega
+    · unfold PatchWindowDisjoint32; omega
+    · unfold PatchWindowDisjoint32; omega
+    · unfold PatchWindowDisjoint32; omega
+    · unfold PatchWindowDisjoint32; omega
     · unfold PatchWindowDisjoint32; omega
     · unfold PatchWindowDisjoint32; omega
     · unfold PatchWindowDisjoint32; omega
@@ -329,13 +342,13 @@ theorem clipperVatPatchPayload (v : ClipperImmutables) {code : ByteArray}
     · unfold PatchWindowDisjoint32; omega
     · cases hfalse
   exact patchRuntime_extract'_exact_split (template := clipperBytecode)
-    (pre :=
-      [(1510, ilkBytes), (1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes),
-        (4239, ilkBytes), (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes),
-        (8747, ilkBytes), (1463, vatBytes), (2437, vatBytes)])
+    (pre := [(1463, vatBytes), (2437, vatBytes)])
     (post :=
       [(4318, vatBytes), (4441, vatBytes), (4751, vatBytes), (5115, vatBytes),
-        (6295, vatBytes), (7936, vatBytes)])
+        (6295, vatBytes), (7936, vatBytes),
+        (1510, ilkBytes), (1661, ilkBytes), (2221, ilkBytes), (2369, ilkBytes),
+        (4239, ilkBytes), (4866, ilkBytes), (5046, ilkBytes), (6800, ilkBytes),
+        (8747, ilkBytes)])
     (off := 3145) (value := vatBytes)
     (by
       simpa [patches, patchesFrom, offsets, immValues, wordBytes?, valueToWord,

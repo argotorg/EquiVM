@@ -45,7 +45,10 @@ def contractSyntax (v : ClipperImmutables) : ContractDecl := solidity% contract 
   uint256 locked;
   uint256 stopped;
 
-  constructor(address vat_, address spotter_, address dog_, bytes32 ilk_) {
+  -- Suppress the implicit guard so the state initializer precedes the explicit nonpayable guard.
+  constructor(address vat_, address spotter_, address dog_, bytes32 ilk_) payable {
+    stopped = 0;
+    require(msg.value == 0);
     address imm_vat = vat_;
     bytes32 imm_ilk = ilk_;
     spotter = spotter_;

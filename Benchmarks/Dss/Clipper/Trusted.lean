@@ -13,6 +13,13 @@ open Benchmarks.Dss.Clipper.Immutables
 
 namespace Benchmarks.Dss.Clipper
 
+/-- `keccak256(uint256(11))`, the dynamic-array data slot that solc 0.6.12 precomputes and embeds
+    in the runtime bytecode. This value is independently checkable from the 32-byte encoding of
+    `11`; the fact is trusted because the semantics' Keccak implementation is opaque to Lean. -/
+axiom activeDataSlot_eq :
+    activeDataSlot =
+      ⟨660301456019777184113296434797620819555017468543624515662331739614079884729⟩
+
 /-- `keccak("active(uint256)")[0:4] = 0x8033d581`. -/
 axiom activeSelectorBytes :
     (ffi.KEC (String.toByteArray (transitionSigStr activeTransition))).extract 0 4 =

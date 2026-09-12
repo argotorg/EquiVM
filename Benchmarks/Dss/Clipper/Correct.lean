@@ -16,13 +16,13 @@ import Benchmarks.Dss.Clipper.Ilk
 import Benchmarks.Dss.Clipper.Kick
 import Benchmarks.Dss.Clipper.Kicks
 import Benchmarks.Dss.Clipper.List
-import Benchmarks.Dss.Clipper.Redo
+import Benchmarks.Dss.Clipper.RedoBody
 import Benchmarks.Dss.Clipper.Rely
 import Benchmarks.Dss.Clipper.Sales
 import Benchmarks.Dss.Clipper.Spotter
 import Benchmarks.Dss.Clipper.Stopped
 import Benchmarks.Dss.Clipper.Tail
-import Benchmarks.Dss.Clipper.Take
+import Benchmarks.Dss.Clipper.TakeBody
 import Benchmarks.Dss.Clipper.Tip
 import Benchmarks.Dss.Clipper.Upchost
 import Benchmarks.Dss.Clipper.Vat
@@ -32,11 +32,10 @@ import Benchmarks.Dss.Clipper.Yank
 import Solm.Equiv
 
 /-!
-# MakerDAO/Sky DSS Clipper benchmark correctness stub
+# MakerDAO/Sky DSS Clipper benchmark correctness
 
-The upstream Solidity source, optimized runtime bytecode, Solm AST spec, and Solm syntax companion
-are present. The runtime-equivalence proof is intentionally left as the benchmark target. This file
-also exposes the whole-contract wrapper that combines the constructor and runtime targets.
+This file proves runtime equivalence and exposes the whole-contract wrapper combining it with
+constructor equivalence.
 -/
 
 open Solm ABI Ethereum Ethereum.EVM Reasoning.Theory Reasoning.Reach
@@ -84,7 +83,7 @@ theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
                                 hAccounts
                             · by_cases hkick : selIs I (clipperSelBytes 13)
                               · exact clipperKickBody v hcode hIcode hsize hperm hwv hkick
-                                  hAccounts
+                                  hAccounts hStorageWF
                               · by_cases hkicks : selIs I (clipperSelBytes 14)
                                 · exact clipperKicksBody v hcode hIcode hsize hperm hwv
                                     hkicks hAccounts
@@ -111,7 +110,7 @@ theorem clipperCorrect (v : ClipperImmutables) {code : ByteArray}
                                                   hperm hwv htail hAccounts
                                               · by_cases htake : selIs I (clipperSelBytes 22)
                                                 · exact clipperTakeBody v hcode hIcode hsize
-                                                    hperm hwv htake hAccounts
+                                                    hperm hwv htake hAccounts hStorageWF
                                                 · by_cases htip : selIs I (clipperSelBytes 23)
                                                   · exact clipperTipBody v hcode hIcode hsize
                                                       hperm hwv htip hAccounts

@@ -32,11 +32,16 @@ inductive ElemType where
   deriving DecidableEq, Repr, Inhabited
 
 /-- ABI decoder mode for compiler-specific wrapper behavior. Modern solc decoders reject
-    non-canonical value words and use signed size guards. Legacy solc (coder v1) instead *cleans*
+    non-canonical value words and use signed size guards. Legacy solc instead *cleans*
     value types rather than validating them: normalize `bool` (nonzero → true), mask `address`, and
-    mask narrow `uintN` — using unsigned static-size checks. Vyper fixed-argument wrappers keep
-    canonical address checks but use minimum static-size checks rather than solc's signed
-    huge-calldata guard. -/
+    mask narrow `uintN`.
+
+    `legacySolc05` models value cleanup, unsigned calldata-size checks, and the inclusive
+    `2^32` dynamic-value cap. Other compiler artifacts can use this mode when their decoder
+    agrees under the contract proof's calldata-size precondition.
+
+    Vyper fixed-argument wrappers keep canonical address checks but use minimum static-size checks
+    rather than solc's signed huge-calldata guard. -/
 inductive DecodeMode where
   | modern : DecodeMode
   | legacySolc05 : DecodeMode
