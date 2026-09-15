@@ -286,7 +286,8 @@ theorem clipperTakeFromFluxEquiv
           (evm := evmVat) (name := "dog_") (ty := some addr) (expr := .storage dogRef)
           (value := .address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat))
           (by simpa [clipperTakeDogEVMWord] using
-            clipperEvalDog v evmVat fluxLocals hfluxDogAbsent))
+            clipperEvalDog v evmVat fluxLocals hfluxDogAbsent)
+            (valueMatchesOptionalABIType_address _))
     have hdogWord : UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask =
         clipperTakeDogEVMWord evmVat :=
       clipperTakeDogWord_eq_of_accountMapEquiv hAccountsVat hevmVatEnv
@@ -373,7 +374,8 @@ theorem clipperTakeFromFluxEquiv
           (evm := evmVat) (name := "dog_") (ty := some addr) (expr := .storage dogRef)
           (value := .address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat))
           (by simpa [clipperTakeDogEVMWord] using
-            clipperEvalDog v evmVat fluxLocals hfluxDogAbsent))
+            clipperEvalDog v evmVat fluxLocals hfluxDogAbsent)
+            (valueMatchesOptionalABIType_address _))
     have hnoCodeSolm : (UInt256.ofNat
         ((evmVat.lookupAccount (AccountAddress.ofNat who.toNat)).option 0
           (fun acc => acc.code.size))).toNat = 0 := by
@@ -447,7 +449,8 @@ theorem clipperTakeFromFluxEquiv
           (evm := evmVat) (name := "dog_") (ty := some addr) (expr := .storage dogRef)
           (value := .address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat))
           (by simpa [clipperTakeDogEVMWord] using
-            clipperEvalDog v evmVat fluxLocals hfluxDogAbsent))
+            clipperEvalDog v evmVat fluxLocals hfluxDogAbsent)
+            (valueMatchesOptionalABIType_address _))
     have hcallCbSolm' : typedCallViaEVM (config v) evmVat
         (EVM.address (AccountAddress.ofNat who.toNat)) "clipperCall" 0
         [.address evmVat.executionEnv.source, .int (Int.ofNat owe.toNat),
@@ -540,7 +543,8 @@ theorem clipperTakeFromFluxEquiv
           (evm := evmVat) (name := "dog_") (ty := some addr) (expr := .storage dogRef)
           (value := .address (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat))
           (by simpa [clipperTakeDogEVMWord] using
-            clipperEvalDog v evmVat fluxLocals hfluxDogAbsent))
+            clipperEvalDog v evmVat fluxLocals hfluxDogAbsent)
+            (valueMatchesOptionalABIType_address _))
     have hcallCbSolm' : typedCallViaEVM (config v) evmVat
         (EVM.address (AccountAddress.ofNat who.toNat)) "clipperCall" 0
         [.address evmVat.executionEnv.source, .int (Int.ofNat owe.toNat),

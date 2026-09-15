@@ -490,7 +490,7 @@ theorem clipperEvalTakeDigsAmtAtCallbackMoveRet (v : ClipperImmutables)
       (Frame.mk (contract v)
         (clipperTakeLocalsCallbackMoveRet evmLoc evmRead evmVat I price slice owe0 owe
           slice' tabNew lotNew))
-      evmMove (wrap256 (.binary .add (.var "tab") (.var "owe"))) =
+      evmMove (wrap256 (.binary (.add uint256Int .wrapping) (.var "tab") (.var "owe"))) =
         .ok (.int (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat)) := by
   subst tabNew
   subst owe
@@ -521,17 +521,9 @@ theorem clipperEvalTakeDigsAmtAtCallbackMoveRet (v : ClipperImmutables)
       clipperTakeLocalsOweTabSlice, store_get_ne _ _ (by decide),
       clipperTakeLocalsOweTab, store_get_self]
     rfl
-  have hmod :
-      Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat % wordModulus =
-        Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat := by
-    rw [Int.emod_eq_of_lt]
-    · exact Int.natCast_nonneg _
-    · have hlt := (clipperTakeSalesTabEVMWord evmRead I).val.isLt
-      norm_num [wordModulus, UInt256.size] at hlt ⊢
-      exact_mod_cast hlt
-  simp [moveFrame, wrap256, evalExpr?, EvalResult.bind, bind, evalBinaryOp?,
-    htabEval, howeEval, wordModulus, hmod]
-  simpa [wordModulus] using hmod
+  apply clipperEvalWrap256
+  exact evalExpr_wrapping_add_uint256_word_ok (a := ⟨0⟩)
+    (by simpa only using htabEval) howeEval (u256_zero_add _).symm
 
 theorem clipperEvalTakeDogDigsTargetAtCallbackDigsAmt (v : ClipperImmutables)
     (evmLoc evmRead evmVat evmMove : EVM.State) (I : ExecutionEnv)
@@ -625,10 +617,10 @@ theorem clipperTakeDogDigsOweZeroNoCodeBlockAtCallbackMoveRet (v : ClipperImmuta
       slice' tabNew lotNew)
   have hdigs : ExecStmt (config v) moveFrame evmMove
       (.letDecl "digsAmt" (some uint256)
-        (wrap256 (.binary .add (.var "tab") (.var "owe"))))
+        (wrap256 (.binary (.add uint256Int .wrapping) (.var "tab") (.var "owe"))))
       (.ok digsFrame evmMove) := by
     simpa [moveFrame, digsFrame, clipperTakeLocalsCallbackDigsAmt] using
-      ExecStmt.letDecl
+      ExecStmt.letDecl_uint256_word
         (clipperEvalTakeDigsAmtAtCallbackMoveRet v evmLoc evmRead evmVat evmMove I
           price slice owe0 owe slice' tabNew lotNew htab howe)
   have hdog : ExecBlock (config v) digsFrame evmMove
@@ -686,10 +678,10 @@ theorem clipperTakeDogDigsOweZeroCallFailureBlockAtCallbackMoveRet
       slice' tabNew lotNew)
   have hdigs : ExecStmt (config v) moveFrame evmMove
       (.letDecl "digsAmt" (some uint256)
-        (wrap256 (.binary .add (.var "tab") (.var "owe"))))
+        (wrap256 (.binary (.add uint256Int .wrapping) (.var "tab") (.var "owe"))))
       (.ok digsFrame evmMove) := by
     simpa [moveFrame, digsFrame, clipperTakeLocalsCallbackDigsAmt] using
-      ExecStmt.letDecl
+      ExecStmt.letDecl_uint256_word
         (clipperEvalTakeDigsAmtAtCallbackMoveRet v evmLoc evmRead evmVat evmMove I
           price slice owe0 owe slice' tabNew lotNew htab howe)
   have hdog : ExecBlock (config v) digsFrame evmMove
@@ -762,10 +754,10 @@ theorem clipperTakeDogDigsOweZeroCallSuccessBlockAtCallbackMoveRet
       slice' tabNew lotNew)
   have hdigs : ExecStmt (config v) moveFrame evmMove
       (.letDecl "digsAmt" (some uint256)
-        (wrap256 (.binary .add (.var "tab") (.var "owe"))))
+        (wrap256 (.binary (.add uint256Int .wrapping) (.var "tab") (.var "owe"))))
       (.ok digsFrame evmMove) := by
     simpa [moveFrame, digsFrame, clipperTakeLocalsCallbackDigsAmt] using
-      ExecStmt.letDecl
+      ExecStmt.letDecl_uint256_word
         (clipperEvalTakeDigsAmtAtCallbackMoveRet v evmLoc evmRead evmVat evmMove I
           price slice owe0 owe slice' tabNew lotNew htab howe)
   have hdog : ExecBlock (config v) digsFrame evmMove

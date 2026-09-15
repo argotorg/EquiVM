@@ -44,7 +44,9 @@ theorem clipperYankRemoveLookup (v : ClipperImmutables) :
 theorem clipperYankRemoveBind (I : ExecutionEnv) :
     bindParams? removeFunction.params [clipperYankArgValue I] =
       some (clipperYankRemoveStore I) := by
-  simp [removeFunction, bindParams?, clipperYankRemoveStore]
+  simp only [removeFunction, bindParams?, uint256, uint256Int, clipperYankArgValue,
+    valueMatchesABIType_uint256_word, ↓reduceIte]
+  rfl
 
 theorem clipperYankRemoveEmptySourceReverts (v : ClipperImmutables)
     (evm : EVM.State) (I : ExecutionEnv)
@@ -59,7 +61,7 @@ theorem clipperYankRemoveEmptySourceReverts (v : ClipperImmutables)
       evalExpr? (config v) { contract := contract v, locals := clipperYankRemoveStore I } evm
         (sub256 (.arrayLength .storage activeRef) (.intLit 1)) = .revert := by
     simp [sub256, u256, evalExpr?, hlenEval, hlen, evalBinaryOp?, bind, EvalResult.bind,
-      uint256Int]
+      uint256Int, evalIntArithResult]
   unfold removeFunction
   exact ExecFuncBody.execBlockRevert (ExecBlock.consRevert (ExecStmt.letDeclRevert hlast))
 
@@ -105,32 +107,13 @@ theorem clipperEvalYankRemoveLastIndex (v : ClipperImmutables) (evm : EVM.State)
     have hzeroNat :
         (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat = 0 := by omega
     exact hlen (uint256_toNat_eq_zero hzeroNat)
-  have hsubNat :
-      (UInt256.sub (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩) ⟨1⟩).toNat =
-        (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat - 1 := by
-    rw [usub_toNat]
-    · rw [show (⟨1⟩ : UInt256).toNat = 1 from by native_decide]
-    · simpa using hpos
-  have hnotCast :
-      ¬ ((Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat = 0 ∨
-        UInt256.size <
-          (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat) := by
-    intro hbad
-    rcases hbad with hbad | hbad
-    · omega
-    · exact Nat.not_lt_of_ge
-        (Nat.le_of_lt (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).val.isLt)
-        hbad
-  have hint :
-      (Int.ofNat (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat - 1) =
-        Int.ofNat ((Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat - 1) := by
-    exact (Nat.cast_sub (R := Int)
-      (show 1 ≤ (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat
-        from hpos)).symm
-  simp [sub256, u256, evalExpr?, hlenEval, evalBinaryOp?, EvalResult.bind, bind,
-    uint256Int, hsubNat]
-  rw [if_neg (by simpa [UInt256.size] using hnotCast)]
-  simpa [pure, hint]
+  have hle : (⟨1⟩ : UInt256).toNat ≤
+      (Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨11⟩).toNat := by
+    simpa using hpos
+  simpa only [sub256, u256, uint256Int] using
+    evalExpr_checked_sub_uint256_word_ok hlenEval
+      (b := ⟨1⟩) (by simp only [evalExpr?]; native_decide) (usub_toNat hle) hle
+
 
 theorem clipperEvalYankRemoveActiveElem (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) (idx : UInt256)
@@ -678,14 +661,14 @@ theorem clipperYankRemoveIdEqMoveSource (v : ClipperImmutables) (evm : EVM.State
           (sub256 (.arrayLength .storage activeRef) (.intLit 1)))
         (.ok { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex }
           evm) := by
-    exact ExecStmt.letDecl (clipperEvalYankRemoveLastIndex v evm I hlen)
+    exact ExecStmt.letDecl_uint256_word (clipperEvalYankRemoveLastIndex v evm I hlen)
   have hmoveStmt :
       ExecStmt (config v)
         { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex } evm
         (.letDecl "_move" (some uint256) (.storage (activeElemRef (.var "lastIndex"))))
         (.ok { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
           evm) := by
-    exact ExecStmt.letDecl (clipperEvalYankRemoveActiveElem v evm I lastIndex hlastBound)
+    exact ExecStmt.letDecl_uint256_word (clipperEvalYankRemoveActiveElem v evm I lastIndex hlastBound)
   have hcond :
       evalExpr? (config v)
         { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm

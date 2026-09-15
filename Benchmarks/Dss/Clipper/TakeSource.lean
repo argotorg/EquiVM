@@ -192,7 +192,8 @@ theorem clipperTakeInactiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
         (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
-        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
+        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I)
+        (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -202,7 +203,8 @@ theorem clipperTakeInactiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
         (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
-        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
+        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have husrEval :
       evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool false) := by
@@ -279,7 +281,8 @@ theorem clipperTakeStatusSourceRevertsOfStatus {cA gh bl σ σ₀ A I} {g : UInt
         (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
-        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
+        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I)
+        (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -289,7 +292,8 @@ theorem clipperTakeStatusSourceRevertsOfStatus {cA gh bl σ σ₀ A I} {g : UInt
         (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
-        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
+        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have husrEval :
       evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
@@ -377,7 +381,8 @@ theorem clipperTakeStatusDoneTrueSourceReverts {cA gh bl σ σ₀ A I} {g : UInt
         (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
-        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
+        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I)
+        (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -387,7 +392,8 @@ theorem clipperTakeStatusDoneTrueSourceReverts {cA gh bl σ σ₀ A I} {g : UInt
         (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
-        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
+        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have husrEval :
       evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
@@ -406,7 +412,8 @@ theorem clipperTakeStatusDoneTrueSourceReverts {cA gh bl σ σ₀ A I} {g : UInt
         (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool true)
         (by simpa [stFrame] using
-          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I true price))
+          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I true price)
+          (valueMatchesOptionalABIType_bool _))
   have hletPrice :
       ExecStmt (config v) doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
@@ -417,7 +424,8 @@ theorem clipperTakeStatusDoneTrueSourceReverts {cA gh bl σ σ₀ A I} {g : UInt
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
-          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I true price))
+          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I true price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hdoneEval :
       evalExpr? (config v) priceFrame evmPrice (.unary .not (.var "done")) =
         .ok (.bool false) := by
@@ -504,7 +512,8 @@ theorem clipperTakeTooExpensiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt25
         (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
-        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
+        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I)
+        (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -514,7 +523,8 @@ theorem clipperTakeTooExpensiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt25
         (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
-        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
+        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have husrEval :
       evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
@@ -533,7 +543,8 @@ theorem clipperTakeTooExpensiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt25
         (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool false)
         (by simpa [stFrame] using
-          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_bool _))
   have hletPrice :
       ExecStmt (config v) doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
@@ -544,7 +555,8 @@ theorem clipperTakeTooExpensiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt25
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
-          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hdoneEval :
       evalExpr? (config v) priceFrame evmPrice (.unary .not (.var "done")) =
         .ok (.bool true) := by
@@ -651,7 +663,8 @@ theorem clipperTakeOwe0MulOverflowSourceReverts {cA gh bl σ σ₀ A I} {g : UIn
         (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
-        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
+        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I)
+        (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -661,7 +674,8 @@ theorem clipperTakeOwe0MulOverflowSourceReverts {cA gh bl σ σ₀ A I} {g : UIn
         (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
-        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
+        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have husrEval :
       evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
@@ -680,7 +694,8 @@ theorem clipperTakeOwe0MulOverflowSourceReverts {cA gh bl σ σ₀ A I} {g : UIn
         (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool false)
         (by simpa [stFrame] using
-          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_bool _))
   have hletPrice :
       ExecStmt (config v) doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
@@ -691,7 +706,8 @@ theorem clipperTakeOwe0MulOverflowSourceReverts {cA gh bl σ σ₀ A I} {g : UIn
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
-          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hdoneEval :
       evalExpr? (config v) priceFrame evmPrice (.unary .not (.var "done")) =
         .ok (.bool true) := by
@@ -711,7 +727,8 @@ theorem clipperTakeOwe0MulOverflowSourceReverts {cA gh bl σ σ₀ A I} {g : UIn
         (ty := some uint256) (expr := .storage (salesF (.var "id") "lot"))
         (value := .int (Int.ofNat lot.toNat))
         (by simpa [priceFrame, lot] using
-          clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price))
+          clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hletTab :
       ExecStmt (config v) lotFrame evmPrice
         (.letDecl "tab" (some uint256) (.storage (salesF (.var "id") "tab")))
@@ -722,7 +739,8 @@ theorem clipperTakeOwe0MulOverflowSourceReverts {cA gh bl σ σ₀ A I} {g : UIn
         (ty := some uint256) (expr := .storage (salesF (.var "id") "tab"))
         (value := .int (Int.ofNat tab.toNat))
         (by simpa [lotFrame, tab] using
-          clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price))
+          clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hminCall :
       ExecStmt (config v) tabFrame evmPrice
         (.internalCall "min" [.var "lot", .var "amt"] "slice")
@@ -813,12 +831,13 @@ theorem clipperTakeOwe0MulSuccessBlock (v : ClipperImmutables)
         (ty := some uint256) (expr := mul256 (.var "slice") (.var "price"))
         (value := .int (Int.ofNat owe0.toNat))
         (by simpa [sliceFrame, owe0] using
-          clipperEvalTakeOwe0Mul_ok v evmLoc evmRead I price slice hmul))
+          clipperEvalTakeOwe0Mul_ok v evmLoc evmRead I price slice hmul)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hrequire :
       evalExpr? (config v) owe0Frame evmRead
         (.binary .or
           (.binary .eq (.var "price") (.intLit 0))
-          (.binary .eq (.binary .div (.var "owe0") (.var "price")) (.var "slice"))) =
+          (.binary .eq (.binary (.div uint256Int .checked) (.var "owe0") (.var "price")) (.var "slice"))) =
         .ok (.bool true) := by
     simpa [owe0Frame, owe0] using
       clipperEvalTakeCheckedOwe0Require_true v evmLoc evmRead I price slice hmul
@@ -832,7 +851,8 @@ theorem clipperTakeOwe0MulSuccessBlock (v : ClipperImmutables)
         (ty := some uint256) (expr := .var "owe0")
         (value := .int (Int.ofNat owe0.toNat))
         (by simpa [owe0Frame] using
-          clipperEvalTakeVarOwe0AtOwe0 v evmLoc evmRead evmRead I false price slice owe0))
+          clipperEvalTakeVarOwe0AtOwe0 v evmLoc evmRead evmRead I false price slice owe0)
+          (valueMatchesOptionalABIType_uint256_word _))
   simpa [checkedMulUintInto, sliceFrame, oweFrame] using
     (ExecBlock.consNormal hletOwe0
       (ExecBlock.consNormal (ExecStmt.requireTrue hrequire)
@@ -852,7 +872,7 @@ theorem clipperTakeOweGtTabIte (v : ClipperImmutables)
       (.ite
         (.binary .gt (.var "owe") (.var "tab"))
         [ .assign .localVar (varRef "owe") (.var "tab"),
-          .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ]
+          .assign .localVar (varRef "slice") (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ]
         [ .ite
           (.binary .and (.binary .lt (.var "owe") (.var "tab"))
             (.binary .lt (.var "slice") (.var "lot")))
@@ -864,7 +884,7 @@ theorem clipperTakeOweGtTabIte (v : ClipperImmutables)
                 wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                 [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                   .assign .localVar (varRef "slice")
-                    (.binary .div (.var "owe") (.var "price")) ])
+                    (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
               [] ])
           [] ])
       (.ok
@@ -901,14 +921,14 @@ theorem clipperTakeOweGtTabIte (v : ClipperImmutables)
       clipperTakeAssignOweToTab v evmLoc evmRead I price slice owe0 owe0
   have hassignSlice :
       ExecStmt (config v) oweTabFrame evmRead
-        (.assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")))
+        (.assign .localVar (varRef "slice") (.binary (.div uint256Int .checked) (.var "owe") (.var "price")))
         (.ok sliceFrame evmRead) := by
     simpa [oweTabFrame, sliceFrame, owe0, slice'] using
       clipperTakeAssignSliceFromOweTab v evmLoc evmRead I price slice owe0 (hprice := hprice)
   have hthen :
       ExecBlock (config v) oweFrame evmRead
         [ .assign .localVar (varRef "owe") (.var "tab"),
-          .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ]
+          .assign .localVar (varRef "slice") (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ]
         (.ok sliceFrame evmRead) := by
     exact ExecBlock.consNormal hassignOwe
       (ExecBlock.consNormal hassignSlice ExecBlock.nil)
@@ -929,7 +949,7 @@ theorem clipperTakeOweEqTabIte (v : ClipperImmutables)
       (.ite
         (.binary .gt (.var "owe") (.var "tab"))
         [ .assign .localVar (varRef "owe") (.var "tab"),
-          .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ]
+          .assign .localVar (varRef "slice") (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ]
         [ .ite
           (.binary .and (.binary .lt (.var "owe") (.var "tab"))
             (.binary .lt (.var "slice") (.var "lot")))
@@ -941,7 +961,7 @@ theorem clipperTakeOweEqTabIte (v : ClipperImmutables)
                 wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                 [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                   .assign .localVar (varRef "slice")
-                    (.binary .div (.var "owe") (.var "price")) ])
+                    (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
               [] ])
           [] ])
       (.ok
@@ -976,7 +996,7 @@ theorem clipperTakeOweEqTabIte (v : ClipperImmutables)
                 wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                 [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                   .assign .localVar (varRef "slice")
-                    (.binary .div (.var "owe") (.var "price")) ])
+                    (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
               [] ])
           [])
         (.ok oweFrame evmRead) :=
@@ -994,7 +1014,7 @@ theorem clipperTakeOweEqTabIte (v : ClipperImmutables)
                 wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                 [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                   .assign .localVar (varRef "slice")
-                    (.binary .div (.var "owe") (.var "price")) ])
+                    (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
               [] ])
           [] ]
         (.ok oweFrame evmRead) :=
@@ -1016,7 +1036,7 @@ theorem clipperTakeOweLtTabSliceGeLotIte (v : ClipperImmutables)
       (.ite
         (.binary .gt (.var "owe") (.var "tab"))
         [ .assign .localVar (varRef "owe") (.var "tab"),
-          .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ]
+          .assign .localVar (varRef "slice") (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ]
         [ .ite
           (.binary .and (.binary .lt (.var "owe") (.var "tab"))
             (.binary .lt (.var "slice") (.var "lot")))
@@ -1028,7 +1048,7 @@ theorem clipperTakeOweLtTabSliceGeLotIte (v : ClipperImmutables)
                 wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                 [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                   .assign .localVar (varRef "slice")
-                    (.binary .div (.var "owe") (.var "price")) ])
+                    (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
               [] ])
           [] ])
       (.ok
@@ -1064,7 +1084,7 @@ theorem clipperTakeOweLtTabSliceGeLotIte (v : ClipperImmutables)
                 wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                 [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                   .assign .localVar (varRef "slice")
-                    (.binary .div (.var "owe") (.var "price")) ])
+                    (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
               [] ])
           [])
         (.ok oweFrame evmRead) :=
@@ -1082,7 +1102,7 @@ theorem clipperTakeOweLtTabSliceGeLotIte (v : ClipperImmutables)
                 wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                 [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                   .assign .localVar (varRef "slice")
-                    (.binary .div (.var "owe") (.var "price")) ])
+                    (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
               [] ])
           [] ]
         (.ok oweFrame evmRead) :=
@@ -1134,14 +1154,14 @@ theorem clipperTakePostOweGtTabSubBlock (v : ClipperImmutables)
   have htabNew :
       ExecStmt (config v) sliceFrame evmRead
         (.letDecl "tabNew" (some uint256)
-          (wrap256 (.binary .sub (.var "tab") (.var "owe"))))
+          (wrap256 (.binary (.sub uint256Int .wrapping) (.var "tab") (.var "owe"))))
         (.ok tabNewFrame evmRead) := by
     simpa [sliceFrame, tabNewFrame, tabNew] using
       clipperTakeLetTabNew v evmLoc evmRead I price slice owe0 owe0 slice'
   have hlotNew :
       ExecStmt (config v) tabNewFrame evmRead
         (.letDecl "lotNew" (some uint256)
-          (wrap256 (.binary .sub (.var "lot") (.var "slice"))))
+          (wrap256 (.binary (.sub uint256Int .wrapping) (.var "lot") (.var "slice"))))
         (.ok lotNewFrame evmRead) := by
     simpa [tabNewFrame, lotNewFrame, lotNew, slice'] using
       clipperTakeLetLotNew v evmLoc evmRead I price slice owe0 owe0 slice' tabNew
@@ -1375,7 +1395,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeTailBlock (v : ClipperImmutables)
           .ite
             (.binary .gt (.var "owe") (.var "tab"))
             [ .assign .localVar (varRef "owe") (.var "tab"),
-              .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ]
+              .assign .localVar (varRef "slice") (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ]
             [ .ite
               (.binary .and (.binary .lt (.var "owe") (.var "tab"))
                 (.binary .lt (.var "slice") (.var "lot")))
@@ -1387,7 +1407,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeTailBlock (v : ClipperImmutables)
                     wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                     [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                       .assign .localVar (varRef "slice")
-                        (.binary .div (.var "owe") (.var "price")) ])
+                        (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
                   [] ])
               [] ] ] ++
         wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++
@@ -1427,7 +1447,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeTailBlock (v : ClipperImmutables)
         (.ite
           (.binary .gt (.var "owe") (.var "tab"))
           [ .assign .localVar (varRef "owe") (.var "tab"),
-            .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ]
+            .assign .localVar (varRef "slice") (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ]
           [ .ite
             (.binary .and (.binary .lt (.var "owe") (.var "tab"))
               (.binary .lt (.var "slice") (.var "lot")))
@@ -1439,7 +1459,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeTailBlock (v : ClipperImmutables)
                   wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                   [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                     .assign .localVar (varRef "slice")
-                      (.binary .div (.var "owe") (.var "price")) ])
+                      (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
                 [] ])
             [] ])
         (.ok adjustedFrame evmRead) := by
@@ -1467,7 +1487,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeTailBlock (v : ClipperImmutables)
         (.ite
           (.binary .gt (.var "owe") (.var "tab"))
           [ .assign .localVar (varRef "owe") (.var "tab"),
-            .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ]
+            .assign .localVar (varRef "slice") (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ]
           [ .ite
             (.binary .and (.binary .lt (.var "owe") (.var "tab"))
               (.binary .lt (.var "slice") (.var "lot")))
@@ -1479,7 +1499,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeTailBlock (v : ClipperImmutables)
                   wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                   [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                     .assign .localVar (varRef "slice")
-                      (.binary .div (.var "owe") (.var "price")) ])
+                      (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
                 [] ])
             [] ] ::
           (wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++
@@ -1580,7 +1600,8 @@ theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {cA gh bl σ σ₀ A I}
         (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
-        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
+        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I)
+        (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -1590,7 +1611,8 @@ theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {cA gh bl σ σ₀ A I}
         (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
-        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
+        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have husrEval :
       evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
@@ -1609,7 +1631,8 @@ theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {cA gh bl σ σ₀ A I}
         (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool false)
         (by simpa [stFrame] using
-          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_bool _))
   have hletPrice :
       ExecStmt (config v) doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
@@ -1620,7 +1643,8 @@ theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {cA gh bl σ σ₀ A I}
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
-          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hdoneEval :
       evalExpr? (config v) priceFrame evmPrice (.unary .not (.var "done")) =
         .ok (.bool true) := by
@@ -1639,7 +1663,8 @@ theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {cA gh bl σ σ₀ A I}
         (ty := some uint256) (expr := .storage (salesF (.var "id") "lot"))
         (value := .int (Int.ofNat lot.toNat))
         (by simpa [priceFrame, lot] using
-          clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price))
+          clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hletTab :
       ExecStmt (config v) lotFrame evmPrice
         (.letDecl "tab" (some uint256) (.storage (salesF (.var "id") "tab")))
@@ -1650,7 +1675,8 @@ theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {cA gh bl σ σ₀ A I}
         (ty := some uint256) (expr := .storage (salesF (.var "id") "tab"))
         (value := .int (Int.ofNat tab.toNat))
         (by simpa [lotFrame, tab] using
-          clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price))
+          clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hminCall :
       ExecStmt (config v) tabFrame evmPrice
         (.internalCall "min" [.var "lot", .var "amt"] "slice")
@@ -1681,7 +1707,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {cA gh bl σ σ₀ A I}
             .ite
               (.binary .gt (.var "owe") (.var "tab"))
               [ .assign .localVar (varRef "owe") (.var "tab"),
-                .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ]
+                .assign .localVar (varRef "slice") (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ]
               [ .ite
                 (.binary .and (.binary .lt (.var "owe") (.var "tab"))
                   (.binary .lt (.var "slice") (.var "lot")))
@@ -1693,7 +1719,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {cA gh bl σ σ₀ A I}
                       wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                       [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                         .assign .localVar (varRef "slice")
-                          (.binary .div (.var "owe") (.var "price")) ])
+                          (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
                     [] ])
                 [] ] ] ++
           wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++
@@ -1804,7 +1830,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureTailBlock (v : ClipperImmutables)
           .ite
             (.binary .gt (.var "owe") (.var "tab"))
             [ .assign .localVar (varRef "owe") (.var "tab"),
-              .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ]
+              .assign .localVar (varRef "slice") (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ]
             [ .ite
               (.binary .and (.binary .lt (.var "owe") (.var "tab"))
                 (.binary .lt (.var "slice") (.var "lot")))
@@ -1816,7 +1842,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureTailBlock (v : ClipperImmutables)
                     wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                     [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                       .assign .localVar (varRef "slice")
-                        (.binary .div (.var "owe") (.var "price")) ])
+                        (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
                   [] ])
               [] ] ] ++
         wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++
@@ -1856,7 +1882,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureTailBlock (v : ClipperImmutables)
         (.ite
           (.binary .gt (.var "owe") (.var "tab"))
           [ .assign .localVar (varRef "owe") (.var "tab"),
-            .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ]
+            .assign .localVar (varRef "slice") (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ]
           [ .ite
             (.binary .and (.binary .lt (.var "owe") (.var "tab"))
               (.binary .lt (.var "slice") (.var "lot")))
@@ -1868,7 +1894,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureTailBlock (v : ClipperImmutables)
                   wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                   [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                     .assign .localVar (varRef "slice")
-                      (.binary .div (.var "owe") (.var "price")) ])
+                      (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
                 [] ])
             [] ])
         (.ok adjustedFrame evmRead) := by
@@ -1907,7 +1933,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureTailBlock (v : ClipperImmutables)
         (.ite
           (.binary .gt (.var "owe") (.var "tab"))
           [ .assign .localVar (varRef "owe") (.var "tab"),
-            .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ]
+            .assign .localVar (varRef "slice") (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ]
           [ .ite
             (.binary .and (.binary .lt (.var "owe") (.var "tab"))
               (.binary .lt (.var "slice") (.var "lot")))
@@ -1919,7 +1945,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureTailBlock (v : ClipperImmutables)
                   wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
                   [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
                     .assign .localVar (varRef "slice")
-                      (.binary .div (.var "owe") (.var "price")) ])
+                      (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
                 [] ])
             [] ] ::
           (wrappingSubInto "tabNew" (.var "tab") (.var "owe") ++

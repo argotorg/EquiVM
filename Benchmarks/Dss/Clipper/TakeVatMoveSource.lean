@@ -716,7 +716,8 @@ theorem clipperTakeVatMoveNoCodeBlock (v : ClipperImmutables)
                   clipperTakeLocalsOweTab, clipperTakeLocalsOwe, clipperTakeLocalsOwe0,
                   clipperTakeLocalsSlice, clipperTakeLocalsTab, clipperTakeLocalsLot,
                   clipperTakeLocalsPrice, clipperTakeLocalsDone, clipperTakeLocalsSt,
-                  clipperTakeLocalsTic, clipperTakeLocalsUsr, clipperTakeStore])))
+                  clipperTakeLocalsTic, clipperTakeLocalsUsr, clipperTakeStore]))
+                  (valueMatchesOptionalABIType_address _))
   have hcallback :
       ExecStmt (config v) dogFrame evmVat
         (.ite
@@ -812,7 +813,8 @@ theorem clipperTakeVatMoveCallFailureBlock (v : ClipperImmutables)
                   clipperTakeLocalsOweTab, clipperTakeLocalsOwe, clipperTakeLocalsOwe0,
                   clipperTakeLocalsSlice, clipperTakeLocalsTab, clipperTakeLocalsLot,
                   clipperTakeLocalsPrice, clipperTakeLocalsDone, clipperTakeLocalsSt,
-                  clipperTakeLocalsTic, clipperTakeLocalsUsr, clipperTakeStore])))
+                  clipperTakeLocalsTic, clipperTakeLocalsUsr, clipperTakeStore]))
+                  (valueMatchesOptionalABIType_address _))
   have hcallback :
       ExecStmt (config v) dogFrame evmVat
         (.ite
@@ -936,7 +938,8 @@ theorem clipperTakeVatMoveNoCodeBlockOfCallbackFalse (v : ClipperImmutables)
                   clipperTakeLocalsOweTab, clipperTakeLocalsOwe, clipperTakeLocalsOwe0,
                   clipperTakeLocalsSlice, clipperTakeLocalsTab, clipperTakeLocalsLot,
                   clipperTakeLocalsPrice, clipperTakeLocalsDone, clipperTakeLocalsSt,
-                  clipperTakeLocalsTic, clipperTakeLocalsUsr, clipperTakeStore])))
+                  clipperTakeLocalsTic, clipperTakeLocalsUsr, clipperTakeStore]))
+                  (valueMatchesOptionalABIType_address _))
   have hmoveRevert :
       ExecBlock (config v) dogFrame evmVat
         (checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
@@ -1034,7 +1037,8 @@ theorem clipperTakeVatMoveCallFailureBlockOfCallbackFalse (v : ClipperImmutables
                   clipperTakeLocalsOweTab, clipperTakeLocalsOwe, clipperTakeLocalsOwe0,
                   clipperTakeLocalsSlice, clipperTakeLocalsTab, clipperTakeLocalsLot,
                   clipperTakeLocalsPrice, clipperTakeLocalsDone, clipperTakeLocalsSt,
-                  clipperTakeLocalsTic, clipperTakeLocalsUsr, clipperTakeStore])))
+                  clipperTakeLocalsTic, clipperTakeLocalsUsr, clipperTakeStore]))
+                  (valueMatchesOptionalABIType_address _))
   have hargs :
       evalExprs? (config v) dogFrame evmVat [sender, .storage vowRef, .var "owe"] =
         .ok
@@ -1155,7 +1159,8 @@ theorem clipperTakeVatMoveCallSuccessBlockOfCallbackFalse (v : ClipperImmutables
                   clipperTakeLocalsOweTab, clipperTakeLocalsOwe, clipperTakeLocalsOwe0,
                   clipperTakeLocalsSlice, clipperTakeLocalsTab, clipperTakeLocalsLot,
                   clipperTakeLocalsPrice, clipperTakeLocalsDone, clipperTakeLocalsSt,
-                  clipperTakeLocalsTic, clipperTakeLocalsUsr, clipperTakeStore])))
+                  clipperTakeLocalsTic, clipperTakeLocalsUsr, clipperTakeStore]))
+                  (valueMatchesOptionalABIType_address _))
   have hargs :
       evalExprs? (config v) dogFrame evmVat [sender, .storage vowRef, .var "owe"] =
         .ok

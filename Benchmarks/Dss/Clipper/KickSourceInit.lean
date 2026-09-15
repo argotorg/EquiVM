@@ -279,7 +279,7 @@ theorem clipperEvalKickUsrNonzero (v : ClipperImmutables) (evm : EVM.State)
 theorem clipperEvalKickIdExpr (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
     evalExpr? (config v) { contract := contract v, locals := clipperKickStore I } evm
-      (wrap256 (.binary .add (.storage kicksRef) (.intLit 1))) =
+      (wrap256 (.binary (.add uint256Int .wrapping) (.storage kicksRef) (.intLit 1))) =
       .ok (.int (Int.ofNat (clipperKickSourceIdWord evm).toNat)) := by
   have hkicks :
       evalExpr? (config v) { contract := contract v, locals := clipperKickStore I } evm
@@ -297,23 +297,9 @@ theorem clipperEvalKickIdExpr (v : ClipperImmutables) (evm : EVM.State)
       (hty := by simp [storageTypeAt?, contract, storageDecls, uint256St])
       (hloc := by rfl)
       (hload := by simpa using clipperStorageLocLoad_uint256 evm ⟨10⟩)
-  let old := Solm.EVM.storageLoad evm evm.executionEnv.codeOwner ⟨10⟩
-  rw [wrap256]
-  simp only [evalExpr?, hkicks, EvalResult.bind, bind, pure]
-  change (if wordModulus = 0 then EvalResult.revert else
-      .ok (Value.int ((Int.ofNat old.toNat + 1) % wordModulus))) =
-    .ok (Value.int (Int.ofNat (⟨1⟩ + old).toNat))
-  rw [if_neg (by norm_num [wordModulus])]
-  have hmod :
-      (Int.ofNat old.toNat + 1) % wordModulus = Int.ofNat (⟨1⟩ + old).toNat := by
-    rw [show Int.ofNat old.toNat + 1 = Int.ofNat (old.toNat + 1) by simp]
-    rw [wordModulus]
-    rw [show (Int.ofNat (old.toNat + 1)) % (2 : Int) ^ 256 =
-        Int.ofNat ((old.toNat + 1) % UInt256.size) by
-      exact (Int.natCast_mod (old.toNat + 1) UInt256.size).symm]
-    rw [uadd_toNat]
-    rw [show (⟨1⟩ : UInt256).toNat = 1 by native_decide, Nat.add_comm]
-  rw [hmod]
+  apply clipperEvalWrap256
+  exact evalExpr_wrapping_add_uint256_word_ok hkicks
+    (b := ⟨1⟩) (by simp only [evalExpr?]; native_decide) (u256_add_comm _ _)
 
 theorem clipperKickAssignId (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -461,17 +447,12 @@ theorem clipperEvalKickActivePosExpr (v : ClipperImmutables)
     evalExpr? (config v)
       { contract := contract v, locals := clipperKickLocalsId evm I }
       (clipperKickSourceActiveState evm)
-      (wrap256 (.binary .sub (.arrayLength .storage activeRef) (.intLit 1))) =
+      (wrap256 (.binary (.sub uint256Int .wrapping) (.arrayLength .storage activeRef) (.intLit 1))) =
       .ok (.int (Int.ofNat (clipperKickSourceActivePosWord evm).toNat)) := by
-  let n := clipperKickSourcePostPushLengthWord evm
-  have hlen := clipperEvalKickActiveLengthAfterPush v evm I
-  rw [wrap256]
-  simp only [evalExpr?, hlen, EvalResult.bind, bind, pure]
-  change (if wordModulus = 0 then EvalResult.revert else
-      .ok (Value.int ((Int.ofNat n.toNat - 1) % wordModulus))) =
-    .ok (Value.int (Int.ofNat (UInt256.sub n ⟨1⟩).toNat))
-  rw [if_neg (by norm_num [wordModulus])]
-  simpa using clipperIntModWord_sub_toNat n ⟨1⟩
+  apply clipperEvalWrap256
+  exact evalExpr_wrapping_sub_uint256_word_ok
+    (clipperEvalKickActiveLengthAfterPush v evm I)
+    (b := ⟨1⟩) (by simp only [evalExpr?]; native_decide) rfl
 
 abbrev clipperKickSourceSalesRef (evm : EVM.State) (field : Ident) :
     EvaledStorageRef :=

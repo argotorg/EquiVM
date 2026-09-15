@@ -86,7 +86,7 @@ theorem clipperRedoStatusCallReturnsDoneTailTrue (v : ClipperImmutables)
       (clipperEvalRedoStatusArgs v evm I)
       (clipperLookupStatusFunction v)
       (clipperBindParamsStatus (clipperRedoSalesTicEVMWord evm I)
-        (clipperRedoSalesTopEVMWord evm I))
+        (clipperRedoSalesTopEVMWord evm I) (clipperSalesPackedTicWord_lt _))
       (clipperStatusFunctionReturnsDoneTailTrue v (clipperRedoSalesTicEVMWord evm I)
         (clipperRedoSalesTopEVMWord evm I) price hlePrice hcode hcall hdec hleDone htail))
 
@@ -150,7 +150,7 @@ theorem clipperRedoStatusCallReturnsRdivBranch (v : ClipperImmutables)
       (clipperEvalRedoStatusArgs v evm I)
       (clipperLookupStatusFunction v)
       (clipperBindParamsStatus (clipperRedoSalesTicEVMWord evm I)
-        (clipperRedoSalesTopEVMWord evm I))
+        (clipperRedoSalesTopEVMWord evm I) (clipperSalesPackedTicWord_lt _))
       (clipperStatusFunctionReturnsRdivBranch v (clipperRedoSalesTicEVMWord evm I)
         (clipperRedoSalesTopEVMWord evm I) price hlePrice hcode hcall hdec hleDone htail
         hmul htop done hdone))
@@ -179,7 +179,7 @@ theorem clipperRedoStatusCallRevertsPriceNoCode (v : ClipperImmutables)
     (clipperEvalRedoStatusArgs v evm I)
     (clipperLookupStatusFunction v)
     (clipperBindParamsStatus (clipperRedoSalesTicEVMWord evm I)
-      (clipperRedoSalesTopEVMWord evm I))
+      (clipperRedoSalesTopEVMWord evm I) (clipperSalesPackedTicWord_lt _))
     (clipperStatusFunctionRevertsPriceNoCode v evm
       (clipperRedoSalesTicEVMWord evm I) (clipperRedoSalesTopEVMWord evm I)
       hlePrice hnoCode)
@@ -215,7 +215,7 @@ theorem clipperRedoStatusCallRevertsPriceCallFailure (v : ClipperImmutables)
     (clipperEvalRedoStatusArgs v evm I)
     (clipperLookupStatusFunction v)
     (clipperBindParamsStatus (clipperRedoSalesTicEVMWord evm I)
-      (clipperRedoSalesTopEVMWord evm I))
+      (clipperRedoSalesTopEVMWord evm I) (clipperSalesPackedTicWord_lt _))
     (clipperStatusFunctionRevertsPriceCallFailure v
       (clipperRedoSalesTicEVMWord evm I) (clipperRedoSalesTopEVMWord evm I)
       hlePrice hcode hcall)
@@ -252,7 +252,7 @@ theorem clipperRedoStatusCallRevertsPriceDecode (v : ClipperImmutables)
     (clipperEvalRedoStatusArgs v evm I)
     (clipperLookupStatusFunction v)
     (clipperBindParamsStatus (clipperRedoSalesTicEVMWord evm I)
-      (clipperRedoSalesTopEVMWord evm I))
+      (clipperRedoSalesTopEVMWord evm I) (clipperSalesPackedTicWord_lt _))
     (clipperStatusFunctionRevertsPriceDecode v
       (clipperRedoSalesTicEVMWord evm I) (clipperRedoSalesTopEVMWord evm I)
       hlePrice hcode hcall hdec)
@@ -401,7 +401,10 @@ theorem clipperEvalRedoTimestamp96 (v : ClipperImmutables)
       (wrap96 (.env .timestamp)) =
       .ok (.int (Int.ofNat ((UInt256.ofNat evm.executionEnv.header.timestamp).toNat %
         (2 ^ 96)))) := by
-  simp [wrap96, evalExpr?, evalBinaryOp?, envValue, uint96Modulus, bind, EvalResult.bind, pure]
+  have hmod := evalExpr_mod_uint256_word_nat_ok (modulus := 2 ^ 96)
+    (clipperEvalTimestamp v evm locals) (rhs := .intLit uint96Modulus)
+    (by simp [evalExpr?, pure, uint96Modulus]) (by decide)
+  simpa only [wrap96, clipperTimestampWord] using hmod
 
 private theorem clipperNatLandLowMaskMod (n k : Nat) :
     Nat.land n (2 ^ k - 1) = n % 2 ^ k := by
@@ -963,7 +966,8 @@ theorem clipperRedoDoneTrueSourcePrefix
         (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperRedoSalesUsrEVMWord evmLock I).toNat))
-        (by simpa [startFrame, locals] using clipperEvalRedoSalesUsr v evmLock I))
+        (by simpa [startFrame, locals] using clipperEvalRedoSalesUsr v evmLock I)
+        (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -973,7 +977,8 @@ theorem clipperRedoDoneTrueSourcePrefix
         (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperRedoSalesTicEVMWord evmLock I).toNat))
-        (by simpa [usrFrame] using clipperEvalRedoSalesTicAfterUsr v evmLock I))
+        (by simpa [usrFrame] using clipperEvalRedoSalesTicAfterUsr v evmLock I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have hletTop :
       ExecStmt (config v) ticFrame evmLock
         (.letDecl "top" (some uint256) (.storage (salesF (.var "id") "top")))
@@ -983,7 +988,8 @@ theorem clipperRedoDoneTrueSourcePrefix
         (cfg := config v) (solm := ticFrame) (evm := evmLock) (name := "top")
         (ty := some uint256) (expr := .storage (salesF (.var "id") "top"))
         (value := .int (Int.ofNat (clipperRedoSalesTopEVMWord evmLock I).toNat))
-        (by simpa [ticFrame] using clipperEvalRedoSalesTopAfterTic v evmLock I))
+        (by simpa [ticFrame] using clipperEvalRedoSalesTopAfterTic v evmLock I)
+        (valueMatchesOptionalABIType_uint256_word _))
   have husrEval :
       evalExpr? (config v) topFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
@@ -1006,7 +1012,8 @@ theorem clipperRedoDoneTrueSourcePrefix
         (ty := some uint256) (expr := .storage (salesF (.var "id") "tab"))
         (value := .int (Int.ofNat (clipperRedoSalesTabEVMWord evmPrice I).toNat))
         (by simpa [stFrame] using
-          clipperEvalRedoSalesTabAfterStatusTrue v evmLock evmPrice I price))
+          clipperEvalRedoSalesTabAfterStatusTrue v evmLock evmPrice I price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hletLot :
       ExecStmt (config v) tabFrame evmPrice
         (.letDecl "lot" (some uint256) (.storage (salesF (.var "id") "lot")))
@@ -1017,7 +1024,8 @@ theorem clipperRedoDoneTrueSourcePrefix
         (ty := some uint256) (expr := .storage (salesF (.var "id") "lot"))
         (value := .int (Int.ofNat (clipperRedoSalesLotEVMWord evmPrice I).toNat))
         (by simpa [tabFrame] using
-          clipperEvalRedoSalesLotAfterTab v evmLock evmPrice I price))
+          clipperEvalRedoSalesLotAfterTab v evmLock evmPrice I price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hassignTic :
       ExecStmt (config v) lotFrame evmPrice
         (.assign .storage (salesF (.var "id") "tic") (wrap96 (.env .timestamp)))

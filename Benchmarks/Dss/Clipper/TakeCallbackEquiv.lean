@@ -246,7 +246,8 @@ theorem clipperTakeOweGtTabCallbackRevertTailBlock
                   clipperTakeLocalsOweTab, clipperTakeLocalsOwe, clipperTakeLocalsOwe0,
                   clipperTakeLocalsSlice, clipperTakeLocalsTab, clipperTakeLocalsLot,
                   clipperTakeLocalsPrice, clipperTakeLocalsDone, clipperTakeLocalsSt,
-                  clipperTakeLocalsTic, clipperTakeLocalsUsr, clipperTakeStore])))
+                  clipperTakeLocalsTic, clipperTakeLocalsUsr, clipperTakeStore]))
+                  (valueMatchesOptionalABIType_address _))
   have hafterFlux :
       ExecBlock (config v) fluxFrame evmVat
         ([ .letDecl "dog_" (some addr) (.storage dogRef),

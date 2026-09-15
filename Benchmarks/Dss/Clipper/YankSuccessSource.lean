@@ -248,14 +248,14 @@ theorem clipperYankRemoveIdNeMoveSource (v : ClipperImmutables) (evm : EVM.State
           (sub256 (.arrayLength .storage activeRef) (.intLit 1)))
         (.ok { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex }
           evm) := by
-    exact ExecStmt.letDecl (clipperEvalYankRemoveLastIndex v evm I hlen)
+    exact ExecStmt.letDecl_uint256_word (clipperEvalYankRemoveLastIndex v evm I hlen)
   have hmoveStmt :
       ExecStmt (config v)
         { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex } evm
         (.letDecl "_move" (some uint256) (.storage (activeElemRef (.var "lastIndex"))))
         (.ok { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
           evm) := by
-    exact ExecStmt.letDecl (clipperEvalYankRemoveActiveElem v evm I lastIndex hlastBound)
+    exact ExecStmt.letDecl_uint256_word (clipperEvalYankRemoveActiveElem v evm I lastIndex hlastBound)
   have hcond :
       evalExpr? (config v)
         { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
@@ -267,7 +267,7 @@ theorem clipperYankRemoveIdNeMoveSource (v : ClipperImmutables) (evm : EVM.State
         (.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")))
         (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
           evm) := by
-    exact ExecStmt.letDecl
+    exact ExecStmt.letDecl_uint256_word
       (by simpa [idx] using clipperEvalYankRemoveSalesPos_moveStore v evm I lastIndex move)
   have hmoveEval :
       evalExpr? (config v)
@@ -416,14 +416,14 @@ theorem clipperYankRemoveIdNeMoveIndexOobSourceReverts (v : ClipperImmutables)
           (sub256 (.arrayLength .storage activeRef) (.intLit 1)))
         (.ok { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex }
           evm) := by
-    exact ExecStmt.letDecl (clipperEvalYankRemoveLastIndex v evm I hlen)
+    exact ExecStmt.letDecl_uint256_word (clipperEvalYankRemoveLastIndex v evm I hlen)
   have hmoveStmt :
       ExecStmt (config v)
         { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex } evm
         (.letDecl "_move" (some uint256) (.storage (activeElemRef (.var "lastIndex"))))
         (.ok { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
           evm) := by
-    exact ExecStmt.letDecl (clipperEvalYankRemoveActiveElem v evm I lastIndex hlastBound)
+    exact ExecStmt.letDecl_uint256_word (clipperEvalYankRemoveActiveElem v evm I lastIndex hlastBound)
   have hcond :
       evalExpr? (config v)
         { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
@@ -435,7 +435,7 @@ theorem clipperYankRemoveIdNeMoveIndexOobSourceReverts (v : ClipperImmutables)
         (.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")))
         (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
           evm) := by
-    exact ExecStmt.letDecl
+    exact ExecStmt.letDecl_uint256_word
       (by simpa [idx] using clipperEvalYankRemoveSalesPos_moveStore v evm I lastIndex move)
   have hmoveEval :
       evalExpr? (config v)
@@ -528,14 +528,14 @@ theorem clipperYankRemoveIdNeMovePopEmptySourceReverts (v : ClipperImmutables)
           (sub256 (.arrayLength .storage activeRef) (.intLit 1)))
         (.ok { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex }
           evm) := by
-    exact ExecStmt.letDecl (clipperEvalYankRemoveLastIndex v evm I hlen)
+    exact ExecStmt.letDecl_uint256_word (clipperEvalYankRemoveLastIndex v evm I hlen)
   have hmoveStmt :
       ExecStmt (config v)
         { contract := contract v, locals := clipperYankRemoveLastIndexStore I lastIndex } evm
         (.letDecl "_move" (some uint256) (.storage (activeElemRef (.var "lastIndex"))))
         (.ok { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move }
           evm) := by
-    exact ExecStmt.letDecl (clipperEvalYankRemoveActiveElem v evm I lastIndex hlastBound)
+    exact ExecStmt.letDecl_uint256_word (clipperEvalYankRemoveActiveElem v evm I lastIndex hlastBound)
   have hcond :
       evalExpr? (config v)
         { contract := contract v, locals := clipperYankRemoveMoveStore I lastIndex move } evm
@@ -547,7 +547,7 @@ theorem clipperYankRemoveIdNeMovePopEmptySourceReverts (v : ClipperImmutables)
         (.letDecl "_index" (some uint256) (.storage (salesF (.var "id") "pos")))
         (.ok { contract := contract v, locals := clipperYankRemoveIndexStore I lastIndex move idx }
           evm) := by
-    exact ExecStmt.letDecl
+    exact ExecStmt.letDecl_uint256_word
       (by simpa [idx] using clipperEvalYankRemoveSalesPos_moveStore v evm I lastIndex move)
   have hmoveEval :
       evalExpr? (config v)

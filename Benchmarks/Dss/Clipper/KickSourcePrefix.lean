@@ -85,10 +85,10 @@ theorem clipperKickSourcePrefix
   have hidLet :
       ExecStmt (config v) startFrame evmLock
         (.letDecl "id" (some uint256)
-          (wrap256 (.binary .add (.storage kicksRef) (.intLit 1))))
+          (wrap256 (.binary (.add uint256Int .wrapping) (.storage kicksRef) (.intLit 1))))
         (.ok idFrame evmLock) := by
     simpa [startFrame, idFrame, evmLock] using
-      (ExecStmt.letDecl (clipperEvalKickIdExpr v evmLock I))
+      (ExecStmt.letDecl_uint256_word (clipperEvalKickIdExpr v evmLock I))
   have hidAssign :
       ExecStmt (config v) idFrame evmLock
         (.assign .storage kicksRef (.var "id"))
@@ -113,10 +113,10 @@ theorem clipperKickSourcePrefix
   have hposLet :
       ExecStmt (config v) idFrame (clipperKickSourceActiveState evmLock)
         (.letDecl "activePos" (some uint256)
-          (wrap256 (.binary .sub (.arrayLength .storage activeRef) (.intLit 1))))
+          (wrap256 (.binary (.sub uint256Int .wrapping) (.arrayLength .storage activeRef) (.intLit 1))))
         (.ok posFrame (clipperKickSourceActiveState evmLock)) := by
     simpa [idFrame, posFrame] using
-      (ExecStmt.letDecl (clipperEvalKickActivePosExpr v evmLock I))
+      (ExecStmt.letDecl_uint256_word (clipperEvalKickActivePosExpr v evmLock I))
   have hbody :
       ExecBlock (config v) startFrame evm (kickTransition v).body result := by
     simpa [kickTransition, nonpayable, auth, lockPrefix, isStopped,

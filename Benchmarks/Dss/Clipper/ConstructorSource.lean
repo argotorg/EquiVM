@@ -268,7 +268,7 @@ theorem clipperCtorBodySuccess
     {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
     (v : ClipperImmutables) (vat spotter dog : AccountAddress) (ilk : List UInt8)
-    (hwv : I.weiValue = ⟨0⟩) :
+    (hwv : I.weiValue = ⟨0⟩) (hilk : ilk.length = 32) :
     let locals := clipperCtorLocals vat spotter dog ilk
     let finalLocals := clipperCtorFinalLocals vat spotter dog ilk
     let evm0 := initState createdAccounts genesisBlockHeader blocks σ σ₀
@@ -297,11 +297,12 @@ theorem clipperCtorBodySuccess
   · exact evalCallvalueEq_true (by
       rw [clipperCtorAfterStoppedState, clipperCtor_storageStore_executionEnv]
       simpa [evm0, initState] using hwv)
-  refine ExecBlock.consNormal (ExecStmt.letDecl (value := .address vat) ?_) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_address (address := vat) ?_) ?_
   · simpa [locals] using evalExpr_clipperCtorLocalVat (v := v) (evm := evm1)
       vat spotter dog ilk
   refine ExecBlock.consNormal
-    (ExecStmt.letDecl (value := .fixedBytes bytes32Width ilk) ?_) ?_
+    (ExecStmt.letDecl (value := .fixedBytes bytes32Width ilk) ?_
+      (valueMatchesOptionalABIType_fixedBytes bytes32Width ilk hilk)) ?_
   · exact evalExpr_clipperCtorVatLocalIlk (v := v) (evm := evm1)
       vat spotter dog ilk
   refine ExecBlock.consNormal (ExecStmt.assign ?_ hspotter) ?_
@@ -319,7 +320,7 @@ theorem clipperSolmCtorExecSuccess
     {genesisBlockHeader : BlockHeader} {blocks : ProcessedBlocks}
     {σ σ₀ : AccountMap} {A : Substate} {I : ExecutionEnv} {g : UInt256}
     (v : ClipperImmutables) (vat spotter dog : AccountAddress) (ilk : List UInt8)
-    (hwv : I.weiValue = ⟨0⟩) :
+    (hwv : I.weiValue = ⟨0⟩) (hilk : ilk.length = 32) :
     solmCtorExec (config v) (contract v)
       [.address vat, .address spotter, .address dog, .fixedBytes bytes32Width ilk]
       createdAccounts genesisBlockHeader blocks σ σ₀ g A I
@@ -342,7 +343,7 @@ theorem clipperSolmCtorExecSuccess
       ExecFuncBody.execBlockOK (clipperCtorBodySuccess
         (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
         (blocks := blocks) (σ := σ) (σ₀ := σ₀) (A := A) (I := I) (g := g)
-        v vat spotter dog ilk hwv)
+        v vat spotter dog ilk hwv hilk)
 
 theorem clipperSolmCtorExecReverts_nonpayable
     {createdAccounts : Batteries.RBSet AccountAddress compare}

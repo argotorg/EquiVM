@@ -612,7 +612,7 @@ theorem clipperStatusLetDoneFalse (v : ClipperImmutables) (evm : EVM.State)
         { contract := contract v,
           locals := clipperStatusAgeForDoneLocals tic top ageForPrice price ageForDone })
       (evm := evm) (name := "done") (ty := some boolTy) (expr := .boolLit false)
-      (value := .bool false) (by simp [evalExpr?, pure]))
+      (value := .bool false) (by simp [evalExpr?, pure]) (valueMatchesOptionalABIType_bool _))
 
 theorem clipperStatusAssignDoneTrue (v : ClipperImmutables) (evm : EVM.State)
     (tic top ageForPrice price ageForDone : UInt256) :
@@ -1292,11 +1292,15 @@ theorem clipperLookupStatusFunction (v : ClipperImmutables) :
     minFunction, addFunction, subFunction, mulFunction, wmulFunction, rmulFunction,
     rdivFunction, getFeedPriceFunction, statusFunction]
 
-theorem clipperBindParamsStatus (tic top : UInt256) :
+theorem clipperBindParamsStatus (tic top : UInt256)
+    (hfit : tic.toNat < EVM.twoPow 96) :
     bindParams? statusFunction.params
       [.int (Int.ofNat tic.toNat), .int (Int.ofNat top.toNat)] =
       some (clipperStatusLocals tic top) := by
-  simp [statusFunction, bindParams?, clipperStatusLocals]
+  have htic := valueMatchesABIType_uint_word_of_lt ⟨96, by decide⟩ tic hfit
+  simp only [statusFunction, bindParams?, uint96, uint96Int, uint256, uint256Int,
+    htic, valueMatchesABIType_uint256_word, ↓reduceIte]
+  rfl
 
 theorem clipperEvalGetStatusSalesUsr (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
@@ -1597,7 +1601,7 @@ theorem clipperGetStatusStatusCallReturnsDoneTailTrue (v : ClipperImmutables)
       (clipperEvalGetStatusStatusArgs v evm I)
       (clipperLookupStatusFunction v)
       (clipperBindParamsStatus (clipperGetStatusTicWord evm I)
-        (clipperGetStatusTopWord evm I))
+        (clipperGetStatusTopWord evm I) (clipperSalesPackedTicWord_lt _))
       (clipperStatusFunctionReturnsDoneTailTrue v (clipperGetStatusTicWord evm I)
         (clipperGetStatusTopWord evm I) price hlePrice hcode hcall hdec hleDone htail))
 
@@ -1661,7 +1665,7 @@ theorem clipperGetStatusStatusCallReturnsRdivBranch (v : ClipperImmutables)
       (clipperEvalGetStatusStatusArgs v evm I)
       (clipperLookupStatusFunction v)
       (clipperBindParamsStatus (clipperGetStatusTicWord evm I)
-        (clipperGetStatusTopWord evm I))
+        (clipperGetStatusTopWord evm I) (clipperSalesPackedTicWord_lt _))
       (clipperStatusFunctionReturnsRdivBranch v (clipperGetStatusTicWord evm I)
         (clipperGetStatusTopWord evm I) price hlePrice hcode hcall hdec hleDone htail
         hmul htop done hdone))
@@ -1919,7 +1923,7 @@ theorem clipperGetStatusBodyReturnsDoneTailTrue (v : ClipperImmutables)
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperGetStatusUsrWord evm I).toNat))
         (by simpa [startFrame, clipperGetStatusUsrWord] using
-          clipperEvalGetStatusSalesUsr v evm I))
+          clipperEvalGetStatusSalesUsr v evm I) (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evm
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -1929,7 +1933,9 @@ theorem clipperGetStatusBodyReturnsDoneTailTrue (v : ClipperImmutables)
         (cfg := config v) (solm := usrFrame) (evm := evm) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperGetStatusTicWord evm I).toNat))
-        (by simpa [usrFrame] using clipperEvalGetStatusSalesTicAfterUsr v evm I))
+        (by simpa [usrFrame] using clipperEvalGetStatusSalesTicAfterUsr v evm I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _
+          (clipperSalesPackedTicWord_lt _)))
   have hstatus :
       ExecStmt (config v) ticFrame evm
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
@@ -1946,7 +1952,7 @@ theorem clipperGetStatusBodyReturnsDoneTailTrue (v : ClipperImmutables)
         (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool true)
         (by simpa [stFrame] using
-          clipperEvalGetStatusDoneFromStatusAt v evm evmPrice I true price))
+          clipperEvalGetStatusDoneFromStatusAt v evm evmPrice I true price) (valueMatchesOptionalABIType_bool _))
   have hletPrice :
       ExecStmt (config v) doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
@@ -1957,7 +1963,7 @@ theorem clipperGetStatusBodyReturnsDoneTailTrue (v : ClipperImmutables)
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
-          clipperEvalGetStatusPriceFromStatusAt v evm evmPrice I true price))
+          clipperEvalGetStatusPriceFromStatusAt v evm evmPrice I true price) (valueMatchesOptionalABIType_uint256_word _))
   have hletNeeds :
       ExecStmt (config v) priceFrame evmPrice
         (.letDecl "needsRedo" (some boolTy)
@@ -1970,7 +1976,7 @@ theorem clipperGetStatusBodyReturnsDoneTailTrue (v : ClipperImmutables)
         (expr := .binary .and (.binary .ne (.var "usr") zeroAddr) (.var "done"))
         (value := .bool (clipperGetStatusNeedsRedo evm I true))
         (by simpa [priceFrame] using
-          clipperEvalGetStatusNeedsRedoAt v evm evmPrice I true price))
+          clipperEvalGetStatusNeedsRedoAt v evm evmPrice I true price) (valueMatchesOptionalABIType_bool _))
   have hret :
       ExecBlock (config v) needsFrame evmPrice
         [ .return [ .var "needsRedo", .var "price",

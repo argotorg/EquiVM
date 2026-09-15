@@ -103,7 +103,8 @@ theorem clipperTakeOweGtTabCallbackTailSource
                   clipperTakeLocalsTab, clipperTakeLocalsLot,
                   clipperTakeLocalsPrice, clipperTakeLocalsDone,
                   clipperTakeLocalsSt, clipperTakeLocalsTic,
-                  clipperTakeLocalsUsr, clipperTakeStore])))
+                  clipperTakeLocalsUsr, clipperTakeStore]))
+                  (valueMatchesOptionalABIType_address _))
   have hcallback' : ExecStmt (config v) dogFrame evmVat
       (.ite
         (.binary .and

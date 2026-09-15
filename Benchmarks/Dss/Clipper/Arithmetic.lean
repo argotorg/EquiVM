@@ -8,6 +8,16 @@ namespace Benchmarks.Dss.Clipper
 
 set_option linter.unusedTactic false
 
+theorem clipperEvalWrap256 {cfg : Config} {solm : Frame} {evm : EVM.State}
+    {expr : Expr} {word : UInt256}
+    (heval : evalExpr? cfg solm evm expr = .ok (.int (Int.ofNat word.toNat))) :
+    evalExpr? cfg solm evm (wrap256 expr) = .ok (.int (Int.ofNat word.toNat)) := by
+  have hmod := evalExpr_mod_uint256_word_nat_ok (modulus := UInt256.size) heval
+    (rhs := .intLit wordModulus) (by simp only [evalExpr?]; native_decide) (by decide)
+  have hfit : word.toNat < UInt256.size := word.val.isLt
+  rw [Nat.mod_eq_of_lt hfit] at hmod
+  exact hmod
+
 theorem clipperRuntimePatchesWindowDisjoint32Bool (v : ClipperImmutables)
     (lo hi : Nat)
     (h : patchOffsetsWindowDisjoint32Bool lo hi
@@ -301,31 +311,31 @@ theorem clipperBindParamsMul (x y : UInt256) :
     bindParams? mulFunction.params
       [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] =
       some (clipperUintBinaryLocals x y) := by
-  simp [mulFunction, bindParams?, clipperUintBinaryLocals]
+  exact bindParams_uint256_pair "x" "y" x y
 
 theorem clipperBindParamsSub (x y : UInt256) :
     bindParams? subFunction.params
       [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] =
       some (clipperUintBinaryLocals x y) := by
-  simp [subFunction, bindParams?, clipperUintBinaryLocals]
+  exact bindParams_uint256_pair "x" "y" x y
 
 theorem clipperBindParamsWmul (x y : UInt256) :
     bindParams? wmulFunction.params
       [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] =
       some (clipperUintBinaryLocals x y) := by
-  simp [wmulFunction, bindParams?, clipperUintBinaryLocals]
+  exact bindParams_uint256_pair "x" "y" x y
 
 theorem clipperBindParamsRmul (x y : UInt256) :
     bindParams? rmulFunction.params
       [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] =
       some (clipperUintBinaryLocals x y) := by
-  simp [rmulFunction, bindParams?, clipperUintBinaryLocals]
+  exact bindParams_uint256_pair "x" "y" x y
 
 theorem clipperBindParamsRdiv (x y : UInt256) :
     bindParams? rdivFunction.params
       [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] =
       some (clipperUintBinaryLocals x y) := by
-  simp [rdivFunction, bindParams?, clipperUintBinaryLocals]
+  exact bindParams_uint256_pair "x" "y" x y
 
 theorem clipperEvalExprsUintBinary (v : ClipperImmutables) (evm : EVM.State)
     (locals : Store) (x y : UInt256) {xExpr yExpr : Expr}
@@ -411,27 +421,19 @@ theorem clipperEvalMul256_ok (v : ClipperImmutables) (evm : EVM.State) (x y : UI
     evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocals x y }
       evm (mul256 (.var "x") (.var "y")) =
       .ok (.int (Int.ofNat (UInt256.mul x y).toNat)) := by
-  have hlt : ¬ Int.ofNat (x.toNat * y.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hmul))
   have hword : (UInt256.mul x y).toNat = x.toNat * y.toNat := by
     rw [u256_mul_toNat, Nat.mod_eq_of_lt hmul]
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, clipperEvalVarX v evm x y,
-    clipperEvalVarY v evm x y, evalBinaryOp?, uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  simpa [mul256, u256, uint256Int] using
+    evalExpr_checked_mul_uint256_word_ok
+      (clipperEvalVarX v evm x y) (clipperEvalVarY v evm x y) hword hmul
 
 theorem clipperEvalMul256_revert (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256)
     (hover : UInt256.size ≤ x.toNat * y.toNat) :
     evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocals x y }
       evm (mul256 (.var "x") (.var "y")) = .revert := by
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, clipperEvalVarX v evm x y,
-    clipperEvalVarY v evm x y, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  simpa [mul256, u256, uint256Int] using
+    evalExpr_checked_mul_uint256_word_revert_of_overflow
+      (clipperEvalVarX v evm x y) (clipperEvalVarY v evm x y) hover
 
 theorem clipperEvalAdd256_ok (v : ClipperImmutables) {evm : EVM.State} {locals : Store}
     {x y : Expr} {a b sum : UInt256}
@@ -442,18 +444,10 @@ theorem clipperEvalAdd256_ok (v : ClipperImmutables) {evm : EVM.State} {locals :
     (hsum : sum = a + b) (hfit : a.toNat + b.toNat < UInt256.size) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm (add256 x y) =
       .ok (.int (Int.ofNat sum.toNat)) := by
-  have hlt : ¬ Int.ofNat (a.toNat + b.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size] using hfit))
   have hword : sum.toNat = a.toNat + b.toNat := by
     rw [hsum, uadd_toNat, Nat.mod_eq_of_lt hfit]
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?,
-    uint256Int, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  simpa [add256, u256, uint256Int] using
+    evalExpr_checked_add_uint256_word_ok hx hy hword hfit
 
 theorem clipperEvalAdd256_revert (v : ClipperImmutables) {evm : EVM.State}
     {locals : Store} {x y : Expr} {a b : UInt256}
@@ -464,52 +458,25 @@ theorem clipperEvalAdd256_revert (v : ClipperImmutables) {evm : EVM.State}
     (hover : UInt256.size ≤ a.toNat + b.toNat) :
     evalExpr? (config v) { contract := contract v, locals := locals } evm (add256 x y) =
       .revert := by
-  simp [add256, u256, evalExpr?, EvalResult.bind, bind, hx, hy, evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  simpa [add256, u256, uint256Int] using
+    evalExpr_checked_add_uint256_word_revert_of_overflow hx hy hover
 
 theorem clipperEvalSub256_ok (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256)
     (hle : y.toNat ≤ x.toNat) :
     evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocals x y }
       evm (sub256 (.var "x") (.var "y")) =
       .ok (.int (Int.ofNat (UInt256.sub x y).toNat)) := by
-  have hword : (UInt256.sub x y).toNat = x.toNat - y.toNat := usub_toNat hle
-  have hsubInt :
-      Int.ofNat x.toNat - Int.ofNat y.toNat = Int.ofNat (x.toNat - y.toNat) := by
-    exact (Nat.cast_sub (R := Int) hle).symm
-  have hnonneg : ¬Int.ofNat x.toNat - Int.ofNat y.toNat < 0 := by
-    rw [hsubInt]
-    exact not_lt.mpr (Int.natCast_nonneg _)
-  have hsubVal : ((x.toNat : Int) - (y.toNat : Int)) = Int.ofNat (x.toNat - y.toNat) := by
-    simpa using hsubInt
-  have hlt : ¬Int.ofNat x.toNat - Int.ofNat y.toNat ≥ (2 : Int) ^ 256 := by
-    intro hbad
-    have hx : x.toNat < UInt256.size := x.val.isLt
-    have hleSub : x.toNat - y.toNat < UInt256.size := by omega
-    have hbadNat : UInt256.size ≤ x.toNat - y.toNat := by
-      rw [hsubInt] at hbad
-      have hbadNat' : 2 ^ 256 ≤ x.toNat - y.toNat := by
-        exact Int.ofNat_le.mp (by simpa [ge_iff_le] using hbad)
-      simpa [UInt256.size] using hbadNat'
-    omega
-  simp [sub256, u256, evalExpr?, EvalResult.bind, bind, clipperEvalVarX v evm x y,
-    clipperEvalVarY v evm x y, evalBinaryOp?, uint256Int, hword]
-  rw [if_neg]
-  · rw [hsubVal]
-    rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr hle) hbad
-    · exact hlt hbad
+  simpa [sub256, u256, uint256Int] using
+    evalExpr_checked_sub_uint256_word_ok
+      (clipperEvalVarX v evm x y) (clipperEvalVarY v evm x y) (usub_toNat hle) hle
 
 theorem clipperEvalSub256_revert (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256)
     (hlt : x.toNat < y.toNat) :
     evalExpr? (config v) { contract := contract v, locals := clipperUintBinaryLocals x y }
       evm (sub256 (.var "x") (.var "y")) = .revert := by
-  simp [sub256, u256, evalExpr?, EvalResult.bind, bind, clipperEvalVarX v evm x y,
-    clipperEvalVarY v evm x y, evalBinaryOp?, uint256Int]
-  intro hle
-  omega
+  simpa [sub256, u256, uint256Int] using
+    evalExpr_checked_sub_uint256_word_revert_of_underflow
+      (clipperEvalVarX v evm x y) (clipperEvalVarY v evm x y) hlt
 
 theorem clipperEvalCheckedSubRequire_true (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hle : y.toNat ≤ x.toNat) :
@@ -533,28 +500,29 @@ theorem clipperEvalCheckedMulRequire_true (v : ClipperImmutables) (evm : EVM.Sta
         Frame) evm
       (.binary .or
         (.binary .eq (.var "y") (.intLit 0))
-        (.binary .eq (.binary .div (.var "z") (.var "y")) (.var "x"))) =
+        (.binary .eq (.binary (.div uint256Int .checked) (.var "z") (.var "y")) (.var "x"))) =
       .ok (.bool true) := by
   by_cases hy : y = ⟨0⟩
   · subst y
     simp [evalExpr?, EvalResult.bind, bind, pure, evalBinaryOp?,
       clipperEvalVarY_Z v evm x ⟨0⟩ (UInt256.mul x ⟨0⟩)]
-  · have hdiv :
-        Int.ofNat (UInt256.mul x y).toNat / Int.ofNat y.toNat = Int.ofNat x.toNat := by
-      have hcancel := Reasoning.Theory.clipperMulDiv_cancel (x := y) (y := x)
-        (by simpa [eq_comm] using hy) (by simpa [Nat.mul_comm] using hmul)
-      have hnat := congrArg UInt256.toNat hcancel
-      rw [udiv_toNat, u256_mul_comm y x] at hnat
-      exact (Int.ofNat_ediv_ofNat (a := (UInt256.mul x y).toNat) (b := y.toNat)).trans
-        (congrArg Int.ofNat hnat)
-    have hyInt : ¬Int.ofNat y.toNat = 0 := by
-      intro hzero
-      apply hy
-      apply uint256_toNat_eq_zero
-      exact Int.ofNat.inj hzero
-    have hyNat : ¬y.toNat = 0 := by
-      intro hzero
-      exact hy (uint256_toNat_eq_zero hzero)
+  · have hcancel := Reasoning.Theory.clipperMulDiv_cancel (x := y) (y := x)
+      hy (by simpa [Nat.mul_comm] using hmul)
+    have hnat := congrArg UInt256.toNat hcancel
+    rw [udiv_toNat, u256_mul_comm y x] at hnat
+    have hdiv := evalExpr_checked_div_uint256_word_ok
+      (clipperEvalVarZ v evm x y (UInt256.mul x y))
+      (clipperEvalVarY_Z v evm x y (UInt256.mul x y)) hy hnat.symm
+    have hyNat : y.toNat ≠ 0 := fun hzero => hy (uint256_toNat_eq_zero hzero)
+    have hright :
+        evalExpr? (config v)
+          ({ contract := contract v, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y) } :
+            Frame) evm
+          (.binary .eq (.binary (.div uint256Int .checked) (.var "z") (.var "y")) (.var "x")) =
+          .ok (.bool true) := by
+      rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+      simp only [uint256Int, hdiv, clipperEvalVarX_Z, bind, EvalResult.bind, evalBinaryOp?]
+      simp
     have hleft :
         evalExpr? (config v)
           ({ contract := contract v, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y) } :
@@ -562,85 +530,46 @@ theorem clipperEvalCheckedMulRequire_true (v : ClipperImmutables) (evm : EVM.Sta
           (.binary .eq (.var "y") (.intLit 0)) = .ok (.bool false) := by
       simp [evalExpr?, EvalResult.bind, bind, pure, evalBinaryOp?,
         clipperEvalVarY_Z v evm x y (UInt256.mul x y), hyNat]
-    have hright :
-        evalExpr? (config v)
-          ({ contract := contract v, locals := clipperUintBinaryLocalsZ x y (UInt256.mul x y) } :
-            Frame) evm
-          (.binary .eq (.binary .div (.var "z") (.var "y")) (.var "x")) =
-          .ok (.bool true) := by
-      simp [evalExpr?, EvalResult.bind, bind, evalBinaryOp?,
-        clipperEvalVarZ v evm x y (UInt256.mul x y),
-        clipperEvalVarY_Z v evm x y (UInt256.mul x y),
-        clipperEvalVarX_Z v evm x y (UInt256.mul x y), hyNat]
-      exact hdiv
     simp [evalExpr?, EvalResult.bind, bind, pure, hleft, hright]
 
 theorem clipperEvalWmulReturn (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256) :
     evalExpr? (config v)
       ({ contract := contract v, locals := clipperWmulReturnLocals x y (UInt256.mul x y) } :
         Frame) evm
-      (.binary .div (.var "xy") (.intLit WAD)) =
+      (.binary (.div uint256Int .checked) (.var "xy") (.intLit WAD)) =
       .ok (.int (Int.ofNat (UInt256.div (UInt256.mul x y) ⟨1000000000000000000⟩).toNat)) := by
-  have hwad : ¬(WAD : Int) = 0 := by norm_num [WAD]
-  have hdiv :
-      Int.ofNat (UInt256.mul x y).toNat / WAD =
-        Int.ofNat (UInt256.div (UInt256.mul x y) ⟨1000000000000000000⟩).toNat := by
-    rw [udiv_toNat]
-    have hw : WAD = Int.ofNat (⟨1000000000000000000⟩ : UInt256).toNat := by native_decide
-    rw [hw]
-    exact Int.ofNat_ediv_ofNat
-      (a := (UInt256.mul x y).toNat) (b := (⟨1000000000000000000⟩ : UInt256).toNat)
-  simp only [evalExpr?, clipperEvalVarXY, bind, EvalResult.bind, pure, evalBinaryOp?]
-  rw [if_neg hwad, hdiv]
+  exact evalExpr_checked_div_uint256_word_ok
+    (clipperEvalVarXY v evm x y (UInt256.mul x y))
+    (b := ⟨1000000000000000000⟩) (by simp only [evalExpr?]; native_decide) (by decide) (udiv_toNat _ _)
 
 theorem clipperEvalRmulReturn (v : ClipperImmutables) (evm : EVM.State) (x y : UInt256) :
     evalExpr? (config v)
       ({ contract := contract v, locals := clipperWmulReturnLocals x y (UInt256.mul x y) } :
         Frame) evm
-      (.binary .div (.var "xy") (.intLit RAY)) =
+      (.binary (.div uint256Int .checked) (.var "xy") (.intLit RAY)) =
       .ok (.int (Int.ofNat
         (UInt256.div (UInt256.mul x y) clipperRayWord).toNat)) := by
-  have hray : ¬(RAY : Int) = 0 := by norm_num [RAY]
-  have hdiv :
-      Int.ofNat (UInt256.mul x y).toNat / RAY =
-        Int.ofNat (UInt256.div (UInt256.mul x y) clipperRayWord).toNat := by
-    rw [udiv_toNat]
-    have hw : RAY = Int.ofNat clipperRayWord.toNat := by native_decide
-    rw [hw]
-    exact Int.ofNat_ediv_ofNat
-      (a := (UInt256.mul x y).toNat) (b := clipperRayWord.toNat)
-  simp only [evalExpr?, clipperEvalVarXY, bind, EvalResult.bind, pure, evalBinaryOp?]
-  rw [if_neg hray, hdiv]
+  exact evalExpr_checked_div_uint256_word_ok
+    (clipperEvalVarXY v evm x y (UInt256.mul x y))
+    (b := clipperRayWord) (by simp only [evalExpr?]; native_decide) (by decide) (udiv_toNat _ _)
 
 theorem clipperEvalRdivReturn (v : ClipperImmutables) (evm : EVM.State)
     (x y xray : UInt256) (hy : y ≠ ⟨0⟩) :
     evalExpr? (config v)
       ({ contract := contract v, locals := clipperRdivReturnLocals x y xray } : Frame) evm
-      (.binary .div (.var "xray") (.var "y")) =
+      (.binary (.div uint256Int .checked) (.var "xray") (.var "y")) =
       .ok (.int (Int.ofNat (UInt256.div xray y).toNat)) := by
-  have hyNat : y.toNat ≠ 0 := by
-    intro hzero
-    exact hy (uint256_toNat_eq_zero hzero)
-  have hyInt : ¬Int.ofNat y.toNat = 0 := by
-    intro hzero
-    exact hyNat (Int.ofNat.inj hzero)
-  have hdiv :
-      Int.ofNat xray.toNat / Int.ofNat y.toNat =
-        Int.ofNat (UInt256.div xray y).toNat := by
-    rw [udiv_toNat]
-    exact Int.ofNat_ediv_ofNat
-  simp only [evalExpr?, clipperEvalVarXray, clipperEvalVarY_Xray, bind, EvalResult.bind,
-    evalBinaryOp?]
-  rw [if_neg hyInt, hdiv]
+  exact evalExpr_checked_div_uint256_word_ok
+    (clipperEvalVarXray v evm x y xray) (clipperEvalVarY_Xray v evm x y xray)
+    hy (udiv_toNat _ _)
 
 theorem clipperEvalRdivReturn_revert (v : ClipperImmutables) (evm : EVM.State)
     (x y xray : UInt256) (hy : y = ⟨0⟩) :
     evalExpr? (config v)
       ({ contract := contract v, locals := clipperRdivReturnLocals x y xray } : Frame) evm
-      (.binary .div (.var "xray") (.var "y")) = .revert := by
-  subst y
-  simp [evalExpr?, EvalResult.bind, bind, evalBinaryOp?, clipperEvalVarXray,
-    clipperEvalVarY_Xray]
+      (.binary (.div uint256Int .checked) (.var "xray") (.var "y")) = .revert := by
+  exact evalExpr_checked_div_uint256_word_revert_of_zero
+    (clipperEvalVarXray v evm x y xray) (clipperEvalVarY_Xray v evm x y xray) hy
 
 theorem clipperMulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hmul : x.toNat * y.toNat < UInt256.size) :
@@ -653,7 +582,7 @@ theorem clipperMulFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
         (some [.int (Int.ofNat (UInt256.mul x y).toNat)])) := by
   apply ExecFuncBody.execBlockRet
   simp only [mulFunction, checkedMulUintInto, List.cons_append, List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.letDecl (clipperEvalMul256_ok v evm x y hmul)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word (clipperEvalMul256_ok v evm x y hmul)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact clipperEvalCheckedMulRequire_true v evm x y hmul
   exact ExecBlock.consReturn
@@ -680,7 +609,7 @@ theorem clipperSubFunctionReturns (v : ClipperImmutables) (evm : EVM.State)
         (some [.int (Int.ofNat (UInt256.sub x y).toNat)])) := by
   apply ExecFuncBody.execBlockRet
   simp only [subFunction, checkedSubUintInto, List.cons_append, List.nil_append]
-  refine ExecBlock.consNormal (ExecStmt.letDecl (clipperEvalSub256_ok v evm x y hle)) ?_
+  refine ExecBlock.consNormal (ExecStmt.letDecl_uint256_word (clipperEvalSub256_ok v evm x y hle)) ?_
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact clipperEvalCheckedSubRequire_true v evm x y hle
   exact ExecBlock.consReturn
@@ -936,7 +865,9 @@ theorem clipperRdivFunctionRevertsDivZero (v : ClipperImmutables) (evm : EVM.Sta
   exact ExecBlock.consRevert
     (ExecStmt.returnRevert (by
       simp only [afterMul, evalExprs?, bind, EvalResult.bind, pure]
-      rw [clipperEvalRdivReturn_revert v evm x y (UInt256.mul x clipperRayWord) hy]))
+      have hreturn := clipperEvalRdivReturn_revert v evm x y (UInt256.mul x clipperRayWord) hy
+      simpa only [uint256Int] using congrArg
+        (fun result => result.bind (fun value => EvalResult.ok [value])) hreturn))
 
 abbrev clipperMinWord (x y : UInt256) : UInt256 :=
   if x.toNat ≤ y.toNat then x else y
@@ -986,7 +917,7 @@ theorem clipperBindParamsMin (x y : UInt256) :
     bindParams? minFunction.params
       [.int (Int.ofNat x.toNat), .int (Int.ofNat y.toNat)] =
       some (clipperUintBinaryLocals x y) := by
-  simp [minFunction, bindParams?, clipperUintBinaryLocals]
+  exact bindParams_uint256_pair "x" "y" x y
 
 theorem clipperEvalMinLe_true (v : ClipperImmutables) (evm : EVM.State)
     (x y : UInt256) (hle : x.toNat ≤ y.toNat) :

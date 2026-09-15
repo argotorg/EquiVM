@@ -453,20 +453,20 @@ theorem clipperKickAfterInitializationSuccessPrefix
   have htip : ExecStmt (config v) topFrame evmTop
       (.letDecl "_tip" (some uint256) (.storage tipRef))
       (.ok tipFrame evmTop) := by
-    exact ExecStmt.letDecl (by
+    exact ExecStmt.letDecl_uint256_word (by
       simpa [topFrame, tipFrame, clipperKickLocalsTip] using
         clipperEvalTip v evmTop (clipperKickLocalsTop evmLock I feedPrice top)
           (clipperKickLocalsTop_get_tip evmLock I feedPrice top))
   have hchip : ExecStmt (config v) tipFrame evmTop
       (.letDecl "_chip" (some uint256) (.storage chipRef))
       (.ok chipFrame evmTop) := by
-    exact ExecStmt.letDecl (by
+    exact ExecStmt.letDecl_uint256_word (by
       simpa [tipFrame, chipFrame, clipperKickLocalsChip] using
         clipperEvalChip v evmTop (clipperKickLocalsTip evmLock evmTop I feedPrice top)
           (clipperKickLocalsTip_get_chip evmLock evmTop I feedPrice top))
   have hcoin : ExecStmt (config v) chipFrame evmTop
       (.letDecl "coin" (some uint256) (.intLit 0)) (.ok coinFrame evmTop) := by
-    exact ExecStmt.letDecl (by simp [chipFrame, coinFrame, clipperKickLocalsCoinZero,
+    exact ExecStmt.letDecl_uint256_word (word := ⟨0⟩) (by simp [chipFrame, coinFrame, clipperKickLocalsCoinZero,
       evalExpr?, pure])
   have hafter' : ExecBlock (config v) coinFrame evmTop
       [ .ite clipperKickIncentiveCond (clipperKickIncentiveBody v) [],

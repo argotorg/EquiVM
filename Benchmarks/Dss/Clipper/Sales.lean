@@ -62,6 +62,12 @@ def clipperSalesPackedTicWord (w : UInt256) : UInt256 :=
   UInt256.land (UInt256.div w (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
     (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨96⟩) ⟨1⟩)
 
+theorem clipperSalesPackedTicWord_lt (word : UInt256) :
+    (clipperSalesPackedTicWord word).toNat < EVM.twoPow 96 := by
+  exact u256LandMaskToNatLtOfToNat
+    (UInt256.div word (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨160⟩))
+    (UInt256.sub (UInt256.shiftLeft (⟨1⟩ : UInt256) ⟨96⟩) ⟨1⟩) (by native_decide)
+
 theorem clipperDecode_sales_ok (v : ClipperImmutables) {I : ExecutionEnv}
     (hsz36 : 36 ≤ I.calldata.size) :
     decodeCalldataWithMode (config v).abiDecodeMode (salesTransition.params.map Param.name)

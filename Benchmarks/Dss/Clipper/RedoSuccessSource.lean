@@ -332,7 +332,7 @@ theorem clipperRedoAfterTicSuccessPrefix
       ExecStmt (config v) topFrame evmTop
         (.letDecl "_tip" (some uint256) (.storage tipRef))
         (.ok tipFrame evmTop) := by
-    exact ExecStmt.letDecl (by
+    exact ExecStmt.letDecl_uint256_word (by
       simpa [topFrame, tipFrame, clipperRedoLocalsTip] using
         clipperEvalTip v evmTop
           (clipperRedoLocalsTopNew evmLoc evmRead I price feedPrice topNew)
@@ -345,7 +345,7 @@ theorem clipperRedoAfterTicSuccessPrefix
       ExecStmt (config v) tipFrame evmTop
         (.letDecl "_chip" (some uint256) (.storage chipRef))
         (.ok chipFrame evmTop) := by
-    exact ExecStmt.letDecl (by
+    exact ExecStmt.letDecl_uint256_word (by
       simpa [tipFrame, chipFrame, clipperRedoLocalsChip] using
         clipperEvalChip v evmTop
           (clipperRedoLocalsTip evmLoc evmRead evmTop I price feedPrice topNew)
@@ -612,7 +612,7 @@ theorem clipperRedoLetChost
         { contract := contract v,
           locals := clipperRedoLocalsChost evmLoc evmRead evmVals I price feedPrice topNew }
         evmVals) := by
-  exact ExecStmt.letDecl (by
+  exact ExecStmt.letDecl_uint256_word (by
     simpa [clipperRedoLocalsChost] using
       (clipperEvalChost v evmVals
         (clipperRedoLocalsChip evmLoc evmRead evmVals I price feedPrice topNew)
@@ -781,22 +781,14 @@ theorem clipperEvalRedoLotFeedMulOk
       evm (mul256 (.var "lot") (.var "feedPrice")) =
       .ok (.int (Int.ofNat
         (UInt256.mul (clipperRedoLotWordSource evmRead I) feedPrice).toNat)) := by
-  let lot := clipperRedoLotWordSource evmRead I
-  have hlt : ¬ Int.ofNat (lot.toNat * feedPrice.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size, lot] using hmul))
-  have hword : (UInt256.mul lot feedPrice).toNat = lot.toNat * feedPrice.toNat := by
-    rw [u256_mul_toNat, Nat.mod_eq_of_lt]
-    simpa [lot] using hmul
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind,
-    clipperEvalRedoVarLotAtChost v evmLoc evmRead evmVals evm I price feedPrice topNew,
-    clipperEvalRedoVarFeedPriceAtChost v evmLoc evmRead evmVals evm I price feedPrice topNew,
-    evalBinaryOp?, uint256Int, lot, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  have hword :
+      (UInt256.mul (clipperRedoLotWordSource evmRead I) feedPrice).toNat =
+        (clipperRedoLotWordSource evmRead I).toNat * feedPrice.toNat := by
+    rw [u256_mul_toNat, Nat.mod_eq_of_lt hmul]
+  simpa only [mul256, u256, uint256Int] using
+    evalExpr_checked_mul_uint256_word_ok
+      (clipperEvalRedoVarLotAtChost v evmLoc evmRead evmVals evm I price feedPrice topNew)
+      (clipperEvalRedoVarFeedPriceAtChost v evmLoc evmRead evmVals evm I price feedPrice topNew) hword hmul
 
 theorem clipperEvalRedoLotFeedMulRevert
     (v : ClipperImmutables) (evmLoc evmRead evmVals evm : EVM.State)
@@ -807,12 +799,10 @@ theorem clipperEvalRedoLotFeedMulRevert
       { contract := contract v,
         locals := clipperRedoLocalsChost evmLoc evmRead evmVals I price feedPrice topNew }
       evm (mul256 (.var "lot") (.var "feedPrice")) = .revert := by
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind,
-    clipperEvalRedoVarLotAtChost v evmLoc evmRead evmVals evm I price feedPrice topNew,
-    clipperEvalRedoVarFeedPriceAtChost v evmLoc evmRead evmVals evm I price feedPrice topNew,
-    evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  simpa only [mul256, u256, uint256Int] using
+    evalExpr_checked_mul_uint256_word_revert_of_overflow
+      (clipperEvalRedoVarLotAtChost v evmLoc evmRead evmVals evm I price feedPrice topNew)
+      (clipperEvalRedoVarFeedPriceAtChost v evmLoc evmRead evmVals evm I price feedPrice topNew) hover
 
 theorem clipperEvalRedoLotFeedRequire
     (v : ClipperImmutables) (evmLoc evmRead evmVals evm : EVM.State)
@@ -824,7 +814,7 @@ theorem clipperEvalRedoLotFeedRequire
       evm
       (.binary .or
         (.binary .eq (.var "feedPrice") (.intLit 0))
-        (.binary .eq (.binary .div (.var "lotFeed") (.var "feedPrice"))
+        (.binary .eq (.binary (.div uint256Int .checked) (.var "lotFeed") (.var "feedPrice"))
           (.var "lot"))) = .ok (.bool true) := by
   let lot := clipperRedoLotWordSource evmRead I
   have hfeed :
@@ -877,15 +867,6 @@ theorem clipperEvalRedoLotFeedRequire
       (by simpa [lot, Nat.mul_comm] using hmul)
     have hnat := congrArg UInt256.toNat hcancel
     rw [udiv_toNat, u256_mul_comm feedPrice lot] at hnat
-    have hdiv :
-        Int.ofNat (UInt256.mul lot feedPrice).toNat / Int.ofNat feedPrice.toNat =
-          Int.ofNat lot.toNat :=
-      (Int.ofNat_ediv_ofNat
-        (a := (UInt256.mul lot feedPrice).toNat) (b := feedPrice.toNat)).trans
-        (congrArg Int.ofNat hnat)
-    have hyInt : ¬ Int.ofNat feedPrice.toNat = 0 := by
-      intro hzero
-      exact hy (uint256_toNat_eq_zero (Int.ofNat.inj hzero))
     have hyNat : ¬ feedPrice.toNat = 0 := by
       intro hzero
       exact hy (uint256_toNat_eq_zero hzero)
@@ -902,10 +883,11 @@ theorem clipperEvalRedoLotFeedRequire
             locals := clipperRedoLocalsLotFeed evmLoc evmRead evmVals I
               price feedPrice topNew }
           evm
-          (.binary .eq (.binary .div (.var "lotFeed") (.var "feedPrice"))
+          (.binary .eq (.binary (.div uint256Int .checked) (.var "lotFeed") (.var "feedPrice"))
             (.var "lot")) = .ok (.bool true) := by
-      simp only [evalExpr?, hlotFeed, hfeed, hlot, EvalResult.bind, bind, evalBinaryOp?]
-      rw [if_neg hyInt, hdiv]
+      have hquot := evalExpr_checked_div_uint256_word_ok hlotFeed hfeed hy hnat.symm
+      rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+      simp only [uint256Int, hquot, hlot, EvalResult.bind, bind, evalBinaryOp?]
       simp
     simp [evalExpr?, hleft, hright, EvalResult.bind, bind, pure]
 
@@ -932,7 +914,7 @@ theorem clipperRedoLotFeedSuccessBlock
             locals := clipperRedoLocalsLotFeed evmLoc evmRead evmVals I
               price feedPrice topNew }
           evmVals) :=
-    ExecStmt.letDecl
+    ExecStmt.letDecl_uint256_word
       (clipperEvalRedoLotFeedMulOk v evmLoc evmRead evmVals evmVals I
         price feedPrice topNew hmul)
   have hreq :
@@ -943,7 +925,7 @@ theorem clipperRedoLotFeedSuccessBlock
         (.require
           (.binary .or
             (.binary .eq (.var "feedPrice") (.intLit 0))
-            (.binary .eq (.binary .div (.var "lotFeed") (.var "feedPrice"))
+            (.binary .eq (.binary (.div uint256Int .checked) (.var "lotFeed") (.var "feedPrice"))
               (.var "lot"))))
         (.ok
           { contract := contract v,
@@ -1540,7 +1522,7 @@ theorem clipperRedoAddSuccessBlock
           { contract := contract v,
             locals := clipperRedoLocalsCoin evmLoc evmRead evmVals I
               price feedPrice topNew }
-          evmVals) := ExecStmt.letDecl
+          evmVals) := ExecStmt.letDecl_uint256_word
       (clipperEvalRedoAddOk v evmLoc evmRead evmVals I price feedPrice topNew hfit)
   have hreq :
       ExecStmt (config v)

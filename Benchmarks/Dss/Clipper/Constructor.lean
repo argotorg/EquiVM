@@ -169,7 +169,7 @@ theorem clipperConstructorBodyCore (v : ClipperImmutables) :
             clipperSolmCtorExecSuccess
               (createdAccounts := createdAccounts) (genesisBlockHeader := genesisBlockHeader)
               (blocks := blocks) (σ := σ_solm) (σ₀ := σ₀) (A := A) (I := I)
-              (g := g) v vat spotter dog ilk hwv)
+              (g := g) v vat spotter dog ilk hwv hilk)
         ?_
       refine ctorResultEquivWith.success rfl rfl ?_ ?_ ?_
       · simp [clipperCtorAfterWardsState, clipperCtorAfterBufState,

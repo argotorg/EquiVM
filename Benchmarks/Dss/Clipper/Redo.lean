@@ -998,7 +998,7 @@ theorem clipperRedoStatusCallRevertsAgeForPrice (v : ClipperImmutables)
     (clipperEvalRedoStatusArgs v evm I)
     (clipperLookupStatusFunction v)
     (clipperBindParamsStatus (clipperRedoSalesTicEVMWord evm I)
-      (clipperRedoSalesTopEVMWord evm I))
+      (clipperRedoSalesTopEVMWord evm I) (clipperSalesPackedTicWord_lt _))
     (clipperStatusFunctionRevertsAgeForPrice v evm
       (clipperRedoSalesTicEVMWord evm I) (clipperRedoSalesTopEVMWord evm I) hlt)
 
@@ -1053,7 +1053,8 @@ theorem clipperRedoInactiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
         (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperRedoSalesUsrEVMWord evmLock I).toNat))
-        (by simpa [startFrame, locals] using clipperEvalRedoSalesUsr v evmLock I))
+        (by simpa [startFrame, locals] using clipperEvalRedoSalesUsr v evmLock I)
+        (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -1063,7 +1064,8 @@ theorem clipperRedoInactiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
         (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperRedoSalesTicEVMWord evmLock I).toNat))
-        (by simpa [usrFrame] using clipperEvalRedoSalesTicAfterUsr v evmLock I))
+        (by simpa [usrFrame] using clipperEvalRedoSalesTicAfterUsr v evmLock I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have hletTop :
       ExecStmt (config v) ticFrame evmLock
         (.letDecl "top" (some uint256) (.storage (salesF (.var "id") "top")))
@@ -1073,7 +1075,8 @@ theorem clipperRedoInactiveSourceReverts {cA gh bl σ σ₀ A I} {g : UInt256}
         (cfg := config v) (solm := ticFrame) (evm := evmLock) (name := "top")
         (ty := some uint256) (expr := .storage (salesF (.var "id") "top"))
         (value := .int (Int.ofNat (clipperRedoSalesTopEVMWord evmLock I).toNat))
-        (by simpa [ticFrame] using clipperEvalRedoSalesTopAfterTic v evmLock I))
+        (by simpa [ticFrame] using clipperEvalRedoSalesTopAfterTic v evmLock I)
+        (valueMatchesOptionalABIType_uint256_word _))
   have husrEval :
       evalExpr? (config v) topFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool false) := by
@@ -1154,7 +1157,8 @@ theorem clipperRedoStatusAgeForPriceSourceReverts {cA gh bl σ σ₀ A I} {g : U
         (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperRedoSalesUsrEVMWord evmLock I).toNat))
-        (by simpa [startFrame, locals] using clipperEvalRedoSalesUsr v evmLock I))
+        (by simpa [startFrame, locals] using clipperEvalRedoSalesUsr v evmLock I)
+        (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -1164,7 +1168,8 @@ theorem clipperRedoStatusAgeForPriceSourceReverts {cA gh bl σ σ₀ A I} {g : U
         (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperRedoSalesTicEVMWord evmLock I).toNat))
-        (by simpa [usrFrame] using clipperEvalRedoSalesTicAfterUsr v evmLock I))
+        (by simpa [usrFrame] using clipperEvalRedoSalesTicAfterUsr v evmLock I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have hletTop :
       ExecStmt (config v) ticFrame evmLock
         (.letDecl "top" (some uint256) (.storage (salesF (.var "id") "top")))
@@ -1174,7 +1179,8 @@ theorem clipperRedoStatusAgeForPriceSourceReverts {cA gh bl σ σ₀ A I} {g : U
         (cfg := config v) (solm := ticFrame) (evm := evmLock) (name := "top")
         (ty := some uint256) (expr := .storage (salesF (.var "id") "top"))
         (value := .int (Int.ofNat (clipperRedoSalesTopEVMWord evmLock I).toNat))
-        (by simpa [ticFrame] using clipperEvalRedoSalesTopAfterTic v evmLock I))
+        (by simpa [ticFrame] using clipperEvalRedoSalesTopAfterTic v evmLock I)
+        (valueMatchesOptionalABIType_uint256_word _))
   have husrEval :
       evalExpr? (config v) topFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by

@@ -333,7 +333,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessTailSourceReverts
         (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
-        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
+        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I)
+        (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -343,7 +344,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessTailSourceReverts
         (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
-        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
+        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have husrEval :
       evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
@@ -362,7 +364,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessTailSourceReverts
         (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool false)
         (by simpa [stFrame] using
-          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_bool _))
   have hletPrice :
       ExecStmt (config v) doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
@@ -373,7 +376,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessTailSourceReverts
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
-          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hdoneEval :
       evalExpr? (config v) priceFrame evmPrice (.unary .not (.var "done")) =
         .ok (.bool true) := by
@@ -392,7 +396,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessTailSourceReverts
         (ty := some uint256) (expr := .storage (salesF (.var "id") "lot"))
         (value := .int (Int.ofNat lot.toNat))
         (by simpa [priceFrame, lot] using
-          clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price))
+          clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hletTab :
       ExecStmt (config v) lotFrame evmPrice
         (.letDecl "tab" (some uint256) (.storage (salesF (.var "id") "tab")))
@@ -403,7 +408,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessTailSourceReverts
         (ty := some uint256) (expr := .storage (salesF (.var "id") "tab"))
         (value := .int (Int.ofNat tab.toNat))
         (by simpa [lotFrame, tab] using
-          clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price))
+          clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hminCall :
       ExecStmt (config v) tabFrame evmPrice
         (.internalCall "min" [.var "lot", .var "amt"] "slice")
@@ -572,7 +578,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeSourceReverts
         (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
-        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
+        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I)
+        (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -582,7 +589,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeSourceReverts
         (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
-        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
+        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have husrEval :
       evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
@@ -601,7 +609,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeSourceReverts
         (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool false)
         (by simpa [stFrame] using
-          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_bool _))
   have hletPrice :
       ExecStmt (config v) doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
@@ -612,7 +621,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeSourceReverts
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
-          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hdoneEval :
       evalExpr? (config v) priceFrame evmPrice (.unary .not (.var "done")) =
         .ok (.bool true) := by
@@ -631,7 +641,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeSourceReverts
         (ty := some uint256) (expr := .storage (salesF (.var "id") "lot"))
         (value := .int (Int.ofNat lot.toNat))
         (by simpa [priceFrame, lot] using
-          clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price))
+          clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hletTab :
       ExecStmt (config v) lotFrame evmPrice
         (.letDecl "tab" (some uint256) (.storage (salesF (.var "id") "tab")))
@@ -642,7 +653,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeSourceReverts
         (ty := some uint256) (expr := .storage (salesF (.var "id") "tab"))
         (value := .int (Int.ofNat tab.toNat))
         (by simpa [lotFrame, tab] using
-          clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price))
+          clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hminCall :
       ExecStmt (config v) tabFrame evmPrice
         (.internalCall "min" [.var "lot", .var "amt"] "slice")
@@ -822,7 +834,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceRevert
         (cfg := config v) (solm := startFrame) (evm := evmLock) (name := "usr")
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
-        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
+        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I)
+        (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -832,7 +845,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceRevert
         (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
-        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
+        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have husrEval :
       evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
@@ -851,7 +865,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceRevert
         (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool false)
         (by simpa [stFrame] using
-          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_bool _))
   have hletPrice :
       ExecStmt (config v) doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
@@ -862,7 +877,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceRevert
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
-          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hdoneEval :
       evalExpr? (config v) priceFrame evmPrice (.unary .not (.var "done")) =
         .ok (.bool true) := by
@@ -881,7 +897,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceRevert
         (ty := some uint256) (expr := .storage (salesF (.var "id") "lot"))
         (value := .int (Int.ofNat lot.toNat))
         (by simpa [priceFrame, lot] using
-          clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price))
+          clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hletTab :
       ExecStmt (config v) lotFrame evmPrice
         (.letDecl "tab" (some uint256) (.storage (salesF (.var "id") "tab")))
@@ -892,7 +909,8 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureSourceRevert
         (ty := some uint256) (expr := .storage (salesF (.var "id") "tab"))
         (value := .int (Int.ofNat tab.toNat))
         (by simpa [lotFrame, tab] using
-          clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price))
+          clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hminCall :
       ExecStmt (config v) tabFrame evmPrice
         (.internalCall "min" [.var "lot", .var "amt"] "slice")
@@ -1902,7 +1920,8 @@ theorem clipperTakeSourcePrefixToSlice
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address
           (AccountAddress.ofNat (clipperTakeSalesUsrEVMWord evmLock I).toNat))
-        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I))
+        (by simpa [startFrame, locals] using clipperEvalTakeSalesUsr v evmLock I)
+        (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evmLock
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -1912,7 +1931,8 @@ theorem clipperTakeSourcePrefixToSlice
         (cfg := config v) (solm := usrFrame) (evm := evmLock) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperTakeSalesTicEVMWord evmLock I).toNat))
-        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I))
+        (by simpa [usrFrame] using clipperEvalTakeSalesTicAfterUsr v evmLock I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have husrEval :
       evalExpr? (config v) ticFrame evmLock (.binary .ne (.var "usr") zeroAddr) =
         .ok (.bool true) := by
@@ -1931,7 +1951,8 @@ theorem clipperTakeSourcePrefixToSlice
         (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool false)
         (by simpa [stFrame] using
-          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakeDoneFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_bool _))
   have hletPrice :
       ExecStmt (config v) doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
@@ -1942,7 +1963,8 @@ theorem clipperTakeSourcePrefixToSlice
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
-          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price))
+          clipperEvalTakePriceFromStatusAt v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hdoneEval :
       evalExpr? (config v) priceFrame evmPrice (.unary .not (.var "done")) =
         .ok (.bool true) := by
@@ -1962,7 +1984,8 @@ theorem clipperTakeSourcePrefixToSlice
         (ty := some uint256) (expr := .storage (salesF (.var "id") "lot"))
         (value := .int (Int.ofNat lot.toNat))
         (by simpa [priceFrame, lot] using
-          clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price))
+          clipperEvalTakeSalesLotAtPrice v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hletTab :
       ExecStmt (config v) lotFrame evmPrice
         (.letDecl "tab" (some uint256) (.storage (salesF (.var "id") "tab")))
@@ -1973,7 +1996,8 @@ theorem clipperTakeSourcePrefixToSlice
         (ty := some uint256) (expr := .storage (salesF (.var "id") "tab"))
         (value := .int (Int.ofNat (clipperTakeSalesTabEVMWord evmPrice I).toNat))
         (by simpa [lotFrame] using
-          clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price))
+          clipperEvalTakeSalesTabAfterLot v evmLock evmPrice I false price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hminCall :
       ExecStmt (config v) tabFrame evmPrice
         (.internalCall "min" [.var "lot", .var "amt"] "slice")

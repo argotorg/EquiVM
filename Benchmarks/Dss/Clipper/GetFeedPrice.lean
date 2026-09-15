@@ -635,6 +635,23 @@ theorem clipperPipPeekDecode_ok {v : ClipperImmutables} {out : ByteArray}
   simpa [config, externalABI, bytes32, bytes32Width, boolTy, abiBytes32, abiBytes32Width,
     abiBool] using h
 
+theorem clipperPipPeekValueMatchesType {v : ClipperImmutables} {out : ByteArray}
+    (hdecode : (config v).externalABI.decode? "peek" out =
+      some (clipperPipPeekValues out)) :
+    valueMatchesOptionalABIType (some bytes32)
+      (.fixedBytes abiBytes32Width (clipperPipPeekValueBytes out)) = true := by
+  have hlo : 64 ≤ out.size := by
+    by_contra hshort
+    have hnone := clipperPipPeekDecode_none_short (v := v) (out := out)
+      (Nat.lt_of_not_ge hshort)
+    rw [hdecode] at hnone
+    contradiction
+  apply valueMatchesOptionalABIType_fixedBytes
+  simp only [clipperPipPeekValueBytes, List.drop_zero, List.length_take,
+    byteArray_toList_eq, Array.length_toList, fixedBytesSize]
+  change min 32 out.size = 32
+  omega
+
 abbrev clipperGetFeedPriceSpotterIlkLocals (out : ByteArray) : Store :=
   (∅ : Store).insert "spotterIlk" (collapseReturns (clipperSpotterIlksValues out))
 
@@ -855,6 +872,7 @@ theorem clipperGetFeedPriceFunctionRevertsPipPeekBlock
         (expr := tuple0 (.var "spotterIlk"))
         (value := .address (clipperSpotterIlksPipAddress outIlks))
         (clipperEvalGetFeedPricePipFromSpotterIlk v evmIlks outIlks)
+        (valueMatchesOptionalABIType_address _)
   have hpipBlock :
       ExecBlock (config v) spotterFrame evmIlks pipLetStmts (.ok pipFrame evmIlks) := by
     exact ExecBlock.consNormal hpipStmt ExecBlock.nil
@@ -1021,6 +1039,7 @@ theorem clipperGetFeedPriceFunctionRevertsPipPeekHasFalse
         (expr := tuple0 (.var "spotterIlk"))
         (value := .address (clipperSpotterIlksPipAddress outIlks))
         (clipperEvalGetFeedPricePipFromSpotterIlk v evmIlks outIlks)
+        (valueMatchesOptionalABIType_address _)
   have hpipBlock :
       ExecBlock (config v) spotterFrame evmIlks pipLetStmts (.ok pipFrame evmIlks) := by
     exact ExecBlock.consNormal hpipStmt ExecBlock.nil
@@ -1050,6 +1069,7 @@ theorem clipperGetFeedPriceFunctionRevertsPipPeekHasFalse
         (name := "val") (ty := some bytes32) (expr := tuple0 (.var "peekRet"))
         (value := .fixedBytes abiBytes32Width (clipperPipPeekValueBytes outPeek))
         (clipperEvalGetFeedPricePeekVal v evmPeek outIlks outPeek)
+        (clipperPipPeekValueMatchesType hdecPeek)
   have hhasStmt :
       ExecStmt (config v) valFrame evmPeek
         (.letDecl "has" (some boolTy) (tuple1 (.var "peekRet")))
@@ -1060,6 +1080,7 @@ theorem clipperGetFeedPriceFunctionRevertsPipPeekHasFalse
         (name := "has") (ty := some boolTy) (expr := tuple1 (.var "peekRet"))
         (value := .bool (clipperPipPeekHasWord outPeek != ⟨0⟩))
         (clipperEvalGetFeedPricePeekHas v evmPeek outIlks outPeek)
+        (valueMatchesOptionalABIType_bool _)
   have hrequire :
       ExecStmt (config v) hasFrame evmPeek (.require (.var "has")) .reverted := by
     exact ExecStmt.requireFalse

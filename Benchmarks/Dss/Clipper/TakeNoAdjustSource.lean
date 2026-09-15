@@ -9,7 +9,7 @@ abbrev clipperTakeOweAdjustmentStmt : Stmt :=
   .ite
     (.binary .gt (.var "owe") (.var "tab"))
     [ .assign .localVar (varRef "owe") (.var "tab"),
-      .assign .localVar (varRef "slice") (.binary .div (.var "owe") (.var "price")) ]
+      .assign .localVar (varRef "slice") (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ]
     [ .ite
       (.binary .and (.binary .lt (.var "owe") (.var "tab"))
         (.binary .lt (.var "slice") (.var "lot")))
@@ -21,7 +21,7 @@ abbrev clipperTakeOweAdjustmentStmt : Stmt :=
             wrappingSubInto "oweAdjusted" (.var "tab") (.var "_chost") ++
             [ .assign .localVar (varRef "owe") (.var "oweAdjusted"),
               .assign .localVar (varRef "slice")
-                (.binary .div (.var "owe") (.var "price")) ])
+                (.binary (.div uint256Int .checked) (.var "owe") (.var "price")) ])
           [] ])
       [] ]
 
@@ -60,41 +60,12 @@ theorem clipperEvalTakeTabSubOweAtOwe (v : ClipperImmutables)
     evalExpr? (config v)
       { contract := contract v,
         locals := clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe }
-      evmRead (wrap256 (.binary .sub (.var "tab") (.var "owe"))) =
+      evmRead (wrap256 (.binary (.sub uint256Int .wrapping) (.var "tab") (.var "owe"))) =
       .ok (.int (Int.ofNat (UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) owe).toNat)) := by
-  let tab := clipperTakeSalesTabEVMWord evmRead I
-  have hsubNat : (UInt256.sub tab owe).toNat = tab.toNat - owe.toNat := by
-    exact usub_toNat howeTab
-  have hdiff :
-      Int.ofNat tab.toNat - Int.ofNat owe.toNat =
-        Int.ofNat (tab.toNat - owe.toNat) := by
-    exact (Int.ofNat_sub howeTab).symm
-  have hltNat : tab.toNat - owe.toNat < UInt256.size := by
-    exact lt_of_le_of_lt (Nat.sub_le tab.toNat owe.toNat) tab.val.isLt
-  have hlt : Int.ofNat (tab.toNat - owe.toNat) < wordModulus := by
-    norm_num [wordModulus, UInt256.size] at hltNat ⊢
-    exact_mod_cast hltNat
-  have hmod :
-      Int.ofNat (tab.toNat - owe.toNat) % wordModulus =
-        Int.ofNat (tab.toNat - owe.toNat) := by
-    rw [Int.emod_eq_of_lt]
-    · exact Int.natCast_nonneg _
-    · exact hlt
-  have hwordNonzero : ¬wordModulus = 0 := by
-    norm_num [wordModulus]
-  have hmodLoad :
-      (Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat -
-          Int.ofNat owe.toNat) % wordModulus =
-        Int.ofNat ((clipperTakeSalesTabEVMWord evmRead I).toNat - owe.toNat) := by
-    rw [show Int.ofNat (clipperTakeSalesTabEVMWord evmRead I).toNat -
-        Int.ofNat owe.toNat = Int.ofNat (tab.toNat - owe.toNat) by
-      simpa [tab] using hdiff]
-    simpa [tab] using hmod
-  simp [wrap256, evalExpr?, EvalResult.bind, bind,
-    clipperEvalTakeVarTabAtOwe v evmLoc evmRead evmRead I false price slice owe0 owe,
-    clipperEvalTakeVarOweAtOwe v evmLoc evmRead evmRead I false price slice owe0 owe,
-    evalBinaryOp?, hsubNat, hwordNonzero, tab]
-  exact hmodLoad
+  apply clipperEvalWrap256
+  exact evalExpr_wrapping_sub_uint256_word_ok
+    (clipperEvalTakeVarTabAtOwe v evmLoc evmRead evmRead I false price slice owe0 owe)
+    (clipperEvalTakeVarOweAtOwe v evmLoc evmRead evmRead I false price slice owe0 owe) rfl
 
 theorem clipperTakeNoAdjustLetTabNew (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
@@ -105,7 +76,7 @@ theorem clipperTakeNoAdjustLetTabNew (v : ClipperImmutables)
       (Frame.mk (contract v)
         (clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe))
       evmRead
-      (.letDecl "tabNew" (some uint256) (wrap256 (.binary .sub (.var "tab") (.var "owe"))))
+      (.letDecl "tabNew" (some uint256) (wrap256 (.binary (.sub uint256Int .wrapping) (.var "tab") (.var "owe"))))
       (.ok
         (Frame.mk (contract v)
           (clipperTakeLocalsNoAdjustTabNew evmLoc evmRead I price slice owe0 owe tabNew))
@@ -118,15 +89,16 @@ theorem clipperTakeNoAdjustLetTabNew (v : ClipperImmutables)
       (clipperTakeLocalsNoAdjustTabNew evmLoc evmRead I price slice owe0 owe tabNew)
   have hrhs :
       evalExpr? (config v) oweFrame evmRead
-        (wrap256 (.binary .sub (.var "tab") (.var "owe"))) =
+        (wrap256 (.binary (.sub uint256Int .wrapping) (.var "tab") (.var "owe"))) =
       .ok (.int (Int.ofNat tabNew.toNat)) := by
     simpa [oweFrame, tabNew] using
       clipperEvalTakeTabSubOweAtOwe v evmLoc evmRead I price slice owe0 owe howeTab
   simpa [oweFrame, tabNewFrame, clipperTakeLocalsNoAdjustTabNew] using
     (ExecStmt.letDecl
       (cfg := config v) (solm := oweFrame) (evm := evmRead) (name := "tabNew")
-      (ty := some uint256) (expr := wrap256 (.binary .sub (.var "tab") (.var "owe")))
-      (value := .int (Int.ofNat tabNew.toNat)) hrhs)
+      (ty := some uint256) (expr := wrap256 (.binary (.sub uint256Int .wrapping) (.var "tab") (.var "owe")))
+      (value := .int (Int.ofNat tabNew.toNat)) hrhs
+      (valueMatchesOptionalABIType_uint256_word _))
 
 theorem clipperEvalTakeLotSubSliceAtNoAdjustTabNew (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
@@ -136,7 +108,7 @@ theorem clipperEvalTakeLotSubSliceAtNoAdjustTabNew (v : ClipperImmutables)
       { contract := contract v,
         locals := clipperTakeLocalsNoAdjustTabNew evmLoc evmRead I price slice owe0 owe
           tabNew }
-      evmRead (wrap256 (.binary .sub (.var "lot") (.var "slice"))) =
+      evmRead (wrap256 (.binary (.sub uint256Int .wrapping) (.var "lot") (.var "slice"))) =
       .ok (.int (Int.ofNat (UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice).toNat)) := by
   have hlot :
       evalExpr? (config v)
@@ -165,37 +137,8 @@ theorem clipperEvalTakeLotSubSliceAtNoAdjustTabNew (v : ClipperImmutables)
       clipperTakeLocalsOwe0, store_get_ne _ _ (by decide),
       clipperTakeLocalsSlice, store_get_self]
     rfl
-  let lot := clipperTakeSalesLotEVMWord evmRead I
-  have hsubNat : (UInt256.sub lot slice).toNat = lot.toNat - slice.toNat := by
-    exact usub_toNat hsliceLot
-  have hdiff :
-      Int.ofNat lot.toNat - Int.ofNat slice.toNat =
-        Int.ofNat (lot.toNat - slice.toNat) := by
-    exact (Int.ofNat_sub hsliceLot).symm
-  have hltNat : lot.toNat - slice.toNat < UInt256.size := by
-    exact lt_of_le_of_lt (Nat.sub_le lot.toNat slice.toNat) lot.val.isLt
-  have hlt : Int.ofNat (lot.toNat - slice.toNat) < wordModulus := by
-    norm_num [wordModulus, UInt256.size] at hltNat ⊢
-    exact_mod_cast hltNat
-  have hmod :
-      Int.ofNat (lot.toNat - slice.toNat) % wordModulus =
-        Int.ofNat (lot.toNat - slice.toNat) := by
-    rw [Int.emod_eq_of_lt]
-    · exact Int.natCast_nonneg _
-    · exact hlt
-  have hwordNonzero : ¬wordModulus = 0 := by
-    norm_num [wordModulus]
-  have hmodLoad :
-      (Int.ofNat (clipperTakeSalesLotEVMWord evmRead I).toNat -
-          Int.ofNat slice.toNat) % wordModulus =
-        Int.ofNat ((clipperTakeSalesLotEVMWord evmRead I).toNat - slice.toNat) := by
-    rw [show Int.ofNat (clipperTakeSalesLotEVMWord evmRead I).toNat -
-        Int.ofNat slice.toNat = Int.ofNat (lot.toNat - slice.toNat) by
-      simpa [lot] using hdiff]
-    simpa [lot] using hmod
-  simp [wrap256, evalExpr?, EvalResult.bind, bind, hlot, hslice, evalBinaryOp?, hsubNat,
-    hwordNonzero, lot]
-  exact hmodLoad
+  apply clipperEvalWrap256
+  exact evalExpr_wrapping_sub_uint256_word_ok hlot hslice rfl
 
 theorem clipperTakeNoAdjustLetLotNew (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
@@ -207,7 +150,7 @@ theorem clipperTakeNoAdjustLetLotNew (v : ClipperImmutables)
         (clipperTakeLocalsNoAdjustTabNew evmLoc evmRead I price slice owe0 owe tabNew))
       evmRead
       (.letDecl "lotNew" (some uint256)
-        (wrap256 (.binary .sub (.var "lot") (.var "slice"))))
+        (wrap256 (.binary (.sub uint256Int .wrapping) (.var "lot") (.var "slice"))))
       (.ok
         (Frame.mk (contract v)
           (clipperTakeLocalsNoAdjustLotNew evmLoc evmRead I price slice owe0 owe tabNew
@@ -222,7 +165,7 @@ theorem clipperTakeNoAdjustLetLotNew (v : ClipperImmutables)
       (clipperTakeLocalsNoAdjustLotNew evmLoc evmRead I price slice owe0 owe tabNew lotNew)
   have hrhs :
       evalExpr? (config v) tabNewFrame evmRead
-        (wrap256 (.binary .sub (.var "lot") (.var "slice"))) =
+        (wrap256 (.binary (.sub uint256Int .wrapping) (.var "lot") (.var "slice"))) =
       .ok (.int (Int.ofNat lotNew.toNat)) := by
     simpa [tabNewFrame, lotNew] using
       clipperEvalTakeLotSubSliceAtNoAdjustTabNew v evmLoc evmRead I price slice owe0 owe
@@ -231,8 +174,9 @@ theorem clipperTakeNoAdjustLetLotNew (v : ClipperImmutables)
     (ExecStmt.letDecl
       (cfg := config v) (solm := tabNewFrame) (evm := evmRead) (name := "lotNew")
       (ty := some uint256)
-      (expr := wrap256 (.binary .sub (.var "lot") (.var "slice")))
-      (value := .int (Int.ofNat lotNew.toNat)) hrhs)
+      (expr := wrap256 (.binary (.sub uint256Int .wrapping) (.var "lot") (.var "slice")))
+      (value := .int (Int.ofNat lotNew.toNat)) hrhs
+      (valueMatchesOptionalABIType_uint256_word _))
 
 theorem clipperTakeNoAdjustAssignTabFromTabNew (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
@@ -350,14 +294,14 @@ theorem clipperTakePostNoAdjustSubBlock (v : ClipperImmutables)
   have htabNew :
       ExecStmt (config v) oweFrame evmRead
         (.letDecl "tabNew" (some uint256)
-          (wrap256 (.binary .sub (.var "tab") (.var "owe"))))
+          (wrap256 (.binary (.sub uint256Int .wrapping) (.var "tab") (.var "owe"))))
         (.ok tabNewFrame evmRead) := by
     simpa [oweFrame, tabNewFrame, tabNew] using
       clipperTakeNoAdjustLetTabNew v evmLoc evmRead I price slice owe0 owe howeTab
   have hlotNew :
       ExecStmt (config v) tabNewFrame evmRead
         (.letDecl "lotNew" (some uint256)
-          (wrap256 (.binary .sub (.var "lot") (.var "slice"))))
+          (wrap256 (.binary (.sub uint256Int .wrapping) (.var "lot") (.var "slice"))))
         (.ok lotNewFrame evmRead) := by
     simpa [tabNewFrame, lotNewFrame, lotNew] using
       clipperTakeNoAdjustLetLotNew v evmLoc evmRead I price slice owe0 owe tabNew

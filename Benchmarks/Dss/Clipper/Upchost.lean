@@ -2479,7 +2479,8 @@ theorem clipperUpchostBodyDogChopNoCode (v : ClipperImmutables) (evm evmVat : EV
         (ty := some uint256)
         (expr := .tupleGet (.var "vatIlk") 4)
         (value := .int (Int.ofNat (clipperVatIlksDustWord out).toNat))
-        (clipperEvalVatIlkDust v evmVat out))
+        (clipperEvalVatIlkDust v evmVat out)
+        (valueMatchesOptionalABIType_uint256_word _))
   exact ExecBlock.consRevert
     (ExecStmt.requireFalse (clipperEvalDogCodeGuard_false v evmVat
       (clipperUpchostDustLocals out) (clipperUpchostDustLocals_get_dog out) hnoDogCode))
@@ -2530,7 +2531,8 @@ theorem clipperUpchostBodyDogChopCallFailure (v : ClipperImmutables)
         (ty := some uint256)
         (expr := .tupleGet (.var "vatIlk") 4)
         (value := .int (Int.ofNat (clipperVatIlksDustWord out).toNat))
-        (clipperEvalVatIlkDust v evmVat out))
+        (clipperEvalVatIlkDust v evmVat out)
+        (valueMatchesOptionalABIType_uint256_word _))
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact clipperEvalDogCodeGuard_true v evmVat (clipperUpchostDustLocals out)
       (clipperUpchostDustLocals_get_dog out) hdogCode
@@ -2589,7 +2591,8 @@ theorem clipperUpchostBodyDogChopDecodeRevert (v : ClipperImmutables)
         (ty := some uint256)
         (expr := .tupleGet (.var "vatIlk") 4)
         (value := .int (Int.ofNat (clipperVatIlksDustWord out).toNat))
-        (clipperEvalVatIlkDust v evmVat out))
+        (clipperEvalVatIlkDust v evmVat out)
+        (valueMatchesOptionalABIType_uint256_word _))
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact clipperEvalDogCodeGuard_true v evmVat (clipperUpchostDustLocals out)
       (clipperUpchostDustLocals_get_dog out) hdogCode
@@ -2731,7 +2734,8 @@ theorem clipperUpchostBodyDogChopSuccess (v : ClipperImmutables)
         (ty := some uint256)
         (expr := .tupleGet (.var "vatIlk") 4)
         (value := .int (Int.ofNat (clipperVatIlksDustWord out).toNat))
-        (clipperEvalVatIlkDust v evmVat out))
+        (clipperEvalVatIlkDust v evmVat out)
+        (valueMatchesOptionalABIType_uint256_word _))
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact clipperEvalDogCodeGuard_true v evmVat (clipperUpchostDustLocals out)
       (clipperUpchostDustLocals_get_dog out) hdogCode
@@ -2830,7 +2834,8 @@ theorem clipperUpchostBodyDogChopWmulRevert (v : ClipperImmutables)
         (ty := some uint256)
         (expr := .tupleGet (.var "vatIlk") 4)
         (value := .int (Int.ofNat (clipperVatIlksDustWord out).toNat))
-        (clipperEvalVatIlkDust v evmVat out))
+        (clipperEvalVatIlkDust v evmVat out)
+        (valueMatchesOptionalABIType_uint256_word _))
   refine ExecBlock.consNormal (ExecStmt.requireTrue ?_) ?_
   · exact clipperEvalDogCodeGuard_true v evmVat (clipperUpchostDustLocals out)
       (clipperUpchostDustLocals_get_dog out) hdogCode

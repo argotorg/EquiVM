@@ -25,9 +25,9 @@ private theorem clipperKickIdLet (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :
     ExecStmt (config v) { contract := contract v, locals := clipperKickStore I } evm
       (.letDecl "id" (some uint256)
-        (wrap256 (.binary .add (.storage kicksRef) (.intLit 1))))
+        (wrap256 (.binary (.add uint256Int .wrapping) (.storage kicksRef) (.intLit 1))))
       (.ok { contract := contract v, locals := clipperKickLocalsId evm I } evm) := by
-  simpa using ExecStmt.letDecl (clipperEvalKickIdExpr v evm I)
+  simpa using ExecStmt.letDecl_uint256_word (clipperEvalKickIdExpr v evm I)
 
 private theorem clipperKickIdAssign (v : ClipperImmutables) (evm : EVM.State)
     (I : ExecutionEnv) :

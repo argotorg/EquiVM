@@ -176,7 +176,8 @@ theorem clipperTakeFromFluxDataEmptyEquiv
           (value := .address
             (AccountAddress.ofNat (clipperTakeDogEVMWord evmVat).toNat))
           (by simpa [clipperTakeDogEVMWord] using
-            clipperEvalDog v evmVat fluxLocals hfluxDogAbsent))
+            clipperEvalDog v evmVat fluxLocals hfluxDogAbsent)
+            (valueMatchesOptionalABIType_address _))
     have hdogWord : UInt256.land (solcSlotWord σVat I ⟨1⟩) solcAddrMask =
         clipperTakeDogEVMWord evmVat :=
       clipperTakeDogWord_eq_of_accountMapEquiv hAccountsVat hevmVatEnv

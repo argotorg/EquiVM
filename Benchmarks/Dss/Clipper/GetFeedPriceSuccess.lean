@@ -146,23 +146,14 @@ theorem clipperEvalGetFeedPriceValBlnMul_ok
       (mul256 (.cast (.var "val") uint256St) (.intLit BLN)) =
       .ok (.int (Int.ofNat
         (UInt256.mul (clipperPipPeekValueWord outPeek) ⟨1000000000⟩).toNat)) := by
-  let x := clipperPipPeekValueWord outPeek
-  let y : UInt256 := ⟨1000000000⟩
   have hcast := clipperEvalGetFeedPriceValCast v evm outIlks outPeek hlo
-  have hy : BLN = Int.ofNat y.toNat := by native_decide
-  have hlt : ¬ Int.ofNat (x.toNat * y.toNat) ≥ (2 : Int) ^ 256 :=
-    not_le.mpr (Int.ofNat_lt.mpr (by simpa [UInt256.size, x, y] using hmul))
-  have hword : (UInt256.mul x y).toNat = x.toNat * y.toNat := by
-    rw [u256_mul_toNat, Nat.mod_eq_of_lt]
-    simpa [x, y] using hmul
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hcast, hy,
-    evalBinaryOp?, uint256Int, x, y, hword]
-  rw [if_neg]
-  · rfl
-  · intro hbad
-    rcases hbad with hbad | hbad
-    · exact (not_lt.mpr (Int.natCast_nonneg _)) hbad
-    · exact hlt hbad
+  have hword :
+      (UInt256.mul (clipperPipPeekValueWord outPeek) ⟨1000000000⟩).toNat =
+        (clipperPipPeekValueWord outPeek).toNat * (⟨1000000000⟩ : UInt256).toNat := by
+    rw [u256_mul_toNat, Nat.mod_eq_of_lt hmul]
+  simpa only [mul256, u256, uint256Int] using
+    evalExpr_checked_mul_uint256_word_ok hcast
+      (by simp only [evalExpr?]; native_decide) hword hmul
 
 theorem clipperEvalGetFeedPriceValBlnMul_revert
     (v : ClipperImmutables) (evm : EVM.State) (outIlks outPeek : ByteArray)
@@ -174,11 +165,9 @@ theorem clipperEvalGetFeedPriceValBlnMul_revert
       (Frame.mk (contract v) (clipperGetFeedPriceHasLocals outIlks outPeek)) evm
       (mul256 (.cast (.var "val") uint256St) (.intLit BLN)) = .revert := by
   have hcast := clipperEvalGetFeedPriceValCast v evm outIlks outPeek hlo
-  have hBLN : BLN = Int.ofNat (⟨1000000000⟩ : UInt256).toNat := by native_decide
-  simp [mul256, u256, evalExpr?, EvalResult.bind, bind, hcast, hBLN,
-    evalBinaryOp?, uint256Int]
-  intro _
-  exact_mod_cast hover
+  simpa only [mul256, u256, uint256Int] using
+    evalExpr_checked_mul_uint256_word_revert_of_overflow hcast
+      (by simp only [evalExpr?]; native_decide) hover
 
 theorem clipperEvalGetFeedPriceValBlnRequire_true
     (v : ClipperImmutables) (evm : EVM.State) (outIlks outPeek : ByteArray)
@@ -191,20 +180,19 @@ theorem clipperEvalGetFeedPriceValBlnRequire_true
       (.binary .or
         (.binary .eq (.intLit BLN) (.intLit 0))
         (.binary .eq
-          (.binary .div (.var "valBln") (.intLit BLN))
+          (.binary (.div uint256Int .checked) (.var "valBln") (.intLit BLN))
           (.cast (.var "val") uint256St))) = .ok (.bool true) := by
   let x := clipperPipPeekValueWord outPeek
   let y : UInt256 := ⟨1000000000⟩
   have hy : BLN = Int.ofNat y.toNat := by native_decide
   have hy0 : y.toNat ≠ 0 := by native_decide
   have hdiv :
-      Int.ofNat (UInt256.mul x y).toNat / Int.ofNat y.toNat = Int.ofNat x.toNat := by
+      x.toNat = (UInt256.mul x y).toNat / y.toNat := by
     have hcancel := Reasoning.Theory.clipperMulDiv_cancel (x := y) (y := x)
       (by native_decide) (by simpa [x, y, Nat.mul_comm] using hmul)
     have hnat := congrArg UInt256.toNat hcancel
     rw [udiv_toNat, u256_mul_comm y x] at hnat
-    exact (Int.ofNat_ediv_ofNat (a := (UInt256.mul x y).toNat) (b := y.toNat)).trans
-      (congrArg Int.ofNat hnat)
+    exact hnat.symm
   have hval :
       evalExpr? (config v)
         (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm
@@ -225,9 +213,6 @@ theorem clipperEvalGetFeedPriceValBlnRequire_true
         (.var "valBln") = .ok (.int (Int.ofNat (UInt256.mul x y).toNat)) := by
     simp only [evalExpr?, clipperGetFeedPriceValBlnLocals, store_get_self, x, y]
     rfl
-  have hyInt : Int.ofNat y.toNat ≠ 0 := by
-    intro hzero
-    exact hy0 (Int.ofNat.inj hzero)
   have hleft :
       evalExpr? (config v)
         (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm
@@ -237,10 +222,13 @@ theorem clipperEvalGetFeedPriceValBlnRequire_true
       evalExpr? (config v)
         (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm
         (.binary .eq
-          (.binary .div (.var "valBln") (.intLit BLN))
+          (.binary (.div uint256Int .checked) (.var "valBln") (.intLit BLN))
           (.cast (.var "val") uint256St)) = .ok (.bool true) := by
-    simp only [evalExpr?, hvalBln, hval, EvalResult.bind, bind, evalBinaryOp?, hy]
-    rw [if_neg hyInt, hdiv]
+    have hquot := evalExpr_checked_div_uint256_word_ok hvalBln
+      (rhs := .intLit BLN) (b := y) (by simp only [evalExpr?, hy, pure])
+      (by native_decide) hdiv
+    rw [evalExpr_binary (hAnd := by simp) (hOr := by simp)]
+    simp only [uint256Int, hquot, hval, EvalResult.bind, bind, evalBinaryOp?]
     simp
   simp [evalExpr?, EvalResult.bind, bind, pure, hleft, hright]
 
@@ -263,7 +251,7 @@ theorem clipperGetFeedPriceValBlnMulSuccessBlock
         (.ok
           (Frame.mk (contract v) (clipperGetFeedPriceValBlnLocals outIlks outPeek)) evm) := by
     simpa [clipperGetFeedPriceValBlnLocals] using
-      ExecStmt.letDecl
+      ExecStmt.letDecl_uint256_word
         (clipperEvalGetFeedPriceValBlnMul_ok v evm outIlks outPeek hlo hmul)
   simpa [checkedMulUintInto] using
     (ExecBlock.consNormal hlet
@@ -654,6 +642,7 @@ theorem clipperGetFeedPricePrefixToHas
         (name := "pip") (ty := some addr) (expr := tuple0 (.var "spotterIlk"))
         (value := .address (clipperSpotterIlksPipAddress outIlks))
         (clipperEvalGetFeedPricePipFromSpotterIlk v evmIlks outIlks)
+        (valueMatchesOptionalABIType_address _)
   have hpipBlock :
       ExecBlock (config v) spotterFrame evmIlks pipLetStmts (.ok pipFrame evmIlks) :=
     ExecBlock.consNormal hpipStmt ExecBlock.nil
@@ -683,6 +672,7 @@ theorem clipperGetFeedPricePrefixToHas
         (name := "val") (ty := some bytes32) (expr := tuple0 (.var "peekRet"))
         (value := .fixedBytes abiBytes32Width (clipperPipPeekValueBytes outPeek))
         (clipperEvalGetFeedPricePeekVal v evmPeek outIlks outPeek)
+        (clipperPipPeekValueMatchesType hdecPeek)
   have hhasStmt :
       ExecStmt (config v) valFrame evmPeek
         (.letDecl "has" (some boolTy) (tuple1 (.var "peekRet")))
@@ -693,6 +683,7 @@ theorem clipperGetFeedPricePrefixToHas
         (name := "has") (ty := some boolTy) (expr := tuple1 (.var "peekRet"))
         (value := .bool (clipperPipPeekHasWord outPeek != ⟨0⟩))
         (clipperEvalGetFeedPricePeekHas v evmPeek outIlks outPeek)
+        (valueMatchesOptionalABIType_bool _)
   have hrequire :
       ExecStmt (config v) hasFrame evmPeek (.require (.var "has"))
         (.ok hasFrame evmPeek) :=

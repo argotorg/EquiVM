@@ -28,17 +28,12 @@ theorem clipperEvalTakeGenericWrappedAdd
     (htab : locals.get? "tab" = some (.int (Int.ofNat tab.toNat)))
     (howe : locals.get? "owe" = some (.int (Int.ofNat owe.toNat))) :
     evalExpr? (config v) (Frame.mk (contract v) locals) evm
-      (wrap256 (.binary .add (.var "tab") (.var "owe"))) =
+      (wrap256 (.binary (.add uint256Int .wrapping) (.var "tab") (.var "owe"))) =
         .ok (.int (Int.ofNat (UInt256.add tab owe).toNat)) := by
-  have hmodulus : (wordModulus : Int) ≠ 0 := by
-    norm_num [wordModulus]
-  have htabEval := clipperEvalTakeGenericVar (v := v) (evm := evm) htab
-  have howeEval := clipperEvalTakeGenericVar (v := v) (evm := evm) howe
-  simp [wrap256, evalExpr?, EvalResult.bind, bind, pure, htabEval, howeEval,
-    evalBinaryOp?, hmodulus]
-  rw [show (UInt256.add tab owe).toNat =
-    (tab.toNat + owe.toNat) % UInt256.size by exact uadd_toNat tab owe]
-  norm_num [wordModulus, UInt256.size]
+  apply clipperEvalWrap256
+  exact evalExpr_wrapping_add_uint256_word_ok
+    (clipperEvalTakeGenericVar (v := v) (evm := evm) htab)
+    (clipperEvalTakeGenericVar (v := v) (evm := evm) howe) rfl
 
 theorem clipperEvalTakeGenericIlkDigsAmtArgs
     {v : ClipperImmutables} {locals : Store} {evm : EVM.State}
@@ -99,10 +94,10 @@ theorem clipperTakeGenericDogZeroNoCode
   have hadd : ExecStmt (config v)
       (Frame.mk (contract v) (clipperTakeGenericMoveRet locals)) evm
       (.letDecl "digsAmt" (some uint256)
-        (wrap256 (.binary .add (.var "tab") (.var "owe"))))
+        (wrap256 (.binary (.add uint256Int .wrapping) (.var "tab") (.var "owe"))))
       (.ok (Frame.mk (contract v) (clipperTakeGenericDigsAmt locals tab owe)) evm) := by
     simpa [clipperTakeGenericDigsAmt] using
-      (ExecStmt.letDecl (clipperEvalTakeGenericWrappedAdd
+      (ExecStmt.letDecl_uint256_word (clipperEvalTakeGenericWrappedAdd
         (v := v) (evm := evm) htab' howe'))
   have hdogAmt : (clipperTakeGenericDigsAmt locals tab owe).get? "dog_" =
       some (.address dog) := by
@@ -164,10 +159,10 @@ theorem clipperTakeGenericDogZeroFailure
   have hadd : ExecStmt (config v)
       (Frame.mk (contract v) (clipperTakeGenericMoveRet locals)) evm
       (.letDecl "digsAmt" (some uint256)
-        (wrap256 (.binary .add (.var "tab") (.var "owe"))))
+        (wrap256 (.binary (.add uint256Int .wrapping) (.var "tab") (.var "owe"))))
       (.ok (Frame.mk (contract v) (clipperTakeGenericDigsAmt locals tab owe)) evm) := by
     simpa [clipperTakeGenericDigsAmt] using
-      (ExecStmt.letDecl (clipperEvalTakeGenericWrappedAdd
+      (ExecStmt.letDecl_uint256_word (clipperEvalTakeGenericWrappedAdd
         (v := v) (evm := evm) htab' howe'))
   have hdogAmt : (clipperTakeGenericDigsAmt locals tab owe).get? "dog_" =
       some (.address dog) := by
@@ -233,10 +228,10 @@ theorem clipperTakeGenericDogZeroSuccess
   have hadd : ExecStmt (config v)
       (Frame.mk (contract v) (clipperTakeGenericMoveRet locals)) evm
       (.letDecl "digsAmt" (some uint256)
-        (wrap256 (.binary .add (.var "tab") (.var "owe"))))
+        (wrap256 (.binary (.add uint256Int .wrapping) (.var "tab") (.var "owe"))))
       (.ok (Frame.mk (contract v) (clipperTakeGenericDigsAmt locals tab owe)) evm) := by
     simpa [clipperTakeGenericDigsAmt] using
-      (ExecStmt.letDecl (clipperEvalTakeGenericWrappedAdd
+      (ExecStmt.letDecl_uint256_word (clipperEvalTakeGenericWrappedAdd
         (v := v) (evm := evm) htab' howe'))
   have hdogAmt : (clipperTakeGenericDigsAmt locals tab owe).get? "dog_" =
       some (.address dog) := by

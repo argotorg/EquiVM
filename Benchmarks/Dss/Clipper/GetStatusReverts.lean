@@ -485,7 +485,7 @@ theorem clipperGetStatusStatusCallRevertsAgeForPrice (v : ClipperImmutables)
     (clipperEvalGetStatusStatusArgs v evm I)
     (clipperLookupStatusFunction v)
     (clipperBindParamsStatus (clipperGetStatusTicWord evm I)
-      (clipperGetStatusTopWord evm I))
+      (clipperGetStatusTopWord evm I) (clipperSalesPackedTicWord_lt _))
     (clipperStatusFunctionRevertsAgeForPrice v evm
       (clipperGetStatusTicWord evm I) (clipperGetStatusTopWord evm I) hlt)
 
@@ -520,7 +520,7 @@ theorem clipperGetStatusStatusCallRevertsPriceCallFailure (v : ClipperImmutables
     (clipperEvalGetStatusStatusArgs v evm I)
     (clipperLookupStatusFunction v)
     (clipperBindParamsStatus (clipperGetStatusTicWord evm I)
-      (clipperGetStatusTopWord evm I))
+      (clipperGetStatusTopWord evm I) (clipperSalesPackedTicWord_lt _))
     (clipperStatusFunctionRevertsPriceCallFailure v
       (clipperGetStatusTicWord evm I) (clipperGetStatusTopWord evm I)
       hlePrice hcode hcall)
@@ -549,7 +549,7 @@ theorem clipperGetStatusStatusCallRevertsPriceNoCode (v : ClipperImmutables)
     (clipperEvalGetStatusStatusArgs v evm I)
     (clipperLookupStatusFunction v)
     (clipperBindParamsStatus (clipperGetStatusTicWord evm I)
-      (clipperGetStatusTopWord evm I))
+      (clipperGetStatusTopWord evm I) (clipperSalesPackedTicWord_lt _))
     (clipperStatusFunctionRevertsPriceNoCode v evm
       (clipperGetStatusTicWord evm I) (clipperGetStatusTopWord evm I)
       hlePrice hnoCode)
@@ -586,7 +586,7 @@ theorem clipperGetStatusStatusCallRevertsPriceDecode (v : ClipperImmutables)
     (clipperEvalGetStatusStatusArgs v evm I)
     (clipperLookupStatusFunction v)
     (clipperBindParamsStatus (clipperGetStatusTicWord evm I)
-      (clipperGetStatusTopWord evm I))
+      (clipperGetStatusTopWord evm I) (clipperSalesPackedTicWord_lt _))
     (clipperStatusFunctionRevertsPriceDecode v
       (clipperGetStatusTicWord evm I) (clipperGetStatusTopWord evm I)
       hlePrice hcode hcall hdec)
@@ -625,7 +625,7 @@ theorem clipperGetStatusStatusCallRevertsAgeForDone (v : ClipperImmutables)
     (clipperEvalGetStatusStatusArgs v evm I)
     (clipperLookupStatusFunction v)
     (clipperBindParamsStatus (clipperGetStatusTicWord evm I)
-      (clipperGetStatusTopWord evm I))
+      (clipperGetStatusTopWord evm I) (clipperSalesPackedTicWord_lt _))
     (clipperStatusFunctionRevertsAgeForDone v
       (clipperGetStatusTicWord evm I) (clipperGetStatusTopWord evm I) price
       hlePrice hcode hcall hdec hltDone)
@@ -668,7 +668,7 @@ theorem clipperGetStatusStatusCallRevertsRdivMul (v : ClipperImmutables)
     (clipperEvalGetStatusStatusArgs v evm I)
     (clipperLookupStatusFunction v)
     (clipperBindParamsStatus (clipperGetStatusTicWord evm I)
-      (clipperGetStatusTopWord evm I))
+      (clipperGetStatusTopWord evm I) (clipperSalesPackedTicWord_lt _))
     (clipperStatusFunctionRevertsRdivMul v
       (clipperGetStatusTicWord evm I) (clipperGetStatusTopWord evm I) price
       hlePrice hcode hcall hdec hleDone htail hover)
@@ -712,7 +712,7 @@ theorem clipperGetStatusStatusCallRevertsRdivDivZero (v : ClipperImmutables)
     (clipperEvalGetStatusStatusArgs v evm I)
     (clipperLookupStatusFunction v)
     (clipperBindParamsStatus (clipperGetStatusTicWord evm I)
-      (clipperGetStatusTopWord evm I))
+      (clipperGetStatusTopWord evm I) (clipperSalesPackedTicWord_lt _))
     (clipperStatusFunctionRevertsRdivDivZero v
       (clipperGetStatusTicWord evm I) (clipperGetStatusTopWord evm I) price
       hlePrice hcode hcall hdec hleDone htail hmul htop)
@@ -740,7 +740,8 @@ private theorem clipperGetStatusBodyRevertsAtStatusCall (v : ClipperImmutables)
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperGetStatusUsrWord evm I).toNat))
         (by simpa [startFrame, clipperGetStatusUsrWord] using
-          clipperEvalGetStatusSalesUsr v evm I))
+          clipperEvalGetStatusSalesUsr v evm I)
+          (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evm
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -750,7 +751,8 @@ private theorem clipperGetStatusBodyRevertsAtStatusCall (v : ClipperImmutables)
         (cfg := config v) (solm := usrFrame) (evm := evm) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperGetStatusTicWord evm I).toNat))
-        (by simpa [usrFrame] using clipperEvalGetStatusSalesTicAfterUsr v evm I))
+        (by simpa [usrFrame] using clipperEvalGetStatusSalesTicAfterUsr v evm I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   simpa [getStatusTransition, nonpayable, startFrame, ticFrame] using
     (ExecFuncBody.execBlockRevert <|
       ExecBlock.consNormal (solm' := startFrame) (evm' := evm)
@@ -797,7 +799,8 @@ theorem clipperGetStatusBodyRevertsPriceCallFailure (v : ClipperImmutables)
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperGetStatusUsrWord evm I).toNat))
         (by simpa [startFrame, clipperGetStatusUsrWord] using
-          clipperEvalGetStatusSalesUsr v evm I))
+          clipperEvalGetStatusSalesUsr v evm I)
+          (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evm
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -807,7 +810,8 @@ theorem clipperGetStatusBodyRevertsPriceCallFailure (v : ClipperImmutables)
         (cfg := config v) (solm := usrFrame) (evm := evm) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperGetStatusTicWord evm I).toNat))
-        (by simpa [usrFrame] using clipperEvalGetStatusSalesTicAfterUsr v evm I))
+        (by simpa [usrFrame] using clipperEvalGetStatusSalesTicAfterUsr v evm I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have hstatus :
       ExecStmt (config v) ticFrame evm
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")

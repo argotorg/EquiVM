@@ -64,7 +64,8 @@ theorem clipperGetStatusBodyReturnsRdivBranch (v : ClipperImmutables)
         (ty := some addr) (expr := .storage (salesF (.var "id") "usr"))
         (value := .address (AccountAddress.ofNat (clipperGetStatusUsrWord evm I).toNat))
         (by simpa [startFrame, clipperGetStatusUsrWord] using
-          clipperEvalGetStatusSalesUsr v evm I))
+          clipperEvalGetStatusSalesUsr v evm I)
+          (valueMatchesOptionalABIType_address _))
   have hletTic :
       ExecStmt (config v) usrFrame evm
         (.letDecl "tic" (some uint96) (.storage (salesF (.var "id") "tic")))
@@ -74,7 +75,8 @@ theorem clipperGetStatusBodyReturnsRdivBranch (v : ClipperImmutables)
         (cfg := config v) (solm := usrFrame) (evm := evm) (name := "tic")
         (ty := some uint96) (expr := .storage (salesF (.var "id") "tic"))
         (value := .int (Int.ofNat (clipperGetStatusTicWord evm I).toNat))
-        (by simpa [usrFrame] using clipperEvalGetStatusSalesTicAfterUsr v evm I))
+        (by simpa [usrFrame] using clipperEvalGetStatusSalesTicAfterUsr v evm I)
+        (valueMatchesOptionalABIType_uint_word_of_lt ⟨96, by decide⟩ _ (clipperSalesPackedTicWord_lt _)))
   have hstatus :
       ExecStmt (config v) ticFrame evm
         (.internalCall "status" [.var "tic", .storage (salesF (.var "id") "top")] "st")
@@ -91,7 +93,8 @@ theorem clipperGetStatusBodyReturnsRdivBranch (v : ClipperImmutables)
         (cfg := config v) (solm := stFrame) (evm := evmPrice) (name := "done")
         (ty := some boolTy) (expr := tuple0 (.var "st")) (value := .bool done)
         (by simpa [stFrame] using
-          clipperEvalGetStatusDoneFromStatusAt v evm evmPrice I done price))
+          clipperEvalGetStatusDoneFromStatusAt v evm evmPrice I done price)
+          (valueMatchesOptionalABIType_bool _))
   have hletPrice :
       ExecStmt (config v) doneFrame evmPrice
         (.letDecl "price" (some uint256) (tuple1 (.var "st")))
@@ -102,7 +105,8 @@ theorem clipperGetStatusBodyReturnsRdivBranch (v : ClipperImmutables)
         (ty := some uint256) (expr := tuple1 (.var "st"))
         (value := .int (Int.ofNat price.toNat))
         (by simpa [doneFrame] using
-          clipperEvalGetStatusPriceFromStatusAt v evm evmPrice I done price))
+          clipperEvalGetStatusPriceFromStatusAt v evm evmPrice I done price)
+          (valueMatchesOptionalABIType_uint256_word _))
   have hletNeeds :
       ExecStmt (config v) priceFrame evmPrice
         (.letDecl "needsRedo" (some boolTy)
@@ -115,7 +119,8 @@ theorem clipperGetStatusBodyReturnsRdivBranch (v : ClipperImmutables)
         (expr := .binary .and (.binary .ne (.var "usr") zeroAddr) (.var "done"))
         (value := .bool (clipperGetStatusNeedsRedo evm I done))
         (by simpa [priceFrame] using
-          clipperEvalGetStatusNeedsRedoAt v evm evmPrice I done price))
+          clipperEvalGetStatusNeedsRedoAt v evm evmPrice I done price)
+          (valueMatchesOptionalABIType_bool _))
   have hret :
       ExecBlock (config v) needsFrame evmPrice
         [ .return [ .var "needsRedo", .var "price",

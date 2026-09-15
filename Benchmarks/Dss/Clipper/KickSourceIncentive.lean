@@ -203,7 +203,7 @@ theorem clipperKickCheckedAddCoin (v : ClipperImmutables)
           (add256 (.var "_tip") (.var "chipCoin")))
         (.ok (Frame.mk (contract v)
           (clipperKickLocalsCoinNew evmLock evmTop I feedPrice top)) evmTop) :=
-    ExecStmt.letDecl
+    ExecStmt.letDecl_uint256_word
       (clipperEvalKickCoinAddOk v evmLock evmTop I feedPrice top hfit)
   have hcoin : (clipperKickSourceCoinWord evmTop I).toNat =
       (clipperRedoTipSolmWord evmTop).toNat +
