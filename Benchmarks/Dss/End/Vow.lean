@@ -19,16 +19,9 @@ theorem endDecode_vow {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   exact decodeCalldata_empty_ok hsz
 
 abbrev endVowConcreteSelector : ByteArray := selectorBytes 0x62 0x6c 0xb3 0xc5
-abbrev endVowHighSplitPc : UInt256 := ⟨283⟩
-abbrev endVowGroupJumpdestPc : UInt256 := ⟨342⟩
 abbrev endVowFirstArmPc : UInt256 := ⟨343⟩
 abbrev endVowEntryPc : UInt256 := ⟨715⟩
 abbrev endVowRoutinePc : UInt256 := ⟨5236⟩
-
-theorem endVowHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endVowHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endVowArmsWellFormed :

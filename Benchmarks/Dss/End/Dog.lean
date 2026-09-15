@@ -19,22 +19,9 @@ theorem endDecode_dog {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   exact decodeCalldata_empty_ok hsz
 
 abbrev endDogConcreteSelector : ByteArray := selectorBytes 0xc3 0xb3 0xad 0x7f
-abbrev endDogHighSplitPc : UInt256 := ⟨43⟩
-abbrev endDogHighJumpdestPc : UInt256 := ⟨162⟩
-abbrev endDogMidSplitPc : UInt256 := ⟨163⟩
 abbrev endDogFirstArmPc : UInt256 := ⟨174⟩
 abbrev endDogEntryPc : UInt256 := ⟨1017⟩
 abbrev endDogRoutinePc : UInt256 := ⟨7675⟩
-
-theorem endDogHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endDogHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endDogMidSplitWellFormed :
-    selectorSplitWellFormed endBytecode endDogMidSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endDogArmsWellFormed :

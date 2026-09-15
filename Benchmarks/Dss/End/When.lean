@@ -20,22 +20,9 @@ theorem endDecode_when {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
 
 abbrev endWhenConcreteSelector : ByteArray := selectorBytes 0xe2 0xb0 0xca 0xef
 
-abbrev endWhenHighSplitPc : UInt256 := ⟨43⟩
-abbrev endWhenHigh2SplitPc : UInt256 := ⟨54⟩
-abbrev endWhenGroupJumpdestPc : UInt256 := ⟨113⟩
 abbrev endWhenFirstArmPc : UInt256 := ⟨114⟩
 abbrev endWhenEntryPc : UInt256 := ⟨1200⟩
 abbrev endWhenRoutinePc : UInt256 := ⟨9552⟩
-
-theorem endWhenHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endWhenHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endWhenHigh2SplitWellFormed :
-    selectorSplitWellFormed endBytecode endWhenHigh2SplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endWhenArmsWellFormed :

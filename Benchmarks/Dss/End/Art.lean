@@ -15,9 +15,6 @@ abbrev endArtEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 abbrev endArtSlotFor (I : ExecutionEnv) : UInt256 :=
   ArtSlot (endBytes32ArgKey I)
 
-abbrev endArtHighSplitPc : UInt256 := ⟨43⟩
-abbrev endArtHigh2SplitPc : UInt256 := ⟨54⟩
-abbrev endArtGroupJumpdestPc : UInt256 := ⟨113⟩
 abbrev endArtFirstArmPc : UInt256 := ⟨114⟩
 abbrev endArtEntryPc : UInt256 := ⟨1142⟩
 abbrev endArtDecodedPc : UInt256 := ⟨1164⟩
@@ -42,16 +39,6 @@ theorem endDecode_Art_none_short {I : ExecutionEnv}
       (transitionSignature ArtTransition).paramTypes I.calldata = none := by
   simpa [config, ArtTransition, bytes32, bytes32Width, abiBytes32, abiBytes32Width] using
     (endDecode_legacyBytes32_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
-
-theorem endArtHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endArtHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endArtHigh2SplitWellFormed :
-    selectorSplitWellFormed endBytecode endArtHigh2SplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endArtArmsWellFormed :

@@ -15,8 +15,6 @@ abbrev endFixEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 abbrev endFixSlotFor (I : ExecutionEnv) : UInt256 :=
   fixSlot (endBytes32ArgKey I)
 
-abbrev endFixHighSplitPc : UInt256 := ⟨283⟩
-abbrev endFixGroupJumpdestPc : UInt256 := ⟨342⟩
 abbrev endFixFirstArmPc : UInt256 := ⟨343⟩
 abbrev endFixEntryPc : UInt256 := ⟨723⟩
 abbrev endFixDecodedPc : UInt256 := ⟨745⟩
@@ -41,11 +39,6 @@ theorem endDecode_fix_none_short {I : ExecutionEnv}
       (transitionSignature fixTransition).paramTypes I.calldata = none := by
   simpa [config, fixTransition, bytes32, bytes32Width, abiBytes32, abiBytes32Width] using
     (endDecode_legacyBytes32_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
-
-theorem endFixHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endFixHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endFixArmsWellFormed :

@@ -20,23 +20,9 @@ theorem endDecode_live {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
 
 abbrev endLiveConcreteSelector : ByteArray := selectorBytes 0x95 0x7a 0xa5 0x8c
 
-abbrev endLiveHighSplitPc : UInt256 := ⟨43⟩
-abbrev endLiveHighJumpdestPc : UInt256 := ⟨162⟩
-abbrev endLiveMidSplitPc : UInt256 := ⟨163⟩
-abbrev endLiveGroupJumpdestPc : UInt256 := ⟨222⟩
 abbrev endLiveFirstArmPc : UInt256 := ⟨223⟩
 abbrev endLiveEntryPc : UInt256 := ⟨933⟩
 abbrev endLiveRoutinePc : UInt256 := ⟨7494⟩
-
-theorem endLiveHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endLiveHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endLiveMidSplitWellFormed :
-    selectorSplitWellFormed endBytecode endLiveMidSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endLiveArmsWellFormed :

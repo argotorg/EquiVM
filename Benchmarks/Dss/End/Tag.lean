@@ -15,8 +15,6 @@ abbrev endTagEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 abbrev endTagSlotFor (I : ExecutionEnv) : UInt256 :=
   tagSlot (endBytes32ArgKey I)
 
-abbrev endTagHighSplitPc : UInt256 := ⟨43⟩
-abbrev endTagHigh2SplitPc : UInt256 := ⟨54⟩
 abbrev endTagFirstArmPc : UInt256 := ⟨65⟩
 abbrev endTagEntryPc : UInt256 := ⟨1245⟩
 abbrev endTagDecodedPc : UInt256 := ⟨1267⟩
@@ -41,16 +39,6 @@ theorem endDecode_tag_none_short {I : ExecutionEnv}
       (transitionSignature tagTransition).paramTypes I.calldata = none := by
   simpa [config, tagTransition, bytes32, bytes32Width, abiBytes32, abiBytes32Width] using
     (endDecode_legacyBytes32_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
-
-theorem endTagHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endTagHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endTagHigh2SplitWellFormed :
-    selectorSplitWellFormed endBytecode endTagHigh2SplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endTagArmsWellFormed :

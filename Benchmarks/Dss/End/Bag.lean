@@ -19,10 +19,6 @@ abbrev endBagEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 abbrev endBagSlotFor (I : ExecutionEnv) : UInt256 :=
   bagSlot (.address (endBagArg I))
 
-abbrev endBagHighSplitPc : UInt256 := ⟨43⟩
-abbrev endBagHighJumpdestPc : UInt256 := ⟨162⟩
-abbrev endBagMidSplitPc : UInt256 := ⟨163⟩
-abbrev endBagGroupJumpdestPc : UInt256 := ⟨222⟩
 abbrev endBagFirstArmPc : UInt256 := ⟨223⟩
 abbrev endBagEntryPc : UInt256 := ⟨895⟩
 abbrev endBagDecodedPc : UInt256 := ⟨917⟩
@@ -46,16 +42,6 @@ theorem endDecode_bag_none_short {I : ExecutionEnv}
       (transitionSignature bagTransition).paramTypes I.calldata = none := by
   simpa [config, bagTransition] using
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
-
-theorem endBagHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endBagHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endBagMidSplitWellFormed :
-    selectorSplitWellFormed endBytecode endBagMidSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endBagArmsWellFormed :

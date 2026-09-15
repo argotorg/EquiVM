@@ -19,9 +19,6 @@ abbrev endWardsEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 abbrev endWardsSlotFor (I : ExecutionEnv) : UInt256 :=
   wardsSlot (.address (endWardsArg I))
 
-abbrev endWardsHighSplitPc : UInt256 := ⟨43⟩
-abbrev endWardsHighJumpdestPc : UInt256 := ⟨162⟩
-abbrev endWardsMidSplitPc : UInt256 := ⟨163⟩
 abbrev endWardsFirstArmPc : UInt256 := ⟨174⟩
 abbrev endWardsEntryPc : UInt256 := ⟨979⟩
 abbrev endWardsDecodedPc : UInt256 := ⟨1001⟩
@@ -45,16 +42,6 @@ theorem endDecode_wards_none_short {I : ExecutionEnv}
       (transitionSignature wardsTransition).paramTypes I.calldata = none := by
   simpa [config, wardsTransition] using
     (decodeCalldata_legacyAddress_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
-
-theorem endWardsHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endWardsHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endWardsMidSplitWellFormed :
-    selectorSplitWellFormed endBytecode endWardsMidSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endWardsArmsWellFormed :

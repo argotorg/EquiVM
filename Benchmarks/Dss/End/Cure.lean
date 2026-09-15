@@ -19,15 +19,9 @@ theorem endDecode_cure {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   exact decodeCalldata_empty_ok hsz
 
 abbrev endCureConcreteSelector : ByteArray := selectorBytes 0x84 0x07 0x82 0xed
-abbrev endCureHighSplitPc : UInt256 := ⟨283⟩
 abbrev endCureFirstArmPc : UInt256 := ⟨294⟩
 abbrev endCureEntryPc : UInt256 := ⟨843⟩
 abbrev endCureRoutinePc : UInt256 := ⟨6690⟩
-
-theorem endCureHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endCureHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endCureArmsWellFormed :

@@ -87,25 +87,11 @@ theorem endDenyBodyReverts (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ### Dispatch reachability -/
 
-abbrev endDenyHighSplitPc : UInt256 := ⟨43⟩
-abbrev endDenyHighJumpdestPc : UInt256 := ⟨162⟩
-abbrev endDenyMidSplitPc : UInt256 := ⟨163⟩
-abbrev endDenyGroupJumpdestPc : UInt256 := ⟨222⟩
 abbrev endDenyFirstArmPc : UInt256 := ⟨223⟩
 abbrev endDenyEntryPc : UInt256 := ⟨941⟩
 abbrev endDenyDecodedPc : UInt256 := ⟨963⟩
 abbrev endDenyAuthPc : UInt256 := ⟨7500⟩
 abbrev endDenyStorePc : UInt256 := ⟨7589⟩
-
-theorem endDenyHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endDenyHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endDenyMidSplitWellFormed :
-    selectorSplitWellFormed endBytecode endDenyMidSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endDenyArmsWellFormed :

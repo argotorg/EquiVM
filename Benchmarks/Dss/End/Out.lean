@@ -30,9 +30,6 @@ theorem endOutLocals_index_arg0 (I : ExecutionEnv) :
   rw [Std.HashMap.getElem_insert]
   simp
 
-abbrev endOutHighSplitPc : UInt256 := ⟨43⟩
-abbrev endOutHighJumpdestPc : UInt256 := ⟨162⟩
-abbrev endOutMidSplitPc : UInt256 := ⟨163⟩
 abbrev endOutFirstArmPc : UInt256 := ⟨174⟩
 abbrev endOutEntryPc : UInt256 := ⟨1054⟩
 abbrev endOutDecodedPc : UInt256 := ⟨1076⟩
@@ -64,16 +61,6 @@ theorem endDecode_out_none_short {I : ExecutionEnv}
     abiAddress] using
     (endDecode_legacyBytes32_address_none_short (cd := I.calldata) (x := "arg0")
       (y := "arg1") hsz4 hshort)
-
-theorem endOutHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endOutHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endOutMidSplitWellFormed :
-    selectorSplitWellFormed endBytecode endOutMidSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endOutArmsWellFormed :

@@ -402,9 +402,6 @@ theorem endFileAddressAssignAddress (evm : EVM.State) (I : ExecutionEnv)
 
 /-! ### Dispatch reachability -/
 
-abbrev endFileAddressHighSplitPc : UInt256 := ⟨43⟩
-abbrev endFileAddressHigh2SplitPc : UInt256 := ⟨54⟩
-abbrev endFileAddressGroupJumpdestPc : UInt256 := ⟨113⟩
 abbrev endFileAddressFirstArmPc : UInt256 := ⟨114⟩
 abbrev endFileAddressEntryPc : UInt256 := ⟨1098⟩
 abbrev endFileAddressDecodedPc : UInt256 := ⟨1120⟩
@@ -412,16 +409,6 @@ abbrev endFileAddressAuthPc : UInt256 := ⟨8268⟩
 abbrev endFileAddressLivePc : UInt256 := ⟨8357⟩
 abbrev endFileAddressSwitchPc : UInt256 := ⟨8427⟩
 abbrev endFileAddressEventPc : UInt256 := ⟨8747⟩
-
-theorem endFileAddressHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endFileAddressHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endFileAddressHigh2SplitWellFormed :
-    selectorSplitWellFormed endBytecode endFileAddressHigh2SplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endFileAddressArmsWellFormed :

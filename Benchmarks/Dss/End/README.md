@@ -57,3 +57,20 @@ Scaffold notes:
 - Events are intentionally omitted from the Solm specs, matching the existing event-bearing DSS
   benchmarks whose equivalence relation ignores logs/substate.
 - Proof status is tracked by `endContractCorrect` in `Correct.lean`.
+
+## Dispatcher proof boundaries
+
+The `endReachGroup…FirstArm` theorems in `Dispatch.lean` provide shared
+selector-tree prefixes for per-entry reachability proofs. Keep these
+opaque theorem boundaries: spelling out the selector-tree traversal inside
+each consumer produces deeply nested proof terms that can overflow Lean's
+default thread stack. The shared theorems hide the intermediate step and gas
+counts behind existential witnesses without changing the reachability claims.
+
+CI checks the five previously overflowing consumers (`Rely`, `Out`, `Bag`,
+`Fix`, and `Art`) without increasing the stack size. To check the complete End
+constructor and runtime equivalence proofs locally, run:
+
+```bash
+lake build Benchmarks.Dss.End.Correct
+```

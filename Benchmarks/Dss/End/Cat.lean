@@ -19,21 +19,9 @@ theorem endDecode_cat {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   exact decodeCalldata_empty_ok hsz
 
 abbrev endCatConcreteSelector : ByteArray := selectorBytes 0xe4 0x88 0x18 0x13
-abbrev endCatHighSplitPc : UInt256 := ⟨43⟩
-abbrev endCatHigh2SplitPc : UInt256 := ⟨54⟩
 abbrev endCatFirstArmPc : UInt256 := ⟨65⟩
 abbrev endCatEntryPc : UInt256 := ⟨1208⟩
 abbrev endCatRoutinePc : UInt256 := ⟨9558⟩
-
-theorem endCatHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endCatHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endCatHigh2SplitWellFormed :
-    selectorSplitWellFormed endBytecode endCatHigh2SplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endCatArmsWellFormed :

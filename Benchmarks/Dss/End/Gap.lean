@@ -15,8 +15,6 @@ abbrev endGapEvaledRef (I : ExecutionEnv) : EvaledStorageRef :=
 abbrev endGapSlotFor (I : ExecutionEnv) : UInt256 :=
   gapSlot (endBytes32ArgKey I)
 
-abbrev endGapHighSplitPc : UInt256 := ⟨43⟩
-abbrev endGapHigh2SplitPc : UInt256 := ⟨54⟩
 abbrev endGapFirstArmPc : UInt256 := ⟨65⟩
 abbrev endGapEntryPc : UInt256 := ⟨1216⟩
 abbrev endGapDecodedPc : UInt256 := ⟨1238⟩
@@ -41,16 +39,6 @@ theorem endDecode_gap_none_short {I : ExecutionEnv}
       (transitionSignature gapTransition).paramTypes I.calldata = none := by
   simpa [config, gapTransition, bytes32, bytes32Width, abiBytes32, abiBytes32Width] using
     (endDecode_legacyBytes32_none_short (cd := I.calldata) (x := "arg0") hsz4 hshort)
-
-theorem endGapHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endGapHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
-
-theorem endGapHigh2SplitWellFormed :
-    selectorSplitWellFormed endBytecode endGapHigh2SplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endGapArmsWellFormed :

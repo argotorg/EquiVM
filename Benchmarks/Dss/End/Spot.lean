@@ -19,15 +19,9 @@ theorem endDecode_spot {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
   exact decodeCalldata_empty_ok hsz
 
 abbrev endSpotConcreteSelector : ByteArray := selectorBytes 0x6f 0x26 0x5b 0x93
-abbrev endSpotHighSplitPc : UInt256 := ⟨283⟩
 abbrev endSpotFirstArmPc : UInt256 := ⟨294⟩
 abbrev endSpotEntryPc : UInt256 := ⟨835⟩
 abbrev endSpotRoutinePc : UInt256 := ⟨6675⟩
-
-theorem endSpotHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endSpotHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endSpotArmsWellFormed :

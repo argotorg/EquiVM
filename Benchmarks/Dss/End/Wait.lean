@@ -20,16 +20,9 @@ theorem endDecode_wait {I : ExecutionEnv} (hsz : 4 ≤ I.calldata.size) :
 
 abbrev endWaitConcreteSelector : ByteArray := selectorBytes 0x64 0xbd 0x70 0x13
 
-abbrev endWaitHighSplitPc : UInt256 := ⟨283⟩
-abbrev endWaitGroupJumpdestPc : UInt256 := ⟨342⟩
 abbrev endWaitFirstArmPc : UInt256 := ⟨343⟩
 abbrev endWaitEntryPc : UInt256 := ⟨752⟩
 abbrev endWaitRoutinePc : UInt256 := ⟨5269⟩
-
-theorem endWaitHighSplitWellFormed :
-    selectorSplitWellFormed endBytecode endWaitHighSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endWaitArmsWellFormed :

@@ -426,19 +426,12 @@ theorem RD.endAuthCheckRevert {code : ByteArray} {g : Sat256} {s0 : State}
 
 /-! ### Dispatch reachability -/
 
-abbrev endRelyMidSplitPc : UInt256 := ⟨283⟩
-abbrev endRelyGroupJumpdestPc : UInt256 := ⟨342⟩
 abbrev endRelyFirstArmPc : UInt256 := ⟨343⟩
 abbrev endRelyReturnPc : UInt256 := ⟨562⟩
 abbrev endRelyEntryPc : UInt256 := ⟨760⟩
 abbrev endRelyDecodedPc : UInt256 := ⟨782⟩
 abbrev endRelyAuthPc : UInt256 := ⟨5275⟩
 abbrev endRelyStorePc : UInt256 := ⟨5364⟩
-
-theorem endRelyMidSplitWellFormed :
-    selectorSplitWellFormed endBytecode endRelyMidSplitPc := by
-  dsimp [selectorSplitWellFormed]
-  repeat' first | apply And.intro | native_decide
 
 set_option maxHeartbeats 1000000 in
 theorem endRelyArmsWellFormed :
