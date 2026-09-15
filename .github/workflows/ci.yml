@@ -27,8 +27,8 @@ jobs:
           use-github-cache: true
 
       # Standalone regression modules are not imported by the Solm library root.
-      - name: Check Solminus cast and negation semantics
-        run: lake build Solm.CastTests
+      - name: Check Solminus integer semantics
+        run: lake build Solm.CastTests Solm.IntegerTests
 
       # Mirrors the imports of Examples.lean. Remove lines to prune.
       - name: Build examples
