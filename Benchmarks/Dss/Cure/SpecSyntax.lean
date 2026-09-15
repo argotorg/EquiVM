@@ -121,7 +121,7 @@ def contractSyntax : ContractDecl := solidity% contract Cure {
     say = sayNew;
     if (loaded[src] == 0) {
       loaded[src] = 1;
-      lCount = (lCount + 1) % #wordModulus;
+      lCount = unchecked(lCount + 1) % #wordModulus;
     }
   }
 

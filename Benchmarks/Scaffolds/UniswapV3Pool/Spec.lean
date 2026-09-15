@@ -847,16 +847,18 @@ def observeSingleFunction : FunctionDecl :=
                     (subE (tuple5 (.var "surrounding")) (tuple1 (.var "surrounding")))
                     (.var "observationTimeDelta"))
                   (.var "targetDelta"))),
-            modAt uint32Int
-              (addAt uint32Int (tuple2 (.var "surrounding"))
-                (divAt uint32Int
-                  (mulAt uint32Int
-                    (subAt uint32Int (tuple6 (.var "surrounding"))
-                      (tuple2 (.var "surrounding")) .wrapping)
+            addAt uint160Int (tuple2 (.var "surrounding"))
+              (.cast
+                (divAt uint256Int
+                  (mulAt uint256Int
+                    (.cast
+                      (subAt uint160Int (tuple6 (.var "surrounding"))
+                        (tuple2 (.var "surrounding")) .wrapping)
+                      uint256St)
                     (.var "targetDelta") .wrapping)
                   (.var "observationTimeDelta") .wrapping)
-                .wrapping)
-              uint160Modulus ] ] }
+                uint160St)
+              .wrapping ] ] }
 
 def observeBodyFunction : FunctionDecl :=
   { name := "observeBody"

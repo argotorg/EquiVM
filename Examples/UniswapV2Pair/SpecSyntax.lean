@@ -89,14 +89,14 @@ def contractSyntax : ContractDecl := solidity% contract UniswapV2Pair {
   function _update(uint256 balance0, uint256 balance1, uint112 _reserve0, uint112 _reserve1) internal {
     require(balance0 <= type(uint112).max && balance1 <= type(uint112).max);
     uint32 blockTimestamp = (block.timestamp % #twoPow32) as uint32;
-    uint32 timeElapsed = ((blockTimestamp - blockTimestampLast + #twoPow32) % #twoPow32) as uint32;
+    uint32 timeElapsed = (unchecked(blockTimestamp - blockTimestampLast + #twoPow32) % #twoPow32) as uint32;
     if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
       price0CumulativeLast =
-        (price0CumulativeLast +
+        unchecked(price0CumulativeLast +
           ${Expr.binary (.mul uint256Int .wrapping)
             (uq112Price (.var "_reserve1") (.var "_reserve0")) (.var "timeElapsed")}) % #twoPow256;
       price1CumulativeLast =
-        (price1CumulativeLast +
+        unchecked(price1CumulativeLast +
           ${Expr.binary (.mul uint256Int .wrapping)
             (uq112Price (.var "_reserve0") (.var "_reserve1")) (.var "timeElapsed")}) % #twoPow256;
     }

@@ -10,7 +10,7 @@ AST spec in `Benchmarks/ERC721/Spec.lean`.
 Notes mirroring the AST spec:
 * The spec constructor is `{ params := [], body := [] }` — no callvalue guard — so it is written
   `payable` (which suppresses the auto guard) with an empty body.
-* The `unchecked` balance decrement/increment in `transferFrom` is the explicit `% 2^256` wrap.
+* The `unchecked` balance decrement/increment in `transferFrom` uses explicit `unchecked(…) % 2^256` wrapping.
 * `from`/`to` are Lean keywords, written `«from»`/`«to»`.
 * Transition order matches `erc721Contract.transitions` (selector order).
 -/
@@ -61,8 +61,8 @@ def contractSyntax : ContractDecl := solidity% contract ERC721 {
     require(«to» != address(0));
     require((msg.sender == «from» || isApprovedForAll[«from»][msg.sender])
       || msg.sender == getApproved[id]);
-    _balanceOf[«from»] = (_balanceOf[«from»] - 1) % #(Int.ofNat EVM.wordModulus);
-    _balanceOf[«to»] = (_balanceOf[«to»] + 1) % #(Int.ofNat EVM.wordModulus);
+    _balanceOf[«from»] = unchecked(_balanceOf[«from»] - 1) % #(Int.ofNat EVM.wordModulus);
+    _balanceOf[«to»] = unchecked(_balanceOf[«to»] + 1) % #(Int.ofNat EVM.wordModulus);
     _ownerOf[id] = «to»;
     delete getApproved[id];
   }

@@ -44,6 +44,12 @@ def contractGen : ContractDecl := solidity% contract WETH9 {
 * **Payability is implicit, as in Solidity.**  Transitions, constructors, and fallbacks that are
   not marked `payable` get the leading `require(msg.value == 0)` guard solc compiles in;
   `receive` and internal functions never do.
+* **Overflow mode is lexical and explicit.** Binary integer arithmetic is checked by default;
+  `unchecked { ... }` switches a statement block to wrapping arithmetic. The specification-only
+  expression form `unchecked(e)` does the same for a subtree. Neither form changes division-by-zero
+  behavior, and `%` is always remainder, never an overflow-mode annotation. The explicit `as T`
+  range assertion checks its arithmetic subtree independently of the surrounding mode. Embedded
+  AST terms retain their own annotations; typed unary negation retains its AST's wrapping semantics.
 * **Escape hatches** for the places specs are parameterized by Lean terms:
   `${e}` embeds a Lean term as an `Expr` (statement position: a `List Stmt` splice, item position:
   a `TransitionDecl`), `#n` embeds a Lean `Int` term as an `Expr.intLit`.
@@ -77,6 +83,8 @@ private structure Env where
   /-- Params, lets, and call binders in scope. `none` means a call result whose
       type is not available to the surface elaborator. -/
   locals : List (String × Option STy) := []
+  /-- Lexical overflow policy for binary integer arithmetic. -/
+  arithMode : IntArithMode := .checked
 
 private def Env.isLocal (env : Env) (s : String) : Bool := env.locals.any (·.1 == s)
 private def Env.localTy? (env : Env) (s : String) : Option STy :=
@@ -236,6 +244,7 @@ syntax "continue" ";" : solStmt
 syntax "delete " solExpr:max ";" : solStmt
 syntax "try " solExpr:max ident "(" ident ")" "{" solStmt* "}"
     " catch " "(" ident ")" "{" solStmt* "}" : solStmt                -- try …(…) returns (r) {…} catch (e) {…}
+syntax ident "{" solStmt* "}" : solStmt                            -- unchecked block
 syntax "${" term "}" : solStmt                                        -- Lean `List Stmt` splice
 
 syntax solExpr:max " = " solExpr : solForPost
@@ -319,14 +328,6 @@ private def STy.isFixedBytes : STy -> Bool
   | .named name => (widthOf? name "bytes").isSome
   | _ => false
 
-/-- The surface specs use `% 2^N` (and named equivalents) to spell an explicit EVM-width wrap.
-    Ordinary Solidity modulo must not make arithmetic in its left operand wrapping. -/
-private def isExplicitWidthWrap (rhs : TSyntax `solExpr) : Bool :=
-  let rendered := (rhs.raw.reprint.getD "").replace " " ""
-  rendered.contains "2^" || rendered.contains "twoPow" ||
-    (rendered.contains "uint" && rendered.contains "Modulus") ||
-    rendered.contains "wordModulus"
-
 private partial def walkSurfaceType? (env : Env) : STy -> List PStep -> Option STy
   | ty, [] => some ty
   | .array _ _, [.field "length"] => some (.named "uint256")
@@ -389,7 +390,9 @@ private partial def exprSurfaceType? (env : Env) (stx : TSyntax `solExpr) : Macr
   match stx with
   | `(solExpr| ($expr:solExpr)) => exprSurfaceType? env expr
   | `(solExpr| $_:solExpr as $type:ident) => return some (.named type.getId.toString)
-  | `(solExpr| $type:ident ($_:solExpr,*)) =>
+  | `(solExpr| $type:ident ($args:solExpr,*)) =>
+      if type.getId.toString == "unchecked" && args.getElems.size == 1 then
+        return ← exprSurfaceType? env args.getElems[0]!
       if (← elemTypeTerm? type.getId.toString).isSome then return some (.named type.getId.toString)
       else return none
   | `(solExpr| - $expr) | `(solExpr| ~ $expr) => exprSurfaceType? env expr
@@ -666,7 +669,7 @@ private partial def elabExpr (env : Env) (stx : TSyntax `solExpr) : MacroM Term 
   | `(solExpr| $e as $t:ident) => do
       let ty := STy.named t.getId.toString
       `(Solm.Expr.inRange $(← intTypeTerm t.raw t.getId.toString)
-          $(← elabExprAtIntType env e ty .checked true))
+          $(← elabExprAtIntType { env with arithMode := .checked } e ty true))
   | `(solExpr| $c ? $a : $b) => do
       `(Solm.Expr.ite $(← elabExpr env c) $(← elabExpr env a) $(← elabExpr env b))
   | _ => Macro.throwErrorAt stx "solm: unrecognized expression"
@@ -683,26 +686,30 @@ private partial def isThisAddr (stx : TSyntax `solExpr) : Bool :=
   | _ => false
 
 private partial def elabExprAtIntType (env : Env) (stx : TSyntax `solExpr) (ty : STy)
-    (mode : IntArithMode := .checked) (forceType : Bool := false) : MacroM Term := do
+    (forceType : Bool := false) : MacroM Term := do
   match stx with
-  | `(solExpr| ($expr:solExpr)) => elabExprAtIntType env expr ty mode forceType
-  | `(solExpr| $a ** $b) => mkBin env `exp a b (some ty) mode forceType
-  | `(solExpr| $a * $b) => mkBin env `mul a b (some ty) mode forceType
-  | `(solExpr| $a / $b) => mkBin env `div a b (some ty) mode forceType
-  | `(solExpr| $a % $b) => mkBin env `mod a b (some ty) mode forceType
-  | `(solExpr| $a + $b) => mkBin env `add a b (some ty) mode forceType
-  | `(solExpr| $a - $b) => mkBin env `sub a b (some ty) mode forceType
-  | `(solExpr| $a << $b) => mkBin env `shl a b (some ty) mode forceType
-  | `(solExpr| $a >> $b) => mkBin env `shr a b (some ty) mode forceType
-  | `(solExpr| $a & $b) => mkBin env `bitAnd a b (some ty) mode forceType
-  | `(solExpr| $a ^ $b) => mkBin env `bitXor a b (some ty) mode forceType
-  | `(solExpr| $a | $b) => mkBin env `bitOr a b (some ty) mode forceType
+  | `(solExpr| ($expr:solExpr)) => elabExprAtIntType env expr ty forceType
+  | `(solExpr| $f:ident ($args:solExpr,*)) =>
+      if f.getId.toString == "unchecked" && args.getElems.size == 1 then
+        elabExprAtIntType { env with arithMode := .wrapping } args.getElems[0]! ty forceType
+      else elabExpr env stx
+  | `(solExpr| $a ** $b) => mkBin env `exp a b (some ty) forceType
+  | `(solExpr| $a * $b) => mkBin env `mul a b (some ty) forceType
+  | `(solExpr| $a / $b) => mkBin env `div a b (some ty) forceType
+  | `(solExpr| $a % $b) => mkBin env `mod a b (some ty) forceType
+  | `(solExpr| $a + $b) => mkBin env `add a b (some ty) forceType
+  | `(solExpr| $a - $b) => mkBin env `sub a b (some ty) forceType
+  | `(solExpr| $a << $b) => mkBin env `shl a b (some ty) forceType
+  | `(solExpr| $a >> $b) => mkBin env `shr a b (some ty) forceType
+  | `(solExpr| $a & $b) => mkBin env `bitAnd a b (some ty) forceType
+  | `(solExpr| $a ^ $b) => mkBin env `bitXor a b (some ty) forceType
+  | `(solExpr| $a | $b) => mkBin env `bitOr a b (some ty) forceType
   | _ => elabExpr env stx
 
 private partial def mkBin (env : Env) (op : Name) (a b : TSyntax `solExpr)
-    (expected : Option STy := none) (mode : IntArithMode := .checked)
+    (expected : Option STy := none)
     (forceExpected : Bool := false) : MacroM Term := do
-  let modeTerm ← match mode with
+  let modeTerm ← match env.arithMode with
     | .checked => `(Solm.IntArithMode.checked)
     | .wrapping => `(Solm.IntArithMode.wrapping)
   let opTerm ← match op with
@@ -743,23 +750,13 @@ private partial def mkBin (env : Env) (op : Name) (a b : TSyntax `solExpr)
         if ty.isFixedBytes then `(Solm.BinaryOp.fixedShr)
         else `(Solm.BinaryOp.shr $(← inferredIntTypeTerm env a a b (some ty) forceExpected))
     | _ => pure (mkIdent (`Solm.BinaryOp ++ op))
-  let wrapsLhs ←
-    if op == `mod then pure (isExplicitWidthWrap b)
-    else
-      pure false
   let lhs ← match expected with
-    | some ty =>
-        elabExprAtIntType env a ty (if wrapsLhs then .wrapping else mode) forceExpected
-    | none =>
-        if wrapsLhs then
-          let inferred ← mergeSurfaceTypes a (← exprSurfaceType? env a) (← exprSurfaceType? env b)
-          elabExprAtIntType env a (inferred.getD (.named "uint256")) .wrapping false
-        else
-          elabExpr env a
+    | some ty => elabExprAtIntType env a ty forceExpected
+    | none => elabExpr env a
   let rhs ← match expected with
     | some ty =>
         if op == `shl || op == `shr then elabExpr env b
-        else elabExprAtIntType env b ty mode forceExpected
+        else elabExprAtIntType env b ty forceExpected
     | none => elabExpr env b
   `(Solm.Expr.binary $opTerm $lhs $rhs)
 
@@ -771,6 +768,9 @@ private partial def elabCall (env : Env) (stx : Syntax) (f : LIdent)
     unless args.size == 1 do Macro.throwErrorAt stx "solm: expected one argument"
     elabExpr env args[0]!
   match comps with
+  | ["unchecked"] =>
+      unless args.size == 1 do Macro.throwErrorAt stx "solm: unchecked expects one expression"
+      elabExpr { env with arithMode := .wrapping } args[0]!
   | ["keccak256"] => `(Solm.Expr.keccak256 $(← arg1))
   | ["blockhash"] => `(Solm.Expr.blockhash $(← arg1))
   | ["extCodePrefix"] =>
@@ -925,6 +925,12 @@ private partial def elabStmts (env : Env) (stmts : List (TSyntax `solStmt)) :
   | [] => return (← `(([] : List Solm.Stmt)), env)
   | s :: rest =>
     match s with
+    | `(solStmt| $kw:ident { $body:solStmt* }) => do
+        unless kw.getId.toString == "unchecked" do
+          Macro.throwErrorAt kw "solm: expected 'unchecked'"
+        let (bodyT, bodyEnv) ← elabStmts { env with arithMode := .wrapping } body.toList
+        let (restT, env') ← elabStmts { bodyEnv with arithMode := env.arithMode } rest
+        return (← `($bodyT ++ $restT), env')
     | `(solStmt| ${ $t }) => do
         let (restT, env') ← elabStmts env rest
         return (← `(($t : List Solm.Stmt) ++ $restT), env')

@@ -1,5 +1,6 @@
 import Solm.Notation
 import Solm.Semantics
+import Solm.OverflowModeTests
 
 open ABI
 
@@ -14,7 +15,7 @@ def surfaceContract : ContractDecl := solidity% contract IntegerTest {
   }
 
   function wrappedAdd(uint8 x, uint8 y) external returns (uint8) {
-    return (x + y) % #(2 ^ 8);
+    return unchecked(x + y) % #(2 ^ 8);
   }
 
   function ordinaryModulo(uint256 x, uint256 y, uint256 denominator)

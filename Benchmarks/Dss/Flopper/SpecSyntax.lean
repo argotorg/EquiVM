@@ -51,7 +51,7 @@ def contractSyntax : ContractDecl := solidity% contract Flopper {
   }
 
   function add(uint48 x, uint48 y) internal returns (uint48) {
-    uint48 z = (x + y) % #uint48Modulus;
+    uint48 z = unchecked(x + y) % #uint48Modulus;
     require(z >= x);
     return z;
   }
@@ -115,7 +115,7 @@ def contractSyntax : ContractDecl := solidity% contract Flopper {
       bids[id].guy = msg.sender;
     }
     bids[id].lot = lot;
-    uint48 tic_ = (block.timestamp % #uint48Modulus + ttl) % #uint48Modulus;
+    uint48 tic_ = unchecked(block.timestamp % #uint48Modulus + ttl) % #uint48Modulus;
     require(tic_ >= block.timestamp % #uint48Modulus);
     bids[id].tic = tic_;
   }
@@ -153,7 +153,7 @@ def contractSyntax : ContractDecl := solidity% contract Flopper {
     bids[id].bid = bid;
     bids[id].lot = lot;
     bids[id].guy = gal;
-    uint48 end_ = (block.timestamp % #uint48Modulus + tau) % #uint48Modulus;
+    uint48 end_ = unchecked(block.timestamp % #uint48Modulus + tau) % #uint48Modulus;
     require(end_ >= block.timestamp % #uint48Modulus);
     bids[id].«end» = end_;
     return id;
@@ -186,7 +186,7 @@ def contractSyntax : ContractDecl := solidity% contract Flopper {
     uint256 lotBase = (pad * bids[id].lot) as uint256;
     require(bids[id].lot == 0 || lotBase / bids[id].lot == pad);
     bids[id].lot = lotBase / #ONE;
-    uint48 end_ = (block.timestamp % #uint48Modulus + tau) % #uint48Modulus;
+    uint48 end_ = unchecked(block.timestamp % #uint48Modulus + tau) % #uint48Modulus;
     require(end_ >= block.timestamp % #uint48Modulus);
     bids[id].«end» = end_;
   }

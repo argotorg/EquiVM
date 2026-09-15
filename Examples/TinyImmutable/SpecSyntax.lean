@@ -6,7 +6,7 @@ import Solm.Notation
 
 The spec is parameterized by the immutable valuation `v : TinyImmutables`, so `contractSyntax` is
 too, and the immutable reads use the `${…}` expression escape.  The `unchecked` product in `quote`
-is the explicit `% 2^256` wrap, as in the AST spec.
+uses explicit `unchecked(…) % 2^256` wrapping, as in the AST spec.
 -/
 
 open Solm Solm.Notation
@@ -30,7 +30,7 @@ def contractSyntax (v : TinyImmutables) : ContractDecl := solidity% contract Tin
 
   function quote(uint256 amount) external returns (uint256) {
     require(msg.sender == ${owner v});
-    return (amount * ${scale v}) % #(Int.ofNat EVM.wordModulus);
+    return unchecked(amount * ${scale v}) % #(Int.ofNat EVM.wordModulus);
   }
 
   function scale() external returns (uint256) {

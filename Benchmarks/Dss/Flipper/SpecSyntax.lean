@@ -48,7 +48,7 @@ def contractSyntax : ContractDecl := solidity% contract Flipper {
   }
 
   function add(uint48 x, uint48 y) internal returns (uint48) {
-    uint48 z = (x + y) % #uint48Modulus;
+    uint48 z = unchecked(x + y) % #uint48Modulus;
     require(z >= x);
     return z;
   }
@@ -99,9 +99,9 @@ def contractSyntax : ContractDecl := solidity% contract Flipper {
       bids[id].guy = msg.sender;
     }
     require(${Expr.extCodeSize (.storage vatRef)} > 0);
-    var _fluxRet = vat.flux(ilk, this, bids[id].usr, (bids[id].lot - lot) % #wordModulus);
+    var _fluxRet = vat.flux(ilk, this, bids[id].usr, unchecked(bids[id].lot - lot) % #wordModulus);
     bids[id].lot = lot;
-    uint48 tic_ = (block.timestamp % #uint48Modulus + ttl) % #uint48Modulus;
+    uint48 tic_ = unchecked(block.timestamp % #uint48Modulus + ttl) % #uint48Modulus;
     require(tic_ >= block.timestamp % #uint48Modulus);
     bids[id].tic = tic_;
   }
@@ -140,12 +140,12 @@ def contractSyntax : ContractDecl := solidity% contract Flipper {
   function kick(address usr, address gal, uint256 tab, uint256 lot, uint256 bid) external returns (uint256) {
     require(wards[msg.sender] == 1);
     require(kicks < #maxUint256);
-    uint256 id = (kicks + 1) % #wordModulus;
+    uint256 id = unchecked(kicks + 1) % #wordModulus;
     kicks = id;
     bids[id].bid = bid;
     bids[id].lot = lot;
     bids[id].guy = msg.sender;
-    uint48 end_ = (block.timestamp % #uint48Modulus + tau) % #uint48Modulus;
+    uint48 end_ = unchecked(block.timestamp % #uint48Modulus + tau) % #uint48Modulus;
     require(end_ >= block.timestamp % #uint48Modulus);
     bids[id].«end» = end_;
     bids[id].usr = usr;
@@ -187,9 +187,9 @@ def contractSyntax : ContractDecl := solidity% contract Flipper {
       bids[id].guy = msg.sender;
     }
     require(${Expr.extCodeSize (.storage vatRef)} > 0);
-    var _payRet = vat.move(msg.sender, bids[id].gal, (bid - bids[id].bid) % #wordModulus);
+    var _payRet = vat.move(msg.sender, bids[id].gal, unchecked(bid - bids[id].bid) % #wordModulus);
     bids[id].bid = bid;
-    uint48 tic_ = (block.timestamp % #uint48Modulus + ttl) % #uint48Modulus;
+    uint48 tic_ = unchecked(block.timestamp % #uint48Modulus + ttl) % #uint48Modulus;
     require(tic_ >= block.timestamp % #uint48Modulus);
     bids[id].tic = tic_;
   }
@@ -197,7 +197,7 @@ def contractSyntax : ContractDecl := solidity% contract Flipper {
   function tick(uint256 id) external {
     require(bids[id].«end» < block.timestamp);
     require(bids[id].tic == 0);
-    uint48 end_ = (block.timestamp % #uint48Modulus + tau) % #uint48Modulus;
+    uint48 end_ = unchecked(block.timestamp % #uint48Modulus + tau) % #uint48Modulus;
     require(end_ >= block.timestamp % #uint48Modulus);
     bids[id].«end» = end_;
   }

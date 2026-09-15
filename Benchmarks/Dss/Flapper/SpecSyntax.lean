@@ -6,7 +6,7 @@ import Solm.Notation
 
 The whole `flap.sol` spec written with `solidity%` and proven definitionally equal to the AST spec
 in `Spec.lean`.  Checked-math helpers are inlined (uint48 adds are the explicit
-`% #uint48Modulus` wraps); the struct field `end` is guillemet-escaped; `extCodeSize` guards on
+`unchecked(…) % #uint48Modulus` wraps); the struct field `end` is guillemet-escaped; `extCodeSize` guards on
 the storage `vat`/`gem` receivers use the `${…}` escape.  Transition order matches
 `contract.transitions` (selector order).
 -/
@@ -48,7 +48,7 @@ def contractSyntax : ContractDecl := solidity% contract Flapper {
   }
 
   function add(uint48 x, uint48 y) internal returns (uint48) {
-    uint48 z = (x + y) % #uint48Modulus;
+    uint48 z = unchecked(x + y) % #uint48Modulus;
     require(z >= x);
     return z;
   }
@@ -141,7 +141,7 @@ def contractSyntax : ContractDecl := solidity% contract Flapper {
     bids[id].bid = bid;
     bids[id].lot = lot;
     bids[id].guy = msg.sender;
-    uint48 end_ = (block.timestamp % #uint48Modulus + tau) % #uint48Modulus;
+    uint48 end_ = unchecked(block.timestamp % #uint48Modulus + tau) % #uint48Modulus;
     require(end_ >= block.timestamp % #uint48Modulus);
     bids[id].«end» = end_;
     require(${Expr.extCodeSize (.storage vatRef)} > 0);
@@ -188,9 +188,9 @@ def contractSyntax : ContractDecl := solidity% contract Flapper {
       bids[id].guy = msg.sender;
     }
     require(${Expr.extCodeSize (.storage gemRef)} > 0);
-    var _payRet = gem.move(msg.sender, address(this), (bid - bids[id].bid) % #wordModulus);
+    var _payRet = gem.move(msg.sender, address(this), unchecked(bid - bids[id].bid) % #wordModulus);
     bids[id].bid = bid;
-    uint48 tic_ = (block.timestamp % #uint48Modulus + ttl) % #uint48Modulus;
+    uint48 tic_ = unchecked(block.timestamp % #uint48Modulus + ttl) % #uint48Modulus;
     require(tic_ >= block.timestamp % #uint48Modulus);
     bids[id].tic = tic_;
   }
@@ -198,7 +198,7 @@ def contractSyntax : ContractDecl := solidity% contract Flapper {
   function tick(uint256 id) external {
     require(bids[id].«end» < block.timestamp);
     require(bids[id].tic == 0);
-    uint48 end_ = (block.timestamp % #uint48Modulus + tau) % #uint48Modulus;
+    uint48 end_ = unchecked(block.timestamp % #uint48Modulus + tau) % #uint48Modulus;
     require(end_ >= block.timestamp % #uint48Modulus);
     bids[id].«end» = end_;
   }

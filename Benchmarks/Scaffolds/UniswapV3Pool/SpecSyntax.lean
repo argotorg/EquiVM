@@ -17,7 +17,7 @@ Escapes used, mirroring the AST spec exactly:
   `${safeTransfer …}`, `${balanceOfInto …}`, `${onlyFactoryOwner v}`, `${checkedWordAddLe …}`;
   their binders are read back via `${Expr.var "…"}` where needed (`flash` `paid0`/`paid1`).
 * `${int56Wrap …}` splices for the signed-wrap shape (with `sdivTowardZeroE` inside for
-  `observeSingle`); unsigned wraps are the surface `… % #(2 ^ N)`.
+  `observeSingle`); unsigned wrapping arithmetic uses `unchecked(…)`, with `% #(2 ^ N)` for narrowing.
 * External callbacks on `msg.sender` use the option form (`{view}` for the constructor's
   `parameters` view call, `{value: 0}` for the mint/swap/flash callbacks — the same
   `.intLit 0` eth as the spec's default).
@@ -272,12 +272,12 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
   function oracleTransform(uint32 lastBlockTimestamp, int56 lastTickCumulative,
       uint160 lastSecondsPerLiquidityCumulativeX128, uint32 blockTimestamp, int24 tick,
       uint128 liquidity) internal returns (uint32, int56, uint160, bool) {
-    uint32 delta = (blockTimestamp - lastBlockTimestamp) % #(2 ^ 32);
+    uint32 delta = unchecked(blockTimestamp - lastBlockTimestamp) % #(2 ^ 32);
     uint128 liquidityDenominator = liquidity > 0 ? liquidity : 1;
     int56 tickCumulative =
       ${int56Wrap (addE (.var "lastTickCumulative") (mulE (.var "tick") (.var "delta")))};
     uint160 secondsPerLiquidityCumulativeX128 =
-      (lastSecondsPerLiquidityCumulativeX128 + (delta << 128) / liquidityDenominator)
+      unchecked(lastSecondsPerLiquidityCumulativeX128 + (delta << 128) / liquidityDenominator)
         % #(2 ^ 160);
     return blockTimestamp, tickCumulative, secondsPerLiquidityCumulativeX128, true;
   }
@@ -360,25 +360,25 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
           observationsRaw[index].secondsPerLiquidityCumulativeX128;
       }
     }
-    uint32 target = (time - secondsAgo) % #(2 ^ 32);
-    var surrounding = getSurroundingObservations(time, target, tick, index, liquidity,
-      cardinality);
+    uint32 target = unchecked(time - secondsAgo) % #(2 ^ 32);
+    (uint32, int56, uint160, bool, uint32, int56, uint160, bool) surrounding =
+      getSurroundingObservations(time, target, tick, index, liquidity, cardinality);
     if (target == surrounding.0) {
       return surrounding.1, surrounding.2;
     }
     if (target == surrounding.4) {
       return surrounding.5, surrounding.6;
     }
-    uint32 observationTimeDelta = (surrounding.4 - surrounding.0) % #(2 ^ 32);
-    uint32 targetDelta = (target - surrounding.0) % #(2 ^ 32);
+    uint32 observationTimeDelta = unchecked(surrounding.4 - surrounding.0) % #(2 ^ 32);
+    uint32 targetDelta = unchecked(target - surrounding.0) % #(2 ^ 32);
     return
       ${int56Wrap (addE (tuple1 (.var "surrounding"))
         (mulE
           (sdivTowardZeroE (subE (tuple5 (.var "surrounding")) (tuple1 (.var "surrounding")))
             (.var "observationTimeDelta"))
           (.var "targetDelta")))},
-      (surrounding.2 + (surrounding.6 - surrounding.2) * targetDelta / observationTimeDelta)
-        % #(2 ^ 160);
+      unchecked(surrounding.2 +
+        uint160(uint256(surrounding.6 - surrounding.2) * targetDelta / observationTimeDelta));
   }
 
   function observeBody(uint32 time, uint32[] secondsAgos, int24 tick, uint16 index,
@@ -434,19 +434,19 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     Tick.Info storage upper = ticks[tickUpper];
     uint256 feeGrowthBelow0X128 = tickCurrent >= tickLower ?
       ${vf "lower" "feeGrowthOutside0X128"} :
-      (feeGrowthGlobal0X128 - ${vf "lower" "feeGrowthOutside0X128"}) % #(2 ^ 256);
+      unchecked(feeGrowthGlobal0X128 - ${vf "lower" "feeGrowthOutside0X128"}) % #(2 ^ 256);
     uint256 feeGrowthBelow1X128 = tickCurrent >= tickLower ?
       ${vf "lower" "feeGrowthOutside1X128"} :
-      (feeGrowthGlobal1X128 - ${vf "lower" "feeGrowthOutside1X128"}) % #(2 ^ 256);
+      unchecked(feeGrowthGlobal1X128 - ${vf "lower" "feeGrowthOutside1X128"}) % #(2 ^ 256);
     uint256 feeGrowthAbove0X128 = tickCurrent < tickUpper ?
       ${vf "upper" "feeGrowthOutside0X128"} :
-      (feeGrowthGlobal0X128 - ${vf "upper" "feeGrowthOutside0X128"}) % #(2 ^ 256);
+      unchecked(feeGrowthGlobal0X128 - ${vf "upper" "feeGrowthOutside0X128"}) % #(2 ^ 256);
     uint256 feeGrowthAbove1X128 = tickCurrent < tickUpper ?
       ${vf "upper" "feeGrowthOutside1X128"} :
-      (feeGrowthGlobal1X128 - ${vf "upper" "feeGrowthOutside1X128"}) % #(2 ^ 256);
-    return ((feeGrowthGlobal0X128 - feeGrowthBelow0X128) % #(2 ^ 256) - feeGrowthAbove0X128)
+      unchecked(feeGrowthGlobal1X128 - ${vf "upper" "feeGrowthOutside1X128"}) % #(2 ^ 256);
+    return unchecked(unchecked(feeGrowthGlobal0X128 - feeGrowthBelow0X128) % #(2 ^ 256) - feeGrowthAbove0X128)
         % #(2 ^ 256),
-      ((feeGrowthGlobal1X128 - feeGrowthBelow1X128) % #(2 ^ 256) - feeGrowthAbove1X128)
+      unchecked(unchecked(feeGrowthGlobal1X128 - feeGrowthBelow1X128) % #(2 ^ 256) - feeGrowthAbove1X128)
         % #(2 ^ 256);
   }
 
@@ -499,10 +499,10 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       var liquidityNext = liquidityAddDelta(${vf "position" "liquidity"}, liquidityDelta);
     }
     uint128 tokensOwed0 =
-      ((feeGrowthInside0X128 - ${vf "position" "feeGrowthInside0LastX128"}) % #(2 ^ 256)
+      unchecked(unchecked(feeGrowthInside0X128 - ${vf "position" "feeGrowthInside0LastX128"}) % #(2 ^ 256)
         * ${vf "position" "liquidity"} / #(2 ^ 128)) % #(2 ^ 128);
     uint128 tokensOwed1 =
-      ((feeGrowthInside1X128 - ${vf "position" "feeGrowthInside1LastX128"}) % #(2 ^ 256)
+      unchecked(unchecked(feeGrowthInside1X128 - ${vf "position" "feeGrowthInside1LastX128"}) % #(2 ^ 256)
         * ${vf "position" "liquidity"} / #(2 ^ 128)) % #(2 ^ 128);
     if (liquidityDelta != 0) {
       position.liquidity = liquidityNext;
@@ -561,7 +561,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       require(#(2 ^ 96) > 0);
       uint256 amount1 = liquidity * (sqrtRatioB - sqrtRatioA) / #(2 ^ 96);
       require(amount1 <= type(uint256).max);
-      if (liquidity * (sqrtRatioB - sqrtRatioA) % #(2 ^ 96) > 0) {
+      if (unchecked(liquidity * (sqrtRatioB - sqrtRatioA)) % #(2 ^ 96) > 0) {
         require(amount1 < type(uint256).max);
         amount1 = amount1 + 1;
       }
@@ -578,7 +578,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       int128 liquidity) internal returns (int256) {
     if (liquidity < 0) {
       var amount0Unsigned = getAmount0DeltaUnsigned(sqrtRatioAX96, sqrtRatioBX96,
-        (0 - liquidity) % #(2 ^ 128), false);
+        unchecked(0 - liquidity) % #(2 ^ 128), false);
       return 0 - amount0Unsigned;
     } else {
       var amount0Unsigned = getAmount0DeltaUnsigned(sqrtRatioAX96, sqrtRatioBX96,
@@ -591,7 +591,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       int128 liquidity) internal returns (int256) {
     if (liquidity < 0) {
       var amount1Unsigned = getAmount1DeltaUnsigned(sqrtRatioAX96, sqrtRatioBX96,
-        (0 - liquidity) % #(2 ^ 128), false);
+        unchecked(0 - liquidity) % #(2 ^ 128), false);
       return 0 - amount1Unsigned;
     } else {
       var amount1Unsigned = getAmount1DeltaUnsigned(sqrtRatioAX96, sqrtRatioBX96,
@@ -805,15 +805,15 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       internal returns (int128) {
     Tick.Info storage info = ticks[tick];
     info.feeGrowthOutside0X128 =
-      (feeGrowthGlobal0X128 - ${vf "info" "feeGrowthOutside0X128"}) % #(2 ^ 256);
+      unchecked(feeGrowthGlobal0X128 - ${vf "info" "feeGrowthOutside0X128"}) % #(2 ^ 256);
     info.feeGrowthOutside1X128 =
-      (feeGrowthGlobal1X128 - ${vf "info" "feeGrowthOutside1X128"}) % #(2 ^ 256);
+      unchecked(feeGrowthGlobal1X128 - ${vf "info" "feeGrowthOutside1X128"}) % #(2 ^ 256);
     info.secondsPerLiquidityOutsideX128 =
-      (secondsPerLiquidityCumulativeX128 - ${vf "info" "secondsPerLiquidityOutsideX128"})
+      unchecked(secondsPerLiquidityCumulativeX128 - ${vf "info" "secondsPerLiquidityOutsideX128"})
         % #(2 ^ 160);
     info.tickCumulativeOutside =
       ${int56Wrap (subE (.var "tickCumulative") (vf "info" "tickCumulativeOutside"))};
-    info.secondsOutside = (time - ${vf "info" "secondsOutside"}) % #(2 ^ 32);
+    info.secondsOutside = unchecked(time - ${vf "info" "secondsOutside"}) % #(2 ^ 32);
     return ${vf "info" "liquidityNet"};
   }
 
@@ -824,9 +824,9 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     }
     uint256 numerator1 = liquidity << 96;
     if (add) {
-      uint256 product = amount * sqrtPX96 % #(2 ^ 256);
+      uint256 product = unchecked(amount * sqrtPX96) % #(2 ^ 256);
       if (product / amount == sqrtPX96) {
-        uint256 denominator = (numerator1 + product) % #(2 ^ 256);
+        uint256 denominator = unchecked(numerator1 + product) % #(2 ^ 256);
         if (denominator >= numerator1) {
           require(denominator > 0);
           uint256 price = numerator1 * sqrtPX96 / denominator;
@@ -839,7 +839,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
         }
       }
       uint256 denominator2Base = numerator1 / sqrtPX96;
-      uint256 denominator2 = (denominator2Base + amount) % #(2 ^ 256);
+      uint256 denominator2 = unchecked(denominator2Base + amount) % #(2 ^ 256);
       require(denominator2 >= denominator2Base);
       require(denominator2 > 0);
       uint256 price = numerator1 / denominator2;
@@ -849,7 +849,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       }
       return price % #(2 ^ 160);
     } else {
-      uint256 product = amount * sqrtPX96 % #(2 ^ 256);
+      uint256 product = unchecked(amount * sqrtPX96) % #(2 ^ 256);
       require(product / amount == sqrtPX96 && numerator1 > product);
       uint256 denominator = numerator1 - product;
       require(denominator > 0);
@@ -873,7 +873,7 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
         uint256 quotient = amount * #(2 ^ 96) / liquidity;
         require(quotient <= type(uint256).max);
       }
-      uint256 next = (sqrtPX96 + quotient) % #(2 ^ 256);
+      uint256 next = unchecked(sqrtPX96 + quotient) % #(2 ^ 256);
       require(next >= sqrtPX96);
       return (next) as uint160;
     } else {
@@ -1024,8 +1024,8 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     int128 liquidityDelta = 0 - ((amount) as int128);
     var modified = modifyPosition(msg.sender, tickLower, tickUpper, liquidityDelta);
     Position.Info storage position = positions[modified.0];
-    uint256 amount0 = (0 - modified.1) % #(2 ^ 256);
-    uint256 amount1 = (0 - modified.2) % #(2 ^ 256);
+    uint256 amount0 = unchecked(0 - modified.1) % #(2 ^ 256);
+    uint256 amount1 = unchecked(0 - modified.2) % #(2 ^ 256);
     if (amount0 > 0 || amount1 > 0) {
       position.tokensOwed0 = ${vf "position" "tokensOwed0"} + amount0 % #(2 ^ 128);
       position.tokensOwed1 = ${vf "position" "tokensOwed1"} + amount1 % #(2 ^ 128);
@@ -1289,9 +1289,9 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     if (slot0.tick < tickLower) {
       return ${int56Wrap (subE (vf "lower" "tickCumulativeOutside")
           (vf "upper" "tickCumulativeOutside"))},
-        (${vf "lower" "secondsPerLiquidityOutsideX128"} -
+        unchecked(${vf "lower" "secondsPerLiquidityOutsideX128"} -
           ${vf "upper" "secondsPerLiquidityOutsideX128"}) % #(2 ^ 160),
-        (${vf "lower" "secondsOutside"} - ${vf "upper" "secondsOutside"}) % #(2 ^ 32);
+        unchecked(${vf "lower" "secondsOutside"} - ${vf "upper" "secondsOutside"}) % #(2 ^ 32);
     }
     if (slot0.tick < tickUpper) {
       uint32 time = block.timestamp % #(2 ^ 32);
@@ -1300,15 +1300,15 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       return ${int56Wrap (subE (subE (tuple0 (.var "currentObservation"))
             (vf "lower" "tickCumulativeOutside"))
           (vf "upper" "tickCumulativeOutside"))},
-        (currentObservation.1 - ${vf "lower" "secondsPerLiquidityOutsideX128"} -
+        unchecked(currentObservation.1 - ${vf "lower" "secondsPerLiquidityOutsideX128"} -
           ${vf "upper" "secondsPerLiquidityOutsideX128"}) % #(2 ^ 160),
-        (time - ${vf "lower" "secondsOutside"} - ${vf "upper" "secondsOutside"}) % #(2 ^ 32);
+        unchecked(time - ${vf "lower" "secondsOutside"} - ${vf "upper" "secondsOutside"}) % #(2 ^ 32);
     } else {
       return ${int56Wrap (subE (vf "upper" "tickCumulativeOutside")
           (vf "lower" "tickCumulativeOutside"))},
-        (${vf "upper" "secondsPerLiquidityOutsideX128"} -
+        unchecked(${vf "upper" "secondsPerLiquidityOutsideX128"} -
           ${vf "lower" "secondsPerLiquidityOutsideX128"}) % #(2 ^ 160),
-        (${vf "upper" "secondsOutside"} - ${vf "lower" "secondsOutside"}) % #(2 ^ 32);
+        unchecked(${vf "upper" "secondsOutside"} - ${vf "lower" "secondsOutside"}) % #(2 ^ 32);
     }
   }
 
@@ -1384,14 +1384,14 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       if (cacheFeeProtocol > 0) {
         uint256 protocolDelta = stepFeeAmount / cacheFeeProtocol;
         stepFeeAmount = stepFeeAmount - protocolDelta;
-        stateProtocolFee = (stateProtocolFee + protocolDelta % #(2 ^ 128)) % #(2 ^ 128);
+        stateProtocolFee = unchecked(stateProtocolFee + protocolDelta % #(2 ^ 128)) % #(2 ^ 128);
       }
       if (stateLiquidity > 0) {
         require(stateLiquidity > 0);
         uint256 feeGrowthGlobalDelta = stepFeeAmount * #(2 ^ 128) / stateLiquidity;
         require(feeGrowthGlobalDelta <= type(uint256).max);
         stateFeeGrowthGlobalX128 =
-          (stateFeeGrowthGlobalX128 + feeGrowthGlobalDelta) % #(2 ^ 256);
+          unchecked(stateFeeGrowthGlobalX128 + feeGrowthGlobalDelta) % #(2 ^ 256);
       }
       if (stateSqrtPriceX96 == stepSqrtPriceNextX96) {
         if (stepInitialized) {

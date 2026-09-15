@@ -6,7 +6,7 @@ import Solm.Notation
 
 The whole `clip.sol` spec written with `solidity%` and proven definitionally equal to the AST
 spec in `Spec.lean`.  Checked DSMath helpers keep their inlined spec shapes (`(…) as uint256`
-plus the overflow `require`), built-in wrapping arithmetic is the explicit `% #wordModulus`
+plus the overflow `require`), built-in wrapping arithmetic uses explicit `unchecked(…) % #wordModulus`
 (resp. `#uint96Modulus`/`#uint64Modulus`/`#uint192Modulus`), `bytes32` file keys are big-endian
 ASCII literals, and immutable `vat`/`ilk` reads plus the external calls that target them are
 spliced from the spec (`${vatExpr v}`, `${checkedExternalCallStmts …}`).  Transition order
@@ -241,11 +241,11 @@ def contractSyntax (v : ClipperImmutables) : ContractDecl := solidity% contract 
     require(tab > 0);
     require(lot > 0);
     require(usr != address(0));
-    uint256 id = (kicks + 1) % #wordModulus;
+    uint256 id = unchecked(kicks + 1) % #wordModulus;
     kicks = id;
     require(id > 0);
     active.push(id);
-    uint256 activePos = (active.length - 1) % #wordModulus;
+    uint256 activePos = unchecked(active.length - 1) % #wordModulus;
     sales[id].pos = activePos;
     sales[id].tab = tab;
     sales[id].lot = lot;
@@ -360,17 +360,17 @@ def contractSyntax (v : ClipperImmutables) : ContractDecl := solidity% contract 
     } else {
       if (owe < tab && slice < lot) {
         uint256 _chost = chost;
-        uint256 remainingTab = (tab - owe) % #wordModulus;
+        uint256 remainingTab = unchecked(tab - owe) % #wordModulus;
         if (remainingTab < _chost) {
           require(tab > _chost);
-          uint256 oweAdjusted = (tab - _chost) % #wordModulus;
+          uint256 oweAdjusted = unchecked(tab - _chost) % #wordModulus;
           owe = oweAdjusted;
           slice = owe / price;
         }
       }
     }
-    uint256 tabNew = (tab - owe) % #wordModulus;
-    uint256 lotNew = (lot - slice) % #wordModulus;
+    uint256 tabNew = unchecked(tab - owe) % #wordModulus;
+    uint256 lotNew = unchecked(lot - slice) % #wordModulus;
     tab = tabNew;
     lot = lotNew;
     ${checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
@@ -383,7 +383,7 @@ def contractSyntax (v : ClipperImmutables) : ContractDecl := solidity% contract 
     ${checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
       [sender, .storage vowRef, .var "owe"] "_moveRet"}
     if (lot == 0) {
-      uint256 digsAmt = (tab + owe) % #wordModulus;
+      uint256 digsAmt = unchecked(tab + owe) % #wordModulus;
       require(dog_.code.length > 0);
       var _digsRet = dog_.digs(${ilkExpr v}, digsAmt);
     } else {
