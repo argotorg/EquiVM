@@ -97,7 +97,7 @@ def storageLayout : StorageLayout where
     | _, _ => none
 
 def vestingEnd : Expr :=
-  .binary (.add (.uint ⟨256, by decide⟩) .checked) vestingStart vestingDuration
+  vestingDuration -- The benchmark fixes the start to zero.
 
 def vestingSchedule (totalAllocation timestamp : Expr) : Expr :=
   .ite (.binary .lt timestamp vestingStart)

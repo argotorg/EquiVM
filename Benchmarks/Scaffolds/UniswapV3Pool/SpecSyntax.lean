@@ -527,7 +527,6 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     uint256 numerator2 = sqrtRatioB - sqrtRatioA;
     require(sqrtRatioA > 0);
     if (roundUp) {
-      require(sqrtRatioB > 0);
       uint256 product = numerator1 * numerator2 / sqrtRatioB;
       require(product <= type(uint256).max);
       if (numerator1 * numerator2 % sqrtRatioB > 0) {
@@ -542,7 +541,6 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       }
       return amount0;
     } else {
-      require(sqrtRatioB > 0);
       uint256 product = numerator1 * numerator2 / sqrtRatioB;
       require(product <= type(uint256).max);
       return product / sqrtRatioA;
@@ -558,7 +556,6 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       sqrtRatioB = sqrtRatioAX96;
     }
     if (roundUp) {
-      require(#(2 ^ 96) > 0);
       uint256 amount1 = liquidity * (sqrtRatioB - sqrtRatioA) / #(2 ^ 96);
       require(amount1 <= type(uint256).max);
       if (unchecked(liquidity * (sqrtRatioB - sqrtRatioA)) % #(2 ^ 96) > 0) {
@@ -567,7 +564,6 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       }
       return amount1;
     } else {
-      require(#(2 ^ 96) > 0);
       uint256 amount1 = liquidity * (sqrtRatioB - sqrtRatioA) / #(2 ^ 96);
       require(amount1 <= type(uint256).max);
       return amount1;
@@ -828,7 +824,6 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       if (product / amount == sqrtPX96) {
         uint256 denominator = unchecked(numerator1 + product) % #(2 ^ 256);
         if (denominator >= numerator1) {
-          require(denominator > 0);
           uint256 price = numerator1 * sqrtPX96 / denominator;
           require(price <= type(uint256).max);
           if (numerator1 * sqrtPX96 % denominator > 0) {
@@ -852,7 +847,6 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       uint256 product = unchecked(amount * sqrtPX96) % #(2 ^ 256);
       require(product / amount == sqrtPX96 && numerator1 > product);
       uint256 denominator = numerator1 - product;
-      require(denominator > 0);
       uint256 price = numerator1 * sqrtPX96 / denominator;
       require(price <= type(uint256).max);
       if (numerator1 * sqrtPX96 % denominator > 0) {
@@ -869,7 +863,6 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       if (amount <= type(uint160).max) {
         uint256 quotient = (amount << 96) / liquidity;
       } else {
-        require(liquidity > 0);
         uint256 quotient = amount * #(2 ^ 96) / liquidity;
         require(quotient <= type(uint256).max);
       }
@@ -885,7 +878,6 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
           quotient = quotient + 1;
         }
       } else {
-        require(liquidity > 0);
         uint256 quotient = amount * #(2 ^ 96) / liquidity;
         require(quotient <= type(uint256).max);
         if (amount * #(2 ^ 96) % liquidity > 0) {
@@ -938,7 +930,6 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     uint256 amountOut = 0;
     uint256 feeAmount = 0;
     if (exactIn) {
-      require(1000000 > 0);
       uint256 amountRemainingLessFee = ${divE
         (mulE (uint256Wrap (.var "amountRemaining")) (subE feeDenominator (.var "feePips")))
         feeDenominator};
@@ -1005,7 +996,6 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     if (exactIn && sqrtRatioNextX96 != sqrtRatioTargetX96) {
       feeAmount = ${uint256Wrap (.var "amountRemaining")} - amountIn;
     } else {
-      require(1000000 - feePips > 0);
       uint256 feeAmountComputed = amountIn * feePips / (1000000 - feePips);
       require(feeAmountComputed <= type(uint256).max);
       if (amountIn * feePips % (1000000 - feePips) > 0) {
@@ -1106,14 +1096,12 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
     require(this == ${addrLit v.original});
     uint128 _liquidity = liquidity;
     require(_liquidity > 0);
-    require(1000000 > 0);
     uint256 fee0 = amount0 * #(v.fee) / 1000000;
     require(fee0 <= type(uint256).max);
     if (amount0 * #(v.fee) % 1000000 > 0) {
       require(fee0 < type(uint256).max);
       fee0 = fee0 + 1;
     }
-    require(1000000 > 0);
     uint256 fee1 = amount1 * #(v.fee) / 1000000;
     require(fee1 <= type(uint256).max);
     if (amount1 * #(v.fee) % 1000000 > 0) {
@@ -1141,19 +1129,17 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
       if (fees0 % #(2 ^ 128) > 0) {
         protocolFees.token0 = protocolFees.token0 + fees0 % #(2 ^ 128);
       }
-      require(_liquidity > 0);
       uint256 feeGrowth0Delta = (paid0 - fees0) * #(2 ^ 128) / _liquidity;
       require(feeGrowth0Delta <= type(uint256).max);
       feeGrowthGlobal0X128 = feeGrowthGlobal0X128 + feeGrowth0Delta;
     }
     if (paid1 > 0) {
-      uint8 feeProtocol1 = 0 << 0;
+      uint8 feeProtocol1 = 0;
       feeProtocol1 = slot0.feeProtocol >> 4;
       uint256 fees1 = feeProtocol1 == 0 ? 0 : paid1 / feeProtocol1;
       if (fees1 % #(2 ^ 128) > 0) {
         protocolFees.token1 = protocolFees.token1 + fees1 % #(2 ^ 128);
       }
-      require(_liquidity > 0);
       uint256 feeGrowth1Delta = (paid1 - fees1) * #(2 ^ 128) / _liquidity;
       require(feeGrowth1Delta <= type(uint256).max);
       feeGrowthGlobal1X128 = feeGrowthGlobal1X128 + feeGrowth1Delta;
@@ -1387,7 +1373,6 @@ def contractSyntax (v : PoolImmutables) : ContractDecl := solidity% contract Uni
         stateProtocolFee = unchecked(stateProtocolFee + protocolDelta % #(2 ^ 128)) % #(2 ^ 128);
       }
       if (stateLiquidity > 0) {
-        require(stateLiquidity > 0);
         uint256 feeGrowthGlobalDelta = stepFeeAmount * #(2 ^ 128) / stateLiquidity;
         require(feeGrowthGlobalDelta <= type(uint256).max);
         stateFeeGrowthGlobalX128 =

@@ -1,6 +1,7 @@
 import Solm.Notation
 import Solm.Semantics
 import Solm.OverflowModeTests
+import Solm.LiteralTests
 
 open ABI
 

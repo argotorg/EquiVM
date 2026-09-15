@@ -1,4 +1,6 @@
 import Solm.Syntax
+import Init.Data.Rat.Basic
+import Mathlib.Data.Int.Bitwise
 
 /-!
 # Solm — a Solidity-faithful surface syntax
@@ -53,6 +55,12 @@ def contractGen : ContractDecl := solidity% contract WETH9 {
 * **Escape hatches** for the places specs are parameterized by Lean terms:
   `${e}` embeds a Lean term as an `Expr` (statement position: a `List Stmt` splice, item position:
   a `TransitionDecl`), `#n` embeds a Lean `Int` term as an `Expr.intLit`.
+* **Literal expressions keep their values.** Arithmetic on surface number literals is folded with
+  exact rational precision before conversion to a typed value. Integer literal values determine
+  implicit conversion and promotion; shifts and exponentiation take their result type from the
+  left/base operand and independently require an unsigned right operand. A literal left/base with
+  a typed right operand uses uint256 or int256. `#term` and `${expr}` are opaque Lean escapes,
+  not Solidity literal expressions: use an explicit type when their arithmetic width matters.
 * Solidity names that are Lean keywords (`from`, `to`, `end`) are written with guillemets:
   `«from»`, `«to»`.
 -/
@@ -69,6 +77,7 @@ private abbrev LIdent := TSyntax `ident
 /-- Macro-time image of a surface type. -/
 private inductive STy where
   | named : String → STy
+  | literal : Rat → STy
   | mapping : STy → STy → STy
   | array : STy → Option Nat → STy
   | tuple : List STy → STy
@@ -119,6 +128,7 @@ private def intTypeTerm (stx : Syntax) (s : String) : MacroM Term := do
 
 /-- `Solm.StorageType` for an `STy`, resolving struct names through the environment. -/
 private partial def storageTypeTerm (env : Env) (stx : Syntax) : STy → MacroM Term
+  | .literal _ => Macro.throwErrorAt stx "solm: a literal is not a storage type"
   | .named "bytes" => `(Solm.StorageType.bytes)
   | .named "string" => `(Solm.StorageType.string)
   | .named s => do
@@ -144,6 +154,7 @@ private partial def storageTypeTerm (env : Env) (stx : Syntax) : STy → MacroM 
 
 /-- `ABI.ABIType` for an `STy` (param and return types).  Structs become ABI tuples. -/
 private partial def abiTypeTerm (env : Env) (stx : Syntax) : STy → MacroM Term
+  | .literal _ => Macro.throwErrorAt stx "solm: a literal is not an ABI type"
   | .named "bytes" => `(ABI.ABIType.bytes)
   | .named "string" => `(ABI.ABIType.string)
   | .named s => do
@@ -328,6 +339,102 @@ private def STy.isFixedBytes : STy -> Bool
   | .named name => (widthOf? name "bytes").isSome
   | _ => false
 
+private def literalInt (stx : Syntax) (value : Rat) : MacroM Int := do
+  unless value.isInt do
+    Macro.throwErrorAt stx s!"solm: non-integral literal '{value}' cannot be used as an integer"
+  return value.num
+
+private def literalExprTerm (stx : Syntax) (value : Rat) : MacroM Term := do
+  let value ← literalInt stx value
+  let term ← if value < 0 then `(-$(natLit value.natAbs)) else `($(natLit value.toNat))
+  `(Solm.Expr.intLit $term)
+
+/-- Literal expressions are exact rationals until they meet a typed value. Lean escapes are opaque:
+    their values may depend on parameters and are not Solidity literal expressions. -/
+private partial def literalValue? (stx : TSyntax `solExpr) : MacroM (Option Rat) := do
+  match stx with
+  | `(solExpr| $n:num) => return some n.getNat
+  | `(solExpr| ($a)) => literalValue? a
+  | `(solExpr| $f:ident ($args:solExpr,*)) =>
+      if f.getId.toString == "unchecked" && args.getElems.size == 1 then
+        literalValue? args.getElems[0]!
+      else pure none
+  | `(solExpr| - $a) => return (← literalValue? a).map (-·)
+  | `(solExpr| ~ $a) =>
+      let some value ← literalValue? a | return none
+      return some (Int.not (← literalInt a value))
+  | _ =>
+      let (op, lhs, rhs) ← match stx with
+        | `(solExpr| $a + $b) => pure (`add, a, b)
+        | `(solExpr| $a - $b) => pure (`sub, a, b)
+        | `(solExpr| $a * $b) => pure (`mul, a, b)
+        | `(solExpr| $a / $b) => pure (`div, a, b)
+        | `(solExpr| $a % $b) => pure (`mod, a, b)
+        | `(solExpr| $a ** $b) => pure (`exp, a, b)
+        | `(solExpr| $a << $b) => pure (`shl, a, b)
+        | `(solExpr| $a >> $b) => pure (`shr, a, b)
+        | `(solExpr| $a & $b) => pure (`bitAnd, a, b)
+        | `(solExpr| $a | $b) => pure (`bitOr, a, b)
+        | `(solExpr| $a ^ $b) => pure (`bitXor, a, b)
+        | _ => return none
+      let some a ← literalValue? lhs | return none
+      let some b ← literalValue? rhs | return none
+      let result ← match op with
+        | `add => pure (a + b)
+        | `sub => pure (a - b)
+        | `mul => pure (a * b)
+        | `div | `mod =>
+            if b == 0 then Macro.throwErrorAt rhs "solm: division by zero in literal expression"
+            let quotient := a / b
+            pure (if op == `div then quotient
+              else a - (quotient.num.tdiv quotient.den : Rat) * b)
+        | `exp =>
+            let exponent ← literalInt rhs b
+            if a == 0 && exponent < 0 then
+              Macro.throwErrorAt stx "solm: division by zero in literal exponentiation"
+            pure (a ^ exponent)
+        | _ =>
+            let a ← literalInt lhs a
+            let b ← literalInt rhs b
+            match op with
+            | `shl | `shr =>
+                if b < 0 then Macro.throwErrorAt rhs "solm: negative literal shift amount"
+                pure (if op == `shl then a <<< b.toNat else a >>> b.toNat : Int)
+            | `bitAnd => pure (Int.land a b : Int)
+            | `bitOr => pure (Int.lor a b : Int)
+            | `bitXor => pure (Int.xor a b : Int)
+            | _ => Macro.throwErrorAt stx "solm: unsupported literal operator"
+      return some result
+
+private def literalFits (value : Int) (name : String) : Bool :=
+  if let some bits := widthOf? name "uint" then 0 ≤ value && value < (2 : Int) ^ bits
+  else if let some bits := widthOf? name "int" then
+    -(2 : Int) ^ (bits - 1) ≤ value && value < (2 : Int) ^ (bits - 1)
+  else false
+
+/-- The smallest Solidity integer type containing a literal, used when implicit conversion to an
+    existing operand type fails (or a conditional turns literals into typed values). -/
+private def literalType (stx : Syntax) (value : Rat) : MacroM STy := do
+  let value ← literalInt stx value
+  let typePrefix := if value < 0 then "int" else "uint"
+  let some bytes := (List.range 32).find? (fun n => literalFits value s!"{typePrefix}{8 * (n + 1)}")
+    | Macro.throwErrorAt stx s!"solm: literal '{value}' does not fit a Solidity integer type"
+  return .named s!"{typePrefix}{8 * (bytes + 1)}"
+
+private def mobileType (stx : Syntax) : STy → MacroM STy
+  | .literal value => literalType stx value
+  | ty => pure ty
+
+/-- A literal base with a typed shift amount or exponent uses a full word, not its mobile type. -/
+private def shiftPowerBaseType (stx : Syntax) : Option STy → MacroM (Option STy)
+  | some (.literal value) => do
+      let value ← literalInt stx value
+      let name := if value < 0 then "int256" else "uint256"
+      unless literalFits value name do
+        Macro.throwErrorAt stx "solm: shift or power base does not fit a Solidity integer type"
+      return some (.named name)
+  | ty => pure ty
+
 private partial def walkSurfaceType? (env : Env) : STy -> List PStep -> Option STy
   | ty, [] => some ty
   | .array _ _, [.field "length"] => some (.named "uint256")
@@ -362,8 +469,15 @@ private def pathSurfaceType? (env : Env) (stx : TSyntax `solExpr) : Option STy :
     let ty ← env.localTy? base <|> env.storageTy? base
     walkSurfaceType? env ty (comps.tail.map PStep.field ++ steps)
 
-private def mergeSurfaceTypes (stx : Syntax) (lhs rhs : Option STy) : MacroM (Option STy) := do
+private partial def mergeSurfaceTypes (stx : Syntax) (lhs rhs : Option STy) : MacroM (Option STy) := do
   match lhs, rhs with
+  | some (.literal a), some (.literal b) =>
+      mergeSurfaceTypes stx (some (← literalType stx a)) (some (← literalType stx b))
+  | some (.literal value), some (.named name)
+  | some (.named name), some (.literal value) =>
+      if literalFits (← literalInt stx value) name then return some (.named name)
+      mergeSurfaceTypes stx (some (← literalType stx value)) (some (.named name))
+  | some (.literal _), none | none, some (.literal _) => return none
   | some lhs, some rhs =>
       if lhs == rhs then return some lhs
       else
@@ -386,6 +500,7 @@ private def mergeSurfaceTypes (stx : Syntax) (lhs rhs : Option STy) : MacroM (Op
   | none, none => return none
 
 private partial def exprSurfaceType? (env : Env) (stx : TSyntax `solExpr) : MacroM (Option STy) := do
+  if let some value ← literalValue? stx then return some (.literal value)
   if let some ty := pathSurfaceType? env stx then return some ty
   match stx with
   | `(solExpr| ($expr:solExpr)) => exprSurfaceType? env expr
@@ -396,16 +511,25 @@ private partial def exprSurfaceType? (env : Env) (stx : TSyntax `solExpr) : Macr
       if (← elemTypeTerm? type.getId.toString).isSome then return some (.named type.getId.toString)
       else return none
   | `(solExpr| - $expr) | `(solExpr| ~ $expr) => exprSurfaceType? env expr
-  | `(solExpr| $lhs ** $rhs) | `(solExpr| $lhs * $rhs) | `(solExpr| $lhs / $rhs)
+  | `(solExpr| $lhs * $rhs) | `(solExpr| $lhs / $rhs)
   | `(solExpr| $lhs % $rhs) | `(solExpr| $lhs + $rhs) | `(solExpr| $lhs - $rhs)
   | `(solExpr| $lhs & $rhs) | `(solExpr| $lhs ^ $rhs) | `(solExpr| $lhs | $rhs) =>
       mergeSurfaceTypes stx (← exprSurfaceType? env lhs) (← exprSurfaceType? env rhs)
-  | `(solExpr| $lhs << $_) | `(solExpr| $lhs >> $_) => exprSurfaceType? env lhs
+  | `(solExpr| $lhs << $_) | `(solExpr| $lhs >> $_) | `(solExpr| $lhs ** $_) =>
+      shiftPowerBaseType lhs (← exprSurfaceType? env lhs)
+  | `(solExpr| $g:ident ($args:solExpr,*) . $field:ident) =>
+      if g.getId.toString == "type" && args.getElems.size == 1 &&
+          (field.getId.toString == "max" || field.getId.toString == "min") then
+        if let `(solExpr| $ty:ident) := args.getElems[0]! then
+          return some (.named ty.getId.toString)
+      return none
   | `(solExpr| $_ < $_) | `(solExpr| $_ <= $_) | `(solExpr| $_ > $_) | `(solExpr| $_ >= $_)
   | `(solExpr| $_ == $_) | `(solExpr| $_ != $_) | `(solExpr| $_ && $_) | `(solExpr| $_ || $_)
   | `(solExpr| ! $_) => return some (.named "bool")
   | `(solExpr| $_ ? $thenExpr : $elseExpr) =>
-      mergeSurfaceTypes stx (← exprSurfaceType? env thenExpr) (← exprSurfaceType? env elseExpr)
+      let lhs ← (← exprSurfaceType? env thenExpr).mapM (mobileType thenExpr)
+      let rhs ← (← exprSurfaceType? env elseExpr).mapM (mobileType elseExpr)
+      mergeSurfaceTypes stx lhs rhs
   | `(solExpr| this) => return some (.named "address")
   | _ => return none
 
@@ -415,8 +539,8 @@ private def inferredIntTypeTerm (env : Env) (stx : Syntax) (lhs rhs : TSyntax `s
     if forceExpected && expected.isSome then pure none
     else mergeSurfaceTypes stx (← exprSurfaceType? env lhs) (← exprSurfaceType? env rhs)
   let inferred := if forceExpected then expected <|> operands else operands <|> expected
-  -- Literal-only expressions and expressions involving `var` locals whose external/internal-call
-  -- result type is unavailable use Solidity's default word-sized integer type.
+  -- Opaque Lean escapes and `var` locals with unavailable call-result types fall back to the
+  -- contextual type, or uint256. Solidity literal expressions are folded before this point.
   let ty := inferred.getD (.named "uint256")
   let some name := ty.intTypeName?
     | Macro.throwErrorAt stx s!"solm: '{repr ty}' is not an integer type"
@@ -531,6 +655,8 @@ private partial def resolveRef (env : Env) (stx : Syntax) (comps : List String)
 
 /-- Translate an expression. -/
 private partial def elabExpr (env : Env) (stx : TSyntax `solExpr) : MacroM Term := do
+  if let some value ← literalValue? stx then
+    return ← literalExprTerm stx value
   -- Path-shaped expressions first: resolution decides var/storage/env-var.
   if let some (head, comps, steps) := flattenPath stx then
     -- Address-inspection builtins on a simple variable come before path resolution.
@@ -687,6 +813,7 @@ private partial def isThisAddr (stx : TSyntax `solExpr) : Bool :=
 
 private partial def elabExprAtIntType (env : Env) (stx : TSyntax `solExpr) (ty : STy)
     (forceType : Bool := false) : MacroM Term := do
+  if let some value ← literalValue? stx then return ← literalExprTerm stx value
   match stx with
   | `(solExpr| ($expr:solExpr)) => elabExprAtIntType env expr ty forceType
   | `(solExpr| $f:ident ($args:solExpr,*)) =>
@@ -709,6 +836,29 @@ private partial def elabExprAtIntType (env : Env) (stx : TSyntax `solExpr) (ty :
 private partial def mkBin (env : Env) (op : Name) (a b : TSyntax `solExpr)
     (expected : Option STy := none)
     (forceExpected : Bool := false) : MacroM Term := do
+  if [`lt, `le, `gt, `ge, `eq, `ne].contains op then
+    if let some lhs ← literalValue? a then
+      if let some rhs ← literalValue? b then
+        let result := match op with
+          | `lt => decide (lhs < rhs)
+          | `le => decide (lhs ≤ rhs)
+          | `gt => decide (lhs > rhs)
+          | `ge => decide (lhs ≥ rhs)
+          | `eq => lhs == rhs
+          | _ => lhs != rhs
+        return ← `(Solm.Expr.boolLit $(quote result))
+  let asymmetric := op == `shl || op == `shr || op == `exp
+  let asymmetricTy ← if asymmetric then do
+      let unsignedRhs ← match ← exprSurfaceType? env b with
+        | some (.literal value) => pure (literalFits (← literalInt b value) "uint256")
+        | some (.named name) => pure ((widthOf? name "uint").isSome)
+        | some _ => pure false
+        | none => pure true -- An opaque Lean escape has no surface type to check.
+      unless unsignedRhs do
+        Macro.throwErrorAt b "solm: shift amount or exponent must be an unsigned integer"
+      let lhs ← shiftPowerBaseType a (← exprSurfaceType? env a)
+      pure ((if forceExpected then expected <|> lhs else lhs <|> expected).getD (.named "uint256"))
+    else pure (.named "uint256")
   let modeTerm ← match env.arithMode with
     | .checked => `(Solm.IntArithMode.checked)
     | .wrapping => `(Solm.IntArithMode.wrapping)
@@ -718,7 +868,10 @@ private partial def mkBin (env : Env) (op : Name) (a b : TSyntax `solExpr)
     | `mul => `(Solm.BinaryOp.mul $(← inferredIntTypeTerm env a a b expected forceExpected) $modeTerm)
     | `div => `(Solm.BinaryOp.div $(← inferredIntTypeTerm env a a b expected forceExpected) $modeTerm)
     | `mod => `(Solm.BinaryOp.mod $(← inferredIntTypeTerm env a a b expected forceExpected))
-    | `exp => `(Solm.BinaryOp.exp $(← inferredIntTypeTerm env a a b expected forceExpected) $modeTerm)
+    | `exp =>
+        let some name := asymmetricTy.intTypeName?
+          | Macro.throwErrorAt a "solm: exponentiation requires an integer base"
+        `(Solm.BinaryOp.exp $(← intTypeTerm a name) $modeTerm)
     | `bitAnd => do
         let inferred ← mergeSurfaceTypes a (← exprSurfaceType? env a) (← exprSurfaceType? env b)
         let ty := (if forceExpected then expected <|> inferred else inferred <|> expected).getD
@@ -738,24 +891,24 @@ private partial def mkBin (env : Env) (op : Name) (a b : TSyntax `solExpr)
         if ty.isFixedBytes then `(Solm.BinaryOp.fixedBitXor)
         else `(Solm.BinaryOp.bitXor $(← inferredIntTypeTerm env a a b (some ty) forceExpected))
     | `shl => do
-        let lhs ← exprSurfaceType? env a
-        let ty := (if forceExpected then expected <|> lhs else lhs <|> expected).getD
-          (.named "uint256")
-        if ty.isFixedBytes then `(Solm.BinaryOp.fixedShl)
-        else `(Solm.BinaryOp.shl $(← inferredIntTypeTerm env a a b (some ty) forceExpected))
+        if asymmetricTy.isFixedBytes then `(Solm.BinaryOp.fixedShl)
+        else
+          let some name := asymmetricTy.intTypeName?
+            | Macro.throwErrorAt a "solm: shift requires an integer or fixed-bytes base"
+          `(Solm.BinaryOp.shl $(← intTypeTerm a name))
     | `shr => do
-        let lhs ← exprSurfaceType? env a
-        let ty := (if forceExpected then expected <|> lhs else lhs <|> expected).getD
-          (.named "uint256")
-        if ty.isFixedBytes then `(Solm.BinaryOp.fixedShr)
-        else `(Solm.BinaryOp.shr $(← inferredIntTypeTerm env a a b (some ty) forceExpected))
+        if asymmetricTy.isFixedBytes then `(Solm.BinaryOp.fixedShr)
+        else
+          let some name := asymmetricTy.intTypeName?
+            | Macro.throwErrorAt a "solm: shift requires an integer or fixed-bytes base"
+          `(Solm.BinaryOp.shr $(← intTypeTerm a name))
     | _ => pure (mkIdent (`Solm.BinaryOp ++ op))
   let lhs ← match expected with
     | some ty => elabExprAtIntType env a ty forceExpected
     | none => elabExpr env a
   let rhs ← match expected with
     | some ty =>
-        if op == `shl || op == `shr then elabExpr env b
+        if asymmetric then elabExpr env b
         else elabExprAtIntType env b ty forceExpected
     | none => elabExpr env b
   `(Solm.Expr.binary $opTerm $lhs $rhs)

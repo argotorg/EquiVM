@@ -9,11 +9,14 @@ Solm benchmark scaffold for upstream `Uniswap/v3-core` `Benchmarks/UniswapV3Pool
 The storage declarations and raw storage layout are transcribed from solc's storage-layout output.
 Events and fallback/receive dispatch are omitted; the selector-dispatched ABI surface is explicit.
 
-Some transition bodies are source-faithful Solm transcriptions (`collect`, `collectProtocol`,
+Transition bodies are unverified Solm transcriptions (`collect`, `collectProtocol`,
 `flash`, `increaseObservationCardinalityNext`, `initialize`, `burn`, `mint`, `observe`,
 `snapshotCumulativesInside`, `swap`, public storage/immutable getters) together with the helper
 library stack those transitions call. Events and fallback/receive dispatch remain intentionally
 outside this benchmark surface.
+
+The FullMath and legacy-width models still need separate repair. Compilation and
+source/AST syntax equality do not establish equivalence to the vendored Solidity.
 -/
 
 open Solm ABI Benchmarks.UniswapV3Pool.Immutables
@@ -490,14 +493,13 @@ def balanceOfInto (token : Expr) (out tag : Ident) : List Stmt :=
         (geE (localBytesLength (tag ++ "_data")) (.intLit 32))),
     .letDecl out (some uint256) (.abiDecode uint256 (.var (tag ++ "_data"))) ]
 
+-- Division already reverts on zero; an extra nonzero guard is redundant.
 def mulDivLet (out : Ident) (a b denominator : Expr) : List Stmt :=
-  [ .require (gtE denominator (.intLit 0)),
-    .letDecl out (some uint256) (divE (mulE a b) denominator),
+  [ .letDecl out (some uint256) (divE (mulE a b) denominator),
     .require (leE (.var out) uint256MaxExpr) ]
 
 def mulDivAtLet (ty : IntType) (out : Ident) (a b denominator : Expr) : List Stmt :=
-  [ .require (gtE denominator (.intLit 0)),
-    .letDecl out (some uint256) (divAt ty (mulAt ty a b) denominator),
+  [ .letDecl out (some uint256) (divAt ty (mulAt ty a b) denominator),
     .require (leE (.var out) uint256MaxExpr) ]
 
 def mulDivRoundingUpLet (out : Ident) (a b denominator : Expr) : List Stmt :=
@@ -1030,7 +1032,7 @@ def tickBitmapFlipFunction : FunctionDecl :=
         .letDecl "compressed" (some int24) (divAt int24Int (.var "tick") (.var "tickSpacing")),
         .letDecl "wordPos" (some int16) (divAt int24Int (.var "compressed") (.intLit 256)),
         .letDecl "bitPos" (some uint8) (modAt int24Int (.var "compressed") (.intLit 256)),
-        .letDecl "mask" (some uint256) (shlAt uint8Int (.intLit 1) (.var "bitPos")),
+        .letDecl "mask" (some uint256) (shlE (.intLit 1) (.var "bitPos")),
         .assign .storage (tickBitmapRef (.var "wordPos"))
           (bitXorE (.storage (tickBitmapRef (.var "wordPos"))) (.var "mask")) ] }
 
@@ -1375,7 +1377,7 @@ def tickBitmapNextInitializedTickWithinOneWordFunction : FunctionDecl :=
             .letDecl "bitPos" (some uint8)
               (modAt int24Int (.var "compressed") (.intLit 256)),
             .letDecl "oneAtBit" (some uint256)
-              (shlAt uint8Int (.intLit 1) (.var "bitPos")),
+              (shlE (.intLit 1) (.var "bitPos")),
             .letDecl "mask" (some uint256)
               (addE (subE (.var "oneAtBit") (.intLit 1)) (.var "oneAtBit")),
             .letDecl "masked" (some uint256)
@@ -1403,7 +1405,7 @@ def tickBitmapNextInitializedTickWithinOneWordFunction : FunctionDecl :=
               (modAt int24Int (.var "compressedPlusOne") (.intLit 256)),
             .letDecl "mask" (some uint256)
               (.unary (.bitNot (.uint ⟨256, by decide⟩))
-                (subE (shlAt uint8Int (.intLit 1) (.var "bitPos")) (.intLit 1))),
+                (subE (shlE (.intLit 1) (.var "bitPos")) (.intLit 1))),
             .letDecl "masked" (some uint256)
               (bitAndE (.storage (tickBitmapRef (.var "wordPos"))) (.var "mask")),
             .letDecl "initialized" (some boolTy) (neE (.var "masked") (.intLit 0)),
@@ -1870,7 +1872,7 @@ def flashTransition (v : PoolImmutables) : TransitionDecl :=
           [],
         Stmt.ite (gtE (.var "paid1") (.intLit 0))
           ([ .letDecl "feeProtocol1" (some uint8)
-                (shlAt uint8Int (.intLit 0) (.intLit 0)),
+                (.intLit 0),
              .assign .localVar (varRef "feeProtocol1")
                 (.binary (.shr uint8Int) (.storage (slot0F "feeProtocol")) (.intLit 4)),
              .letDecl "fees1" (some uint256)

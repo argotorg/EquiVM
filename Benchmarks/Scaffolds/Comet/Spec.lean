@@ -99,9 +99,9 @@ def pauseFlagsValue
           (shiftedFlag absorbPaused 3)
           (shiftedFlag buyPaused 4)))))
 
-def pauseFlag (offset : Int) : Expr :=
+def pauseFlag (offset : Nat) : Expr :=
   .binary .ne
-    (.binary (.bitAnd (.uint ⟨8, by decide⟩)) (.storage { base := "pauseFlags" }) (.binary (.shl (.uint ⟨256, by decide⟩)) (.intLit 1) (.intLit offset)))
+    (.binary (.bitAnd uint8Int) (.storage { base := "pauseFlags" }) (.intLit (2 ^ offset)))
     (.intLit 0)
 
 def presentValueSupplyExpr (index principal : Expr) : Expr :=

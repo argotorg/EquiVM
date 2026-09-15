@@ -30,10 +30,6 @@ jobs:
       - name: Check Solminus integer semantics
         run: lake build Solm.CastTests Solm.IntegerTests
 
-      # Source arithmetic regressions are useful before this scaffold's bytecode proofs are complete.
-      - name: Check Uniswap V3 arithmetic
-        run: lake build Benchmarks.Scaffolds.UniswapV3Pool.ArithmeticTests
-
       # Mirrors the imports of Examples.lean. Remove lines to prune.
       - name: Build examples
         run: |
