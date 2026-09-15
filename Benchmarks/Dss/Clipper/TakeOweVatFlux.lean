@@ -206,25 +206,6 @@ theorem clipperTakeOweGtTabSourceGt_of_post_words {I : ExecutionEnv}
     u256_mul_comm price (clipperMinWord lot (clipperTakeAmtWord I)),
     u256_mul_comm (clipperMinWord (clipperTakeAmtWord I) lot) price] using hgt
 
-theorem clipperTakeOweGtTabSourceDivLeLot_of_post_words {I : ExecutionEnv}
-    {evmPrice : EVM.State} {price tab lot : UInt256}
-    (htab : tab = clipperTakeSalesTabEVMWord evmPrice I)
-    (hlot : lot = clipperTakeSalesLotEVMWord evmPrice I)
-    (hmul : price.toNat * (clipperMinWord (clipperTakeAmtWord I) lot).toNat < UInt256.size)
-    (hgt : tab.toNat < (UInt256.mul price (clipperMinWord (clipperTakeAmtWord I) lot)).toNat) :
-    (UInt256.div (clipperTakeSalesTabEVMWord evmPrice I) price).toNat ≤
-      (clipperTakeSalesLotEVMWord evmPrice I).toNat := by
-  have hsliceLot : (clipperMinWord (clipperTakeAmtWord I) lot).toNat ≤ lot.toNat :=
-    clipperMinWord_le_right (clipperTakeAmtWord I) lot
-  have hbase :=
-    clipperTakeTabDivPrice_le_lot_of_owe_gt
-      (tab := tab) (price := price) (slice := clipperMinWord (clipperTakeAmtWord I) lot)
-      (lot := lot)
-      (by simpa [Nat.mul_comm] using hmul)
-      (by simpa [u256_mul_comm price (clipperMinWord (clipperTakeAmtWord I) lot)] using hgt)
-      hsliceLot
-  simpa [← htab, ← hlot] using hbase
-
 theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeTailBlock
     (v : ClipperImmutables)
     (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv) (price slice : UInt256)
@@ -233,9 +214,6 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeTailBlock
     (hgt :
       (clipperTakeSalesTabEVMWord evmRead I).toNat <
         (UInt256.mul slice price).toNat)
-    (hsliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmRead I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hvatCode :
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
@@ -292,7 +270,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveNoCodeTailBlock
         (.ok fluxFrame evmVat) := by
     simpa [sliceFrame, fluxFrame, owe0, slice', tabNew, lotNew] using
       clipperTakeOweGtTabVatFluxCallSuccessTailBlock v evmLoc evmRead evmVat I price
-        slice hmul hgt hsliceLot hvatCode hcallVat
+        slice hmul hgt hvatCode hcallVat
   have hmove :
       ExecBlock (config v) fluxFrame evmVat
         ([ .letDecl "dog_" (some addr) (.storage dogRef),
@@ -321,9 +299,6 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureTailBlock
     (hgt :
       (clipperTakeSalesTabEVMWord evmRead I).toNat <
         (UInt256.mul slice price).toNat)
-    (hsliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmRead I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hvatCode :
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
@@ -386,7 +361,7 @@ theorem clipperTakeOweGtTabVatFluxSuccessDataEmptyVatMoveCallFailureTailBlock
         (.ok fluxFrame evmVat) := by
     simpa [sliceFrame, fluxFrame, owe0, slice', tabNew, lotNew] using
       clipperTakeOweGtTabVatFluxCallSuccessTailBlock v evmLoc evmRead evmVat I price
-        slice hmul hgt hsliceLot hvatCode hcallVat
+        slice hmul hgt hvatCode hcallVat
   have hmove :
       ExecBlock (config v) fluxFrame evmVat
         ([ .letDecl "dog_" (some addr) (.storage dogRef),
@@ -435,9 +410,6 @@ theorem clipperTakeOweGtTabVatFluxNoCodeRevertEquivCore
         (UInt256.mul
           (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I)
             (clipperTakeAmtWord I)) price).toNat)
-    (hsrcSliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmPriceSolm I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmPriceSolm I).toNat)
     (hnoVatCodeSolm :
       (UInt256.ofNat ((evmPriceSolm.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat = 0)
@@ -458,7 +430,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeRevertEquivCore
       clipperTakeOweGtTabVatFluxNoCodeSourceReverts
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A)
         (I := I) (g := g) v hwv hlockedSolm hstoppedSolmLt husrSolm price hmax
-        hsrcMul hsrcGt hsrcSliceLot hnoVatCodeSolm hstatus
+        hsrcMul hsrcGt hnoVatCodeSolm hstatus
   exact hrev.reEquivExecutionRevert hcode hdispatch hdec hbody
 
 theorem clipperTakeOweGtTabVatFluxNoCodeRevertEquivFromPostWords
@@ -502,7 +474,6 @@ theorem clipperTakeOweGtTabVatFluxNoCodeRevertEquivFromPostWords
       hlockedSolm hstoppedSolmLt husrSolm hrev hmax
       (clipperTakeOweGtTabSourceMul_of_post_lot hlot hmul)
       (clipperTakeOweGtTabSourceGt_of_post_words htab hlot hgt)
-      (clipperTakeOweGtTabSourceDivLeLot_of_post_words htab hlot hmul hgt)
       hnoVatCodeSolm hstatus
 
 theorem clipperTakeOweGtTabVatFluxNoCodeRevertEquivFromPostAccounts
@@ -601,9 +572,6 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivCore
         (UInt256.mul
           (clipperMinWord (clipperTakeSalesLotEVMWord evmPriceSolm I)
             (clipperTakeAmtWord I)) price).toNat)
-    (hsrcSliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmPriceSolm I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmPriceSolm I).toNat)
     (hvatCodeSolm :
       0 <
         (UInt256.ofNat ((evmPriceSolm.lookupAccount v.vat).option 0
@@ -633,7 +601,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivCore
       clipperTakeOweGtTabVatFluxCallFailureSourceReverts
         (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀) (A := A)
         (I := I) (g := g) v hwv hlockedSolm hstoppedSolmLt husrSolm price hmax
-        hsrcMul hsrcGt hsrcSliceLot hvatCodeSolm hcallVatSolm hstatus
+        hsrcMul hsrcGt hvatCodeSolm hcallVatSolm hstatus
   exact hrev.reEquivExecutionRevert hcode hdispatch hdec hbody
 
 theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivFromPostWords
@@ -686,7 +654,6 @@ theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivFromPostWords
       hlockedSolm hstoppedSolmLt husrSolm hrev hmax
       (clipperTakeOweGtTabSourceMul_of_post_lot hlot hmul)
       (clipperTakeOweGtTabSourceGt_of_post_words htab hlot hgt)
-      (clipperTakeOweGtTabSourceDivLeLot_of_post_words htab hlot hmul hgt)
       hvatCodeSolm hcallVatSolm hstatus
 
 theorem clipperTakeOweGtTabVatFluxCallFailureRevertEquivFromPostCallAccounts

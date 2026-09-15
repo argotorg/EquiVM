@@ -802,8 +802,7 @@ theorem clipperEvalTakeTabSubOweAtOweTabSlice (v : ClipperImmutables)
 
 theorem clipperEvalTakeLotSubSliceAtOweTabSlice (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
-    (price slice owe0 owe slice' : UInt256)
-    (hsliceLot : slice'.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat) :
+    (price slice owe0 owe slice' : UInt256) :
     evalExpr? (config v)
       { contract := contract v,
         locals := clipperTakeLocalsOweTabSlice evmLoc evmRead I false price slice owe0 owe
@@ -854,8 +853,7 @@ theorem clipperTakeLetTabNew (v : ClipperImmutables)
 
 theorem clipperEvalTakeLotSubSliceAtTabNew (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
-    (price slice owe0 owe slice' tabNew : UInt256)
-    (hsliceLot : slice'.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat) :
+    (price slice owe0 owe slice' tabNew : UInt256) :
     evalExpr? (config v)
       { contract := contract v,
         locals := clipperTakeLocalsTabNew evmLoc evmRead I false price slice owe0 owe slice'
@@ -895,8 +893,7 @@ theorem clipperEvalTakeLotSubSliceAtTabNew (v : ClipperImmutables)
 
 theorem clipperTakeLetLotNew (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
-    (price slice owe0 owe slice' tabNew : UInt256)
-    (hsliceLot : slice'.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat) :
+    (price slice owe0 owe slice' tabNew : UInt256) :
     let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice'
     ExecStmt (config v)
       (Frame.mk (contract v)
@@ -924,7 +921,7 @@ theorem clipperTakeLetLotNew (v : ClipperImmutables)
       .ok (.int (Int.ofNat lotNew.toNat)) := by
     simpa [tabNewFrame, lotNew] using
       clipperEvalTakeLotSubSliceAtTabNew v evmLoc evmRead I price slice owe0 owe slice'
-        tabNew hsliceLot
+        tabNew
   simpa [tabNewFrame, lotNewFrame, clipperTakeLocalsLotNew] using
     (ExecStmt.letDecl
       (cfg := config v) (solm := tabNewFrame) (evm := evmRead) (name := "lotNew")

@@ -158,18 +158,12 @@ theorem clipperTakeOweGtTabCallbackTailRevertEquivFromPostWords
       (clipperTakeOweGtTabSourceGt_of_post_words
         (I := I) (evmPrice := evmPrice) (price := price)
         (tab := tab) (lot := lot) htab hlot hgt)
-  have hsliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmPrice I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmPrice I).toNat :=
-    clipperTakeOweGtTabSourceDivLeLot_of_post_words
-      (I := I) (evmPrice := evmPrice) (price := price)
-      (tab := tab) (lot := lot) htab hlot hmul hgt
   have hafter : ExecBlock (config v)
       (Frame.mk (contract v)
         (clipperTakeLocalsSlice evmLock evmPrice I false price slice))
       evmPrice (clipperTakeAfterSliceStmts v) .reverted := by
     exact clipperTakeOweGtTabCallbackTailSource v evmLock evmPrice
-      evmVat evmCb I price slice hsrcMul hsrcGt hsliceLot hvatCode hcallVat
+      evmVat evmCb I price slice hsrcMul hsrcGt hvatCode hcallVat
       (by simpa [evm0, evmLock, slice] using hcallback) htail
   have hbody := clipperTakeSourceRevertsOfAfterSlice
     (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)

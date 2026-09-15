@@ -24,9 +24,6 @@ theorem clipperTakeOweGtTabVatFluxCallFailureSourceReverts {cA gh bl σ σ₀ A 
           (clipperMinWord (clipperTakeSalesLotEVMWord evmPrice I)
             (clipperTakeAmtWord I))
           price).toNat)
-    (hsliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmPrice I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmPrice I).toNat)
     (hvatCode :
       0 <
         (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
@@ -232,7 +229,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureSourceReverts {cA gh bl σ σ₀ A 
         .reverted := by
     simpa [sliceFrame, slice, lot, tab] using
       clipperTakeOweGtTabVatFluxCallFailureTailBlock v evmLock evmPrice evmVat I price
-        slice hmul hgt hsliceLot hvatCode hcallVat
+        slice hmul hgt hvatCode hcallVat
   have hblock :
       ExecBlock (config v) startFrame evm0 (takeTransition v).body .reverted := by
     simpa [takeTransition, nonpayable, lockPrefix, isStopped, startFrame,
@@ -265,9 +262,6 @@ theorem clipperTakeOweGtTabVatFluxCallSuccessTailBlock (v : ClipperImmutables)
     (hgt :
       (clipperTakeSalesTabEVMWord evmRead I).toNat <
         (UInt256.mul slice price).toNat)
-    (hsliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmRead I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hvatCode :
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
@@ -335,7 +329,7 @@ theorem clipperTakeOweGtTabVatFluxCallSuccessTailBlock (v : ClipperImmutables)
             .assign .localVar (varRef "lot") (.var "lotNew") ])
         (.ok postSubFrame evmRead) := by
     simpa [adjustedFrame, postSubFrame, slice', tabNew, lotNew] using
-      clipperTakePostOweGtTabSubBlock v evmLoc evmRead I price slice owe0 hsliceLot
+      clipperTakePostOweGtTabSubBlock v evmLoc evmRead I price slice owe0
   have hargs :
       evalExprs? (config v) postSubFrame evmRead
         [ilkExpr v, thisAddr, .var "who", .var "slice"] =

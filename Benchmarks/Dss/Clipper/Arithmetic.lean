@@ -892,22 +892,6 @@ theorem clipperMinWord_comm (x y : UInt256) :
   · have hyx : y.toNat ≤ x.toNat := by omega
     simp [hxy, hyx]
 
-theorem clipperTakeTabDivPrice_le_lot_of_owe_gt {tab price slice lot : UInt256}
-    (hmul : slice.toNat * price.toNat < UInt256.size)
-    (hgt : tab.toNat < (UInt256.mul slice price).toNat)
-    (hsliceLot : slice.toNat ≤ lot.toNat) :
-    (UInt256.div tab price).toNat ≤ lot.toNat := by
-  have hmulNat : (UInt256.mul slice price).toNat = slice.toNat * price.toNat := by
-    rw [u256_mul_toNat]
-    exact Nat.mod_eq_of_lt hmul
-  have hgtNat : tab.toNat < slice.toNat * price.toNat := by
-    simpa [hmulNat] using hgt
-  have hdivLt : tab.toNat / price.toNat < slice.toNat := by
-    apply Nat.div_lt_of_lt_mul
-    simpa [Nat.mul_comm] using hgtNat
-  rw [udiv_toNat]
-  omega
-
 theorem clipperLookupMinFunction (v : ClipperImmutables) :
     lookupCallable? (contract v) "min" = some minFunction.toCallable := by
   simp [lookupCallable?, lookupFunction?, contract, functions, FunctionDecl.toCallable,

@@ -86,8 +86,7 @@ theorem clipperEvalTakeVarOweAtChost (v : ClipperImmutables)
 
 theorem clipperEvalTakeTabSubOweAtChost (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
-    (price slice owe0 owe chost : UInt256)
-    (howeTab : owe.toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat) :
+    (price slice owe0 owe chost : UInt256) :
     evalExpr? (config v)
       { contract := contract v,
         locals := clipperTakeLocalsChost evmLoc evmRead I price slice owe0 owe chost }
@@ -198,8 +197,7 @@ theorem clipperEvalTakeTabGtChost_false (v : ClipperImmutables)
 
 theorem clipperEvalTakeTabSubChostAtRemainingTab (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
-    (price slice owe0 owe chost remainingTab : UInt256)
-    (hchostTab : chost.toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat) :
+    (price slice owe0 owe chost remainingTab : UInt256) :
     evalExpr? (config v)
       { contract := contract v,
         locals := clipperTakeLocalsRemainingTab evmLoc evmRead I price slice owe0 owe chost
@@ -416,8 +414,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostNoAdjustIte (v : ClipperImmutables)
         (ty := some uint256) (expr := wrap256 (.binary (.sub uint256Int .wrapping) (.var "tab") (.var "owe")))
         (value := .int (Int.ofNat remainingTab.toNat))
         (by simpa [chostFrame, remainingTab, owe0] using
-          (clipperEvalTakeTabSubOweAtChost v evmLoc evmRead I price slice owe0 owe0 chost
-            hle))
+          (clipperEvalTakeTabSubOweAtChost v evmLoc evmRead I price slice owe0 owe0 chost))
             (valueMatchesOptionalABIType_uint256_word _))
   have hadjustCond :
       evalExpr? (config v) remainingFrame evmRead
@@ -582,8 +579,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
         (ty := some uint256) (expr := wrap256 (.binary (.sub uint256Int .wrapping) (.var "tab") (.var "owe")))
         (value := .int (Int.ofNat remainingTab.toNat))
         (by simpa [chostFrame, remainingTab, owe0] using
-          (clipperEvalTakeTabSubOweAtChost v evmLoc evmRead I price slice owe0 owe0 chost
-            hle))
+          (clipperEvalTakeTabSubOweAtChost v evmLoc evmRead I price slice owe0 owe0 chost))
             (valueMatchesOptionalABIType_uint256_word _))
   have hadjustCond :
       evalExpr? (config v) remainingFrame evmRead
@@ -602,8 +598,6 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
         (.letDecl "oweAdjusted" (some uint256)
           (wrap256 (.binary (.sub uint256Int .wrapping) (.var "tab") (.var "_chost"))))
         (.ok adjustedFrame evmRead) := by
-    have hleChost : chost.toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat :=
-      Nat.le_of_lt hchostTab
     simpa [remainingFrame, adjustedFrame, oweAdjusted, clipperTakeLocalsOweAdjusted] using
       (ExecStmt.letDecl
         (cfg := config v) (solm := remainingFrame) (evm := evmRead) (name := "oweAdjusted")
@@ -612,7 +606,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostAdjustIte (v : ClipperImmutables)
         (value := .int (Int.ofNat oweAdjusted.toNat))
         (by simpa [remainingFrame, oweAdjusted, chost] using
           (clipperEvalTakeTabSubChostAtRemainingTab v evmLoc evmRead I price slice owe0
-            owe0 chost remainingTab hleChost))
+            owe0 chost remainingTab))
             (valueMatchesOptionalABIType_uint256_word _))
   have hassignOwe :
       ExecStmt (config v) adjustedFrame evmRead
@@ -772,8 +766,7 @@ theorem clipperTakeOweLtTabSliceLtLotChostRequireReverts (v : ClipperImmutables)
         (ty := some uint256) (expr := wrap256 (.binary (.sub uint256Int .wrapping) (.var "tab") (.var "owe")))
         (value := .int (Int.ofNat remainingTab.toNat))
         (by simpa [chostFrame, remainingTab, owe0] using
-          (clipperEvalTakeTabSubOweAtChost v evmLoc evmRead I price slice owe0 owe0 chost
-            hle))
+          (clipperEvalTakeTabSubOweAtChost v evmLoc evmRead I price slice owe0 owe0 chost))
             (valueMatchesOptionalABIType_uint256_word _))
   have hadjustCond :
       evalExpr? (config v) remainingFrame evmRead

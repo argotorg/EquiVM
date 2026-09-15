@@ -118,9 +118,6 @@ theorem clipperTakeChostAdjustEquiv
   have hchostTab' : chost.toNat <
       (clipperTakeSalesTabEVMWord evmPrice I).toNat := by
     simpa [hchostEq, htab] using hchostTab
-  have hsliceAdjustedLe' : sliceAdjusted.toNat ≤
-      (clipperTakeSalesLotEVMWord evmPrice I).toNat := by
-    simpa [sliceAdjusted, owe, hchostEq, htab, hlot] using hsliceAdjustedLe
   have hfluxDogAbsent : fluxLocals.get? "dog" = none := by
     simp [fluxLocals, arithmeticLocals, clipperTakeLocalsPostFluxBuyerRet,
       clipperTakeLocalsPostLotAssigned, clipperTakeLocalsPostTabAssigned,
@@ -258,8 +255,7 @@ theorem clipperTakeChostAdjustEquiv
       (I := I) (g := g) (evmPrice := evmPrice) v price hwv hlocked hstopped husr
       hmax hstatus
     have hpref := clipperTakeChostAdjustVatFluxNoCodeTailBlock v evmLock evmPrice
-      I price slice hmul hmul' hlt' hsliceLt' hremainingLt' hchostTab' hprice
-      hsliceAdjustedLe' hnoCode
+      I price slice hmul hmul' hlt' hsliceLt' hremainingLt' hchostTab' hprice hnoCode
     simpa [evm0, evmLock, sourceSlice, hslice, clipperTakeAfterSliceStmts,
       List.append_assoc] using
       (execBlockAppendReverted
@@ -288,7 +284,7 @@ theorem clipperTakeChostAdjustEquiv
       hmax hstatus
     have hpref := clipperTakeChostAdjustVatFluxCallFailureTailBlock v evmLock
       evmPrice evmVat I price slice hmul hmul' hlt' hsliceLt' hremainingLt'
-      hchostTab' hprice hsliceAdjustedLe' hvatCode
+      hchostTab' hprice hvatCode
       (by simpa [hwhoMasked, hchostRawEq, htab] using hcallVat)
     simpa [evm0, evmLock, sourceSlice, hslice, clipperTakeAfterSliceStmts,
       List.append_assoc] using
@@ -313,8 +309,7 @@ theorem clipperTakeChostAdjustEquiv
     simpa [fluxLocals, arithmeticLocals, owe0, chost, remainingTab, owe,
       sliceAdjusted, htab, hlot] using
       (clipperTakeChostAdjustVatFluxCallSuccessTailBlock v evmLock evmPrice evmVat
-        I price slice hmul hmul' hlt' hsliceLt' hremainingLt' hchostTab' hprice
-        hsliceAdjustedLe' hvatCode
+        I price slice hmul hmul' hlt' hsliceLt' hremainingLt' hchostTab' hprice hvatCode
         (by simpa [hwhoMasked, hchostRawEq, htab] using hcallVat))
   have hsourceCloseReverted :
       ExecBlock (config v)

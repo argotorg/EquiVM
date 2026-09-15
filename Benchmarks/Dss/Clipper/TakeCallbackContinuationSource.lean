@@ -15,9 +15,6 @@ theorem clipperTakeOweGtTabCallbackTailSource
     (hgt :
       (clipperTakeSalesTabEVMWord evmRead I).toNat <
         (UInt256.mul slice price).toNat)
-    (hsliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmRead I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hvatCode :
       0 < (UInt256.ofNat
         ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
@@ -79,7 +76,7 @@ theorem clipperTakeOweGtTabCallbackTailSource
       (.ok fluxFrame evmVat) := by
     simpa [sliceFrame, fluxFrame, owe0, slice', tabNew, lotNew] using
       clipperTakeOweGtTabVatFluxCallSuccessTailBlock v evmLoc evmRead evmVat I
-        price slice hmul hgt hsliceLot hvatCode hcallVat
+        price slice hmul hgt hvatCode hcallVat
   have hletDog : ExecStmt (config v) fluxFrame evmVat
       (.letDecl "dog_" (some addr) (.storage dogRef))
       (.ok dogFrame evmVat) := by

@@ -147,12 +147,6 @@ theorem clipperTakeOweGtTabCallbackSkipSuccessContinuationEquiv
       (clipperTakeOweGtTabSourceGt_of_post_words
         (I := I) (evmPrice := evmPrice) (price := price)
         (tab := tab) (lot := lot) htab hlot hgt)
-  have hsrcSliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmPrice I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmPrice I).toNat :=
-    clipperTakeOweGtTabSourceDivLeLot_of_post_words
-      (I := I) (evmPrice := evmPrice) (price := price)
-      (tab := tab) (lot := lot) htab hlot hmul hgt
   have sourceReverted
       (htail : ExecBlock (config v) cbFrame evmVat
         (checkedExternalCallStmts (vatExpr v) "move" (.intLit 0)
@@ -162,7 +156,7 @@ theorem clipperTakeOweGtTabCallbackSkipSuccessContinuationEquiv
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         (clipperTakeStore I) (takeTransition v).body .reverted := by
     have hafter := clipperTakeOweGtTabCallbackTailSource v evmLock evmPrice
-      evmVat evmVat I price slice hsrcMul hsrcGt hsrcSliceLot hvatCode hcallVat
+      evmVat evmVat I price slice hsrcMul hsrcGt hvatCode hcallVat
       (by simpa [evm0, evmLock, slice, owe0, slice', tabNew, lotNew, cbFrame] using
         hcallback) htail
     exact clipperTakeSourceRevertsOfAfterSlice
@@ -180,7 +174,7 @@ theorem clipperTakeOweGtTabCallbackSkipSuccessContinuationEquiv
         (clipperTakeStore I) (takeTransition v).body
         (.returned finalFrame finalEvm none) := by
     have hafter := clipperTakeOweGtTabCallbackTailSource v evmLock evmPrice
-      evmVat evmVat I price slice hsrcMul hsrcGt hsrcSliceLot hvatCode hcallVat
+      evmVat evmVat I price slice hsrcMul hsrcGt hvatCode hcallVat
       (by simpa [evm0, evmLock, slice, owe0, slice', tabNew, lotNew, cbFrame] using
         hcallback) htail
     exact clipperTakeSourceOkOfAfterSlice

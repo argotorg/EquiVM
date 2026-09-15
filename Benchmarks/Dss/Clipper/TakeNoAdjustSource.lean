@@ -55,8 +55,7 @@ abbrev clipperTakeLocalsNoAdjustLotAssigned (evmLoc evmRead : EVM.State)
 
 theorem clipperEvalTakeTabSubOweAtOwe (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
-    (price slice owe0 owe : UInt256)
-    (howeTab : owe.toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat) :
+    (price slice owe0 owe : UInt256) :
     evalExpr? (config v)
       { contract := contract v,
         locals := clipperTakeLocalsOwe evmLoc evmRead I false price slice owe0 owe }
@@ -69,8 +68,7 @@ theorem clipperEvalTakeTabSubOweAtOwe (v : ClipperImmutables)
 
 theorem clipperTakeNoAdjustLetTabNew (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
-    (price slice owe0 owe : UInt256)
-    (howeTab : owe.toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat) :
+    (price slice owe0 owe : UInt256) :
     let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) owe
     ExecStmt (config v)
       (Frame.mk (contract v)
@@ -92,7 +90,7 @@ theorem clipperTakeNoAdjustLetTabNew (v : ClipperImmutables)
         (wrap256 (.binary (.sub uint256Int .wrapping) (.var "tab") (.var "owe"))) =
       .ok (.int (Int.ofNat tabNew.toNat)) := by
     simpa [oweFrame, tabNew] using
-      clipperEvalTakeTabSubOweAtOwe v evmLoc evmRead I price slice owe0 owe howeTab
+      clipperEvalTakeTabSubOweAtOwe v evmLoc evmRead I price slice owe0 owe
   simpa [oweFrame, tabNewFrame, clipperTakeLocalsNoAdjustTabNew] using
     (ExecStmt.letDecl
       (cfg := config v) (solm := oweFrame) (evm := evmRead) (name := "tabNew")
@@ -102,8 +100,7 @@ theorem clipperTakeNoAdjustLetTabNew (v : ClipperImmutables)
 
 theorem clipperEvalTakeLotSubSliceAtNoAdjustTabNew (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
-    (price slice owe0 owe tabNew : UInt256)
-    (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat) :
+    (price slice owe0 owe tabNew : UInt256) :
     evalExpr? (config v)
       { contract := contract v,
         locals := clipperTakeLocalsNoAdjustTabNew evmLoc evmRead I price slice owe0 owe
@@ -142,8 +139,7 @@ theorem clipperEvalTakeLotSubSliceAtNoAdjustTabNew (v : ClipperImmutables)
 
 theorem clipperTakeNoAdjustLetLotNew (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
-    (price slice owe0 owe tabNew : UInt256)
-    (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat) :
+    (price slice owe0 owe tabNew : UInt256) :
     let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice
     ExecStmt (config v)
       (Frame.mk (contract v)
@@ -169,7 +165,7 @@ theorem clipperTakeNoAdjustLetLotNew (v : ClipperImmutables)
       .ok (.int (Int.ofNat lotNew.toNat)) := by
     simpa [tabNewFrame, lotNew] using
       clipperEvalTakeLotSubSliceAtNoAdjustTabNew v evmLoc evmRead I price slice owe0 owe
-        tabNew hsliceLot
+        tabNew
   simpa [tabNewFrame, lotNewFrame, clipperTakeLocalsNoAdjustLotNew] using
     (ExecStmt.letDecl
       (cfg := config v) (solm := tabNewFrame) (evm := evmRead) (name := "lotNew")
@@ -256,9 +252,7 @@ theorem clipperTakeNoAdjustAssignLotFromLotNew (v : ClipperImmutables)
 
 theorem clipperTakePostNoAdjustSubBlock (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
-    (price slice owe0 owe : UInt256)
-    (howeTab : owe.toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat)
-    (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat) :
+    (price slice owe0 owe : UInt256) :
     let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I) owe
     let lotNew := UInt256.sub (clipperTakeSalesLotEVMWord evmRead I) slice
     ExecBlock (config v)
@@ -297,7 +291,7 @@ theorem clipperTakePostNoAdjustSubBlock (v : ClipperImmutables)
           (wrap256 (.binary (.sub uint256Int .wrapping) (.var "tab") (.var "owe"))))
         (.ok tabNewFrame evmRead) := by
     simpa [oweFrame, tabNewFrame, tabNew] using
-      clipperTakeNoAdjustLetTabNew v evmLoc evmRead I price slice owe0 owe howeTab
+      clipperTakeNoAdjustLetTabNew v evmLoc evmRead I price slice owe0 owe
   have hlotNew :
       ExecStmt (config v) tabNewFrame evmRead
         (.letDecl "lotNew" (some uint256)
@@ -305,7 +299,6 @@ theorem clipperTakePostNoAdjustSubBlock (v : ClipperImmutables)
         (.ok lotNewFrame evmRead) := by
     simpa [tabNewFrame, lotNewFrame, lotNew] using
       clipperTakeNoAdjustLetLotNew v evmLoc evmRead I price slice owe0 owe tabNew
-        hsliceLot
   have hassignTab :
       ExecStmt (config v) lotNewFrame evmRead
         (.assign .localVar (varRef "tab") (.var "tabNew"))
@@ -538,8 +531,6 @@ theorem clipperTakeNoAdjustVatFluxBuyerCallSuccessBlock (v : ClipperImmutables)
 theorem clipperTakeNoAdjustPostSubVatFluxNoCodeBlock (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe : UInt256)
-    (howeTab : owe.toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat)
-    (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hnoVatCode :
       (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0) :
@@ -570,8 +561,7 @@ theorem clipperTakeNoAdjustPostSubVatFluxNoCodeBlock (v : ClipperImmutables)
             .assign .localVar (varRef "lot") (.var "lotNew") ])
         (.ok postSubFrame evmRead) := by
     simpa [oweFrame, postSubFrame, tabNew, lotNew] using
-      clipperTakePostNoAdjustSubBlock v evmLoc evmRead I price slice owe0 owe howeTab
-        hsliceLot
+      clipperTakePostNoAdjustSubBlock v evmLoc evmRead I price slice owe0 owe
   have hvatRevert :
       ExecBlock (config v) postSubFrame evmRead
         (checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
@@ -585,8 +575,6 @@ theorem clipperTakeNoAdjustPostSubVatFluxNoCodeBlock (v : ClipperImmutables)
 theorem clipperTakeNoAdjustPostSubVatFluxCallFailureBlock (v : ClipperImmutables)
     (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe : UInt256) {outVat : ByteArray}
-    (howeTab : owe.toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat)
-    (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hvatCode :
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
@@ -624,8 +612,7 @@ theorem clipperTakeNoAdjustPostSubVatFluxCallFailureBlock (v : ClipperImmutables
             .assign .localVar (varRef "lot") (.var "lotNew") ])
         (.ok postSubFrame evmRead) := by
     simpa [oweFrame, postSubFrame, tabNew, lotNew] using
-      clipperTakePostNoAdjustSubBlock v evmLoc evmRead I price slice owe0 owe howeTab
-        hsliceLot
+      clipperTakePostNoAdjustSubBlock v evmLoc evmRead I price slice owe0 owe
   have hargs :
       evalExprs? (config v) postSubFrame evmRead
         [ilkExpr v, thisAddr, .var "who", .var "slice"] =
@@ -650,8 +637,6 @@ theorem clipperTakeNoAdjustPostSubVatFluxCallFailureBlock (v : ClipperImmutables
 theorem clipperTakeNoAdjustPostSubVatFluxCallSuccessBlock (v : ClipperImmutables)
     (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv)
     (price slice owe0 owe : UInt256) {outVat : ByteArray}
-    (howeTab : owe.toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat)
-    (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hvatCode :
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
@@ -698,8 +683,7 @@ theorem clipperTakeNoAdjustPostSubVatFluxCallSuccessBlock (v : ClipperImmutables
             .assign .localVar (varRef "lot") (.var "lotNew") ])
         (.ok postSubFrame evmRead) := by
     simpa [oweFrame, postSubFrame, tabNew, lotNew] using
-      clipperTakePostNoAdjustSubBlock v evmLoc evmRead I price slice owe0 owe howeTab
-        hsliceLot
+      clipperTakePostNoAdjustSubBlock v evmLoc evmRead I price slice owe0 owe
   have hargs :
       evalExprs? (config v) postSubFrame evmRead
         [ilkExpr v, thisAddr, .var "who", .var "slice"] =
@@ -725,8 +709,6 @@ theorem clipperTakeNoAdjustPostSubVatFluxCallSuccessBlock (v : ClipperImmutables
 theorem clipperTakeNoAdjustVatFluxNoCodeTailBlock (v : ClipperImmutables)
     (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (price slice : UInt256)
     (hmul : slice.toNat * price.toNat < UInt256.size)
-    (howeTab : (UInt256.mul slice price).toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat)
-    (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hite :
       let owe0 := UInt256.mul slice price
       ExecStmt (config v)
@@ -764,7 +746,7 @@ theorem clipperTakeNoAdjustVatFluxNoCodeTailBlock (v : ClipperImmutables)
       ExecBlock (config v) oweFrame evmRead (clipperTakePostOweFluxStmts v) .reverted := by
     simpa [clipperTakePostOweFluxStmts, oweFrame, owe0] using
       clipperTakeNoAdjustPostSubVatFluxNoCodeBlock v evmLoc evmRead I price slice owe0
-        owe0 howeTab hsliceLot hnoVatCode
+        owe0 hnoVatCode
   have hafterIte :
       ExecBlock (config v) oweFrame evmRead
         (clipperTakeOweAdjustmentStmt :: clipperTakePostOweFluxStmts v) .reverted :=
@@ -776,8 +758,6 @@ theorem clipperTakeNoAdjustVatFluxCallFailureTailBlock (v : ClipperImmutables)
     (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv) (price slice : UInt256)
     {outVat : ByteArray}
     (hmul : slice.toNat * price.toNat < UInt256.size)
-    (howeTab : (UInt256.mul slice price).toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat)
-    (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hite :
       let owe0 := UInt256.mul slice price
       ExecStmt (config v)
@@ -822,7 +802,7 @@ theorem clipperTakeNoAdjustVatFluxCallFailureTailBlock (v : ClipperImmutables)
       ExecBlock (config v) oweFrame evmRead (clipperTakePostOweFluxStmts v) .reverted := by
     simpa [clipperTakePostOweFluxStmts, oweFrame, owe0] using
       clipperTakeNoAdjustPostSubVatFluxCallFailureBlock v evmLoc evmRead evmVat I price
-        slice owe0 owe0 howeTab hsliceLot hvatCode hcallVat
+        slice owe0 owe0 hvatCode hcallVat
   have hafterIte :
       ExecBlock (config v) oweFrame evmRead
         (clipperTakeOweAdjustmentStmt :: clipperTakePostOweFluxStmts v) .reverted :=
@@ -834,8 +814,6 @@ theorem clipperTakeNoAdjustVatFluxCallSuccessTailBlock (v : ClipperImmutables)
     (evmLoc evmRead evmVat : EVM.State) (I : ExecutionEnv) (price slice : UInt256)
     {outVat : ByteArray}
     (hmul : slice.toNat * price.toNat < UInt256.size)
-    (howeTab : (UInt256.mul slice price).toNat ≤ (clipperTakeSalesTabEVMWord evmRead I).toNat)
-    (hsliceLot : slice.toNat ≤ (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hite :
       let owe0 := UInt256.mul slice price
       ExecStmt (config v)
@@ -892,7 +870,7 @@ theorem clipperTakeNoAdjustVatFluxCallSuccessTailBlock (v : ClipperImmutables)
         (.ok fluxFrame evmVat) := by
     simpa [clipperTakePostOweFluxStmts, oweFrame, fluxFrame, owe0, tabNew, lotNew] using
       clipperTakeNoAdjustPostSubVatFluxCallSuccessBlock v evmLoc evmRead evmVat I price
-        slice owe0 owe0 howeTab hsliceLot hvatCode hcallVat
+        slice owe0 owe0 hvatCode hcallVat
   have hafterIte :
       ExecBlock (config v) oweFrame evmRead
         (clipperTakeOweAdjustmentStmt :: clipperTakePostOweFluxStmts v)

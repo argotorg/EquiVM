@@ -96,12 +96,6 @@ theorem clipperTakeNoAdjustEquiv
   let lotNew := UInt256.sub lot slice
   let fluxLocals := clipperTakeLocalsNoAdjustFluxBuyerRet evmLock evmPrice I
     price slice owe owe tabNew lotNew
-  have howeLe' : (UInt256.mul slice price).toNat ≤
-      (clipperTakeSalesTabEVMWord evmPrice I).toNat := by
-    simpa [u256_mul_comm, htab] using howeLe
-  have hsliceLe' : slice.toNat ≤
-      (clipperTakeSalesLotEVMWord evmPrice I).toNat := by
-    simpa [hlot] using hsliceLe
   have hfluxDogAbsent : fluxLocals.get? "dog" = none := by
     simp [fluxLocals, clipperTakeLocalsNoAdjustFluxBuyerRet,
       clipperTakeLocalsNoAdjustLotAssigned, clipperTakeLocalsNoAdjustTabAssigned,
@@ -244,7 +238,7 @@ theorem clipperTakeNoAdjustEquiv
       (I := I) (g := g) (evmPrice := evmPrice) v price hwv hlocked hstopped husr
       hmax hstatus
     have hpref := clipperTakeNoAdjustVatFluxNoCodeTailBlock v evmLock evmPrice I
-      price slice hmul howeLe' hsliceLe'
+      price slice hmul
       (by simpa [evm0, evmLock, owe, u256_mul_comm] using hite)
       hnoCode
     simpa [evm0, evmLock, hslice, clipperTakeAfterSliceStmts, List.append_assoc] using
@@ -268,7 +262,7 @@ theorem clipperTakeNoAdjustEquiv
       (I := I) (g := g) (evmPrice := evmPrice) v price hwv hlocked hstopped husr
       hmax hstatus
     have hpref := clipperTakeNoAdjustVatFluxCallFailureTailBlock v evmLock
-      evmPrice evmVat I price slice hmul howeLe' hsliceLe'
+      evmPrice evmVat I price slice hmul
       (by simpa [evm0, evmLock, owe, u256_mul_comm] using hite) hvatCode
       (by simpa [hwhoMasked] using hcallVat)
     simpa [evm0, evmLock, hslice, clipperTakeAfterSliceStmts, List.append_assoc] using
@@ -292,7 +286,7 @@ theorem clipperTakeNoAdjustEquiv
     simpa [fluxLocals, owe, tabNew, lotNew, htab, hlot, hwhoWord,
       u256_mul_comm] using
       (clipperTakeNoAdjustVatFluxCallSuccessTailBlock v evmLock evmPrice evmVat I
-        price slice hmul howeLe' hsliceLe'
+        price slice hmul
         (by simpa [evm0, evmLock, owe, u256_mul_comm] using hite) hvatCode
         (by simpa [hwhoMasked] using hcallVat))
   have hsourceCloseReverted :

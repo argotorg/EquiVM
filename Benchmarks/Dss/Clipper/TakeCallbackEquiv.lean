@@ -143,9 +143,6 @@ theorem clipperTakeOweGtTabCallbackRevertTailBlock
     (hgt :
       (clipperTakeSalesTabEVMWord evmRead I).toNat <
         (UInt256.mul slice price).toNat)
-    (hsliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmRead I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hvatCode :
       0 <
         (UInt256.ofNat
@@ -224,7 +221,7 @@ theorem clipperTakeOweGtTabCallbackRevertTailBlock
         (.ok fluxFrame evmVat) := by
     simpa [sliceFrame, fluxFrame, owe0, slice', tabNew, lotNew] using
       clipperTakeOweGtTabVatFluxCallSuccessTailBlock v evmLoc evmRead evmVat I price
-        slice hmul hgt hsliceLot hvatCode hcallVat
+        slice hmul hgt hvatCode hcallVat
   have hletDog :
       ExecStmt (config v) fluxFrame evmVat
         (.letDecl "dog_" (some addr) (.storage dogRef))
@@ -356,19 +353,13 @@ theorem clipperTakeOweGtTabCallbackRevertEquivFromPostWords
     simpa [slice] using
       clipperTakeOweGtTabSourceGt_of_post_words (I := I) (evmPrice := evmPriceSolm)
         (price := price) (tab := tab) (lot := lot) htab hlot hgt
-  have hsliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmPriceSolm I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmPriceSolm I).toNat :=
-    clipperTakeOweGtTabSourceDivLeLot_of_post_words
-      (I := I) (evmPrice := evmPriceSolm) (price := price) (tab := tab) (lot := lot)
-      htab hlot hmul hgt
   have htail :=
     clipperTakeOweGtTabCallbackRevertTailBlock v
       (Solm.EVM.storageStore
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I)
         (initState cA gh bl σ_solm σ₀ (Sat256.ofUInt256 g) A I).executionEnv.codeOwner
         ⟨13⟩ ⟨1⟩)
-      evmPriceSolm evmVatSolm I price slice hsrcMul hsrcGt hsliceLot hvatCode
+      evmPriceSolm evmVatSolm I price slice hsrcMul hsrcGt hvatCode
       hcallVat (by simpa [slice] using hcallback)
   have hbody :
       ExecTransitionBody (config v) (contract v)

@@ -1110,10 +1110,7 @@ theorem clipperTakeOweLtTabSliceGeLotIte (v : ClipperImmutables)
   simpa [oweFrame] using ExecStmt.iteFalse houter helse
 
 theorem clipperTakePostOweGtTabSubBlock (v : ClipperImmutables)
-    (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (price slice owe0 : UInt256)
-    (hsliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmRead I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmRead I).toNat) :
+    (evmLoc evmRead : EVM.State) (I : ExecutionEnv) (price slice owe0 : UInt256) :
     let slice' := UInt256.div (clipperTakeSalesTabEVMWord evmRead I) price
     let tabNew := UInt256.sub (clipperTakeSalesTabEVMWord evmRead I)
       (clipperTakeSalesTabEVMWord evmRead I)
@@ -1165,7 +1162,6 @@ theorem clipperTakePostOweGtTabSubBlock (v : ClipperImmutables)
         (.ok lotNewFrame evmRead) := by
     simpa [tabNewFrame, lotNewFrame, lotNew, slice'] using
       clipperTakeLetLotNew v evmLoc evmRead I price slice owe0 owe0 slice' tabNew
-        hsliceLot
   have hassignTab :
       ExecStmt (config v) lotNewFrame evmRead
         (.assign .localVar (varRef "tab") (.var "tabNew"))
@@ -1380,9 +1376,6 @@ theorem clipperTakeOweGtTabVatFluxNoCodeTailBlock (v : ClipperImmutables)
     (hgt :
       (clipperTakeSalesTabEVMWord evmRead I).toNat <
         (UInt256.mul slice price).toNat)
-    (hsliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmRead I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hnoVatCode :
       (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0) :
@@ -1473,7 +1466,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeTailBlock (v : ClipperImmutables)
             .assign .localVar (varRef "lot") (.var "lotNew") ])
         (.ok postSubFrame evmRead) := by
     simpa [adjustedFrame, postSubFrame, slice', tabNew, lotNew] using
-      clipperTakePostOweGtTabSubBlock v evmLoc evmRead I price slice owe0 hsliceLot
+      clipperTakePostOweGtTabSubBlock v evmLoc evmRead I price slice owe0
   have hvatRevert :
       ExecBlock (config v) postSubFrame evmRead
         (checkedExternalCallStmts (vatExpr v) "flux" (.intLit 0)
@@ -1531,9 +1524,6 @@ theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {cA gh bl σ σ₀ A I}
           (clipperMinWord (clipperTakeSalesLotEVMWord evmPrice I)
             (clipperTakeAmtWord I))
           price).toNat)
-    (hsliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmPrice I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmPrice I).toNat)
     (hnoVatCode :
       (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat =
         0)
@@ -1731,7 +1721,7 @@ theorem clipperTakeOweGtTabVatFluxNoCodeSourceReverts {cA gh bl σ σ₀ A I}
         .reverted := by
     simpa [sliceFrame, slice, lot, tab] using
       clipperTakeOweGtTabVatFluxNoCodeTailBlock v evmLock evmPrice I price slice
-        hmul hgt hsliceLot hnoVatCode
+        hmul hgt hnoVatCode
   have hblock :
       ExecBlock (config v) startFrame evm0 (takeTransition v).body .reverted := by
     simpa [takeTransition, nonpayable, lockPrefix, isStopped, startFrame,
@@ -1807,9 +1797,6 @@ theorem clipperTakeOweGtTabVatFluxCallFailureTailBlock (v : ClipperImmutables)
     (hgt :
       (clipperTakeSalesTabEVMWord evmRead I).toNat <
         (UInt256.mul slice price).toNat)
-    (hsliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmRead I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmRead I).toNat)
     (hvatCode :
       0 <
         (UInt256.ofNat ((evmRead.lookupAccount v.vat).option 0 (fun acc => acc.code.size))).toNat)
@@ -1908,7 +1895,7 @@ theorem clipperTakeOweGtTabVatFluxCallFailureTailBlock (v : ClipperImmutables)
             .assign .localVar (varRef "lot") (.var "lotNew") ])
         (.ok postSubFrame evmRead) := by
     simpa [adjustedFrame, postSubFrame, slice', tabNew, lotNew] using
-      clipperTakePostOweGtTabSubBlock v evmLoc evmRead I price slice owe0 hsliceLot
+      clipperTakePostOweGtTabSubBlock v evmLoc evmRead I price slice owe0
   have hargs :
       evalExprs? (config v) postSubFrame evmRead
         [ilkExpr v, thisAddr, .var "who", .var "slice"] =

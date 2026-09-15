@@ -203,12 +203,6 @@ theorem clipperTakeOweGtTabEquiv
       (UInt256.mul initialSlice price).toNat := by
     rw [← htab]
     simpa only [initialSlice, lot, u256_mul_comm] using hgt
-  have hsliceLot :
-      (UInt256.div (clipperTakeSalesTabEVMWord evmPrice I) price).toNat ≤
-        (clipperTakeSalesLotEVMWord evmPrice I).toNat :=
-    clipperTakeOweGtTabSourceDivLeLot_of_post_words
-      (I := I) (evmPrice := evmPrice) (price := price)
-      (tab := tab) (lot := lot) htab hlot hmul hgt
   have hsourceMul :
       (clipperMinWord (clipperTakeSalesLotEVMWord evmPrice I)
         (clipperTakeAmtWord I)).toNat * price.toNat < UInt256.size :=
@@ -471,7 +465,7 @@ theorem clipperTakeOweGtTabEquiv
     exact clipperTakeOweGtTabVatFluxNoCodeSourceReverts
       (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) v hwv hlocked hstopped husr price hmax
-      hsourceMul hsourceGt hsliceLot hnoCode hstatus
+      hsourceMul hsourceGt hnoCode hstatus
   have hsourceVatFailure : ∀ {evmVat : EVM.State} {outVat : ByteArray},
       0 < (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat →
@@ -497,7 +491,7 @@ theorem clipperTakeOweGtTabEquiv
     exact clipperTakeOweGtTabVatFluxCallFailureSourceReverts
       (cA := cA) (gh := gh) (bl := bl) (σ := σ_solm) (σ₀ := σ₀)
       (A := A) (I := I) (g := g) v hwv hlocked hstopped husr price hmax
-      hsourceMul hsourceGt hsliceLot hvatCode hcallVat' hstatus
+      hsourceMul hsourceGt hvatCode hcallVat' hstatus
   have hsourceFluxSuccess : ∀ {evmVat : EVM.State} {outVat : ByteArray},
       0 < (UInt256.ofNat ((evmPrice.lookupAccount v.vat).option 0
         (fun acc => acc.code.size))).toNat →
@@ -523,7 +517,7 @@ theorem clipperTakeOweGtTabEquiv
     simpa only [sliceLocals, fluxLocals, owe0, slice, tabNew, lotNew,
       htab, hlot] using
       clipperTakeOweGtTabVatFluxCallSuccessTailBlock v evmLock evmPrice
-        evmVat I price initialSlice hsrcMul hsrcGt hsliceLot hvatCode hcallVat'
+        evmVat I price initialSlice hsrcMul hsrcGt hvatCode hcallVat'
   have hsourceCloseReverted :
       ExecBlock (config v) (Frame.mk (contract v) sliceLocals) evmPrice
         (clipperTakeAfterSliceStmts v) .reverted →
