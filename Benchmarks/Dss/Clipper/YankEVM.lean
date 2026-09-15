@@ -807,23 +807,22 @@ theorem clipperYankIlkPatchPayload2221 (v : ClipperImmutables) {code : ByteArray
         List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
-set_option maxRecDepth 2000000 in
-set_option maxHeartbeats 1000000 in
 theorem clipperYankIlkPush32Decode2220 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {bs : List UInt8} (hilk : v.ilk = .fixedBytes ⟨31, by decide⟩ bs)
     (hlen : bs.length = 32) :
     decode code (⟨2220⟩ : UInt256) =
       some (.Push .PUSH32, some (EVM.Word.ofNat (fromBytesBigEndian bs), 32)) := by
-  unfold decode
-  rw [patchRuntime_get?_disjoint hpatch
-    (by apply clipperYankPatchesWindowDisjoint32 v <;> native_decide)]
-  change some (Operation.Push Operation.POp.PUSH32,
-      some (uInt256OfByteArray (code.extract' 2221 2253), 32)) =
-    some (Operation.Push Operation.POp.PUSH32,
-      some (EVM.Word.ofNat (fromBytesBigEndian bs), 32))
-  rw [clipperYankIlkPatchPayload2221 v hpatch hilk hlen]
-  rw [uInt256OfByteArray_word_toBytesBE]
+  exact decode_push32_of_get?_extract'
+    (pc := (⟨2220⟩ : UInt256)) (w := EVM.Word.ofNat (fromBytesBigEndian bs))
+    (by
+      rw [patchRuntime_get?_disjoint hpatch
+        (by apply clipperYankPatchesWindowDisjoint32 v <;> native_decide)]
+      native_decide)
+    (by
+      rw [show (⟨2220⟩ : UInt256).toNat + 1 = 2221 by native_decide]
+      rw [show (⟨2220⟩ : UInt256).toNat + 33 = 2253 by native_decide]
+      exact clipperYankIlkPatchPayload2221 v hpatch hilk hlen)
 
 theorem clipperYankIlkPatchPayload2369 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
@@ -861,23 +860,22 @@ theorem clipperYankIlkPatchPayload2369 (v : ClipperImmutables) {code : ByteArray
         List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
-set_option maxRecDepth 2000000 in
-set_option maxHeartbeats 1000000 in
 theorem clipperYankIlkPush32Decode2368 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
     {bs : List UInt8} (hilk : v.ilk = .fixedBytes ⟨31, by decide⟩ bs)
     (hlen : bs.length = 32) :
     decode code (⟨2368⟩ : UInt256) =
       some (.Push .PUSH32, some (EVM.Word.ofNat (fromBytesBigEndian bs), 32)) := by
-  unfold decode
-  rw [patchRuntime_get?_disjoint hpatch
-    (by apply clipperYankPatchesWindowDisjoint32AfterIlk v <;> native_decide)]
-  change some (Operation.Push Operation.POp.PUSH32,
-      some (uInt256OfByteArray (code.extract' 2369 2401), 32)) =
-    some (Operation.Push Operation.POp.PUSH32,
-      some (EVM.Word.ofNat (fromBytesBigEndian bs), 32))
-  rw [clipperYankIlkPatchPayload2369 v hpatch hilk hlen]
-  rw [uInt256OfByteArray_word_toBytesBE]
+  exact decode_push32_of_get?_extract'
+    (pc := (⟨2368⟩ : UInt256)) (w := EVM.Word.ofNat (fromBytesBigEndian bs))
+    (by
+      rw [patchRuntime_get?_disjoint hpatch
+        (by apply clipperYankPatchesWindowDisjoint32AfterIlk v <;> native_decide)]
+      native_decide)
+    (by
+      rw [show (⟨2368⟩ : UInt256).toNat + 1 = 2369 by native_decide]
+      rw [show (⟨2368⟩ : UInt256).toNat + 33 = 2401 by native_decide]
+      exact clipperYankIlkPatchPayload2369 v hpatch hilk hlen)
 
 theorem clipperYankVatPatchPayload2437 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
@@ -916,20 +914,20 @@ theorem clipperYankVatPatchPayload2437 (v : ClipperImmutables) {code : ByteArray
         List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
-set_option maxRecDepth 2000000 in
-set_option maxHeartbeats 1000000 in
 theorem clipperYankVatPush32Decode2436 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
     decode code (⟨2436⟩ : UInt256) =
       some (.Push .PUSH32, some (EVM.Word.ofNat (↑v.vat : Nat), 32)) := by
-  unfold decode
-  rw [patchRuntime_get?_disjoint hpatch
-    (by apply clipperYankPatchesWindowDisjoint32FluxBeforeVat v <;> native_decide)]
-  change some (Operation.Push Operation.POp.PUSH32,
-      some (uInt256OfByteArray (code.extract' 2437 2469), 32)) =
-    some (Operation.Push Operation.POp.PUSH32, some (EVM.Word.ofNat (↑v.vat : Nat), 32))
-  rw [clipperYankVatPatchPayload2437 v hpatch]
-  rw [uInt256OfByteArray_word_toBytesBE]
+  exact decode_push32_of_get?_extract'
+    (pc := (⟨2436⟩ : UInt256)) (w := EVM.Word.ofNat (↑v.vat : Nat))
+    (by
+      rw [patchRuntime_get?_disjoint hpatch
+        (by apply clipperYankPatchesWindowDisjoint32FluxBeforeVat v <;> native_decide)]
+      native_decide)
+    (by
+      rw [show (⟨2436⟩ : UInt256).toNat + 1 = 2437 by native_decide]
+      rw [show (⟨2436⟩ : UInt256).toNat + 33 = 2469 by native_decide]
+      exact clipperYankVatPatchPayload2437 v hpatch)
 
 theorem clipperYankJumpDest1994 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :

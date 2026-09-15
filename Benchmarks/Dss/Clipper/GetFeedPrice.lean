@@ -1794,8 +1794,6 @@ theorem clipperGetFeedPriceIlkPatchPayload8747 (v : ClipperImmutables)
         List.lookup_cons, ilkBytes, vatBytes] using hpatch)
     hsize hpost (by norm_num) (by norm_num)
 
-set_option maxRecDepth 2000000 in
-set_option maxHeartbeats 1000000 in
 theorem clipperGetFeedPriceIlkPush32Decode8746 (v : ClipperImmutables)
     {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code)
@@ -1803,15 +1801,16 @@ theorem clipperGetFeedPriceIlkPush32Decode8746 (v : ClipperImmutables)
     (hlen : bs.length = 32) :
     decode code (⟨8746⟩ : UInt256) =
       some (.Push .PUSH32, some (EVM.Word.ofNat (fromBytesBigEndian bs), 32)) := by
-  unfold decode
-  rw [patchRuntime_get?_disjoint hpatch
-    (by apply clipperRuntimePatchesWindowDisjoint32Bool v; native_decide)]
-  change some (Operation.Push Operation.POp.PUSH32,
-      some (uInt256OfByteArray (code.extract' 8747 8779), 32)) =
-    some (Operation.Push Operation.POp.PUSH32,
-      some (EVM.Word.ofNat (fromBytesBigEndian bs), 32))
-  rw [clipperGetFeedPriceIlkPatchPayload8747 v hpatch hilk hlen]
-  rw [uInt256OfByteArray_word_toBytesBE]
+  exact decode_push32_of_get?_extract'
+    (pc := (⟨8746⟩ : UInt256)) (w := EVM.Word.ofNat (fromBytesBigEndian bs))
+    (by
+      rw [patchRuntime_get?_disjoint hpatch
+        (by apply clipperRuntimePatchesWindowDisjoint32Bool v; native_decide)]
+      native_decide)
+    (by
+      rw [show (⟨8746⟩ : UInt256).toNat + 1 = 8747 by native_decide]
+      rw [show (⟨8746⟩ : UInt256).toNat + 33 = 8779 by native_decide]
+      exact clipperGetFeedPriceIlkPatchPayload8747 v hpatch hilk hlen)
 
 theorem clipperGetFeedPriceJumpDest8836 (v : ClipperImmutables) {code : ByteArray}
     (hpatch : patchRuntime clipperBytecode (patches v) = some code) :
