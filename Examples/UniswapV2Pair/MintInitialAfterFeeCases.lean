@@ -154,4 +154,3 @@ theorem uniswapMintInitialAfterMintFeeCases
       (returnEquiv_of_encode (by simpa only [uint256] using uint256ReturnEncoding liquidity))
 
 end UniswapV2Pair
-

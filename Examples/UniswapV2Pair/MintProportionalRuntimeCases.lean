@@ -114,4 +114,3 @@ theorem uniswapMintProportionalRuntimeCases
   · exact Or.inl ⟨ExecBlock.consRevert hrev, hfailed⟩
 
 end UniswapV2Pair
-

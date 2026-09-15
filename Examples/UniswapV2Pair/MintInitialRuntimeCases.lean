@@ -97,4 +97,3 @@ theorem uniswapMintInitialRuntimeCases
       storageStore_createdAccounts]
 
 end UniswapV2Pair
-
