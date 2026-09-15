@@ -137,4 +137,66 @@ example : surfaceNegContract.transitions[0]!.body =
       .return [.unary (.neg (.sint ⟨256, by decide⟩)) (.cast (.var "value") int256Storage)] ] := by
   rfl
 
+/-! `UnaryOp.neg` models wrapping (legacy/unchecked) negation, not modern
+Solidity's checked-overflow mode. In particular, every signed minimum is
+fixed by negation; do not exclude that boundary from the contract proofs. -/
+
+#guard integerWidths.all fun bits =>
+  let half : Int := EVM.twoPow (bits.val - 1)
+  [(-half, -half), (-half + 1, half - 1), (-1, 1), (0, 0), (1, -1),
+   (half - 1, 1 - half)].all fun (input, expected) =>
+    decide (evalUnaryOp? (.neg (.sint bits)) (.int input) = some (.int expected))
+
+#guard integerWidths.all fun bits => (castBoundaryCases bits).all fun (_, _, signed) =>
+  decide (((evalUnaryOp? (.neg (.sint bits)) (.int signed)).bind
+    (evalUnaryOp? (.neg (.sint bits)))) = some (.int signed))
+
+example (cfg : Config) (solm : Frame) (evm : EVM.State) :
+    evalExpr? cfg solm evm
+      (.unary (.neg (.sint ⟨8, by decide⟩)) (.cast (.intLit 128) int8Storage)) =
+      .ok (.int (-128)) := by
+  simp [evalExpr?, int8Storage, castValue?, evalUnaryOp?,
+    EvalResult.bind, bind, pure, EvalResult.ofOption, normalizeInt]
+  native_decide
+
+-- An operand range assertion must still revert instead of cleaning the input.
+example (cfg : Config) (solm : Frame) (evm : EVM.State) :
+    evalExpr? cfg solm evm
+      (.unary (.neg (.sint ⟨8, by decide⟩))
+        (.inRange (.sint ⟨8, by decide⟩) (.intLit 128))) = .revert := by
+  simp [evalExpr?, EvalResult.bind, bind, pure]
+
+example (cfg : Config) (solm : Frame) (evm : EVM.State) :
+    evalExpr? cfg solm evm
+      (.unary (.neg (.sint ⟨8, by decide⟩)) (.boolLit true)) = .error .typeError := by
+  simp [evalExpr?, evalUnaryOp?, EvalResult.bind, bind, pure, EvalResult.ofOption]
+
+def surfaceNegVariants : ContractDecl := solidity% contract NegVariants {
+  function parenthesized(int256 value) external returns (int8) {
+    return -(int8(value));
+  }
+  function rangeChecked(int256 value) external returns (int8) {
+    return -(value as int8);
+  }
+}
+
+example : surfaceNegVariants.transitions[0]!.body =
+    [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+      .return [.unary (.neg (.sint ⟨8, by decide⟩)) (.cast (.var "value") int8Storage)] ] := by
+  rfl
+
+example : surfaceNegVariants.transitions[1]!.body =
+    [ .require (.binary .eq (.env .callvalue) (.intLit 0)),
+      .return [.unary (.neg (.sint ⟨8, by decide⟩))
+        (.inRange (.sint ⟨8, by decide⟩) (.var "value"))] ] := by
+  rfl
+
+/-- error: solm: unary '-' requires an explicitly typed operand, e.g. '-int256(x)' -/
+#guard_msgs in
+def surfaceNegUntyped : ContractDecl := solidity% contract UntypedNeg {
+  function neg(int8 value) external returns (int8) {
+    return -value;
+  }
+}
+
 end Solm.CastTests
